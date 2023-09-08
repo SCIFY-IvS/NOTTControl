@@ -219,16 +219,17 @@ class DelayLinesWindow(QWidget):
         else:
             previous_timestamp = None
         
-        self.current_pos, self.current_speed, self.timestamp = self.opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.lrPosActual", "ns=4;s=MAIN.DL_Servo_1.stat.lrVelActual", "ns=4;s=MAIN.sTime"])
+        current_pos, current_speed, timestamp = self.opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.lrPosActual", "ns=4;s=MAIN.DL_Servo_1.stat.lrVelActual", "ns=4;s=MAIN.sTime"])
 
-        if (previous_timestamp is not None) and previous_timestamp == self.timestamp:
+        if (previous_timestamp is not None) and previous_timestamp == timestamp:
             print('Duplicate timestamp!')
             print(self.timestamp)
             return
-
+        
         # Convert mm -> micron
-        self.current_pos = self.current_pos * 1000
-        self.current_speed = self.current_speed * 1000
+        self.current_pos = current_pos * 1000
+        self.current_speed = current_speed * 1000
+        self.timestamp = timestamp
 
         timestamp_d = datetime.utcnow()
         # datetime.strptime(self.timestamp, '%Y-%m-%d-%H:%M:%S.%f')  ! Does not record in DB like this (TO BE FIXED)
