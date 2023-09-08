@@ -6,8 +6,8 @@ import time
 
 
 class OPCUAConnection:
-    def __init__(self):
-        self.client = Client("opc.tcp://10.33.178.141:4840/freeopcua/server/")
+    def __init__(self, url):
+        self.client = Client(url)
 
     def connect(self):
         self.client.connect()

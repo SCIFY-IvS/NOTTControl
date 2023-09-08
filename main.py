@@ -1,11 +1,16 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 from opcua import OPCUAConnection
+from configparser import ConfigParser
 from scifygui import MainWindow
 
 def main():
     # initialize the OPC UA connection
-    opcua_conn = OPCUAConnection()
+    config = ConfigParser()
+    config.read('config.ini')
+    url =  config['DEFAULT']['opcuaaddress']
+
+    opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
 
     # set up the main window

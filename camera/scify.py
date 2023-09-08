@@ -16,12 +16,11 @@ from PyQt5.QtWidgets import (QPushButton,QGridLayout,QCheckBox,
                              QComboBox,QLabel,QLineEdit,QFrame,
                              )
 from PyQt5.QtWidgets import QFileDialog
-from .infratec_interface import InfratecInterface, Image
+from camera.infratec_interface import InfratecInterface, Image
 
 import numpy
-from .brightness_calculator import BrightnessCalculator
-from .roi_filewriter import ROIFileWriter
-from .parametersdialog import ParametersDialog
+from camera.brightness_calculator import BrightnessCalculator
+from camera.parametersdialog import ParametersDialog
 from redisclient import RedisClient
 
 from configparser import ConfigParser
