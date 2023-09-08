@@ -165,8 +165,12 @@ class DelayLinesWindow(QWidget):
         self.parent = parent
         self._scan_status = FringeScanStatus.NOT_SCANNING
 
+        config = ConfigParser()
+        config.read('config.ini')
+        url =  config['DEFAULT']['opcuaaddress']
+
         # save the OPC UA connection
-        self.opcua_conn = OPCUAConnection()
+        self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
         self.redis_client = redis_client
