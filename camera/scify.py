@@ -224,10 +224,10 @@ class MainWindow(QMainWindow):
     def calculate_roi(self, img, timestamp):
         self.t_startroi = time.perf_counter()
         
-        calculator = BrightnessCalculator(img, self.roi_ul.getArrayRegion(self.image.getImageItem().image, self.image.getImageItem()),
-                                      self.roi_ll.getArrayRegion(self.image.getImageItem().image, self.image.getImageItem()),
-                                      self.roi_lr.getArrayRegion(self.image.getImageItem().image, self.image.getImageItem()),
-                                      self.roi_ur.getArrayRegion(self.image.getImageItem().image, self.image.getImageItem()))
+        calculator = BrightnessCalculator(img, self.roi_ul.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi_ll.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi_lr.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi_ur.getArrayRegion(img, self.image.getImageItem()))
         
         calculator.run()
         
