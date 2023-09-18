@@ -2,6 +2,7 @@ import redis
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
@@ -9,7 +10,7 @@ from datetime import timedelta
 epoch = datetime.utcfromtimestamp(0)
 
 # Script parameters
-delay = 10 # s, window to consider when scanning the fringes
+delay = 4.0 # s, window to consider when scanning the fringes
 
 # Function definitions
 def unix_time_ms(time):
@@ -18,54 +19,59 @@ def unix_time_ms(time):
 def real_time(unix_time):
     return datetime.utcfromtimestamp(unix_time / 1000)
 
-# Initiate live loop and plot
-#plt.ion()
-fig, ax = plt.subplots()
-
-for i in range(1):
-
-    # Connect to REDIS database 
-    r = redis.from_url('redis://10.33.178.176:6379')
-    ts = r.ts()
-
-    # Get all data for the fringe scan
-    # Define time window
+def get_field(frame, field, delay):
+    
+    # Define time interval
     end   = datetime.utcnow()
     start = end - timedelta(seconds=delay) 
-    #print(epoch, start, end)
     
-    # Get ROI values
-    result_roi1 = ts.range('roi1_max', unix_time_ms(start), unix_time_ms(end))
-    result_roi2 = ts.range('roi2_max', unix_time_ms(start), unix_time_ms(end))
-    result_roi3 = ts.range('roi3_max', unix_time_ms(start), unix_time_ms(end))
-    result_roi4 = ts.range('roi4_max', unix_time_ms(start), unix_time_ms(end))
+    # Read data
+    r = redis.from_url('redis://10.33.178.176:6379')
+
+    # Extract data
+    ts = r.ts()
+
+     # Get ROI values
+    result = ts.range(field, unix_time_ms(start), unix_time_ms(end))
+    output = [(x[1]) for x in result]
     
     # Convert to UTC time
-    real_time_time_roi1    = [(x[0] / 1000) for x in result_roi1]
-    real_time_time_roi1    -= np.min(real_time_time_roi1)
-    real_time_results_roi1 = [(x[1]) for x in result_roi1]
-    real_time_results_roi2 = [(x[1]) for x in result_roi2]
-    real_time_results_roi3 = [(x[1]) for x in result_roi3]
-    real_time_results_roi4 = [(x[1]) for x in result_roi4]
+    real_time = [(x[0] / 1000) for x in result]
+    real_time -= np.min(real_time)
 
-    # Get DL position
-    dl1_pos = ts.range('dl_pos_1', unix_time_ms(start), unix_time_ms(end))
-    real_time_dl_time = [((x[0] / 1000)) for x in dl1_pos]
-    real_time_dl_time -= np.min(real_time_dl_time)
-    real_time_dl_pos  = [(x[1]) for x in dl1_pos]
+    # Update line
+    line.set_xdata(real_time)   
+    line.set_ydata(output)  
 
-    ax.clear() 
-    ax.set_xlim(np.min(real_time_time_roi1), np.max(real_time_time_roi1))
-    ax.set_ylim(np.min(real_time_results_roi1), np.max(real_time_results_roi1))
-    ax.set_xlabel('Elapsed time [s]')
-    ax.set_ylabel('ROI value')
+    # Adjust the axis range
+    x_min, x_max = np.min(real_time), np.max(real_time) 
+    margin = 0
+    ax.set_xlim(x_min - margin, x_max + margin) 
 
-    ax.plot(real_time_time_roi1, real_time_results_roi1, '-o')
+    y_min, y_max = np.min(output), np.max(output) 
+    margin = 0.2*(y_max - y_min)
+    ax.set_ylim(y_min - margin, y_max + margin) 
 
-    plt.draw()
-    plt.show()
-    time.sleep(1)
+    # Return 
+    return line
 
-# Turn off plot plot
-#plt.ioff
+# Start animation
+fig, ax = plt.subplots()
 
+# Label axes
+ax.clear() 
+ax.set_xlabel('Elapsed time [s]')
+ax.set_ylabel('ROI value')
+
+# Some initial data
+x = np.linspace(0, delay, 10)
+y = np.cos(x)
+
+# Create a line object that will be updated
+line, = ax.plot(x, y)
+
+# Start animation
+ani_roi = FuncAnimation(fig, get_field, frames=range(100), fargs=('roi1_max', delay), blit=False)  
+
+plt.show()
+# dl_pos_1
