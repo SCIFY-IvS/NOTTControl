@@ -24,11 +24,19 @@ from camera.parametersdialog import ParametersDialog
 from redisclient import RedisClient
 
 from configparser import ConfigParser
+from collections import deque
+from enum import Enum
 
 t=time.perf_counter()
 tLive=t
 
 img_timestamp_ref = None
+
+class Roi(Enum):
+    ROI_1 = 'Roi 1'
+    ROI_2 = 'Roi 2'
+    ROI_3 = 'Roi 3'
+    ROI_4 = 'Roi 4'
 
 def callback(context,*args):#, aHandle, aStreamIndex):
     global img_timestamp_ref
@@ -48,7 +56,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.interface = InfratecInterface()
+
         pg.setConfigOptions(imageAxisOrder='row-major')
+        ## Switch to using white background and black foreground
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
         
         self.ui = loadUi('camera/mainwindow.ui', self)
         self.connectSignalSlots()
@@ -90,6 +102,11 @@ class MainWindow(QMainWindow):
         self.ui.button_trigger.clicked.connect(self.trigger_clicked)
 
         self.ui.button_parameters.clicked.connect(self.configure_parameters)
+
+        self.ui.button_roi1.clicked.connect(self.setplot_roi1)
+        self.ui.button_roi2.clicked.connect(self.setplot_roi2)
+        self.ui.button_roi3.clicked.connect(self.setplot_roi3)
+        self.ui.button_roi4.clicked.connect(self.setplot_roi4)
     
     def configure_parameters(self):
         dialog = ParametersDialog(self.interface)
@@ -145,8 +162,13 @@ class MainWindow(QMainWindow):
     def start_recording(self):
         if self.recording:
             return
+        
+        self.timestamps.clear()
+        self.roi1_max_values.clear()
+        self.roi2_max_values.clear()
+        self.roi3_max_values.clear()
+        self.roi4_max_values.clear()
 
-        self.tmax_graph = time.perf_counter()
         self.ui.button_record.setText('Stop')
         self.ui.label_recording.setText('Recording')
         self.recording = True
@@ -161,7 +183,19 @@ class MainWindow(QMainWindow):
 
     def trigger_clicked(self):
         print('trigger')
-        
+    
+    def setplot_roi1(self):
+        self.active_roi_plot = Roi.ROI_1
+    
+    def setplot_roi2(self):
+        self.active_roi_plot = Roi.ROI_2
+
+    def setplot_roi3(self):
+        self.active_roi_plot = Roi.ROI_3
+
+    def setplot_roi4(self):
+        self.active_roi_plot = Roi.ROI_4
+
     def load_image(self, recording_timestamp):  
         global t
         global tLive
@@ -214,12 +248,46 @@ class MainWindow(QMainWindow):
         
         self.image.autoRange()
         self.imageInit = True
+
+        axis = pg.DateAxisItem(orientation='bottom')
+        self.pw_roi = pg.PlotWidget(parent = self.ui.frame_roi_graph,axisItems={'bottom': axis})
+        self.pw_roi.setMinimumWidth(self.ui.frame_roi_graph.width())
+        self.pw_roi.setMinimumHeight(self.ui.frame_roi_graph.height())
+        
+        self.pw_roi.show()
+        self.plot_data_item_roi = self.pw_roi.plot()
+        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time')
+
+        #This should translate to roughly 30s, assuming 200 Hz
+        deque_length = 6000
+
+        self.timestamps = deque(maxlen = deque_length)
+        self.roi1_max_values = deque(maxlen = deque_length)
+        self.roi2_max_values = deque(maxlen = deque_length)
+        self.roi3_max_values = deque(maxlen = deque_length)
+        self.roi4_max_values = deque(maxlen = deque_length)
+
+        self.active_roi_plot = Roi.ROI_1
         
     def update_image(self, img):
         if not self.imageInit:
             self.initialize_image_display(img)
         else:
             self.image.getImageItem().updateImage(img)
+        
+        match self.active_roi_plot:
+            case Roi.ROI_1:
+                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi1_max_values))
+                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 1')
+            case Roi.ROI_2:
+                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi2_max_values))
+                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 2')
+            case Roi.ROI_3:
+                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi3_max_values))
+                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 3')
+            case Roi.ROI_4:
+                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi4_max_values))
+                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 4')
     
     def calculate_roi(self, img, timestamp):
         self.t_startroi = time.perf_counter()
@@ -232,6 +300,11 @@ class MainWindow(QMainWindow):
         calculator.run()
         
         self.redisclient.add_roi_max_values(timestamp, calculator.max_ul, calculator.max_ur, calculator.max_ll, calculator.max_lr)
+        self.timestamps.appendleft(datetime.timestamp(timestamp))
+        self.roi1_max_values.appendleft(calculator.max_ul)
+        self.roi2_max_values.appendleft(calculator.max_ur)
+        self.roi3_max_values.appendleft(calculator.max_ll)
+        self.roi4_max_values.appendleft(calculator.max_lr)
         
         self.t_endroi = time.perf_counter()
         
