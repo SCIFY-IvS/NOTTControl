@@ -27,15 +27,15 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>20</y>
+      <y>50</y>
       <width>839</width>
-      <height>671</height>
+      <height>641</height>
      </rect>
     </property>
     <property name="minimumSize">
      <size>
       <width>839</width>
-      <height>671</height>
+      <height>641</height>
      </size>
     </property>
     <property name="frameShape">
@@ -450,6 +450,41 @@
     <property name="frameShadow">
      <enum>QFrame::Raised</enum>
     </property>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>20</y>
+      <width>314</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="button_takebackground">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Take Background</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBox_subtractbackground">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Substract Background</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

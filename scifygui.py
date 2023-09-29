@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         self.opcua_conn = opcua_conn
 
         self.camera_window = None
+        self.delayline_window = None
 
         config = ConfigParser()
         config.read('config.ini')
@@ -66,18 +67,11 @@ class MainWindow(QMainWindow):
     
     def open_camera_interface(self):
         try:
-            if not self.camera_window is None:
-                return
-            
-            #self.camera_window = Ui_MainWindow(self.opcua_conn, self.redis_client)
-            self.camera_window = camera_ui()
-            self.camera_window.show()
-            print("Camera window is opening fine")
-
-
-            # set the OPC UA connection on the delay lines window
-            # print("self.opcua_conn in set_opcua_conn", self.opcua_conn)
-            # self.delay_lines_window.set_opcua_conn(self.opcua_conn)
+            if self.camera_window is None:
+                self.camera_window = camera_ui()
+                self.camera_window.show()
+            else:
+                self.camera_window.activateWindow()
 
         except Exception as e:
             print(f"Error opening camera window: {e}")
@@ -114,16 +108,12 @@ class MainWindow(QMainWindow):
     def open_delay_lines(self):
 
         try:
-
-            self.delay_lines_window = DelayLinesWindow(self, self.opcua_conn, self.redis_client)
-            self.delay_lines_window.show()
-            print("Dl window is opening fine")
-
-
-            # set the OPC UA connection on the delay lines window
-            # print("self.opcua_conn in set_opcua_conn", self.opcua_conn)
-            # self.delay_lines_window.set_opcua_conn(self.opcua_conn)
-
+            if self.delayline_window is None:
+                self.delayline_window = DelayLinesWindow(self, self.opcua_conn, self.redis_client)
+                self.delayline_window.show()
+                print("Dl window is opening fine")
+            else:
+                self.delayline_window.activateWindow()
         except Exception as e:
             print(f"Error opening delay lines window: {e}")
 

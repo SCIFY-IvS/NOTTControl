@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import QFileDialog
 from camera.infratec_interface import InfratecInterface, Image
 
 import numpy
+import cv2
 from camera.brightness_calculator import BrightnessCalculator
 from camera.parametersdialog import ParametersDialog
 from redisclient import RedisClient
@@ -107,6 +108,8 @@ class MainWindow(QMainWindow):
         self.ui.button_roi2.clicked.connect(self.setplot_roi2)
         self.ui.button_roi3.clicked.connect(self.setplot_roi3)
         self.ui.button_roi4.clicked.connect(self.setplot_roi4)
+
+        self.ui.button_takebackground.clicked.connect(self.take_background)
     
     def configure_parameters(self):
         dialog = ParametersDialog(self.interface)
@@ -138,6 +141,7 @@ class MainWindow(QMainWindow):
             self.ui.label_connection.setText('Connected to camera')
             #self.max_values = []
             self.ui.button_record.setEnabled(True)
+            self.ui.button_takebackground.setEnabled(True)
             self.nbCameraImages = 0
             self.frame_rate_timer.start(5000)
             
@@ -151,6 +155,8 @@ class MainWindow(QMainWindow):
             self.ui.button_connect.setText('Connect')
             self.ui.label_connection.setText('Not connected to camera')
             self.ui.button_record.setEnabled(False)
+            self.ui.button_takebackground.setEnabled(False)
+            self.ui.checkBox_subtractbackground.setEnabled(False)
             self.frame_rate_timer.stop()
 
     def record_clicked(self):
@@ -195,7 +201,11 @@ class MainWindow(QMainWindow):
 
     def setplot_roi4(self):
         self.active_roi_plot = Roi.ROI_4
-
+    
+    def take_background(self):
+        self.background_img = self.image.getImageItem().image
+        self.ui.checkBox_subtractbackground.setEnabled(True)
+    
     def load_image(self, recording_timestamp):  
         global t
         global tLive
@@ -273,6 +283,9 @@ class MainWindow(QMainWindow):
         if not self.imageInit:
             self.initialize_image_display(img)
         else:
+            if self.ui.checkBox_subtractbackground.isChecked():
+                img = cv2.subtract(img, self.background_img)
+                print(cv2.mean(img))
             self.image.getImageItem().updateImage(img)
         
         match self.active_roi_plot:
