@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     request_image_update = pyqtSignal(numpy.ndarray)
     roi_calculation_finished = pyqtSignal(BrightnessCalculator)
+    closing = pyqtSignal()
     
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -361,6 +362,7 @@ class MainWindow(QMainWindow):
             self.stop_recording()
         self.interface.free_device()
         self.interface.free_dll()
+        self.closing.emit()
         super().closeEvent(*args)
 
 if __name__ == "__main__":
