@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         self.image.show()
         self.imageInit = False
         
-        self.image.getView().setMouseEnabled(x = False, y = False)
+        self.image.getView().setMouseEnabled(x = True, y = True)
         self.image.getView().disableAutoRange()
         
         self.request_image_update.connect(self.update_image)
