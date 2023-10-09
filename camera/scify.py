@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
                 print(cv2.mean(img))
-            self.image.getImageItem().updateImage(img)
+            self.image.getImageItem().setImage(img, autoLevels = True)
         
         match self.active_roi_plot:
             case Roi.ROI_1:
