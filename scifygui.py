@@ -188,7 +188,7 @@ class DelayLinesWindow(QWidget):
         self.timestamp = None
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_position)
-        self.t_pos.start(450)
+        self.t_pos.start(10)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
