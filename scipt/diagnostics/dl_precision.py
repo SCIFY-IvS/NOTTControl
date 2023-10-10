@@ -33,8 +33,8 @@ def compute_mean_sampling(time_vector):
 
 def fringes(dl_pos, ampl, delay):
     wav = 3.8
-    bw  = 4.0
-    return ampl*np.sinc(np.pi*bw*delay/wav**2)*np.cos(2*np.pi/wav*dl_pos)
+    bw  = 0.2
+    return ampl*np.sinc((dl_pos-delay)*bw/wav**2)*np.cos(2*np.pi/wav*dl_pos)   # See Lawson 2001, Eq 2.7
 
 # Move rel motor
 def move_rel_dl(rel_pos, speed):
@@ -50,9 +50,16 @@ def move_rel_dl(rel_pos, speed):
     method = parent.get_child("4:RPC_MoveRel")
     arguments = [rel_pos, speed]
     res = parent.call_method(method, *arguments)
-    opcua_conn.disconnect()
-    time.sleep(2)
+    
+    # Wait for the DL to be ready
+    on_destination = False
+    while not on_destination:
+        time.sleep(0.01)
+        status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.DL_Servo_1.stat.sStatus', 'ns=4;s=MAIN.DL_Servo_1.stat.sState'])
+        on_destination = status == 'STANDING' and state == 'OPERATIONAL'
 
+    # Disconnect
+    opcua_conn.disconnect()
     return 'done'
 
 # Move rel motor
@@ -70,9 +77,16 @@ def move_abs_dl(pos, speed):
     method = parent.get_child("4:RPC_MoveAbs")
     arguments = [pos, speed]
     res = parent.call_method(method, *arguments)
-    opcua_conn.disconnect()  
-    time.sleep(12)
     
+    # Wait for the DL to be ready
+    on_destination = False
+    while not on_destination:
+        time.sleep(0.01)
+        status, state = opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.sStatus", "ns=4;s=MAIN.DL_Servo_1.stat.sState"])
+        on_destination = status == 'STANDING' and state == 'OPERATIONAL'
+
+    # Disconnect
+    opcua_conn.disconnect()      
     return 'done'
 
 def get_field(field1, field2, field3, field4, delay):
@@ -102,8 +116,9 @@ def get_field(field1, field2, field3, field4, delay):
     temp   = ts.range('dl_pos_1', unix_time_ms(start), unix_time_ms(end))
     x_time = [(x[0] / 1000) for x in temp]
     x_pos0 = [(x[1]) for x in temp]
-    from pdb import set_trace
+    # from pdb import set_trace
     # set_trace()
+    
     # Interpolate DL position on ROIs time stamps
     vm = np.mean(x_pos0)
     f = interp1d(x_time, x_pos0, bounds_error=False, fill_value=vm, kind='cubic')
@@ -136,7 +151,7 @@ def get_field(field1, field2, field3, field4, delay):
 # PLOT of ROI vs time
 # Start animation
 plt.ion()
-fig, (ax_t1) = plt.subplots(1, 1, figsize=(5,12))
+fig, (ax_t1) = plt.subplots(1, 1, figsize=(8,5))
 
 # Label axes
 ax_t1.clear() 
@@ -144,13 +159,18 @@ ax_t1.set_xlabel('DL position [microns]')
 ax_t1.set_ylabel('ROI value')
 
 # Loop over DL scanning iteratoin
-dl_start = 1.200 # m
-dl_end   = 1.300 # ms
+dl_start = 1.150 # m
+dl_end   = 1.350 # ms
 rel_pos  = dl_end - dl_start
-speed    = 0.02 #mm/s
+speed    = 0.05 #mm/s
 
 # Set DL to initial position
 move_abs_dl(dl_start, speed)
+
+# Init line
+x = np.linspace(dl_start, dl_end, 10)
+line_t1, = ax_t1.plot(x, np.sin(x))
+line_t2, = ax_t1.plot(x, np.sin(x))
 
 # Loop over DL scans
 margin = 1
@@ -173,23 +193,27 @@ for it in range(n_iter):
     flux3  = data[3]
     flux4  = data[4]
         
-    # Fit fringes
-    flx_coh = flux2
-    #flx_mean = np.mean(flux2)
-    for i in range(len(flux2)):        
-        #flx_coh[i] = flux2[i] - flx_mean
-        flux2[i] -= it*2000
-
-    # rearrange
-    #idx = np.asort(dl_pos)
-    #dl_pos = dl_pos[idx]
-    #flux2 = flux2[idx]
+    # Rearrange
+    idx    = np.argsort(dl_pos)
+    flux2  = np.array(flux2)
+    flux2  = flux2[idx]
+    dl_pos = dl_pos[idx]
 
     # Fit fringes
-    #params, params_cov = curve_fit(fringes, dl_pos, flx_coh)
-    #print(params[0])
-    #print(1.9*params[1]/np.pi)
+    flx_coh = flux2 
+    flx_mean = np.mean(flux2)
+    for i, value in enumerate(flux2):
+        flx_coh[i] = value - flx_mean
+
+    # Fit fringes
+    init_guess = [np.abs(np.max(flx_coh)-np.min(flx_coh))/2, 1000*np.abs(np.max(dl_end)+np.min(dl_start))/2]
+    print('Fringes amplitude :', init_guess[0])
+    print('Group delay [microns]:', init_guess[1])
+    params, params_cov = curve_fit(fringes, dl_pos, flx_coh, p0=init_guess)
+    print('Fringes amplitude :', params[0])
+    print('Group delay [microns]:', params[1])
     #flx_fit = fringes(dl_pos, params[0], params[1])
+    flx_fit = fringes(dl_pos, init_guess[0], init_guess[1])
 
     # Adjust the axis range for time plot
     x_min, x_max = np.min(1000*dl_start), np.max(1000*dl_end) 
@@ -197,13 +221,15 @@ for it in range(n_iter):
     ax_t1.set_xlim(x_min - margin, x_max + margin)
 
     scale = 1
-    y_min, y_max = -30000, 30000#np.min(flux2), np.max(flux2) 
+    y_min, y_max = np.min(flx_coh), np.max(flx_coh) 
     margin = 0
     ax_t1.set_ylim(y_min - margin, y_max + margin)    
 
     # Create a line object that will be updated
-    line_t1, = ax_t1.plot(dl_pos, flux2)
-    #line_t1, = ax_t1.plot(dl_pos, flx_fit)
+    line_t1.remove()
+    line_t2.remove()
+    line_t1, = ax_t1.plot(dl_pos, flx_coh, label='Fringes')
+    line_t2, = ax_t1.plot(dl_pos, flx_fit, label='Best-fit')
 
     plt.draw()
     plt.pause(0.5)
