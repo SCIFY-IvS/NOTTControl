@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from opcua import OPCUAConnection
 from asyncua.sync import Client
@@ -70,11 +70,15 @@ class MainWindow(QMainWindow):
             if self.camera_window is None:
                 self.camera_window = camera_ui()
                 self.camera_window.show()
+                self.camera_window.closing.connect(self.clear_camera_window)
             else:
                 self.camera_window.activateWindow()
 
         except Exception as e:
             print(f"Error opening camera window: {e}")
+    
+    def clear_camera_window(self):
+        self.camera_window = None
 
     def closeEvent(self, *args):
         self.t.stop()
@@ -110,12 +114,16 @@ class MainWindow(QMainWindow):
         try:
             if self.delayline_window is None:
                 self.delayline_window = DelayLinesWindow(self, self.opcua_conn, self.redis_client)
+                self.delayline_window.closing.connect(self.clear_dl_window)
                 self.delayline_window.show()
                 print("Dl window is opening fine")
             else:
                 self.delayline_window.activateWindow()
         except Exception as e:
             print(f"Error opening delay lines window: {e}")
+    
+    def clear_dl_window(self):
+        self.delayline_window = None
 
     def load_dl1_status(self):
 
@@ -149,6 +157,8 @@ class FringeScanStatus(Enum):
     SCANNING = 'Scanning'
 
 class DelayLinesWindow(QWidget):
+    closing = pyqtSignal()
+
     def __init__(self, parent, opcua_conn, redis_client):
         super(DelayLinesWindow, self).__init__()
 
@@ -198,6 +208,7 @@ class DelayLinesWindow(QWidget):
         self.t.stop()
         self.t_pos.stop()
         self.opcua_conn.disconnect()
+        self.closing.emit()
         super().closeEvent(*args)
 
     def refresh_status(self):
