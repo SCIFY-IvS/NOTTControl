@@ -22,6 +22,7 @@ import numpy
 import cv2
 from camera.brightness_calculator import BrightnessCalculator
 from camera.parametersdialog import ParametersDialog
+from camera.infratec_client import InfratecClient
 from redisclient import RedisClient
 
 from configparser import ConfigParser
@@ -57,7 +58,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.interface = InfratecInterface()
+        self.interface = InfratecClient(self.load_image)
 
         pg.setConfigOptions(imageAxisOrder='row-major')
         ## Switch to using white background and black foreground
@@ -136,7 +137,7 @@ class MainWindow(QMainWindow):
         if self.connected:
             return
 
-        if(self.interface.connect(callback, self)):
+        if(self.interface.connect()):
             self.connected = True
             self.ui.button_connect.setText('Disconnect')
             self.ui.label_connection.setText('Connected to camera')
@@ -207,7 +208,7 @@ class MainWindow(QMainWindow):
         self.background_img = self.image.getImageItem().image
         self.ui.checkBox_subtractbackground.setEnabled(True)
     
-    def load_image(self, recording_timestamp):  
+    def load_image(self, get_timestamp, img):  
         global t
         global tLive
         global img_timestamp_ref
@@ -218,16 +219,7 @@ class MainWindow(QMainWindow):
         #Always setup ROI calculations, but only update UI intermittently
         
         self.nbCameraImages += 1
-        
-        with self.interface.get_image() as image:
-            img = image.get_image_data()
-            timestamp_offset = image.get_timestamp()
-        
-        if img_timestamp_ref is None:
-            img_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
-        
-        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
-        
+
         if self.recording:
             self.calculate_roi(img, timestamp)
         
@@ -360,8 +352,7 @@ class MainWindow(QMainWindow):
         #stopgrab
         if self.connected:
             self.stop_recording()
-        self.interface.free_device()
-        self.interface.free_dll()
+        self.interface.close()
         self.closing.emit()
         super().closeEvent(*args)
 
