@@ -13,20 +13,82 @@ class InfratecClient:
 
         self._callback = callback
     
-    def connect(self):
-        self._req_socket.send_string("connect")
+    def _send_command(self, command):
+        self._req_socket.send_string(command)
         reply = self._req_socket.recv_string()
-        self.subscribe_to_images()
 
-        return reply == "ok"
+        if not reply == "ok":
+            raise Exception(reply)
+        return True
+    
+    def _send_request(self, command):
+        self._req_socket.send_string(command)
+        reply = self._req_socket.recv_string()
+
+        return reply
+    
+    def connect(self):
+        reply = self._send_command("connect")
+        self.subscribe_to_images()
+        return reply
     
     def disconnect(self):
         self.unsubscribe_to_images()
+        return self._send_command("disconnect")
 
-        self._req_socket.send_string("disconnect")
-        reply = self._req_socket.recv_string()
+    def getparam_int32(self, number):
+        return self._send_request(f"getparam_int32 {number}")
+    
+    def setparam_int32(self, number, value):
+        return self._send_command(f"setparam_int32 {number} {value}")
+            
+    def getparam_int64(self, number):
+        return self._send_request(f"getparam_int64 {number}") 
+        
+    def setparam_int64(self, number, value):
+        return self._send_command(f"setparam_int64 {number} {value}")
+        
+    def getparam_double(self, number):
+        return self._send_request(f"getparam_double {number}") 
+    
+    def setparam_double(self, number, value):
+        return self._send_command(f"setparam_double {number} {value}")
+    
+    def getparam_single(self, number):
+        return self._send_request(f"getparam_single {number}") 
+    
+    def setparam_single(self, number, value):
+        return self._send_command(f"setparam_single {number} {value}")
+    
+    def getparam_string(self, number):
+        return self._send_request(f"getparam_string {number}") 
+    
+    def setparam_string(self, number, value):
+        return self._send_command(f"setparam_string {number} {value}")
+    
+    def getparam_idx_int32(self, number, index):
+        res = self.irbgrab_object.getparam_idx_int32(number, index)
+        return self.extract_parameter_result(res)
+        
+    def setparam_idx_int32(self, number, index, value):
+        res = self.irbgrab_object.setparam_idx_int32(number, index, value)
+        
+        if hirb.TIRBG_RetDef[res]=='Success':
+            return
+        else: 
+            raise Exception(hirb.TIRBG_RetDef[res]) 
 
-        return reply == "ok"
+    def getparam_idx_string(self, number, index):
+        res = self.irbgrab_object.getparam_idx_string(number, index)
+        return self.extract_parameter_result(res)
+    
+    def setparam_idx_string(self, number, index, string):
+        res = self.irbgrab_object.setparam_idx_string(number, index, string)
+        
+        if hirb.TIRBG_RetDef[res]=='Success':
+            return
+        else: 
+            raise Exception(hirb.TIRBG_RetDef[res]) 
     
     def subscribe_to_images(self):
         self._images_thread = threading.Thread(target = self.listen_to_images, args =([]))
