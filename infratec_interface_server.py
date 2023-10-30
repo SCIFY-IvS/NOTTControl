@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pickle
 import time
 import threading
+from queue import Queue
 
 img_timestamp_ref = None
 
@@ -15,7 +16,7 @@ def callback(context,*args):#, aHandle, aStreamIndex):
     else:
         recording_timestamp = None
     
-    context.publish_image(recording_timestamp)
+    context.prepare_image(recording_timestamp)
 
 class InfratecInterfaceServer:
     def __init__(self):
@@ -25,10 +26,12 @@ class InfratecInterfaceServer:
         self._socket_rep = self._context.socket(zmq.REP)
         self._socket_rep.bind("tcp://*:5555")
 
-        self._socket_pub = self._context.socket(zmq.PUB)
-        self._socket_pub.bind("tcp://*:5556")
-
         self._connected = False
+
+        self._img_queue = Queue()
+
+        publish_thread = threading.Thread(target = self._publish_images, args =([self._context]))
+        publish_thread.start()
 
         self._handle_commands()
     
@@ -71,7 +74,7 @@ class InfratecInterfaceServer:
         else:
             return "disconnect failed"
     
-    def publish_image(self, recording_timestamp):
+    def prepare_image(self, recording_timestamp):
         global img_timestamp_ref
 
         start = time.perf_counter()
@@ -86,16 +89,25 @@ class InfratecInterfaceServer:
 
         print(timestamp_offset)
 
-        print("Publishing message!")
+        print("Preparing message!")
         print(timestamp)
         img_bytes = pickle.dumps(img)
         timestamp_bytes = pickle.dumps(timestamp)
-        self._socket_pub.send_multipart([timestamp_bytes, img_bytes])
 
+        self._img_queue.put((img_bytes, timestamp_bytes))
+        
         stop = time.perf_counter()
 
         print(stop - start)
+    
+    def _publish_images(self, context):
+        self._socket_pub = self._context.socket(zmq.PUB)
+        self._socket_pub.bind("tcp://*:5556")
 
+        while(True):
+            img_bytes, timestamp_bytes = self._img_queue.get()
+            print("Publishing image")
+            self._socket_pub.send_multipart([timestamp_bytes, img_bytes])
 
 if __name__ == '__main__':
     server = InfratecInterfaceServer()
