@@ -112,6 +112,22 @@ class MainWindow(QMainWindow):
         self.ui.button_roi4.clicked.connect(self.setplot_roi4)
 
         self.ui.button_takebackground.clicked.connect(self.take_background)
+
+        self.ui.button_autobrightness.clicked.connect(self.set_brightness_auto)
+        self.ui.button_manualbrightness.clicked.connect(self.set_brightness_manual)
+
+    def set_brightness_auto(self):
+        min, max = self.image.imageItem.quickMinMax()
+        self.image.setLevels(min, max)
+
+        self.ui.lineEdit_minBrightness.setText(str(min))
+        self.ui.lineEdit_maxBrightness.setText(str(max))
+    
+    def set_brightness_manual(self):
+        min = float(self.ui.lineEdit_minBrightness.text())
+        max = float(self.ui.lineEdit_maxBrightness.text())
+
+        self.image.setLevels(min, max)
     
     def configure_parameters(self):
         dialog = ParametersDialog(self.interface)
@@ -279,7 +295,7 @@ class MainWindow(QMainWindow):
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
                 print(cv2.mean(img))
-            self.image.getImageItem().setImage(img, autoLevels = True)
+            self.image.getImageItem().setImage(img, autoLevels = False)
         
         match self.active_roi_plot:
             case Roi.ROI_1:
