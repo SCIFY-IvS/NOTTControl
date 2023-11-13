@@ -26,4 +26,9 @@ class OPCUAConnection:
     def write_node(self, node_id, value):
         node = self.client.get_node(node_id)
         node.set_value(value)
+    
+    def execute_rpc(self, node_id, rpc, arguments):
+        parent = self.client.get_node(node_id)
+        res = parent.call_method(rpc, *arguments)
+        return res
 
