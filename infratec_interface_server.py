@@ -76,7 +76,7 @@ class InfratecInterfaceServer:
     
     def _connect(self):
         if self._connected:
-            return "Already connected"
+            return "ok"
 
         success = self._infratec_interface.connect(callback, self)
         if success:
