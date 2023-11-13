@@ -308,9 +308,9 @@ class DelayLinesWindow(QWidget):
             self.init_motor()
             time.sleep(10)
             if not self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.bInitialised"):
-                self.ui.dl_dl1_homming.setText("Homing")
+                self.ui.dl_command_status.setText("Homing")
             else:
-                self.ui.dl_dl1_homming.setText("Home")
+                self.ui.dl_command_status.setText("Home")
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
