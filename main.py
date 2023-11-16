@@ -3,8 +3,13 @@ from PyQt5.QtWidgets import QApplication
 from opcua import OPCUAConnection
 from configparser import ConfigParser
 from scifygui import MainWindow
+import os
 
 def main():
+    #Change the running directory to this directory
+    #If you run this file from another directory, this is required to find the config file
+    os.chdir(os.path.dirname(__file__))
+
     # initialize the OPC UA connection
     config = ConfigParser()
     config.read('config.ini')
