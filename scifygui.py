@@ -11,6 +11,9 @@ from redisclient import RedisClient
 from camera.scify import MainWindow as camera_ui
 from configparser import ConfigParser
 from enum import Enum
+from commands.move_abs_command import MoveAbsCommand
+from commands.move_rel_command import MoveRelCommand
+from commands.scan_fringes_command import ScanFringesCommand
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -191,6 +194,7 @@ class DelayLinesWindow(QWidget):
         self.ui.dl1_pb_move_rel.clicked.connect(lambda: self.move_rel_motor())
         self.ui.dl1_pb_move_abs.clicked.connect(lambda: self.move_abs_motor())
 
+        self._activeCommand = None
 
         # update the initial value in the window
         self.update_value()
@@ -210,6 +214,35 @@ class DelayLinesWindow(QWidget):
         self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
+    
+    def startCameraRecording(self):
+        self.parent.camera_window.start_recording()
+    
+    def stopCameraRecording(self):
+        self.parent.camera_window.stop_recording()
+
+    def executeCommand(self, cmd):
+        cmd.execute()
+
+        if self._activeCommand is not None:
+            raise Exception('Already an active command!')
+        
+        self._activeCommand = cmd
+        self.ui.dl_command_status.setText(f'Executing command \'{self._activeCommand.text()}\' ...')
+
+        self.ui.dl1_pb_homming.setEnabled(False)
+        self.ui.dl1_pb_move_rel.setEnabled(False)
+        self.ui.dl1_pb_move_abs.setEnabled(False)
+        self.ui.dl_dl1_pb_scan.setEnabled(False)
+    
+    def clearActiveCommand(self):
+        self._activeCommand = None
+        self.ui.dl_command_status.setText('Not executing command')
+
+        self.ui.dl1_pb_homming.setEnabled(True)
+        self.ui.dl1_pb_move_rel.setEnabled(True)
+        self.ui.dl1_pb_move_abs.setEnabled(True)
+        self.ui.dl_dl1_pb_scan.setEnabled(True)
 
     def refresh_status(self):
         self.dl1_status()
@@ -223,8 +256,8 @@ class DelayLinesWindow(QWidget):
         current_pos, current_speed, timestamp = self.opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.lrPosActual", "ns=4;s=MAIN.DL_Servo_1.stat.lrVelActual", "ns=4;s=MAIN.sTime"])
 
         if (previous_timestamp is not None) and previous_timestamp == timestamp:
-            print('Duplicate timestamp!')
-            print(self.timestamp)
+            #print('Duplicate timestamp!')
+            #print(self.timestamp)
             return
         
         # Convert mm -> micron
@@ -242,7 +275,8 @@ class DelayLinesWindow(QWidget):
             self.ui.dl_dl1_status.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sStatus")))
             self.ui.dl_dl1_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sState")))
 
-            self.ui.dl_dl1_substate.setText(str(self.timestamp))
+            self.ui.dl_dl1_substate.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sSubstate")))
+            #timestamp?
             
             self.ui.dl_dl1_current_position.setText(f'{self.current_pos:.1f}')
 
@@ -253,6 +287,9 @@ class DelayLinesWindow(QWidget):
             self.ui.dl_dl1_current_speed.setText(f'{self.current_speed:.1f}')
 
             self.ui.label_error.clear()
+
+            if self._activeCommand is not None and self._activeCommand.check_progress():
+                self.clearActiveCommand()
 
             match self._scan_status:
                 case FringeScanStatus.MOVE_TO_START:
@@ -334,12 +371,19 @@ class DelayLinesWindow(QWidget):
 
             #self.trigger_camera_to_take_images(True)
 
-            self.__move_abs_motor(self.scan_fringes_start_pos(),self.scan_fringes_speed())
-            self._scan_status = FringeScanStatus.MOVE_TO_START
+            start_pos = self.scan_fringes_start_pos()
+            end_pos = self.scan_fringes_end_pos()
+            speed = self.scan_fringes_speed()
 
-            # Open camera window
-            self.parent.open_camera_interface()
-            self.parent.camera_window.connect_camera()
+            scanFringes = ScanFringesCommand(self.opcua_conn, start_pos, end_pos, speed, self.parent.camera_window)
+            self.executeCommand(scanFringes)
+
+            # self.__move_abs_motor(self.scan_fringes_start_pos(),self.scan_fringes_speed())
+            # self._scan_status = FringeScanStatus.MOVE_TO_START
+
+            # # Open camera window
+            # self.parent.open_camera_interface()
+            # self.parent.camera_window.connect_camera()
             # Connect camera
 
             # parent = self.opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
@@ -359,7 +403,7 @@ class DelayLinesWindow(QWidget):
 
 
         except Exception as e:
-            print(f"Error calling RPC method: {e}")
+            print(f"an error happened: {e}")
 
     # Initialize motor
     def init_motor(self):
@@ -406,8 +450,8 @@ class DelayLinesWindow(QWidget):
 
     def __move_abs_motor(self, pos, speed):
         try:
-            res = self.opcua_conn.execute_rpc("ns=4;s=MAIN.DL_Servo_1", "4:RPC_MoveAbs", [pos,speed])
-            print("abs_pos = ",res)
+            cmd = MoveAbsCommand(self.opcua_conn, pos, speed)
+            self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
@@ -420,7 +464,8 @@ class DelayLinesWindow(QWidget):
             print("rel_pos = ",rel_pos)
             speed = 0.05
 
-            res = self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_MoveRel", [rel_pos, speed])
+            cmd = MoveRelCommand(self.opcua_conn, rel_pos, speed)
+            self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
