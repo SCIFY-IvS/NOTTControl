@@ -31,10 +31,45 @@ def compute_mean_sampling(time_vector):
     mean_fs = 1 / mean_delta_ts
     return mean_fs
 
-def fringes(dl_pos, ampl, delay):
+def fringes(dl_pos, ampl, g_delay, p_delay):
+    # Spectrogon Saphire L narrow
     wav = 3.8
-    bw  = 0.2
-    return ampl*np.sinc((dl_pos-delay)*bw/wav**2)*np.cos(2*np.pi/wav*dl_pos)   # See Lawson 2001, Eq 2.7
+    bw  = 0.180  
+    # Spectrogon Saphsire L band
+    #wav = 3.7
+    #bw  = 0.6  
+    return ampl*np.sinc(2*(dl_pos-g_delay)*bw/wav**2)*np.cos(2*np.pi/wav*2*(dl_pos-p_delay))   # See Lawson 2001, Eq 2.7. Factor 2 because delay line postion is twice the OPD
+
+def fringes_env(dl_pos, ampl, g_delay):
+    wav = 3.8
+    bw  = 0.180  # Spectrogon Saphire L band
+    # Spectrogon Saphire L band
+    #wav = 3.7
+    #bw  = 0.6 
+    return ampl*np.sinc(2*(dl_pos-g_delay)*bw/wav**2) # See Lawson 2001, Eq 2.7. Factor 2 because delay line postion is twice the OPD
+
+def enveloppe(dl_pos, flx_coh):
+    # Define the bins
+    dl_min  = np.min(dl_pos)
+    dl_max  = np.max(dl_pos)
+    wav     = 3.8
+    n_bin   = np.floor((dl_max-dl_min)/wav)
+    n_bin   = n_bin.astype(int)
+    #print('Numer of bins :', n_bin)
+
+    # Extract max per bin
+    pos_env = np.array(range(n_bin))
+    flx_env = np.array(range(n_bin))
+    for i in range(n_bin):
+        pos_min    = dl_min + i*wav
+        lim_min    = np.argmin(np.abs(dl_pos - pos_min))
+        lim_max    = np.argmin(np.abs(dl_pos - (pos_min+wav)))      
+        #print(lim_min, lim_max)  
+        flx_env[i] = np.max(flx_coh[lim_min:lim_max])
+        idx_pos    = lim_min + np.argmin(np.abs(flx_coh[lim_min:lim_max] - flx_env[i]))  
+        pos_env[i] = dl_pos[idx_pos]
+         
+    return (pos_env, flx_env)  
 
 # Move rel motor
 def move_rel_dl(rel_pos, speed):
@@ -130,8 +165,8 @@ def get_field(field1, field2, field3, field4, delay):
     real_time4 = [(x[0] / 1000) for x in result4]
 
     # Re-order
-    print('Size camera output', len(real_time1))
-    print('Size DL output', len(x_pos0))
+    #print('Size camera output', len(real_time1))
+    #print('Size DL output', len(x_pos0))
 
     # Get DL position at the same time
     x_pos = f(real_time2)
@@ -159,8 +194,8 @@ ax_t1.set_xlabel('DL position [microns]')
 ax_t1.set_ylabel('ROI value')
 
 # Loop over DL scanning iteratoin
-dl_start = 1.150 # m
-dl_end   = 1.350 # ms
+dl_start = 1.180 # m
+dl_end   = 1.300 # ms
 rel_pos  = dl_end - dl_start
 speed    = 0.05 #mm/s
 
@@ -171,16 +206,18 @@ move_abs_dl(dl_start, speed)
 x = np.linspace(dl_start, dl_end, 10)
 line_t1, = ax_t1.plot(x, np.sin(x))
 line_t2, = ax_t1.plot(x, np.sin(x))
+line_t3, = ax_t1.plot(x, np.sin(x))
 
 # Loop over DL scans
-margin = 1
-delay  = rel_pos/speed + margin
-n_iter = 4
+margin   = 1
+delay    = rel_pos/speed + margin
+n_iter   = 2
+null_pos = np.array(range(n_iter), dtype=float)
 for it in range(n_iter):
 
     # Current DL positoin
     cur_pos = dl_start + rel_pos*(-1)**(it)
-    print(cur_pos)
+    #print(cur_pos)
 
     # Send DL comment
     move_rel_dl(rel_pos*(-1)**it, speed)  # Will go back and forth
@@ -205,15 +242,40 @@ for it in range(n_iter):
     for i, value in enumerate(flux2):
         flx_coh[i] = value - flx_mean
 
-    # Fit fringes
-    init_guess = [np.abs(np.max(flx_coh)-np.min(flx_coh))/2, 1000*np.abs(np.max(dl_end)+np.min(dl_start))/2]
-    print('Fringes amplitude :', init_guess[0])
-    print('Group delay [microns]:', init_guess[1])
-    params, params_cov = curve_fit(fringes, dl_pos, flx_coh, p0=init_guess)
+    # Find enveloppe
+    pos_env, flx_env = enveloppe(dl_pos, flx_coh)
+
+    # Fit group delay to enveloppe
+    ampl         = np.abs(np.max(flx_coh)-np.min(flx_coh))/2
+    init_guess   = [ampl, 1000*np.abs(np.max(dl_end)+np.min(dl_start))/2]
+    lower_bounds = [0.95*ampl, 1000*dl_start]
+    upper_bounds = [1.05*ampl, 1000*dl_end]
+    params, params_cov = curve_fit(fringes_env, pos_env, flx_env, p0=init_guess, bounds=(lower_bounds, upper_bounds))
     print('Fringes amplitude :', params[0])
     print('Group delay [microns]:', params[1])
-    #flx_fit = fringes(dl_pos, params[0], params[1])
-    flx_fit = fringes(dl_pos, init_guess[0], init_guess[1])
+    
+    # Extract best-fit envelop
+    pos_env = dl_pos
+    flx_env = np.abs(fringes_env(pos_env, params[0], params[1]))
+
+    # Now fit fringes
+    init_guess   = [params[0], params[1], 0.95]
+    lower_bounds = [0.99*params[0], 0.99*params[1], 0]
+    upper_bounds = [1.01*params[0], 1.01*params[1], 1.9]
+    params, params_cov = curve_fit(fringes, dl_pos, flx_coh, p0=init_guess, bounds=(lower_bounds, upper_bounds))
+    print('Fringes amplitude :', params[0])
+    print('Group delay [microns]:', params[1])
+    print('Phase delay [microns]:', params[2])
+    #pos_fit, flx_fit = enveloppe(dl_pos, flx_coh) # This works!
+    
+    # Extract fitted curve
+    pos_fit = dl_pos
+    flx_fit = fringes(dl_pos, params[0], params[1], params[2])
+
+    # Find best position
+    idx_null     = np.argmin(flx_fit)
+    null_pos[it] = dl_pos[idx_null]
+    print('Position of the null :', null_pos[it])
 
     # Adjust the axis range for time plot
     x_min, x_max = np.min(1000*dl_start), np.max(1000*dl_end) 
@@ -228,14 +290,34 @@ for it in range(n_iter):
     # Create a line object that will be updated
     line_t1.remove()
     line_t2.remove()
+    line_t3.remove()
+    line_t3, = ax_t1.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit')
+    line_t2, = ax_t1.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit')
     line_t1, = ax_t1.plot(dl_pos, flx_coh, label='Fringes')
-    line_t2, = ax_t1.plot(dl_pos, flx_fit, label='Best-fit')
 
     plt.draw()
     plt.pause(0.5)
 
+# Read current position
+# initialize the OPC UA connection
+config = ConfigParser()
+config.read('../../config.ini')
+url =  config['DEFAULT']['opcuaaddress']
+
+opcua_conn = OPCUAConnection(url)
+opcua_conn.connect()
+target_pos = opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.ctrl.lrPosition")
+target_pos = target_pos * 1000
+opcua_conn.disconnect()
+
+# Set DL to NULL
+print('Now mving to null position :', null_pos[0])
+print('Sending command', np.abs(target_pos - null_pos[0])/1000)
+move_rel_dl(np.abs(target_pos - null_pos[0])/1000, speed)
+#move_abs_dl(null_pos[0]/1000, speed)
+
 plt.ioff()
 plt.show()
 
-# Set DL to initial position
+# Go back to starting position when closed
 move_abs_dl(dl_start, speed)
