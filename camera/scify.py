@@ -286,11 +286,7 @@ class MainWindow(QMainWindow):
         else:
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
-                print(cv2.mean(img))
             self.image.getImageItem().setImage(img, autoLevels = False)
-
-        
-        start = time.perf_counter()
 
         self.pw_roi.clear()
 
@@ -302,12 +298,7 @@ class MainWindow(QMainWindow):
             self.pw_roi.plot(list(self.timestamps), list(self.roi3_max_values), name='ROI3', pen='r')
         if self.ui.checkBox_ROI4.isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi4_max_values), name='ROI4', pen='b')
-        
-        stop = time.perf_counter()
-
-        print('Plot duration: ')
-        print(stop - start)
-    
+                
     def calculate_roi(self, img, timestamp):
         self.t_startroi = time.perf_counter()
         
