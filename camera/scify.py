@@ -105,11 +105,6 @@ class MainWindow(QMainWindow):
 
         self.ui.button_parameters.clicked.connect(self.configure_parameters)
 
-        self.ui.button_roi1.clicked.connect(self.setplot_roi1)
-        self.ui.button_roi2.clicked.connect(self.setplot_roi2)
-        self.ui.button_roi3.clicked.connect(self.setplot_roi3)
-        self.ui.button_roi4.clicked.connect(self.setplot_roi4)
-
         self.ui.button_takebackground.clicked.connect(self.take_background)
 
         self.ui.button_autobrightness.clicked.connect(self.set_brightness_auto)
@@ -207,18 +202,6 @@ class MainWindow(QMainWindow):
     def trigger_clicked(self):
         print('trigger')
     
-    def setplot_roi1(self):
-        self.active_roi_plot = Roi.ROI_1
-    
-    def setplot_roi2(self):
-        self.active_roi_plot = Roi.ROI_2
-
-    def setplot_roi3(self):
-        self.active_roi_plot = Roi.ROI_3
-
-    def setplot_roi4(self):
-        self.active_roi_plot = Roi.ROI_4
-    
     def take_background(self):
         self.background_img = self.image.getImageItem().image
         self.ui.checkBox_subtractbackground.setEnabled(True)
@@ -280,6 +263,9 @@ class MainWindow(QMainWindow):
         self.pw_roi = pg.PlotWidget(parent = self.ui.frame_roi_graph,axisItems={'bottom': axis})
         self.pw_roi.setMinimumWidth(self.ui.frame_roi_graph.width())
         self.pw_roi.setMinimumHeight(self.ui.frame_roi_graph.height())
+        self.pw_roi.addLegend()
+        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness')
+
         
         self.pw_roi.show()
         self.plot_data_item_roi = self.pw_roi.plot()
@@ -293,8 +279,6 @@ class MainWindow(QMainWindow):
         self.roi2_max_values = deque(maxlen = deque_length)
         self.roi3_max_values = deque(maxlen = deque_length)
         self.roi4_max_values = deque(maxlen = deque_length)
-
-        self.active_roi_plot = Roi.ROI_1
         
     def update_image(self, img):
         if not self.imageInit:
@@ -302,23 +286,19 @@ class MainWindow(QMainWindow):
         else:
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
-                print(cv2.mean(img))
             self.image.getImageItem().setImage(img, autoLevels = False)
-        
-        match self.active_roi_plot:
-            case Roi.ROI_1:
-                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi1_max_values))
-                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 1')
-            case Roi.ROI_2:
-                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi2_max_values))
-                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 2')
-            case Roi.ROI_3:
-                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi3_max_values))
-                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 3')
-            case Roi.ROI_4:
-                self.plot_data_item_roi.setData(list(self.timestamps), list(self.roi4_max_values))
-                self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI 4')
-    
+
+        self.pw_roi.clear()
+
+        if self.ui.checkBox_ROI1.isChecked():
+            self.pw_roi.plot(list(self.timestamps), list(self.roi1_max_values), name='ROI1', pen='g')
+        if self.ui.checkBox_ROI2.isChecked():
+            self.pw_roi.plot(list(self.timestamps), list(self.roi2_max_values), name='ROI2', pen='c')
+        if self.ui.checkBox_ROI3.isChecked():
+            self.pw_roi.plot(list(self.timestamps), list(self.roi3_max_values), name='ROI3', pen='r')
+        if self.ui.checkBox_ROI4.isChecked():
+            self.pw_roi.plot(list(self.timestamps), list(self.roi4_max_values), name='ROI4', pen='b')
+                
     def calculate_roi(self, img, timestamp):
         self.t_startroi = time.perf_counter()
         
