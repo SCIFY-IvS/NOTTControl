@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_TRK_COMMAND" Id="{c981fa70-36e7-4931-a7b9-0a7e08c59083}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TRK_COMMAND :
+(
+	NONE			:= 0,
+	INIT			:= 1,
+	STOP, 
+	TRK_MOVE,
+	START_TRACK,
+	STOP_TRACK,
+	RESET,
+	ENABLE,
+	DISABLE,
+	MOVE_MASTER
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

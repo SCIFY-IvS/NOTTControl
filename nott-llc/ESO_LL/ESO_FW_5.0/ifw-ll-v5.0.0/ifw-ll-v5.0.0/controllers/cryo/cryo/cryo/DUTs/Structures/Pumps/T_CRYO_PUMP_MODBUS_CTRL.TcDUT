@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_MODBUS_CTRL" Id="{a372e560-2f3f-4f54-ae84-66ff7cef8a46}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_MODBUS_CTRL EXTENDS T_CRYO_PUMP_BASE_CTRL:
+STRUCT
+	nCmdType:	DINT	:= E_MODBUS_CMD_TYPE.READ;	// Command type; 0-Read, 1-Write
+	nRegister:	DINT;								// Command register
+	nWords:		DINT	:= 1;						// Number of words
+	nValue:		DINT;								// Parameter value
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

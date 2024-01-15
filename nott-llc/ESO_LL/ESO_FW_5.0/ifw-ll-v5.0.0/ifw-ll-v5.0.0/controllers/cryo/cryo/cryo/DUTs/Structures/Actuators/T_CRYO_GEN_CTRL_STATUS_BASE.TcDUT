@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_CRYO_GEN_CTRL_STATUS_BASE" Id="{75452292-8f4b-495c-a632-39d28d393949}">
+    <Declaration><![CDATA[TYPE T_CRYO_GEN_CTRL_STATUS_BASE :
+STRUCT
+	bDone:			BOOL;			// Flag if controller is OK
+	bBusy:			BOOL;			// Flag if controller is BUSY
+	bError:			BOOL;			// Flag if controller is in ERROR state
+	bActive:		BOOL;			// Flag if controller is ACTIVE
+
+	nCycleCounter:	UDINT := 0;
+	nState:			E_CRYO_BIN_CTRL_STATE	:= E_CRYO_BIN_CTRL_STATE.NONE;
+
+	sState:			STRING(64);		// State as text
+	sError:			STRING(64);		// Error as text
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

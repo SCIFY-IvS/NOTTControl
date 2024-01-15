@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_CTRL" Id="{926e1fad-7e0d-443b-838a-7c025368427b}">
+    <Declaration><![CDATA[TYPE T_SA_CTRL EXTENDS T_RS_BASE_CTRL :
+STRUCT
+	// Arrays of structures for Configuration and Control commands.
+	// Note that only one positioner is handled in each monitoring cycle.
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdList:			ARRAY [0..15]	OF T_SA_COMMAND;	// List of up to 16 Commands per channel
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

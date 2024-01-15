@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_UDP_INFO" Id="{c3edef04-eb42-4ac0-8bf0-136f7e8fdce9}">
+    <Declaration><![CDATA[TYPE T_UDP_INFO :
+STRUCT
+	bDriverInitialization: BOOL; // Indication of whether the realtime driver is properly initialized.  
+	nReceivedPackets: UDINT; // counter the number of times the diagnostic data was sent.
+	uSenderAddress: T_IP_ADDRESS;
+	ipv4Adr : T_IPv4Addr := '';
+	lrNotification: LREAL; // timestamp of the last sent
+	sNotification: STRING;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

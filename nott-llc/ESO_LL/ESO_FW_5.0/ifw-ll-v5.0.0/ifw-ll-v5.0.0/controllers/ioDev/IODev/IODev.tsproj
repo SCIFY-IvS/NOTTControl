@@ -1,0 +1,430 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.35">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{4139C166-F73C-4F38-BE64-13656B8058EF}" PersistentType="true">IODevOpsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[Function Events]]></DisplayName>
+			<EventId>
+				<Name Id="1">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">General</Name>
+				<DisplayName TxtId=""><![CDATA[{0}]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{C1F02178-2315-4A2D-BBF3-5EC7C96ACFE3}"/>
+				<Hide GUID="{67C56013-E33F-475F-AC23-2ED768AB669E}"/>
+				<Hide GUID="{1512B8EE-E400-4202-BE58-5D0D4DB561B3}"/>
+			</Hides>
+		</DataType>
+	</DataTypes>
+	<Project SccProjectName="Svn" SccAuxPath="Svn" SccLocalPath="Svn" SccProvider="SubversionScc" ProjectGUID="{3712A8DC-FF8D-4920-B725-44D9D663AC3F}" Target64Bit="true" ShowHideConfigurations="#x106">
+		<System>
+			<Licenses>
+				<Target>
+					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
+				</Target>
+			</Licenses>
+			<Tasks>
+				<Task Id="1" Priority="20" CycleTime="100000" AmsPort="350">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{A79B41B2-0BFE-47F8-ACC7-481E57970DAE}" Name="IODev" PrjFilePath="IODev\IODev.plcproj" TmcFilePath="IODev\IODev.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" TmcPath="IODev\IODev.tmc" TmcHash="{474E16C4-4928-4DE2-1491-8CF2BA1CE35A}">
+					<Name>IODev Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.IODev001.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.stat.arrDI[0].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.stat.arrDI[1].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.stat.arrAI[0].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.stat.arrAI[1].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.stat.arrAI[2].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.stat.arrAI[3].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[0].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[1].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[2].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[3].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[4].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[5].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[6].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrDI[7].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrAI[0].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrAI[1].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrAI[2].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev002.stat.arrAI[3].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[0].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[1].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[2].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[3].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[4].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[5].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[6].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrDI[7].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrAI[0].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrAI[1].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrAI[2].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev003.stat.arrAI[3].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrDI[0].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrDI[1].i_bValue</Name>
+							<Comment><![CDATA[ Physical input signal.
+ No access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrAI[0].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrAI[1].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrAI[2].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrAI[3].i_nValue</Name>
+							<Comment><![CDATA[ Physical input signal
+ No access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrRI[0].i_rValue</Name>
+							<Comment><![CDATA[ Physical input signal as REAL]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev004.stat.arrRI[1].i_rValue</Name>
+							<Comment><![CDATA[ Physical input signal as REAL]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.q_nCouplerState</Name>
+							<Comment><![CDATA[ Coupler state for full simulation]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.ctrl.arrDO[0].q_bValue</Name>
+							<Comment><![CDATA[ Physical active output signal.
+ Read-Only access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.ctrl.arrDO[1].q_bValue</Name>
+							<Comment><![CDATA[ Physical active output signal.
+ Read-Only access via OPC UA.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.ctrl.arrAO[0].q_nValue</Name>
+							<Comment><![CDATA[ Physical active output signal.
+ Read-Only access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.IODev001.ctrl.arrAO[1].q_nValue</Name>
+							<Comment><![CDATA[ Physical active output signal.
+ Read-Only access via OPC UA.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_bDig1.q_bSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to sensor input]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_bDig2.q_bSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to sensor input]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_nAnlg1.q_nSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to analog sensor input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_nAnlg2.q_nSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to analog sensor input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_nAnlg3.q_nSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to analog sensor input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_nAnlg4.q_nSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to analog sensor input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_rAnlg1.q_rSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to analog sensor input of type REAL]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_rAnlg2.q_rSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to analog sensor input of type REAL]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+					</Vars>
+					<Contexts>
+						<Context>
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010010</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>10000000</CycleTime>
+						</Context>
+					</Contexts>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io/>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500800205008}" Id="#x02030010"/>
+		<OwnerA Name="TIPC^IODev^IODev Instance">
+			<OwnerB Name="TIPC^IODev^IODev Instance">
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[0].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[1].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[2].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg3.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[3].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg4.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrDI[0].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrDI[1].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrAI[0].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrAI[1].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrAI[2].i_nValue" VarB="PlcTask Outputs^MAIN.IODev001.ctrl.arrAO[0].q_nValue"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrAI[3].i_nValue" VarB="PlcTask Outputs^MAIN.IODev001.ctrl.arrAO[1].q_nValue"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[0].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[1].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[2].i_bValue" VarB="PlcTask Outputs^MAIN.IODev001.ctrl.arrDO[0].q_bValue"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[3].i_bValue" VarB="PlcTask Outputs^MAIN.IODev001.ctrl.arrDO[1].q_bValue"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[6].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[7].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[0].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[1].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[2].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg3.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[3].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg4.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrDI[0].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrDI[1].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrDI[6].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrDI[7].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrAI[0].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrAI[1].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrAI[2].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg3.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrAI[3].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg4.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrDI[0].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrDI[1].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrRI[0].i_rValue" VarB="PlcTask Outputs^MAIN.SIM_rAnlg1.q_rSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrRI[1].i_rValue" VarB="PlcTask Outputs^MAIN.SIM_rAnlg2.q_rSignal"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

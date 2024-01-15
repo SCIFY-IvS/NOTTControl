@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_VOTE_LIST" Id="{db17c168-5587-42a2-98c4-e6ff13f2d79c}">
+    <Declaration><![CDATA[// This structure is used to keep indexes of minimal reading differences
+TYPE T_CRYO_VOTE_LIST :
+STRUCT
+	nIndex1:	INT;
+	nIndex2:	INT;
+	lrValue:	LREAL;	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

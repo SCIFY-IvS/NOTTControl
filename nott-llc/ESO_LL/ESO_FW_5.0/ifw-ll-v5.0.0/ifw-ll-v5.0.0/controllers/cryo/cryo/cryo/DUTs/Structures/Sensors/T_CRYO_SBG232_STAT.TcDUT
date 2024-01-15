@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_SBG232_STAT" Id="{9f2dea63-4254-414d-9259-6579db59dbf8}">
+    <Declaration><![CDATA[TYPE T_CRYO_SBG232_STAT :
+STRUCT
+	bConfigured:	BOOL;
+	sName:			STRING;
+	sStatus:		STRING	:= 'OK';
+	
+	flow:	T_CRYO_IOLINK_SENSOR_STATUS;	// Flow status
+	temp:	T_CRYO_IOLINK_SENSOR_STATUS;	// Temperature status
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

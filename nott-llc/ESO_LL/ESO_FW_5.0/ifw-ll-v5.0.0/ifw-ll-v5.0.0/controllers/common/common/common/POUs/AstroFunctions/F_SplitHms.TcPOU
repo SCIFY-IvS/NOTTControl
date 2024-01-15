@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="F_SplitHms" Id="{9a0d057a-7fca-4940-a552-8b06a0160710}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+ *   tcsSplitHms   :   Split an angle,given in user format, to its
+ *   ===========      parts.
+ *
+ *   Given    :  angle      an angle as hhmmss.ttt (or ddmmss.tt)
+ *   Returned :  h          hours (degrees)
+ *               m          minutes (arcminutes)
+ *               s          seconds (arcseconds)
+ *
+ *    The given time/angle, a floating value in the format HHMMSS.TTT, is split
+ *    up in the parts HH, MM and SS.TTT (or DDMMSS.TTT if the input parameter
+ *    is an angle).  
+ *          NOTE:   if the given value is negative, all returned values 
+ *    will also be negative! Which is may be not what you want, so take care of
+ *    the sign outside of this function!
+ * 
+ *
+ *   EXAMPLES
+ *    Example 1:
+ *     double time,h,m,s;
+ *     time=123456.7;
+ *     i=astroSplitHms(time,&h,&m,&s);
+ *
+ *        will return  h=12.0
+ *                     m=34.0
+ *                     s=56.7 
+ *
+ *
+ *   Example 2:
+ *     double time,h,m,s;
+ *     time=345.0;
+ *     i=astroSpltHms(time,&h,&m,&s);
+ *
+ *        will return  h=0.0
+ *                     m=3.0
+ *                     s=45.0 
+ *
+ *)
+FUNCTION F_SplitHms : bool
+VAR_INPUT
+	angle:	LREAL;	// an angle as hhmmss.ttt (or ddmmss.tt)
+END_VAR
+VAR_OUTPUT
+	h, m, sec:	LREAL;
+END_VAR
+VAR
+   val:	LREAL;
+   hours,minutes,seconds,t1,t2,t3:	LREAL;
+ END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+void astroSplitHms (double angle, double *h, double *m, double *s)
+{
+   double val;
+   double hour,min,sec,t1,t2,t3;
+   
+   val  = angle;  
+   sec  = val - (int)(val/100.0)*100.0;    
+   t1   = val-sec;
+   t2   = t1 - (int)(t1/10000.0)*10000.0;
+   min  = t2/100.0;
+   t3   = val-sec-t2;
+   hour = t3/10000;
+   *h   = hour;
+   *m   = min;
+   *s   = sec;   
+   return;
+}
+*)
+
+val		:= angle;  
+seconds	:= val - TRUNC_INT(val/100.0) * 100.0;    
+t1		:= val - seconds;
+t2		:= t1 - TRUNC_INT(t1/10000.0) * 10000.0;
+minutes	:= t2/100.0;
+t3		:= val - seconds - t2;
+hours	:= t3/10000;
+
+h	:= hours;
+m	:= minutes;
+sec	:= seconds;   
+
+F_SplitHms	:= TRUE;]]></ST>
+    </Implementation>
+    <LineIds Name="F_SplitHms">
+      <LineId Id="7" Count="0" />
+      <LineId Id="53" Count="16" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="71" Count="7" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="79" Count="3" />
+      <LineId Id="70" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

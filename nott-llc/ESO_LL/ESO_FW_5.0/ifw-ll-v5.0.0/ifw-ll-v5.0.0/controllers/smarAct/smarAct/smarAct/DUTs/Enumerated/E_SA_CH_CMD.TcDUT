@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="E_SA_CH_CMD" Id="{299f7634-d49a-4309-a915-86eb57fa0a4f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_CH_CMD :
+(
+	NONE	:= 0,
+	RESET,
+	CALIB,
+	REF,
+	ENABLE,
+	DISABLE,
+	STOP,
+	MOV
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

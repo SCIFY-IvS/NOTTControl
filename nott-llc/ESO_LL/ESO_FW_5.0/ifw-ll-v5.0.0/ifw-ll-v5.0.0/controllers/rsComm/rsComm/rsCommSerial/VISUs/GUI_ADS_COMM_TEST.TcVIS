@@ -1,0 +1,700 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <Visu Name="GUI_ADS_COMM_TEST" Id="{5c721df8-2d32-43ea-8cce-8e48fd9bd61d}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="VisualObject">
+          <n n="LastVisuLanguageModelEntry" />
+          <v n="UniqueIdGenerator">"3"</v>
+          <o n="VisualElemList" t="VisualElemList">
+            <l n="VisualElementList" t="VisualElemCollection" cet="GenericVisualElem">
+              <o>
+                <a n="ConfiguredComplexInputs" et="ComplexInput" />
+                <l n="Elements" t="ArrayList" />
+                <n n="VisualElementDescription" />
+                <o n="VisualElemMemberList" t="VisualElemMemberList">
+                  <l n="VisualElemMemberList" t="VisualElemMemberCollection" cet="VisualElemMember">
+                    <o>
+                      <v n="Id">571893170L</v>
+                      <v n="Value">""</v>
+                    </o>
+                    <o>
+                      <v n="Id">2341735680L</v>
+                      <l n="Value" t="ArrayList" cet="NamedStyleColor">
+                        <o>
+                          <v n="Color">-2830136</v>
+                          <v n="CanonicalName">"Element-Frame-Color"</v>
+                        </o>
+                      </l>
+                    </o>
+                    <o>
+                      <v n="Id">438423234L</v>
+                      <l n="Value" t="ArrayList" cet="NamedStyleColor">
+                        <o>
+                          <v n="Color">-65536</v>
+                          <v n="CanonicalName">"Element-Alarm-Frame-Color"</v>
+                        </o>
+                      </l>
+                    </o>
+                    <o>
+                      <v n="Id">2678395525L</v>
+                      <v n="Value" t="Int16">1</v>
+                    </o>
+                    <o>
+                      <v n="Id">2340015797L</v>
+                      <v n="Value">"HCENTER"</v>
+                    </o>
+                    <o>
+                      <v n="Id">2565699834L</v>
+                      <v n="Value">"VCENTER"</v>
+                    </o>
+                    <o>
+                      <v n="Id">4134387352L</v>
+                      <v n="Value">"NONE"</v>
+                    </o>
+                    <o>
+                      <v n="Id">1603690730L</v>
+                      <v n="Value">"Arial"</v>
+                    </o>
+                    <o>
+                      <v n="Id">4253639993L</v>
+                      <v n="Value" t="Int16">12</v>
+                    </o>
+                    <o>
+                      <v n="Id">2729990903L</v>
+                      <v n="Value">0U</v>
+                    </o>
+                    <o>
+                      <v n="Id">1213979116L</v>
+                      <v n="Value">0U</v>
+                    </o>
+                    <o>
+                      <v n="Id">3488306084L</v>
+                      <v n="Value">4278190080U</v>
+                    </o>
+                    <o>
+                      <v n="Id">1999528970L</v>
+                      <v n="Value">"&lt;toggle/tap variable&gt;"</v>
+                    </o>
+                    <o>
+                      <v n="Id">2812299069L</v>
+                      <v n="Value">4294967295U</v>
+                    </o>
+                    <o>
+                      <v n="Id">494569607L</v>
+                      <v n="Value">4278190080U</v>
+                    </o>
+                    <o>
+                      <v n="Id">1649127785L</v>
+                      <v n="Value" t="Int16">0</v>
+                    </o>
+                    <o>
+                      <v n="Id">357335551L</v>
+                      <v n="Value" t="Int16">0</v>
+                    </o>
+                    <o>
+                      <v n="Id">2422045748L</v>
+                      <v n="Value">508</v>
+                    </o>
+                    <o>
+                      <v n="Id">2134141914L</v>
+                      <v n="Value">188</v>
+                    </o>
+                    <o>
+                      <v n="Id">394923068L</v>
+                      <v n="Value">false</v>
+                    </o>
+                    <o>
+                      <v n="Id">2322377816L</v>
+                      <v n="Value">"NO_FRAME"</v>
+                    </o>
+                    <o>
+                      <v n="Id">3549563837L</v>
+                      <v n="Value">"FIXED"</v>
+                    </o>
+                    <o>
+                      <v n="Id">363316305L</v>
+                      <o n="Value" t="StructuredTypeNode">
+                        <v n="StructuredTypeNodeIsAnimation">false</v>
+                        <l n="TypeNodeChildren" t="ArrayList">
+                          <o t="DynamicArrayNode">
+                            <o n="DynamicArrayNodeCounterNode" t="BasicTypeNode">
+                              <v n="Flags">0L</v>
+                              <v n="BasicTypeNodeValue" t="Int16">1</v>
+                              <v n="BasicTypeNodeAcceptsExpression">false</v>
+                              <n n="BasicTypeNodeFastAccess" />
+                              <a n="BasicTypeNodeEnumValues" et="String" />
+                              <n n="EnumValueDisplayTextIds" />
+                              <n n="EnumValueVisibilityAttributeValues" />
+                              <n n="EnumValueLibraryId" />
+                              <n n="DynamicEnumMemberVisibilityCheckerTypeGuid" />
+                              <l n="TypeNodeChildren" t="ArrayList" />
+                              <o n="TypeNodeType" t="TypeNodeType">
+                                <v n="TypeClass" t="TypeClass">Int</v>
+                                <v n="QualifiedName">"INT"</v>
+                                <v n="Name">"INT"</v>
+                              </o>
+                              <v n="TypeNodeName">"iCount"</v>
+                              <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                                <v n="AttrFlags">1UL</v>
+                                <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                                  <v>Visible</v>
+                                  <v>False</v>
+                                </d>
+                                <v n="ConvDone">true</v>
+                              </o>
+                              <v n="TypeNodeId" t="Int16">98</v>
+                              <v n="TypeNodeIdLong">87295452L</v>
+                              <v n="LibraryId">"visuelembase, 3.5.8.40 (system)"</v>
+                              <n n="DisplayTextId" />
+                              <n n="DescriptionTextID" />
+                              <v n="DescriptionUseParent">false</v>
+                            </o>
+                            <n n="DynamicArrayNodeFastAccess" />
+                            <o n="ChildTemplate" t="VisualizationNode">
+                              <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
+                              <n n="VisuNodeReference" />
+                              <n n="VisNodeRefs33" />
+                              <l n="TypeNodeChildren" t="ArrayList" />
+                              <o n="TypeNodeType" t="TypeNodeType">
+                                <v n="TypeClass" t="TypeClass">Userdef</v>
+                                <v n="QualifiedName">"IVisualisation"</v>
+                                <v n="Name">"IVisualisation"</v>
+                              </o>
+                              <v n="TypeNodeName">""</v>
+                              <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                                <v n="AttrFlags">0UL</v>
+                                <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                                  <v>ieccodeconversion_useexistinginterface</v>
+                                  <v>_3S.CoDeSys.VisuGenerated.IVisualisationIEC</v>
+                                  <v>conditionalshow</v>
+                                  <v>visu_elemdev</v>
+                                  <v>''NORMAL__COMMENT</v>
+                                  <v> interface contains additional methods to IVisualElement</v>
+                                </d>
+                                <v n="ConvDone">true</v>
+                              </o>
+                              <v n="TypeNodeId" t="Int16">1</v>
+                              <v n="TypeNodeIdLong">3861935604L</v>
+                              <n n="LibraryId" />
+                              <n n="DisplayTextId" />
+                              <n n="DescriptionTextID" />
+                              <v n="DescriptionUseParent">false</v>
+                            </o>
+                            <l n="TypeNodeChildren" t="ArrayList" cet="VisualizationNode">
+                              <o>
+                                <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
+                                <n n="VisuNodeReference" />
+                                <v n="VisNodeRefs33">"GUI_TEMPLATE_ADS_COMM"</v>
+                                <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
+                                  <o>
+                                    <v n="Flags">2L</v>
+                                    <n n="BasicTypeNodeValue" />
+                                    <v n="BasicTypeNodeAcceptsExpression">true</v>
+                                    <n n="BasicTypeNodeFastAccess" />
+                                    <a n="BasicTypeNodeEnumValues" et="String" />
+                                    <n n="EnumValueDisplayTextIds" />
+                                    <n n="EnumValueVisibilityAttributeValues" />
+                                    <n n="EnumValueLibraryId" />
+                                    <n n="DynamicEnumMemberVisibilityCheckerTypeGuid" />
+                                    <l n="TypeNodeChildren" t="ArrayList" />
+                                    <o n="TypeNodeType" t="TypeNodeType">
+                                      <v n="TypeClass" t="TypeClass">Reference</v>
+                                      <v n="QualifiedName">"FB_ADS_COMM"</v>
+                                      <v n="Name">"FB_ADS_COMM"</v>
+                                    </o>
+                                    <v n="TypeNodeName">"m_Instance"</v>
+                                    <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                                      <v n="AttrFlags">0UL</v>
+                                      <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" />
+                                      <v n="ConvDone">true</v>
+                                    </o>
+                                    <v n="TypeNodeId" t="Int16">255</v>
+                                    <v n="TypeNodeIdLong">2476463590L</v>
+                                    <n n="LibraryId" />
+                                    <n n="DisplayTextId" />
+                                    <n n="DescriptionTextID" />
+                                    <v n="DescriptionUseParent">false</v>
+                                  </o>
+                                </l>
+                                <o n="TypeNodeType" t="TypeNodeType">
+                                  <v n="TypeClass" t="TypeClass">Userdef</v>
+                                  <v n="QualifiedName">"IVisualisation"</v>
+                                  <v n="Name">"IVisualisation"</v>
+                                </o>
+                                <v n="TypeNodeName">"[0]"</v>
+                                <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                                  <v n="AttrFlags">0UL</v>
+                                  <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                                    <v>ieccodeconversion_useexistinginterface</v>
+                                    <v>_3S.CoDeSys.VisuGenerated.IVisualisationIEC</v>
+                                    <v>conditionalshow</v>
+                                    <v>visu_elemdev</v>
+                                    <v>''NORMAL__COMMENT</v>
+                                    <v> interface contains additional methods to IVisualElement</v>
+                                  </d>
+                                  <v n="ConvDone">true</v>
+                                </o>
+                                <v n="TypeNodeId" t="Int16">1</v>
+                                <v n="TypeNodeIdLong">2473092364L</v>
+                                <n n="LibraryId" />
+                                <n n="DisplayTextId" />
+                                <n n="DescriptionTextID" />
+                                <v n="DescriptionUseParent">false</v>
+                              </o>
+                            </l>
+                            <o n="TypeNodeType" t="TypeNodeType">
+                              <v n="TypeClass" t="TypeClass">Userdef</v>
+                              <v n="QualifiedName">"IVisualisation"</v>
+                              <v n="Name">"IVisualisation"</v>
+                            </o>
+                            <v n="TypeNodeName">"pReferences"</v>
+                            <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                              <v n="AttrFlags">1048577UL</v>
+                              <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                                <v>Visible</v>
+                                <v>False</v>
+                                <v>ieccodeconversion_array</v>
+                                <v></v>
+                                <v>VisibleChildren</v>
+                                <v>True</v>
+                                <v>DefaultArraySize</v>
+                                <v>5</v>
+                                <v>''NORMAL__COMMENT</v>
+                                <v> We hide this node to prevent having two References nodes
+ Nevertheless we want to make sure that the children are displayed</v>
+                              </d>
+                              <v n="ConvDone">true</v>
+                            </o>
+                            <v n="TypeNodeId" t="Int16">97</v>
+                            <v n="TypeNodeIdLong">1547928903L</v>
+                            <v n="LibraryId">"visuelembase, 3.5.8.40 (system)"</v>
+                            <n n="DisplayTextId" />
+                            <n n="DescriptionTextID" />
+                            <v n="DescriptionUseParent">false</v>
+                          </o>
+                          <o t="BasicTypeNode">
+                            <v n="Flags">0L</v>
+                            <v n="BasicTypeNodeValue" t="Int16">1</v>
+                            <v n="BasicTypeNodeAcceptsExpression">false</v>
+                            <n n="BasicTypeNodeFastAccess" />
+                            <a n="BasicTypeNodeEnumValues" et="String" />
+                            <n n="EnumValueDisplayTextIds" />
+                            <n n="EnumValueVisibilityAttributeValues" />
+                            <n n="EnumValueLibraryId" />
+                            <n n="DynamicEnumMemberVisibilityCheckerTypeGuid" />
+                            <l n="TypeNodeChildren" t="ArrayList" />
+                            <o n="TypeNodeType" t="TypeNodeType">
+                              <v n="TypeClass" t="TypeClass">Int</v>
+                              <v n="QualifiedName">"INT"</v>
+                              <v n="Name">"INT"</v>
+                            </o>
+                            <v n="TypeNodeName">"iCount"</v>
+                            <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                              <v n="AttrFlags">1UL</v>
+                              <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                                <v>Visible</v>
+                                <v>False</v>
+                              </d>
+                              <v n="ConvDone">true</v>
+                            </o>
+                            <v n="TypeNodeId" t="Int16">98</v>
+                            <v n="TypeNodeIdLong">87295452L</v>
+                            <v n="LibraryId">"visuelembase, 3.5.8.40 (system)"</v>
+                            <n n="DisplayTextId" />
+                            <n n="DescriptionTextID" />
+                            <v n="DescriptionUseParent">false</v>
+                          </o>
+                        </l>
+                        <o n="TypeNodeType" t="TypeNodeType">
+                          <v n="TypeClass" t="TypeClass">Userdef</v>
+                          <v n="QualifiedName">"VisuStructReferenceList"</v>
+                          <v n="Name">"VisuStructReferenceList"</v>
+                        </o>
+                        <v n="TypeNodeName">"m_References"</v>
+                        <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                          <v n="AttrFlags">81920UL</v>
+                          <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                            <v>conditionalshow</v>
+                            <v>visu_elemdev</v>
+                            <v>DescriptionTextId</v>
+                            <v>TL_ElementProperties.Desc_ReferencedVisus</v>
+                            <v>SortFlag</v>
+                            <v>80</v>
+                            <v>AssignDestination</v>
+                            <v>Init</v>
+                            <v>Category</v>
+                            <v>Simple|Standard</v>
+                            <v>DynamicArray</v>
+                            <v></v>
+                            <v>DisplayFrameReferencesConfiguration</v>
+                            <v></v>
+                            <v>FrameReferences</v>
+                            <v></v>
+                            <v>Storable</v>
+                            <v>True</v>
+                            <v>DisplayTextId</v>
+                            <v>TL_ElementProperties.References</v>
+                          </d>
+                          <v n="ConvDone">true</v>
+                        </o>
+                        <v n="TypeNodeId" t="Int16">96</v>
+                        <v n="TypeNodeIdLong">363316305L</v>
+                        <v n="LibraryId">"visuelems, 3.5.8.40 (system)"</v>
+                        <v n="DisplayTextId">"TL_ElementProperties.References"</v>
+                        <v n="DescriptionTextID">"TL_ElementProperties.Desc_ReferencedVisus"</v>
+                        <v n="DescriptionUseParent">false</v>
+                      </o>
+                    </o>
+                    <o>
+                      <v n="Id">3729828405L</v>
+                      <l n="Value" t="ArrayList" cet="NamedStyleFont">
+                        <o>
+                          <v n="FontStyle">0</v>
+                          <v n="ExplicitColor">-16777216</v>
+                          <v n="CanonicalName">"Font-Standard"</v>
+                          <v n="FontName">"Arial"</v>
+                          <v n="FontSize">12</v>
+                          <o n="NamedColor" t="NamedStyleColor">
+                            <v n="Color">-16777216</v>
+                            <v n="CanonicalName">"Font-Default-Color"</v>
+                          </o>
+                        </o>
+                      </l>
+                    </o>
+                    <o>
+                      <v n="Id">550940142L</v>
+                      <v n="Value">254</v>
+                    </o>
+                    <o>
+                      <v n="Id">1473355128L</v>
+                      <v n="Value">94</v>
+                    </o>
+                    <o>
+                      <v n="Id">493260384L</v>
+                      <v n="Value">4294967295U</v>
+                    </o>
+                    <o>
+                      <v n="Id">135947015L</v>
+                      <v n="Value">4278190080U</v>
+                    </o>
+                    <o>
+                      <v n="Id">390574330L</v>
+                      <v n="Value">""</v>
+                    </o>
+                    <o>
+                      <v n="Id">2473092364L</v>
+                      <o n="Value" t="VisualizationNode">
+                        <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
+                        <n n="VisuNodeReference" />
+                        <v n="VisNodeRefs33">"GUI_TEMPLATE_ADS_COMM"</v>
+                        <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
+                          <o>
+                            <v n="Flags">2L</v>
+                            <v n="BasicTypeNodeValue">"MAIN.USB1"</v>
+                            <v n="BasicTypeNodeAcceptsExpression">true</v>
+                            <n n="BasicTypeNodeFastAccess" />
+                            <a n="BasicTypeNodeEnumValues" et="String" />
+                            <n n="EnumValueDisplayTextIds" />
+                            <n n="EnumValueVisibilityAttributeValues" />
+                            <n n="EnumValueLibraryId" />
+                            <n n="DynamicEnumMemberVisibilityCheckerTypeGuid" />
+                            <l n="TypeNodeChildren" t="ArrayList" />
+                            <o n="TypeNodeType" t="TypeNodeType">
+                              <v n="TypeClass" t="TypeClass">Reference</v>
+                              <v n="QualifiedName">"FB_ADS_COMM"</v>
+                              <v n="Name">"FB_ADS_COMM"</v>
+                            </o>
+                            <v n="TypeNodeName">"m_Instance"</v>
+                            <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                              <v n="AttrFlags">0UL</v>
+                              <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" />
+                              <v n="ConvDone">true</v>
+                            </o>
+                            <v n="TypeNodeId" t="Int16">255</v>
+                            <v n="TypeNodeIdLong">2476463590L</v>
+                            <n n="LibraryId" />
+                            <n n="DisplayTextId" />
+                            <n n="DescriptionTextID" />
+                            <v n="DescriptionUseParent">false</v>
+                          </o>
+                        </l>
+                        <o n="TypeNodeType" t="TypeNodeType">
+                          <v n="TypeClass" t="TypeClass">Userdef</v>
+                          <v n="QualifiedName">"IVisualisation"</v>
+                          <v n="Name">"IVisualisation"</v>
+                        </o>
+                        <v n="TypeNodeName">"[0]"</v>
+                        <o n="TypeNodeAttributes" t="TypeNodeAttributes2">
+                          <v n="AttrFlags">0UL</v>
+                          <d n="TypeNodeAttributesData" t="CaseInsensitiveHashtable" ckt="String" cvt="String">
+                            <v>ieccodeconversion_useexistinginterface</v>
+                            <v>_3S.CoDeSys.VisuGenerated.IVisualisationIEC</v>
+                            <v>conditionalshow</v>
+                            <v>visu_elemdev</v>
+                            <v>''NORMAL__COMMENT</v>
+                            <v> interface contains additional methods to IVisualElement</v>
+                          </d>
+                          <v n="ConvDone">true</v>
+                        </o>
+                        <v n="TypeNodeId" t="Int16">1</v>
+                        <v n="TypeNodeIdLong">2473092364L</v>
+                        <n n="LibraryId" />
+                        <n n="DisplayTextId" />
+                        <n n="DescriptionTextID" />
+                        <v n="DescriptionUseParent">false</v>
+                      </o>
+                    </o>
+                    <o>
+                      <v n="Id">2597686782L</v>
+                      <v n="Value">true</v>
+                    </o>
+                    <o>
+                      <v n="Id">2476463590L</v>
+                      <v n="Value">"MAIN.USB1"</v>
+                    </o>
+                  </l>
+                </o>
+                <v n="VisualElementName">"Frame"</v>
+                <v n="VisualElementTypeName">"VisuFbFrame"</v>
+                <v n="VisualElementIsRectangle">true</v>
+                <v n="VisualElementIdentifier">"GenElemInst_1"</v>
+                <n n="VisualElementOfflinePaintCommands" />
+                <o n="VisualElementFrameInformation" t="VisualFrameInfo">
+                  <l n="ContainedGuids" t="ArrayList" />
+                  <l n="ContainedVisualizations" t="ArrayList" />
+                  <a n="ContainedVisualizations33" cet="String">
+                    <v>GUI_TEMPLATE_ADS_COMM</v>
+                  </a>
+                </o>
+                <d n="VisualElementInputActions" t="Hashtable" />
+                <v n="VisualElementIdentification">{77827181-f1e4-4dd3-a1af-6595c65aecb4}</v>
+                <v n="VisualElementOwningObjectGuid">{5c721df8-2d32-43ea-8cce-8e48fd9bd61d}</v>
+                <a n="LMGuids" et="Guid" />
+                <d n="SubElements" t="Hashtable" />
+                <v n="VisualElementId">0</v>
+                <l n="UserManagementAccessRights" t="ArrayList" />
+              </o>
+            </l>
+            <v n="BackgroundBitmapId">""</v>
+            <v n="BackgroundColor">16777215</v>
+            <o n="Background" t="BackgroundSettings">
+              <n n="BgGradient" />
+              <n n="BgNamedColor" />
+              <v n="BgBmpId">""</v>
+              <v n="BgUseBmp">false</v>
+              <v n="BgColor">false</v>
+              <v n="BgUseColor">16777215</v>
+              <v n="BgUseGradient">false</v>
+            </o>
+          </o>
+          <o n="GeneratedLMMDescriptions" t="GeneratedLanguageModelEntriesData">
+            <o n="GeneratedVisuFbDescription" t="GenericFbDescription">
+              <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
+                <v>HasVisibilityAccess</v>
+                <v>3e458dc0-eec5-414c-b277-c3b5d40e37eb</v>
+                <v>ContainsPoint</v>
+                <v>7f0bfe6c-29d8-4fe0-a0f1-9d9e66095a0a</v>
+                <v>HasInputAccess</v>
+                <v>752e195a-4c21-4ccd-93f8-6ee2dcc993b5</v>
+                <v>HasInputAccessIntern</v>
+                <v>f57383d2-73cc-4bef-b230-c3bb0a83627f</v>
+                <v>GetTooltip</v>
+                <v>bdf56059-ae84-47de-b57a-6a4fb8e41d61</v>
+                <v>GetDialogInterfaceSize</v>
+                <v>f1a8dceb-f2d9-4345-8a17-5ee9fc2d4ae4</v>
+                <v>GetUpdateRects</v>
+                <v>11f6bff4-4887-46f9-8c4c-42dd401d0d65</v>
+                <v>GetNamespace</v>
+                <v>dd79677e-49ff-449a-a4e1-ea534962832a</v>
+                <v>SetResult</v>
+                <v>8c0fef48-8159-467b-863e-3be14882fb73</v>
+                <v>GetTranslator</v>
+                <v>2322eebb-fe98-4417-8373-07cfbb9a86dc</v>
+                <v>Update</v>
+                <v>29d7316c-d897-4196-94ca-444af9df2600</v>
+                <v>SetClientData</v>
+                <v>f237e921-5226-49ed-8b37-18df33bdf8b9</v>
+                <v>HasVisibilityAccessIntern</v>
+                <v>32e97102-83d9-4fd4-b418-4748a1212eac</v>
+                <v>GetInstance</v>
+                <v>0b4f04cb-c8ca-46eb-b916-266a1ec628b6</v>
+                <v>GetClientData</v>
+                <v>7690e736-fa58-4763-a64b-8c73e46e5060</v>
+                <v>Paint</v>
+                <v>f8ca2327-d76b-4da7-ac0f-ccdcb9ccd5b7</v>
+                <v>GetElementArray</v>
+                <v>decf8573-8f97-48b9-988c-54c46353dcd0</v>
+                <v>SetVisuFlagsInternal</v>
+                <v>96175b0a-19c7-41be-b092-22289306a542</v>
+                <v>GetText</v>
+                <v>f092d02c-5fe1-4485-9c6a-d14f436f7819</v>
+                <v>GetTextProperties</v>
+                <v>d8b8b37b-24ff-4d60-b743-ba5dd012dfd6</v>
+                <v>Initialize</v>
+                <v>fcf98b5f-612f-421c-bfb4-bc95a74ac840</v>
+                <v>Destruct</v>
+                <v>363c5ffa-4b2d-45d6-bc9b-da46c42118bf</v>
+                <v>SetStaticState</v>
+                <v>79683783-0f77-49f2-ae16-79a333a1a1c1</v>
+                <v>GetSurroundingRect</v>
+                <v>fa6aac87-44ee-42c2-b6c9-6d437d552d05</v>
+                <v>GetResult</v>
+                <v>81cd216f-879d-432f-93e5-70101a865aba</v>
+                <v>GetLocalUsergroup</v>
+                <v>49fa981e-0281-4322-95f1-ecbdc2f95de4</v>
+                <v>GetName</v>
+                <v>e20e15d8-aea2-4d2c-94fc-9d59e52832d5</v>
+                <v>GetSize</v>
+                <v>98a11b73-8072-424e-92aa-7a72e97e5fe9</v>
+                <v>SetDialogInterface</v>
+                <v>be6a52d9-dd0a-478d-b16c-35c0c5a0e9d8</v>
+                <v>FB_Reinit</v>
+                <v>778bca5d-3d38-455e-bd46-132430f6737d</v>
+                <v>FB_Exit</v>
+                <v>515fe324-7d19-4d6c-81e5-51c1ebfbb6f7</v>
+                <v>GetInitializeVersion</v>
+                <v>6f14c4e2-d88b-4f19-b1cb-d01587cb7791</v>
+                <v>GetDialogInterface</v>
+                <v>5d713d0b-3e28-42f7-9532-31a20a567f8b</v>
+                <v>GetElementIdArray</v>
+                <v>35f911f8-feed-4946-a890-c4ca83a69919</v>
+                <v>HandleInput</v>
+                <v>a5ad3e54-6fdb-41df-b20e-b2c73f04a767</v>
+                <v>ElementInfo</v>
+                <v>fed18168-91d7-4e89-b879-ebcc1e91d467</v>
+              </d>
+              <v n="FbName">"NotImportant"</v>
+              <v n="FbGuid">{5c721df8-2d32-43ea-8cce-8e48fd9bd61d}</v>
+            </o>
+            <v n="GeneratedGlobalVisuVarsGuid">{a4a0dcce-3245-4336-a4ee-1fc647fbce78}</v>
+            <v n="GeneratedGlobalTheVisuVarlistGuid">{23426bc8-504a-4ab7-8964-d1d170267188}</v>
+            <v n="GeneratedGlobalVisuConstants">{b520552e-d7c6-4ae4-8f86-5b9a53c8b46a}</v>
+            <d n="GeneratedAllElementsEntries" t="Hashtable" />
+            <o n="VisuRegDesc" t="GenericFbDescription">
+              <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
+                <v>FB_Init</v>
+                <v>ad87975d-8006-4acc-a336-f8bbef7f9cbd</v>
+                <v>FB_Exit</v>
+                <v>dea34bbd-0cf4-460d-9b10-bf762d0fad71</v>
+                <v>FB_Reinit</v>
+                <v>ef089b8c-b369-4424-b422-7f3663224648</v>
+              </d>
+              <v n="FbName">"NotImportant"</v>
+              <v n="FbGuid">{12a11ad9-5678-4df3-b241-f4b749e78b16}</v>
+            </o>
+            <v n="VisuRegisterGvl">{60a10f90-7b81-4791-bcc2-7206ddfb7054}</v>
+            <n n="SettingsPou" />
+            <n n="MemManPou" />
+            <o n="InputsPou" t="GenericFbDescription">
+              <d n="FbMethods" t="CaseInsensitiveHashtable_1" ckt="String" cvt="Guid">
+                <v>ExecuteLooseCapture</v>
+                <v>4e19808e-823b-401d-b5bb-ad9f80a6af77</v>
+                <v>ExecuteMouseDblClick</v>
+                <v>9954e094-95a8-4ed3-af8d-1ee523effa9b</v>
+                <v>ExecuteMouseDown</v>
+                <v>e8ef4709-b021-4630-adc5-31c22b92fffb</v>
+                <v>ExecuteMouseUp</v>
+                <v>28037e36-4867-4637-b859-733fe90ea288</v>
+                <v>GetElementInfo</v>
+                <v>9726fde1-d182-49f2-bb8d-812fc5055451</v>
+                <v>abstrGetDefaultCursor</v>
+                <v>7ab61040-1b1b-4d56-a8db-ce1002e3dd80</v>
+                <v>ExecuteDialogClosed</v>
+                <v>e3921d01-396a-40c0-8422-01cdbe517757</v>
+                <v>ExecuteKeyUp</v>
+                <v>56a3a227-bc8d-48b5-98be-536a2dc8b930</v>
+                <v>ExecuteKeyDown</v>
+                <v>9fc50537-245e-4be8-80f8-28a755c0138b</v>
+                <v>ExecuteMouseMove</v>
+                <v>3479311a-7ecf-448e-b43f-f49656a2f6bb</v>
+                <v>Initialize</v>
+                <v>d442ac80-e8c7-4a9c-9672-d92c4723e573</v>
+                <v>ExecuteMouseEnter</v>
+                <v>3cdca31e-dee9-4443-892c-9238bc50980c</v>
+                <v>ExecuteMouseLeave</v>
+                <v>2a20de68-ef80-41fa-8939-454d1ea251f1</v>
+                <v>ExecuteMouseClick</v>
+                <v>55d09de7-59ec-41c8-b69a-dc36cf1700e1</v>
+              </d>
+              <v n="FbName">"NotImportant"</v>
+              <v n="FbGuid">{37aa000f-30e8-4803-8031-66180a3e9357}</v>
+            </o>
+            <v n="DialogDut">{134b0124-afe9-4ff8-91c6-4c2c3f6a9c0d}</v>
+          </o>
+          <v n="LastUsedIdForIdentifier">1</v>
+          <o n="TextDocument" t="TextDocument">
+            <a n="TextLines" cet="TextLine">
+              <o>
+                <v n="Id">2L</v>
+                <n n="Tag" />
+                <v n="Text">"VAR_IN_OUT"</v>
+              </o>
+              <o>
+                <v n="Id">3L</v>
+                <n n="Tag" />
+                <v n="Text">"	"</v>
+              </o>
+              <o>
+                <v n="Id">1L</v>
+                <n n="Tag" />
+                <v n="Text">"END_VAR"</v>
+              </o>
+            </a>
+          </o>
+          <v n="GvlCreated">false</v>
+          <n n="LMEntry" />
+          <v n="ProfileCompatibilityId">4140216668L</v>
+          <v n="LMVerMinor">0</v>
+          <v n="LMVerMajor">1</v>
+          <o n="Hotkeys" t="HotkeyConfiguration">
+            <v n="IdMin">481037385728L</v>
+            <v n="IdMax">549755813887L</v>
+            <v n="Id">481037385728L</v>
+            <v n="IdMask">549754765312L</v>
+            <v n="IdStep">1048576L</v>
+            <l2 n="Inputs" />
+          </o>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="BackgroundSettings">{1038f12c-dd4b-4f96-87a3-a350fe8f3552}</Type>
+        <Type n="BasicTypeNode">{f7e1e748-ea0f-4fcb-b563-94837ee17e8d}</Type>
+        <Type n="Boolean">System.Boolean</Type>
+        <Type n="CaseInsensitiveHashtable">{02a85e84-ef2d-46fc-93f2-acb0bbff3eda}</Type>
+        <Type n="CaseInsensitiveHashtable_1">{7df88604-7ac5-4e36-91c4-55e4fdad3e68}</Type>
+        <Type n="ComplexInput">{1de566f6-72a7-494c-9353-9a418172c96e}</Type>
+        <Type n="DynamicArrayNode">{6c16f79c-dd98-4c29-b3ba-7042e3055542}</Type>
+        <Type n="GeneratedLanguageModelEntriesData">{703465dc-4679-4ff2-bcc3-c57d0a204da3}</Type>
+        <Type n="GenericFbDescription">{40d6dd8d-dfd0-493a-8e29-c9a35e1e6539}</Type>
+        <Type n="GenericVisualElem">{f86c2928-8614-4cca-824b-e819ac4d58c4}</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="Hashtable">System.Collections.Hashtable</Type>
+        <Type n="HotkeyConfiguration">{6b108d46-58af-4e41-a3f4-174d8f160cc4}</Type>
+        <Type n="Int16">System.Int16</Type>
+        <Type n="Int32">System.Int32</Type>
+        <Type n="Int64">System.Int64</Type>
+        <Type n="NamedStyleColor">{fa491db2-51ff-4bc1-9cd0-ce8c94ff6216}</Type>
+        <Type n="NamedStyleFont">{9e842eb2-1463-4af2-b605-4fbb17044f94}</Type>
+        <Type n="String">System.String</Type>
+        <Type n="StructuredTypeNode">{503c5b2e-e80e-4ee7-ae00-c5b93a62b1aa}</Type>
+        <Type n="TextDocument">{f3878285-8e4f-490b-bb1b-9acbb7eb04db}</Type>
+        <Type n="TextLine">{a5de0b0b-1cb5-4913-ac21-9d70293ec00d}</Type>
+        <Type n="TypeClass">{16f7aa24-038f-444e-9d81-b001bc091d35}</Type>
+        <Type n="TypeNodeAttributes2">{c1464dbe-c10d-4717-be8f-63efe8638434}</Type>
+        <Type n="TypeNodeType">{b12a9636-e818-4598-ae0d-fb6a2446102c}</Type>
+        <Type n="UInt32">System.UInt32</Type>
+        <Type n="UInt64">System.UInt64</Type>
+        <Type n="VisualElemCollection">{ef9d0b20-c96e-48db-b361-2ded4063150e}</Type>
+        <Type n="VisualElemList">{f285c9a3-7019-446b-b98c-ccec3a0af8fa}</Type>
+        <Type n="VisualElemMember">{c694e3a2-5c0b-4177-ab35-cb06bd5a6a02}</Type>
+        <Type n="VisualElemMemberCollection">{a4b83bea-3742-489c-9fe8-d96d68dba7ab}</Type>
+        <Type n="VisualElemMemberList">{17e26cd1-bb9b-47fe-a3d5-18fcd63b9c96}</Type>
+        <Type n="VisualFrameInfo">{7fd6515d-f891-4717-b53f-b14197c6706c}</Type>
+        <Type n="VisualizationNode">{f8db32ff-bdd5-49e9-9014-6d9a6dea5d8c}</Type>
+        <Type n="VisualObject">{f18bec89-9fef-401d-9953-2f11739a6808}</Type>
+      </TypeList>
+    </XmlArchive>
+  </Visu>
+</TcPlcObject>

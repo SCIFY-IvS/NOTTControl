@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <Itf Name="ITrackCtrl" Id="{190bd2ba-4f1b-43d1-8419-d9931b546093}">
+    <Declaration><![CDATA[INTERFACE ITrackCtrl]]></Declaration>
+    <Method Name="ComputeNextPos" Id="{7d0345c5-5e48-4eb5-aa71-1c7a122fd260}">
+      <Declaration><![CDATA[METHOD ComputeNextPos : BOOL
+VAR_INPUT
+END_VAR
+
+VAR_OUTPUT
+	newPos : LREAL;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="HandleStates" Id="{b7501932-62ac-479b-af6b-4e1e30081d16}">
+      <Declaration><![CDATA[METHOD HandleStates : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="Init" Id="{adfd036f-4226-4e75-9683-67c191735e72}">
+      <Declaration><![CDATA[METHOD Init : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="IsError" Id="{7ffa8d83-850f-49dc-8bcb-be1f45946c39}">
+      <Declaration><![CDATA[METHOD IsError : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MoveInPos" Id="{ab22d95d-e8d4-4c69-88cd-1392bbcd8759}">
+      <Declaration><![CDATA[METHOD MoveInPos : BOOL
+VAR_INPUT
+	refMotion: REFERENCE TO T_MOTOR_MOTION;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MoveInSpeed" Id="{c914b374-d828-4404-b57c-98b4b8a5551d}">
+      <Declaration><![CDATA[METHOD MoveInSpeed
+VAR_INPUT
+	refMotion: REFERENCE TO T_MOTOR_MOTION;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="Reset" Id="{5c95606e-71cf-451e-afbc-1b9795aac039}">
+      <Declaration><![CDATA[METHOD Reset : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

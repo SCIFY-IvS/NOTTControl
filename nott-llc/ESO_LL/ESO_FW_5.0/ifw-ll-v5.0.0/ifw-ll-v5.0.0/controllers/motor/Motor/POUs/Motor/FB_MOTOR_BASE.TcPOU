@@ -1,0 +1,1421 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_MOTOR_BASE" Id="{9b20579e-46f1-487a-b0e9-71610139463f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MOTOR_BASE
+VAR_INPUT
+	// EICSSW-1923
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bSafe:		BOOL	:= TRUE;	// Flag if safe to move the motor
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bDisableIfUnsafe:	BOOL := FALSE;	// If unsafe, motor is disabled
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR RETAIN
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_MOTOR_CFG;		// Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_MOTOR_CTRL;		// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_MOTOR_INFO;		// Driver Info - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_MOTOR_STAT;		// Status parameters - ReadOnly
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_MOTOR_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_MOTOR_EVENT.NONE;
+	
+	// Operational Events
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventStart:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventEnd:		FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventError:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventDebug:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventGeneral:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventMoveAbs:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventMoveRel:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventMoveVel:	FB_TcMessage;
+	
+	(***** Physical signals - to be mapped!!! *****)
+
+	(* Outputs *)
+
+	(* Inputs *)
+	
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionClearNOVRAM" Id="{07af0917-486f-49ad-9f9f-20dfce2ed898}">
+      <Declaration><![CDATA[METHOD ActionClearNOVRAM
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableExecute" Id="{ef01bce1-e3d5-44f4-9ac2-7266aba2948c}">
+      <Declaration><![CDATA[METHOD ActionEnableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{f0b03128-67d1-4f29-8bef-9e922ed95113}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitAbort" Id="{e9720cce-33ed-44ab-8765-59705f455dbf}">
+      <Declaration><![CDATA[METHOD ActionInitAbort
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitComplete" Id="{56051acc-d213-4084-b91c-4495ca171c5d}">
+      <Declaration><![CDATA[METHOD ActionInitComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{7c08ae8b-b17b-4fe9-92ef-38c23e0bebc2}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitReject" Id="{6e09029d-40c6-4972-a65b-1d11fa327959}">
+      <Declaration><![CDATA[METHOD ActionInitReject
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMoveExecute" Id="{7e32a4c6-40e9-4483-ae7a-330aeaa799ea}">
+      <Declaration><![CDATA[METHOD ActionMoveExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{5815e8dd-5b61-4f6b-854a-327c0c250667}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionSetPosition" Id="{c20f9a5c-7e36-48c6-87a2-0ed0e8e3663a}">
+      <Declaration><![CDATA[METHOD ActionSetPosition
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{17563d77-42aa-46d6-963b-7116bbf9d99a}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{fabeea70-ef5f-4c6d-b939-031dc980b796}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityClearingNOVRAM" Id="{0bb619c7-4776-406e-91f0-00b3003605b4}">
+      <Declaration><![CDATA[METHOD ActivityClearingNOVRAM
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitAborting" Id="{ce7c7943-5871-4bd5-8812-57717b551dae}">
+      <Declaration><![CDATA[METHOD ActivityInitAborting
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitializing" Id="{8b8e1bac-980c-4f00-b852-db89d34da7dd}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMoving" Id="{6024356f-2b10-4f50-b01c-dae3ca84fa06}">
+      <Declaration><![CDATA[METHOD ActivityMoving
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivitySettingPosition" Id="{2ac4a72c-a13a-4204-9536-10743d0937a6}">
+      <Declaration><![CDATA[METHOD ActivitySettingPosition
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityStopping" Id="{3dc10476-019d-40d2-b9e3-460ce184d84e}">
+      <Declaration><![CDATA[METHOD ActivityStopping
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{21796d32-c062-4e31-afea-506812fda30e}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckDisableIfUnsafe" Id="{07d6e62b-f188-4487-a527-61b246fd3d15}">
+      <Declaration><![CDATA[METHOD M_CheckDisableIfUnsafe
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT in_bSafe AND in_bDisableIfUnsafe	THEN
+	IF stat.bEnabled	THEN
+		stat.bEnabled	:= FALSE;
+		M_LogEventGeneral('Not safe to move. Motor disabled.');
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetErrorText" Id="{70f53290-8793-45d9-8094-9280b98c14d5}">
+      <Declaration><![CDATA[METHOD M_GetErrorText : STRING
+VAR_INPUT
+	nErrorID:	DINT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[			
+CASE nErrorID OF
+	E_MOTOR_ERROR.OK:						str	:= 'OK';
+	E_MOTOR_ERROR.HW_NOT_OP:				str	:= 'ERROR: TwinCAT not OP or CouplerState not mapped.';
+	E_MOTOR_ERROR.LOCAL:					str	:= 'ERROR: Control not allowed. Motor in Local mode.';
+	E_MOTOR_ERROR.INIT_ABORTED:				str	:= 'ERROR: INIT command aborted.';
+	E_MOTOR_ERROR.TIMEOUT_INIT:				str	:= 'ERROR: INIT timed out.';
+	E_MOTOR_ERROR.TIMEOUT_MOVE:				str	:= 'ERROR: Move timed out.';
+	E_MOTOR_ERROR.TIMEOUT_RESET:			str	:= 'ERROR: Reset timed out.';
+	E_MOTOR_ERROR.TIMEOUT_SETPOS:			str	:= 'ERROR: Set Position timed out.';
+	E_MOTOR_ERROR.TIMEOUT_USER_PREINIT:		str	:= 'ERROR: User PRE-INIT timed out.';
+	E_MOTOR_ERROR.TIMEOUT_USER_POSTINIT:	str	:= 'ERROR: User POST-INIT timed out.';
+	E_MOTOR_ERROR.TIMEOUT_USER_PREMOVE:		str	:= 'ERROR: User PRE-MOVE timed out.';
+	E_MOTOR_ERROR.TIMEOUT_USER_POSTMOVE:	str	:= 'ERROR: User POST-MOVE timed out.';
+	E_MOTOR_ERROR.SETPOS:					str	:= 'ERROR: Set Position failed.';
+	E_MOTOR_ERROR.STOP:						str	:= 'ERROR: STOP failed.';
+	
+	E_MOTOR_ERROR.ABORT:					str	:= 'ERROR: Motion aborted.';
+	E_MOTOR_ERROR.SW_LIMIT_LOWER:			str	:= 'ERROR: Lower SW Limit Exceeded.';
+	E_MOTOR_ERROR.SW_LIMIT_UPPER:			str	:= 'ERROR: Upper SW Limit Exceeded.';
+	E_MOTOR_ERROR.BRAKE_ACTIVE:				str	:= 'ERROR: Cannot move. Brake active.';
+	E_MOTOR_ERROR.BRAKE_ENGAGE:				str	:= 'ERROR: Failed to engage brake.';
+	E_MOTOR_ERROR.BRAKE_DISENGAGE:			str	:= 'ERROR: Failed to disengage brake.';
+	E_MOTOR_ERROR.SWITCH_NOT_USED:			str	:= 'ERROR: Switch was not detected in previous INIT action.';
+	E_MOTOR_ERROR.ENABLE:					str	:= 'ERROR: Failed to enable Axis.';
+	E_MOTOR_ERROR.NOVRAM_READ:				str	:= 'ERROR: Failed to read from NOVRAM';
+	E_MOTOR_ERROR.NOVRAM_WRITE:				str	:= 'ERROR: Failed to write to NOVRAM';
+	E_MOTOR_ERROR.SWITCH_EXIT:				str	:= 'ERROR: Timeout on switch exit. Check nTimeoutSwitch.';
+	E_MOTOR_ERROR.STOP_LIMITS_BOTH:			str	:= 'ERROR: Both LSTOP and USTOP limits active.';
+	E_MOTOR_ERROR.HW_LIMITS_BOTH:			str	:= 'ERROR: Both limit switches LHW and UHW active.';
+	E_MOTOR_ERROR.IN_POS:					str	:= 'ERROR: In-Pos switch not active at the end of movement.';
+	E_MOTOR_ERROR.LOCKED:					str	:= 'ERROR: Motor Locked! Cannot move.';
+	E_MOTOR_ERROR.SoE_ADS_ERROR:			str	:= 'ERROR: SoE ADS Error.';
+	E_MOTOR_ERROR.SoE_SERCOS_ERROR:			str	:= 'ERROR: SoE Sercos Error.';
+	E_MOTOR_ERROR.UNSAFE:					str	:= 'ERROR: Not safe to move.';
+
+	E_MOTOR_ERROR.SIM_NOT_INITIALISED:		str	:= 'ERROR: Simulator not initialised.';
+	E_MOTOR_ERROR.SIM_NULL_POINTER:			str	:= 'ERROR: Simulator input parameter is a NULL pointer.';
+	
+	// Beckhoff TwinCAT most common errors
+	E_MOTOR_ERROR.TC_VEL:					str	:= 'ERROR: Requested set velocity is not allowed.';
+	E_MOTOR_ERROR.TC_NOT_READY_FOR_START:	str	:= 'ERROR: Drive not ready during axis start.';
+	E_MOTOR_ERROR.TC_DISABLED_MOVE:			str	:= 'ERROR: Motor disabled while moving. Reset required!';
+	E_MOTOR_ERROR.TC_BISECTION:				str	:= 'WARNING: Motion command could not be realized (BISECTION)';
+	E_MOTOR_ERROR.TC_MODULO_POS:			str	:= 'ERROR: Target position >= full turn (modulo-period)';
+	E_MOTOR_ERROR.TC_STOP_ACTIVE:			str	:= 'ERROR: Stop command still active. Axis locked. Reset required!';
+	E_MOTOR_ERROR.TC_VEL_NEG:				str	:= 'ERROR: Set velocity not allowed (<=0)';
+	E_MOTOR_ERROR.TC_TARGET_LSW:			str	:= 'ERROR: Target position beyond Lower Software Limit.';
+	E_MOTOR_ERROR.TC_TARGET_USW:			str	:= 'ERROR: Target position beyond Upper Software Limit.';
+	E_MOTOR_ERROR.TC_FOLLOWING_ERROR:		str	:= 'ERROR: Following error. Reset required!';
+	E_MOTOR_ERROR.TC_NOT_READY:				str	:= 'ERROR: Drive not ready for operation.';
+	E_MOTOR_ERROR.TC_IN_POS_6_SEC:			str	:= 'ERROR: In-position 6 sec timeout. Reset required!';
+ELSE
+	IF nErrorID > 10000 THEN
+		str	:= concat('Unregistered error: ', DINT_TO_STRING(nErrorID));
+		str	:= concat(str, ' Check TwinCAT error codes.');
+	ELSE
+		str	:= 'Unregistered internal error. Report it to ESO.';
+	END_IF
+END_CASE
+
+M_GetErrorText	:= str;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetLogicalState" Id="{df5c73be-ae25-482d-8a2e-272fc49ae74e}">
+      <Declaration><![CDATA[METHOD M_GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	M_GetLogicalState := NOT state;
+ELSE
+	M_GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetTimeInSec" Id="{219ea1c1-a19c-44ee-82cd-a328a9adbbee}">
+      <Declaration><![CDATA[METHOD M_GetTimeInSec : UDINT
+(*
+	This method returns absolute time in seconds.
+*)
+VAR_INPUT
+END_VAR
+VAR
+	fbGetSystemTime:	GETSYSTEMTIME;
+	timeLoDW:			DWORD;
+	timeHiDW:			DWORD;
+	nSecondsLo:			UDINT;
+	nSecondsHi:			UDINT;
+
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbGetSystemTime (timeLoDW => timeLoDW, timeHiDW => timeHiDW); (* System time is given in 100ns *)
+nSecondsLo	:= DWORD_TO_UDINT(timeLoDW) / 10000000; (* Convert to seconds *)
+(* One unit from HI WORD represents 16#FFFFFFFF/10000000 = 429.4967296 seconds *)
+nSecondsHi	:= LREAL_TO_UDINT(DWORD_TO_LREAL(timeHiDW) * 429.4967296);
+
+M_GetTimeInSec	:= nSecondsHi + nSecondsLo;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventDebug" Id="{76ff400f-eecc-453d-bdbd-16ea83a14a8b}">
+      <Declaration><![CDATA[METHOD M_LogEventDebug : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log Debug events only if both logging and debugging are enabled AND it is not a tracking command
+IF cfg.bLog AND cfg.bDebug AND NOT (ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING) THEN
+	fbEventDebug.ipArguments.Clear().AddString(sText);
+	fbEventDebug.Send(0);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventEnd" Id="{924a63d8-c4db-4990-833d-29094815b171}">
+      <Declaration><![CDATA[METHOD M_LogEventEnd : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+	RETURN;
+END_IF
+
+fbEventEnd.ipArguments.Clear().AddString(sText);
+fbEventEnd.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventError" Id="{09811c01-7dc5-4d6f-9199-d2731ce1b7ee}">
+      <Declaration><![CDATA[METHOD M_LogEventError : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventError.ipArguments.Clear().AddString(sText);
+fbEventError.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventGeneral" Id="{a9dfeb89-9fc4-4c54-af42-3043d81bb670}">
+      <Declaration><![CDATA[METHOD M_LogEventGeneral : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+	RETURN;
+END_IF
+
+fbEventGeneral.ipArguments.Clear().AddString(sText);
+fbEventGeneral.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventMoveAbs" Id="{974fe1a0-a77a-4e3e-bb9a-3fb6fca5b48d}">
+      <Declaration><![CDATA[METHOD M_LogEventMoveAbs : BOOL
+VAR_INPUT
+	lrPos:	LREAL;
+	lrVel:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+	RETURN;
+END_IF
+
+fbEventMoveAbs.ipArguments.Clear().AddLReal(lrPos).AddLReal(lrVel);
+fbEventMoveAbs.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventMoveRel" Id="{40a91128-f5c4-404c-911e-06543269166d}">
+      <Declaration><![CDATA[METHOD M_LogEventMoveRel : BOOL
+VAR_INPUT
+	lrPosRel:	LREAL;
+	lrPosAct:	LREAL;
+	lrVel:		LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+	RETURN;
+END_IF
+
+fbEventMoveRel.ipArguments.Clear().AddLReal(lrPosRel).AddLReal(lrPosAct).AddLReal(lrVel);
+fbEventMoveRel.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventMoveVel" Id="{630bc1c4-4d3a-4b2c-a5de-1057a749e9d2}">
+      <Declaration><![CDATA[METHOD M_LogEventMoveVel : BOOL
+VAR_INPUT
+	lrVel:	LREAL;
+	dir:	DINT;
+END_VAR
+VAR
+	lrVelTmp:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+	RETURN;
+END_IF
+
+IF dir = MC_Negative_Direction THEN
+	lrVelTmp	:= -lrVel;
+ELSE
+	lrVelTmp	:= +lrVel;
+END_IF
+fbEventMoveVel.ipArguments.Clear().AddLReal(lrVelTmp);
+fbEventMoveVel.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventStart" Id="{3bae18c2-756c-4d13-9096-9ce29d4d65af}">
+      <Declaration><![CDATA[METHOD M_LogEventStart : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+	RETURN;
+END_IF
+
+fbEventStart.ipArguments.Clear().AddString(sText);
+fbEventStart.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReportFirstError" Id="{80aba259-ea81-4626-9d6c-55eb015cc716}">
+      <Declaration><![CDATA[// This method copies the description of the first error that caused the failure.
+// For example, in case of a failure during move, the error description
+// is written into stat.sFirstError and then the motor is commanded to stop.
+// At the end of the stop, stat.sFirstError will be copied into stat.sErrorText so
+// the user can see the real reason for the failure.
+METHOD M_ReportFirstError
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stat.sFirstError <> '' THEN
+	stat.sErrorText	:= stat.sFirstError;	// Copy stored error
+	stat.sFirstError:= '';					// Clear stored error
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{3c05461c-82e3-4012-8ec1-1b295a1d1d1a}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nErrorCode:	E_MOTOR_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nErrorCode 	:= nErrorCode;
+stat.sErrorText 	:= M_GetErrorText(nErrorCode);
+
+IF nErrorCode <> E_MOTOR_ERROR.OK THEN
+	stat.sStatus	:= 'ERROR';
+	stat.nStatus	:= E_MOTOR_STATUS.ERROR;
+ELSE
+	stat.sStatus	:= 'OK';
+	stat.nStatus	:= E_MOTOR_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatusDescription" Id="{3aaa6344-894c-4461-aded-84b9161d432f}">
+      <Declaration><![CDATA[METHOD M_SetStatusDescription
+VAR_INPUT
+	nAxisStatus:	E_MOTOR_STATUS;	(* Status number *)
+	sStatus:		STRING;			(* Status text, e.g. IDLE, BUSY, etc. *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nErrorCode		:= E_MOTOR_ERROR.OK;
+stat.nStatus		:= nAxisStatus;
+stat.sErrorText		:= 'OK';
+stat.sStatus		:= sStatus;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{6e9c6b9a-4c2b-4268-a28e-d15cd6e7df03}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF stat.nSubstate = E_MOTOR_SUBSTATE.NOTOP_INITIALIZING THEN
+	ActivityInitializing();
+END_IF
+
+IF stat.nSubstate = E_MOTOR_SUBSTATE.NOTOP_ABORTING THEN
+	ActivityInitAborting();
+END_IF
+
+IF stat.nSubstate = E_MOTOR_SUBSTATE.NOTOP_CLEARING_NOVRAM THEN
+	ActivityClearingNOVRAM();
+END_IF
+
+IF	stat.nSubstate = E_MOTOR_SUBSTATE.OP_MOVING	AND
+	nEvent <> E_MOTOR_EVENT.STOP					THEN
+	ActivityMoving();
+END_IF
+
+IF stat.nSubstate = E_MOTOR_SUBSTATE.OP_STOPPING THEN
+	ActivityStopping();
+END_IF
+
+IF stat.nSubstate = E_MOTOR_SUBSTATE.OP_SETTING_POS THEN
+	ActivitySettingPosition();
+END_IF
+
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE stat.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_MOTOR_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE stat.nSubstate OF
+	
+	E_MOTOR_SUBSTATE.NOTOP_NOTREADY:		
+		// Update error description if pending.
+		M_ReportFirstError();		
+		IF nEvent = E_MOTOR_EVENT.RESET THEN
+			ActionResetExecute();
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.INIT THEN
+			ActionInitExecute();
+			M_SetStatus(E_MOTOR_ERROR.OK);
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_INITIALIZING);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.CLEAR_NOVRAM THEN
+			ActionClearNOVRAM();
+			M_SetStatus(E_MOTOR_ERROR.OK);
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_CLEARING_NOVRAM);
+			RETURN;
+		END_IF
+		
+	E_MOTOR_SUBSTATE.NOTOP_INITIALIZING:			
+		IF nEvent = E_MOTOR_EVENT.UNSAFE THEN
+			// Set the first error that caused the failure
+			M_SetStatus(E_MOTOR_ERROR.UNSAFE);
+			stat.sFirstError	:= M_GetErrorText(E_MOTOR_ERROR.UNSAFE);
+			M_LogEventError(stat.sFirstError);
+			ActionInitAbort();
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_ABORTING);
+			RETURN;
+		END_IF
+
+		IF 	nEvent = E_MOTOR_EVENT.STOP  	OR  
+			nEvent = E_MOTOR_EVENT.RESET 	 	THEN
+			ActionInitAbort();
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_ABORTING);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ERRINIT THEN
+			// Error description is set in ActivityInitializing().
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ERRBRAKE OR 
+			  nEvent = E_MOTOR_EVENT.ERRRESET 	THEN
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.INITDONE THEN
+			ActionInitComplete();
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_READY);
+			RETURN;
+		END_IF
+		
+	E_MOTOR_SUBSTATE.NOTOP_ABORTING:			
+		IF	nEvent = E_MOTOR_EVENT.STOPDONE OR 
+			nEvent = E_MOTOR_EVENT.ERRSTOP 		THEN
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.RESET THEN
+			ActionInitAbort();
+			M_SetStatus(E_MOTOR_ERROR.OK);
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	E_MOTOR_SUBSTATE.NOTOP_READY:			
+		// Check if the motor should be disabled due to non-safe operation
+		M_CheckDisableIfUnsafe();
+	
+		IF nEvent = E_MOTOR_EVENT.RESET THEN
+			ActionResetExecute();
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ERRFAULT THEN
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);			
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ENABLE THEN
+			M_LogEventGeneral('ENABLE Executed');
+			M_SetStatus(E_MOTOR_ERROR.OK);
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		END_IF
+
+	E_MOTOR_SUBSTATE.NOTOP_ERROR:			
+		// Update error description if pending.
+		M_ReportFirstError();		
+		// Check if the motor should be disabled due to non-safe operation
+		M_CheckDisableIfUnsafe();
+	
+		IF nEvent = E_MOTOR_EVENT.RESET THEN
+			ActionResetExecute();
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.INIT THEN
+			ActionInitExecute();
+			M_SetStatus(E_MOTOR_ERROR.OK);
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_INITIALIZING);
+			RETURN;
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF nEvent = E_MOTOR_EVENT.STOP THEN
+		// Nothing to do. Motor is already standing
+		RETURN;
+	ELSIF nEvent = E_MOTOR_EVENT.ERRHW THEN
+		stat.bEnabled		:= FALSE;	// Disable motor
+		stat.bInitialised	:= FALSE;	// The motor has to be re-initialised
+		SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_MOTOR_EVENT.ERRLOCAL THEN
+		M_SetStatus(E_MOTOR_ERROR.LOCAL);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_MOTOR_STATE.OP:
+
+	(* Transitions from OP substates *)
+	CASE stat.nSubstate OF
+	E_MOTOR_SUBSTATE.OP_STANDSTILL:			
+		// Update error description if pending.
+		M_ReportFirstError();	
+		// Check if the motor should be disabled due to non-safe operation
+		M_CheckDisableIfUnsafe();
+	
+		IF nEvent = E_MOTOR_EVENT.MOTOR_MOVE THEN
+			ActionMoveExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_MOVING);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.SET_POSITION THEN
+			ActionSetPosition();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_SETTING_POS);
+			RETURN;		
+		ELSIF nEvent = E_MOTOR_EVENT.DISABLE THEN
+			M_LogEventGeneral('DISABLE Executed');
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_READY);
+			RETURN;		
+		ELSIF nEvent = E_MOTOR_EVENT.ERRFAULT THEN
+			ActionErrExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_ERROR);
+			RETURN;				
+		END_IF
+
+	E_MOTOR_SUBSTATE.OP_MOVING:			
+		IF nEvent = E_MOTOR_EVENT.UNSAFE THEN
+			// Set the first error that caused the failure
+			M_SetStatus(E_MOTOR_ERROR.UNSAFE);
+			stat.sFirstError	:= M_GetErrorText(E_MOTOR_ERROR.UNSAFE);
+			M_LogEventError(stat.sFirstError);
+			ActionStopExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STOPPING);
+			RETURN;
+		END_IF
+
+		IF nEvent = E_MOTOR_EVENT.MOTOR_MOVE THEN
+			ActionMoveExecute();
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.STOP OR nEvent = E_MOTOR_EVENT.ERRHW THEN
+			ActionStopExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STOPPING);
+			RETURN;				
+		ELSIF 	nEvent = E_MOTOR_EVENT.TIMEOUT_MOVE 		OR 
+				nEvent = E_MOTOR_EVENT.ERRUSERPREMOVE 	OR
+				nEvent = E_MOTOR_EVENT.ERRUSERPOSTMOVE 	OR
+				nEvent = E_MOTOR_EVENT.ERRTARGETPAR	 	THEN
+			// M_SetStatus() is already called in ActivityMoving() or User Pre/Post Move.
+			// We just want to stop the motor after the failure.
+			// TODO
+			ActionStopExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STOPPING);
+			RETURN;				
+		ELSIF 	nEvent = E_MOTOR_EVENT.ERRBRAKE	OR 
+				nEvent = E_MOTOR_EVENT.ERRENABLE	OR 
+				nEvent = E_MOTOR_EVENT.ERRINPOS	OR
+				nEvent = E_MOTOR_EVENT.ERRLOCKED 		THEN
+			// M_SetStatus() is called in ActivityMoving since there are many possible failures.
+			// Just go to failure.
+			// TODO
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.SW_LIMIT_LOWER THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.SW_LIMIT_UPPER THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ERRFAULT THEN
+			ActionErrExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_MOTOR_EVENT.MOVEDONE THEN
+			// Log event
+			M_LogEventEnd('MOVE');
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		END_IF
+		
+	E_MOTOR_SUBSTATE.OP_SETTING_POS:			
+		IF nEvent = E_MOTOR_EVENT.SETPOSDONE THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.TIMEOUT_SETPOS THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		END_IF
+		
+	E_MOTOR_SUBSTATE.OP_STOPPING:			
+		IF nEvent = E_MOTOR_EVENT.STOPDONE THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STANDSTILL);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ERRFAULT THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_MOTOR_EVENT.ERRSTOP THEN
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_ERROR);
+			RETURN;
+		END_IF
+		
+	E_MOTOR_SUBSTATE.OP_ERROR:	
+		// Update error description if pending.
+		M_ReportFirstError();		
+		// Check if the motor should be disabled due to non-safe operation
+		M_CheckDisableIfUnsafe();
+
+		IF nEvent = E_MOTOR_EVENT.MOTOR_MOVE THEN
+			ActionMoveExecute();
+			SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_MOVING);
+			RETURN;			
+		ELSIF nEvent = E_MOTOR_EVENT.DISABLE THEN
+			M_LogEventGeneral('DISABLE Executed');
+			SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_READY);
+			RETURN;		
+		END_IF
+
+	END_CASE
+	
+	(* Transitions from OP state *)
+	IF nEvent = E_MOTOR_EVENT.ERRHW THEN
+		stat.bEnabled		:= FALSE;	// Disable motor
+		stat.bInitialised	:= FALSE;	// The motor has to be re-initialised
+		SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_MOTOR_EVENT.RESET THEN
+		// TODO: Maybe accept only if not moving
+		ActionResetExecute();
+		SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);
+		RETURN;
+	ELSIF nEvent = E_MOTOR_EVENT.ERRLOCAL THEN
+		M_SetStatus(E_MOTOR_ERROR.LOCAL);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_MOTOR_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_MOTOR_STATE.NOTOP, E_MOTOR_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+ELSIF nEvent = E_MOTOR_EVENT.STOP THEN
+	ActionStopExecute();
+	SetState(E_MOTOR_STATE.OP, E_MOTOR_SUBSTATE.OP_STOPPING);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{2acba3b2-45b6-4a2a-b462-51ba88d57ca8}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+stat.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{6b68da34-70da-405a-b0a8-7235e5482c8e}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_MOTOR_EVENT.NONE:
+		stat.sEventDesc := '';
+		RETURN;
+		
+	E_MOTOR_EVENT.RESET:
+		stat.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_MOTOR_EVENT.INIT:
+		stat.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_MOTOR_EVENT.STOP:
+		stat.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_MOTOR_EVENT.ENABLE:
+		stat.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_MOTOR_EVENT.DISABLE:
+		stat.sEventDesc := 'CMD DISABLE';
+		RETURN;
+
+	E_MOTOR_EVENT.MOTOR_MOVE:
+		stat.sEventDesc := 'CMD MOVE';
+		RETURN;
+
+	E_MOTOR_EVENT.SET_POSITION:
+		stat.sEventDesc := 'CMD SET POSITION';
+		RETURN;
+
+	E_MOTOR_EVENT.CLEAR_NOVRAM:
+		stat.sEventDesc := 'CMD CLEAR NOVRAM';
+		RETURN;
+
+	E_MOTOR_EVENT.MOVEDONE:
+		stat.sEventDesc := 'INT MOVEDONE';
+		RETURN;
+	
+	E_MOTOR_EVENT.STOPDONE:
+		stat.sEventDesc := 'INT STOPDONE';
+		RETURN;
+	
+	E_MOTOR_EVENT.ENABLEDONE:
+		stat.sEventDesc := 'INT ENABLEDONE';
+		RETURN;
+	
+	E_MOTOR_EVENT.DISABLEDONE:
+		stat.sEventDesc := 'INT DISABLEDONE';
+		RETURN;
+	
+	E_MOTOR_EVENT.INITDONE:
+		stat.sEventDesc := 'INT INITDONE';
+		RETURN;
+	
+	E_MOTOR_EVENT.SETPOSDONE:
+		stat.sEventDesc := 'INT SETPOSDONE';
+		RETURN;
+	
+	E_MOTOR_EVENT.UNSAFE:
+		stat.sEventDesc := 'EXT UNSAFE';
+		RETURN;
+	
+	E_MOTOR_EVENT.HWOK:
+		stat.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_MOTOR_EVENT.ERRHW:
+		stat.sEventDesc := 'INT ERRHW';
+		RETURN;
+
+	E_MOTOR_EVENT.ERRLOCAL:
+		stat.sEventDesc := 'INT ERRLOCAL';
+		RETURN;
+
+	E_MOTOR_EVENT.ERRFAULT:	
+		stat.sEventDesc := 'INT ERRFAULT';
+		RETURN;
+
+	E_MOTOR_EVENT.ERRINIT:
+		stat.sEventDesc := 'INT ERRINIT';
+		RETURN;
+
+	E_MOTOR_EVENT.ERRENABLE:
+		stat.sEventDesc := 'INT ERRENABLE';
+		RETURN;
+	
+	E_MOTOR_EVENT.ERRDISABLE:
+		stat.sEventDesc := 'INT ERRDISABLE';
+		RETURN;
+	
+	E_MOTOR_EVENT.ERRBRAKE:
+		stat.sEventDesc := 'INT ERRBRAKE';
+		RETURN;
+	
+	E_MOTOR_EVENT.ERRINPOS:
+		stat.sEventDesc := 'INT ERRINPOS';
+		RETURN;
+	
+	E_MOTOR_EVENT.ERRTARGETPAR:
+		stat.sEventDesc := 'INT ERRTARGETPAR';
+		RETURN;
+	
+END_CASE 
+
+(* INTERNAL ERROR *)
+stat.sEventDesc := 'UNKNOWN EVENT';
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{725c2510-95cb-4885-9251-304ab558f2e2}">
+      <Declaration><![CDATA[METHOD SetState : BOOL
+VAR_INPUT
+	nState:			E_MOTOR_STATE;
+	nSubstate:		E_MOTOR_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Update State Machine active state configuration.
+*)
+
+IF nState <> E_MOTOR_STATE.NONE THEN
+	stat.nState	:= nState;
+END_IF
+IF nSubstate <> E_MOTOR_SUBSTATE.NONE THEN
+	stat.nSubstate	:= nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF nState = E_MOTOR_STATE.NOTOP THEN
+	stat.sState	:= 'NOT OP';
+ELSIF nState = E_MOTOR_STATE.OP THEN
+	stat.sState	:= 'OPERATIONAL';
+END_IF
+
+IF nSubstate = E_MOTOR_SUBSTATE.NOTOP_NOTREADY THEN
+	stat.sSubstate	:= 'NOT READY';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.NOTOP_INITIALIZING THEN
+	stat.sSubstate	:= 'INITIALIZING';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.NOTOP_READY THEN
+	stat.sSubstate	:= 'READY';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.NOTOP_ERROR THEN
+	stat.sSubstate	:= 'ERROR';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.OP_STANDSTILL THEN
+	stat.sSubstate	:= 'STANDSTILL';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.OP_SETTING_POS THEN
+	stat.sSubstate	:= 'SETTING POS';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.OP_MOVING THEN
+	stat.sSubstate	:= 'MOVING';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.OP_STOPPING THEN
+	stat.sSubstate	:= 'STOPPING';
+ELSIF nSubstate = E_MOTOR_SUBSTATE.OP_ERROR THEN
+	stat.sSubstate	:= 'ERROR';
+ELSE
+	stat.sSubstate	:= '';
+END_IF
+
+
+SetState	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetStatus" Id="{5b3227cf-119a-4e13-9ac9-4e4585108264}">
+      <Declaration><![CDATA[METHOD SetStatus
+VAR_INPUT
+	nErrorCode:	E_MOTOR_ERROR;
+	sErrorText:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nErrorCode 	:= nErrorCode;
+stat.sErrorText 	:= sErrorText;
+
+IF nErrorCode <> E_MOTOR_ERROR.OK THEN
+	stat.sStatus	:= 'ERROR';
+	stat.nStatus	:= E_MOTOR_STATUS.ERROR;
+ELSE
+	stat.sStatus	:= 'OK';
+	stat.nStatus	:= E_MOTOR_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MOTOR_BASE">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionClearNOVRAM">
+      <LineId Id="26" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionEnableExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionErrExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionInitAbort">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionInitComplete">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionInitExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionInitReject">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionMoveExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionResetExecute">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionSetPosition">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionStopExecute">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActionUnexpExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActivityClearingNOVRAM">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActivityInitAborting">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActivityInitializing">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActivityMoving">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActivitySettingPosition">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ActivityStopping">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.CheckForEvents">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_CheckDisableIfUnsafe">
+      <LineId Id="5" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_GetErrorText">
+      <LineId Id="87" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="126" Count="19" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="149" Count="4" />
+      <LineId Id="174" Count="1" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="18" Count="5" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="24" Count="6" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="31" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_GetLogicalState">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_GetTimeInSec">
+      <LineId Id="36" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventDebug">
+      <LineId Id="22" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventEnd">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventError">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventGeneral">
+      <LineId Id="21" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventMoveAbs">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventMoveRel">
+      <LineId Id="23" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventMoveVel">
+      <LineId Id="38" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_LogEventStart">
+      <LineId Id="21" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_ReportFirstError">
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.M_SetStatusDescription">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.ProcessEvents">
+      <LineId Id="3" Count="15" />
+      <LineId Id="331" Count="3" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="393" Count="0" />
+      <LineId Id="20" Count="9" />
+      <LineId Id="35" Count="16" />
+      <LineId Id="406" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="55" Count="2" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="330" Count="0" />
+      <LineId Id="326" Count="3" />
+      <LineId Id="61" Count="2" />
+      <LineId Id="439" Count="9" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="69" Count="3" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="307" Count="2" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="76" Count="10" />
+      <LineId Id="394" Count="0" />
+      <LineId Id="87" Count="3" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="93" Count="3" />
+      <LineId Id="460" Count="2" />
+      <LineId Id="97" Count="7" />
+      <LineId Id="385" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="105" Count="4" />
+      <LineId Id="402" Count="1" />
+      <LineId Id="463" Count="2" />
+      <LineId Id="413" Count="8" />
+      <LineId Id="113" Count="4" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="376" Count="1" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="267" Count="2" />
+      <LineId Id="121" Count="9" />
+      <LineId Id="404" Count="1" />
+      <LineId Id="454" Count="2" />
+      <LineId Id="131" Count="8" />
+      <LineId Id="386" Count="0" />
+      <LineId Id="140" Count="8" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="435" Count="0" />
+      <LineId Id="438" Count="0" />
+      <LineId Id="436" Count="1" />
+      <LineId Id="431" Count="1" />
+      <LineId Id="429" Count="1" />
+      <LineId Id="433" Count="0" />
+      <LineId Id="149" Count="6" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="256" Count="2" />
+      <LineId Id="349" Count="1" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="285" Count="2" />
+      <LineId Id="290" Count="2" />
+      <LineId Id="159" Count="4" />
+      <LineId Id="383" Count="1" />
+      <LineId Id="164" Count="4" />
+      <LineId Id="173" Count="14" />
+      <LineId Id="239" Count="2" />
+      <LineId Id="188" Count="2" />
+      <LineId Id="401" Count="0" />
+      <LineId Id="400" Count="0" />
+      <LineId Id="457" Count="2" />
+      <LineId Id="191" Count="3" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="387" Count="0" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="198" Count="1" />
+      <LineId Id="209" Count="3" />
+      <LineId Id="374" Count="1" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="215" Count="3" />
+      <LineId Id="273" Count="2" />
+      <LineId Id="219" Count="9" />
+      <LineId Id="370" Count="3" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="297" Count="1" />
+      <LineId Id="230" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.SetAction">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.SetEvent">
+      <LineId Id="3" Count="35" />
+      <LineId Id="104" Count="3" />
+      <LineId Id="39" Count="23" />
+      <LineId Id="132" Count="3" />
+      <LineId Id="63" Count="7" />
+      <LineId Id="96" Count="3" />
+      <LineId Id="71" Count="15" />
+      <LineId Id="112" Count="7" />
+      <LineId Id="124" Count="3" />
+      <LineId Id="87" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.SetState">
+      <LineId Id="3" Count="1" />
+      <LineId Id="7" Count="32" />
+      <LineId Id="42" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MOTOR_BASE.SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

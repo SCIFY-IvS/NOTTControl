@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4022.27">
+	<Project ProjectGUID="{D862FD3E-EFA5-4ADA-B7C2-3142319158B8}" Target64Bit="true" ShowHideConfigurations="#x306">
+		<Cpp>
+			<Project GUID="{AAAB356E-532C-4548-A3F6-3C9E7AAEB0EA}" Name="trkmodule" PrjFilePath="trkmodule\trkmodule.vcxproj" TmcFilePath="trkmodule\trkmodule.tmc"/>
+			<Project GUID="{22746C94-3DC4-469C-B9B5-A9A1FC2799AF}" Name="trkparams" PrjFilePath="trkparams\trkparams.vcxproj" TmcFilePath="trkparams\trkparams.tmc"/>
+		</Cpp>
+	</Project>
+</TcSmProject>

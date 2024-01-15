@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.15">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}" IecBaseType="true" AutoDeleteType="true">ARRAY [0..2] OF INT</Name>
+			<BitSize>48</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000006}">INT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>3</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{7F3999D6-1785-057D-88BC-3449B9362C06}" IecBaseType="true" AutoDeleteType="true">ARRAY [0..2] OF DINT</Name>
+			<BitSize>96</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000009}">DINT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>3</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{BE05B708-2DF4-4A90-8FB0-12DDAC411E5B}" PersistentType="true">PiezoOpsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[Function Actions]]></DisplayName>
+			<EventId>
+				<Name Id="1">ActionStart</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} started.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">ActionEnd</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} completed.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="4">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="5">General</Name>
+				<DisplayName TxtId=""><![CDATA[{0}]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{431E01EA-B962-4B33-8062-83276641007C}"/>
+				<Hide GUID="{31AD5776-4DCD-40DF-B23A-9022A2CDEC49}"/>
+				<Hide GUID="{0DB25AA4-EBB5-4A09-B146-DFE2B18CA70C}"/>
+			</Hides>
+		</DataType>
+	</DataTypes>
+	<Project SccProjectName="Svn" SccAuxPath="Svn" SccLocalPath="Svn" SccProvider="SubversionScc" ProjectGUID="{01FE205C-C1CC-4B78-B1B6-DA607CBDF11F}" Target64Bit="true" ShowHideConfigurations="#x106">
+		<System>
+			<Settings MaxCpus="2"/>
+			<Licenses>
+				<Target BkhfOrder="VAN0223340" CustomOrder="6064390">
+					<ManualSelect>{3EBB9639-5FF3-42B6-8847-35C70DC013C8}</ManualSelect>
+				</Target>
+			</Licenses>
+			<Tasks>
+				<Task Id="1" Priority="20" CycleTime="10000" AmsPort="350">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{A79B41B2-0BFE-47F8-ACC7-481E57970DAE}" Name="Piezo" PrjFilePath="Piezo\Piezo.plcProj" TmcFilePath="Piezo\Piezo.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" TmcPath="Piezo\Piezo.tmc">
+					<Name>Piezo Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.Piezo001.i_nActVal_Int16</Name>
+							<Comment><![CDATA[ Control feedback, actual value]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Piezo001.i_nActVal_Int32</Name>
+							<Comment><![CDATA[ Control feedback, actual value]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C06}">ARRAY [0..2] OF DINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Piezo001.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Piezo002.i_nActVal_Int16</Name>
+							<Comment><![CDATA[ Control feedback, actual value]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Piezo002.i_nActVal_Int32</Name>
+							<Comment><![CDATA[ Control feedback, actual value]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C06}">ARRAY [0..2] OF DINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Piezo002.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Piezo001.i_nSignal</Name>
+							<Comment><![CDATA[	Input signals to be linked to Piezo outputs]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Piezo002.i_nSignal</Name>
+							<Comment><![CDATA[	Input signals to be linked to Piezo outputs]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.Piezo001.q_nCtrl</Name>
+							<Comment><![CDATA[ Control analog output [bit]]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Piezo002.q_nCtrl</Name>
+							<Comment><![CDATA[ Control analog output [bit]]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Piezo001.q_nSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to Piezo inputs]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Piezo001.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Piezo002.q_nSignal</Name>
+							<Comment><![CDATA[	Simulated output signal to be linked to Piezo inputs]]></Comment>
+							<Type GUID="{7F3999D6-1785-057D-88BC-3449B9362C09}">ARRAY [0..2] OF INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Piezo002.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+					</Vars>
+					<Contexts>
+						<Context>
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010010</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>1000000</CycleTime>
+						</Context>
+					</Contexts>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io/>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500800205008}" Id="#x02030010"/>
+		<OwnerA Name="TIPC^Piezo^Piezo Instance">
+			<OwnerB Name="TIPC^Piezo^Piezo Instance">
+				<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nActVal_Int16" VarB="PlcTask Outputs^MAIN.SIM_Piezo001.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Piezo001.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Piezo002.i_nActVal_Int16" VarB="PlcTask Outputs^MAIN.SIM_Piezo002.q_nSignal"/>
+				<Link VarA="PlcTask Inputs^MAIN.Piezo002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Piezo002.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Piezo001.i_nSignal" VarB="PlcTask Outputs^MAIN.Piezo001.q_nCtrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Piezo002.i_nSignal" VarB="PlcTask Outputs^MAIN.Piezo002.q_nCtrl"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

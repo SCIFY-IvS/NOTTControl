@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="E_SA_SIM_CH_SM_STATE" Id="{356272c5-0af8-4c40-b206-68e7404a8a94}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_SIM_CH_SM_STATE :
+(
+	IDLE := 0,
+	CALIB,
+	REF,
+	MOV,
+	STOP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

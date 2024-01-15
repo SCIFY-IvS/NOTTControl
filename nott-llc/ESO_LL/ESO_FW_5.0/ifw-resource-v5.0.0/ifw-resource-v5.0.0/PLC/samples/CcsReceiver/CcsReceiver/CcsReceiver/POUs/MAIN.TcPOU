@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN" Id="{0e8b7f5d-63c1-4068-8341-41a067b6b414}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbTimer: FB_TIME;
+	fbReceiver: FB_CCS_RECEIVER;
+	{attribute 'OPC.UA.DA':='1'}
+	drot:			FB_MA_DROT;
+	{attribute 'OPC.UA.DA':='1'}
+	sim_drot:	FB_SIM_MOTOR;
+	
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTimer();
+fbReceiver(refTimeObj := fbTimer);
+//
+//Devices
+//
+drot(sName:='DROT', sMotorName:= 'DrotMotor', 
+	 in_lrRotation :=fbReceiver.tracking_ccs.north_angle,
+	 in_lrPupil := fbReceiver.tracking_ccs.pupil_angle,
+	 in_lrParallactic :=fbReceiver.tracking_ccs.pa,
+	 nNOVRAM_DevId:=0);
+	 
+sim_drot(ptrCfg:=ADR(drot.motor.cfg), ptrStat:=ADR(drot.motor.stat));	 ]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="8" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="20" Count="6" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="27" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

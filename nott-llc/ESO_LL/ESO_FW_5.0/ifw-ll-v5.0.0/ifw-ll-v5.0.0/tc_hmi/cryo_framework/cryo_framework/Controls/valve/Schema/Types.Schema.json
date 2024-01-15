@@ -1,0 +1,29 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "definitions": {
+    "TcHmi.Controls.cryo_framework.valve": {
+      "type": "object",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkControlType": "valve",
+      "frameworkControlNamespace": "TcHmi.Controls.cryo_framework"
+    },
+    "TcHmi.Controls.cryo_framework.valve.direction": {
+      "default": "Right",
+      "enum": [
+        "Up",
+        "Right",
+        "Left",
+        "Down"
+      ],
+      "type": "string"
+    },
+    "TcHmi.Controls.cryo_framework.valve.type": {
+      "default": "Manual",
+      "enum": [
+        "Manual",
+        "Auto"
+      ],
+      "type": "string"
+    }
+  }
+}

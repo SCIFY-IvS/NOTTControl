@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="E_CRYO_GEN_CTRL_EVENT" Id="{02749454-08f6-4a50-aad7-1caa7c478004}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_GEN_CTRL_EVENT :
+(
+	NONE := 0,
+	ENABLE,
+	DISABLE,
+	OFF,
+	IS_OFF,
+	ON,
+	IS_ON,
+	ERROR
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

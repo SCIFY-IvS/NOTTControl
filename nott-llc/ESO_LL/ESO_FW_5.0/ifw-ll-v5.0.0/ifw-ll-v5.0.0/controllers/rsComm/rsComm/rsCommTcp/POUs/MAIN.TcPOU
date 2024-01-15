@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{8a7be1e0-ea1c-46d6-85da-e4fd56afd0df}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	// Lakeshore 224 (Ethernet interface)
+	{attribute 'OPC.UA.DA' := '1'}
+	LS224_TCP:		FB_LAKESHORE_TCP;		// LakeShore based on FB_TCP_CLIENT
+	
+	// Lakeshore 336 (Ethernet interface)
+	{attribute 'OPC.UA.DA' := '1'}
+	LS336_TCP:		FB_LAKESHORE_TCP;		// LakeShore based on FB_TCP_CLIENT
+
+
+	// Lakeshores to be simulated
+	{attribute 'OPC.UA.DA' := '1'}
+	LS224_TCP_SIM:		FB_LAKESHORE_TCP;		// LakeShore based on FB_TCP_CLIENT
+	{attribute 'OPC.UA.DA' := '1'}
+	LS336_TCP_SIM:		FB_LAKESHORE_TCP;		// LakeShore based on FB_TCP_CLIENT
+
+	// Simulators
+	SIM_LS224_TCP:	FB_SIM_TCP_LAKESHORE;		// LakeShore SIM based on FB_TCP_SERVER
+	SIM_LS336_TCP:	FB_SIM_TCP_LAKESHORE;		// LakeShore SIM based on FB_TCP_SERVER
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// Lakeshore 224
+LS224_TCP(	in_sName			:= 'LS224_TCP',
+			in_nModel			:= 224,
+			in_nPeriod			:= 1500,
+			in_sCmdSuffix		:= '$0D$0A',
+			in_sReplySuffix		:= '$0D$0A',
+			in_sDeviceTcpIpAdr	:= '192.168.0.12', 
+			in_nDeviceTcpPort	:= 7777);
+
+// Lakeshore 336
+LS336_TCP(	in_sName			:= 'LS336_TCP',
+			in_nModel			:= 336,
+			in_nPeriod			:= 1000,
+			in_sCmdSuffix		:= '$0A',
+			in_sReplySuffix		:= '$0A',
+			in_sDeviceTcpIpAdr	:= '192.168.0.80', 
+			in_nDeviceTcpPort	:= 7777);
+
+// Dummy Lakeshore 224
+// in_bSimulation:= TRUE means that it communicates with a simulator.
+// If the simulator is running on the same PLC, in_sDeviceTcpIpAdr:='127.0.0.1'.
+// in_nDeviceTcpPort has to match simulator's in_nTcpPort.
+// See SIM_LS224_TCP.
+LS224_TCP_SIM(
+			in_bSimulation		:= TRUE,	
+			in_sName			:= 'LS224_TCP_SIM',
+			in_nModel			:= 224,
+			in_nPeriod			:= 1500,
+			in_sCmdSuffix		:= '$0D$0A',
+			in_sReplySuffix		:= '$0D$0A',
+			in_sDeviceTcpIpAdr	:= '127.0.0.1', 
+			in_nDeviceTcpPort	:= 8888);
+
+// Dummy Lakeshore 336
+// in_bSimulation:= TRUE means that it communicates with a simulator.
+// If the simulator is running on the same PLC, in_sDeviceTcpIpAdr:='127.0.0.1'.
+// in_nDeviceTcpPort has to match simulator's in_nTcpPort.
+// See SIM_LS336_TCP.
+LS336_TCP_SIM(	
+			in_bSimulation		:= TRUE,	
+			in_sName			:= 'LS336_TCP_SIM',
+			in_nModel			:= 336,
+			in_nPeriod			:= 1000,
+			in_sCmdSuffix		:= '$0A',
+			in_sReplySuffix		:= '$0A',
+			in_sDeviceTcpIpAdr	:= '127.0.0.1', 
+			in_nDeviceTcpPort	:= 7777);
+
+
+// Lakeshore simulators
+SIM_LS224_TCP(	in_bSimulation	:= TRUE,	
+				in_bEnable		:= TRUE, 
+				in_nModel		:= 224,
+				in_sReplySuffix	:= '$0D$0A',
+				in_sTcpIpAdr	:= '127.0.0.1',
+				in_nTcpPort		:= 8888);
+
+SIM_LS336_TCP(	in_bSimulation	:= TRUE,	
+				in_bEnable		:= TRUE, 
+				in_nModel		:= 336, 
+				in_sReplySuffix	:= '$0A',
+				in_sTcpIpAdr	:= '127.0.0.1',
+				in_nTcpPort		:= 7777);
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="79" Count="5" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="85" Count="7" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="93" Count="3" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="154" Count="1" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="98" Count="2" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="156" Count="1" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="106" Count="2" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="109" Count="5" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="116" Count="3" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="121" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

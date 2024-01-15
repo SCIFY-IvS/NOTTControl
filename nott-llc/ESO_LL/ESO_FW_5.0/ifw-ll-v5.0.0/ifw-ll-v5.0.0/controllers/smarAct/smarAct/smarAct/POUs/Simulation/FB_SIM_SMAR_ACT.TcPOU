@@ -1,0 +1,226 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SIM_SMAR_ACT" Id="{20dd4ef1-7e40-42fc-be57-32175448bbcc}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_SMAR_ACT EXTENDS FB_SIM_TCP_DEVICE_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	arrCH:		ARRAY [0..17] OF FB_SIM_SA_CHANNEL;
+	i:			UINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT in_bEnable THEN
+	RETURN;
+ELSE
+	//
+	// Execute instance of the simulator
+	//
+	Device(	in_bSimulation	:= in_bSimulation,
+			in_sTcpIpAdr	:= in_sTcpIpAdr,
+			in_nTcpPort		:= in_nTcpPort);
+	
+	//
+	// Execute State Machine for each instance Channel simulator.
+	//
+	FOR i:=0 TO 17 DO
+		arrCH[i].M_StateMachine();
+	END_FOR
+			
+	//
+	// Check for received commands.
+	//
+	IF Device.out_bAccepted AND Device.out_bReceived THEN
+		// A command has arrived. Send a simulated reply
+		sReply	:=	M_GetSimReply(in_sReceived	:=Device.out_sReceived); 
+		
+		// Trigger SEND only if there is a reply
+		IF sReply <> ''	THEN
+			ptrDevCtrl^.nCommand	:= E_RS_COMM_CMD.SEND;
+			ptrDevCtrl^.sCmd		:= sReply;
+			ptrDevCtrl^.bExecute	:= TRUE;
+		END_IF
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="M_GetSimReply" Id="{8b58b424-a91d-4e9f-aa49-4bf28279d5e3}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReceived:	STRING(255);		// String received from a client
+END_VAR
+VAR
+	sReply:	STRING(255);
+	sTmp:	STRING;
+	sTmp2:	STRING;
+	lrVal:	LREAL;
+	nValue:	UINT;
+	i:		INT;
+    fbFormat   : FB_FormatString;
+    sOut       : T_MaxString;
+	nCh:	UINT;	// Channel number
+	nPos:	INT;	// Position in the string
+
+	lnVel:	LINT;	// MOVE Velocity
+	lnPos:	LINT;	// MOVE Target Position
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Commands related to the controller/DEVice
+//
+IF FIND (in_sReceived, '*IDN?') > 0 THEN
+	// MCS2 ID
+	M_GetSimReply	:= CONCAT('SIM SmarAct;MCS2-00005855;MCS2-00005855;07/05/21', in_sReplySuffix);
+
+ELSIF FIND (in_sReceived, ':DEV:SNUM?') > 0 THEN
+	// MCS2 S/N
+	M_GetSimReply	:= CONCAT('"MCS2-00005855"', in_sReplySuffix);
+
+ELSIF FIND (in_sReceived, ':DEV:STAT?') > 0 THEN
+	// MCS2 State
+	// 16 => Only stDevState.bGLOBAL_INPUT set to TRUE.
+	M_GetSimReply	:= CONCAT('16', in_sReplySuffix);
+
+//
+// Replies to commands starting with ':MOD'.
+//
+ELSIF FIND(in_sReceived, ':MOD') = 1 THEN
+	IF FIND(in_sReceived, ':STAT?') > 1 THEN
+		// MOD state is 1 - BIT_SM_PRESENT.
+		M_GetSimReply	:= CONCAT('1', in_sReplySuffix);
+	END_IF
+
+ELSE
+	//
+	// Commands related to individual channels
+	//
+	IF	FIND (in_sReceived, ':CHAN') = 1	THEN
+			// Get the channel number that comes 
+			// after ':CHAN', e.g. ':CHAN2:STAT?'
+			sTmp	:= DELETE(in_sReceived,5,1);
+			nCh		:= STRING_TO_UINT(sTmp);
+			// The string looks like '2:STAT?' now.
+			// Remove the channel number and the following ':' from the command,
+			// i.e. remove '2:' and pass 'STAT?' to the channel.
+			nPos	:= FIND (sTmp, ':');
+			sTmp	:= DELETE(sTmp,nPos,1);
+			sReply	:= arrCH[nCH].M_GetChSimReply(sTmp);
+			IF sReply <> ''	THEN
+				// There is a reply from the channel.
+				// Channel reply doesn't contain the reply suffix. Add it.
+				M_GetSimReply	:= CONCAT(sReply, in_sReplySuffix);
+			ELSE
+				// Channel Reply is empty string.
+				// Don't reply, i.e. reply is empty string.
+				M_GetSimReply	:= '';
+			END_IF
+	ELSIF	FIND (in_sReceived, ':REF') = 1	THEN
+			// Get the channel number that comes 
+			// after ':REF' , e.g. ':REF2'
+			sTmp	:= DELETE(in_sReceived,4,1);
+			nCh		:= STRING_TO_UINT(sTmp);
+			arrCH[nCH].M_StartREF();
+			M_GetSimReply	:= '';	// No reply to this command
+	ELSIF	FIND (in_sReceived, ':CAL') = 1		THEN
+			// Get the channel number that comes 
+			// after ':CAL', e.g. ':CAL2'
+			sTmp	:= DELETE(in_sReceived,4,1);
+			nCh		:= STRING_TO_UINT(sTmp);
+			arrCH[nCH].M_StartCAL();
+			M_GetSimReply	:= '';	// No reply to this command
+	ELSIF	FIND (in_sReceived, ':MOVE') = 1	THEN
+			// Get the channel number that comes 
+			// after ':MOVE', in e.g. ':MOVE2 100000'
+			sTmp	:= DELETE(in_sReceived,5,1);	// '2 100000'
+			nCh		:= STRING_TO_UINT(sTmp);
+			// Find the space and delete everything up to and including the space.
+			nPos	:= FIND (sTmp, ' ');
+			sTmp2	:= DELETE(sTmp, nPos, 1);	// '100000'
+			lnPos	:= F_STRING_TO_LINT(sTmp2);	// Target Position
+			lnVel	:= arrCH[nCH].ctrl.lnVEL;	// Target Velocity
+			arrCH[nCH].M_StartMOVE(lnPos, lnVel);
+			M_GetSimReply	:= '';	// No reply to this command
+	ELSIF	FIND (in_sReceived, ':STOP') = 1	THEN
+			// Get the channel number that comes 
+			// after ':MOVE', e.g. ':MOVE2'
+			sTmp	:= DELETE(in_sReceived,5,1);
+			nCh		:= STRING_TO_UINT(sTmp);
+			arrCH[nCH].M_STOP();
+			M_GetSimReply	:= '';	// No reply to this command
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_SMAR_ACT">
+      <LineId Id="102" Count="2" />
+      <LineId Id="132" Count="2" />
+      <LineId Id="105" Count="3" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="126" Count="2" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="130" Count="1" />
+      <LineId Id="109" Count="4" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="121" Count="2" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="50" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SMAR_ACT.M_GetSimReply">
+      <LineId Id="484" Count="2" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="391" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="447" Count="0" />
+      <LineId Id="464" Count="2" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="392" Count="0" />
+      <LineId Id="469" Count="0" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="555" Count="4" />
+      <LineId Id="565" Count="0" />
+      <LineId Id="564" Count="0" />
+      <LineId Id="562" Count="1" />
+      <LineId Id="407" Count="0" />
+      <LineId Id="488" Count="2" />
+      <LineId Id="493" Count="0" />
+      <LineId Id="501" Count="1" />
+      <LineId Id="500" Count="0" />
+      <LineId Id="487" Count="0" />
+      <LineId Id="531" Count="0" />
+      <LineId Id="529" Count="0" />
+      <LineId Id="532" Count="0" />
+      <LineId Id="535" Count="0" />
+      <LineId Id="533" Count="0" />
+      <LineId Id="518" Count="0" />
+      <LineId Id="520" Count="0" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="523" Count="1" />
+      <LineId Id="521" Count="0" />
+      <LineId Id="525" Count="2" />
+      <LineId Id="522" Count="0" />
+      <LineId Id="495" Count="0" />
+      <LineId Id="503" Count="3" />
+      <LineId Id="509" Count="0" />
+      <LineId Id="508" Count="0" />
+      <LineId Id="510" Count="0" />
+      <LineId Id="512" Count="5" />
+      <LineId Id="566" Count="4" />
+      <LineId Id="575" Count="0" />
+      <LineId Id="578" Count="0" />
+      <LineId Id="576" Count="1" />
+      <LineId Id="572" Count="2" />
+      <LineId Id="543" Count="6" />
+      <LineId Id="498" Count="0" />
+      <LineId Id="441" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

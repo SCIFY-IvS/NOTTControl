@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_TIME_INFO" Id="{d3d1ba6c-3bfd-45d7-a4e1-4ece40cb036b}">
+    <Declaration><![CDATA[TYPE T_TIME_INFO :
+STRUCT
+	time_offset :    LINT;
+	leap_second:    DINT;  
+	time_mode   :    DINT := E_TIME_MODE.LOCAL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

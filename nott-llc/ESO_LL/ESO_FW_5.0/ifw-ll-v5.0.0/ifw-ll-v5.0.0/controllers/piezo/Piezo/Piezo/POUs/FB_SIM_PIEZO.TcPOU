@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SIM_PIEZO" Id="{cdc20ae3-b7e8-4041-8913-f51782748d05}" SpecialFunc="None">
+    <Declaration><![CDATA[// Simulator that generate sine wave error and
+// generate outputs by adding these errors to Piezo outputs (SIM inputs).
+FUNCTION_BLOCK FB_SIM_PIEZO
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA':='1'}
+	cfg:			T_SIM_PIEZO_CFG;		(* ActiveLow configuration for each signal *)
+
+	{attribute 'OPC.UA.DA':='0'}
+	nCouplerState:	UINT := 8;       // normal coupler state
+	
+	{attribute 'OPC.UA.DA':='0'}
+	i_nSignal	AT %I*:	ARRAY [0..2] OF INT;			//	Input signals to be linked to Piezo outputs
+
+	{attribute 'OPC.UA.DA':='0'}
+	q_nSignal	AT %Q*:	ARRAY [0..2] OF INT;			//	Simulated output signal to be linked to Piezo inputs
+	{attribute 'OPC.UA.DA':='0'}
+	q_nCouplerState AT %Q*:		UINT := 8;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	timer:			TON;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	initialised:	BOOL := FALSE;		// Used to start timer for the first time
+	
+	{attribute 'OPC.UA.DA':='0'}
+	i:	INT;
+
+END_VAR
+VAR_TEMP
+	t1:	LREAL;
+	t2:	LREAL;
+	t3:	LREAL;
+	t4:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Check possible devision by zero
+IF cfg.nSignalCycle = 0 THEN
+	cfg.nSignalCycle	:= 1000;
+END_IF
+
+IF NOT initialised THEN
+	initialised := TRUE;
+	
+	// Start timer for signal=FALSE
+	timer(IN:=FALSE);
+	timer(IN:=TRUE, PT:=UDINT_TO_TIME(cfg.nSignalCycle));
+	RETURN;
+END_IF
+
+// Execute timer
+// The timer is actually used just for the 'angle' for the sin().
+// Angle = ET / PT * 2PI
+timer();
+
+// If the timer expired, just restart it
+IF timer.Q THEN
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(cfg.nSignalCycle));
+END_IF
+
+// Set the output
+t1	:= TIME_TO_LREAL(timer.ET);
+t2	:= TIME_TO_LREAL(timer.PT);
+t3	:= t1 / t2 * 2 * 3.14;
+t4	:= cfg.nMaxError * SIN(t3);
+
+// Set outputs by adding calculated error to Piezo outputs (SIM inputs)
+FOR i:=0 TO 2 DO
+	q_nSignal[i] := i_nSignal[i] + LREAL_TO_INT(t4);	
+END_FOR
+
+q_nCouplerState := nCouplerState;
+
+]]></ST>
+    </Implementation>
+    <Method Name="RPC_ResetConfig" Id="{cefd105e-0777-45a9-b272-dea41c909353}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_ResetConfig : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCouplerState		:= 8;
+cfg.nMaxError		:= 0;
+cfg.nSignalCycle	:= 10000;
+
+RPC_ResetConfig	:= 0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetCouplerState" Id="{45255316-3d56-412d-a07e-b4d5796053d0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetCouplerState : INT
+VAR_INPUT
+	nValue:	UINT;	// Coupler State; 8 - OPERATIONAL, anything else - NON OP
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCouplerState	:= nValue;
+
+RPC_SetCouplerState	:= 0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetMaxError" Id="{1004106a-d14c-4cdf-9cbe-1c39692b430f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetMaxError : INT
+VAR_INPUT
+	nMaxError:		INT;	// Maximal Simulated feedback error [bit]
+	nSignalCycle:	UDINT;	// Period for complete sine wave error cycle [msec] 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nMaxError		:= nMaxError;
+cfg.nSignalCycle	:= nSignalCycle;
+
+RPC_SetMaxError	:= 0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_PIEZO">
+      <LineId Id="204" Count="0" />
+      <LineId Id="206" Count="2" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="127" Count="24" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_PIEZO.RPC_ResetConfig">
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_PIEZO.RPC_SetCouplerState">
+      <LineId Id="14" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_PIEZO.RPC_SetMaxError">
+      <LineId Id="2" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,353 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_SIM_MODBUS_COMM_BASE" Id="{1c42016d-a8de-4b50-954c-9d6bb7047534}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_MODBUS_COMM_BASE
+VAR_INPUT
+	in_nModel:			DINT;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ActivityDo();]]></ST>
+    </Implementation>
+    <Method Name="M_ActivityDo" Id="{73f2ac00-ec8d-48ce-8823-92377e25159a}">
+      <Declaration><![CDATA[METHOD M_ActivityDo
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwap_INT_TO_BYTES" Id="{13a24bfc-5668-4e7c-8edf-5be30a16bd73}">
+      <Declaration><![CDATA[METHOD M_ByteSwap_INT_TO_BYTES : ARRAY [0..1] OF BYTE
+VAR_INPUT
+	nValue:	INT;
+END_VAR
+VAR
+	pByte:		POINTER TO BYTE;	// Pointer to nValue
+	sResult:	ARRAY [0..1] OF BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pByte	:= ADR(nValue);
+
+sResult[0]	:= pByte[1];
+sResult[1]	:= pByte[0];
+
+M_ByteSwap_INT_TO_BYTES	:= sResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwap_INT_TO_STRING" Id="{61445464-709c-41fc-b765-2d1ac5c21244}">
+      <Declaration><![CDATA[METHOD M_ByteSwap_INT_TO_STRING : STRING
+VAR_INPUT
+	nValue:	INT;
+END_VAR
+VAR
+	pByte:		POINTER TO BYTE;	// Pointer to nValue
+	sResult:	STRING(8) := '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pByte	:= ADR(nValue);
+
+sResult[0]	:= pByte[1];
+sResult[1]	:= pByte[0];
+
+M_ByteSwap_INT_TO_STRING	:= sResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwap_REAL_TO_BYTES" Id="{9a4ec644-f709-4ee6-82bd-53cab4b96d5a}">
+      <Declaration><![CDATA[METHOD M_ByteSwap_REAL_TO_BYTES : ARRAY [0..3] OF BYTE
+VAR_INPUT
+	rValue:		REAL;	// Pointer to real number
+END_VAR
+VAR
+	pByte:		POINTER TO BYTE;	// Pointer to real number
+	sResult:	ARRAY [0..3] OF BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pByte	:= ADR(rValue);
+
+sResult[0]	:= pByte[1];
+sResult[1]	:= pByte[0];
+sResult[2]	:= pByte[3];
+sResult[3]	:= pByte[2];
+
+M_ByteSwap_REAL_TO_BYTES	:= sResult;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwap_REAL_TO_STRING" Id="{3d2fc9d3-3e93-4539-b98c-d55ffd347063}">
+      <Declaration><![CDATA[METHOD M_ByteSwap_REAL_TO_STRING : STRING
+VAR_INPUT
+	rValue:		REAL;	// Pointer to real number
+END_VAR
+VAR
+	pByte:		POINTER TO BYTE;	// Pointer to real number
+	sResult:	STRING(8) := '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pByte	:= ADR(rValue);
+
+sResult[0]	:= pByte[1];
+sResult[1]	:= pByte[0];
+sResult[2]	:= pByte[3];
+sResult[3]	:= pByte[2];
+
+M_ByteSwap_REAL_TO_STRING	:= sResult;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwap_UINT_TO_BYTES" Id="{a492bddb-5a82-4e57-9cb7-009619d3aee4}">
+      <Declaration><![CDATA[METHOD M_ByteSwap_UINT_TO_BYTES : ARRAY [0..1] OF BYTE
+VAR_INPUT
+	nValue:	UINT;
+END_VAR
+VAR
+	pByte:		POINTER TO BYTE;	// Pointer to nValue
+	sResult:	ARRAY [0..1] OF BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pByte	:= ADR(nValue);
+
+sResult[0]	:= pByte[1];
+sResult[1]	:= pByte[0];
+
+M_ByteSwap_UINT_TO_BYTES	:= sResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapINT" Id="{bf9d5ff2-6d53-4b5e-9134-216b7fdbd6f1}">
+      <Declaration><![CDATA[METHOD M_ByteSwapINT : INT
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	nResult:	INT;
+	pResult:	POINTER TO BYTE	:= ADR(nResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+
+M_ByteSwapINT	:= nResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapREAL" Id="{5c4c7a33-80c0-4b76-b149-903eb38054d8}">
+      <Declaration><![CDATA[METHOD M_ByteSwapREAL : REAL
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	rResult:	REAL;
+	pResult:	POINTER TO BYTE	:= ADR(rResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+pResult[2]	:= pByte[3];
+pResult[3]	:= pByte[2];
+
+M_ByteSwapREAL	:= rResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GenerateRandom_INT" Id="{22d16088-2dfd-4d73-9dcd-fdbea4f64eb9}">
+      <Declaration><![CDATA[// Get random value in_lrValue + (in_lrNominator * DRAND)
+METHOD M_GenerateRandom_INT : INT
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrValue:		LREAL;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrNominator:	LREAL;
+END_VAR
+VAR
+	nVal:	INT;
+	lrRand:	LREAL;
+	fbDrand:	Tc2_System.DRAND;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	nSeed:	INT := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbDrand(Seed:=nSeed);
+nSeed	:= nSeed + 1;
+lrRand	:= in_lrNominator * fbDrand.Num;
+nVal	:= LREAL_TO_INT(in_lrValue - in_lrNominator/2.0 + lrRand);
+
+M_GenerateRandom_INT	:= nVal;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GenerateRandom_REAL" Id="{d1cdde37-f1ca-4810-8f36-34014378bfdb}">
+      <Declaration><![CDATA[// Get random value in_lrValue + (in_lrNominator * DRAND)
+METHOD M_GenerateRandom_REAL : REAL
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrValue:		REAL;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrNominator:	REAL;
+END_VAR
+VAR
+	lrVal:	REAL;
+	lrRand:	REAL;
+	fbDrand:	Tc2_System.DRAND;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	nSeed:	INT := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbDrand(Seed:=nSeed);
+nSeed	:= nSeed + 1;
+lrRand	:= LREAL_TO_REAL(in_lrNominator * fbDrand.Num);
+lrVal	:= in_lrValue - in_lrNominator/2 + lrRand;	// +- variation
+
+M_GenerateRandom_REAL	:= lrVal;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSimReply" Id="{7e7c13fd-c67b-4c0a-89b5-2476e722f037}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	cmd:	STRING(16);		// MODBUS command. Only first 8 bytes are used
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement simulator replies in FBs that EXTEND FB_SIM_MODBUS_COMM_BASE.
+//            Only case where cmd[1] = E_MODBUS_CMD_TYPE.READ should be implemented.
+
+IF cmd[1] = E_MODBUS_CMD_TYPE.WRITE THEN
+	M_GetSimReply := cmd;	// Reply is the same as the command
+ELSE
+	M_GetSimReply := '        ';	// Dummy implementation
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_InsertBytes_INT" Id="{c8f968f2-f5e5-4b02-9071-d3eec2dc6ce4}">
+      <Declaration><![CDATA[METHOD M_InsertBytes_INT
+VAR_IN_OUT
+	s1:	ARRAY [0..300] OF BYTE;;
+END_VAR
+VAR_INPUT
+	s2:	ARRAY [0..1] OF BYTE;;
+	nPos:	INT;
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i:= 0 TO 1 DO
+	s1[nPos+i]	:= s2[i];
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_InsertBytes_REAL" Id="{4645e23d-791f-46fe-aeaa-c7260f24a885}">
+      <Declaration><![CDATA[METHOD M_InsertBytes_REAL
+VAR_IN_OUT
+	s1:	ARRAY [0..300] OF BYTE;;
+END_VAR
+VAR_INPUT
+	s2:	ARRAY [0..3] OF BYTE;;
+	nPos:	INT;
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i:= 0 TO 3 DO
+	s1[nPos+i]	:= s2[i];
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ActivityDo">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwap_INT_TO_BYTES">
+      <LineId Id="13" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwap_INT_TO_STRING">
+      <LineId Id="33" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwap_REAL_TO_BYTES">
+      <LineId Id="67" Count="8" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwap_REAL_TO_STRING">
+      <LineId Id="67" Count="8" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwap_UINT_TO_BYTES">
+      <LineId Id="13" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwapINT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_ByteSwapREAL">
+      <LineId Id="52" Count="5" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_GenerateRandom_INT">
+      <LineId Id="212" Count="5" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_GenerateRandom_REAL">
+      <LineId Id="212" Count="5" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_GetSimReply">
+      <LineId Id="214" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="228" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_InsertBytes_INT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="14" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_BASE.M_InsertBytes_REAL">
+      <LineId Id="5" Count="0" />
+      <LineId Id="14" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

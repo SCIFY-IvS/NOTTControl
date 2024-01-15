@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_IODEV_CH_REAL_IN" Id="{b6df9977-157f-4464-8248-3f4f4e0e4344}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_REAL_IN EXTENDS FB_IODEV_CH_REAL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Physical input signal
+	// No access via OPC UA.
+	{attribute 'OPC.UA.DA' := '0'}
+	i_rValue	AT %I*:	REAL;	// Physical input signal as REAL
+
+	// Status - OPC UA Read only
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	lrValue:		LREAL;	// Raw input value converted from REAL (float) to LREAL (double)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	lrValueUser:	LREAL;	// Computed value from lrValue in User Units
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Compute" Id="{07df8a7b-e4c6-472a-897f-afa19018358a}">
+      <Declaration><![CDATA[METHOD M_Compute
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[lrValue	:= REAL_TO_LREAL(i_rValue);
+
+CASE nConversion OF
+	CONVERSION_IODEV_NONE:
+		lrValueUser	:= lrValue;
+	CONVERSION_IODEV_LINEAR:
+		lrValueUser	:= lrPar1 * lrValue  +  lrPar2;
+	CONVERSION_IODEV_QUADRATIC:
+		lrValueUser	:= lrPar1 * lrValue * lrValue  +  lrPar2 * lrValue  +  lrPar3;
+	CONVERSION_IODEV_EXP:
+		lrValueUser	:= EXP (lrPar1 * lrValue  +  lrPar2);
+	CONVERSION_IODEV_EXP10:
+		lrValueUser	:= EXPT (10.0, (lrPar1 * lrValue  +  lrPar2));
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{cd6a4984-eaa7-451a-ba05-e257e8b89422}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR_INPUT
+	in_eConversion:	E_IODEV_CONVERSION;
+	in_lrPar1:		LREAL := 0.0;
+	in_lrPar2:		LREAL := 0.0;
+	in_lrPar3:		LREAL := 0.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion		:= in_eConversion;
+lrPar1			:= in_lrPar1;
+lrPar2			:= in_lrPar2;
+lrPar3			:= in_lrPar3;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{115fc7e7-e22c-43a1-83bf-25aec0881c73}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion	:= CONVERSION_IODEV_NONE;
+lrPar1			:= 0.0;
+lrPar2			:= 0.0;
+lrPar3			:= 0.0;
+
+lrValue			:= 0.0;
+lrValueUser		:= 0.0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_CH_REAL_IN">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_REAL_IN.M_Compute">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="11" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_REAL_IN.M_Configure">
+      <LineId Id="12" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_REAL_IN.M_Reset">
+      <LineId Id="6" Count="4" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

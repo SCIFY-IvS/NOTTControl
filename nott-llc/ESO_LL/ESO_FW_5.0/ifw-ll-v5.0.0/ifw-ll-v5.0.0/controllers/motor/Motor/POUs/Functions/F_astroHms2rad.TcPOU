@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_astroHms2rad" Id="{088c6d56-e206-4f92-84cf-fb889d021e45}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+ *   astroHms2rad   :   Convert a time/angle,given in user format, to radians.
+ *   ===========
+ *
+ *   Given    :  angle      an angle as hhmmss.ttt (HoursMinutesSecs)
+ *   Returned :  rad        the angle as radians
+ *
+ *    The given time/angle, a floating value in the format HHMMSS.TTT, is 
+ *    converted to radians. See also tcsSplitHms
+ *)
+FUNCTION F_astroHms2rad : LREAL
+VAR_INPUT
+	angle:	LREAL;
+END_VAR
+VAR
+	hh,hm,hs:	LREAL;
+	rad,rar:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+double astroHms2rad (double angle)
+{
+   double hh,hm,hs;
+   double rad,rar;
+   double de2ra = 0.017453292519943;
+
+   astroSplitHms(fabs_(angle),&hh,&hm,&hs);
+   rad=(hh + hm/60.0 + hs/3600.0)*15.0;
+   rar=rad*de2ra;
+   if (angle<0.0) rar=-rar;
+   
+   return(rar);
+}
+
+*)
+
+F_astroSplitHms(ABS(angle),h=>hh,m=>hm,sec=>hs);
+
+rad	:= (hh + hm/60.0 + hs/3600.0) * 15.0;	// * 15.0 : 24h * 15 = 360 deg
+rar	:= rad * GCL.C_DEG2RAD;
+
+IF angle<0.0 THEN
+	rar := -rar;
+END_IF
+
+F_astroHms2rad	:= rar;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_astroHms2rad">
+      <LineId Id="7" Count="0" />
+      <LineId Id="19" Count="13" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="36" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

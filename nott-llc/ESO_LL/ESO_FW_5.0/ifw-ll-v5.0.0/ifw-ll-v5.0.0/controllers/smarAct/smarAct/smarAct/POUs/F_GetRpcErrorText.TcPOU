@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="F_GetRpcErrorText" Id="{d97ee6b0-da59-4f5c-a81c-afe50a37b5c0}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE ErrorCode OF
+	E_SA_RPC_ERROR.OK:					str	:= 'OK';
+	E_SA_RPC_ERROR.NOT_OP:				str	:= 'Positioner not OPERATIONAL';
+	E_SA_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP_READY.';
+	E_SA_RPC_ERROR.NOT_NOTOP_NOTREADY:	str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_SA_RPC_ERROR.LOCAL:				str	:= 'RPC calls not allowed in Local mode.';
+	E_SA_RPC_ERROR.SW_LIMIT_LOWER:		str	:= 'Target position beyond Lower SW Limit';
+	E_SA_RPC_ERROR.SW_LIMIT_UPPER:		str	:= 'Target position beyond Upper SW Limit';
+	E_SA_RPC_ERROR.CHANNEL:				str	:= 'Channel not in range [0..17]';
+	E_SA_RPC_ERROR.VEL_MAX:				str	:= 'Target Velocity higher than Maximum';
+	E_SA_RPC_ERROR.VEL_NEG:				str	:= 'Target Velocity cannot be negative';
+	E_SA_RPC_ERROR.VEL_ZERO:			str	:= 'Target Velocity cannot be zero';
+	E_SA_RPC_ERROR.CH_NOT_OP:			str	:= 'Channel not OPERATIONAL. REFerence first.';
+	E_SA_RPC_ERROR.CTRL_ERROR:			str	:= 'SmarAct MCS2 Controller Problem';
+	E_SA_RPC_ERROR.MOVING:				str	:= 'Positioner is moving. Stop first.';
+	E_SA_RPC_ERROR.COMM:				str	:= 'SmarAct MCS2 Controller Communication Problem';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+F_GetRpcErrorText	:= str;]]></ST>
+    </Implementation>
+    <LineIds Name="F_GetRpcErrorText">
+      <LineId Id="14" Count="12" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="27" Count="3" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

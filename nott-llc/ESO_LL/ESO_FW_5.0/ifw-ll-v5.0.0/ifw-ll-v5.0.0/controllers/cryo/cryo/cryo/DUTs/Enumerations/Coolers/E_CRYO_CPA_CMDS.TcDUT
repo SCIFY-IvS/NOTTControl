@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_CPA_CMDS" Id="{c656551f-18ea-4b55-a2ee-6b019e8f8294}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_CPA_CMDS :
+(
+	NONE	:= 0,
+	START	:= 21,
+	STOP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="GVL_DL_Scanning_Homming" Id="{47fbd0cb-e3b1-4b5f-8d3b-4dfca6b09e5e}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	{attribute 'OPC.UA.DA':='1'}
+	bHomming :BOOL;
+	
+	{attribute 'OPC.UA.DA':='1'}
+	sHommingStatus :STRING;
+	
+	{attribute 'OPC.UA.DA':='1'}
+	bTrigCameraImages :BOOL;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

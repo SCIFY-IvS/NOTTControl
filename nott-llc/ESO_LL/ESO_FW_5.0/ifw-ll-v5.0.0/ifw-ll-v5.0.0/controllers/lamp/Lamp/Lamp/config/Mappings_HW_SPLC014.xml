@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^Lamp^Lamp Instance">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)">
+			<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_nCouplerState" VarB="InfoData^State"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 7 (EL2008)">
+			<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_nCouplerState" VarB="InfoData^State"/>
+			<Link VarA="PlcTask Outputs^MAIN.Lamp001.q_bSwitch" VarB="Channel 1^Output"/>
+			<Link VarA="PlcTask Outputs^MAIN.Lamp002.q_bSwitch" VarB="Channel 2^Output"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 8 (EL1008)">
+			<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_bOn" VarB="Channel 1^Input"/>
+			<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_bOn" VarB="Channel 2^Input"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

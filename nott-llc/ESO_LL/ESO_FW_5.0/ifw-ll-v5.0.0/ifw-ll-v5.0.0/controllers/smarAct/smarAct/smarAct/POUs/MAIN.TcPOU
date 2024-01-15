@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="MAIN" Id="{eb56081c-c812-41c2-8459-a14853aefee1}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	//
+	// TcpIp related variables.
+	// Mandatory for all PLC programs using TcpIp !!!
+	// On PLC reset or program download close all existing connections.
+	//
+    fbSocketCloseAll:	FB_SocketCloseAll;
+    bCloseAll: 			BOOL := TRUE;
+	bAllCosed:			BOOL := FALSE;
+
+	//
+	// Devices
+	//
+	{attribute 'OPC.UA.DA' := '1'}
+	SmarAct_PDS:		FB_SMARACT_PDS;		// SmarAct Device for PDS
+	{attribute 'OPC.UA.DA' := '1'}
+	SmarAct_Sim:		FB_SMARACT_SIM;		// Simulated SmarAct
+
+	//
+	// Simulators
+	//
+	SIM_SA:				FB_SIM_SMAR_ACT;	// SmarAct simulator
+	
+	i_bDummy	AT %I*:	BOOL;	// Dummy var to get System OPERATIONAL without I/O
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Mandatory for all PLC programs using TcpIp !!!
+// On PLC reset or program download close all existing connections.
+//
+IF NOT bAllCosed	THEN
+	IF bCloseAll THEN
+		bCloseAll := FALSE;
+		fbSocketCloseAll( sSrvNetId:= '', bExecute:= TRUE, tTimeout:= T#10s );
+	ELSE
+		fbSocketCloseAll( bExecute:= FALSE );
+	END_IF
+	
+	IF fbSocketCloseAll.bBusy THEN
+		RETURN;
+	ELSE
+		bAllCosed	:= TRUE;
+	END_IF
+END_IF
+
+
+
+//
+// SmarAct Controller Instance PDS
+//
+SmarAct_PDS(
+	in_sName			:= 'SmarAct PDS',
+	in_bSimulation		:= FALSE,
+	in_nPeriod			:= 300,				// Delay between channels 300ms = 0.3s
+	in_sCmdSuffix		:= '$0D$0A',		// Command terminator '[CR][LF]'='$0D$0A'
+	in_sReplySuffix		:= '$0D$0A',		// Reply terminator '[CR][LF]'='$0D$0A'
+	in_sDeviceTcpIpAdr	:= '192.168.1.200',	// Device IP address
+	in_nDeviceTcpPort	:= 55551);
+
+
+//
+// SmarAct Controller Instance SIMulated
+//
+SmarAct_Sim(
+	in_sName			:= 'SmarAct SIM',
+	in_bSimulation		:= TRUE,
+	in_nPeriod			:= 500,				// Delay between channels 500ms = 0.5s
+	in_sCmdSuffix		:= '$0D$0A',		// Command terminator '[CR][LF]'='$0D$0A'
+	in_sReplySuffix		:= '$0D$0A',		// Reply terminator '[CR][LF]'='$0D$0A'
+	in_sDeviceTcpIpAdr	:= '127.0.0.1',		// Simulated device IP address. MUST be '127.0.0.1' !!!
+	in_nDeviceTcpPort	:= 55551);
+
+
+//
+// SmarAct simulator that communicates with SmarAct_Sim.
+// It should not exist in real PLC application.
+// Not that in simulation the IP MUST be '127.0.0.1' !!!
+//
+SIM_SA(
+	in_bSimulation:= TRUE, 
+	in_bEnable:= TRUE, 
+	in_sReplySuffix:= '$0D$0A', 
+	in_sTcpIpAdr:= '127.0.0.1',	// Simulator IP address, 
+	in_nTcpPort:= 55551);
+	]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="242" Count="57" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

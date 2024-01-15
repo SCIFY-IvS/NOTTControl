@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_CFG" Id="{f9924ab9-cd48-4def-aee7-2b2b462ed7be}">
+    <Declaration><![CDATA[TYPE T_IODEV_CFG :
+STRUCT
+	sName:				STRING	:= 'IODev';	// Instance name
+	bAutoOp:			BOOL 	:= FALSE;	// If TRUE, go automatically to OPERATIONAL state
+	bUserConfig:		BOOL 	:= TRUE;	// If true, configuration in M_Configure() is used.
+	
+	nNum_DI:			INT		:= 0; 		// Number of digital INPUT signals
+	nNum_AI:			INT		:= 0; 		// Number of analog INPUT signals of type INT
+	nNum_RI:			INT		:= 0; 		// Number of analog INPUT signals of type REAL
+	nNum_DisI:			INT		:= 0; 		// Number of discrete INPUT signals
+	nNum_TI:			INT		:= 0; 		// Number of text INPUT signals
+	
+	nNum_DO:			INT		:= 0; 		// Number of digital OUTPUT signals
+	nNum_AO:			INT		:= 0; 		// Number of analog OUTPUT signals of type INT
+	nNum_DisO:			INT		:= 0; 		// Number of discrete OUTPUT signals
+	nNum_TO:			INT		:= 0; 		// Number of text OUTPUT signals
+	
+	// Logging
+	bLogExtTime:		BOOL 	:= FALSE;		// If TRUE, use external time in event logs. Default FALSE.
+	bDebug:				BOOL 	:= FALSE;		// If TRUE, show event logs of Debug type. Default FALSE.
+	bLog:				BOOL 	:= TRUE;		// If TRUE, log events. Default TRUE.
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

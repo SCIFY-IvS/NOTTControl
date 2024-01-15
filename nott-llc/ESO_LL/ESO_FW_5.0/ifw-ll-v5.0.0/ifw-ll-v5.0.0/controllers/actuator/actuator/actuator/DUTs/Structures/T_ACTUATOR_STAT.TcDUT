@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_ACTUATOR_STAT" Id="{b8d52083-9990-40a7-82e3-575bf4048bc9}">
+    <Declaration><![CDATA[TYPE T_ACTUATOR_STAT :
+STRUCT
+	bLocal:			BOOL	:= FALSE;						(* if TRUE, device operated from PLC GUI *)
+
+	nLastCommand:	DINT	:= E_ACTUATOR_COMMAND.NONE;			(* Last command sent to the device *)
+
+	nErrorCode: 	DINT 	:= E_ACTUATOR_ERROR.HW_NOTOP;		(* Error code *)
+	nHwStatus: 		DINT	:= E_ACTUATOR_HW_STATUS.UNKNOWN; 		(* Unknown, error, on, of. See E_ACTUATOR_HW_STATUS *)
+	nRpcErrorCode: 	DINT	:= E_ACTUATOR_RPC_ERROR.OK;		(* RPC Error code *)
+	nStatus: 		DINT	:= E_ACTUATOR_STATUS.ERROR; 			(* Device status *)
+
+	sErrorText: 	STRING 	:= 'OK'; 						(* Error text *)
+	sHwStatus: 		STRING 	:= 'UNKNOWN'; 					(* HW Status in textual form: 'UNKNOWN', 'ERROR', 'OPEN' or 'CLOSED' *)
+	sLastCommand:	STRING	:= 'NONE';						(* Last command, as string, sent to the device *)
+	sLibVersion:	STRING	:= 'UNKNOWN';					(* Library version as string, e.g. '1.2.0.0' *)
+	sRPCErrorText: 	STRING 	:= 'OK'; 						(* RPC Error text *)
+	sStatus: 		STRING 	:= 'OK'; 						(* Status in textual form, e.g. 'OFF' *)
+	
+	sState:			STRING	:= 'NOT OP';
+	sSubstate:		STRING	:= 'NOT READY';
+	
+	nState:			E_ACTUATOR_STATE		:= E_ACTUATOR_STATE.NOTOP;
+	nSubstate:		E_ACTUATOR_SUBSTATE	:= E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY;
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+
+	
+
+
+	nCycleCounter:		UDINT	:= 0;
+	nCycleTime:			UDINT	:= 0;						// Cycle time in us (microsec)
+
+	nTimeOn: 			UDINT 	:= 0;						(* Time power has been ON since last ON command [sec] *)
+	nTimeOnStart:		UDINT 	:= 0;						(* Absolute start time of last power ON command [sec] *)
+	nTimeOnTotal:		UDINT 	:= 0;						(* Total time power has been ON [sec] *)
+	nTimeOnTotalStart:	UDINT 	:= 0;						(* Absolute start time of power ON [sec] *)
+	nTimeOff: 			UDINT 	:= 0;						(* Time power has been OFF [sec] *)
+	nTimeOffStart:		UDINT 	:= 0;						(* Time power has been OFF [sec] *)
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

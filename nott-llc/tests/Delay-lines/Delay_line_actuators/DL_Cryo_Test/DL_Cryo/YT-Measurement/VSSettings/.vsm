@@ -1,0 +1,241 @@
+<Node>
+  <Title>YT-Measurement</Title>
+  <Expanded>False</Expanded>
+  <FileName></FileName>
+  <Children>
+    <Node>
+      <Title>YT Scope Project</Title>
+      <Expanded>True</Expanded>
+      <FileName>C:\Users\u0149673\NOTT\NOTTControl\nott-llc\tests\Delay-lines\Delay_line_actuators\DL_Cryo_Test\DL_Cryo\YT-Measurement\YT Scope Project.tcscopex</FileName>
+      <Children>
+        <Node>
+          <Title>DataPool</Title>
+          <Expanded>True</Expanded>
+          <FileName></FileName>
+          <Children>
+            <Node>
+              <Title>ActAcc</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>ActPos</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>ActPosModulo</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>ActVelo</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>nVib_X</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>nVib_Y</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>nVib_Z</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>PosDiff</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>SetAcc</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>SetPos</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>SetPosModulo</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+            <Node>
+              <Title>SetVelo</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+          </Children>
+        </Node>
+        <Node>
+          <Title>YT Chart</Title>
+          <Expanded>True</Expanded>
+          <FileName></FileName>
+          <Children>
+            <Node>
+              <Title>Axis ActPos</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>ActPos</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+            <Node>
+              <Title>Axis ActVelo</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>ActVelo</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+          </Children>
+        </Node>
+        <Node>
+          <Title>Vibrations</Title>
+          <Expanded>True</Expanded>
+          <FileName></FileName>
+          <Children>
+            <Node>
+              <Title>Axis Group</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>nVib_X</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+                <Node>
+                  <Title>nVib_Y</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+                <Node>
+                  <Title>nVib_Z</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+          </Children>
+        </Node>
+        <Node>
+          <Title>DL_Servo</Title>
+          <Expanded>True</Expanded>
+          <FileName></FileName>
+          <Children>
+            <Node>
+              <Title>Position absolute</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>ActPos (1)</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+                <Node>
+                  <Title>SetPos</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+            <Node>
+              <Title>Velocity</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>ActVelo (1)</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+                <Node>
+                  <Title>SetVelo</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+            <Node>
+              <Title>Acceleration</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>ActAcc</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+                <Node>
+                  <Title>SetAcc</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+            <Node>
+              <Title>Position Lab</Title>
+              <Expanded>True</Expanded>
+              <FileName></FileName>
+              <Children>
+                <Node>
+                  <Title>PosDiff</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+              </Children>
+            </Node>
+          </Children>
+        </Node>
+        <Node>
+          <Title>Trigger</Title>
+          <Expanded>False</Expanded>
+          <FileName></FileName>
+          <Children />
+        </Node>
+      </Children>
+    </Node>
+  </Children>
+</Node>

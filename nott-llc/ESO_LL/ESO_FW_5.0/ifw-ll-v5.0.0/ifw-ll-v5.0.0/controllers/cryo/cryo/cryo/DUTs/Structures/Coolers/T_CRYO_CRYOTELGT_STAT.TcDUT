@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_CRYOTELGT_STAT" Id="{b2388b9a-8943-43f1-be55-5d672a9934d8}">
+    <Declaration><![CDATA[TYPE T_CRYO_CRYOTELGT_STAT EXTENDS T_RS_BASE_STAT :
+STRUCT
+	
+	nRetries:			UDINT := 0;			// Total number of retries in case of communication problems
+	nDevState:			E_CRYO_CRYOTELGT_STATE := E_CRYO_CRYOTELGT_STATE.OFF;
+	sDevState:			STRING := 'OFF';
+
+	sReply:				STRING(255); 		(* Last Reply to predefined commands*)
+
+	// Status attributes that are read from the controller via RS-232
+	sVersion:			STRING;
+	sMode:				STRING;
+	sSensor:			STRING;
+	sCtrlError:			STRING;
+	sCtrlMode:			STRING;
+	
+	lrPowerMeasured:	LREAL;
+	lrPowerCommanded:	LREAL;
+	lrTempColdHead:		LREAL;
+	lrTempReject:		LREAL;
+	lrTempTarget:		LREAL;
+	
+	bPowerCmdActive:	BOOL;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

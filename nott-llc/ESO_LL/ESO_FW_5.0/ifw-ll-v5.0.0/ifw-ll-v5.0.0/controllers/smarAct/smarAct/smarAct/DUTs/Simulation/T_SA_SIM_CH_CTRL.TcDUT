@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_SIM_CH_CTRL" Id="{3ce4a323-75de-445b-9850-56eb7ec0dbac}">
+    <Declaration><![CDATA[TYPE T_SA_SIM_CH_CTRL :
+STRUCT
+	
+	nMode:	DINT := 0;		// Movement type: 0 - Absolute, 1 - Relative. 
+	lnPOS:	LINT;			// Position in Positioner/Device Units, i.e. [nd] or [pm]
+	lnVEL:	LINT := 1000;	// Velocity in Positioner/Device, i.e. [nd/s] or [pm/s]
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

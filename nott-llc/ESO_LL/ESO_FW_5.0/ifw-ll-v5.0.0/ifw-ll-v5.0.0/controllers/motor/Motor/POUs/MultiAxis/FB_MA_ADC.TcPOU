@@ -1,0 +1,1300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_MA_ADC" Id="{ca2fa95b-5968-4bfd-8bef-01c56cc3c09b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MA_ADC EXTENDS FB_MA_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	sMotorAdc1:			STRING	:= 'MotorAdc1';	(* Default Motor name *)
+	{attribute 'OPC.UA.DA' := '0'}
+	sMotorAdc2:			STRING	:= 'MotorAdc2';	(* Default Motor name *)
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	stSiteConstants:      T_ASTRO_SITE_CONSTANTS;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	stEnvironmentData:    T_ASTRO_ENVIRONMENT;  
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	stPointingKernel:    T_ASTRO_POINTING_KERNEL_POSITIONS;  
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nNOVRAM_DevId:	UDINT	:= 0;		(* NOVRAM device ID - normally 4 *)
+	{attribute 'OPC.UA.DA' := '0'}
+	nNOVRAM_Offset1:	UDINT	:= 0;		(* NOVRAM offset where ADC motor1 configuration is stored *)
+	{attribute 'OPC.UA.DA' := '0'}
+	nNOVRAM_Offset2:	UDINT	:= 0;		(* NOVRAM offset where ADC motor2 configuration is stored *)
+	
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:				T_ADC_CFG;
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:				T_ADC_CTRL;
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:				T_ADC_STAT;
+	
+	{attribute 'OPC.UA.DA':='1'}
+	motor1:              FB_MOTOR;
+	{attribute 'OPC.UA.DA':='1'}
+	motor2:              FB_MOTOR;
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// A MUST !!! Set references to real structures
+RefCfg		REF=cfg;
+RefCtrl		REF=ctrl;
+RefStat		REF=stat;
+
+motor1(	sName 				:= sMotorAdc1,
+		in_bSafe			:= in_bSafe,
+		in_bDisableIfUnsafe	:= in_bDisableIfUnsafe,
+		nNOVRAM_DevId		:= nNOVRAM_DevId, 
+		nNOVRAM_Offset		:= nNOVRAM_Offset1);
+		
+motor2(	sName 				:= sMotorAdc2,	
+		in_bSafe			:= in_bSafe,
+		in_bDisableIfUnsafe	:= in_bDisableIfUnsafe,
+		nNOVRAM_DevId		:= nNOVRAM_DevId, 
+		nNOVRAM_Offset		:= nNOVRAM_Offset2);
+
+SUPER^(nNumAxes:=2, pMotor1:=ADR(motor1), pMotor2:=ADR(motor2));
+]]></ST>
+    </Implementation>
+    <Method Name="M_LogCommand" Id="{eab9b788-6135-4ffe-bb06-22a96ca330f9}">
+      <Declaration><![CDATA[METHOD M_LogCommand : BOOL
+VAR
+	cmd:	INT;
+	mode:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cmd		:= RefCtrl.nCommand;
+mode	:= ctrl.nMode;
+
+// Log ADC command.
+// Set motor logging to FALSE when tracking,
+// in order to reduce flooding of logs.
+IF cmd = E_MA_COMMAND.RESET THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	pMotor2^.RPC_SetLog(TRUE);
+	M_SetStatus('Resetting ADC device...');		
+	M_LogEventGeneral('Resetting ADC device...');
+ELSIF cmd = E_MA_COMMAND.ENABLE THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	pMotor2^.RPC_SetLog(TRUE);
+	M_SetStatus('');		
+	M_LogEventGeneral('Enabling ADC device...');
+ELSIF cmd = E_MA_COMMAND.INIT THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	pMotor2^.RPC_SetLog(TRUE);
+	M_SetStatus('Initialising ADC device...');		
+	M_LogEventGeneral('Initialising ADC device...');
+ELSIF cmd = E_MA_COMMAND.START_TRACK THEN
+	pMotor1^.RPC_SetLog(FALSE);
+	pMotor2^.RPC_SetLog(FALSE);
+	IF mode= E_ADC_MODE.AUTO THEN
+		M_SetStatus('Tracking in AUTO mode');
+		M_LogEventGeneral('Setting ADC device to AUTO mode...');
+	END_IF
+ELSIF cmd = E_MA_COMMAND.DISABLE THEN
+	M_SetStatus('');		
+	M_LogEventGeneral('Disabling ADC device...');
+ELSIF cmd = E_MA_COMMAND.STOP THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	pMotor2^.RPC_SetLog(TRUE);
+	M_LogEventGeneral('Stopping ADC device...');
+ELSIF cmd = E_MA_COMMAND.STOP_TRACK THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	pMotor2^.RPC_SetLog(TRUE);
+	IF mode= E_ADC_MODE.ENG THEN
+		M_SetStatus('Moving to Engineering position ...');		
+		M_LogEventGeneral('Setting ADC device to ENGINEERING mode...');
+	ELSIF mode= E_ADC_MODE.OFF THEN
+		M_SetStatus('Moving to OFF (HOME) position ...');		
+		M_LogEventGeneral('Setting ADC device to OFF mode...');
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{b214d208-24b9-4ac6-bf87-d7df37c0b282}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// It does all the verifications for the MOTOR device before
+// triggering the Disable event.
+
+// RPC calls are not allowed in Local mode.
+
+FOR i := 1 TO nNumAxes DO
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_Disable	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	END_IF
+
+
+	// Disable command is accepted only if device is in OP state.
+	IF ptrMotorStat[i]^.nState <> E_MOTOR_STATE.OP THEN
+		RPC_Disable	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+		RETURN;
+		
+	END_IF
+END_FOR
+
+RefCtrl.nCommand := E_MA_COMMAND.DISABLE;
+RefCtrl.bExecute := TRUE;
+
+	
+// Call was successful
+RPC_Disable	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{dc2ac5ff-f392-4bdb-a499-9fc37f3e38d2}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+
+// It does all the verifications for the MOTOR device before
+// triggering the Enable event.
+
+FOR i := 1 TO nNumAxes DO
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	END_IF
+
+	// Enable command is accepted only if device is in NOTOP_READY.
+	IF	ptrMotorStat[i]^.nSubstate <> E_MOTOR_SUBSTATE.NOTOP_READY		THEN
+		RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_NOTOP_READY);
+		RETURN;
+	END_IF
+END_FOR
+
+
+
+// Set enable command
+RefCtrl.nCommand := E_MA_COMMAND.ENABLE;
+RefCtrl.bExecute := TRUE;
+	
+// Call was successful
+RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{c47a05c5-25c4-4c90-8962-a83b69cb9d6c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_LogEventGeneral('Initialising ADC motors...');
+
+//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_Init	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+RPC_Init	:= SUPER^.RPC_Init();
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveAbs" Id="{c7a82b01-3d00-4e23-bb61-12f4a8dbd52f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveAbs : INT
+VAR_INPUT
+	in_axis:	E_ADC_AXES_ID := E_ADC_AXES_ID.ALL_AXES;
+	in_lrPos:	LREAL;
+	in_lrVel:	LREAL;
+END_VAR
+
+VAR 
+	i: INT := 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+// Commands are acceptred only when OPERATIONAL
+IF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be <=0.0.
+ELSIF	in_lrVel <= 0.0	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_NEG);
+	RETURN;
+END_IF
+
+// Check velocity against Vel_max
+IF in_axis = E_ADC_AXES_ID.ALL_AXES THEN
+	FOR i := 1 TO nNumAxes DO
+		// Check if Velocity is too high.
+		IF in_lrVel > ptrMotorStat[i]^.axis.lrMaxVelocity THEN
+			RPC_MoveAbs	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+			RETURN;
+		END_IF
+	END_FOR
+ELSE
+	// Check if Velocity is too high.
+	IF in_lrVel > ptrMotorStat[in_axis]^.axis.lrMaxVelocity THEN
+		RPC_MoveAbs	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+		RETURN;
+	END_IF
+END_IF
+
+
+// Set target position
+IF in_axis = E_ADC_AXES_ID.ALL_AXES THEN
+	FOR i := 1 TO nNumAxes DO
+		// RPC calls are not allowed in Local mode.
+		IF ptrMotorStat[i]^.bLocal THEN
+			RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+			RETURN;
+		// Move Absolute command is accepted only in OP state.
+		ELSIF	ptrMotorStat[i]^.nState <> E_MOTOR_STATE.OP	THEN
+			RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+			RETURN;
+		END_IF
+	
+		ctrl.lrTargetPos[i] := in_lrPos;
+	END_FOR
+ELSE
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[in_axis]^.bLocal THEN
+		RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	// Move Absolute command is accepted only in OP state.
+	ELSIF	ptrMotorStat[in_axis]^.nState <> E_MOTOR_STATE.OP	THEN
+		RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+		RETURN;
+	END_IF
+	
+	// Ensure moving only one motor
+	FOR i := 1 TO nNumAxes DO
+		ctrl.lrTargetPos[i] := ptrMotorStat[i]^.lrPosActual;
+	END_FOR
+	ctrl.lrTargetPos[in_axis] := in_lrPos;
+END_IF
+
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+// Set command
+ctrl.lrTargetVel    := in_lrVel;	
+ctrl.nCommand 		:= E_MA_COMMAND.MA_MOVE;
+ctrl.nMode          := E_ADC_MODE.ENG;
+ctrl.bExecute 		:= TRUE;
+
+
+// Call was successful
+RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveAngle" Id="{e446fca7-cb75-4f3b-8000-77d37f3a5464}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveAngle : INT
+VAR_INPUT
+	in_lrAngle:	LREAL;
+END_VAR
+
+VAR 
+	i: INT := 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+
+IF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+
+FOR i := 1 TO nNumAxes DO
+		// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+		// Move Absolute command is accepted only in OP state.
+	ELSIF	ptrMotorStat[i]^.nState <> E_MOTOR_STATE.OP	THEN
+		RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+		RETURN;
+	END_IF
+	
+	ctrl.lrPosang[i] := in_lrAngle;
+END_FOR
+
+
+
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+// Set command
+ctrl.nMode:=E_ADC_MODE.OFF;
+ctrl.nCommand:= E_MA_COMMAND.STOP_TRACK;
+ctrl.bExecute:= TRUE;
+
+// Call was successful
+RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveRel" Id="{6a8631b2-94fe-46b9-bd25-d806f129e499}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveRel : INT
+VAR_INPUT
+	in_axis:	E_ADC_AXES_ID := E_ADC_AXES_ID.ALL_AXES;
+	in_lrPos:	LREAL;
+	in_lrVel:	LREAL;
+END_VAR
+
+VAR 
+	i: INT := 0;
+	res: INT := E_MOTOR_RPC_ERROR.OK;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+// Commands are acceptred only when OPERATIONAL
+IF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be <=0.0.
+ELSIF	in_lrVel <= 0.0	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_NEG);
+	RETURN;
+END_IF
+
+// Check velocity against Vel_max
+IF in_axis = E_ADC_AXES_ID.ALL_AXES THEN
+	FOR i := 1 TO nNumAxes DO
+		// Check if Velocity is too high.
+		IF in_lrVel > ptrMotorStat[i]^.axis.lrMaxVelocity THEN
+			RPC_MoveRel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+			RETURN;
+		END_IF
+	END_FOR
+ELSE
+	// Check if Velocity is too high.
+	IF in_lrVel > ptrMotorStat[in_axis]^.axis.lrMaxVelocity THEN
+		RPC_MoveRel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+		RETURN;
+	END_IF
+END_IF
+
+
+// Set target position
+IF in_axis = E_ADC_AXES_ID.ALL_AXES THEN
+	FOR i := 1 TO nNumAxes DO
+		// RPC calls are not allowed in Local mode.
+		IF ptrMotorStat[i]^.bLocal THEN
+			RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+			RETURN;
+		// Move Relative command is accepted only in OP state.
+		ELSIF	ptrMotorStat[i]^.nState <> E_MOTOR_STATE.OP	THEN
+			RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+			RETURN;
+		END_IF
+	
+		ctrl.lrTargetPos[i] := ptrMotorStat[i]^.lrPosActual + in_lrPos;
+	END_FOR
+ELSE
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[in_axis]^.bLocal THEN
+		RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	// Move Relative command is accepted only in OP state.
+	ELSIF	ptrMotorStat[in_axis]^.nState <> E_MOTOR_STATE.OP	THEN
+		RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+		RETURN;
+	END_IF
+	
+	// Ensure moving only one motor
+	FOR i := 1 TO nNumAxes DO
+		ctrl.lrTargetPos[i] := ptrMotorStat[i]^.lrPosActual;
+	END_FOR
+	ctrl.lrTargetPos[in_axis] := ptrMotorStat[in_axis]^.lrPosActual + in_lrPos;
+END_IF
+
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+// Set command
+ctrl.lrTargetVel    := in_lrVel;	
+ctrl.nCommand 		:= E_MA_COMMAND.MA_MOVE;
+ctrl.nMode          := E_ADC_MODE.ENG;
+ctrl.bExecute 		:= TRUE;
+
+
+// Call was successful
+RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveVel" Id="{0862bde5-0cc8-4d78-988d-891eaaa22536}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveVel : INT
+VAR_INPUT
+	in_axis:	E_ADC_AXES_ID := E_ADC_AXES_ID.ALL_AXES;
+	in_lrVel:	LREAL;
+END_VAR
+
+VAR 
+	i: INT := 0;
+	res: INT := E_MOTOR_RPC_ERROR.OK;
+	dir:	DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveVel	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+IF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveVel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be 0.0.
+ELSIF	in_lrVel = 0.0	THEN
+	RPC_MoveVel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_ZERO);
+	RETURN;
+END_IF
+
+// Check velocity against Vel_max.
+// Note: Negative velocity is accepted.
+IF in_axis = E_ADC_AXES_ID.ALL_AXES THEN
+	FOR i := 1 TO nNumAxes DO
+		// Check if Velocity is too high.
+		IF ABS(in_lrVel) > ptrMotorStat[i]^.axis.lrMaxVelocity THEN
+			RPC_MoveVel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+			RETURN;
+		END_IF
+	END_FOR
+ELSE
+	// Check if Velocity is too high.
+	IF ABS(in_lrVel) > ptrMotorStat[in_axis]^.axis.lrMaxVelocity THEN
+		RPC_MoveVel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+		RETURN;
+	END_IF
+END_IF
+
+// Update State and Status
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+M_SetStatus('Moving in Velocity mode...');
+ctrl.nMode	:= E_ADC_MODE.ENG;
+
+// Set the direction of movement.
+IF in_lrVel > 0.0	THEN
+	dir	:= MC_Positive_Direction;
+ELSE
+	dir	:= MC_Negative_Direction;
+END_IF
+
+
+// Restart timer
+M_RestartTimer (RefCfg.timeout.nMoveTimeout);
+
+// Command motors to move in velocity.
+// This is almost the same as ActionMoveVelExecute().
+// Note: Velocity is set with absolute value and direction.
+IF in_axis = E_ADC_AXES_ID.ALL_AXES THEN
+// Move all axes
+	FOR i := 1 TO nNumAxes DO
+		ptrMotorCtrl[i]^.nCommand 	:= E_MOTOR_COMMAND.MOTOR_MOVE;
+		ptrMotorCtrl[i]^.nMoveType	:= E_MOTOR_MOVE_TYPE.VELOCITY;
+		ptrMotorCtrl[i]^.lrVelocity	:= ABS(in_lrVel);
+		ptrMotorCtrl[i]^.nDirection	:= dir;
+		ptrMotorCtrl[i]^.bExecute	:= TRUE;
+	END_FOR
+ELSE
+// Move only the selected axis
+	ptrMotorCtrl[in_axis]^.nCommand 	:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ptrMotorCtrl[in_axis]^.nMoveType	:= E_MOTOR_MOVE_TYPE.VELOCITY;
+	ptrMotorCtrl[in_axis]^.lrVelocity	:= ABS(in_lrVel);
+	ptrMotorCtrl[in_axis]^.nDirection	:= dir;
+	ptrMotorCtrl[in_axis]^.bExecute		:= TRUE;
+END_IF
+
+
+
+// Call was successful
+RPC_MoveVel	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{d4f02b15-92e3-42ca-9c13-2d3032f42dfd}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+FOR i := 1 TO nNumAxes DO
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_Reset	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	END_IF
+END_FOR
+
+
+ctrl.nCommand := E_MA_COMMAND.RESET;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_StartTrack" Id="{eadc9f5e-6afa-42e2-a2ed-d29491a1fa34}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_StartTrack : INT
+VAR_INPUT
+	in_angle:    LREAL := 0.0;
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+
+FOR i := 1 TO nNumAxes DO
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	// Move Absolute command is accepted only in OP state.
+	ELSIF	ptrMotorStat[i]^.nState <> E_MOTOR_STATE.OP	THEN
+		RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+		RETURN;
+	END_IF
+END_FOR
+
+
+// Set command
+ctrl.lrPosang[1] := in_angle;
+ctrl.lrPosang[2] := in_angle;
+
+ctrl.nMode:= E_ADC_MODE.AUTO;
+ctrl.nCommand:=E_MA_COMMAND.START_TRACK;
+ctrl.bExecute:=(TRUE);
+
+// Call was successful
+RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{c1f8794e-8e7e-4794-8b68-d493f8c7d369}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+FOR i := 1 TO nNumAxes DO
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_Stop	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	END_IF
+END_FOR
+
+
+
+ctrl.nCommand := E_MA_COMMAND.STOP;
+ctrl.bExecute := TRUE;
+
+RPC_Stop	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_StopTrack" Id="{1f133274-32c7-47c8-b2b1-e5db01be62a9}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_StopTrack : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF (RefStat.nMode = E_ADC_MODE.AUTO) THEN
+	FOR i := 1 TO nNumAxes DO
+		// RPC calls are not allowed in Local mode.
+		IF ptrMotorStat[i]^.bLocal THEN
+			RPC_StopTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+			RETURN;
+		END_IF
+	END_FOR
+
+	SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+	RefCtrl.nMode           :=  E_ADC_MODE.OFF;
+	// Set command
+	RefCtrl.nCommand 		:= E_MA_COMMAND.STOP_TRACK;
+	RefCtrl.bExecute 		:= TRUE;
+END_IF
+
+// Call was successful
+RPC_StopTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_ComputeAutoPos" Id="{a7f78e19-12ee-43b9-9e75-91255cb699e9}">
+      <Declaration><![CDATA[METHOD User_ComputeAutoPos : LREAL
+VAR_INPUT
+	index:	INT;	// ADC index [1..2]
+END_VAR
+
+VAR
+	pos_deg:		LREAL := 0.0;
+	adcPos:	    	LREAL := 0.0;
+	latitude:       LREAL := stSiteConstants.latitude;
+	adaPosang:	    LREAL := stat.lrAdaPosAngle  * GCL.C_DEG2RAD;	// TODO: check
+	drotPos:		LREAL := stat.lrDrotPos * GCL.C_DEG2RAD;
+	ra:             LREAL := stPointingKernel.radec_at_altaz_at_requested_xy[0];
+	dec:            LREAL := stPointingKernel.radec_at_altaz_at_requested_xy[1];
+	pressure:       LREAL := stEnvironmentData.pressure;
+	temperature:    LREAL := stEnvironmentData.temperature;
+	ha:             LREAL ;
+	alt:            LREAL := stPointingKernel.target_observed_altaz[0];
+	pa:		    	LREAL;	// Parallactic angle [rad]
+	cos_pa:			LREAL;
+	sin_pa:			LREAL;
+    zd:             LREAL := 0.0;   // zenith distance
+	rho:			LREAL := 0.0;	// Parallactic Angle component
+	phi:			LREAL := 0.0;	// Refraction component
+
+	C:				LREAL := 0.0;	// Total Correction = CO + CP + CT
+	CO:				LREAL := 0.0;	// Correction for Offset
+	CP:				LREAL := 0.0;	// Correction for Pressure
+	CT:				LREAL := 0.0;	// Correction for Temperature
+	tempVar:		LREAL := 0.0;
+	
+	posOffset:	    LREAL := cfg.unitCfg[index].lrPosOffset * GCL.C_DEG2RAD;
+	minElev:		LREAL := cfg.lrMinElev   * GCL.C_DEG2RAD;
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// FOR elev > 27.64:
+// A = C * tan(zd)
+// zd = 90 - elev
+// C = CO + CP + CT
+// CO = Coffset = 1.7387
+// CP = Pslope * (P - Poffset) = 0.0023 * (P - 743)
+// CT = Tslope * (T - Toffset) = -0.0061 * (T - 12)
+
+ha := stPointingKernel.time_lst - ra;
+zd := GCL.C_PI2 - stPointingKernel.target_observed_altaz[0];		// Zenith distance = PI/2 - Alt
+// Select DROT or ADA position based on the DROT factor
+IF (ABS(cfg.unitCfg[index].lrDrotFactor) <> 2) THEN	
+			drotPos := adaPosang;
+END_IF			
+
+// Calculate the parallactic angle				
+IF (zd <= cfg.lrZDlimit) THEN
+			// If we are too close to Zenith, set parallactic angle to zero
+			pa := 0.0;
+ELSE
+	IF ((COS(dec) * SIN(zd) = 0.0)) THEN
+		cos_pa := 0.0;
+	ELSE
+		cos_pa := (SIN(latitude) - SIN(dec) * COS(zd)) / (COS(dec) * SIN(zd));
+	END_IF
+	IF (SIN(zd) = 0.0) THEN
+		sin_pa := 0.0;
+	ELSE
+		sin_pa := (COS(latitude) * SIN(ha)) / SIN(zd);
+	END_IF
+			
+	IF (cos_pa >= 0) THEN
+		pa := ASIN(sin_pa);
+	ELSE
+		pa := GCL.C_PI - ASIN(sin_pa);
+    END_IF
+END_IF
+		
+//
+// Calculate corrections
+// rho = nominal ADC position without corrections
+//
+// TODO: This seems to be overwritten?
+// This might be the right formula !!!
+rho := posOffset - adaPosang - pa;
+		
+IF (alt <= minElev) THEN
+	// No corrections for altitudes below minimum elevation	
+	rho := posOffset + minElev + cfg.unitCfg[index].lrDrotFactor * drotPos;
+	adcPos := rho;					
+ELSE
+    rho := posOffset + alt + cfg.unitCfg[index].lrDrotFactor * drotPos;
+	// TODO: NOTE: This might be just rho := posOffset_r - pa
+	// Talk to Joel.
+			
+	// Correction for Offset
+	CO := cfg.unitCfg[index].lrCoffset;
+			
+	// Correction for Pressure.
+	IF	pressure >= GCL.C_MIN_P AND pressure <= GCL.C_MAX_P	THEN
+		// Correct for Pressure only if pressure offset is defined
+		IF (cfg.lrPoffset <> 0.0) THEN
+					CP := cfg.lrPslope * (pressure - cfg.lrPoffset);
+		END_IF			
+	END_IF
+
+	// Correction for Temperature?
+	IF	temperature >= GCL.C_MIN_T AND temperature <= GCL.C_MAX_T	THEN
+		// Correct for Temperature only if temperature offset is defined
+		IF (cfg.lrToffset <> 0.0) THEN
+			CT := cfg.lrTslope * (temperature - cfg.lrToffset);
+		END_IF			
+	END_IF
+
+	// TODO: Humidity effect correction?
+			
+	// Total correction
+	C := CO + CP + CT;
+			
+	// Altitude effect correction only if within limits
+	// tempVar := GCL.C_PI2 - alt_r;	// TODO: Removed
+	IF ((alt <= 0) OR (alt >= GCL.C_2PI)) THEN
+		tempVar := 0;
+	ELSE
+		tempVar := TAN(GCL.C_PI2 - alt);
+	END_IF
+			
+	IF (cfg.lrAfactor = 0.0) THEN
+		tempVar := 0;	// No compensation!
+	ELSE
+		tempVar := C * tempVar / cfg.lrAfactor;
+	END_IF
+			
+			
+	// tempVar is a COS(), i.e. must be ABS(tempVar) < 1.0
+	IF (ABS(tempVar) >= 1.0) THEN
+		phi := 0;
+	ELSE
+		phi := ACOS(tempVar);
+	END_IF		
+		adcPos := rho + (cfg.unitCfg[index].nSignPhi * phi);					
+END_IF	
+		
+pos_deg := cfg.unitCfg[index].lrRefAuto + (cfg.unitCfg[index].nSignAuto * adcPos * GCL.C_RAD2DEG);
+
+User_ComputeAutoPos := pos_deg;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_ComputeNextPos" Id="{ef5e7258-383b-494c-9bbd-51ad4d0d2141}">
+      <Declaration><![CDATA[METHOD User_ComputeNextPos : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+	pos_deg:		LREAL := 0.0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+FOR i := 1 TO nNumAxes DO
+	
+// Handle various ADC modes
+// Set both position and velocity depending on the mode.
+//
+// Position [deg]
+// Velocity [deg/sec]:
+//    ENG  - as given in adcCtrl.lrTargetVel
+//    OFF  - default motor velocity
+//    AUTO - default motor velocity
+	CASE RefStat.nMode OF
+		E_ADC_MODE.ENG:	// MULTI_MODE_ENG
+			pos_deg:= ctrl.lrTargetPos[i];
+			
+			ptrMotorCtrl[i]^.lrVelocity := ctrl.lrTargetVel;		
+			M_SetStatus('Moving to Engineering position ...');
+		E_ADC_MODE.OFF:	// MULTI_MODE_1
+			// TODO: Say why POSANG + REF OFFSET
+			//       The motor should go to 0.0, i.e. HOME?
+			pos_deg := cfg.unitCfg[i].lrRefOff + cfg.unitCfg[i].nSignOff * (ctrl.lrPosang[i]); // computation in degrees
+			ptrMotorCtrl[i]^.lrVelocity := ptrMotorCfg[i]^.lrDefaultVelocity;		
+			M_SetStatus('Homing motors ...');
+		E_ADC_MODE.AUTO:	// MULTI_MODE_2
+			pos_deg := User_ComputeAutoPos(i);
+			ptrMotorCtrl[i]^.lrVelocity := ptrMotorCfg[i]^.lrDefaultVelocity;
+			M_SetStatus('Moving in AUTO mode ...');
+	END_CASE
+	// assign new position
+	ptrMotorCtrl[i]^.lrPosition := pos_deg;
+END_FOR
+
+
+User_ComputeNextPos := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_Configure" Id="{e5ed5085-7b44-41a3-8de9-fd8e198a4651}">
+      <Declaration><![CDATA[// Method for hard-coding of configuration parameters by the User.
+METHOD User_Configure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.User_Configure();	// Mandatory!
+
+//
+// TODOUSER: Configure anything that is different from default configuration.
+//
+// Examples:
+//
+// ADC configuration
+cfg.unitCfg[1].nSignOff	:=  1;
+cfg.unitCfg[2].nSignOff	:=  1;
+
+cfg.unitCfg[1].nSignPhi	:=  1;
+cfg.unitCfg[2].nSignPhi	:= -1;
+
+//
+// Individual Motor configuration
+ptrMotorCfg[1]^.nAxisType	:= E_MOTOR_AXIS_TYPE.CIRCULAR_OPTIMISED;
+ptrMotorCfg[2]^.nAxisType	:= E_MOTOR_AXIS_TYPE.CIRCULAR_OPTIMISED;
+
+ptrMotorCfg[1]^.lrDefaultVelocity	:= 10.0;	// Set default velocity to 10 deg/sec
+ptrMotorCfg[2]^.lrDefaultVelocity	:= 10.0;	// Set default velocity to 10 deg/sec
+
+// Multi-axis system configuration
+ctrl.lrPosang[1]	:=  0.0;	// Position angle for OFF mode, i.e. HOME position
+ctrl.lrPosang[2]	:=  0.0;	// Position angle for OFF mode, i.e. HOME position
+ctrl.lrTargetPos[1]	:= 45.0;	// ADC1 Position angle for ENG mode
+ctrl.lrTargetPos[2]	:= 45.0;	// ADC2 Position angle for ENG mode
+ctrl.lrTargetVel	:= 10.0;	// Velocity for ENG mode]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_GetParams" Id="{f2fe5b48-0d73-4f3e-b552-8671fed6043a}">
+      <Declaration><![CDATA[// User Method executed on each cycle before processing events and states.
+METHOD User_GetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// TODOUSER: Set anything that should be set on every cycle, if any.
+//
+//
+SUPER^.User_GetParams();
+
+// Example: Any settings that are mode dependant.
+CASE RefCtrl.nMode OF
+			MA_MODE_ENG:
+			    ; 
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_SetParams" Id="{d40cf88d-9462-4f09-aabb-3847da1d6da1}">
+      <Declaration><![CDATA[// User Method executed on each cycle after processing events and states.
+METHOD User_SetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Mandatory
+//
+SUPER^.User_SetParams();
+
+// Set maximum positioning error
+stat.lrPosError		:= M_GetMaxPosError();
+
+// Check if we are tracking or still presetting.
+// Tracking is OK if the positioning error is less than the threshold (bTrackingOK).
+// Once device is tracking, it should go back to presetting if the error is greater
+// than twice the threshold  (bTrackingBAD).
+IF ctrl.nMode = E_ADC_MODE.AUTO THEN
+	stat.bTrackingOK	:= SEL (stat.lrPosError <= cfg.lrTrkThreshold, FALSE, TRUE);
+	stat.bTrackingBAD	:= SEL (stat.lrPosError > 2.0 * cfg.lrTrkThreshold, FALSE, TRUE);
+	stat.lrAlt := stPointingKernel.target_observed_altaz[0] * GCL.C_RAD2DEG;
+    stat.lrAz := stPointingKernel.target_observed_altaz[1] * GCL.C_RAD2DEG;
+	stat.lrRa := F_astroRad2Hms(stPointingKernel.radec_at_altaz_at_requested_xy[0]);
+	stat.lrDec := F_astroRad2Dms(stPointingKernel.radec_at_altaz_at_requested_xy[1]);
+	stat.lrPa := stPointingKernel.parallactic_angle * GCL.C_RAD2DEG;
+ELSE
+	stat.bTrackingOK	:= FALSE;
+	stat.bTrackingBAD	:= FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MA_ADC">
+      <LineId Id="141" Count="3" />
+      <LineId Id="148" Count="1" />
+      <LineId Id="197" Count="1" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="200" Count="1" />
+      <LineId Id="195" Count="1" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.M_LogCommand">
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_Disable">
+      <LineId Id="6" Count="4" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="16" Count="3" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_Enable">
+      <LineId Id="52" Count="8" />
+      <LineId Id="6" Count="14" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="4" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_Init">
+      <LineId Id="6" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="73" Count="8" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_MoveAbs">
+      <LineId Id="192" Count="8" />
+      <LineId Id="109" Count="3" />
+      <LineId Id="162" Count="3" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="139" Count="5" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="152" Count="1" />
+      <LineId Id="167" Count="4" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="90" Count="3" />
+      <LineId Id="95" Count="3" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="172" Count="9" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="123" Count="2" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_MoveAngle">
+      <LineId Id="84" Count="8" />
+      <LineId Id="71" Count="3" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="47" Count="9" />
+      <LineId Id="60" Count="3" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_MoveRel">
+      <LineId Id="163" Count="8" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="78" Count="3" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="82" Count="17" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="120" Count="30" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="112" Count="7" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_MoveVel">
+      <LineId Id="176" Count="8" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="82" Count="3" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="64" Count="14" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="110" Count="5" />
+      <LineId Id="118" Count="1" />
+      <LineId Id="122" Count="1" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="134" Count="1" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="151" Count="4" />
+      <LineId Id="142" Count="1" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="156" Count="4" />
+      <LineId Id="149" Count="1" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_Reset">
+      <LineId Id="20" Count="0" />
+      <LineId Id="9" Count="5" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="15" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_StartTrack">
+      <LineId Id="56" Count="8" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="11" Count="9" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="21" Count="2" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="26" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_Stop">
+      <LineId Id="22" Count="0" />
+      <LineId Id="6" Count="5" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="12" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.RPC_StopTrack">
+      <LineId Id="34" Count="0" />
+      <LineId Id="9" Count="6" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="16" Count="3" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.User_ComputeAutoPos">
+      <LineId Id="20" Count="7" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="28" Count="27" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="57" Count="65" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="157" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.User_ComputeNextPos">
+      <LineId Id="66" Count="0" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="79" Count="10" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="90" Count="8" />
+      <LineId Id="202" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="218" Count="1" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.User_Configure">
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="55" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="67" Count="2" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.User_GetParams">
+      <LineId Id="67" Count="2" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="70" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_ADC.User_SetParams">
+      <LineId Id="196" Count="2" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="199" Count="1" />
+      <LineId Id="277" Count="1" />
+      <LineId Id="281" Count="2" />
+      <LineId Id="201" Count="1" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="299" Count="4" />
+      <LineId Id="203" Count="1" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="205" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

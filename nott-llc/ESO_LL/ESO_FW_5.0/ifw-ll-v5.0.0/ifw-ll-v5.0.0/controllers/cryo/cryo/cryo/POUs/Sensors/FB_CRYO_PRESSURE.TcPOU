@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_CRYO_PRESSURE" Id="{f5f32c8b-8657-4290-adc2-cab6de1506d0}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// This FB reads preasure using up to two PKR 250 sensors, 
+// i.e. two instances of FB_CRYO_SENSOR_PKR250.
+// The resulting value is a combination of values from available/valid sensors.
+// Provides status of each sensor.
+// For more info, see method M_SetStatus().
+//
+FUNCTION_BLOCK FB_CRYO_PRESSURE
+VAR_INPUT
+	// IMPORTANT NOTE:
+	// 		It is assumed that both pressure sensors are of same type.
+	//		So, all configuration parameters are same for both sensors.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	// Scale factors for each sensor bits -> Volt, U = raw / scale. 
+	// Default for 16-bit, +-10V or 0..10V AI: 2^16/10/2 = 3276.8 bit
+	in_lrBitsPerVolt_1:	LREAL := 3276.8;	// Scale factor, U = raw / scale. Default 3276.8
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrBitsPerVolt_2:	LREAL := 3276.8;	// Scale factor, U = raw / scale. Default 3276.8
+
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nType_1:	E_CRYO_SENSOR_TYPE_PRESS	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nType_2:	E_CRYO_SENSOR_TYPE_PRESS	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250;
+	
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrLimitInVac:	LREAL := 100.0;		// Below this value, the pressure is vacuum
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrLimitGoodVac:	LREAL := 10.0E-4;	// Below this value, vacuum is good
+	
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	Pressure1:	FB_CRYO_SENSOR_PRESSURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	Pressure2:	FB_CRYO_SENSOR_PRESSURE;
+	
+	stat:		T_CRYO_PRESSURE_STATUS;	// Complete status
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Get status of two vacuum gauges
+M_ReadSensors();
+
+// Set the calculated vacuum pressure
+M_SetStatus();
+]]></ST>
+    </Implementation>
+    <Method Name="M_ReadSensors" Id="{aec344eb-ec88-4eb3-a458-b87c0e79087d}">
+      <Declaration><![CDATA[// Get status for both vacuum gauges
+METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Pressure1(	
+	in_nType			:= in_nType_1,
+	in_lrBitsPerVolt	:= in_lrBitsPerVolt_1);
+
+Pressure2(	
+	in_nType			:= in_nType_2,
+	in_lrBitsPerVolt	:= in_lrBitsPerVolt_2);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{49dfa7bc-6d77-45c8-b326-ddad265b3d51}">
+      <Declaration><![CDATA[// Calculate pressure based on the status of the two sensors
+METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Determine validity and calculate pressure in user units, i.e. mbar
+//
+IF Pressure1.stat.bValid  AND  Pressure2.stat.bValid  THEN
+	// If any of the two readings are in range, the reading is in range.
+	stat.bInRange	:= (Pressure1.stat.bValueInRange  OR  Pressure2.stat.bValueInRange);
+	stat.bValid			:= TRUE;
+	stat.bWarningSens1	:= FALSE;
+	stat.bWarningSens2	:= FALSE;
+	
+	// Are the readings within 10% from each other
+	IF Pressure2.stat.lrPressure > 0.0 THEN
+		lrTmp	:= Pressure1.stat.lrPressure / Pressure2.stat.lrPressure;
+	ELSE
+		lrTmp	:= 0.0;	// Dummy, just to take the higher pressure.
+	END_IF
+	IF lrTmp > 0.9 AND lrTmp < 1.1  THEN
+		// Get the average of the two
+		stat.lrPressure	:= (Pressure1.stat.lrPressure + Pressure2.stat.lrPressure) / 2;
+	ELSE
+		// Get the higher value
+		stat.lrPressure	:= MAX(Pressure1.stat.lrPressure, Pressure2.stat.lrPressure);
+	END_IF
+ELSIF Pressure1.stat.bValid  AND  NOT Pressure2.stat.bValid  THEN
+	// Reading of one sensor is OK.
+	// However, we set a warning.
+	stat.bInRange		:= Pressure1.stat.bValueInRange;
+	stat.bValid			:= TRUE;
+	stat.bWarningSens1	:= FALSE;
+	stat.bWarningSens2	:= TRUE;
+	// Take the reading of the first sensor
+	stat.lrPressure		:= Pressure1.stat.lrPressure;
+ELSIF NOT Pressure1.stat.bValid  AND  Pressure2.stat.bValid  THEN
+	// Reading of one sensor is OK.
+	// However, we set a warning.
+	stat.bInRange		:= Pressure2.stat.bValueInRange;
+	stat.bValid			:= TRUE;
+	stat.bWarningSens1	:= TRUE;
+	stat.bWarningSens2	:= FALSE;
+	// Take the reading of the second sensor
+	stat.lrPressure		:= Pressure2.stat.lrPressure;
+ELSE
+	// Both readings are not valid.
+	// Reading is not valid.
+	stat.bInRange		:= FALSE;
+	stat.bValid			:= FALSE;
+	stat.bWarningSens1	:= TRUE;
+	stat.bWarningSens2	:= TRUE;
+	stat.lrPressure		:= 0.0;	// Dummy if reading not valid
+END_IF
+
+
+//
+// Set vacuum state based on the pressure level
+//
+IF NOT stat.bValid  THEN
+	stat.bInVacuum		:= FALSE;
+	stat.bVacuumGood	:= FALSE;
+ELSE
+	// 	Check the vacuum levels
+	IF stat.lrPressure < in_lrLimitGoodVac  THEN
+		stat.bInVacuum		:= TRUE;
+		stat.bVacuumGood	:= TRUE;
+	ELSIF stat.lrPressure < in_lrLimitInVac  THEN
+		stat.bInVacuum		:= TRUE;
+		stat.bVacuumGood	:= FALSE;
+	ELSE
+		stat.bInVacuum		:= FALSE;
+		stat.bVacuumGood	:= FALSE;
+	END_IF
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PRESSURE">
+      <LineId Id="219" Count="4" />
+      <LineId Id="163" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE.M_ReadSensors">
+      <LineId Id="126" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="140" Count="1" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE.M_SetStatus">
+      <LineId Id="164" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="104" Count="1" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="107" Count="6" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="169" Count="1" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="132" Count="3" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="171" Count="1" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="114" Count="2" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="173" Count="1" />
+      <LineId Id="118" Count="1" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="144" Count="1" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="150" Count="7" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

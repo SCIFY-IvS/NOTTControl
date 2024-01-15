@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_PAYLOAD" Id="{0bf69d13-db34-470d-8faf-7130057f81e8}">
+    <Declaration><![CDATA[TYPE T_PAYLOAD :
+STRUCT
+	version:               UINT := 1;
+	devtype:               UINT := 10;  // 10: is a Beckhoff PLC according ESO-331947
+	hostname:              STRING(20) := '';
+    port_state1:	       INT := 0;
+	port_state2:           UINT := 0;
+	offset_from_master:    LINT := 0;
+	mean_path_delay:       ULINT := 0;
+	announce_path_delay:   DINT := -1;
+	sync_msg_count:        DINT := -1;
+	delay_resp_count:      DINT := -1;
+	clock_identity:        ARRAY[0..7] OF BYTE;
+	gm_identity:           ARRAY[0..7] OF BYTE;
+	parent_port_identity:  ARRAY[0..9] OF BYTE;
+	current_utc_offset:    INT := 999;
+	steps_removed:         UINT := 999;
+	error_status:          UINT := 0;
+	app_specific1:         LINT := 0;
+	app_specific2:         LINT := 0;
+	app_specific3:         LINT := 0;
+	app_specific4:         LINT := 0;
+	reserved1:             DINT := 0;
+	reserved2:             DINT := 0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

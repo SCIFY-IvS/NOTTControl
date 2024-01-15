@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <GVL Name="GPL" Id="{8ed972c0-4231-463a-8479-2340036d2c91}" ParameterList="True">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+	C_CYCLE_IDLE: 		DINT  := 10;		// Minimum number of idle cycles between commands to motor
+
+    C_POS_SPEED: 		LREAL := 3;			// TODO ?
+    C_MAX_SPEED: 		LREAL := 5;			// TODO ?
+	C_MIN_SPEED: 		LREAL := 0.01;		// TODO ?
+
+	C_MA_MAX_AXES:		INT 	:= 6;			// Maximum number of axes
+	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

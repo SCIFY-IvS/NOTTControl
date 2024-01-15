@@ -1,0 +1,2108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_ACTUATOR" Id="{1cb0f4e0-da22-4f09-b830-732d2f4f14b3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ACTUATOR
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sName:				STRING	:= 'Actuator';	// Default device name
+
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bActiveLowOn:		BOOL	:= FALSE;	// If TRUE, On signal is Active Low. Default FALSE.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bActiveLowSwitch:	BOOL 	:= FALSE;	// If TRUE, Switch ctrl signal is Active Low. Default FALSE.
+
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bAutoOp:				BOOL 	:= FALSE;	// If TRUE, go automatically to OPERATIONAL state. Default FALSE.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bInitialState:		BOOL 	:= FALSE;	// Default power state is OFF (FALSE).
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bInvertAnalog:		BOOL 	:= FALSE;	// If TRUE, analog feedback is active if signal < nAnalogThreshold. Default FALSE.
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nAnalogThreshold:	DINT 	:= 0;		// Analog feedback signal threshold [bits]. Used if <>0. Default 0, i.e. not used.
+												// If this signal is used, any value above it will indicate that the power is ON.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nMaxOn:				UDINT 	:= 0;		// Maximum time for power to be ON [sec]. Default 0, no limit.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nSigStablePeriod:	UDINT 	:= 200;		// Signal is stable if it has been constant for so long [msec]. Default 200 ms.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nTimeout:     		UDINT 	:= 5000;	// Timeout for state transitions [msec]. Default 5000 ms (5 sec).
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_ACTUATOR_CFG;	
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_ACTUATOR_CTRL;	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_ACTUATOR_INFO;				// ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_ACTUATOR_STAT;				// ReadOnly
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_ACTUATOR_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_ACTUATOR_EVENT.NONE;
+	
+	// Operational Events
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventStart:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventEnd:		FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventError:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventDebug:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventGeneral:	FB_TcMessage;
+	
+	
+	(***** Local variables *****)
+	{attribute 'OPC.UA.DA' := '0'}
+	bOn:		BOOL;						// Feedback - combination of digital and analog
+	{attribute 'OPC.UA.DA' := '0'}
+	toutCmd:	TON;
+	{attribute 'OPC.UA.DA' := '0'}
+	trg:		R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	timer:		TON;						// Timer for measuring duration of events
+	
+
+
+	///// Physical signals - to be mapped!!! /////
+
+	// Outputs
+	{attribute 'OPC.UA.DA' := '0'}
+	q_bSwitch 		AT %Q*: 		BOOL;	// power control digital output
+
+	// Inputs	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nCouplerState	AT %I*: 		UINT;	// Link it to Coupler->InfoData->State
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bOn 			AT %I*: 		BOOL;	// Digital feedback signal
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nOn			AT %I*: 		INT;	// Analog feedback signal
+
+	// Flag if the device is ready to receive commands.
+	// It takes about 3.5 sec for the system to go OPERATIONAL.
+	{attribute 'OPC.UA.DA' := '0'}
+	bDeviceReady:		BOOL 	:= FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT bDeviceReady THEN
+	// Set device Configuration
+	M_Configure();
+	RETURN;
+END_IF
+
+// Increment counter.
+// This will be seen as 'alive' flag.
+stat.nCycleCounter	:= stat.nCycleCounter + 1;
+
+
+
+(* === Check for commands and internal events to be processed === *)
+CheckForEvents();
+
+(* === Process events according to the State Machine === *)
+ProcessEvents();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionErrExecute" Id="{0538174f-0d99-4308-8cd0-823031a574c6}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionErrExecute');
+
+IF nEvent = E_ACTUATOR_EVENT.ERRTIMEOUT THEN
+	stat.nErrorCode		:= E_ACTUATOR_ERROR.ON_FAILURE;
+	stat.sErrorText		:= 'ERROR: Timeout';	
+END_IF
+		
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitAbort" Id="{0676d44b-8c18-48a2-bd40-3a1395654ef7}">
+      <Declaration><![CDATA[METHOD ActionInitAbort
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitAbort');
+
+(* reply Error *)
+stat.nErrorCode		:= E_ACTUATOR_ERROR.INIT_FAILURE;
+stat.sErrorText		:= 'ERROR: INIT command aborted due to STOP or RESET.';
+
+(* Reset the timer for the command *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{97b3cbdb-2a31-4af5-89ec-31cfa4270810}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+VAR
+	nCurrentTime:	UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+// Log event
+M_LogEventStart('INIT');
+
+(* reply OK *)
+stat.nErrorCode		:= E_ACTUATOR_ERROR.OK;
+stat.sErrorText		:= 'OK';
+
+(* Reset the timer action *)
+toutCmd(IN:=FALSE);
+
+nCurrentTime			:= GetTimeInSec();
+stat.nTimeOffStart		:= nCurrentTime;
+UpdateTimes(bOnState:=FALSE, bRestart:=FALSE, bReset:=FALSE);
+
+// Do not touch the outputs.
+// Just change the state depending on the status
+IF bOn THEN
+	SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_ON);
+ELSE
+	SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitReject" Id="{f426e1e9-89fa-457d-b49c-9506f6d8243a}">
+      <Declaration><![CDATA[METHOD ActionInitReject
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitReject');
+
+(* Reject an INIT command since another one is in progress. *)
+(* do not reset the timer ... *)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMaxOnFailure" Id="{814947c3-aee3-4617-8bab-d2d87bccc85d}">
+      <Declaration><![CDATA[METHOD ActionMaxOnFailure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the switching OFF of the power *)
+SetAction('ActionMaxOnFailure');
+
+// Log event
+M_LogEventError('Actuator maximum ON time exceeded.. Switched to OFF.');
+
+(* Set the error *)
+SetStatus(E_ACTUATOR_ERROR.MAXON,'ERROR: Actuator maximum ON time exceeded.');
+
+UpdateTimes(bOnState:=FALSE, bRestart:=TRUE, bReset:=FALSE);
+
+
+(* Switch power OFF *)
+q_bSwitch	:= GetLogicalState(FALSE, cfg.bActiveLowSwitch);
+
+(* 
+	Reset signal trigger and its timer. 
+	Next transition activity, e.g. ActivitySwitchingOff, will complete when the signal has been OFF 
+	for longer than cfg.nSigStablePeriod [ms].
+*)
+trg(CLK:=FALSE);
+timer(IN:=FALSE);	// Timer for stable signal lasting cfg.nSigStablePeriod
+
+(* Restart the command timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionOffExecute" Id="{c0bde88b-5dba-446b-a0ae-9804b1edf230}">
+      <Declaration><![CDATA[METHOD ActionOffExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the switching OFF of the power *)
+SetAction('ActionOffExecute');
+
+// Log event
+M_LogEventStart('OFF');
+
+(* Clear the error *)
+SetStatus(E_ACTUATOR_ERROR.OK,'OK');
+
+UpdateTimes(bOnState:=FALSE, bRestart:=TRUE, bReset:=FALSE);
+
+
+(* Actuator power OFF *)
+q_bSwitch	:= GetLogicalState(FALSE, cfg.bActiveLowSwitch);
+
+(* 
+	Reset signal trigger and its timer. 
+	Next transition activity, e.g. ActivitySwitchingOff, will complete when the signal has been OFF 
+	for longer than cfg.nSigStablePeriod [ms].
+*)
+trg(CLK:=FALSE);
+timer(IN:=FALSE);	// Timer for stable signal lasting cfg.nSigStablePeriod
+
+(* Restart the command timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionOnExecute" Id="{7440fc23-3594-4859-bb19-bfa09ef5d487}">
+      <Declaration><![CDATA[METHOD ActionOnExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Code to initiate turning the power ON *)
+
+SetAction('ActionOnExecute');
+
+// Log event
+M_LogEventStart('ON');
+
+(* Clear the error *)
+SetStatus(E_ACTUATOR_ERROR.OK,'OK');
+
+(* Turn the control signal ON  *)
+q_bSwitch	:= GetLogicalState(TRUE, cfg.bActiveLowSwitch);
+
+
+(* 
+	Reset signal trigger and its timer. 
+	Next transition activity, e.g. ActivitySwitchingOn, will complete when the signal has been ON 
+	for longer than cfg.nSigStablePeriod [ms].
+*)
+trg(CLK:=FALSE);
+timer(IN:=FALSE);	// Timer for stable signal lasting cfg.nSigStablePeriod
+
+(* Start the timer for command timeout of cfg.nTimeout *)
+toutCmd(IN:=FALSE);	
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{c1b4383d-ea91-4237-9ab6-5bd638c3c0d1}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionResetExecute');
+
+// Log event
+M_LogEventStart('RESET');
+
+(* reply Error *)
+SetStatus(nErrorCode:=E_ACTUATOR_ERROR.OK, sErrorText:='OK');
+
+// Go to the default state on PLC re-boot
+q_bSwitch	:= GetLogicalState(cfg.bInitialState, cfg.bActiveLowSwitch);
+
+// Reset ON/OFF times
+UpdateTimes(bOnState:=bOn,bRestart:=FALSE,bReset:=TRUE);	
+
+(* Reset the timer for the command *)
+toutCmd(IN:=FALSE);
+
+// In ActionOnExecute() and ActionOffExecute(), we are waiting for trg() to go from FALSE to TRUE.
+// Trigger it with FALSE.
+trg(CLK:=FALSE);
+
+IF cfg.bInitialState = TRUE THEN
+	ActionOnExecute();
+	SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_ON);
+ELSE
+	ActionOffExecute();
+	SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_OFF);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{7fdbcc8b-abb1-4ec9-b1f5-edfef2cce909}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionUnexpExecute');
+
+IF nEvent = E_ACTUATOR_EVENT.ISON THEN
+	IF	stat.nLastCommand = E_ACTUATOR_COMMAND.ON 	AND
+		stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_OFF 	AND
+		stat.nErrorCode = E_ACTUATOR_ERROR.TIMEOUT		THEN
+		M_LogEventGeneral('Recovered after timeout. Actuator is ON');
+	END_IF
+ELSIF nEvent = E_ACTUATOR_EVENT.ISOFF THEN
+	IF	stat.nLastCommand = E_ACTUATOR_COMMAND.OFF 	AND
+		stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_ON 	AND
+		stat.nErrorCode = E_ACTUATOR_ERROR.TIMEOUT		THEN
+		M_LogEventGeneral('Recovered after timeout. Actuator is OFF');
+	END_IF
+ELSIF nEvent = E_ACTUATOR_EVENT.ON THEN
+	stat.nErrorCode		:= E_ACTUATOR_ERROR.STILL_COOLING;
+	stat.sErrorText		:= 'ERROR: ON command not allowed while cooling.';	
+	stat.sStatus		:= 'ERROR';	
+	stat.nStatus		:= E_ACTUATOR_STATUS.ERROR;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityOff" Id="{bca5b047-db45-4e74-957c-6373b6197150}">
+      <Declaration><![CDATA[METHOD ActivityOff
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityOff');
+
+// Update the OFF time
+UpdateTimes(bOnState:=FALSE, bRestart:=FALSE, bReset:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityOn" Id="{0aff2a37-5595-4d7e-bb87-d387b85c7afa}">
+      <Declaration><![CDATA[METHOD ActivityOn
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityOn');
+
+// Update the ON time
+UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivitySwitchingOff" Id="{5eb3a437-3006-45b3-88ff-1b8a65c2807b}">
+      <Declaration><![CDATA[METHOD ActivitySwitchingOff
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity monitors the OFF power task and 
+	triggers the ISOFF event at completion. 
+*)
+SetAction('ActivitySwitchingOff');
+
+
+(* 
+	The signal has to be OFF for longer than cfg.nSigStablePeriod [msec].
+	The timer will start when bOn=FALSE trigger is detected.
+*)
+(* Execute trigger - note the 'NOT bOn' detectiong the transition from ON to OFF *)
+trg(CLK := NOT bOn);
+
+IF trg.Q THEN
+	(* Restart the signal duration timer *)
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nSigStablePeriod));
+END_IF
+
+(* Execute signal duration timer *)
+timer();
+
+IF	timer.Q OR 
+	((NOT bOn) AND cfg.nSigStablePeriod = 0) THEN
+	timer(IN:=FALSE);	// Reset the signal duration timer
+	toutCmd(IN:=FALSE);	// Reset the command timeout timer
+
+	(* Update time ON/OFF *)
+	UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+
+	(* 
+		Normally, we would go to state E_SWITCH_SUBSTATE.OP_COOLING. 
+		However, if the cooldown time is zero, i.e. no cooldown, we go directly to state E_ACTUATOR_SUBSTATE.OP_OFF.
+	*)
+	nInternalEvent 		:= E_ACTUATOR_EVENT.ISOFF;
+	
+	// Log event
+	M_LogEventEnd('OFF');
+
+//	stat.nErrorCode		:= E_ACTUATOR_ERROR.OK;
+//	stat.sErrorText		:= 'OK';	
+
+	RETURN;
+END_IF
+
+(* 
+	if the timeout is detected before reaching the position, 
+	then trigger the internal error event 
+*)
+toutCmd();
+IF toutCmd.Q THEN
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	timer(IN:=FALSE);	(* Reset the signal duration timer *)
+	
+	nInternalEvent  := E_ACTUATOR_EVENT.ERRTIMEOUT;
+	SetStatus(E_ACTUATOR_ERROR.TIMEOUT, 'ERROR: Switching OFF timed out.');
+
+	// Log event
+	M_LogEventError('OFF command timed out');
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivitySwitchingOn" Id="{e8d4797f-b4b2-47d1-851a-d0db0696e55c}">
+      <Declaration><![CDATA[METHOD ActivitySwitchingOn
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity to monitor the ON power task and 
+	trigger the ISON event at completion. 
+*)
+SetAction('ActivitySwitchingOn');
+
+(* 
+	The signal has to be ON for longer than cfg.nSigStablePeriod [msec].
+	The timer will start when bOn trigger is detected.
+*)
+(* Execute trigger *)
+trg(CLK:=bOn);
+
+IF trg.Q THEN
+	(* Restart the signal duration timer *)
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nSigStablePeriod));
+END_IF
+
+(* Execute signal duration timer *)
+timer();
+
+IF	timer.Q OR 
+	(bOn AND cfg.nSigStablePeriod = 0) THEN
+	timer(IN:=FALSE);	// Reset the signal duration timer
+	toutCmd(IN:=FALSE);	// Reset the command timeout timer
+
+	(* Update time ON/OFF *)
+	IF stat.nTimeOn > 0 THEN
+		// power was already ON, restart the ON time.
+		UpdateTimes(bOnState:=TRUE, bRestart:=TRUE, bReset:=FALSE);
+	ELSE
+		// power was OFF, don't restart the ON time.
+		UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+	END_IF
+
+	(* 
+		Normally, we would go to state E_ACTUATOR_SUBSTATE.OP_WARMING. 
+		However, if the warmup time is zero, i.e. no warmup, we go directly to state E_ACTUATOR_SUBSTATE.OP_ON.
+	*)
+	nInternalEvent 		:= E_ACTUATOR_EVENT.ISON;	
+	
+	// Log event
+	M_LogEventEnd('ON');
+
+	stat.nErrorCode		:= E_ACTUATOR_ERROR.OK;
+	stat.sErrorText		:= 'OK';	
+
+	RETURN;
+END_IF
+
+(* 
+	if the timeout is detected before reaching the position, 
+	then trigger the internal error event 
+*)
+toutCmd();
+IF toutCmd.Q THEN
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	timer(IN:=FALSE);	(* Reset the signal duration timer *)
+	
+	nInternalEvent  := E_ACTUATOR_EVENT.ERRTIMEOUT;
+	SetStatus(E_ACTUATOR_ERROR.TIMEOUT, 'ERROR: Switching ON timed out.');
+
+	// Log event
+	M_LogEventError('ON command timed out');
+
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{1bcb3be0-13a0-4554-b509-be6652ab20ef}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+nEvent := E_ACTUATOR_EVENT.HWOK;
+
+
+(*
+	Read all inputs, i.e. get status of INPUT signals based on ActiveLow configuration 
+*)
+
+
+(* The power ON feedback can be analog and/or digital. *)
+IF 	(GetLogicalState(i_bOn, cfg.bActiveLowOn)) OR
+	(cfg.nAnalogThreshold <> 0 AND (i_nOn > cfg.nAnalogThreshold) AND NOT cfg.bInvertAnalog) OR
+	(cfg.nAnalogThreshold <> 0 AND (i_nOn < cfg.nAnalogThreshold) AND     cfg.bInvertAnalog)	THEN
+	bOn	:= TRUE;
+ELSE
+	bOn	:= FALSE;
+END_IF
+
+
+UpdateTimes(bOnState:=bOn,bRestart:=FALSE, bReset:=FALSE);	// Update the Time
+
+
+(* HW Status in textual form: 'ERROR', 'ON' or 'OFF' *)
+IF 		bOn   = TRUE  THEN
+	stat.nHwStatus	:= E_ACTUATOR_HW_STATUS.ON;
+	stat.sHwStatus	:= 'ON';
+ELSIF 	bOn   = FALSE  THEN
+	stat.nHwStatus	:= E_ACTUATOR_HW_STATUS.OFF;
+	stat.sHwStatus	:= 'OFF';
+END_IF
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals:  such as power is ON/OFF.
+*)
+
+IF i_nCouplerState <> 8 THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_ACTUATOR_EVENT.ERRHW);
+	SetStatus(E_ACTUATOR_ERROR.HW_NOTOP, 'ERROR: HW not in OPERATIONAL state');
+	RETURN;
+
+ELSIF nInternalEvent <> E_ACTUATOR_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_ACTUATOR_EVENT.NONE;
+ELSIF ctrl.bExecute = TRUE  THEN
+	(* Handle commands *)
+	ctrl.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	SetLastCommand(ctrl.nCommand);			(* Save the last command *)
+	SetEvent(ctrl.nCommand);
+	ctrl.nCommand 		:= E_ACTUATOR_COMMAND.NONE;	(* Clear the Command *)
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+	IF stat.nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF OR 
+	   stat.nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_READY_ON OR 
+	   stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_OFF OR 
+	   stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_ON OR 
+	   stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_ERROR THEN
+	   
+		(* Set events for ON and OFF *)		
+		IF	bOn   = TRUE  THEN
+			SetEvent(E_ACTUATOR_EVENT.ISON);
+		ELSIF	bOn   = FALSE THEN
+			SetEvent(E_ACTUATOR_EVENT.ISOFF);
+		END_IF	
+	END_IF	
+(*
+	IF stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON THEN
+		(* Set events for ON  *)		
+		IF	bOn   = TRUE  THEN
+			SetEvent(E_ACTUATOR_EVENT.ISON);
+		END_IF	
+	END_IF	
+	*)
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetLogicalState" Id="{df5c73be-ae25-482d-8a2e-272fc49ae74e}">
+      <Declaration><![CDATA[METHOD GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	GetLogicalState := NOT state;
+ELSE
+	GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetTimeInSec" Id="{219ea1c1-a19c-44ee-82cd-a328a9adbbee}">
+      <Declaration><![CDATA[METHOD GetTimeInSec : UDINT
+(*
+	This method returns absolute time in seconds.
+*)]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* System time is given in 100ns. Divide by 10000000 to get in seconds. *)
+GetTimeInSec := ULINT_TO_UDINT(Tc2_System.F_GetSystemTime() / 10000000);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{d7cb26fe-ae88-4fb4-a2dd-090883ef199a}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+     fbGetCurTaskIdx:	GETCURTASKINDEX;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If device is ready, there is nothing to configure.
+IF bDeviceReady THEN
+	RETURN;
+END_IF
+
+// If first cycle, copy configuration AND RETURN in order for the system to read all inputs before doing any work
+IF stat.nCycleCounter = 0 THEN
+	
+	// Copy input parameters into configuration
+	cfg.sName				:=	in_sName;			
+
+	cfg.bActiveLowOn		:= in_bActiveLowOn;
+	cfg.bActiveLowSwitch	:= in_bActiveLowSwitch;
+	cfg.bAutoOp				:= in_bAutoOp;
+	cfg.bInitialState		:= in_bInitialState;
+	cfg.bInvertAnalog		:= in_bInvertAnalog;
+	cfg.nAnalogThreshold	:= in_nAnalogThreshold;
+	cfg.nMaxOn				:= in_nMaxOn;
+	cfg.nSigStablePeriod	:= in_nSigStablePeriod;
+	cfg.nTimeout			:= in_nTimeout;
+	
+	// Get the version number 
+	stat.sLibVersion	:= stLibVersion_ESO_LDC_Actuator_Library.sVersion;
+
+	// Get cycle time in microsec.
+	// CycleTime in _TaskInfo is given in 100 ns. 1 us = 1000 ns
+	fbGetCurTaskIdx();
+	stat.nCycleTime	:=  (TwinCAT_SystemInfoVarList._TaskInfo[fbGetCurTaskIdx.index].CycleTime)/10;
+	
+	// Increment counter.
+	stat.nCycleCounter	:= stat.nCycleCounter + 1;
+	RETURN;
+ELSIF (stat.nCycleCounter * stat.nCycleTime) < 5000000 THEN
+	// EtherCAT is normally ready after 3.5 sec.
+	// We give it 5 sec to consider it to be ready.
+	// Increment counter.
+	stat.nCycleCounter	:= stat.nCycleCounter + 1;
+	RETURN;
+END_IF
+
+
+// Create Event instances
+fbEventStart.CreateEx	(TC_EVENTS.ActuatorOpsEventClass.ActionStart,0);
+fbEventEnd.CreateEx		(TC_EVENTS.ActuatorOpsEventClass.ActionEnd,0);
+fbEventError.CreateEx	(TC_EVENTS.ActuatorOpsEventClass.Error,0);
+fbEventDebug.CreateEx	(TC_EVENTS.ActuatorOpsEventClass.Debug,0);
+fbEventGeneral.CreateEx	(TC_EVENTS.ActuatorOpsEventClass.General,0);
+
+// The device is ready now.
+bDeviceReady := TRUE;
+
+
+// Clear errors
+stat.nErrorCode		:= E_ACTUATOR_ERROR.OK;
+stat.sErrorText		:= 'OK';	
+
+
+//
+// Set next state based on cfg.bAutoOp
+//
+
+// Go to the default state on PLC re-boot.
+// Default state is set in cfg.bInitialState.
+q_bSwitch	:= GetLogicalState(cfg.bInitialState, cfg.bActiveLowSwitch);
+
+// In ActionOnExecute() and ActionOffExecute(), we are waiting for trg() to go from FALSE to TRUE.
+// Trigger it with FALSE.
+trg(CLK:=FALSE);
+
+// Go directly to the target state.
+IF NOT cfg.bAutoOp THEN
+	// Go automatically to NOTOP ON or OFF
+	IF cfg.bInitialState = TRUE THEN
+		ActionOnExecute();
+		SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_ON);
+	ELSE
+		ActionOffExecute();
+		SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_OFF);
+	END_IF
+ELSE
+	// Go automatically to OPERATIONAL
+	// If initial state is ON, go to E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON.
+	// Otherwise, go to E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF.
+	IF cfg.bInitialState = TRUE THEN
+		ActionOnExecute();
+		SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON);
+	ELSE
+		ActionOffExecute();
+		SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF);
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{a6395d91-813f-4cab-a494-3e3d4e48bd2a}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_ACTUATOR_RPC_ERROR.OK:					str	:= 'OK';
+	E_ACTUATOR_RPC_ERROR.NOT_OP:				str	:= 'Cannot control device. Not in OP state.';
+	E_ACTUATOR_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP_READY.';
+	E_ACTUATOR_RPC_ERROR.NOT_NOTOP:				str	:= 'Call failed. Not in NOTOP.';
+	E_ACTUATOR_RPC_ERROR.SWITCHING_ON:			str	:= 'Device OFF failed. Still switching ON.';
+	E_ACTUATOR_RPC_ERROR.SWITCHING_OFF:			str	:= 'Device ON failed. Still switching OFF.';
+	E_ACTUATOR_RPC_ERROR.LOCAL:					str	:= 'RPC calls not allowed in Local mode.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventDebug" Id="{76ff400f-eecc-453d-bdbd-16ea83a14a8b}">
+      <Declaration><![CDATA[METHOD M_LogEventDebug : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log Debug events only if both logging and debugging is enabled
+IF  cfg.bLog AND cfg.bDebug THEN
+	fbEventDebug.ipArguments.Clear().AddString(sText);
+	fbEventDebug.Send(0);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventEnd" Id="{924a63d8-c4db-4990-833d-29094815b171}">
+      <Declaration><![CDATA[METHOD M_LogEventEnd : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventEnd.ipArguments.Clear().AddString(sText);
+fbEventEnd.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventError" Id="{09811c01-7dc5-4d6f-9199-d2731ce1b7ee}">
+      <Declaration><![CDATA[METHOD M_LogEventError : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventError.ipArguments.Clear().AddString(sText);
+fbEventError.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventGeneral" Id="{a9dfeb89-9fc4-4c54-af42-3043d81bb670}">
+      <Declaration><![CDATA[METHOD M_LogEventGeneral : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventGeneral.ipArguments.Clear().AddString(sText);
+fbEventGeneral.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventStart" Id="{3bae18c2-756c-4d13-9096-9ce29d4d65af}">
+      <Declaration><![CDATA[METHOD M_LogEventStart : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventStart.ipArguments.Clear().AddString(sText);
+fbEventStart.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{8fc853df-88b2-40ab-99ba-2b788cf16ba9}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	E_ACTUATOR_RPC_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nRpcErrorCode	:= nErrorCode;
+stat.sRpcErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{6e9c6b9a-4c2b-4268-a28e-d15cd6e7df03}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF 	stat.nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_ON  OR  
+	stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON 		THEN
+	ActivitySwitchingOn();
+END_IF
+
+IF stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_ON THEN
+	ActivityOn();	// Just update times
+END_IF
+
+IF 	stat.nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_OFF  OR  
+	stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF 		THEN
+	ActivitySwitchingOff();
+END_IF
+
+IF stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_OFF THEN
+	ActivityOff();	// Just update times
+END_IF
+
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE stat.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_ACTUATOR_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE stat.nSubstate OF
+	
+	E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY:
+		// This state should not exist.
+		// Go to ON or OFF immediately.		
+		// ActionResetExecute() will do it for us.
+		ActionResetExecute();
+		RETURN;
+		
+	E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_OFF:		// TODO	
+		IF nEvent = E_ACTUATOR_EVENT.STOP THEN
+			ActionInitAbort();
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ERRINIT THEN
+			M_LogEventError('INIT failed');
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.INITOFF THEN
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ISOFF THEN
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+			RETURN;
+		END_IF
+		
+	E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_ON:		// TODO	
+		IF nEvent = E_ACTUATOR_EVENT.STOP THEN
+			ActionInitAbort();
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ERRINIT THEN
+			M_LogEventError('INIT failed');
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.INITOFF THEN
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ISON THEN
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_ON);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.INITON THEN
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_ON);
+			RETURN;
+		END_IF
+		
+	E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF:			
+		IF nEvent = E_ACTUATOR_EVENT.ISON THEN
+			ActionUnexpExecute();
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_ON);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ENABLE THEN
+			SetAction('ActionEnableExecute');
+			M_LogEventGeneral('Enabled');
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_OFF);
+			RETURN;
+		END_IF
+
+	E_ACTUATOR_SUBSTATE.NOTOP_READY_ON:			
+		IF nEvent = E_ACTUATOR_EVENT.ISOFF THEN
+			ActionUnexpExecute();
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ENABLE THEN
+			SetAction('ActionEnableExecute');
+			M_LogEventGeneral('Enabled');
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ON);
+			RETURN;
+		END_IF
+
+	E_ACTUATOR_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_ACTUATOR_EVENT.HWOK THEN
+			M_LogEventGeneral('Recovered from ERROR state. HW is OK');
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF nEvent = E_ACTUATOR_EVENT.ERRHW THEN
+		// Log the error only once
+		IF stat.nSubstate <> E_ACTUATOR_SUBSTATE.NOTOP_ERROR THEN
+			M_LogEventError('HW not in OPERATIONAL state');
+		END_IF
+		SetStatus(E_ACTUATOR_ERROR.HW_NOTOP, 'ERROR: HW not in OPERATIONAL state');
+		SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_ACTUATOR_STATE.OP:
+
+	(* Transitions from OP substates *)
+	CASE stat.nSubstate OF
+	E_ACTUATOR_SUBSTATE.OP_OFF:			
+		IF nEvent = E_ACTUATOR_EVENT.ON THEN
+			ActionOnExecute();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.OFF THEN
+			// Nothing to do. Just clear previous error, if any.
+			SetStatus(E_ACTUATOR_ERROR.OK, 'OK');
+			M_LogEventGeneral('Command OFF ignored. Already OFF');
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ISON THEN
+			ActionUnexpExecute();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ON);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.DISABLE THEN
+			M_LogEventGeneral('Disabled');
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+			RETURN;		
+		END_IF
+
+	E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON:			
+		IF nEvent = E_ACTUATOR_EVENT.ISON THEN
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ON);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ON THEN
+			// Clear previous error, if any.
+			SetStatus(E_ACTUATOR_ERROR.OK, 'OK');
+			// Log event
+			M_LogEventGeneral('New ON command. Restarted Time ON counter.');
+			// Restart the TimeON
+			UpdateTimes(bOnState:=TRUE,bRestart:=TRUE, bReset:=FALSE);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ERRTIMEOUT THEN
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ERROR);
+			RETURN;
+		END_IF
+		
+	E_ACTUATOR_SUBSTATE.OP_ON:			
+		IF nEvent = E_ACTUATOR_EVENT.OFF THEN
+			ActionOffExecute();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ON THEN
+			// Clear previous error, if any.
+			SetStatus(E_ACTUATOR_ERROR.OK, 'OK');
+			// Log event
+			M_LogEventGeneral('New ON command. Restarted Time ON counter.');
+			// Restart the TimeON
+			UpdateTimes(bOnState:=TRUE,bRestart:=TRUE, bReset:=FALSE);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ISOFF THEN
+			ActionUnexpExecute();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.DISABLE THEN
+			M_LogEventGeneral('Disabled');
+			SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_ON);
+			RETURN;	
+		ELSIF nEvent = E_ACTUATOR_EVENT.ERRMAXON THEN
+			ActionMaxOnFailure();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF);
+			RETURN;				
+		END_IF
+		
+	E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF:			
+		IF nEvent = E_ACTUATOR_EVENT.ISOFF THEN
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ERRTIMEOUT THEN
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ERROR);
+			RETURN;
+		END_IF
+		
+	E_ACTUATOR_SUBSTATE.OP_ERROR:			
+		IF nEvent = E_ACTUATOR_EVENT.OFF THEN
+			ActionOffExecute();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF);
+			RETURN;
+		ELSIF nEvent = E_ACTUATOR_EVENT.ON THEN
+			ActionOnExecute();
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON);
+			RETURN;			
+		ELSIF nEvent = E_ACTUATOR_EVENT.ISON THEN
+			IF stat.nErrorCode <> E_ACTUATOR_ERROR.HW_NOTOP THEN
+				SetStatus(E_ACTUATOR_ERROR.OK, 'OK');	// Clear error
+			ELSE
+				M_LogEventGeneral('Recovered from ERROR state. Actuator is ON');
+			END_IF
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ON);
+			RETURN;			
+		ELSIF nEvent = E_ACTUATOR_EVENT.ISOFF THEN
+			IF stat.nErrorCode <> E_ACTUATOR_ERROR.HW_NOTOP THEN
+				SetStatus(E_ACTUATOR_ERROR.OK, 'OK');	// Clear error
+			ELSE
+				M_LogEventGeneral('Recovered from ERROR state. Actuator is OFF');
+			END_IF
+			SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_OFF);
+			RETURN;	
+		ELSIF nEvent = E_ACTUATOR_EVENT.DISABLE THEN
+			IF bOn THEN
+				SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_ON);
+			ELSE
+				SetState(E_ACTUATOR_STATE.NOTOP, E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF);
+			END_IF
+			RETURN;			
+		END_IF
+
+	END_CASE
+	
+	(* Transitions from OP state *)
+	IF nEvent = E_ACTUATOR_EVENT.ERRHW THEN
+		IF stat.nSubstate <> E_ACTUATOR_SUBSTATE.OP_ERROR THEN
+			// Log the error only once
+			M_LogEventError('HW not in OPERATIONAL state');
+		END_IF
+		SetStatus(E_ACTUATOR_ERROR.HW_NOTOP, 'ERROR: HW not in OPERATIONAL state');
+		SetState(E_ACTUATOR_STATE.OP, E_ACTUATOR_SUBSTATE.OP_ERROR);
+
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_ACTUATOR_EVENT.RESET THEN
+	ActionResetExecute();
+	RETURN;
+ELSIF nEvent = E_ACTUATOR_EVENT.STOP THEN
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{60466611-4f84-4632-bec6-707cbadd749d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF stat.nState <> E_ACTUATOR_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Clear RPC Call status
+	stat.sRPCErrorText	:= 'OK';
+	
+	// Set disable command
+	ctrl.nCommand := E_ACTUATOR_COMMAND.DISABLE;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{4d9488e9-b083-4821-aa71-d9c5fd8da4b8}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+IF	stat.nState = E_ACTUATOR_STATE.NOTOP					AND  
+	stat.nSubstate <> E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF	AND  
+	stat.nSubstate <> E_ACTUATOR_SUBSTATE.NOTOP_READY_ON		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	// Clear RPC Call status
+	stat.sRPCErrorText	:= 'OK';
+	
+	// Set enable command
+	ctrl.nCommand := E_ACTUATOR_COMMAND.ENABLE;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{aae974ee-71ef-440d-920b-33456756aa63}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Init command is accepted only in NOTOP.
+IF	stat.nState <> E_ACTUATOR_STATE.NOTOP	THEN
+	RPC_Init	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.NOT_NOTOP);
+	RETURN;
+ELSE
+	// Clear RPC Call status
+	stat.sRPCErrorText	:= 'OK';
+	
+	// Set INIT command
+	ctrl.nCommand := E_ACTUATOR_COMMAND.INIT;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Off" Id="{e12adfdb-fdab-41b1-b2c9-f1cd1467e8a1}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Off : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Off	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// OFF command is accepted only in OP state.
+IF	stat.nState <> E_ACTUATOR_STATE.OP	THEN
+	RPC_Off	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON THEN
+	// power should not be commanded to go OFF if being switched ON.
+	RPC_Off	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.SWITCHING_ON);
+	RETURN;
+ELSE
+	// Clear RPC Call status
+	stat.sRPCErrorText	:= 'OK';
+	
+	// Set OFF command
+	ctrl.nCommand := E_ACTUATOR_COMMAND.OFF;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Off	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_On" Id="{aba17171-3ae5-45f9-bc45-4035bb8f1d6b}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_On : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_On	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// ON command is accepted only in OP state and NOT COOLING.
+IF	stat.nState <> E_ACTUATOR_STATE.OP	THEN
+	RPC_On	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF THEN
+	// power should not be commanded to go ON if being switched OFF.
+	RPC_On	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.SWITCHING_OFF);
+	RETURN;
+ELSE
+	// Clear RPC Call status
+	stat.sRPCErrorText	:= 'OK';
+	
+	// Set ON command
+	ctrl.nCommand 		:= E_ACTUATOR_COMMAND.ON;
+	ctrl.bExecute 		:= TRUE;
+	
+	// Call was successful
+	RPC_On	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{009bb7f2-47b9-4dea-b080-934391fea01c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Clear RPC Call status
+stat.sRPCErrorText	:= 'OK';
+
+ctrl.nCommand := E_ACTUATOR_COMMAND.RESET;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{b2dd7536-18fe-40cb-90c1-82c88b5daf9d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Clear RPC Call status
+stat.sRPCErrorText	:= 'OK';
+
+ctrl.nCommand := E_ACTUATOR_COMMAND.STOP;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_ACTUATOR_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{2acba3b2-45b6-4a2a-b462-51ba88d57ca8}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+stat.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{6b68da34-70da-405a-b0a8-7235e5482c8e}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_ACTUATOR_EVENT.NONE:
+		stat.sEventDesc := '';
+		RETURN;
+		
+	E_ACTUATOR_EVENT.RESET:
+		stat.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_ACTUATOR_EVENT.INIT:
+		stat.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_ACTUATOR_EVENT.STOP:
+		stat.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ENABLE:
+		stat.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_ACTUATOR_EVENT.DISABLE:
+		stat.sEventDesc := 'CMD DISABLE';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ON:
+		stat.sEventDesc := 'CMD ON';
+		RETURN;
+
+	E_ACTUATOR_EVENT.OFF:
+		stat.sEventDesc := 'CMD OFF';
+		RETURN;
+	
+	(* events corresponding to internal events *)
+	E_ACTUATOR_EVENT.INITOFF:
+		stat.sEventDesc := 'INT INITOFF';
+		RETURN;
+
+	E_ACTUATOR_EVENT.INITON:
+		stat.sEventDesc := 'INT INITON';
+		RETURN;
+
+	E_ACTUATOR_EVENT.DISABLEOFF:
+		stat.sEventDesc := 'INT DISABLEOFF';
+		RETURN;
+	
+	E_ACTUATOR_EVENT.DISABLEON:
+		stat.sEventDesc := 'INT DISABLEON';
+		RETURN;
+	
+	(* evetnts mapped to HW signals *)
+	E_ACTUATOR_EVENT.ISON:
+		stat.sEventDesc := 'SIG ISON';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ISOFF:
+		stat.sEventDesc := 'SIG ISOFF';
+		RETURN;
+
+	E_ACTUATOR_EVENT.HWOK:
+		stat.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ERRHW:
+		stat.sEventDesc := 'INT ERRHW';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ERRMAXON:	
+		stat.sEventDesc := 'INT ERRMAXON';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ERRTIMEOUT:	
+		stat.sEventDesc := 'INT ERRTIMEOUT';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ERRINIT:
+		stat.sEventDesc := 'INT ERRINIT';
+		RETURN;
+
+	E_ACTUATOR_EVENT.ERRDISABLE:
+		stat.sEventDesc := 'INT ERRDISABLE';
+		RETURN;
+	
+END_CASE 
+
+(* INTERNAL ERROR *)
+stat.sEventDesc := 'UNKNOWN EVENT';
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetLastCommand" Id="{084e1f0c-4562-4076-94b3-076fbbb0aeca}">
+      <Declaration><![CDATA[METHOD SetLastCommand
+VAR_INPUT
+	cmd:	DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nLastCommand	:= cmd;
+
+CASE cmd OF
+	E_ACTUATOR_COMMAND.RESET:
+		stat.sLastCommand	:= 'RESET';
+	E_ACTUATOR_COMMAND.INIT:
+		stat.sLastCommand	:= 'INIT';
+	E_ACTUATOR_COMMAND.STOP:
+		stat.sLastCommand	:= 'STOP';
+	E_ACTUATOR_COMMAND.ENABLE:
+		stat.sLastCommand	:= 'ENABLE';
+	E_ACTUATOR_COMMAND.DISABLE:
+		stat.sLastCommand	:= 'DISABLE';
+	E_ACTUATOR_COMMAND.ON:
+		stat.sLastCommand	:= 'ON';
+	E_ACTUATOR_COMMAND.OFF:
+		stat.sLastCommand	:= 'OFF';
+ELSE
+		stat.sLastCommand	:= 'NONE';
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{725c2510-95cb-4885-9251-304ab558f2e2}">
+      <Declaration><![CDATA[METHOD SetState : BOOL
+VAR_INPUT
+	nState:			E_ACTUATOR_STATE;
+	nSubstate:		E_ACTUATOR_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Update State Machine active state configuration.
+
+	ToDo: support initial pseudo state/substate.
+*)
+
+IF nState <> E_ACTUATOR_STATE.NONE THEN
+	stat.nState	:= nState;
+END_IF
+IF nSubstate <> E_ACTUATOR_SUBSTATE.NONE THEN
+	stat.nSubstate	:= nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF nState = E_ACTUATOR_STATE.NOTOP THEN
+	stat.sState	:= 'NOT OP';
+ELSIF nState = E_ACTUATOR_STATE.OP THEN
+	stat.sState	:= 'OPERATIONAL';
+END_IF
+
+IF nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY THEN
+	stat.sSubstate	:= 'NOT READY';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_OFF THEN
+	stat.sSubstate	:= 'SWITCHING OFF';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_ON THEN
+	stat.sSubstate	:= 'SWITCHING ON';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_READY_OFF THEN
+	stat.sSubstate	:= 'READY OFF';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_READY_ON THEN
+	stat.sSubstate	:= 'READY ON';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_ERROR THEN
+	stat.sSubstate	:= 'ERROR';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.OP_OFF THEN
+	stat.sSubstate	:= 'OFF';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.OP_ON THEN
+	stat.sSubstate	:= 'ON';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_OFF THEN
+	stat.sSubstate	:= 'SWITCHING OFF';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.OP_SWITCHING_ON THEN
+	stat.sSubstate	:= 'SWITCHING ON';
+ELSIF nSubstate = E_ACTUATOR_SUBSTATE.OP_ERROR THEN
+	stat.sSubstate	:= 'ERROR';
+ELSE
+	stat.sSubstate	:= '';
+END_IF
+
+
+SetState	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetStatus" Id="{5b3227cf-119a-4e13-9ac9-4e4585108264}">
+      <Declaration><![CDATA[METHOD SetStatus
+VAR_INPUT
+	nErrorCode:	DINT;
+	sErrorText:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nErrorCode 	:= nErrorCode;
+stat.sErrorText 	:= sErrorText;
+
+IF nErrorCode <> E_ACTUATOR_ERROR.OK THEN
+	stat.sStatus	:= 'ERROR';
+	stat.nStatus	:= E_ACTUATOR_STATUS.ERROR;
+ELSE
+	stat.sStatus	:= 'OK';
+	stat.nStatus	:= E_ACTUATOR_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateTimes" Id="{9f155f2c-3083-4d8f-8718-8dfa05d7e29a}">
+      <Declaration><![CDATA[METHOD UpdateTimes
+VAR_INPUT
+	bOnState:	BOOL;	// State of ON status signal
+	bRestart:	BOOL := FALSE;	// If TRUE, restart ON time after new command
+	bReset:		BOOL := FALSE;	// If TRUE, reset ON /OFF times
+END_VAR
+VAR
+	nCurrentTime:	UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCurrentTime	:= GetTimeInSec();
+
+IF bReset OR stat.nSubstate = E_ACTUATOR_SUBSTATE.NOTOP_NOTREADY THEN
+	stat.nTimeOnStart		:= nCurrentTime;
+	stat.nTimeOnTotalStart	:= nCurrentTime;
+	stat.nTimeOffStart		:= nCurrentTime;
+	stat.nTimeOnTotal		:= 0;
+	stat.nTimeOn			:= 0;
+	stat.nTimeOff			:= 0;
+	RETURN;
+END_IF
+
+
+IF bOnState THEN
+	// power state is ON.
+	// In order to avoid OFF time jumps, reset OFF start time.
+	stat.nTimeOffStart	:= nCurrentTime;
+	
+	// Check if the power has already been ON.
+	IF	stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_ON THEN
+		// power has already been ON
+		stat.nTimeOnTotal	:= nCurrentTime - stat.nTimeOnTotalStart;
+
+		IF bRestart THEN
+			stat.nTimeOnStart	:= nCurrentTime;
+			stat.nTimeOn		:= 0;
+		ELSE
+			stat.nTimeOn		:= nCurrentTime - stat.nTimeOnStart;
+		END_IF
+	ELSE
+		// power has been OFF
+		stat.nTimeOnStart		:= nCurrentTime;
+		stat.nTimeOnTotalStart	:= nCurrentTime;
+		stat.nTimeOnTotal		:= 0;
+		stat.nTimeOn			:= 0;
+		stat.nTimeOff			:= 0;
+	END_IF
+
+	// Check if the power has been ON for too long, i.e. cfg.nMaxOn exceeded.
+	IF stat.nTimeOn > cfg.nMaxOn AND cfg.nMaxOn > 0 THEN
+		nInternalEvent  := E_ACTUATOR_EVENT.ERRMAXON;
+		RETURN;
+	END_IF
+
+ELSE
+	// power state is OFF.
+	// In order to avoid OFF time jumps, reset OFF start time.
+	stat.nTimeOnStart	:= nCurrentTime;
+	
+	// Check if the power has already been OFF.
+	IF 	stat.nSubstate = E_ACTUATOR_SUBSTATE.OP_OFF THEN
+		// power has already been OFF
+		stat.nTimeOff	:= nCurrentTime - stat.nTimeOffStart;
+	ELSE
+		IF bRestart THEN
+			stat.nTimeOffStart	:= nCurrentTime;
+			stat.nTimeOff		:= 0;
+		ELSE
+			stat.nTimeOff		:= nCurrentTime - stat.nTimeOffStart;
+		END_IF
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ACTUATOR">
+      <LineId Id="531" Count="17" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionErrExecute">
+      <LineId Id="3" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionInitAbort">
+      <LineId Id="3" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionInitExecute">
+      <LineId Id="3" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="32" Count="5" />
+      <LineId Id="4" Count="5" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionInitReject">
+      <LineId Id="3" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionMaxOnFailure">
+      <LineId Id="3" Count="2" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="6" Count="18" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionOffExecute">
+      <LineId Id="3" Count="2" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="6" Count="7" />
+      <LineId Id="15" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionOnExecute">
+      <LineId Id="3" Count="3" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="7" Count="4" />
+      <LineId Id="14" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionResetExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="5" Count="3" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="24" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActionUnexpExecute">
+      <LineId Id="3" Count="2" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="36" Count="4" />
+      <LineId Id="13" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActivityOff">
+      <LineId Id="8" Count="1" />
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActivityOn">
+      <LineId Id="9" Count="1" />
+      <LineId Id="3" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActivitySwitchingOff">
+      <LineId Id="3" Count="34" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="101" Count="2" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="50" Count="13" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="104" Count="2" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ActivitySwitchingOn">
+      <LineId Id="3" Count="39" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="51" Count="15" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="76" Count="2" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.CheckForEvents">
+      <LineId Id="3" Count="12" />
+      <LineId Id="17" Count="14" />
+      <LineId Id="35" Count="26" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="62" Count="13" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="86" Count="19" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.GetLogicalState">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.GetTimeInSec">
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_Configure">
+      <LineId Id="177" Count="4" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="149" Count="1" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="146" Count="1" />
+      <LineId Id="185" Count="5" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="191" Count="3" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="174" Count="1" />
+      <LineId Id="158" Count="6" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="110" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="113" Count="1" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="139" Count="3" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="135" Count="3" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="40" Count="9" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_LogEventDebug">
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_LogEventEnd">
+      <LineId Id="12" Count="2" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_LogEventError">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_LogEventGeneral">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_LogEventStart">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.ProcessEvents">
+      <LineId Id="4" Count="6" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="388" Count="0" />
+      <LineId Id="16" Count="6" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="43" Count="15" />
+      <LineId Id="447" Count="2" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="404" Count="0" />
+      <LineId Id="410" Count="4" />
+      <LineId Id="459" Count="0" />
+      <LineId Id="415" Count="7" />
+      <LineId Id="426" Count="1" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="76" Count="4" />
+      <LineId Id="460" Count="0" />
+      <LineId Id="81" Count="2" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="395" Count="0" />
+      <LineId Id="397" Count="1" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="89" Count="4" />
+      <LineId Id="101" Count="4" />
+      <LineId Id="378" Count="0" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="108" Count="4" />
+      <LineId Id="120" Count="5" />
+      <LineId Id="462" Count="0" />
+      <LineId Id="126" Count="5" />
+      <LineId Id="482" Count="0" />
+      <LineId Id="132" Count="7" />
+      <LineId Id="536" Count="0" />
+      <LineId Id="479" Count="2" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="140" Count="15" />
+      <LineId Id="360" Count="2" />
+      <LineId Id="496" Count="0" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="156" Count="4" />
+      <LineId Id="463" Count="0" />
+      <LineId Id="375" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="168" Count="3" />
+      <LineId Id="173" Count="1" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="485" Count="2" />
+      <LineId Id="483" Count="0" />
+      <LineId Id="345" Count="2" />
+      <LineId Id="180" Count="4" />
+      <LineId Id="215" Count="5" />
+      <LineId Id="368" Count="1" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="484" Count="0" />
+      <LineId Id="221" Count="7" />
+      <LineId Id="464" Count="0" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="236" Count="7" />
+      <LineId Id="245" Count="1" />
+      <LineId Id="252" Count="4" />
+      <LineId Id="279" Count="9" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="538" Count="0" />
+      <LineId Id="544" Count="1" />
+      <LineId Id="491" Count="0" />
+      <LineId Id="289" Count="2" />
+      <LineId Id="493" Count="0" />
+      <LineId Id="539" Count="0" />
+      <LineId Id="546" Count="1" />
+      <LineId Id="495" Count="0" />
+      <LineId Id="292" Count="2" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="431" Count="2" />
+      <LineId Id="430" Count="0" />
+      <LineId Id="296" Count="2" />
+      <LineId Id="313" Count="3" />
+      <LineId Id="476" Count="0" />
+      <LineId Id="537" Count="0" />
+      <LineId Id="477" Count="1" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="503" Count="0" />
+      <LineId Id="475" Count="0" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="323" Count="9" />
+      <LineId Id="450" Count="1" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="333" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_Disable">
+      <LineId Id="30" Count="5" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="17" Count="5" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_Enable">
+      <LineId Id="40" Count="5" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="25" Count="9" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_Init">
+      <LineId Id="34" Count="5" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="16" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_Off">
+      <LineId Id="48" Count="5" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="14" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_On">
+      <LineId Id="49" Count="5" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="19" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_Reset">
+      <LineId Id="19" Count="5" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.RPC_Stop">
+      <LineId Id="19" Count="5" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.SetAction">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.SetEvent">
+      <LineId Id="3" Count="57" />
+      <LineId Id="69" Count="11" />
+      <LineId Id="102" Count="3" />
+      <LineId Id="81" Count="16" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.SetLastCommand">
+      <LineId Id="3" Count="18" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.SetState">
+      <LineId Id="3" Count="22" />
+      <LineId Id="63" Count="3" />
+      <LineId Id="30" Count="13" />
+      <LineId Id="50" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ACTUATOR.UpdateTimes">
+      <LineId Id="3" Count="19" />
+      <LineId Id="24" Count="30" />
+      <LineId Id="56" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

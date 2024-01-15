@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_JANSSEN_CADM2_FAIL_SAFE_STATE" Id="{77dda7fc-f1d3-4b20-baeb-79b2fcb67d7a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+// 'strict' cannot be used since we mix our own codes with TC codes
+//{attribute 'strict'}
+TYPE E_JANSSEN_CADM2_FAIL_SAFE_STATE :
+(
+	OK		 						:= 0,
+	UPPER_VOLTAGE_RAIL_IS_MISSING,
+	LOWER_VOLTAGE_RAIL_IS_MISSING,	
+	THERMAL_OVERLOAD,
+	OVER_CURRENT_100US_UPPER_RAIL,
+	OVER_CURRENT_1MS_UPPER_RAIL,
+	OVER_CURRENT_100US_LOWER_RAIL,
+	OVER_CURRENT_1MS_LOWER_RAIL	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

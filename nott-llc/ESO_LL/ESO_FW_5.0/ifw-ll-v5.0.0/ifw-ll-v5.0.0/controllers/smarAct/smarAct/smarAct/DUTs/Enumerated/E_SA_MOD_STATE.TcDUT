@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="E_SA_MOD_STATE" Id="{ab74908d-decc-4ea5-a625-70930eddb3e4}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_MOD_STATE :
+(
+	BIT_SM_PRESENT				:= 16#00000001,
+	BIT_BOOSTER_PRESENT			:= 16#00000002,
+	BIT_ADJUSTMENT_ACTIVE		:= 16#00000004,
+	BIT_IOM_PRESENT				:= 16#00000008,
+	BIT_INTERNAL_COMM_FAILURE	:= 16#00000100,
+	BIT_FAN_FAILURE				:= 16#00000800,
+	BIT_POWER_SUPPLY_FAILURE	:= 16#00001000,
+	BIT_POWER_SUPPLY_OVERLOAD	:= 16#00002000,
+	BIT_OVER_TEMPERATURE		:= 16#00004000
+) UDINT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

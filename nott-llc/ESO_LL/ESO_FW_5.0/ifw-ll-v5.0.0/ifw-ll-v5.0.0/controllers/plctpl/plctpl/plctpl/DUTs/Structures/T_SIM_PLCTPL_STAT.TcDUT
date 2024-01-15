@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_SIM_PLCTPL_STAT" Id="{91af19d4-208f-48f7-a423-e4ef68fbafcd}">
+    <Declaration><![CDATA[TYPE T_SIM_PLCTPL_STAT :
+STRUCT
+	bInitialised:	BOOL	:= FALSE;						(* If TRUE, shutter simulator is initialised *)
+
+	nErrorCode: 	DINT 	:= E_PLCTPL_ERROR.SIM_NOT_INITIALISED;	(* Error code *)
+	sErrorText: 	STRING 	:= 'NOT INITIALISED'; 			(* Error text *)
+	sStatus: 		STRING 	:= 'ERROR'; 					(* Shutter status in textual form, e.g. 'OFF' *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

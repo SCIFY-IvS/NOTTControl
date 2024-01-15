@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MODBUS_ERROR" Id="{9e92e99a-be7a-4789-aa9b-0f559af60c6c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{xxxattribute 'strict'}
+TYPE E_MODBUS_ERROR :
+(
+	OK					:= 0,
+	NOT_IN_OP_STATE,
+	NOT_INIT,
+	TIMEOUT,
+	SEND,
+	RECEIVE,
+	WRONG_STATE,
+	NOT_IDLE
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

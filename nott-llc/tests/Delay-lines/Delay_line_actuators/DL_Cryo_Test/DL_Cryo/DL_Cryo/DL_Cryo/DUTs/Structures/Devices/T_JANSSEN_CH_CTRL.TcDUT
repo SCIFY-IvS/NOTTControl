@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_JANSSEN_CH_CTRL" Id="{841987f4-6846-4fc1-8fef-d1773a898f1f}">
+    <Declaration><![CDATA[TYPE T_JANSSEN_CH_CTRL :
+STRUCT
+	//
+	// Control structure for a single channel/positioner.
+	//
+	
+	//
+	// Active command.
+	// Setting nCmd to something other than NONE will
+	// trigger execution of commands REF, STOP, MOV.
+	//
+	nCmd:	E_SA_CH_CMD := E_SA_CH_CMD.NONE;	// Active command
+	
+	
+	// JANSSEN Servo Drive Mode. METIS CFO PSM
+	
+	// Enable Servodrive
+	
+	sStage1:	STRING	:= 'CBS10-RLS'; // Mention here the correct stage
+	sStage2:	STRING	:= 'CBS10-RLS'; // Mention here the correct stage
+	sStage3:	STRING	:= 'CBS10-RLS'; // Mention here the correct stage
+	
+	// Step Frequency [1 to 600]
+	
+	nFreq1:		DINT	:= 300; // Step frequency for actuator 1
+	nFreq2:		DINT	:= 300; // Step frequency for actuator 2
+	nFreq3:		DINT	:= 300; // Step frequency for actuator 3
+	
+	// Operating Temperturte
+	
+	nTemp:		DINT; // In Kelvin
+	
+	// Drive Factor: 
+	
+	lrDriveFactor:	LREAL := 1.0; // [0.1 to 3.0] In normal operating conditions, set this value to 1 (or 1.0).
+	
+	// Setpoints
+	lrSetPoint1 : LREAL; //Setpoint 1 position in [m]
+	lrSetPoint2 : LREAL; //Setpoint 1 position in [m]
+	lrSetPoint3 : LREAL; //Setpoint 1 position in [m]
+	
+	// Set [ABS] to 1 to enable absolute positioning, otherwise set to 0 (zero). 
+	// When using COE / OEM2: absolute positioning is relative to count 0 (zero)9 , 
+	//whereas relative positioning is relative to the current count value.
+	
+	bAbsolutePositioning1 : BOOL;
+	bAbsolutePositioning2 : BOOL;
+	bAbsolutePositioning3 : BOOL;
+	
+	//SA
+	lrPos:	LREAL;		// Position in User Units, i.e. [deg] or [mm]
+	lrOff:	LREAL;		// Position offset in User Units, i.e. [deg] or [mm]
+	lrVel:	LREAL;		// Velocity in User Units, i.e. [deg/s] or [mm/sec]
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

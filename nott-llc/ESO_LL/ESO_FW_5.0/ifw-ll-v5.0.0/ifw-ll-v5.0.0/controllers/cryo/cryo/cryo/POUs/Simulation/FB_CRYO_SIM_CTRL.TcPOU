@@ -1,0 +1,246 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_CRYO_SIM_CTRL" Id="{3129f15e-a365-45e1-b644-6f2cacbb6d93}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_SIM_CTRL
+VAR_INPUT
+	in_ptr_Cryo_Ctrl:	POINTER TO FB_CRYO_CTRL;
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Temp_Mirror:		FB_CRYO_SIM_TEMPERATURE;
+
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Temp_LN2_Exhaust:	FB_CRYO_SIM_TEMPERATURE;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Temp_LN2_Inlet:		FB_CRYO_SIM_TEMPERATURE;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Temp_DET:			FB_CRYO_SIM_TEMPERATURE;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Pressure_Cryo:	FB_CRYO_SIM_PRESSURE;		// Cryo Pressure simulator
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Pressure_Evac:	FB_CRYO_SIM_PRESSURE;		// Evacuation Pressure simulator
+	
+	
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	nCryoState:		E_CRYO_CTRL_STATE	:= E_CRYO_CTRL_STATE.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nCryoOldState:	E_CRYO_CTRL_STATE	:= E_CRYO_CTRL_STATE.NONE;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	trgCMD:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgEvacOn:		R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgEvacOff:		F_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgInVacuum:	R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgPrecoolOff:	F_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgCoolOff:		F_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgWarmupOff:	F_TRIG;
+	
+	nRampPeriod:	UDINT := 20000;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	lrTmp:	LREAL;
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Get Cryo controller State
+//
+nCryoState	:= in_ptr_Cryo_Ctrl^.stat.nState;
+
+
+//
+// Execute simulators for all temperatures and pressures, etc.
+//
+SIM_Temp_Mirror(
+	in_lrScale		:= in_ptr_Cryo_Ctrl^.Temp_Mirror.in_lrScale_1, 
+	in_lrTempK		:= );
+	
+SIM_Temp_LN2_Exhaust(
+	in_lrScale		:= in_ptr_Cryo_Ctrl^.Temp_LN2_Exhaust.in_lrScale_1, 
+	in_lrTempK		:= 88.75,	//	Variation 88.75 +- 11.25, i.e. [77.50..100.00]
+	in_lrTempDelta	:= 11.25,
+	in_nPeriod		:= 10000,
+	in_bAutoSine	:= TRUE);
+	
+SIM_Temp_LN2_Inlet(
+	in_lrScale		:= in_ptr_Cryo_Ctrl^.Temp_LN2_Inlet.in_lrScale_1, 
+	in_lrTempK		:= 77.15);
+	
+SIM_Temp_DET(
+	in_lrScale		:= in_ptr_Cryo_Ctrl^.Temp_DET.in_lrScale_1, 
+	in_lrTempK		:= );
+	
+SIM_Pressure_Cryo(
+	in_nType		:= in_ptr_Cryo_Ctrl^.Pressure_Cryo.in_nType_1,
+	in_lrBitsPerVolt:= in_ptr_Cryo_Ctrl^.Pressure_Cryo.in_lrBitsPerVolt_1, 
+	in_nPeriod		:= nRampPeriod);
+	
+SIM_Pressure_Evac(
+	in_nType		:= in_ptr_Cryo_Ctrl^.Pressure_Evac.in_nType_1,
+	in_lrBitsPerVolt:= in_ptr_Cryo_Ctrl^.Pressure_Evac.in_lrBitsPerVolt_1, 
+	in_nPeriod		:= nRampPeriod);
+
+
+	
+	
+//	
+// Capture Cryo controller change of state.
+//
+trgCMD(CLK:=(nCryoState<>nCryoOldState));
+nCryoOldState	:= nCryoState;
+
+// NOTE: This code is execute only once on each State change.
+IF trgCMD.Q  THEN
+	// The state of Cryo controller has changed.
+	// Take action with simulators.
+	CASE nCryoState OF
+		
+		/////////////////////////////////
+		E_CRYO_CTRL_STATE.PRE_COOLING:
+		/////////////////////////////////
+		//
+		// Trigger Bench temperature ramp 1 K below PRE_COOL threshold
+		SIM_Temp_Mirror.M_RampTo(
+			in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.cfg.lrTemp_Precooled-1.0,
+			in_nPeriod		:= nRampPeriod);
+
+		// Trigger DET temperature ramp 1 K below PRE_COOL threshold.
+		// Slow down the ramp compared to the Bench, so
+		// DET temperature is slightly higher during cooldown.
+		// The final temperature is the same as for the Bench.
+		SIM_Temp_DET.M_RampTo(
+			in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.cfg.lrTemp_Precooled-1.0,
+			in_nPeriod		:= nRampPeriod + 5000);
+			
+		/////////////////////////////////
+		E_CRYO_CTRL_STATE.COOLING_DOWN:
+		/////////////////////////////////
+		//
+		// Trigger temperature ramp 1 K below COOL threshold
+		SIM_Temp_Mirror.M_RampTo(
+			in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.cfg.lrTemp_Cold-1.0,
+			in_nPeriod		:= nRampPeriod);
+			
+		// Trigger temperature ramp 1 K below COOL threshold
+		// Slow down the ramp compared to the Bench, so
+		// DET temperature is slightly higher during cooldown.
+		// The final temperature is the same as for the Bench.
+		SIM_Temp_DET.M_RampTo(
+			in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.cfg.lrTemp_Cold-1.0,
+			in_nPeriod		:= nRampPeriod + 5000);
+			
+		/////////////////////////////////
+		E_CRYO_CTRL_STATE.WARMING_UP:
+		/////////////////////////////////
+		//
+		// Trigger temperature ramp to in_ptr_Cryo_Ctrl^.cfg.lrTemp_Warm (~10C)
+		SIM_Temp_Mirror.M_RampTo(
+			in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.cfg.lrTemp_Warm + 1.0,
+			in_nPeriod		:= nRampPeriod);
+			
+			
+		// Trigger temperature ramp to in_ptr_Cryo_Ctrl^.cfg.lrTemp_Warm (~10C)
+		// Speed up the ramp compared to the Bench, so
+		// DET temperature is slightly higher during warm-up.
+		// The final temperature is the same as for the Bench.
+		SIM_Temp_DET.M_RampTo(
+			in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.cfg.lrTemp_Warm + 1.0,
+			in_nPeriod		:= nRampPeriod - 2000);
+			
+		/////////////////////////////////
+		E_CRYO_CTRL_STATE.REPRESSURIZING:
+		/////////////////////////////////
+		//
+		// Trigger Cryo vacuum ramp to atmospheric pressure ~820 mbar
+		SIM_Pressure_Cryo.M_RampTo(
+			in_lrValueEnd	:= 820.0,
+			in_nPeriod		:= 17000);
+			
+		// Follow the same ramp with Evac but a bit slower.
+		SIM_Pressure_Evac.M_RampTo(
+			in_lrValueEnd	:= 820.0,
+			in_nPeriod		:= 20000);
+	END_CASE
+
+END_IF
+
+
+//
+// Evacuation Pressure simulation
+//
+// Capture Evacuation ON/OFF trigger
+trgEvacOn(CLK := in_ptr_Cryo_Ctrl^.ctrl.bEnable_Evac);
+trgEvacOff(CLK := in_ptr_Cryo_Ctrl^.ctrl.bEnable_Evac);
+IF	trgEvacOn.Q THEN
+	// Trigger vacuum ramp 0.0001 mbar below Good Vacuum
+	SIM_Pressure_Cryo.M_StartCurve(
+		in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.Pressure_Cryo.in_lrLimitGoodVac - 0.0001, 
+		in_nPeriod		:= 20000, 
+		in_lrCurveScale	:= 0.3);
+ELSIF trgEvacOff.Q THEN
+	// Evacuation stopped.
+	// Keep the pressure as it is.
+	SIM_Pressure_Cryo.M_Stop();
+END_IF
+
+
+//
+// If Turbo Pump is running, keep Evacuation pressure 1.0e-05 below the Cryo pressure.
+// Value is calculated on every cycle.
+//
+IF in_ptr_Cryo_Ctrl^.EvacSys.stat.bTurboPumpON THEN
+	SIM_Pressure_Evac.M_SetValue(SIM_Pressure_Cryo.lrPress - 1.0E-05);
+END_IF
+
+
+//
+// To get more realistic evacuation,
+// Restart simulated curve when inVacuum is triggered.
+//
+//trgInVacuum(CLK := in_ptr_Cryo_Ctrl^.Pressure_Cryo.stat.bInVacuum);
+trgInVacuum(CLK := in_ptr_Cryo_Ctrl^.stat.bInVacuum);
+IF trgInVacuum.Q THEN
+	SIM_Pressure_Cryo.M_StartCurve(
+		in_lrValueEnd	:= in_ptr_Cryo_Ctrl^.Pressure_Cryo.in_lrLimitGoodVac - 0.0001, 
+		in_nPeriod		:= 10000, 
+		in_lrCurveScale	:= 0.3);
+END_IF
+
+			
+//
+// Capture events when buttons are released 
+// and temperature transitions interrupted.
+//
+
+// Capture pre-cooling, cooling or warmup button release.
+// Stop ramping in that case.
+trgPrecoolOff	(CLK:=in_ptr_Cryo_Ctrl^.ctrl.bEnable_Precool);
+trgCoolOff		(CLK:=in_ptr_Cryo_Ctrl^.ctrl.bEnable_Cool);
+trgWarmupOff	(CLK:=in_ptr_Cryo_Ctrl^.ctrl.bEnable_Warmup);
+
+IF	trgPrecoolOff.Q OR trgCoolOff.Q OR trgWarmupOff.Q	THEN
+	SIM_Temp_Mirror.M_Stop();
+	SIM_Temp_DET.M_Stop();
+END_IF
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_CRYO_SIM_CTRL">
+      <LineId Id="3297" Count="180" />
+      <LineId Id="1234" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

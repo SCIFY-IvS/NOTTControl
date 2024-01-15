@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GlobalTextList Name="GlobalTextList" Id="{013ea1ee-ab22-419d-8221-219e72ba023a}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="GlobalTextListObject">
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"577"</v>
+              <v n="TextDefault">"%s"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1009"</v>
+              <v n="TextDefault">"App Tag"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"337"</v>
+              <v n="TextDefault">"CCS library ver. %s"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"746"</v>
+              <v n="TextDefault">"Component ID"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1119"</v>
+              <v n="TextDefault">"Dest Port"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"743"</v>
+              <v n="TextDefault">"Disable"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1047"</v>
+              <v n="TextDefault">"Disable Diagnostics"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"536"</v>
+              <v n="TextDefault">"Enable"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"742"</v>
+              <v n="TextDefault">"Enable Diagnostics"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"537"</v>
+              <v n="TextDefault">"Enabled"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"568"</v>
+              <v n="TextDefault">"Ethernet driver initialization"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"963"</v>
+              <v n="TextDefault">"Frame ID "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"787"</v>
+              <v n="TextDefault">"Instance: %s"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"505"</v>
+              <v n="TextDefault">"IP address"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"43"</v>
+              <v n="TextDefault">"Packet Counter"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"703"</v>
+              <v n="TextDefault">"Packet Info"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1057"</v>
+              <v n="TextDefault">"Payload size"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"115"</v>
+              <v n="TextDefault">"RED - False
+GREEN - True"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1156"</v>
+              <v n="TextDefault">"Sample ID"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"263"</v>
+              <v n="TextDefault">"Size"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"749"</v>
+              <v n="TextDefault">"Time used for Simulation. 
+Press "Copy UTC" or "Copy Local" button to get the time in correct format and then modify it for your needs."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"184"</v>
+              <v n="TextDefault">"Timestamp"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"671"</v>
+              <v n="TextDefault">"Topic ID"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"322"</v>
+              <v n="TextDefault">"UDP Receiver"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1124"</v>
+              <v n="TextDefault">"UDP Sender"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"907"</v>
+              <v n="TextDefault">"Version"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"356"</v>
+              <v n="TextDefault">"WHITE - Disabled
+GREEN - Enabled"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" />
+          <v n="GuidInit">{8fe650e1-f2fe-457b-ae57-2c2a088008b4}</v>
+          <v n="GuidReInit">{9b1c939d-806f-4d61-a4c1-34a8786dfe5c}</v>
+          <v n="GuidExitX">{5d369cdf-f9f4-4f33-bb5b-844789d4787d}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="GlobalTextListObject">{63784cbb-9ba0-45e6-9d69-babf3f040511}</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </GlobalTextList>
+</TcPlcObject>

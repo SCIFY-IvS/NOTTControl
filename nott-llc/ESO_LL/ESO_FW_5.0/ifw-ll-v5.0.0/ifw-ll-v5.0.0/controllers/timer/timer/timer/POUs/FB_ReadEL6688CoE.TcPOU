@@ -1,0 +1,919 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_ReadEL6688CoE" Id="{eb87cc0b-f96e-4025-a5a9-e410c5ccf609}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ReadEL6688CoE
+VAR_INPUT
+	st_amsAddr:  AMSADDR;
+END_VAR
+VAR_OUTPUT
+END_VAR
+
+
+VAR_IN_OUT
+	i_coe_stat               : T_COE_STAT;
+END_VAR
+
+VAR
+	  stat: REFERENCE TO T_COE_STAT;
+	        
+	  fb_SdoLeapSecond   : FB_EcCoESdoRead;
+	  fb_SdoPtpState     : FB_EcCoESdoRead;
+	  fb_SdoOffset       : FB_EcCoESdoRead;
+	  fb_SdoMeanPath     : FB_EcCoESdoRead;
+	  fb_SdoClockIden    : FB_EcCoESdoRead;
+	  fb_SdoGmIden       : FB_EcCoESdoRead;
+	  fb_SdoParentPortIden : FB_EcCoESdoRead;
+	  fb_SdoStepsRemoved   : FB_EcCoESdoRead;
+	  fb_SdoSyncMsgCounter : FB_EcCoESdoRead;
+	  
+	  fb_SdoDelayMech    : FB_EcCoESdoRead;
+	  fb_SdoPtpVersion   : FB_EcCoESdoRead;
+	  fb_SdoTransLayer   : FB_EcCoESdoRead;
+	  
+	  fb_SdoEtherType    : FB_EcCoESdoRead;
+	  fb_SdoEtherIp      : FB_EcCoESdoRead;
+	  fb_SdoEtherMask    : FB_EcCoESdoRead;
+	  fb_SdoEtherGateway : FB_EcCoESdoRead;
+	  
+	  
+      s_mNetId           : T_AmsNetId;
+      b_mCoEExecute      : BOOL;
+      n_mSlaveAddr       : UINT;
+	  b_CoEReadDiag      : BOOL;    // Flag to trigger reading of diagnostics CoE parameters
+	  b_CoEReadCfg       : BOOL;    // Flag to trigger reading of configuration CoE parameters
+	  n_state            : E_COE_STATE := E_COE_STATE.E_COE_UNKNOWN;
+	  
+	  waitTime			 : TIME := T#10000MS;
+	  initTime			 : TIME := T#5MS;
+	  waitTout			 : TON;    // timer for resting time when reading CoE parameters.
+      initTout			 : TON;    // timer for waiting few ms before start reading CoE
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[stat REF= i_coe_stat; 
+
+CASE n_state OF
+	E_COE_STATE.E_COE_NOT_STARTED:
+	    initTout (IN := TRUE, PT := initTime); (* enable timer *)
+		n_state := E_COE_STATE.E_COE_INIT;
+		
+	E_COE_STATE.E_COE_INIT:
+	    initTout (IN := TRUE);  (* activate timer counting per each cycle *)
+		IF initTout.Q THEN
+	       n_state := E_COE_STATE.E_COE_IDLE;
+		   s_mNetId := F_CreateAmsNetId(st_amsAddr.netId);
+		   n_mSlaveAddr := st_amsAddr.port;
+		   b_CoEReadCfg := TRUE;
+		   b_CoEReadDiag := TRUE;
+		   initTout (IN := FALSE);
+		END_IF
+		
+	E_COE_STATE.E_COE_IDLE:
+	    waitTout (IN := FALSE); (* Reset timer *)
+		DisableCoERead();
+	
+		 IF (b_CoEReadCfg OR b_CoEReadDiag) THEN
+			// Prepare CoE-Access: Read value of CoE object/ sub index
+			n_state := E_COE_STATE.E_COE_READ;// Next state for writing
+		END_IF
+	   
+		
+	E_COE_STATE.E_COE_READ:
+	    waitTout (IN := FALSE); (* Reset timer *)
+		stat.errorFlag := FALSE;
+	   	stat.errorNumber := 0;
+		IF (b_CoEReadCfg) THEN
+		 	ReadConfigParameters(st_ioParams := stat.config);	
+			b_CoEReadCfg := FALSE;
+		END_IF
+		IF (b_CoEReadDiag) THEN
+	    	ReadLeapSecond(n_iIndex := 16#FA80, 
+				n_iSubindex := 11, 
+				n_ioLeapSecond := stat.diagnostics.leap_second);
+			ReadPtpState(n_iIndex := 16#FA80, 
+				n_iSubindex := 2, 
+				n_ioPtpState := stat.diagnostics.ptp_state);
+			ReadClockIdentity(n_iIndex := 16#FA80, 
+				n_iSubindex := 3, 
+				n_ioClockIdentity := stat.diagnostics.clock_identity);
+			ReadParentPortIdentity(n_iIndex := 16#FA80, 
+				n_iSubindex := 4, 
+				n_ioParentIdentity := stat.diagnostics.parent_port_identity);
+			ReadGrandmasterIdentity(n_iIndex := 16#FA80, 
+				n_iSubindex := 5, 
+				n_ioGmIdentity := stat.diagnostics.grandmaster_identity);
+	    	ReadOffsetFromMaster(n_iIndex := 16#FA80, 
+				n_iSubindex := 6, 
+				n_ioOffsetFromMaster := stat.diagnostics.offset_from_master);
+			ReadMeanPathDelay(n_iIndex := 16#FA80, 
+				n_iSubindex := 7, 
+				n_ioMeanPathDelay := stat.diagnostics.mean_path_delay);	
+			ReadStepsRemoved(n_iIndex := 16#FA80, 
+				n_iSubindex := 8, 
+				n_ioStepsRemoved := stat.diagnostics.steps_removed);
+			ReadSyncMsgCounter(n_iIndex := 16#FA80, 
+				n_iSubindex := 9, 
+				n_ioSyncMsgCounter := stat.diagnostics.sync_msg_count);		
+			b_CoEReadDiag := FALSE;
+		END_IF
+				
+		n_state := E_COE_STATE.E_COE_WAITING;
+		
+	E_COE_STATE.E_COE_WAITING:
+	    // Execute CoE read until done
+				
+		ExecuteCoERead(fb_SdoPtpVersion);
+		ExecuteCoERead(fb_SdoDelayMech);
+		ExecuteCoERead(fb_SdoTransLayer);
+	    ExecuteCoERead(fb_SdoEtherType);
+		ExecuteCoERead(fb_SdoEtherIp);
+		ExecuteCoERead(fb_SdoEtherMask);
+		ExecuteCoERead(fb_SdoEtherGateway);
+		
+	    ExecuteCoERead(fb_SdoLeapSecond);  
+		ExecuteCoERead(fb_SdoPtpState);
+		ExecuteCoERead(fb_SdoMeanPath);
+		ExecuteCoERead(fb_SdoOffset);
+		ExecuteCoERead(fb_SdoClockIden);
+		ExecuteCoERead(fb_SdoGmIden);
+		ExecuteCoERead(fb_SdoParentPortIden);
+		ExecuteCoERead(fb_SdoStepsRemoved);
+		ExecuteCoERead(fb_SdoSyncMsgCounter);
+			
+		IF (NOT fb_SdoEtherType.bBusy) AND
+			(NOT fb_SdoEtherIp.bBusy) AND
+			(NOT fb_SdoEtherMask.bBusy) AND
+			(NOT fb_SdoEtherGateway.bBusy) AND
+			(NOT fb_SdoDelayMech.bBusy) AND
+			(NOT fb_SdoTransLayer.bBusy) AND
+			(NOT fb_SdoPtpVersion.bBusy) AND
+			(NOT fb_SdoLeapSecond.bBusy) AND
+			(NOT fb_SdoPtpState.bBusy) AND
+			(NOT fb_SdoClockIden.bBusy) AND
+			(NOT fb_SdoGmIden.bBusy) AND
+			(NOT fb_SdoMeanPath.bBusy) AND
+			(NOT fb_SdoStepsRemoved.bBusy) AND
+			(NOT fb_SdoSyncMsgCounter.bBusy) AND
+			(NOT fb_SdoParentPortIden.bBusy) AND
+			(NOT fb_SdoOffset.bBusy) THEN
+			    stat.config.ethernet_settings.ip_address := GetIpaAddr(stat.config.ethernet_settings.ip_address_arr);
+				stat.config.ethernet_settings.subnet_mask := GetIpaAddr(stat.config.ethernet_settings.subnet_mask_arr);
+				stat.config.ethernet_settings.gateway := GetIpaAddr(stat.config.ethernet_settings.gateway_arr);
+				stat.diagnostics.offset_from_master_msec := DINT_TO_LREAL(stat.diagnostics.offset_from_master) * GVL_TimeConstants.C_NS2MSEC;
+				stat.diagnostics.offset_from_master_sec := DINT_TO_LREAL(stat.diagnostics.offset_from_master) * GVL_TimeConstants.C_NS2SEC;
+				n_state := E_COE_STATE.E_COE_SLEEPING;
+		END_IF
+			
+	
+		waitTout (IN := TRUE, PT := waitTime); (* enable timer *)
+		
+	E_COE_STATE.E_COE_SLEEPING:
+		DisableCoERead();
+	   
+		waitTout (IN := TRUE);  (* activate timer counting per each cycle *)
+		IF waitTout.Q THEN
+	       n_state := E_COE_STATE.E_COE_IDLE;
+		   b_CoEReadDiag := TRUE;
+		   waitTout (IN := FALSE);
+		END_IF
+		
+	E_COE_STATE.E_COE_ERROR:
+       waitTout (IN := FALSE);	
+	   waitTout (IN := TRUE, PT := waitTime); (* enable timer *)
+	   // TODO: Log the error
+	   n_state := E_COE_STATE.E_COE_SLEEPING;
+END_CASE
+
+ ]]></ST>
+    </Implementation>
+    <Method Name="DisableCoERead" Id="{7222dd9d-c320-4ed5-b6ca-20de7b13da87}">
+      <Declaration><![CDATA[METHOD DisableCoERead
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ // CoE configuration parameters
+ fb_SdoPtpVersion(bExecute:=FALSE);
+ fb_SdoDelayMech(bExecute:=FALSE);
+ fb_SdoTransLayer(bExecute:=FALSE);
+ fb_SdoEtherType(bExecute:=FALSE);
+ fb_SdoEtherIp(bExecute:=FALSE);
+ fb_SdoEtherMask(bExecute:=FALSE);
+ fb_SdoEtherGateway(bExecute:=FALSE);
+	
+ // CoE diagnostic parameters
+ fb_SdoLeapSecond(bExecute:=FALSE);
+ fb_SdoPtpState(bExecute:=FALSE);
+ fb_SdoOffset(bExecute:=FALSE);
+ fb_SdoMeanPath(bExecute:=FALSE);
+ fb_SdoClockIden(bExecute:=FALSE);
+ fb_SdoGmIden(bExecute:=FALSE);
+ fb_SdoParentPortIden(bExecute:=FALSE);
+ fb_SdoStepsRemoved(bExecute:=FALSE);
+ fb_SdoSyncMsgCounter(bExecute:=FALSE);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ExecuteCoERead" Id="{48ac74e8-21e5-4a94-bcbe-af5cd279c941}">
+      <Declaration><![CDATA[METHOD ExecuteCoERead : BOOL
+
+VAR_IN_OUT
+	refFb :FB_EcCoESdoRead;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+refFb();
+
+IF refFb.bError THEN
+	stat.errorFlag := refFb.bError;
+	stat.errorNumber := refFb.nErrId;
+	n_state := E_COE_STATE.E_COE_ERROR;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{db636f4c-7da4-4d98-92d0-89e06804a598}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+initTout (IN := FALSE); (* Reset timer *)
+n_state := E_COE_STATE.E_COE_NOT_STARTED;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetClockIdentity" Id="{8e8185f9-fd15-4c60-9e31-a3ca61b867b3}">
+      <Declaration><![CDATA[METHOD GetClockIdentity : ARRAY[0..7] of byte
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetClockIdentity := stat.diagnostics.clock_identity;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetGrandmasterIdentity" Id="{2867a5c7-8216-4600-bfa0-efc8aaeebae1}">
+      <Declaration><![CDATA[METHOD GetGrandmasterIdentity : ARRAY[0..7] of byte
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetGrandmasterIdentity := stat.diagnostics.grandmaster_identity;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetIpaAddr" Id="{85ca53e3-9497-4c36-bf40-cc38673e1044}">
+      <Declaration><![CDATA[METHOD GetIpaAddr : T_IPv4Addr
+VAR_INPUT
+	in_word : DWORD;
+END_VAR
+
+VAR
+  ids     : T_IPv4AddrArr := [0, 0, 0, 0];  
+  bo_word : DWORD := 0;	
+  sIPv4   : T_IPv4Addr := '';
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// values in terminal EL6688 have network byte order.
+bo_word := BE32_TO_HOST(in_word);
+
+// In order to conver to string using system function, we need an array of bytes.
+memcpy(ADR(ids), ADR(bo_word), SIZEOF(bo_word));
+	
+sIPv4 := F_CreateIPv4Addr( ids );
+
+GetIpaAddr := sIPv4;
+RETURN;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetLeapSecond" Id="{663f632e-a3b2-4220-a22f-e0bc1b749362}">
+      <Declaration><![CDATA[METHOD GetLeapSecond : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetLeapSecond := stat.diagnostics.leap_second;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetMeanPathDelay" Id="{3d3ad4ef-ced7-4a60-b97c-0aeaceda6ef8}">
+      <Declaration><![CDATA[METHOD GetMeanPathDelay : UDINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetMeanPathDelay := stat.diagnostics.mean_path_delay;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetOffsetFromMaster" Id="{24bedffe-88c5-4ee0-b995-ea1bfebecd9e}">
+      <Declaration><![CDATA[METHOD GetOffsetFromMaster : DINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetOffsetFromMaster := stat.diagnostics.offset_from_master;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetParentPortIdentity" Id="{3949d2a3-0b01-424b-973f-025697a08810}">
+      <Declaration><![CDATA[METHOD GetParentPortIdentity : ARRAY[0..9] of byte
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetParentPortIdentity := stat.diagnostics.parent_port_identity;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetPtpState" Id="{a79febd0-6a4a-42bd-b66a-6616886213ef}">
+      <Declaration><![CDATA[METHOD GetPtpState : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[GetPtpState := stat.diagnostics.ptp_state;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetStepRemoved" Id="{8b5fe96f-218a-47c3-9977-77ec34c253b2}">
+      <Declaration><![CDATA[METHOD GetStepRemoved : UINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetStepRemoved := stat.diagnostics.steps_removed;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetSyncMsgCounter" Id="{d6676815-69a6-4537-ab04-d9bd0e2fceb5}">
+      <Declaration><![CDATA[METHOD GetSyncMsgCounter : DINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetSyncMsgCounter := stat.diagnostics.sync_msg_count;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="IsErrorFree" Id="{38cb2940-ef8e-4622-b1e1-fed0ba28f53f}">
+      <Declaration><![CDATA[METHOD IsErrorFree : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF NOT stat.errorFlag THEN
+	IsErrorFree := TRUE;
+	return;
+END_IF
+
+IsErrorFree := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadClockIdentity" Id="{60979be2-8f76-4734-a7fe-4d582680281f}">
+      <Declaration><![CDATA[METHOD ReadClockIdentity : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioClockIdentity : ARRAY[0..7] OF BYTE;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[		
+//IF (b_CoERead = TRUE) THEN
+fb_SdoClockIden(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioClockIdentity), 
+	cbBufLen := SIZEOF(n_ioClockIdentity),
+	bExecute := TRUE);
+								  
+(* Prevent reading more than once the parameter *)			
+//b_CoERead := FALSE;		]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadConfigParameters" Id="{16c9edbc-45ea-4351-9286-7a58152e08c0}">
+      <Declaration><![CDATA[METHOD ReadConfigParameters 
+VAR_INPUT
+END_VAR
+
+VAR_IN_OUT
+	st_ioParams : T_COE_PTP_PARAMETERS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+fb_SdoPtpVersion(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := 16#F880, 
+	nSubIndex := 1, 
+	pDstBuf := ADR(st_ioParams.ptp_version), 
+	cbBufLen := SIZEOF(st_ioParams.ptp_version),
+	bExecute := TRUE);
+	
+fb_SdoTransLayer(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := 16#F882, 
+	nSubIndex := 1, 
+	pDstBuf := ADR(st_ioParams.transport_layer), 
+	cbBufLen := SIZEOF(st_ioParams.transport_layer),
+	bExecute := TRUE);
+	
+ fb_SdoDelayMech(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := 16#F882, 
+	nSubIndex := 5, 
+	pDstBuf := ADR(st_ioParams.delay_mechanism), 
+	cbBufLen := SIZEOF(st_ioParams.delay_mechanism),
+	bExecute := TRUE);
+
+ReadEthernetSettings(n_iIndex := 16#F8E0, 
+				st_ioEthernetSettings := st_ioParams.ethernet_settings);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadEthernetSettings" Id="{5dc8b93d-805f-4362-b3c6-1b4cf83b52ea}">
+      <Declaration><![CDATA[METHOD ReadEthernetSettings
+VAR_INPUT
+	n_iIndex     : WORD ;
+END_VAR
+
+VAR_IN_OUT
+	st_ioEthernetSettings : T_COE_PTP_ETHERNET;
+END_VAR
+
+VAR 
+
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+fb_SdoEtherType(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := 1, 
+	pDstBuf := ADR(st_ioEthernetSettings.address_type), 
+	cbBufLen := SIZEOF(st_ioEthernetSettings.address_type),
+	bExecute := TRUE);
+	
+fb_SdoEtherIp(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := 2, 
+	pDstBuf := ADR(st_ioEthernetSettings.ip_address_arr), 
+	cbBufLen := SIZEOF(st_ioEthernetSettings.ip_address_arr),
+	bExecute := TRUE);
+
+	
+	
+	
+fb_SdoEtherMask(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := 3, 
+	pDstBuf := ADR(st_ioEthernetSettings.subnet_mask_arr), 
+	cbBufLen := SIZEOF(st_ioEthernetSettings.subnet_mask_arr),
+	bExecute := TRUE);
+	
+	
+	
+fb_SdoEtherGateway(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := 4, 
+	pDstBuf := ADR(st_ioEthernetSettings.gateway_arr), 
+	cbBufLen := SIZEOF(st_ioEthernetSettings.gateway_arr),
+	bExecute := TRUE);
+	
+	]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadGrandMasterIdentity" Id="{83029302-ad2d-4b95-a9b9-6b3e7799a933}">
+      <Declaration><![CDATA[METHOD ReadGrandMasterIdentity : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioGmIdentity : ARRAY[0..7] OF BYTE;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[		
+//IF (b_CoERead = TRUE) THEN
+fb_SdoGmIden(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioGmIdentity), 
+	cbBufLen := SIZEOF(n_ioGmIdentity),
+	bExecute := TRUE);
+								  
+(* Prevent reading more than once the parameter *)			
+//b_CoERead := FALSE;		]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadLeapSecond" Id="{3b7a3620-32a4-4347-bd39-ef78348d3ae4}">
+      <Declaration><![CDATA[METHOD ReadLeapSecond : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioLeapSecond : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[		
+//IF (b_CoERead = TRUE) THEN
+fb_SdoLeapSecond(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioLeapSecond), 
+	cbBufLen := SIZEOF(n_ioLeapSecond),
+	bExecute := TRUE);
+								  
+(* Prevent reading more than once the parameter *)			
+//b_CoERead := FALSE;		]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadMeanPathDelay" Id="{7b49a5db-a383-4506-a557-961fb8b1b876}">
+      <Declaration><![CDATA[METHOD ReadMeanPathDelay : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioMeanPathDelay : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+fb_SdoMeanPath(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioMeanPathDelay), 
+	cbBufLen := SIZEOF(n_ioMeanPathDelay),
+	bExecute := TRUE);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadOffsetFromMaster" Id="{93bb0e14-0f15-41f0-b5cb-2302c0f04cd9}">
+      <Declaration><![CDATA[METHOD ReadOffsetFromMaster : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioOffsetFromMaster : DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+fb_SdoOffset(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioOffsetFromMaster), 
+	cbBufLen := SIZEOF(n_ioOffsetFromMaster),
+	bExecute := TRUE);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadParentPortIdentity" Id="{8e77d682-ebcb-428c-a104-be6a27ad5305}">
+      <Declaration><![CDATA[METHOD ReadParentPortIdentity : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioParentIdentity : ARRAY[0..9] OF BYTE;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[		
+//IF (b_CoERead = TRUE) THEN
+fb_SdoParentPortIden(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioParentIdentity), 
+	cbBufLen := SIZEOF(n_ioParentIdentity),
+	bExecute := TRUE);
+								  
+(* Prevent reading more than once the parameter *)			
+//b_CoERead := FALSE;		]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadPtpState" Id="{14214feb-32a9-4cc5-a9f3-ac6cee137d9f}">
+      <Declaration><![CDATA[METHOD ReadPtpState : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioPtpState : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+fb_SdoPtpState(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioPtpState), 
+	cbBufLen := SIZEOF(n_ioPtpState),
+	bExecute := TRUE);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadStepsRemoved" Id="{6a074ce2-490e-42dd-822f-5cec45fe684d}">
+      <Declaration><![CDATA[METHOD ReadStepsRemoved : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioStepsRemoved : UINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+fb_SdoStepsRemoved(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioStepsRemoved), 
+	cbBufLen := SIZEOF(n_ioStepsRemoved),
+	bExecute := TRUE);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReadSyncMsgCounter" Id="{fb72556b-3630-47dc-8f53-6bc400bcf6c9}">
+      <Declaration><![CDATA[METHOD ReadSyncMsgCounter : BOOL
+VAR_INPUT
+	n_iIndex     : WORD ;
+	n_iSubindex  : BYTE;
+END_VAR
+
+VAR_IN_OUT
+	n_ioSyncMsgCounter : DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+fb_SdoSyncMsgCounter(sNetId:= s_mNetId,
+    nSlaveAddr := n_mSlaveAddr,
+	nIndex := n_iIndex, 
+	nSubIndex := n_iSubindex, 
+	pDstBuf := ADR(n_ioSyncMsgCounter), 
+	cbBufLen := SIZEOF(n_ioSyncMsgCounter),
+	bExecute := TRUE);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ReadEL6688CoE">
+      <LineId Id="437" Count="0" />
+      <LineId Id="176" Count="1" />
+      <LineId Id="383" Count="3" />
+      <LineId Id="178" Count="3" />
+      <LineId Id="380" Count="1" />
+      <LineId Id="182" Count="3" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="186" Count="1" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="196" Count="3" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="340" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="200" Count="5" />
+      <LineId Id="553" Count="7" />
+      <LineId Id="552" Count="0" />
+      <LineId Id="526" Count="1" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="529" Count="1" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="571" Count="1" />
+      <LineId Id="567" Count="0" />
+      <LineId Id="574" Count="1" />
+      <LineId Id="573" Count="0" />
+      <LineId Id="341" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="209" Count="1" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="370" Count="2" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="337" Count="1" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="324" Count="0" />
+      <LineId Id="212" Count="1" />
+      <LineId Id="524" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="532" Count="0" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="544" Count="0" />
+      <LineId Id="563" Count="1" />
+      <LineId Id="342" Count="2" />
+      <LineId Id="346" Count="1" />
+      <LineId Id="377" Count="1" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="348" Count="1" />
+      <LineId Id="533" Count="0" />
+      <LineId Id="542" Count="0" />
+      <LineId Id="523" Count="0" />
+      <LineId Id="565" Count="1" />
+      <LineId Id="545" Count="0" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="393" Count="2" />
+      <LineId Id="479" Count="1" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="247" Count="1" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="249" Count="13" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.DisableCoERead">
+      <LineId Id="17" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="7" Count="4" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="22" Count="5" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ExecuteCoERead">
+      <LineId Id="32" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.FB_init">
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetClockIdentity">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetGrandmasterIdentity">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetIpaAddr">
+      <LineId Id="14" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetLeapSecond">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetMeanPathDelay">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetOffsetFromMaster">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetParentPortIdentity">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetPtpState">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetStepRemoved">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.GetSyncMsgCounter">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.IsErrorFree">
+      <LineId Id="9" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadClockIdentity">
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadConfigParameters">
+      <LineId Id="9" Count="8" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="27" Count="5" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadEthernetSettings">
+      <LineId Id="13" Count="7" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="26" Count="5" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="34" Count="5" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="42" Count="5" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="79" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadGrandMasterIdentity">
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadLeapSecond">
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadMeanPathDelay">
+      <LineId Id="11" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadOffsetFromMaster">
+      <LineId Id="11" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadParentPortIdentity">
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadPtpState">
+      <LineId Id="11" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadStepsRemoved">
+      <LineId Id="11" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ReadEL6688CoE.ReadSyncMsgCounter">
+      <LineId Id="11" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

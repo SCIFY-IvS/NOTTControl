@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SIM_MODBUS_COMM_JUMO" Id="{e00d1754-80cf-4ee4-b64d-13d42ce8724c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_MODBUS_COMM_JUMO EXTENDS FB_SIM_MODBUS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ActivityDo();
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetSimReply" Id="{d55cb1d1-ab16-4047-bf4e-dd249b10e8d6}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	cmd:	STRING(16);		// MODBUS command. Only first 8 bytes are used
+END_VAR
+VAR
+	sReply:	STRING(255);
+	sTmp:	STRING(8);
+	i,j:	INT;
+	pByte:	POINTER TO BYTE;
+	rReal:	REAL;
+	nRegister:	INT;
+	nWords:	INT;	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement simulator replies in FBs that EXTEND FB_SIM_MODBUS_COMM_BASE.
+//            Only case where cmd[1] = E_MODBUS_CMD_TYPE.READ should be implemented.
+
+IF cmd[1] = E_MODBUS_CMD_TYPE.WRITE THEN
+	M_GetSimReply := cmd;	// Reply is the same as the command
+ELSE
+	// Get register number - cmd[2..3] swapped bytes
+	nRegister	:= M_ByteSwapINT(ADR(cmd[2]));
+
+	// Get number of words - cmd[4..5] swapped bytes
+	nWords	:= M_ByteSwapINT(ADR(cmd[4]));
+
+	sReply[0]	:= cmd[0];
+	sReply[1]	:= cmd[1];
+	sReply[2]	:= INT_TO_BYTE(nWords * 2);
+	
+	IF nRegister = 16#00A4 THEN		// common data
+		FOR i := 1 TO 54 DO
+			sTmp := M_ByteSwap_REAL_TO_STRING(M_GenerateRandom_REAL(100.0,10));
+			FOR j := 0 TO 3 DO
+				sReply[3 + (i-1)*4 + j]	:= sTmp[j];
+			END_FOR
+		END_FOR
+		// - Switch Stats, offset 3 + 54x4 = 219 (111 is not correct!!!)
+		FOR i := 1 TO 8 DO
+			sTmp := M_ByteSwap_INT_TO_STRING(M_GenerateRandom_INT(0.5,1.0));
+			FOR j := 0 TO 1 DO
+				sReply[111 + (i-1)*2 + j]	:= sTmp[j];
+			END_FOR
+		END_FOR
+	ELSIF nRegister = 16#083C THEN	// set points
+		FOR i := 1 TO 16 DO
+			sTmp := M_ByteSwap_REAL_TO_STRING(M_GenerateRandom_REAL(80.0,1.0));
+			FOR j := 0 TO 3 DO
+				sReply[3 + (i-1)*4 + j]	:= sTmp[j];
+			END_FOR
+		END_FOR
+	END_IF
+	
+	// TODO
+	// Calculate CRC for the first 6 bytes
+	//	crc	:= M_CRC(ADR(cmd),6);
+	
+
+	M_GetSimReply := sReply;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_MODBUS_COMM_JUMO">
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_JUMO.M_GetSimReply">
+      <LineId Id="214" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="241" Count="1" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="255" Count="3" />
+      <LineId Id="262" Count="1" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="278" Count="5" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="272" Count="5" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="285" Count="1" />
+      <LineId Id="245" Count="2" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

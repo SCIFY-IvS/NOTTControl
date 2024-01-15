@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_CRYO_SBG232_SENSOR_TYPE" Id="{8a1f1cc6-bfbd-4e63-bd6a-89a743338cd1}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_SBG232_SENSOR_TYPE :
+(
+	NONE := 0,
+	FLOW,
+	TEMP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

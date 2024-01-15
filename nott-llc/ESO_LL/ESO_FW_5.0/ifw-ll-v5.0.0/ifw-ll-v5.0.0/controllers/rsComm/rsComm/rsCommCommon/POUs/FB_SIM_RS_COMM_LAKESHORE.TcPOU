@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SIM_RS_COMM_LAKESHORE" Id="{6e1e63b2-bf19-4f20-8663-99fe134213d5}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_RS_COMM_LAKESHORE EXTENDS FB_SIM_RS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// Status structure for Lakeshore devices
+	//
+	bRAMP_On:		BOOL	:= FALSE;	// RAMP On/Off state
+	nPID_P:			UINT	:= 10;		// PID parameter P
+	nPID_I:			UINT	:= 50;		// PID parameter I
+	nPID_D:			UINT	:= 40;		// PID parameter D
+	lrKRDG_A:		LREAL	:= 283.15;	// Temperature A [K]
+	lrKRDG_B:		LREAL	:= 273.15;	// Temperature B [K]
+	lrCRDG_A:		LREAL	:= 10.0;	// Temperature A [C]
+	lrCRDG_B:		LREAL	:=  0.0;	// Temperature B [C]
+	lrRAMP_Rate:	LREAL	:= 0.0;		// RAMP rate
+	lrSETP:			LREAL	:= 283.15;	// Actual Setpoint [K]
+	lrSETP_Target:	LREAL	:= 283.15;	// Target Setpoint [K]
+	lrHTR:			LREAL	:= 0.0;		// Heater output [%]
+	nRANGE:			UINT	:= 4;		// Heater range
+	
+	fbTimer:		TON;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ActivityDo();	// Implement ramps, if any]]></ST>
+    </Implementation>
+    <Method Name="M_ActivityDo" Id="{a955a2d6-9480-40f0-afac-424cf52358e1}">
+      <Declaration><![CDATA[METHOD M_ActivityDo
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement ramps, if any.]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSimReply" Id="{b2abda2e-72a9-4ed6-8fae-c907db546517}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReceived:	STRING(255);		// String received from a client
+END_VAR
+VAR
+	sReply:	STRING(255);
+	lrVal:	LREAL;
+	i:		INT;
+    fbFormat   : FB_FormatString;
+    sOut       : T_MaxString;
+	nCh:	INT := 8;	// Number of channels for models 218 and 224
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF in_nModel = 340 THEN
+	IF FIND (in_sReceived, '*IDN?') > 0 THEN
+		M_GetSimReply	:= CONCAT('Lakeshore Simulator',in_sReplySuffix);
+	ELSIF FIND (in_sReceived, '*') = 1 THEN
+		M_GetSimReply	:= '';	// Ignore commands starting with '*'
+	ELSIF FIND (in_sReceived, 'MODE ') > 0 THEN
+		M_GetSimReply	:= '';
+	ELSIF FIND (in_sReceived, 'CRDG? A') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(lrCRDG_A,0.01,2);
+	ELSIF FIND (in_sReceived, 'KRDG? A') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(lrKRDG_A,0.01,2);
+	ELSIF FIND (in_sReceived, 'CRDG? B') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(lrCRDG_B,0.01,2);
+	ELSIF FIND (in_sReceived, 'KRDG? B') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(lrKRDG_B,0.01,2);
+	ELSIF FIND (in_sReceived, 'SETP?') > 0 THEN
+		M_GetSimReply	:= M_Get_LREAL_TO_STRING(lrSETP_Target,2);
+	ELSIF FIND (in_sReceived, 'PID?') > 0 THEN
+		fbFormat(	sFormat := '%d,%d,%d', 
+					arg1 := F_UINT(nPID_P), 
+					arg2 := F_UINT(nPID_I), 
+					arg3 := F_UINT(nPID_D), 
+					sOut => sOut);
+		M_GetSimReply	:= CONCAT(sOut,in_sReplySuffix);
+	ELSIF FIND (in_sReceived, 'RANGE?') > 0 THEN
+		M_GetSimReply	:= M_Get_INT_TO_STRING(UINT_TO_INT(nRANGE));
+	ELSIF FIND (in_sReceived, 'HTR?') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(lrHTR,0.10,2);
+	ELSIF FIND (in_sReceived, 'AOUT?') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(0.0,0.10,2);
+	ELSE
+		M_GetSimReply	:= CONCAT('777.77',in_sReplySuffix);
+	END_IF
+ELSIF in_nModel = 336 THEN
+	IF FIND (in_sReceived, 'MODE 1') > 0 THEN
+		M_GetSimReply	:= '';
+	ELSIF FIND (in_sReceived, '*IDN?') > 0 THEN
+		M_GetSimReply	:= CONCAT('Lakeshore Simulator',in_sReplySuffix);
+	ELSIF FIND (in_sReceived, 'CRDG?') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(-233.15,0.10,2);
+	ELSIF FIND (in_sReceived, 'KRDG?') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(40,0.10,2);
+	ELSIF FIND (in_sReceived, 'SETP?') > 0 THEN
+		M_GetSimReply	:= '40.00$0D$0A';
+	ELSIF FIND (in_sReceived, 'PID?') > 0 THEN
+		fbFormat(	sFormat := '%d,%d,%d', 
+					arg1 := F_UINT(nPID_P), 
+					arg2 := F_UINT(nPID_I), 
+					arg3 := F_UINT(nPID_D), sOut => sOut);
+		M_GetSimReply	:= CONCAT(sOut,in_sReplySuffix);
+	ELSIF FIND (in_sReceived, 'RANGE?') > 0 THEN
+		M_GetSimReply	:= '1$0D$0A';
+	ELSIF FIND (in_sReceived, 'HTR?') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(25,0.10,2);
+	ELSIF FIND (in_sReceived, 'AOUT?') > 0 THEN
+		M_GetSimReply	:= M_GetRandom_LREAL_TO_STRING(45,0.10,2);
+	ELSE
+		M_GetSimReply	:= CONCAT('777.77',in_sReplySuffix);
+	END_IF
+ELSIF in_nModel = 218  OR  in_nModel = 224 THEN
+	IF in_nModel = 218 THEN
+		nCh	:= 8;
+	ELSIF in_nModel = 224 THEN
+		nCh	:= 12;
+	END_IF
+	IF FIND (in_sReceived, 'MODE 1') > 0 THEN
+		M_GetSimReply	:= '';
+	ELSIF FIND (in_sReceived, '*IDN?') > 0 THEN
+		M_GetSimReply	:= CONCAT('Lakeshore Simulator',in_sReplySuffix);
+	ELSIF FIND (in_sReceived, 'CRDG?') > 0 THEN
+		// Generate a string like:
+		// '-233.15,-233.25,-233.35,-233.45,-233.55,-233.65,-233.75,-233.85,-233.95,-233.15,-233.25,-233.35$0D$0A';
+		sReply	:= '';
+		FOR i:=1 TO nCh DO
+			lrVal	:= M_GenerateRandom_LREAL(lrCRDG_A,0.10);
+			IF i < nCh THEN
+				fbFormat( sFormat := '%+.2f,', arg1 := F_LREAL( lrVal ), sOut => sOut);
+			ELSE				
+				fbFormat( sFormat := '%+.2f%s', arg1 := F_LREAL( lrVal ), arg2 := F_STRING( in_sReceived ), sOut => sOut);
+			END_IF
+			sReply	:= CONCAT(sReply, sOut);
+		END_FOR
+		M_GetSimReply	:= sReply;
+	ELSIF FIND (in_sReceived, 'KRDG?') > 0 THEN
+		// Generate a string like:
+		// '40.15,40.25,40.35,40.45,40.55,40.65,40.75,40.85,40.95,40.15,40.25,40.35$0D$0A';
+		sReply	:= '';
+		FOR i:=1 TO nCh DO
+			lrVal	:= M_GenerateRandom_LREAL(lrKRDG_A,0.10);
+			IF i < nCh THEN
+				fbFormat( sFormat := '%+.2f,', arg1 := F_LREAL( lrVal ), sOut => sOut);
+			ELSE				
+				fbFormat( sFormat := '%+.2f%s', arg1 := F_LREAL( lrVal ), arg2 := F_STRING( in_sReceived ), sOut => sOut);
+			END_IF
+			sReply	:= CONCAT(sReply, sOut);
+		END_FOR
+		M_GetSimReply	:= sReply;
+	ELSE
+		M_GetSimReply	:= CONCAT('777.77',in_sReplySuffix);
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_RS_COMM_LAKESHORE">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_RS_COMM_LAKESHORE.M_ActivityDo">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_RS_COMM_LAKESHORE.M_GetSimReply">
+      <LineId Id="160" Count="0" />
+      <LineId Id="183" Count="3" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="165" Count="3" />
+      <LineId Id="187" Count="3" />
+      <LineId Id="169" Count="2" />
+      <LineId Id="195" Count="3" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="173" Count="6" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="35" Count="11" />
+      <LineId Id="191" Count="3" />
+      <LineId Id="47" Count="9" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="218" Count="1" />
+      <LineId Id="221" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="65" Count="2" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="131" Count="10" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

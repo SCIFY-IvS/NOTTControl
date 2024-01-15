@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="E_TIMER_COMMAND" Id="{f146b5c0-86c6-4746-acd4-cb4385acb58d}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TIMER_COMMAND :
+(
+	COMMAND_TIMER_NONE	:= 0,
+	COMMAND_TIMER_INIT,
+	COMMAND_TIMER_ARM,
+	COMMAND_TIMER_STOP,
+	COMMAND_TIMER_NEXT_MINUTE
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

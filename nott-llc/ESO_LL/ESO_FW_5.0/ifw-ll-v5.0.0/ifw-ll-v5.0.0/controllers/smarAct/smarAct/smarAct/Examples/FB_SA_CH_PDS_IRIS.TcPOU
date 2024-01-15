@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SA_CH_PDS_IRIS" Id="{5c0338a3-c384-4e6a-953e-37ba28be8cbe}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SA_CH_PDS_IRIS EXTENDS FB_SA_CHANNEL_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_ConvertPosDev2User" Id="{0989d9e1-beb0-4b1e-9633-06caac8e76ed}">
+      <Declaration><![CDATA[//
+// SID-50 specific non-linear conversion 
+// from Device units [nd] to user units [%] of opening.
+//
+METHOD M_ConvertPosDev2User : LREAL
+VAR_INPUT
+	lnDevValue:	LINT;
+END_VAR
+VAR
+	lrDiam:	LREAL;		// Diameter of opening [mm].
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Note that iris increases the opening when moving in negative direction.
+// That's why the scale is negative in the configuration.
+// Linear conversion implemented in M_ConvertDev2User().
+// UU   = DevU / scale * BASE_RES
+// DevU = UU   * scale / BASE_RES
+//
+lrDiam	:= M_ConvertDev2User(lnDevValue);
+
+//
+// Maximum opening is 50 mm.
+// Current opening is relative to that.
+//    % = diam^2 / 50^2 * 100.0
+//
+M_ConvertPosDev2User := (lrDiam * lrDiam) / (50.0 * 50.0) * 100.0;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConvertPosUser2Dev" Id="{98559729-afe3-44af-a920-b72286949bb8}">
+      <Declaration><![CDATA[//
+// SID-50 specific non-linear conversion 
+// from user units [%] of opening to Device units [nd].
+//
+METHOD M_ConvertPosUser2Dev : LINT
+VAR_INPUT
+	lrUserValue:	LREAL;	// Percentage of opening
+END_VAR
+VAR
+	lrDiam:	LREAL;		// Diameter of opening [mm].
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Note that iris increases the opening when moveng in negative direction.
+// That's why the scale is negative in the configuration.
+//
+
+//
+// Get the opening diameter from the percentage relative to 50 mm for SID-50.
+//    % = lrUserValue;
+//    % = 100.0 * diam^2 / 50^2  ==> diam = SQRT(% / 100.0 * 50^2)
+//
+lrDiam	:= SQRT(lrUserValue / 100.0 * 50.0 * 50.0);
+
+//
+// Convert diameter to device unitd - linear conversion.
+//
+M_ConvertPosUser2Dev := M_ConvertUser2Dev(lrDiam);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SA_CH_PDS_IRIS">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CH_PDS_IRIS.M_ConvertPosDev2User">
+      <LineId Id="39" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CH_PDS_IRIS.M_ConvertPosUser2Dev">
+      <LineId Id="57" Count="3" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="63" Count="1" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

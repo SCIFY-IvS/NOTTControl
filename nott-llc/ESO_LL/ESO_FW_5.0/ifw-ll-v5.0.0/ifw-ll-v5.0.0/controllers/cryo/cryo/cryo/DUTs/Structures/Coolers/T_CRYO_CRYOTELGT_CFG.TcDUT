@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_CRYOTELGT_CFG" Id="{2d03ec5b-789d-4bdb-ade7-7058bbb63be0}">
+    <Declaration><![CDATA[TYPE T_CRYO_CRYOTELGT_CFG EXTENDS T_RS_BASE_CFG:
+STRUCT
+
+	tDelay_Read:		TIME 	:= T#150MS;	// Delay between sending each cmdList_Read[] command.
+	nTimeoutState:		UDINT	:= 60000;	// 60 sec default timeout for starting and stopping cooler
+
+	cmdList_Init:	ARRAY [1..8] OF T_CRYO_CRYOTELGT_CMD := [
+		(cmd := 'VERSION', 				nReplies := 2),	// Current controller code version
+		(cmd := 'MODE', 				nReplies := 2),	// MODE Cryocooler type, e.g. GT
+		(cmd := 'SENSOR', 				nReplies := 2),	// Configured temp. sensor type, e.g. 'PT-100'
+		(cmd := 'PWOUT=240', 			nReplies := 2),	// Set commanded power to 240 W
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0)];
+	
+	cmdList_Read:	ARRAY [1..16] OF T_CRYO_CRYOTELGT_CMD := [
+		(cmd := 'ERROR', 				nReplies := 2),	// Controller error flags
+		(cmd := 'COOLER', 				nReplies := 2),	// Cooler control mode, e.g. POWER or OFF
+		(cmd := 'P', 					nReplies := 2),	// Measured cryocooler power
+		(cmd := 'PWOUT', 				nReplies := 2),	// User commanded power
+		(cmd := 'TC', 					nReplies := 2),	// Temperature sensor reading [K]
+		(cmd := 'TEMP RJ', 				nReplies := 2),	// Reject temperature in [C]
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0),
+		(cmd := '', 					nReplies := 0)];
+	
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

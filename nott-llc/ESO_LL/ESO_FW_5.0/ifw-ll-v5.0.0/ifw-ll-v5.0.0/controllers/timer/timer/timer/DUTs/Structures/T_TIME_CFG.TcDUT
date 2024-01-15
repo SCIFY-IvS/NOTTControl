@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_TIME_CFG" Id="{89e355cf-e4ef-4d89-896d-96f691ca8e5c}">
+    <Declaration><![CDATA[TYPE T_TIME_CFG :
+STRUCT
+	nMode     : E_TIME_MODE := E_TIME_MODE.LOCAL;  // New mode configured.
+	sUserTime : STRING(29) := 'YYYY-MM-DD-hh:mm:ss.nnnnnnnnn'; // Last user configured datetime in format YYYY-MM-DD-hh:mm:ss.nnnnnnnnn
+	tUserTime : ULINT := 0;
+	nLeapSecond: INT := 37; // Leap second to convert to TAI for systems without PTP.
+	
+    diag_report: T_DIAG_REP_CFG;	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

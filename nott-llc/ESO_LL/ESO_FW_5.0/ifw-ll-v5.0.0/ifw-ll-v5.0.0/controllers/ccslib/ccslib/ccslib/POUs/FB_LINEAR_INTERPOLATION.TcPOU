@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_LINEAR_INTERPOLATION" Id="{21ba9636-5ff4-4015-b4a9-04c05c719545}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_LINEAR_INTERPOLATION
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	x0:	T_DATA_SAMPLE;
+	x1: T_DATA_SAMPLE;
+	size:  UINT := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="AddSample" Id="{8a293645-0340-45fa-b8b5-1d5cef36196c}">
+      <Declaration><![CDATA[METHOD AddSample : BOOL
+VAR_INPUT
+	sample: T_DATA_SAMPLE;
+END_VAR
+
+VAR
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (size = 0) THEN
+	x0 := sample;
+	size := size + 1;
+ELSIF (size = 1) THEN
+	x1 := sample;
+	size := size + 1;
+ELSIF (size = 2) THEN
+	x0 := x1;
+	x1 := sample;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Extrapolate" Id="{6e0a52df-4aa8-4b98-b5d3-a11157b5f668}">
+      <Declaration><![CDATA[METHOD Extrapolate 
+VAR_INPUT
+lrTimestamp: LREAL;
+END_VAR
+VAR_OUTPUT
+    bOk        : BOOL;
+    lrValue    : LREAL;
+END_VAR
+VAR
+	tmp        : LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bOk := FALSE;
+IF (size = 0) THEN
+	lrValue := 0;
+ELSIF (size = 1) THEN
+	lrValue := x0.value;
+ELSIF (size = 2) THEN
+	IF ((x1.timestamp - x0.timestamp) <> 0)  AND ((x1.value - x0.value) <> 0)  THEN
+		tmp := x0.value + (lrTimestamp - x0.timestamp) / (x1.timestamp - x0.timestamp) * (x1.value - x0.value);
+		lrValue := tmp;
+		bOk := TRUE;
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{51e92a47-c20e-45ff-8c3a-9298e09677aa}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+VAR
+	sample: T_DATA_SAMPLE;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sample.value := 2.7;
+sample.timestamp := 1.2;
+AddSample(sample);
+sample.value := 3.1;
+sample.timestamp := 1.4;
+AddSample(sample);
+sample.value := 2.7;
+sample.timestamp := 1.2;
+AddSample(sample);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_LINEAR_INTERPOLATION">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LINEAR_INTERPOLATION.AddSample">
+      <LineId Id="17" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="23" Count="3" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LINEAR_INTERPOLATION.Extrapolate">
+      <LineId Id="19" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="30" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LINEAR_INTERPOLATION.FB_init">
+      <LineId Id="55" Count="7" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

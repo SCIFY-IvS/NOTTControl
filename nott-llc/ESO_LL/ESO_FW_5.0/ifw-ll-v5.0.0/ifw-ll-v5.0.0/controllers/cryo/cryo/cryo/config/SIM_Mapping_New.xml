@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^Cryo^Cryo Instance">
+		<OwnerB Name="TIPC^Cryo^Cryo Instance">
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.CCC.Actuator.i_nState" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.q_nStateDummy"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.EvacSys.Valve.i_bInput1" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.EvacSys.Valve.q_bOutput"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.EvacSys.Valve.i_nState" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.q_nStateDummy"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.EvacSys.i_bRootPumpOn" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.EvacSys.q_bPumpCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.EvacSys.i_bTurboPumpOn" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.EvacSys.q_bPumpCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.RepressValve.Actuator.i_bInput1" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.RepressValve.Actuator.q_bOutput"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.RepressValve.Actuator.i_nState" VarB="PlcTask Outputs^MAIN.Cryo_Ctrl.q_nStateDummy"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_ColdBench.Temperature1.i_nValue" VarB="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_Bench.q_nValue"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_DET.Temperature1.i_nStatus" VarB="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_DET.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_DET.Temperature1.i_nValue" VarB="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_DET.q_nValue"/>
+			<Link VarA="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_LN2_Inlet.Temperature1.i_nStatus" VarB="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_LN2_Inlet.q_nStatus"/>
+			<Link VarA="PlcTask Outputs^MAIN.Cryo_Ctrl.CCC.Actuator.q_bOutput" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.CCC.Actuator.i_bInput1"/>
+			<Link VarA="PlcTask Outputs^MAIN.Cryo_Ctrl.CCC.Actuator.q_bOutput" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.CCC.i_bOn"/>
+			<Link VarA="PlcTask Outputs^MAIN.Cryo_Ctrl.Heater.Actuator.q_bOutput" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Heater.Actuator.i_bInput1"/>
+			<Link VarA="PlcTask Outputs^MAIN.Cryo_Ctrl.LN2.Actuator.q_bOutput" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.LN2.Actuator.i_bInput1"/>
+			<Link VarA="PlcTask Outputs^MAIN.Cryo_Ctrl.q_nStateDummy" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Heater.Actuator.i_nState"/>
+			<Link VarA="PlcTask Outputs^MAIN.Cryo_Ctrl.q_nStateDummy" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.LN2.Actuator.i_nState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Pressure_Cryo.q_nStatus" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Pressure_Cryo.Pressure1.i_nStatus"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Pressure_Cryo.q_nValue" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Pressure_Cryo.Pressure1.i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Pressure_Evac.q_nStatus" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Pressure_Evac.Pressure1.i_nStatus"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Pressure_Evac.q_nValue" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Pressure_Evac.Pressure1.i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_Bench.q_nStatus" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_ColdBench.Temperature1.i_nStatus"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_LN2_Exhaust.q_nStatus" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_LN2_Exhaust.Temperature1.i_nStatus"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_LN2_Exhaust.q_nValue" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_LN2_Exhaust.Temperature1.i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Cryo_Ctrl.SIM_Temp_LN2_Inlet.q_nValue" VarB="PlcTask Inputs^MAIN.Cryo_Ctrl.Temp_LN2_Inlet.Temperature1.i_nValue"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="MAIN" Id="{d1b4cabb-d9c5-40f4-a07b-62324f4a4966}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	ccs_sim:	FB_CCS_SIM;
+	fbTimer: FB_TIME;
+	diff: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTimer();
+//fbTimer.SetMode(E_TIME_MODE.UTC_NTP);
+ccs_sim(refTimeObj := fbTimer);
+diff := fbTimer.stat.lrTaiUnixTimeinSecs - ccs_sim.i_trk_data.time_tai;
+//ccs_sim.stat.gui_data.time_tai := DCTIME64_TO_STRING(fbTimer.MudpiTimeToDc(ccs_sim.stat.data.time_tai));
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="7" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

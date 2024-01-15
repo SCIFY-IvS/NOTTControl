@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_CPA_ALARM" Id="{1c439b7f-006b-4ab5-81ed-0ad95a262b05}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_CPA_ALARM :
+(
+	NONE := 0,
+	LOW,
+	HIGH
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

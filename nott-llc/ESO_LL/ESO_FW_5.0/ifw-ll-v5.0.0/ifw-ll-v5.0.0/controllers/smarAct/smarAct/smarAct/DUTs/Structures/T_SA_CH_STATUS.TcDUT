@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_CH_STATUS" Id="{65adb51c-a211-4df4-a492-c04f4ede261d}">
+    <Declaration><![CDATA[TYPE T_SA_CH_STATUS :
+STRUCT
+	bLocal:			BOOL	:= FALSE;	// if TRUE, device operated from PLC GUI 
+
+	nErrorCode: 	E_SA_CH_ERROR 	:= E_SA_CH_ERROR.OK;	// Error code 
+	nRpcErrorCode: 	E_SA_RPC_ERROR 	:= E_SA_RPC_ERROR.OK;	// RPC Error code
+
+	bCtrlCommProblem:	BOOL;			// SmarAct MCS2 Controller Comm Problem
+	nCtrlErrorCode: E_SM_ERROR;			// SmarAct MCS2 Controller Error code
+	nCtrlState:		E_RS_BASE_STATE;	// SmarAct MCS2 Controller State	
+
+	sErrorText: 	STRING 	:= 'OK'; 			// Error text 
+	sRpcErrorText: 	STRING 	:= 'OK'; 			// RPC Error text 
+	sStatus: 		STRING 	:= 'OK'; 			// Status in textual form, e.g. 'OFF' 
+	
+	//
+	// Standard ELT States and Substates
+	//
+	nState:			E_SA_POS_ELT_STATE 		:= E_SA_POS_ELT_STATE.NOTOP;
+	nSubstate:		E_SA_POS_ELT_SUBSTATE	:= E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY;
+	
+	sState:			STRING	:= 'NOTOP';
+	sSubstate:		STRING	:= 'NOT READY';
+
+	//
+	// Positioner State Machine State.
+	// Depending on the State, different command sets will be executed.
+	//
+	nPosState:			E_SA_POS_SM_STATE := E_SA_POS_SM_STATE.NOT_READY;
+	nLastPosState:		E_SA_POS_SM_STATE := E_SA_POS_SM_STATE.NOT_READY;
+	
+
+	lrPosTarget:		LREAL;			// Target  position in User Units
+	lrPosActual:		LREAL;			// Current position in User Units
+
+	bConfigured:		BOOL;			// Flag if M_Configure has been executed.	
+	bError:				BOOL;
+	bEnabled:			BOOL;			// Flag if axis is enabled
+	bInitialised:		BOOL;			// Flag if positioner has been initialised/referenced
+	bInPosition:		BOOL;			// Flag if axis is In-Position
+
+	//
+	// Channel State parameters read from the controller
+	// A channel is a Positioner.
+	//
+	nCH_STATE:				UDINT;			// Positioner State as UDINT
+	{attribute 'OPC.UA.DA' := '0'}
+	stState:			T_SA_CH_STATE;	// Positioner State structure, from nSTATE
+	
+	//
+	// Device/Channel/Positioner status in user units, i.e. [pm] and [nd].
+	// These values are read periodically.
+	// Values are normally huge, e.g. pos=18000000000 [nd].
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	devStatus:			T_SA_DEV_STATUS; 	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_MODBUS_CTRL" Id="{9028212d-db6e-4cdd-ae21-e1835db1e2b1}">
+    <Declaration><![CDATA[TYPE T_MODBUS_CTRL :
+STRUCT
+	nCommand:	E_MODBUS_CMD 	:= E_MODBUS_CMD.NONE;			// Command Number, e.g. to INIT or SEND a command
+	bExecute:	BOOL;								// Setting to TRUE activates command
+	nSlaveID:	BYTE 	:= 1;						// Modbus Slave ID, 1..247
+	nCmdType:	E_MODBUS_CMD_TYPE	:= E_MODBUS_CMD_TYPE.READ;	// Command type; 0-Read, 1-Write
+	nRegister:	DINT;								// Command register
+	nWords:		DINT	:= 1;						// Number of words
+	nValue:		DINT;								// Parameter value
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

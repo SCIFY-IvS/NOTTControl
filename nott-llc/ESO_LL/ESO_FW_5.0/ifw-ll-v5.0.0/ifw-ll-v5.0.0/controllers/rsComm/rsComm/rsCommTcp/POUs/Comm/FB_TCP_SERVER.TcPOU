@@ -1,0 +1,390 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_TCP_SERVER" Id="{c50a86f7-6e3d-406a-a648-a196db8149b8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TCP_SERVER
+VAR_INPUT
+	in_bSimulation:		BOOL := FALSE;			// Simulation flag
+	sSrvNetID: 			T_AmsNetID	:= '';		// TwinCAT TCP/IP server network address
+	in_sTcpIpAdr: 		STRING(16);				// Server IP address, e.g. '192.168.0.80' 
+	in_nTcpPort:		UINT;					// Server Tcp port 
+	in_tIdleTime:		TIME	:=  T#10MS;		// Idle time after message received
+END_VAR
+VAR_OUTPUT
+	out_nState: 		E_TCP_SERVER_STATE;
+	out_bAccepted: 		BOOL			:= FALSE;(* Accepted connection status *)
+	out_bReceived: 		BOOL			:= FALSE;	// Flag if message received
+	out_sReceived:		STRING(255)		:= '';		// String received from a client
+	bBusy: 			BOOL			:= FALSE;(* BUSY connection status *)
+	bError: 		BOOL			:= FALSE;(* ERROR connection status *)
+    nErrId: 		DINT			:= 0;		// Error ID
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_TCP_SERVER_CTRL;				// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_RS_COMM_STAT;				// Status parameters - ReadOnly
+
+	// Coupler state to be mapped
+	i_nCouplerState	AT %I*	: UINT;			(* Link it to Coupler->InfoData->State *)
+
+	fbListen	 	: FB_SocketListen;
+	fbAccept 		: FB_SocketAccept;
+	fbClose			: FB_SocketClose;
+	fbReceive		: FB_SocketReceive;
+	fbSend			: FB_SocketSend;
+	State			: E_TCP_SERVER_STATE;
+	StateNext:		E_TCP_SERVER_STATE := E_TCP_SERVER_STATE.NOT_ACCEPTED;		// Next state after Wait
+	StateNext2:		E_TCP_SERVER_STATE := E_TCP_SERVER_STATE.NOT_ACCEPTED;		// Exit state from step StateNext
+
+	bDisconnect		: BOOL;(* Disconnect flag, if set the socket will be closed *)
+
+	fbAcceptTimer	: TON;(* Accept poll timer *)
+	fbTimer			: TON;(* Receive poll timer *)
+	fbRequestTimer	: TON;(* Request timeout timer *)
+	
+	rxBuffer		: ARRAY[0..1000] OF BYTE;
+	sTxFrame		: T_MaxString;
+	sRxFrame		: T_MaxString;
+	nLenOfString	: UDINT;(* String length inclusive the null delimiter *)
+	bEndOfString	: BOOL := FALSE;
+	
+	sLog:				STRING;
+	tPollingTime:	TIME	:= T#100MS;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set simulation flag in the status structure
+stat.bSimulation	:= in_bSimulation;
+
+
+(* ============================================
+	Check if the HW is OK. 
+	The coupler state must be 8, i.e. OPERATIONAL.
+============================================== *)
+IF i_nCouplerState <> 8  AND  NOT in_bSimulation	THEN	(* If the hardware status is NOT OK, we cannot trust the readings. *)
+	stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_IN_OP_STATE;
+	stat.sErrorText	:= 'Not in OP state. Is i_nCouplerState linked?';
+	stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+END_IF
+
+(* ============================================
+	Check if Server IP address is given. 
+============================================== *)
+IF LEN(in_sTcpIpAdr) = 0 THEN	(* Server IP not set *)
+	stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_IN_OP_STATE;
+	stat.sErrorText	:= 'Server IP (in_sTcpIpAdr) not set.';
+	stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+END_IF
+
+
+
+(*====================================================
+	Handling of commands sent through OPC UA interface.
+	Executed only when flag bExecute goes from LOW to HIGH.
+	bExecute is reset by the PLC application.
+=====================================================*)
+
+IF ctrl.bExecute THEN
+	ctrl.bExecute	:= FALSE;
+	(* Save last command and reset the command *)
+	stat.nLastCommand 	:= ctrl.nCommand;
+	ctrl.nCommand		:= E_RS_COMM_CMD.NONE;
+
+	(* Communication has to be established before being used *)
+	IF NOT out_bAccepted	THEN
+		stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+		stat.sStatus	:= 'ERROR';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_INIT;
+		stat.sErrorText	:= 'Communication not established.';
+		RETURN;
+	END_IF
+
+
+
+	CASE stat.nLastCommand OF
+
+	E_RS_COMM_CMD.SEND:
+		stat.nErrorCode	:= E_RS_COMM_ERROR.OK;
+		stat.nStatus	:= E_RS_COMM_STATUS.BUSY;
+		stat.sErrorText	:= 'OK';
+		stat.sStatus	:= 'BUSY';
+
+		// Set command buffer
+		MEMSET( ADR( sTxFrame ), 0, SIZEOF( sTxFrame ) );
+		MEMCPY( ADR( sTxFrame ), ADR( ctrl.sCmd ), INT_TO_UDINT(LEN(ctrl.sCmd)));
+
+		State 			:= E_TCP_SERVER_STATE.SEND_START;
+
+
+	END_CASE
+
+END_IF
+
+
+
+out_nState	:= State;
+
+
+
+CASE State OF
+	E_TCP_SERVER_STATE.NOT_ACCEPTED:
+		IF fbListen.hListener.handle = 0  OR  fbAccept.nErrId = 32770 THEN
+			// Error 32770 means "Socket handle is invalid"
+			fbListen(  bExecute := FALSE  );
+			fbListen( 	sSrvNetId := sSrvNetID, 
+						sLocalHost := in_sTcpIpAdr, 
+						nLocalPort := in_nTcpPort, 
+						bExecute := TRUE );
+						
+			State := E_TCP_SERVER_STATE.LISTEN;
+		ELSE
+			// Trigger connection accept
+			fbAccept( bExecute := FALSE );
+			fbAccept( sSrvNetId := sSrvNetID, 
+						hListener := fbListen.hListener, 
+						bExecute:= TRUE );
+			fbTimer(IN:=FALSE);
+			fbTimer(IN:=TRUE,PT:=T#22S);
+			State := E_TCP_SERVER_STATE.ACCEPT_WAIT;
+		END_IF
+		
+		out_bAccepted	:= FALSE;
+		out_bReceived	:= FALSE;
+		out_sReceived	:= '';
+		bBusy		:= TRUE;
+		bError		:= FALSE;
+		nErrId		:= 0;
+		RETURN;
+
+		
+	E_TCP_SERVER_STATE.LISTEN:
+		fbListen(bExecute:= FALSE );
+		IF fbListen.bBusy	THEN
+			RETURN;
+		ELSIF fbListen.bError AND fbListen.nErrId <> 32771	THEN
+			// Error 32771 means that "TcpIp port listener already exists".
+			stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+			stat.sStatus	:= 'ERROR';
+			stat.nErrorCode	:= E_RS_COMM_ERROR.LISTEN;
+			stat.sErrorText	:= 'ERROR. Listen failed. Re-starting...';
+			stat.bConnected	:= FALSE;
+
+			out_bAccepted	:= FALSE;
+			out_bReceived	:= FALSE;
+			out_sReceived	:= '';
+			bBusy		:= FALSE;
+			bError		:= TRUE;
+			nErrId		:= E_RS_COMM_ERROR.LISTEN;
+			
+			fbTimer(IN:=FALSE);
+			fbTimer(IN:=TRUE,PT:=T#10S);
+			State 		:= E_TCP_SERVER_STATE.WAIT;			// Goto WAIT
+			StateNext	:= E_TCP_SERVER_STATE.NOT_ACCEPTED;	// After WAIT, goto NOT_ACCEPTED
+		ELSE
+			// Trigger connection accept
+			fbAccept( bExecute := FALSE );
+			fbAccept( sSrvNetId := sSrvNetID, 
+						hListener := fbListen.hListener, 
+						bExecute:= TRUE );
+			fbTimer(IN:=FALSE);
+			fbTimer(IN:=TRUE,PT:=T#2S);
+			State := E_TCP_SERVER_STATE.ACCEPT_WAIT;
+			RETURN;
+		END_IF
+	
+		
+	E_TCP_SERVER_STATE.ACCEPT_WAIT:
+		fbAccept( bExecute := FALSE );
+
+		fbTimer(IN:=TRUE);
+		IF fbTimer.Q THEN
+			// Close the open socket
+			sLog	:= 'Closing connection!';
+			fbTimer(IN:=FALSE);
+			fbTimer(IN:=TRUE,PT:=T#10S);
+			fbClose( bExecute := FALSE );
+			fbClose( sSrvNetId := sSrvNetID, hSocket:= fbListen.hListener, bExecute:= TRUE );
+			State 		:= E_TCP_SERVER_STATE.CLOSE_WAIT;
+			RETURN;
+		END_IF
+		
+		IF fbAccept.bBusy THEN
+			RETURN;
+		ELSIF fbAccept.bError THEN
+			stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+			stat.sStatus	:= 'ERROR';
+			stat.nErrorCode	:= E_RS_COMM_ERROR.ACCEPT;
+			stat.sErrorText	:= 'ERROR. Receive failed';
+			stat.bConnected	:= FALSE;
+			State 			:= E_TCP_SERVER_STATE.ERROR;
+		ELSIF fbAccept.bAccepted THEN
+			sLog	:= 'Connection accepted!';
+			out_bAccepted	:= TRUE;
+
+			State := E_TCP_SERVER_STATE.RECEIVE_START;
+			RETURN;
+		ELSE
+			// Trigger connection accept
+			fbAccept( bExecute := FALSE );
+			fbAccept( sSrvNetId := sSrvNetID, 
+						hListener := fbListen.hListener, 
+						bExecute:= TRUE );
+			RETURN;
+		END_IF
+
+		
+	E_TCP_SERVER_STATE.RECEIVE_START:
+	// 25 sec timeout for receive
+		fbTimer(IN:=FALSE);
+		fbTimer(IN:=TRUE,PT:=T#25S);
+
+		out_bReceived	:= FALSE;
+		out_sReceived	:= '';
+		bBusy		:= FALSE;
+		bError		:= FALSE;
+		nErrId		:= 0;
+		
+		MEMSET( ADR( rxBuffer ), 0, SIZEOF( rxBuffer ) );	// Clear receive buffer
+		fbReceive( bExecute := FALSE );
+		fbReceive( 	sSrvNetId := sSrvNetID, 
+					hSocket	:= fbAccept.hSocket,
+					pDest	:= ADR( rxBuffer ),
+					cbLen	:= SIZEOF( rxBuffer ),
+					bExecute:= TRUE );
+					
+		State := E_TCP_SERVER_STATE.RECEIVE_WAIT;
+		RETURN;
+
+
+
+	E_TCP_SERVER_STATE.RECEIVE_WAIT:
+		fbReceive(bExecute:= FALSE );
+
+		fbTimer(IN:=TRUE);
+		
+		IF fbReceive.bBusy	THEN
+			RETURN;
+		ELSIF fbReceive.bError THEN
+			stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+			stat.sStatus	:= 'ERROR';
+			stat.nErrorCode	:= E_RS_COMM_ERROR.RECEIVE;
+			stat.sErrorText	:= 'ERROR. Receive failed';
+			stat.bConnected	:= FALSE;
+			State 			:= E_TCP_SERVER_STATE.ERROR;
+		ELSIF (fbReceive.nRecBytes > 0) THEN(* Bytes received *)
+			sLog		:= 'Received command';
+			out_bReceived	:= TRUE;
+			bBusy		:= FALSE;
+			bError		:= FALSE;
+			nErrId		:= 0;
+
+			// Save the received buffer
+			MEMSET( ADR( out_sReceived ), 0, SIZEOF( out_sReceived ) );
+			MEMCPY( ADR( out_sReceived ), ADR( rxBuffer ), fbReceive.nRecBytes);
+
+			State := E_TCP_SERVER_STATE.RECEIVE_START;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Receive timeout. Close connection and restart.
+			State 		:= E_TCP_SERVER_STATE.CLOSE_START;
+			RETURN;
+		ELSE
+			// Nothing received. Trigger Read again.
+			fbReceive( 	sSrvNetId := sSrvNetID, 
+						hSocket	:= fbAccept.hSocket,
+						pDest	:= ADR( rxBuffer ),
+						cbLen	:= SIZEOF( rxBuffer ),
+						bExecute:= TRUE );
+		END_IF
+		
+		
+	E_TCP_SERVER_STATE.SEND_START:
+		// Send reply back to the client.
+		// sTxFrame is set when we received the command.
+		fbSend( bExecute := FALSE );
+		fbSend(	sSrvNetId := sSrvNetID, 
+				hSocket	:= fbAccept.hSocket,
+				pSrc	:= ADR( sTxFrame ),
+				cbLen	:= INT_TO_UDINT(LEN( sTxFrame )),// Reply String length 
+				bExecute:= TRUE );
+
+		out_bReceived	:= FALSE;
+		out_sReceived	:= '';
+		bBusy		:= TRUE;
+		bError		:= FALSE;
+		nErrId		:= 0;
+		State 		:= E_TCP_SERVER_STATE.SEND_WAIT;
+		RETURN;
+
+
+
+	E_TCP_SERVER_STATE.SEND_WAIT:
+		fbSend(bExecute:= FALSE );
+		IF fbSend.bBusy	THEN
+			RETURN;
+		ELSIF fbSend.bError THEN
+			stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+			stat.sStatus	:= 'ERROR';
+			stat.nErrorCode	:= E_RS_COMM_ERROR.SEND;
+			stat.sErrorText	:= 'ERROR. Send failed';
+			stat.bConnected	:= FALSE;
+			State 			:= E_TCP_SERVER_STATE.ERROR;
+		ELSE
+			sLog	:= 'Reply sent';
+			State := E_TCP_SERVER_STATE.RECEIVE_START;
+			RETURN;
+		END_IF
+		
+	
+	
+	E_TCP_SERVER_STATE.CLOSE_START:
+		sLog	:= 'Closing connection!';
+		fbClose( bExecute := FALSE );
+		fbClose( sSrvNetId := sSrvNetID, hSocket:= fbAccept.hSocket, bExecute:= TRUE );
+		State := E_TCP_SERVER_STATE.CLOSE_WAIT;
+
+	E_TCP_SERVER_STATE.CLOSE_WAIT:
+		fbClose( bExecute := FALSE );
+		IF NOT fbClose.bBusy THEN
+			out_bAccepted := FALSE;
+			IF NOT fbClose.bError THEN
+				State := E_TCP_SERVER_STATE.NOT_ACCEPTED;
+			ELSE
+				sLog	:= 'FB_SocketClose(accepted)';
+				State := E_TCP_SERVER_STATE.ERROR;
+			END_IF
+		END_IF
+
+		
+	E_TCP_SERVER_STATE.WAIT:
+		fbTimer(IN:=TRUE);
+		IF fbTimer.Q	THEN
+			State	:= StateNext;
+		ELSE
+			RETURN;
+		END_IF
+
+	
+	
+	E_TCP_SERVER_STATE.ERROR:
+		IF out_bAccepted THEN
+			State := E_TCP_SERVER_STATE.CLOSE_START;
+		ELSE
+			State := E_TCP_SERVER_STATE.NOT_ACCEPTED;
+		END_IF
+
+END_CASE
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_TCP_SERVER">
+      <LineId Id="3138" Count="3" />
+      <LineId Id="2766" Count="320" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

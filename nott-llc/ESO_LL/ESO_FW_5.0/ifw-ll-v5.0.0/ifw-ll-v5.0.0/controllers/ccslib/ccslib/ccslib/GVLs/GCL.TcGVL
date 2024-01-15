@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <GVL Name="GCL" Id="{7b54ba22-1d83-4db0-8e9b-a38c570adbf7}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	C_PI:				LREAL := 3.1415926535897932384626433832795028841971693993751;
+    C_PI2: 				LREAL := C_PI / 2.0;
+	C_2PI: 				LREAL := 2.0 * C_PI;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

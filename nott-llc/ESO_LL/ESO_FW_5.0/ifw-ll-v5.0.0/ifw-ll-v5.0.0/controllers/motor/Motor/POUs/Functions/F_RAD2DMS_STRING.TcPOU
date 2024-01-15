@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="F_RAD2DMS_STRING" Id="{8d3070d5-fb0b-4820-bd6e-06adb187018c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_RAD2DMS_STRING : STRING
+VAR_INPUT
+	dec:	LREAL;
+END_VAR
+VAR
+	value:		LREAL;
+	degrees:	INT;
+	minutes:	INT;
+	seconds:	LREAL;
+	
+	sign:	int := 1;
+	result:	STRING := '';
+	
+	fbFormat   : FB_FormatString;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF dec < 0.0 THEN
+	sign	:= -1;
+	dec		:= -dec;
+END_IF
+
+value := dec * GCL.C_RAD2DEG; 	// rad to hours
+
+
+degrees	:= TRUNC_INT(value);
+minutes := TRUNC_INT((value - degrees)*60.0);
+seconds := (value - degrees - minutes/60.0)*3600.0;
+
+// We the calculation so far the value of 14.999999999 will result
+// in 14:59:60.
+// We want to correct it to 15:00:00.
+IF seconds > 59.999 THEN
+	seconds	:= 0.0;
+	minutes	:= minutes + 1;
+	IF minutes = 60 THEN
+		minutes	:= 0;
+		degrees	:= degrees + 1;
+	END_IF
+// Seconds should never be < 0.0. However, it happens due to rounding
+// and the value could be ~ -1.0 e-12.
+// Set it to zero in that case.
+ELSIF seconds < 0.0 THEN
+	seconds := 0.0;
+END_IF
+
+degrees	:= degrees * sign;	// put back the sign
+
+// format a string like "+07:01:02.123"
+fbFormat( sFormat  := '%+.3d:%.2d:%06.3f', 
+					arg1 := F_INT(degrees), 
+					arg2 := F_INT(minutes), 
+					arg3 := F_LREAL(seconds),
+					sOut => result);
+					
+F_RAD2DMS_STRING	:= result;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_RAD2DMS_STRING">
+      <LineId Id="86" Count="21" />
+      <LineId Id="135" Count="4" />
+      <LineId Id="108" Count="11" />
+      <LineId Id="29" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

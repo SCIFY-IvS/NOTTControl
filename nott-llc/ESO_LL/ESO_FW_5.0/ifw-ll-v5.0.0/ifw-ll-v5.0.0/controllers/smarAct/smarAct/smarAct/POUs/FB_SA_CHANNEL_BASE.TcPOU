@@ -1,0 +1,1522 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SA_CHANNEL_BASE" Id="{f462d0b6-55f8-40d5-bf5d-a31f89d46db9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SA_CHANNEL_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_SA_CH_CFG;	
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_SA_CH_CTRL;	
+
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_SA_CH_STATUS;	(* Common State Machine Status - ReadOnly *)
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// The FB does not execute anything cyclically.
+// It only executes method calls from instances of FB_SMAR_ACT_BASE.
+//]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{0c9da3c6-ba18-449e-85ab-71afd24c3fc8}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+	in_sName:			STRING := 'Not Used'; 
+	in_sUnits:			STRING := 'none';	// Positioner User Units
+	// User scale. For example to use mm instead of m. m->mm (scale=0.001).
+	// Pos [DevU] = lnScale * Pos [UU] / T_SA_CH_STATUS:nTUN_BASE_RES
+	// Pos [UU]      = Pos [DevU] * T_SA_CH_STATUS:nTUN_BASE_RES / lnScale
+	// [DevU] - Device units, i.e. pm or nd.
+	// [UU] - User units, e.g. m, mm, deg, etc.
+	in_lrScale:			LREAL := 1.0;			
+	in_lrREF_POS:		LREAL := 0;			// Position of reference mark [UU]
+	in_lrREF_VEL:		LREAL := 0.01;		// Velocity for referencing [UU/s]
+	in_nHOLD:			DINT := -1;			// Hold time [ms]. -1 = infinite
+	in_lrINP_THR:		LREAL := 0.01;		// In-position threshold [UU]	
+	in_nINP_DEL:		UDINT := 1000;		// In-position delay [ms]
+	in_lrMaxVelocity:	LREAL := 1.0;		// Maximum velocity	[UU]
+	in_lrRangeLimitMin:	LREAL := 0.0;		// Lower SW Limit [UU}. Min=Max => no limit
+	in_lrRangeLimitMax:	LREAL := 0.0;		// Upper SW Limit [UU]. Min=Max => no limit
+	in_nREF_OPT:		UINT := 0;			// REFerencing in positive direction
+	in_nCAL_OPT:		UINT := 0;			// CALibration in positive direction
+	in_nPCON_OPT:		UINT := 256;		// Positioner control options. 256 - 'in-pos' flag set.
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Copy values to the config structure.
+// This call sets initial config values but
+// they can be overwritten from WS later on before
+// sending the REF# command.
+cfg.sName			:= in_sName;
+cfg.sUnits			:= in_sUnits;
+cfg.lrScale			:= in_lrScale;
+cfg.lrREF_POS		:= in_lrREF_POS;
+cfg.lrREF_VEL		:= in_lrREF_VEL;
+cfg.nHOLD			:= in_nHOLD;
+cfg.lrINP_THR		:= in_lrINP_THR;
+cfg.nINP_DEL		:= in_nINP_DEL;
+cfg.lrMaxVelocity	:= in_lrMaxVelocity;
+cfg.lrRangeLimitMin	:= in_lrRangeLimitMin;
+cfg.lrRangeLimitMax	:= in_lrRangeLimitMax;
+cfg.nREF_OPT		:= in_nREF_OPT;
+cfg.nCAL_OPT		:= in_nCAL_OPT;
+cfg.nPCON_OPT		:= in_nPCON_OPT;
+
+stat.bConfigured	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConvertDev2User" Id="{1f2c0330-9e9d-4cc5-a0d5-8b4f52f707cd}">
+      <Declaration><![CDATA[//
+// Conversion from Device units [pm] or [nd] to user units, e.g. [mm] or [deg].
+// This is a linear conversion.
+// See also M_ConvertPosDev2User() for non-linear conversion of position.
+//
+METHOD M_ConvertDev2User : LREAL
+VAR_INPUT
+	lnDevValue:	LINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cfg.lrScale <> 0.0 THEN
+	M_ConvertDev2User	:= LINT_TO_LREAL(lnDevValue) / cfg.lrScale * EXPT(10, stat.devStatus.nTUN_BASE_RES);
+ELSE	
+	M_ConvertDev2User	:= 0.0;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConvertPosDev2User" Id="{47fb1403-e145-4311-9fbd-0c85b310e731}">
+      <Declaration><![CDATA[//
+// Conversion position from Device units [pm] or [nd] to user units, e.g. mm or deg.
+// By default, it is a linear conversion implemented in M_ConvertDev2User().
+// However, the method can be overwritten to handle non-linear conversion.
+//
+METHOD M_ConvertPosDev2User : LREAL
+VAR_INPUT
+	lnDevValue:	LINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_ConvertPosDev2User	:= M_ConvertDev2User(lnDevValue);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConvertPosUser2Dev" Id="{7d182605-6139-46b6-9eef-7064925479cf}">
+      <Declaration><![CDATA[//
+// Conversion position from User Units, e.g. [mm] or [deg] to Device Units [pm] or [nd].
+// By default, it is a linear conversion implemented in M_ConvertUser2Dev().
+// However, the method can be overwritten to handle non-linear conversion.
+//
+METHOD M_ConvertPosUser2Dev : LINT
+VAR_INPUT
+	lrUserValue:	LREAL;
+END_VAR
+VAR
+	lrVal:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_ConvertPosUser2Dev	:= M_ConvertUser2Dev(lrUserValue);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConvertUser2Dev" Id="{3c21359c-dfdb-4aed-a9b9-dc7e1ae522e9}">
+      <Declaration><![CDATA[//
+// Conversion from User Units, e.g. [mm] or [deg] to Device Units [pm] or [nd].
+// This is a linear conversion.
+// See also M_ConvertPosUser2Dev() for non-linear conversion of position.
+//
+METHOD M_ConvertUser2Dev : LINT
+VAR_INPUT
+	lrUserValue:	LREAL;
+END_VAR
+VAR
+	lrVal:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Convert UU to DevU as LREAL
+lrVal	:= cfg.lrScale * lrUserValue / EXPT(10, stat.devStatus.nTUN_BASE_RES);
+// Convert LREAL to LINT
+M_ConvertUser2Dev	:= LREAL_TO_LINT(lrVal);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCtrlState" Id="{2de2361b-44de-47ff-846c-294c6bc693e6}">
+      <Declaration><![CDATA[// This is the only way for the positioner to know
+// the status of the SmarAct MCS2 Controller that controls it.
+METHOD M_GetCtrlState
+VAR_INPUT
+	bCtrlCommProblem:	BOOL;
+	nCtrlErrorCode:		INT;
+	nCtrlState:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bCtrlCommProblem	:= bCtrlCommProblem;
+stat.nCtrlErrorCode		:= nCtrlErrorCode;
+stat.nCtrlState			:= nCtrlState;
+
+//
+// Set error if there is a problem with the MCS2 controller
+// or the communication has been lost.
+//
+IF stat.bCtrlCommProblem	THEN
+	stat.bError		:= TRUE;
+	stat.nErrorCode	:= E_SA_CH_ERROR.COMM;
+	stat.sErrorText	:= 'MCS2 Comm Problem';
+	stat.sStatus	:= stat.sErrorText;
+ELSIF stat.nCtrlErrorCode <> 0	THEN
+	stat.bError		:= TRUE;
+	stat.nErrorCode	:= E_SA_CH_ERROR.CTRL;
+	stat.sErrorText	:= 'MCS2 Controller Problem';
+	stat.sStatus	:= stat.sErrorText;
+END_IF
+
+
+//
+// We cannot distinguish between unplugged cable and powered off MCS2 controller.
+// If the communication is lost, go to NOTOP/NOT_READY.
+//
+IF stat.bCtrlCommProblem	THEN
+	stat.bInitialised	:= FALSE;
+	stat.nPosState		:= E_SA_POS_SM_STATE.NOT_READY;
+	M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+	M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_ERROR);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetErrorString" Id="{b07570ef-34ba-4883-9e46-00096987e522}">
+      <Declaration><![CDATA[METHOD M_GetErrorString : STRING
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF	stat.stState.bRANGE_LIMIT_REACHED		THEN
+	M_GetErrorString	:= 'ERROR: Range limit reached';
+ELSIF	stat.stState.bEND_STOP_REACHED	THEN
+	M_GetErrorString	:= 'ERROR: End Stop reached';
+ELSIF	stat.stState.bFOLLOWING_LIMIT_REACHED	THEN
+	M_GetErrorString	:= 'ERROR: Following error';
+ELSIF	stat.stState.bPOSITIONER_OVERLOAD		THEN
+	M_GetErrorString	:= 'ERROR: Positioner overload';
+ELSIF	stat.stState.bOVER_TEMPERATURE			THEN
+	M_GetErrorString	:= 'ERROR: Overtemperature';
+ELSIF	stat.stState.bPOSITIONER_FAULT			THEN
+	M_GetErrorString	:= 'ERROR: Positioner fault';
+ELSIF	stat.stState.bMOVEMENT_FAILED			THEN
+	M_GetErrorString	:= 'ERROR: Movement failed';
+ELSE
+	M_GetErrorString	:= 'Positioner Error';
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetModule" Id="{a286835d-928e-4684-824a-4b115e213027}">
+      <Declaration><![CDATA[METHOD M_GetModule : UINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetModule	:= cfg.nMOD;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetChannel" Id="{8aaff0ec-5ab0-44dd-af61-d3f254154664}">
+      <Declaration><![CDATA[METHOD M_SetChannel
+VAR_INPUT
+	index:	UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// M_SetChannel() is called only for used channels
+
+// Set the used flag
+cfg.bUsed	:= TRUE;
+
+// Set channel number, equal to the index.
+cfg.nCHAN	:= index;
+
+//
+// MODule number that the channel belongs to [0..5].
+// Calculated from the channel number. i.e. the index of this instance.
+// channel = (Module x 3) + (CH-1)
+// Module = index / 3
+// index = 0, 1 or 2    => Module = 0
+// index = 3, 4 or 5    => Module = 1
+// ...
+// index = 15, 16 or 17 => Module = 5
+//
+cfg.nMOD	:= index / 3;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetChanState" Id="{f7cb06dd-142d-4979-ac0c-434a6536a051}">
+      <Declaration><![CDATA[METHOD M_SetChanState
+VAR_INPUT
+	nStatus:	UDINT;	// Channel Status as UINT (WORD)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get Channel State as a number.
+stat.nCH_STATE	:= nStatus;
+
+//
+// Extract Channel state from the status word.
+//
+stat.stState.bACTIVELY_MOVING			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_ACTIVELY_MOVING);
+stat.stState.bCLOSED_LOOP_ACTIVE		:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE);
+stat.stState.bCALIBRATING				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_CALIBRATING);
+stat.stState.bREFERENCING				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_REFERENCING);
+stat.stState.bMOVE_DELAYED				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_MOVE_DELAYED);
+stat.stState.bSENSOR_PRESENT			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_SENSOR_PRESENT);
+stat.stState.bIS_CALIBRATED				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_CALIBRATED);
+stat.stState.bIS_REFERENCED				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_REFERENCED);
+stat.stState.bEND_STOP_REACHED			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_END_STOP_REACHED);
+stat.stState.bRANGE_LIMIT_REACHED		:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_RANGE_LIMIT_REACHED);
+stat.stState.bFOLLOWING_LIMIT_REACHED	:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_FOLLOWING_LIMIT_REACHED);
+stat.stState.bMOVEMENT_FAILED			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_MOVEMENT_FAILED);
+stat.stState.bIS_STREAMING				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_STREAMING);
+stat.stState.bPOSITIONER_OVERLOAD		:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_POSITIONER_OVERLOAD);
+stat.stState.bOVER_TEMPERATURE			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_OVER_TEMPERATURE);
+stat.stState.bREFERENCE_MARK			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_REFERENCE_MARK);
+stat.stState.bIS_PHASED					:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_PHASED);
+stat.stState.bPOSITIONER_FAULT			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_POSITIONER_FAULT);
+stat.stState.bAMPLIFIER_ENABLED			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED);
+stat.stState.bIN_POSITION				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IN_POSITION);
+
+
+IF	stat.stState.bRANGE_LIMIT_REACHED		OR
+	stat.stState.bEND_STOP_REACHED			OR
+	stat.stState.bFOLLOWING_LIMIT_REACHED	OR
+	stat.stState.bMOVEMENT_FAILED			OR
+	stat.stState.bPOSITIONER_OVERLOAD		OR
+	stat.stState.bOVER_TEMPERATURE			OR
+	stat.stState.bPOSITIONER_FAULT			THEN
+		stat.stState.bERROR	:= TRUE;
+		stat.bError			:= TRUE;
+		stat.sErrorText		:= 'Positioner failure';
+		stat.nPosState 		:= E_SA_POS_SM_STATE.ERROR;
+ELSE
+	// There is no positioner error but maybe the 
+	// communication with the MCS2 controller is lost.
+	stat.stState.bERROR	:= FALSE;
+	
+	// Check errors from the MCS2 controller.
+	IF stat.bCtrlCommProblem  OR  stat.nCtrlErrorCode <> 0	THEN
+		stat.bError	:= TRUE;
+	ELSE
+		stat.bError		:= FALSE;
+		stat.nErrorCode	:= E_SA_CH_ERROR.OK;
+		stat.sErrorText	:= 'OK';
+	END_IF
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCommandChannel" Id="{6d018128-5526-48a9-879c-4a81c8f668d6}">
+      <Declaration><![CDATA[METHOD M_SetCommandChannel : STRING
+VAR_INPUT
+	sCmd:	STRING;
+END_VAR
+VAR
+	sCh:		STRING;
+	sResult:	STRING;
+	pos:		INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Replace the hash (#) character in the command with a channel number.
+// For example: Set Channel 3 in command ':CHAN#:TUN:BASE:UNIT?' 
+//				Result = ':CHAN3:TUN:BASE:UNIT?'
+
+// Find the position of the hash (#) character
+pos	:= FIND(sCmd, '#');
+
+IF pos > 0	THEN
+	// Replace the hash (#) character with the channel number
+	
+	// Convert channel number into string.
+	sCh	:= UINT_TO_STRING(cfg.nCHAN);
+	
+	// Create the resulting string that includes the channel number.
+	sResult	:= REPLACE(sCmd, sCh, 1, pos);
+ELSE
+	// There was no hash (#) character in the command
+	sResult	:= sCmd;
+END_IF
+
+
+M_SetCommandChannel	:= sResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCommandModule" Id="{fe73e8c2-bfaa-4a0c-b03c-0656d5c1b3b6}">
+      <Declaration><![CDATA[METHOD M_SetCommandModule : STRING
+VAR_INPUT
+	sCmd:	STRING;
+END_VAR
+VAR
+	sMod:		STRING;
+	sResult:	STRING;
+	pos:		INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Replace the hash (#) character in the command with a MODule number.
+// For example: Set Module 3 in command ':MOD#:STAT?' 
+//				Result = ':MOD3:STAT?'
+
+// Find the position of the hash (#) character
+pos	:= FIND(sCmd, '#');
+
+IF pos > 0	THEN
+	// Replace the hash (#) character with the module number
+	
+	// Convert module number into string.
+	sMod	:= UINT_TO_STRING(cfg.nMOD);
+	
+	// Create the resulting string that includes the module number.
+	sResult	:= REPLACE(sCmd, sMod, 1, pos);
+ELSE
+	// There was no hash (#) character in the command
+	sResult	:= sCmd;
+END_IF
+
+
+M_SetCommandModule	:= sResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCommandValue" Id="{9da25729-4159-4412-8bd3-8184dbea47ad}">
+      <Declaration><![CDATA[METHOD M_SetCommandValue : STRING
+VAR_INPUT
+	sCmd:	STRING;
+END_VAR
+VAR
+	sVal:		STRING;
+	lrVal:		LREAL;
+	lrVelo:		LREAL;
+	lrPos:		LREAL;
+	nVal:		DINT;
+	lnVal:		LINT;
+	sResult:	STRING;
+	pos:		INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Replace the '***' characters in the command with a value
+// coming from the cfg structure.
+// The value depends on the keyword.
+// For example: Set value to 0 in command ':CHAN#:CAL:OPT ***' 
+//				Result = ':CHAN#:CAL:OPT 0'
+
+// Find the position of the '***' characters
+pos	:= FIND(sCmd, '***');
+
+IF pos > 0	THEN
+	// Replace the hash *** characters with the corresponding value.
+	// Check the command and take the value from the cfg.
+	// Also, convert User Units [UU] to Device Units [DevU].
+	IF FIND(sCmd, ':CAL:OPT') > 1	THEN
+		sVal	:= UINT_TO_STRING(cfg.nCAL_OPT);
+	ELSIF FIND(sCmd, ':REF:OPT') > 1	THEN
+		sVal	:= UINT_TO_STRING(cfg.nREF_OPT);
+	ELSIF FIND(sCmd, ':PCON:OPT') > 1	THEN
+		sVal	:= UINT_TO_STRING(cfg.nPCON_OPT);
+	ELSIF FIND(sCmd, ':HOLD') > 1	THEN
+		sVal	:= DINT_TO_STRING(cfg.nHOLD);
+	ELSIF FIND(sCmd, ':INP:THR') > 1	THEN
+		// Convert LREAL to LINT to DINT.
+		// Threshold must be positive.
+		nVal	:= LINT_TO_DINT(ABS(M_ConvertUser2Dev(cfg.lrINP_THR)));
+		// Convert DINT to STRING
+		sVal	:= DINT_TO_STRING(nVal);
+	ELSIF FIND(sCmd, ':INP:DEL') > 1	THEN
+		sVal	:= UDINT_TO_STRING(cfg.nINP_DEL);
+	ELSIF FIND(sCmd, ':RLIM:MIN') > 1	THEN
+		// Convert LREAL to LINT
+		lnVal	:= M_ConvertPosUser2Dev(cfg.lrRangeLimitMin);
+		// Convert LINT to STRING
+		sVal	:= LINT_TO_STRING(lnVal);
+	ELSIF FIND(sCmd, ':RLIM:MAX') > 1	THEN
+		// Convert LREAL to LINT
+		lnVal	:= M_ConvertPosUser2Dev(cfg.lrRangeLimitMax);
+		// Convert LINT to STRING
+		sVal	:= LINT_TO_STRING(lnVal);
+	ELSIF FIND(sCmd, ':POS ') > 1	THEN	// Note the space after POS !!!
+		// Select correct position
+		CASE stat.nPosState OF
+			E_SA_POS_SM_STATE.CALIB_REF:
+				lrPos	:= cfg.lrREF_POS;
+			E_SA_POS_SM_STATE.MOVING:
+				lrPos	:= ctrl.lrPos;
+		END_CASE
+		// Convert Pos in UU to DevU, i.e. LREAL to LINT
+		lnVal	:= M_ConvertPosUser2Dev(lrPos);
+		// In case we are calibrating the REFerence switch,
+		// set/calibrate the actual position.
+		IF stat.nPosState = E_SA_POS_SM_STATE.CALIB_REF	THEN
+			stat.devStatus.lnPosActual	:= lnVal;
+		END_IF
+		// Convert LINT to STRING
+		sVal	:= LINT_TO_STRING(lnVal);
+	ELSIF FIND(sCmd, ':VEL ') > 1	THEN	// Note the space after POS !!!
+		// Select correct velocity
+		CASE stat.nPosState OF
+			E_SA_POS_SM_STATE.INIT:
+				lrVelo		:= cfg.lrREF_VEL;
+				ctrl.lrVel	:= cfg.lrREF_VEL;
+			E_SA_POS_SM_STATE.MOVING:
+				lrVelo	:= ctrl.lrVel;
+		END_CASE
+		// Convert velocity in UU to DevU, i.e. LREAL to LINT.
+		// Velocity must be positive.
+		lnVal	:= ABS(M_ConvertUser2Dev(lrVelo));
+		// Convert LINT to STRING
+		sVal	:= LINT_TO_STRING(lnVal);
+	ELSIF FIND(sCmd, ':MOVE') = 1	THEN	// Note =1 !!!, cmd starts with ':MOVE'
+		// Convert target position from UU to DevU, i.e. LREAL to LINT
+		lnVal	:= M_ConvertPosUser2Dev(ctrl.lrPos);
+		// Convert LINT to STRING
+		sVal	:= LINT_TO_STRING(lnVal);
+	ELSE
+		M_SetCommandValue	:= sCmd;
+		RETURN;
+	END_IF
+	
+	// Create the resulting string that includes the value.
+	// Replace 3 characters '***' starting from pos with the value.
+	sResult	:= REPLACE(sCmd, sVal, 3, pos);
+ELSE
+	// There was no hash (#) character in the command
+	sResult	:= sCmd;
+END_IF
+
+
+M_SetCommandValue	:= sResult;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetNextPosState" Id="{15a203e3-d752-45db-9624-462eddd1ce83}">
+      <Declaration><![CDATA[//
+// Set next positioner State Machine State.
+// This is done at the end of command list execution.
+// It Returns TRUE if the state has changed.
+//
+METHOD M_SetNextPosState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nPosState OF
+	E_SA_POS_SM_STATE.NOT_READY:
+		IF ctrl.nCmd = E_SA_CH_CMD.CALIB	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.CALIB;
+			stat.bInitialised	:= FALSE;
+			stat.sStatus		:= 'Calibrating...';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.REF	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.INIT;
+			stat.sStatus		:= 'Referencing/INIT Started';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+	E_SA_POS_SM_STATE.CALIB:
+		stat.nPosState := E_SA_POS_SM_STATE.NOT_READY;
+		stat.bInitialised	:= FALSE;
+		stat.sStatus		:= 'Calibration completed';
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+	E_SA_POS_SM_STATE.INIT:
+		stat.nPosState := E_SA_POS_SM_STATE.POST_INIT;
+		stat.sStatus		:= 'Updating configuration...';
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+	E_SA_POS_SM_STATE.POST_INIT:
+		IF ctrl.nCmd = E_SA_CH_CMD.STOP	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF	NOT stat.stState.bACTIVELY_MOVING	AND
+				stat.stState.bIS_REFERENCED			AND
+				stat.stState.bIN_POSITION			AND
+				stat.stState.bREFERENCE_MARK			THEN
+			stat.nPosState := E_SA_POS_SM_STATE.CALIB_REF;
+			stat.sStatus		:= 'Referencing completed';
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			stat.sStatus		:= 'Referencing/Initialising...';
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+	E_SA_POS_SM_STATE.CALIB_REF:
+		stat.nPosState 	:= E_SA_POS_SM_STATE.READY;	// was OP
+		stat.nLastPosState := E_SA_POS_SM_STATE.CALIB_REF;
+		stat.bInitialised	:= TRUE;
+		stat.sStatus		:= 'Reference mark calibrated - initialised';
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+	E_SA_POS_SM_STATE.READY:
+		IF ctrl.nCmd = E_SA_CH_CMD.ENABLE	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Operational';
+			M_SetState(E_SA_POS_ELT_STATE.OP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+	E_SA_POS_SM_STATE.OP:
+		IF ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.DISABLE	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.READY;
+			stat.sStatus		:= 'Ready';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.MOV	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Moving...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.STOP	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF	NOT stat.stState.bACTIVELY_MOVING	AND
+				stat.stState.bIN_POSITION			AND
+				stat.nLastPosState <> E_SA_POS_SM_STATE.CALIB_REF	THEN
+					stat.sStatus		:= 'Move completed';
+					M_SetNextPosState	:= FALSE;	// State has NOT changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+	E_SA_POS_SM_STATE.MOVING:
+		IF ctrl.nCmd = E_SA_CH_CMD.STOP	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			stat.nPosState := E_SA_POS_SM_STATE.OP;
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		END_IF
+	E_SA_POS_SM_STATE.STOP:
+		stat.nPosState := E_SA_POS_SM_STATE.OP;
+		stat.sStatus		:= 'Positioner Stopped';
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+	E_SA_POS_SM_STATE.ERROR:
+		IF ctrl.nCmd = E_SA_CH_CMD.CALIB	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.CALIB;
+			stat.bInitialised	:= FALSE;
+			stat.sStatus		:= 'Calibrating...';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.REF	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.INIT;
+			stat.bInitialised	:= FALSE;
+			stat.sStatus		:= 'Referencing/INIT Started';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.MOV	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Moving...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			stat.sStatus		:= M_GetErrorString();
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{35fc864c-8f39-4809-9831-53a786d31e93}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nRpcErrorCode	:= nErrorCode;
+stat.sRpcErrorText	:= F_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus	:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetState" Id="{3a24d3bf-d70a-4239-b708-87a4afbdb342}">
+      <Declaration><![CDATA[METHOD M_SetState
+VAR_INPUT
+	nState: E_SA_POS_ELT_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nState	:= nState;
+
+// Set substate string
+CASE nState	OF
+	E_SA_POS_ELT_STATE.NOTOP: 	stat.sState	:= 'NOT OP';
+	E_SA_POS_ELT_STATE.OP: 		stat.sState	:= 'OPERATIONAL';
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetSubstate" Id="{4931747c-747a-4651-b7f0-f2bec43c2ecf}">
+      <Declaration><![CDATA[METHOD M_SetSubstate
+VAR_INPUT
+	nSubstate: E_SA_POS_ELT_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nSubstate	:= nSubstate;
+
+// Set substate string
+CASE nSubstate	OF
+	E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY: 		
+		stat.sSubstate	:= 'NOT READY';
+		stat.sStatus	:= '';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_READY: 			stat.sSubstate	:= 'READY';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING:	stat.sSubstate	:= 'INITIALIZING';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_ABORTING:		stat.sSubstate	:= 'ABORTING';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_ERROR:			stat.sSubstate	:= 'ERROR';
+	
+	E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL:		stat.sSubstate	:= 'STANDSTILL';            
+	E_SA_POS_ELT_SUBSTATE.OP_MOVING:			stat.sSubstate	:= 'MOVING';
+	E_SA_POS_ELT_SUBSTATE.OP_SETTING_POS:		stat.sSubstate	:= 'SETTING POS';
+	E_SA_POS_ELT_SUBSTATE.OP_STOPPING:			stat.sSubstate	:= 'STOPPING';
+	E_SA_POS_ELT_SUBSTATE.OP_ERROR:				stat.sSubstate	:= 'ERROR';
+	
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{8ac76724-e6bb-4826-bb52-89320585421a}">
+      <Declaration><![CDATA[//
+// Convert Positioner status from Device to User mode.
+//
+METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Update bEnabled flag.
+// If TRUE, it means that the amplifier is enabled and the sensor is present.
+//
+stat.bEnabled	:= stat.stState.bAMPLIFIER_ENABLED AND  stat.stState.bSENSOR_PRESENT;
+
+
+//
+// Set the in-position flag
+//
+stat.bInPosition	:= stat.stState.bIN_POSITION;
+
+
+//
+// Set target and actual positions in [UU]
+//
+stat.lrPosTarget	:= M_ConvertPosDev2User(stat.devStatus.lnPosTarget);
+stat.lrPosActual	:= M_ConvertPosDev2User(stat.devStatus.lnPosActual);
+
+
+//
+// Set Standard ELT States and Substates
+//
+
+
+//
+// Substate
+//
+CASE stat.nState OF
+	E_SA_POS_ELT_STATE.NOTOP:
+	/////////////////////////
+	IF stat.bError	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_ERROR);
+	ELSIF	stat.nPosState = E_SA_POS_SM_STATE.NOT_READY	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+	ELSIF 	stat.nPosState = E_SA_POS_SM_STATE.CALIB  		OR
+			stat.nPosState = E_SA_POS_SM_STATE.INIT  		OR
+			stat.nPosState = E_SA_POS_SM_STATE.POST_INIT	OR	
+			stat.nPosState = E_SA_POS_SM_STATE.CALIB_REF  		THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING);
+	ELSIF 	stat.nPosState = E_SA_POS_SM_STATE.READY  	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+	ELSE
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+	END_IF
+	
+	E_SA_POS_ELT_STATE.OP:
+	//////////////////////
+	IF stat.stState.bACTIVELY_MOVING	THEN
+		IF stat.nPosState = E_SA_POS_SM_STATE.STOP	THEN
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+		ELSE
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+		END_IF
+	ELSIF stat.stState.bERROR	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_ERROR);
+	ELSE
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+	END_IF
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{7989518d-7a86-4947-88ca-bb1d7df1cf10}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF stat.nState <> E_SA_POS_ELT_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+// Set DISABLE command
+ctrl.nCmd	:= E_SA_CH_CMD.DISABLE;
+
+// Call was successful
+RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{ad0e0784-0091-4f63-a339-ea7fdf7f3928}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is NOT OPERATIONAL.
+IF	stat.nState <> E_SA_POS_ELT_STATE.NOTOP		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+END_IF
+
+
+// Set ENABLE command
+ctrl.nCmd	:= E_SA_CH_CMD.ENABLE;
+
+// Call was successful
+RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{2c41de4f-c7ba-42b5-a274-961103060cbf}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// REFerencing of SmarAct Positioner is equivalent to Motor INIT.
+//
+
+// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_Init	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+
+// Set INIT (REF#) command
+ctrl.nCmd	:= E_SA_CH_CMD.REF;
+
+// Call was successful
+RPC_Init	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveAbs" Id="{4cb4dcb5-f04c-44de-ba85-f4436faa954e}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveAbs : INT
+VAR_INPUT
+	in_lrPos:		LREAL;	// Target position [UU]
+	in_lrVel:		LREAL;	// Target velocity [UU/s]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	stat.nState <> E_SA_POS_ELT_STATE.OP	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_OP);
+	RETURN;
+// The positioner has to be initialised / OP (operational), i.e. already REFerenced.
+ELSIF	NOT stat.bInitialised	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.CH_NOT_OP);
+	RETURN;
+// Set velocity cannot be 0.0.
+ELSIF	in_lrVel = 0.0	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.VEL_ZERO);
+	RETURN;
+// Set velocity cannot be < 0.0.
+ELSIF	in_lrVel <= 0.0	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.VEL_NEG);
+	RETURN;
+// Set velocity cannot be greater than MAX Velocity.
+ELSIF	in_lrVel > cfg.lrMaxVelocity	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.VEL_MAX);
+	RETURN;
+// If SW limits are active, check the limits
+ELSIF cfg.lrRangeLimitMax > cfg.lrRangeLimitMin THEN
+	IF in_lrPos < cfg.lrRangeLimitMin THEN
+		RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.SW_LIMIT_LOWER);
+		RETURN;
+	ELSIF in_lrPos > cfg.lrRangeLimitMax THEN
+		RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.SW_LIMIT_UPPER);
+		RETURN;
+	END_IF
+END_IF
+
+// Set command
+ctrl.nCmd	:= E_SA_CH_CMD.MOV;
+ctrl.lrPos	:= in_lrPos;
+ctrl.lrVel	:= in_lrVel;
+
+
+// Call was successful
+RPC_MoveAbs	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveRel" Id="{ea75705b-5643-4d2c-afb1-27189a8aaf97}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveRel : INT
+VAR_INPUT
+	in_lrPos:		LREAL;	// Target relative position [UU]
+	in_lrVel:		LREAL;	// Target velocity [UU/s]
+END_VAR
+VAR
+	lrPos:			LREAL;	// New absolute position [UU]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// Get new absolute position
+lrPos	:= stat.lrPosActual + in_lrPos;
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Relative command is accepted only in OP state.
+ELSIF	stat.nState <> E_SA_POS_ELT_STATE.OP	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_OP);
+	RETURN;
+// The positioner has to be initialised / OP (operational), i.e. already REFerenced.
+ELSIF	NOT stat.bInitialised	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.CH_NOT_OP);
+	RETURN;
+// Set velocity cannot be 0.0.
+ELSIF	in_lrVel = 0.0	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.VEL_ZERO);
+	RETURN;
+// Set velocity cannot be < 0.0.
+ELSIF	in_lrVel <= 0.0	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.VEL_NEG);
+	RETURN;
+// Set velocity cannot be greater than MAX Velocity.
+ELSIF	in_lrVel > cfg.lrMaxVelocity	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.VEL_MAX);
+	RETURN;
+// If SW limits are active, check the limits
+ELSIF cfg.lrRangeLimitMax > cfg.lrRangeLimitMin THEN
+	IF lrPos < cfg.lrRangeLimitMin THEN
+		RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.SW_LIMIT_LOWER);
+		RETURN;
+	ELSIF lrPos > cfg.lrRangeLimitMax THEN
+		RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.SW_LIMIT_UPPER);
+		RETURN;
+	END_IF
+END_IF
+
+// Set command
+ctrl.nCmd	:= E_SA_CH_CMD.MOV;
+ctrl.lrPos	:= lrPos;
+ctrl.lrVel	:= in_lrVel;
+
+
+// Call was successful
+RPC_MoveRel	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{e62667d8-0e61-406e-a490-66417792973c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_Reset	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Cannot RESET positioner while moving.
+IF stat.nState = E_SA_POS_ELT_STATE.OP  AND  stat.nSubstate = E_SA_POS_ELT_SUBSTATE.OP_MOVING  THEN
+	RPC_Reset	:= M_SetRpcStatus(E_SA_RPC_ERROR.MOVING);
+	RETURN;
+END_IF
+
+
+// Set command
+ctrl.nCmd	:= E_SA_CH_CMD.RESET;
+
+//stat.nState			:= E_SA_POS_ELT_STATE.NONE;
+//stat.nSubstate		:= E_SA_POS_ELT_SUBSTATE.NONE;
+
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{e99bd123-98cb-4694-9189-96a7ba58d24e}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+	RPC_Stop	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+
+// Set STOP command
+ctrl.nCmd	:= E_SA_CH_CMD.STOP;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SA_CHANNEL_BASE">
+      <LineId Id="46" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="44" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_Configure">
+      <LineId Id="34" Count="3" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="27" Count="4" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_ConvertDev2User">
+      <LineId Id="27" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_ConvertPosDev2User">
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_ConvertPosUser2Dev">
+      <LineId Id="41" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_ConvertUser2Dev">
+      <LineId Id="38" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_GetCtrlState">
+      <LineId Id="32" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="47" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_GetErrorString">
+      <LineId Id="9" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_GetModule">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetChannel">
+      <LineId Id="9" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="10" Count="9" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetChanState">
+      <LineId Id="167" Count="26" />
+      <LineId Id="196" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="198" Count="5" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="238" Count="1" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="206" Count="2" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetCommandChannel">
+      <LineId Id="19" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetCommandModule">
+      <LineId Id="72" Count="20" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetCommandValue">
+      <LineId Id="204" Count="21" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="229" Count="5" />
+      <LineId Id="237" Count="4" />
+      <LineId Id="244" Count="8" />
+      <LineId Id="254" Count="2" />
+      <LineId Id="259" Count="1" />
+      <LineId Id="303" Count="1" />
+      <LineId Id="300" Count="2" />
+      <LineId Id="261" Count="10" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="275" Count="3" />
+      <LineId Id="281" Count="17" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetNextPosState">
+      <LineId Id="10" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="127" Count="1" />
+      <LineId Id="320" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="316" Count="0" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="111" Count="2" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="72" Count="1" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="222" Count="2" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="313" Count="0" />
+      <LineId Id="227" Count="4" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="252" Count="2" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="288" Count="7" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="258" Count="2" />
+      <LineId Id="262" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="340" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="154" Count="1" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="92" Count="2" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="173" Count="4" />
+      <LineId Id="332" Count="1" />
+      <LineId Id="178" Count="5" />
+      <LineId Id="336" Count="1" />
+      <LineId Id="184" Count="7" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="299" Count="8" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="206" Count="1" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetRpcStatus">
+      <LineId Id="7" Count="2" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetState">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_SetSubstate">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="4" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="7" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.M_UpdateStatus">
+      <LineId Id="154" Count="23" />
+      <LineId Id="188" Count="6" />
+      <LineId Id="252" Count="1" />
+      <LineId Id="195" Count="1" />
+      <LineId Id="198" Count="4" />
+      <LineId Id="237" Count="1" />
+      <LineId Id="207" Count="1" />
+      <LineId Id="210" Count="6" />
+      <LineId Id="218" Count="1" />
+      <LineId Id="221" Count="2" />
+      <LineId Id="225" Count="1" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_Disable">
+      <LineId Id="43" Count="7" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="51" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_Enable">
+      <LineId Id="43" Count="7" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="53" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_Init">
+      <LineId Id="206" Count="2" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="215" Count="3" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="189" Count="4" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="200" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_MoveAbs">
+      <LineId Id="266" Count="7" />
+      <LineId Id="223" Count="42" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_MoveRel">
+      <LineId Id="293" Count="7" />
+      <LineId Id="247" Count="45" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_Reset">
+      <LineId Id="33" Count="7" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SA_CHANNEL_BASE.RPC_Stop">
+      <LineId Id="38" Count="7" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="33" Count="4" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_LAKESHORE_COMMAND" Id="{9e4e6560-9ae0-4727-b262-70f8ef30db26}">
+    <Declaration><![CDATA[TYPE T_LAKESHORE_COMMAND :
+STRUCT
+	cmd:		STRING := '';	(* Command to send *)
+	nReplies:	DINT;   		(* Number of replies, i.e. reply terminators *)
+	nValues:	DINT;   		(* Number of returned numbers (values) in the reply *)
+	offset:		DINT;			(* Offset in data array where to write the first value *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

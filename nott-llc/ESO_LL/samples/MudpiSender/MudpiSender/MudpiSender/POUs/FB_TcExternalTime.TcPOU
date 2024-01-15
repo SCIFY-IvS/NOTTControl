@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_TcExternalTime" Id="{04df80b6-ee6b-4d8a-bf76-590aa477e691}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TcExternalTime
+VAR
+	_hr : HRESULT;
+	_ipExtTime : ITcExternalTime;
+	_eTimeType: ETcExternalTimeType;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="FB_Exit" Id="{6c2b1820-259c-4133-898f-66a50195986e}">
+      <Declaration><![CDATA[METHOD FB_Exit : BOOL
+VAR_INPUT
+	bInCopyCode : BOOL; // if TRUE, the exit method is called for exiting an instance that is copied afterwards (online change).
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _ipExtTime <> 0 THEN
+	FW_SafeRelease(ADR(_ipExtTime));
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_Init" Id="{10fb0437-74a0-4795-85cb-4994f004472a}">
+      <Declaration><![CDATA[METHOD FB_Init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+	eTimeType : ETcExternalTimeType; 
+END_VAR
+VAR
+	ipServer : ITComObjectServer;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ipServer := TwinCAT_SystemInfoVarList._AppInfo.TComSrvPtr;
+_eTimeType := eTimeType; 
+IF _ipExtTime = 0 THEN
+	_hr := ipServer.TcQueryInterface(IID_ITcExternalTime, ADR(_ipExtTime));
+	IF FAILED(_hr) THEN RETURN; END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetExternalOffset" Id="{3d9bdbf0-d24c-49b2-9bec-300aff29aee6}">
+      <Declaration><![CDATA[METHOD GetExternalOffset : LINT
+VAR_INPUT
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _ipExtTime <> 0 THEN
+	_hr := _ipExtTime.GetExternalTimeOffset(_eTimeType, GetExternalOffset);
+	IF _hr <> 0 THEN GetExternalOffset := 0; END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetExternalTime" Id="{b62b48e8-3381-4463-bee1-10cde8a1c840}">
+      <Declaration><![CDATA[METHOD GetExternalTime : LINT
+VAR_INPUT
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _ipExtTime <> 0 THEN
+	GetExternalTime := GetSystemTime();
+	_hr := _ipExtTime.SystemTimeToExternalTime(_eTimeType, GetExternalTime);
+	IF _hr <> 0 THEN GetExternalTime := 0; END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetSystemTime" Id="{e6892a87-bc2b-436a-a81b-d7c86e36956d}">
+      <Declaration><![CDATA[METHOD GetSystemTime : LINT]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[GetSystemTime := ULINT_TO_LINT(F_GetSystemTime());]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="Result" Id="{1113eba2-31a7-489b-a3a5-e8fc7e7f6e95}">
+      <Declaration><![CDATA[PROPERTY Result : HRESULT]]></Declaration>
+      <Get Name="Get" Id="{277aeb5d-98f6-4a35-8443-65530252d50d}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Result := _hr;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_TcExternalTime">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcExternalTime.FB_Exit">
+      <LineId Id="9" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcExternalTime.FB_Init">
+      <LineId Id="11" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcExternalTime.GetExternalOffset">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcExternalTime.GetExternalTime">
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcExternalTime.GetSystemTime">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TcExternalTime.Result.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

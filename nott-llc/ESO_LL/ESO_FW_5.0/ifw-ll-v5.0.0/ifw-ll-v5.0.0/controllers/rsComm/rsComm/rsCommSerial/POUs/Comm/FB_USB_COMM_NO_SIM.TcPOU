@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_USB_COMM_NO_SIM" Id="{ff140581-ce72-4299-b9e8-f51fc273ef54}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_USB_COMM_NO_SIM EXTENDS FB_RS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_USB_COMM_CFG;				// Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_RS_COMM_CTRL;				// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_RS_COMM_INFO; 			// Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_RS_COMM_STAT;				// Status parameters - ReadOnly
+
+	sim:		FB_SIM_RS_COMM_BASE;		// COMM simulator
+	
+	(* Serial line control *)
+	SerialCfg: 				ComSerialConfig;
+	COMportControl: 		SerialLineControlADS;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+cfgRef	REF=cfg;
+ctrlRef	REF=ctrl;
+infoRef	REF=info;
+statRef	REF=stat;
+simRef	REF=sim;
+
+SUPER^();]]></ST>
+    </Implementation>
+    <Method Name="M_ActionInitExecute" Id="{f2e1b282-94a5-4dd0-a016-d10e5d75ad17}">
+      <Declaration><![CDATA[METHOD M_ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bInitialised	:= FALSE;
+stat.sStatus		:= 'INITIALISING';
+stat.nStatus		:= E_RS_COMM_STATUS.BUSY;
+stat.sReply 		:= ''; (* No reply yet *)
+stat.nErrorCode		:= E_RS_COMM_ERROR.OK;
+stat.sErrorText		:= 'OK';
+
+// Copy input parameters to cfg
+cfg.sCmdSuffix		:= in_sCmdSuffix;
+cfg.sReplySuffix	:= in_sReplySuffix;
+cfg.nTimeout		:= in_nTimeout;
+
+// Copy communication configuration
+SerialCfg.ComPort	:= cfg.ComPort;
+SerialCfg.Baudrate	:= cfg.Baudrate;
+SerialCfg.DataBits	:= cfg.DataBits;
+SerialCfg.Parity	:= cfg.Parity;
+SerialCfg.StopBits	:= cfg.StopBits;
+
+// Set next state
+// Set 10 sec timeout for CONNECT, i.e. start the timer.
+fbTimer(IN:=FALSE);
+fbTimer(IN:=TRUE, PT:=T#10S);
+State	:= E_RS_COMM_STATE.CONNECT;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActivityConnect" Id="{f343a972-8b8a-4720-b69d-4fa4c01cc989}">
+      <Declaration><![CDATA[METHOD M_ActivityConnect
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// USB specific implementation of CONNECT
+fbTimer();
+IF fbTimer.Q THEN
+	fbTimer(IN:=FALSE);
+	State 			:= E_RS_COMM_STATE.ERROR;
+	stat.nErrorCode	:= E_RS_COMM_ERROR.TIMEOUT;
+	stat.sErrorText	:= 'Timeout on Port Open';
+	RETURN;
+END_IF
+
+// Check if the port is open
+IF COMportControl.PortOpened THEN
+	State := E_RS_COMM_STATE.CLEAR_BUFFER;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ComPortControl" Id="{e926e33d-c0b3-4dae-b586-5885bea5c4c1}">
+      <Declaration><![CDATA[METHOD M_ComPortControl
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// USB specific call of the background communication process
+COMportControl(
+	Connect		:= TRUE,		// Connect to serial port [TRUE=connect, FALSE=disconnect]
+	SerialCfg	:= SerialCfg,	// Serial port configuration
+	TxBuffer	:= TxBuffer,	// Serial Tx ComBuffer
+	RxBuffer	:= RxBuffer);	// Serial Rx ComBuffer
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_USB_COMM_NO_SIM">
+      <LineId Id="2084" Count="4" />
+      <LineId Id="2116" Count="0" />
+      <LineId Id="2089" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_USB_COMM_NO_SIM.M_ActionInitExecute">
+      <LineId Id="6" Count="23" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_USB_COMM_NO_SIM.M_ActivityConnect">
+      <LineId Id="19" Count="0" />
+      <LineId Id="6" Count="12" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_USB_COMM_NO_SIM.M_ComPortControl">
+      <LineId Id="23" Count="0" />
+      <LineId Id="27" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

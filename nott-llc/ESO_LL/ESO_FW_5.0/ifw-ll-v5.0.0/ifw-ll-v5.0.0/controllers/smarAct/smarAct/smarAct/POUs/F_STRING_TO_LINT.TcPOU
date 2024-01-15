@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="F_STRING_TO_LINT" Id="{b381afd4-c76e-4682-9efd-2bb6c70b6483}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_STRING_TO_LINT : LINT
+VAR_INPUT
+	in_s:	STRING;
+END_VAR
+VAR
+	lrVal:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// STRING_TO_LINT DOES NOT WORK !!!!!
+//
+// The string has to be converted to LREAL first and then to LINT
+//
+lrVal	:= STRING_TO_LREAL(in_s);
+
+F_STRING_TO_LINT	:= LREAL_TO_LINT(lrVal);
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_STRING_TO_LINT">
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MA_ROTATOR_TYPE" Id="{3d0c2e7d-59f2-41ff-8db5-5cdde5a63f5d}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MA_ROTATOR_TYPE :
+(
+	DROT 	:= 0,	// Derotator
+	ADAPTER := 1,	// Adapter
+	ROTATOR := 2	// Rotator
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_Cryostat_State" Id="{4ddce195-f30f-4bbd-a238-c5f0b6bc479b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Cryostat_State
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	nCryotemp_1 AT %I* : INT;
+	nCryotemp_2 AT %I* : INT;
+	nCryotemp_3 AT %I* : INT;
+	nCryotemp_4 AT %I* : INT;
+	
+	nCryoHeater_1 AT %Q* : UINT;
+	nCryoHeater_2 AT %Q* : UINT;
+	nCryoHeater_3 AT %Q* : UINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[GVL_Cryo_Temperatures.Temp_1 := nCryotemp_1 /10;
+
+GVL_Cryo_Temperatures.Temp_2 := nCryotemp_2 /10;
+
+GVL_Cryo_Temperatures.Temp_3 := nCryotemp_3 /10;
+
+GVL_Cryo_Temperatures.Temp_4 := nCryotemp_4 /10;
+
+nCryoHeater_1 := GVL_Cryo_Temperatures.CryoHeater_1;
+nCryoHeater_1 := GVL_Cryo_Temperatures.CryoHeater_2;
+nCryoHeater_1 := GVL_Cryo_Temperatures.CryoHeater_3;]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Cryostat_State">
+      <LineId Id="18" Count="9" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

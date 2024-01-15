@@ -1,0 +1,39 @@
+<Node>
+  <Title>YT-Scope</Title>
+  <Expanded>False</Expanded>
+  <FileName></FileName>
+  <Children>
+    <Node>
+      <Title>YT Scope Project</Title>
+      <Expanded>True</Expanded>
+      <FileName>C:\Users\fys-lab-ivs\Nextcloud\SCIFY\Software\Instrumentation Control\Delay_line_actuators\DL_Cryo_Test\DL_Cryo\DL_Cryo\YT-Scope\YT-Scope\YT Scope Project.tcscopex</FileName>
+      <Children>
+        <Node>
+          <Title>DataPool</Title>
+          <Expanded>False</Expanded>
+          <FileName></FileName>
+          <Children />
+        </Node>
+        <Node>
+          <Title>YT Chart</Title>
+          <Expanded>True</Expanded>
+          <FileName></FileName>
+          <Children>
+            <Node>
+              <Title>Axis Group</Title>
+              <Expanded>False</Expanded>
+              <FileName></FileName>
+              <Children />
+            </Node>
+          </Children>
+        </Node>
+        <Node>
+          <Title>Trigger</Title>
+          <Expanded>False</Expanded>
+          <FileName></FileName>
+          <Children />
+        </Node>
+      </Children>
+    </Node>
+  </Children>
+</Node>

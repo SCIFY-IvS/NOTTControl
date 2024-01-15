@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_MOTOR_CFG" Id="{f9924ab9-cd48-4def-aee7-2b2b462ed7be}">
+    <Declaration><![CDATA[TYPE T_MOTOR_CFG :
+STRUCT
+	//////////////////////////////////////////////////////////
+	// Parameters configurable from WS, Cfg GUI or directly //
+	//////////////////////////////////////////////////////////
+	
+	// Backlash compensation value [UU], direction given by the sign, 
+	// 0:	no backlash compensation, 
+	// >0:	approach from positive direction, 
+	// <0:	approach from negative direction
+	lrBacklash:			LREAL 	:= 0.0;		
+	lrDefaultVelocity:	LREAL 	:= 0.01;	// Default velocity for position mode [UU]
+
+	// SW Limits.
+	// If both limits are set to zero, limits are not used.
+	lrMaxPosition:		LREAL 	:= 0.0;	//  [UU]
+	lrMinPosition:		LREAL 	:= 0.0;	//  [UU]
+
+	nAxisType:			DINT	:= E_MOTOR_AXIS_TYPE.LINEAR;
+
+	// Timeouts
+	nTimeoutInit:		UDINT 	:= 60000;	(* Timeout for complete INIT sequence [ms] *)
+	nTimeoutMove:		UDINT 	:= 60000;	(* Timeout for a single move [ms] *)
+	nTimeoutSwitch:		UDINT 	:= 15000;	(* Timeout for exiting a switch [ms] *)
+
+
+	// Brake handling
+	bUseBrake:			BOOL	:= FALSE;
+	bActiveLowBrake:	BOOL	:= FALSE;
+
+	// ActiveLow configuration for switches. Default is 'FALSE'. 
+	bArrActiveLow:		ARRAY [E_MOTOR_SWITCH_INDEX.LSTOP..E_MOTOR_SWITCH_INDEX.USTOP] OF T_MOTOR_ACTIVE_LOW;
+	
+	// ActiveLow configuration for in-position switch. Default is 'FALSE'. 
+	bActiveLowInPos:	BOOL	:= FALSE;
+
+	// Default INIT sequence - Just calibrate to zero.
+	strArrInitSeq:		ARRAY [1..10] OF T_MOTOR_INIT_STEP := [
+											(nAction:=9, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0),
+											(nAction:=0, lrValue1:=0.0, lrValue2:=0.0)];
+											
+	// Function lock
+	bLock:			BOOL	:= FALSE;	// If TRUE, motor is locked
+	lrLockPos:		LREAL 	:= 0.0;		// Locked position [UU]
+	lrLockTol:		LREAL 	:= 0.0;		// Tolerance for in-locked position [UU]
+	
+	// User defined methods execution
+	bExecUserPreInit:	BOOL	:= FALSE;
+	bExecUserPostInit:	BOOL	:= FALSE;
+	bExecUserPreMove:	BOOL	:= FALSE;
+	bExecUserPostMove:	BOOL	:= FALSE;
+	
+	// Misc checks
+	bCheckInPos:		BOOL	:= FALSE;	// If TRUE, check if i_bInPos signal is active after move
+	bDisableAfterMove:	BOOL	:= FALSE;	// If TRUE, disable motor after each move
+	
+	// SoE drives (Sercos over EtherCAT) , e.g. AX5000, need special Reset procedure FB_SoEReset()
+	// in case of drive failure.
+	// Other drives, i.e. CoE drives (Can over EtherCAT), are reset with the standard MC_Reset().
+	// IMPORTANT NOTE: For the AX5000 the "Wait For WcState is OK" flag 
+	//                 has to be activated in the Advanced EtherCAT Settings/General/Behavior.
+	bSoE_Drive:			BOOL	:= FALSE;	// If TRUE, SoE drive, e.g. AX5000), default CoE, i.e. FALSE
+
+	// Logging
+	bLogExtTime:		BOOL 	:= FALSE;		// If TRUE, use external time in event logs. Default FALS
+	bDebug:				BOOL 	:= FALSE;		// If TRUE, show event logs of Debug type. Default FALSE.
+	bLog:				BOOL 	:= TRUE;		// If TRUE, log events. Default TRUE.
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

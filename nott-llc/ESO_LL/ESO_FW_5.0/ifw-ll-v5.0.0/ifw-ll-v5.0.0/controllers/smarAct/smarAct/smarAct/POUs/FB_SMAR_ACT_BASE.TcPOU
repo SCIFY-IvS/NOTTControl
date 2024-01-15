@@ -1,0 +1,1712 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SMAR_ACT_BASE" Id="{7a08522c-75ca-4a57-8257-0c0eacacae40}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SMAR_ACT_BASE EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bAutoMonitor:	BOOL := TRUE;	// If true, it starts PERIODIC reads (monitoring) after INIT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:			DINT := 1000;	// Interval for periodic reading [ms], default 1000 ms = 1 sec
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sCmdSuffix:		STRING(16);		// Terminator for command: LS336 '$0A', LS224 '$0D$0A'
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReplySuffix:	STRING(16);		// Terminator for reply
+
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sDeviceTcpIpAdr: STRING(16);		// Device IP address, e.g. '192.168.0.80'
+	{attribute 'OPC.UA.DA' := '0'}
+    in_nDeviceTcpPort:	UINT;			// Device Tcp port, default 7777 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_SA_CFG;	
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_SA_CTRL;	
+
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_SA_STATUS;	(* Common State Machine Status - ReadOnly *)
+
+	//
+	// Pointers for up to 18 channels/positioners.
+	// They are defined in FBs that EXTEND FB_SMAR_ACT_BASE.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCH:	ARRAY [0..17] OF POINTER TO FB_SA_CHANNEL_BASE;
+	
+	//
+	// Array of up to 18 channel/positioner names.
+	// Needed for GUI automation in case of uninitialised pointers.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	arrChName:	ARRAY [0..17] OF STRING;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nGuiIndex:	UINT;	// Index of Positioner to display on GUI
+	
+	// Pointer to Channel instance to be diplayed on GUI.
+	// Set in M_SetGuiPointer().
+	ptrGuiCH:	POINTER TO FB_SA_CHANNEL_BASE;	
+	
+	// Communication interface is added for any FB derived from FB_RS_BASE.
+	// That's why we need pointers, e.g. ptrReadCmds.
+	// We also need pointers to structures inside FB_RS_COMM, e.g. ptrCommCfg.
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_RS_COMM_CFG;	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_RS_COMM_CTRL;	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_RS_COMM_STAT;	(* Pointer to comm.stat instance *)
+
+
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:		TON; (* General Timeout *)
+
+	(* Misc internal vars *)
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdCounter:		INT := 1;	// Position in commands table
+	{attribute 'OPC.UA.DA' := '0'}
+	bResult:		BOOL := FALSE;
+
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_TCP_CLIENT;			// Instance of Tcp comm FB. OPC UA Disabled!!!
+	
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+//	Configure the device.
+// This will set proper references and pointers.
+//
+M_Configure();
+
+
+//
+// Execute comm instance.
+//
+comm(	in_bSimulation		:= in_bSimulation,
+		in_sDeviceTcpIpAdr	:= in_sDeviceTcpIpAdr,
+		in_nDeviceTcpPort	:= in_nDeviceTcpPort, 
+		in_sCmdSuffix		:= in_sCmdSuffix, 
+		in_sReplySuffix		:= in_sReplySuffix,
+		in_nPollingDelay 	:= 50,
+		in_nTimeout			:= 2000);
+
+
+//
+// Execute the base class object FB_RS_BASE.
+//
+SUPER^();
+
+
+//
+// Pass the SmarAct MCS2 Controller error status to
+// all positioners under its control.
+//
+M_PassCtrlState();
+
+
+//
+// Set pointer to Channel instance to be displayed on GUI.
+//
+M_SetGuiPointer();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{ab62c22c-9144-49b6-885f-4eeee8f7e8bd}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= -1;	// First init command. CASE 15: will increment it to 0
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Initialize COMM port
+		(* Reset the port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF M_GetCommStatus() = E_RS_COMM_STATUS.IDLE  AND M_GetCommInitialised() THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+
+			// Extract values from the reply to a stat variable.
+			IF ptrCommCtrl^.bHasReply	THEN
+				// Index is not important for INIT commands because they don't
+				// refer to MODule or CHANnel.
+				// We put zero for the input parameter.
+				M_ReadFromReply(0);	// Index is not important for INIT commands.
+			END_IF
+
+			cmdCounter		:= cmdCounter + 1;	// Increment init command index
+			fbTimer (IN := FALSE);	// disable timer 
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Init); // Wait INIT delay
+			bCommProblem	:= FALSE;
+			nMethodState 	:= 18;	// Execute next device INIT command
+		ELSIF M_GetCommStatus() = E_RS_COMM_STATUS.ERROR  AND fbTimer.ET > T#4900MS THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF cfg.cmdList_Init[cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= cfg.cmdList_Init[cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= cfg.cmdList_Init[cmdCounter].nReplies;
+		ptrCommCtrl^.bHasReply		:= cfg.cmdList_Init[cmdCounter].nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{c3106a57-f789-4acd-b6b1-1aca214df7a0}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+	{attribute 'OPC.UA.DA' := '0'}
+	nCmdType:		E_SA_CMD_TYPE := E_SA_CMD_TYPE.READ;
+	{attribute 'OPC.UA.DA' := '0'}
+	devCmd:			T_SA_COMMAND;	// Device command to be sent
+	
+	// TODO: Testing
+	{attribute 'OPC.UA.DA' := '0'}
+	nChIdx:			UINT := 0;	// Channel index for testing of hash character handling
+	{attribute 'OPC.UA.DA' := '0'}
+	nCmdIdx:		UINT := 0;	// Command index in specific command list. [0..15]
+
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// At least one module must be used.
+// If not, don't do anything.
+//
+IF stat.nNumMod = 0	THEN
+	SetAction('ERROR: No Module Used !!!'); 
+	SetStatus(E_SM_ERROR.INIT_FAILURE, 'ERROR: No Module Used !!!');
+	RETURN;
+END_IF
+
+IF NOT cfg.bAutoMonitor AND stat.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY THEN
+	SetAction('No Monitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'IDLE');
+	nMethodState	:= 0;	// Reset the state machine
+	RETURN;
+END_IF
+
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	nCmdType		:= E_SA_CMD_TYPE.READ;	// We start with READ commands.
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Get valid channel.
+		// This call will check if the current channel is used.
+		// If not, it will take next available channel.
+		nChIdx	:= M_GetValidChannel(nChIdx);
+		
+		// If this is the very first command for the channel,
+		// Set commands.
+		IF nCmdIdx = 0	THEN
+			M_SetCmdList(nChIdx);
+		END_IF
+		
+		
+		// Get next command to execute.
+		// The command depends on the state of the positioner and 
+		// the current index (nCmdIdx) of the command in the list.
+		//
+		devCmd	:= M_GetCommand(nCmdIdx);
+	
+			
+		// Check if we have arrived at the end of the command list.
+		// In this case, go to the next channel.
+		IF devCmd.cmd = '' THEN
+			// We have executed all commands.
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE	THEN
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= '';
+				RETURN;
+			END_IF
+
+			//
+			// Update Positioner status
+			//
+			ptrCH[nChIdx]^.M_UpdateStatus();
+			
+			
+			// Check if the State Machine State should be changed.
+			// If yes, M_SetNextPosState() will set new state and return TRUE.
+			// This can happen due to any Positioner control command (CAL, REF, RESET, ENABLE, DISABLE, MOVE or STOP)
+			IF ptrCH[nChIdx]^.M_SetNextPosState()	THEN
+				// The State has changed.
+				// Reset command index to 0, i.e. start from the first command.
+				nCmdIdx	:= 0;
+			ELSE
+				// Get NEXT valid channel
+				nChIdx	:= M_GetValidChannel(nChIdx + 1);
+				
+				// Reset command index to 0
+				nCmdIdx	:= 0;
+			END_IF
+						
+				
+			// Wait tDelay_Periodic before re-starting the READ.
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+			nMethodState 	:= 10;	// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+		
+		// Send command
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= devCmd.cmd;
+		ptrCommCtrl^.nNumReplies	:= devCmd.nReplies;
+		ptrCommCtrl^.bHasReply		:= devCmd.nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		
+		
+		statRef.sErrorText	:= 'BUSY';
+
+		// In case we are executing a CTRL command with no replies,
+		// we apply a long timeout.
+		// However, when the comm port becomes IDLE and after at 
+		// least 200ms, we go to the next command. (see nMethodState 12:)
+		IF NOT ptrCommCtrl^.bHasReply THEN
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#10S); 
+			nCmdIdx			:= nCmdIdx + 1;	// Go to next command.
+			nMethodState	:= 12;				// Goto WAIT for delay
+			RETURN;
+		ELSE			
+			// There is a reply, i.e. this is a 'READ' command.
+			// For regular READ commands, apply short delay of 10ms before 
+			// checking the status of comm port. 
+			// Start the timer by going false/true
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#10MS);	
+
+			statRef.sErrorText	:= 'BUSY';
+			nMethodState := 15;	// Goto short delay
+			RETURN;
+		END_IF
+		
+		
+		
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 0;				// Goto handling of next command
+			RETURN;
+		END_IF
+	
+	12:	// Wait until the comm port is idle and at least 200ms have expired.
+		// Otherwise, wait the PT period.
+		fbTimer (IN := TRUE);
+
+		IF (M_GetCommStatus() = E_RS_COMM_STATUS.IDLE  AND  fbTimer.ET > T#200MS)	OR
+			fbTimer.Q	THEN
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 0;				// Goto handling of next command
+			RETURN;
+		END_IF
+
+	
+	15:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			fbTimer (IN := TRUE, PT := T#3S);	// 3 sec timeout for reply
+			statRef.sErrorText	:= 'BUSY';
+			nMethodState 	:= 20;	// Goto Wait for IDLE/Reply
+			RETURN;
+		END_IF
+	
+
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF M_GetCommStatus() = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			
+			// Extract values from the reply to a stat variable.
+			M_ReadFromReply(nChIdx);
+
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+
+			nCmdIdx			:= nCmdIdx + 1;	// Go to next command.
+			
+			nMethodState 	:= 0;				// Goto Send command
+			nEvent := E_SM_EVENT.COMMOK;
+			RETURN;
+		ELSIF M_GetCommStatus() = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 2 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 1 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+				RETURN;
+			END_IF
+			// Apply a short delay of 1 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#1000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		END_IF
+
+	
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{4063fcd8-b332-46cb-9c93-da3d85c0a58d}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	i:		UINT;
+	nMod:	UINT;	// Module number
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// NOTE: Do not touch this method.
+//       Specific configuration is given in M_ConfigureUser().
+//
+
+IF NOT stat.bConfigured	THEN
+	
+	// Set references - MANDATORY !!!
+	cfgRef	REF=cfg;
+	ctrlRef	REF=ctrl;
+	statRef	REF=stat;
+	
+	
+	// Copy timeouts from the input parameters
+	cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+	cfg.tDelay_Ctrl		:= T#50MS;
+
+	
+	// Assign list of commands to read before Positioner is initialised
+	ctrl.cmdList		:= cfg.cmdList_NOT_READY;
+	
+	
+	// Set pointers to comm, i.e.
+	ptrCommCfg	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	ptrCommCtrl	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	ptrCommStat	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+	
+
+	// Set comm suffixes for commands and replies
+	ptrCommCfg^.sCmdSuffix		:= in_sCmdSuffix;
+	ptrCommCfg^.sReplySuffix	:= in_sReplySuffix;
+
+	
+	//
+	// Execute specific user configuration.
+	// This method configures all used channels.
+	//
+	M_ConfigureUser();
+	
+
+	//
+	// Set bUsed flag, channel and module number for each used Channel. 
+	// Populate array of Used Modules.
+	//
+	FOR i:=0 TO 17 DO
+		IF cfg.arrUsedCh[i]	= TRUE	THEN
+			IF ptrCH[i] = 0	THEN
+				// Check if pointers are correctly set.
+				stat.sErrorText := 'ERROR: Pointer to FB_SA_CHANNEL_BASE not set!'; 
+				RETURN;
+			END_IF
+			ptrCH[i]^.M_SetChannel(i);
+			// Get module number
+			nMod	:= ptrCH[i]^.M_GetModule();
+			// Set MOD bUsed flag 
+			stat.arrModState[nMod].bUsed 	:= TRUE;
+			cfg.arrUsedMod[nMod] 			:= TRUE;
+			// Set GUI label
+			arrChName[i]	:= ptrCH[i]^.cfg.sName;
+		ELSE
+			arrChName[i]	:= 'Not Used';
+		END_IF
+	END_FOR
+	
+	
+	//
+	// Get the total number of Modules
+	//
+	stat.nNumMod	:= 0;
+	FOR i:=0 TO 5 DO
+		IF stat.arrModState [i].bUsed	THEN
+			stat.nNumMod	:= stat.nNumMod + 1;
+		END_IF
+	END_FOR
+	
+
+	//
+	// Get the total number of Channels
+	//
+	stat.nNumCh	:= 0;
+	FOR i:=0 TO 17 DO
+		IF cfg.arrUsedCh[i]	THEN
+			stat.nNumCh	:= stat.nNumCh + 1;
+		END_IF
+	END_FOR
+	
+	
+	// Get the smarAct.library version 
+	stat.sLibVersion	:= stLibVersion_ESO_LDC_SmarAct_Library.sVersion;
+
+
+	// Configuration completed
+	stat.bConfigured	:= TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConfigureUser" Id="{c5d4f798-e768-460a-80d9-8c187fcd5337}">
+      <Declaration><![CDATA[METHOD M_ConfigureUser
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// This is an example of method M_ConfigureUser() that
+// must be provided for each customized FB that EXTENDS the 
+// functionality of FB_SMAR_ACT_BASE.
+// The method defines specific configurations for each positioner/channel.
+//
+
+//
+// TODO USER
+//
+
+// 
+// In the following example, it is assumed that there are two positioners defined
+// In the FB that EXTENDS FB_SMAR_ACT_BASE. (see FBs in Examples directory)
+//
+// 	fw:		FB_SA_CHANNEL_BASE;
+//	iris:	FB_SA_CHANNEL_BASE;
+//
+
+
+//
+// Set used channels [0..17].
+// In this example, we use channels 0 and 1.
+//
+(*
+cfg.arrUsedCh[0]	:= TRUE;
+cfg.arrUsedCh[1]	:= TRUE;
+*)
+
+
+//
+// Set pointers to instances of used channels
+//
+(*
+ptrCH[0]	:= ADR(fw);
+ptrCH[1]	:= ADR(iris);
+*)
+
+
+
+/////////////////////////////////////////////////////////////
+// Specific configuration for each SmarAct Channel/Positioner
+/////////////////////////////////////////////////////////////
+(*
+//
+// SFW-6-25.4 - Filter Wheel, Channel 0
+//
+fw.M_Configure(
+	in_sName			:= 'PYR Filter Wheel',
+	in_lrScale			:= 1.0, 
+	in_lrREF_POS		:= 0.0,		// REF mark pos
+	in_lrREF_VEL		:= 20.0,	// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.001,	// in-pos threshold = 0.001 deg
+	in_nINP_DEL			:= 500,		// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 30,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 0.0,		// Min=Max ==> No limits
+	in_lrRangeLimitMax	:= 0.0,		// Min=Max ==> No limits 
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+
+//
+// SID-50 - Iris Diaphragm, Channel 1
+//
+iris.M_Configure(
+	in_sName			:= 'SHAPS Diaphragm',
+	in_lrScale			:= -0.000772, 
+	in_lrREF_POS		:= 25.244,	// REF mark pos
+	in_lrREF_VEL		:= 5.0,		// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.0002,	// in-pos threshold = 0.0002 UU
+	in_nINP_DEL			:= 500,		// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 20,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 0.0,		// Min limit
+	in_lrRangeLimitMax	:= 0.0,		// Max limit 
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetChMod" Id="{6d54f45f-a94d-4c5c-b78f-1862249a12b6}">
+      <Declaration><![CDATA[METHOD M_GetChMod : UINT
+VAR_INPUT
+	index:	UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetChMod	:= ptrCH[index]^.M_GetModule();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommand" Id="{c6ef9cbb-efc1-4138-bdba-91c1e4c2fce6}">
+      <Declaration><![CDATA[//
+// Get command with index 'index' from ctrl.cmdList[]
+//
+METHOD M_GetCommand : T_SA_COMMAND
+VAR_INPUT
+	index:		UINT;
+END_VAR
+VAR
+	emptyCmd:	T_SA_COMMAND;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF index < 0 OR index > 15	THEN
+	// The index is not valid. Set empty command.
+	M_GetCommand	:= emptyCmd;
+ELSE
+	M_GetCommand	:= ctrl.cmdList[index];
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommInitialised" Id="{ba9b738e-50b2-48e4-8fd3-acac93ccd286}">
+      <Declaration><![CDATA[METHOD M_GetCommInitialised : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// This is just a dummy method for BASE FB
+M_GetCommInitialised	:= comm.M_GetInitialised();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommStatus" Id="{3f2ceac5-2937-4b3e-9231-a3c1f519ffea}">
+      <Declaration><![CDATA[METHOD M_GetCommStatus : E_RS_COMM_STATUS
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetCommStatus	:= comm.M_GetStatus();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetDevState" Id="{64a58c9b-45d6-4640-88e1-7a5a6be251f3}">
+      <Declaration><![CDATA[METHOD M_GetDevState
+VAR_INPUT
+	nStatus:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.stDevState.bHM_PRESENT				:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_HM_PRESENT);
+stat.stDevState.bMOVEMENT_LOCKED			:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_MOVEMENT_LOCKED);
+stat.stDevState.bAMPLIFIER_LOCKED		:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_AMPLIFIER_LOCKED);
+stat.stDevState.bIO_MODULE_INPUT			:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_IO_MODULE_INPUT);
+stat.stDevState.bGLOBAL_INPUT			:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_GLOBAL_INPUT);
+stat.stDevState.bINTERNAL_COMM_FAILURE	:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_INTERNAL_COMM_FAILURE);
+stat.stDevState.bIS_STREAMING			:= UDINT_TO_BOOL(nStatus AND E_SA_DEV_STATE.BIT_IS_STREAMING);
+
+IF	stat.stDevState.bHM_PRESENT				OR
+	stat.stDevState.bMOVEMENT_LOCKED			OR
+	stat.stDevState.bAMPLIFIER_LOCKED		OR
+	stat.stDevState.bINTERNAL_COMM_FAILURE	OR
+	stat.stDevState.bIS_STREAMING				THEN
+	stat.stDevState.bERROR	:= TRUE;
+ELSE
+	stat.stDevState.bERROR	:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetModStatus" Id="{4058a6f5-866a-4c42-8190-751430cf723d}">
+      <Declaration><![CDATA[METHOD M_GetModStatus
+VAR_INPUT
+	index:		UINT;
+	nStatus:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// MODule index is [0..5]
+IF index > 5	THEN
+	RETURN;
+END_IF
+
+stat.arrModState[index].bSM_PRESENT				:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_SM_PRESENT);
+stat.arrModState[index].bBOOSTER_PRESENT		:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_BOOSTER_PRESENT);
+stat.arrModState[index].bADJUSTMENT_ACTIVE		:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_ADJUSTMENT_ACTIVE);
+stat.arrModState[index].bIOM_PRESENT			:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_IOM_PRESENT);
+stat.arrModState[index].bINTERNAL_COMM_FAILURE	:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_INTERNAL_COMM_FAILURE);
+stat.arrModState[index].bFAN_FAILURE			:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_FAN_FAILURE);
+stat.arrModState[index].bPOWER_SUPPLY_FAILURE	:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_POWER_SUPPLY_FAILURE);
+stat.arrModState[index].bPOWER_SUPPLY_OVERLOAD	:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_POWER_SUPPLY_OVERLOAD);
+stat.arrModState[index].bOVER_TEMPERATURE		:= UDINT_TO_BOOL(nStatus AND E_SA_MOD_STATE.BIT_OVER_TEMPERATURE);
+
+IF	stat.arrModState[index].bINTERNAL_COMM_FAILURE	OR
+	stat.arrModState[index].bFAN_FAILURE			OR
+	stat.arrModState[index].bPOWER_SUPPLY_FAILURE	OR
+	stat.arrModState[index].bPOWER_SUPPLY_OVERLOAD	OR
+	stat.arrModState[index].bOVER_TEMPERATURE			THEN
+		stat.arrModState[index].bERROR	:= TRUE;
+ELSE
+		stat.arrModState[index].bERROR	:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{59c80958-3d82-4734-8cc5-9c5f4e537dd0}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_SA_RPC_ERROR.OK:					str	:= 'OK';
+	E_SA_RPC_ERROR.NOT_OP:				str	:= 'Not initialised, i.e. not in channel OP state.';
+	E_SA_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP_READY.';
+	E_SA_RPC_ERROR.NOT_NOTOP_NOTREADY:	str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_SA_RPC_ERROR.LOCAL:				str	:= 'RPC calls not allowed in Local mode.';
+	E_SA_RPC_ERROR.SW_LIMIT_LOWER:		str	:= 'Target position beyond Lower SW Limit';
+	E_SA_RPC_ERROR.SW_LIMIT_UPPER:		str	:= 'Target position beyond Upper SW Limit';
+	E_SA_RPC_ERROR.CHANNEL:				str	:= 'Channel not in range [0..17]';
+	E_SA_RPC_ERROR.VEL_MAX:				str	:= 'Target Velocity higher than Maximum';
+	E_SA_RPC_ERROR.VEL_NEG:				str	:= 'Target Velocity cannot be negative';
+	E_SA_RPC_ERROR.VEL_ZERO:			str	:= 'Target Velocity cannot be zero';
+	E_SA_RPC_ERROR.CH_NOT_OP:			str	:= 'Channel not OPERATIONAL. REFerence first.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetValidChannel" Id="{b0d60020-b918-4180-9cb6-5ff5981d4534}">
+      <Declaration><![CDATA[METHOD M_GetValidChannel : UINT
+VAR_INPUT
+	index:	UINT;
+END_VAR
+VAR
+	i:	UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Return first available Channel index, starting from 'index'.
+// Channels are in range [0..17]
+FOR i:= index TO 17 DO
+	IF cfg.arrUsedCh[i] = TRUE	THEN
+		M_GetValidChannel	:= i;
+		RETURN;
+	END_IF
+END_FOR
+
+// We didn't find any, start from zero index again.
+FOR i:= 0 TO 17 DO
+	IF cfg.arrUsedCh[i] = TRUE	THEN
+		M_GetValidChannel	:= i;
+		RETURN;
+	END_IF
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PassCtrlState" Id="{6842355c-910a-4cea-a108-567e76de5772}">
+      <Declaration><![CDATA[METHOD M_PassCtrlState
+VAR_INPUT
+END_VAR
+VAR
+	i:	UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i:= 0 TO 17 DO
+	IF ptrCH[i] <> 0	THEN
+		ptrCH[i]^.M_GetCtrlState(bCommProblem, stat.nErrorCode, stat.nState);
+	END_IF
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{dd45b58a-231d-457c-9da0-f6ca506f52da}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+VAR_INPUT
+	index:	UINT;	// Channel number!
+END_VAR
+VAR
+	pos:			INT;	// Position of the terminator in the reply.
+    parsed_reply: 	STRING;
+	refChStatus:	REFERENCE TO T_SA_CH_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Reply should always end with in_sReplySuffix ('$R$N') character.
+// Otherwise, it's an error.
+// Only commands with the reply from which the value should be read are handled.
+//
+
+
+pos := FIND (stat.sReply, in_sReplySuffix);
+IF pos > 0	THEN
+    parsed_reply := LEFT(stat.sReply, LEN(stat.sReply) - LEN(in_sReplySuffix));
+	
+	//
+	// INIT commands, not related to MODule or CHANnel.
+	//
+	IF ptrCommCtrl^.sCmd = '*IDN?' THEN
+		// Get the DEVice ID
+		stat.sIDN	:= parsed_reply;
+		
+	ELSIF ptrCommCtrl^.sCmd = ':DEV:STAT?' THEN
+		// Get the DEVice state
+		stat.nDevState	:= STRING_TO_UDINT(parsed_reply);
+		M_GetDevState(stat.nDevState);
+		
+	ELSIF ptrCommCtrl^.sCmd = ':DEV:SNUM?' THEN
+		// Get the DEVice Serial Number
+		stat.sDevSerNum	:= parsed_reply;
+
+	//
+	// Replies to commands starting with ':MOD'.
+	//
+	ELSIF FIND(ptrCommCtrl^.sCmd, ':MOD') = 1 THEN
+		IF FIND(ptrCommCtrl^.sCmd, ':STAT?') > 1 THEN
+			// FB_SA_CHANNEL::M_GetModule() returns the index of the MODule
+			M_GetModStatus(ptrCH[index]^.M_GetModule(), STRING_TO_UDINT(parsed_reply));
+		END_IF
+
+	//
+	// Replies to commands starting with ':CHAN'.
+	//
+	ELSIF FIND(ptrCommCtrl^.sCmd, ':CHAN') = 1  THEN
+		// We need a REFerence in order to write attributes inside FB.
+		refChStatus REF=ptrCH[index]^.stat;
+
+		IF FIND(ptrCommCtrl^.sCmd, ':STAT?') > 1 THEN
+			ptrCH[index]^.M_SetChanState(STRING_TO_UDINT(parsed_reply));
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':PCON:OPT?') > 1 THEN
+			refChStatus.devStatus.nPCON_OPT	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':CLIN?') > 1 THEN
+			refChStatus.devStatus.nCLIN	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':TUN:BASE:UNIT?') > 1 THEN
+			refChStatus.devStatus.nTUN_BASE_UNIT	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':TUN:BASE:RES?') > 1 THEN
+			refChStatus.devStatus.nTUN_BASE_RES	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':TUN:MTYP?') > 1 THEN
+			refChStatus.devStatus.nTUN_MTYP	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':TUN:RTYP?') > 1 THEN
+			refChStatus.devStatus.nTUN_RTYP	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':INP:THR?') > 1 THEN
+			refChStatus.devStatus.nINP_THR	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':INP:DEL?') > 1 THEN
+			refChStatus.devStatus.nINP_DEL	:= STRING_TO_DINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':POS:TARG?') > 1 THEN
+			refChStatus.devStatus.lnPosTarget	:= F_STRING_TO_LINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':POS:CURR?') > 1 THEN
+			refChStatus.devStatus.lnPosActual	:= F_STRING_TO_LINT(parsed_reply);
+	
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':RLIM:MIN?') > 1 THEN
+			refChStatus.devStatus.nRLIM_MIN	:= F_STRING_TO_LINT(parsed_reply);
+
+		ELSIF FIND(ptrCommCtrl^.sCmd, ':RLIM:MAX?') > 1 THEN
+			refChStatus.devStatus.nRLIM_MAX	:= F_STRING_TO_LINT(parsed_reply);
+		END_IF	
+	END_IF	
+	
+	M_ReadFromReply	:= TRUE; (* OK *)
+ELSE
+	M_ReadFromReply	:= FALSE;	//	Failed to read from the reply
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCmdList" Id="{d101f54f-13d3-4f59-83db-1ab0dfc8ea46}">
+      <Declaration><![CDATA[METHOD M_SetCmdList
+VAR_INPUT
+	index:			UINT := 0;	// Channel index
+END_VAR
+VAR
+	nChState:	E_SA_POS_SM_STATE := ptrCH[index]^.stat.nPosState;
+	i:			INT;
+	cmd:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Copy corresponding list of commands to the list in the 'ctrl' structure.
+// The generic list contains # characters !
+// Examples: ':MOD#:STAT?', ':CHAN#:POS:TARG?', etc.
+// They have to be replaced with Channel or Module number.
+//
+CASE nChState OF
+	E_SA_POS_SM_STATE.NOT_READY:
+		ctrl.cmdList	:= cfg.cmdList_NOT_READY;
+	E_SA_POS_SM_STATE.CALIB:
+		// Calibration requires only one command, ':CAL#'.
+		ctrl.cmdList[0].cmd			:= ':CAL#';
+		ctrl.cmdList[0].nReplies	:= 0;
+		ctrl.cmdList[1].cmd			:= '';		// Command terminator
+	E_SA_POS_SM_STATE.INIT:
+		ctrl.cmdList	:= cfg.cmdList_CfgSet;
+	E_SA_POS_SM_STATE.POST_INIT:
+		ctrl.cmdList	:= cfg.cmdList_POST_INIT;
+	E_SA_POS_SM_STATE.CALIB_REF:
+		// First set the MIN and MAX limits.
+		// Calibrate the REFerence mark. 
+		// Read new MIN and MAX limits.
+		ctrl.cmdList[0].cmd			:= ':CHAN#:RLIM:MIN ***';
+		ctrl.cmdList[0].nReplies	:= 0;
+		ctrl.cmdList[1].cmd			:= ':CHAN#:RLIM:MAX ***';
+		ctrl.cmdList[1].nReplies	:= 0;
+		ctrl.cmdList[2].cmd			:= ':CHAN#:POS ***';
+		ctrl.cmdList[2].nReplies	:= 0;
+		ctrl.cmdList[3].cmd			:= ':CHAN#:RLIM:MIN?';
+		ctrl.cmdList[3].nReplies	:= 1;
+		ctrl.cmdList[4].cmd			:= ':CHAN#:RLIM:MAX?';
+		ctrl.cmdList[4].nReplies	:= 1;
+		ctrl.cmdList[5].cmd			:= '';		// Command terminator
+	E_SA_POS_SM_STATE.READY:
+		ctrl.cmdList	:= cfg.cmdList_Mon;
+	E_SA_POS_SM_STATE.OP:
+		ctrl.cmdList	:= cfg.cmdList_Mon;
+	E_SA_POS_SM_STATE.MOVING:
+		// Move the positioner. 
+		// Set direction ':CHAN#:VEL <vel>'
+		// Set velocity ':CHAN#:VEL <vel>'
+		// Move         ':MOVE# <pos>'.
+		ctrl.cmdList[0].cmd			:= ':CHAN#:VEL ***';
+		ctrl.cmdList[0].nReplies	:= 0;
+		ctrl.cmdList[1].cmd			:= ':MOVE# ***';
+		ctrl.cmdList[1].nReplies	:= 0;
+		ctrl.cmdList[2].cmd			:= '';		// Command terminator
+	E_SA_POS_SM_STATE.STOP:
+		// Stop the positioner. 
+		// Requires only one command, ':STOP#'.
+		ctrl.cmdList[0].cmd			:= ':STOP#';
+		ctrl.cmdList[0].nReplies	:= 0;
+		ctrl.cmdList[1].cmd			:= '';		// Command terminator
+	E_SA_POS_SM_STATE.ERROR:
+		ctrl.cmdList	:= cfg.cmdList_Mon;
+END_CASE
+
+// Set MOD or CHAN index, depending on the command.
+FOR i:=0 TO 15 DO
+	cmd	:= ctrl.cmdList[i].cmd;
+	IF cmd <> ''	THEN
+		IF FIND(cmd, ':MOD#') = 1	THEN
+			// A MODule command. Set MOD index.
+			ctrl.cmdList[i].cmd			:= ptrCH[index]^.M_SetCommandModule(cmd);
+		ELSIF FIND(cmd, ':CHAN#') = 1  OR  FIND(cmd, ':MOVE#') = 1	THEN
+			// Channel commands.
+			// Commands with parameters have the dummy string '***'.
+			// Replace *** in generic command with the value.
+			IF FIND(cmd, '***') > 0 THEN
+				cmd	:= ptrCH[index]^.M_SetCommandValue(cmd);
+			END_IF
+			// Set CHAN number in the command.
+			ctrl.cmdList[i].cmd			:= ptrCH[index]^.M_SetCommandChannel(cmd);
+		ELSIF FIND(cmd, ':CAL#') = 1  OR  FIND(cmd, ':REF#') = 1  OR  FIND(cmd, ':STOP#') = 1	THEN
+			// Channel command. Replace only the channel number.
+			ctrl.cmdList[i].cmd			:= ptrCH[index]^.M_SetCommandChannel(cmd);
+		END_IF
+	END_IF
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetGuiPointer" Id="{580a5b89-cf16-4e15-a10b-3279b3feecdc}">
+      <Declaration><![CDATA[METHOD M_SetGuiPointer
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// There are up to 18 channels [0..17].
+IF nGuiIndex > 17	THEN
+	nGuiIndex	:= 17;
+END_IF
+
+ptrGuiCH	:= ptrCH[nGuiIndex];
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{ed05df4d-5f4e-43ae-89f5-31a1d91ea869}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF	statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING 		OR 
+	statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY			OR
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_ERROR 	AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY) 		OR 
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_ERROR 		AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING)			THEN
+	ActivityMonitoring(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING THEN
+	ActivityInitializing(TRUE);
+END_IF
+
+// Set last known good substate. Used for recovery from comm problems.
+M_SetLastGoodSubstate();
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE statRef.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_RS_BASE_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE statRef.nSubstate OF
+	
+	E_RS_BASE_SUBSTATE.NOTOP_NOTREADY:		
+		IF 	nEvent = E_SM_EVENT.INIT OR cfgRef.bAutoMonitor  THEN
+			nEvent := E_SM_EVENT.INIT;
+			ActionInitExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING:			
+		IF nEvent = E_SM_EVENT.INITDONE THEN
+			nReadType := E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			IF cfgRef.bAutoMonitor THEN
+				nEvent := E_SM_EVENT.ENABLE;
+				statRef.bAutoStarted	:= TRUE;
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			ELSE
+				SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_READY);
+			END_IF
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.ERRINIT THEN
+			// INIT failed. Keep re-trying.
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_READY:			
+		IF nEvent = E_SM_EVENT.ENABLE THEN
+			IF cfgRef.bAutoMonitor THEN
+				// Monitoring is already in progress.
+				// It has to complete the read cycle in a clean way.
+				nNextState		:= E_RS_BASE_STATE.OP;					// Next state after STOP	
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.OP_MONITORING;	// Next substate after STOP	
+				nNextDescription:= 'BUSY';
+				nReadType		:= E_RS_BASE_READ_TYPE.PERIODIC;
+				RETURN;
+			ELSE
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+				// This call MUST be after SetState()
+				ActivityMonitoring(FALSE);	// Reset Monitoring method
+			END_IF
+		END_IF
+
+	E_RS_BASE_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF	nEvent = E_SM_EVENT.ERRHW OR
+		nEvent = E_SM_EVENT.ERRCOMM	THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_RS_BASE_STATE.OP:
+
+	(* Transitions from OP subastates *)
+	CASE statRef.nSubstate OF
+	E_RS_BASE_SUBSTATE.OP_ERROR:			
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.OP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+
+	E_RS_BASE_SUBSTATE.OP_MONITORING:
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+			// Re-initialise on comm error.
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;			
+		END_IF
+		
+		
+	E_RS_BASE_SUBSTATE.OP_IDLE:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR OR nEvent = E_SM_EVENT.ENABLE THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+	
+	// Transitions from OP state.
+	// Valid for any OP substate.
+	IF nEvent = E_SM_EVENT.ERRHW THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_SM_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{60466611-4f84-4632-bec6-707cbadd749d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF stat.nState <> E_RS_BASE_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Set disable command
+	ctrl.nCommand := E_RS_COMMAND.DISABLE;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{4d9488e9-b083-4821-aa71-d9c5fd8da4b8}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+IF	stat.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_READY		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	// Set enable command
+	ctrl.nCommand := E_RS_COMMAND.ENABLE;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{51336ff5-8cf4-444f-ad25-2ffa486844a5}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+
+// Init command is accepted only if device is in NOTOP_NOTREADY or ERROR.
+IF	stat.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_NOTREADY	AND  
+	stat.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_ERROR		THEN
+	RPC_Init	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_NOTOP_NOTREADY);
+	RETURN;
+ELSE
+	// Set INIT command
+	ctrl.nCommand := E_RS_COMMAND.INIT;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{009bb7f2-47b9-4dea-b080-934391fea01c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_RS_COMMAND.RESET;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{b2dd7536-18fe-40cb-90c1-82c88b5daf9d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_RS_COMMAND.STOP;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SMAR_ACT_BASE">
+      <LineId Id="324" Count="36" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.ActivityInitializing">
+      <LineId Id="3" Count="10" />
+      <LineId Id="56" Count="16" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="155" Count="2" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="73" Count="57" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.ActivityMonitoring">
+      <LineId Id="658" Count="13" />
+      <LineId Id="673" Count="7" />
+      <LineId Id="682" Count="15" />
+      <LineId Id="700" Count="20" />
+      <LineId Id="933" Count="0" />
+      <LineId Id="930" Count="0" />
+      <LineId Id="721" Count="0" />
+      <LineId Id="934" Count="0" />
+      <LineId Id="931" Count="0" />
+      <LineId Id="935" Count="0" />
+      <LineId Id="932" Count="0" />
+      <LineId Id="722" Count="0" />
+      <LineId Id="882" Count="0" />
+      <LineId Id="881" Count="0" />
+      <LineId Id="876" Count="0" />
+      <LineId Id="957" Count="0" />
+      <LineId Id="879" Count="1" />
+      <LineId Id="849" Count="5" />
+      <LineId Id="872" Count="0" />
+      <LineId Id="859" Count="9" />
+      <LineId Id="748" Count="14" />
+      <LineId Id="958" Count="1" />
+      <LineId Id="763" Count="1" />
+      <LineId Id="884" Count="0" />
+      <LineId Id="766" Count="27" />
+      <LineId Id="885" Count="0" />
+      <LineId Id="908" Count="0" />
+      <LineId Id="886" Count="1" />
+      <LineId Id="896" Count="0" />
+      <LineId Id="907" Count="0" />
+      <LineId Id="904" Count="2" />
+      <LineId Id="902" Count="1" />
+      <LineId Id="894" Count="0" />
+      <LineId Id="794" Count="1" />
+      <LineId Id="895" Count="0" />
+      <LineId Id="797" Count="48" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_Configure">
+      <LineId Id="625" Count="0" />
+      <LineId Id="627" Count="2" />
+      <LineId Id="626" Count="0" />
+      <LineId Id="464" Count="1" />
+      <LineId Id="470" Count="8" />
+      <LineId Id="630" Count="0" />
+      <LineId Id="479" Count="9" />
+      <LineId Id="631" Count="0" />
+      <LineId Id="489" Count="2" />
+      <LineId Id="632" Count="0" />
+      <LineId Id="498" Count="2" />
+      <LineId Id="634" Count="0" />
+      <LineId Id="501" Count="0" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="502" Count="0" />
+      <LineId Id="633" Count="0" />
+      <LineId Id="508" Count="2" />
+      <LineId Id="608" Count="0" />
+      <LineId Id="511" Count="1" />
+      <LineId Id="646" Count="0" />
+      <LineId Id="650" Count="0" />
+      <LineId Id="647" Count="0" />
+      <LineId Id="649" Count="0" />
+      <LineId Id="648" Count="0" />
+      <LineId Id="513" Count="5" />
+      <LineId Id="660" Count="1" />
+      <LineId Id="658" Count="1" />
+      <LineId Id="519" Count="3" />
+      <LineId Id="637" Count="0" />
+      <LineId Id="523" Count="0" />
+      <LineId Id="611" Count="0" />
+      <LineId Id="524" Count="6" />
+      <LineId Id="638" Count="0" />
+      <LineId Id="635" Count="0" />
+      <LineId Id="531" Count="0" />
+      <LineId Id="614" Count="0" />
+      <LineId Id="532" Count="6" />
+      <LineId Id="574" Count="0" />
+      <LineId Id="622" Count="1" />
+      <LineId Id="617" Count="0" />
+      <LineId Id="636" Count="0" />
+      <LineId Id="575" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_ConfigureUser">
+      <LineId Id="51" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="80" Count="2" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="11" Count="39" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetChMod">
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetCommand">
+      <LineId Id="43" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetCommInitialised">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetCommStatus">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetDevState">
+      <LineId Id="33" Count="6" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="27" Count="3" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetModStatus">
+      <LineId Id="32" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="8" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="27" Count="3" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetRpcErrorText">
+      <LineId Id="10" Count="5" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="22" Count="2" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="16" Count="3" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_GetValidChannel">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="4" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_PassCtrlState">
+      <LineId Id="9" Count="2" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_ReadFromReply">
+      <LineId Id="3" Count="7" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="165" Count="1" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="127" Count="2" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="109" Count="11" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="122" Count="4" />
+      <LineId Id="130" Count="5" />
+      <LineId Id="176" Count="5" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="84" Count="2" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="59" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_SetCmdList">
+      <LineId Id="95" Count="15" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="209" Count="1" />
+      <LineId Id="195" Count="3" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="211" Count="3" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="224" Count="1" />
+      <LineId Id="111" Count="1" />
+      <LineId Id="159" Count="1" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="161" Count="2" />
+      <LineId Id="166" Count="1" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="169" Count="5" />
+      <LineId Id="184" Count="1" />
+      <LineId Id="113" Count="4" />
+      <LineId Id="119" Count="3" />
+      <LineId Id="124" Count="8" />
+      <LineId Id="134" Count="2" />
+      <LineId Id="138" Count="2" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.M_SetGuiPointer">
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.ProcessEvents">
+      <LineId Id="3" Count="131" />
+      <LineId Id="136" Count="42" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.RPC_Disable">
+      <LineId Id="33" Count="1" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="19" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.RPC_Enable">
+      <LineId Id="32" Count="1" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="21" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.RPC_Init">
+      <LineId Id="31" Count="1" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="20" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.RPC_Reset">
+      <LineId Id="22" Count="1" />
+      <LineId Id="25" Count="3" />
+      <LineId Id="13" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMAR_ACT_BASE.RPC_Stop">
+      <LineId Id="22" Count="1" />
+      <LineId Id="25" Count="3" />
+      <LineId Id="13" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

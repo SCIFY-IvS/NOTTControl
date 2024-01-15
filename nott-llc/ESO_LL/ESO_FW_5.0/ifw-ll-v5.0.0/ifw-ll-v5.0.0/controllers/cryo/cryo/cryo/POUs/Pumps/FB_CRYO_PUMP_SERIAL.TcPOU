@@ -1,0 +1,514 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_PUMP_SERIAL" Id="{b42c9165-ca74-4e25-a7b0-8c548cdaa2fa}" SpecialFunc="None">
+    <Declaration><![CDATA[// Cryo Turbo Molecular Pump Control
+FUNCTION_BLOCK FB_CRYO_PUMP_SERIAL EXTENDS FB_CRYO_PUMP_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sCmdSuffix:		STRING(16) := '$0D';
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReplySuffix:	STRING(16) := '$0D';
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_RS_COMM_NO_SIM;			// No simulation yet
+	
+	// Pointers to structures inside FB_RS_COMM, e.g. ptrCommCfg.
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_RS_COMM_CFG;	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_RS_COMM_CTRL;	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_RS_COMM_STAT;	(* Pointer to comm.stat instance *)
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{906e59a0-6a6b-45d9-a420-51d088d5c71c}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 0;	// Init will start from the first init command after increment
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set initial state and status
+		statRef.bInitialised	:= FALSE;
+		statBaseRef.sReply			:= '';
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			statBaseRef.sReply		:= ptrCommStat^.sReply;	// Save the reply
+
+			// TODO Assign the value to a status variable.
+			IF NOT M_ReadFromReply(cmdCounter, TRUE)	THEN
+				cmdCounter		:= 0;	// Reset command counter
+				nMethodState 	:= 10;	// Wait for INIT
+			ELSE
+				cmdCounter		:= cmdCounter + 1;	// Increment init command index
+				fbTimer (IN := FALSE);	// disable timer 
+				fbTimer (IN := TRUE, PT := cfgRef.tDelay_Init); // Wait INIT delay
+				bCommProblem	:= FALSE;
+				nMethodState 	:= 18;	// Execute next device INIT command
+			END_IF
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF ptrInitCmds^ [cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			statRef.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrInitCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= 1;
+		ptrCommCtrl^.bHasReply		:= TRUE;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{d8d6b4e2-f28b-4a27-acd9-2d07ea9bdc54}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+END_VAR
+
+VAR
+	offset: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT cfgRef.bAutoMonitor AND statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY THEN
+	SetAction('No Monitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'IDLE');
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	RETURN;
+END_IF
+
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		IF ptrReadCmds^ [cmdCounter].cmd = '' OR cmdCounter > 16 THEN
+
+			// All commands have been executed. 
+			// Wait tDelay_Periodic before re-starting the READ.
+			cmdCounter	:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfgRef.tDelay_Periodic);
+			nMethodState := 10;				// Goto Wait for tDelay_Periodic
+			RETURN;
+			
+		END_IF
+		
+		(* Send command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrReadCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= 1;
+		ptrCommCtrl^.bHasReply		:= TRUE;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		// In case we are executing 'SET' commands, there are no replies.
+		// However, we need a delay of at least 50ms between commands.
+		// We will apply 150ms.
+		IF NOT ptrCommCtrl^.bHasReply THEN
+			// There is no reply, i.e. this is a 'SET' command.
+			// Start the timer by going false/true.
+			// Apply 200ms delay between SET commands.
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#200MS); 
+			cmdCounter		:= cmdCounter + 1;	// Go to next command.
+			nMethodState	:= 10;				// Goto WAIT for Reading to complete,
+			RETURN;
+		ELSE			
+			// There is a reply, i.e. this is a 'READ' command.
+			// Apply short delay of 10ms before checking the status. 
+			// Start the timer by going false/true
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#10MS);	
+			statRef.sErrorText	:= 'BUSY';
+			nMethodState := 15;	// Goto WAIT for Reading to complete,
+		END_IF
+		
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 0;	// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+	
+	15:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			fbTimer (IN := TRUE, PT := T#5S);	// 5 sec timeout for reply
+			statRef.sErrorText	:= 'BUSY';
+			nMethodState 	:= 20;	// Goto Wait for IDLE/Reply
+			RETURN;
+		END_IF
+	
+
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			statBaseRef.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			
+			// Copy readings to status variable(s)
+			
+			// TODO Assign the value to a status variable.
+			IF NOT M_ReadFromReply(cmdCounter, FALSE)	THEN
+				// Reply was not OK. Maybe out of sync.
+				// Re-INIT the communication, i.e. clear the buffer.
+				ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+				ptrCommCtrl^.bExecute	:= TRUE;
+		
+				(* Start the timer by going false/true *)
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+		
+				SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+				bCommProblem	:= TRUE;
+
+				nMethodState 	:= 10;	// On next cycle wait until the comm port is reset, i.e. idle
+				RETURN;
+			ELSE
+				// All OK. Go to next command.
+				bCommProblem	:= FALSE;
+				nRetries		:= 0;	// Reset number of retries
+		
+				cmdCounter		:= cmdCounter + 1;	// Go to next command.
+				
+				// Apply a 50 ms delay between commands
+				fbTimer (IN := FALSE);	// Reset timer
+				fbTimer (IN := TRUE, PT := T#50MS); 
+				nMethodState := 10;		// Apply delay
+				nEvent := E_SM_EVENT.COMMOK;
+				RETURN;
+			END_IF
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			// No Reply.
+			// Re-INIT the communication, i.e. clear the buffer.
+			ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+			ptrCommCtrl^.bExecute	:= TRUE;
+	
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+	
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			statBaseRef.nRetries	:= statBaseRef.nRetries + 1;	// Increment total number of retries
+
+			nMethodState 	:= 10;	// On next cycle wait until the comm port is reset, i.e. idle
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteComm" Id="{b5428991-c41a-4259-b53b-81ba44e34c9a}">
+      <Declaration><![CDATA[METHOD M_ExecuteComm
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[comm(in_sCmdSuffix:=in_sCmdSuffix, in_sReplySuffix:=in_sReplySuffix, in_nTimeout:=3000);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{9bf0ae19-3ff5-4d3e-8711-ab54216f31f4}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF comm.i_nCouplerState = 8 THEN
+	M_GetCouplerState	:= TRUE;	
+ELSE
+	M_GetCouplerState	:= FALSE;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PVP_Checksum" Id="{3f076f85-905d-4c0b-82f0-6942238998e3}">
+      <Declaration><![CDATA[// Add checksum at the end of Pfeiffer Vacuum Protocol (PVP) command
+METHOD M_PVP_Checksum : STRING(24)
+VAR_INPUT
+	sCmd:	STRING;	// Command without the checksum
+END_VAR
+VAR
+	i:			INT;
+	nVar:		SINT;
+	nSum:		INT;
+	nRes:		INT;	// Resulting check sum
+	sCmdFull:	STRING(24);	// Command with the checksum
+    fbFormat:	FB_FormatString;
+	sTmp:		T_MaxString;
+	length:		INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get the command length
+length	:= LEN(sCmd);
+
+nSum	:= 0;
+FOR i:=0 TO (length-1) DO
+	nSum	:= nSum + BYTE_TO_SINT(sCmd[i]);
+END_FOR
+nRes	:= nSum MOD 256;
+
+sTmp	:= sCmd;
+fbFormat(	sFormat := '%s%.3d', 
+			arg1 := F_STRING(sTmp), 
+			arg2 := F_INT(nRes), 
+			sOut => sCmdFull);
+			
+M_PVP_Checksum	:= sCmdFull;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{73fcc659-7cf0-42e1-bd0f-93b89f90de1a}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+// Method to check correctness of the reply and assign the result to a status variable.
+VAR_INPUT
+	idx:		INT;		(* arr [idx] will hold the first extracted value, arr [idx+1] the second one, etc. *)
+	bInitCmd:	BOOL := FALSE;
+END_VAR
+VAR
+	pos:	INT;
+	cmd:	STRING;
+	length:	DINT;
+	subStr:	STRING(255);
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Implement specific parsing of replies
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL">
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL.ActivityInitializing">
+      <LineId Id="6" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="70" Count="2" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="293" Count="1" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="306" Count="5" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="233" Count="4" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="170" Count="8" />
+      <LineId Id="186" Count="2" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="192" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL.ActivityMonitoring">
+      <LineId Id="492" Count="19" />
+      <LineId Id="645" Count="10" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="544" Count="22" />
+      <LineId Id="688" Count="0" />
+      <LineId Id="567" Count="17" />
+      <LineId Id="675" Count="5" />
+      <LineId Id="686" Count="1" />
+      <LineId Id="681" Count="4" />
+      <LineId Id="585" Count="10" />
+      <LineId Id="656" Count="0" />
+      <LineId Id="689" Count="0" />
+      <LineId Id="704" Count="0" />
+      <LineId Id="706" Count="0" />
+      <LineId Id="708" Count="6" />
+      <LineId Id="729" Count="2" />
+      <LineId Id="715" Count="2" />
+      <LineId Id="732" Count="0" />
+      <LineId Id="718" Count="10" />
+      <LineId Id="705" Count="0" />
+      <LineId Id="615" Count="0" />
+      <LineId Id="736" Count="11" />
+      <LineId Id="750" Count="2" />
+      <LineId Id="748" Count="1" />
+      <LineId Id="631" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL.M_ExecuteComm">
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL.M_GetCouplerState">
+      <LineId Id="6" Count="1" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL.M_PVP_Checksum">
+      <LineId Id="50" Count="0" />
+      <LineId Id="48" Count="1" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="28" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_SERIAL.M_ReadFromReply">
+      <LineId Id="153" Count="0" />
+      <LineId Id="68" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

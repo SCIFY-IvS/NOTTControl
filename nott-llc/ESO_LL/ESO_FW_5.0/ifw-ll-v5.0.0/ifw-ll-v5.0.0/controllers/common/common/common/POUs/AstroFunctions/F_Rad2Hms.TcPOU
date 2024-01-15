@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="F_Rad2Hms" Id="{72247f6a-c059-41d6-802f-ffdd182b0698}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_Rad2Hms : LREAL
+VAR_INPUT
+	hh:	LREAL;	// angle in radians
+END_VAR
+VAR
+	value:		LREAL;
+	hours:		INT;
+	minutes:	INT;
+	seconds:	LREAL;
+	
+	sign:	int := 1;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF hh < 0.0 THEN
+	sign	:= -1;
+	hh		:= -hh;
+END_IF
+
+value := hh / GCL.C_2PI * 24.0; 	// rad to hours
+
+
+hours	:= TRUNC_INT(value);
+minutes := TRUNC_INT((value - hours)*60.0);
+seconds := (value - hours - minutes/60.0)*3600.0;
+
+hours	:= hours * sign;	// put back the sign
+
+					
+F_Rad2Hms	:= hours * 10000 + minutes * 100 + seconds;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_Rad2Hms">
+      <LineId Id="68" Count="15" />
+      <LineId Id="29" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

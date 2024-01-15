@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_CTRL_CMD" Id="{83219e50-94ed-4d54-afc2-12f1385196f1}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_CTRL_CMD :
+(
+	NONE	:= 0,
+	PRECOOL,
+	COOL,
+	WARM_UP,
+	REPRESSURIZE
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

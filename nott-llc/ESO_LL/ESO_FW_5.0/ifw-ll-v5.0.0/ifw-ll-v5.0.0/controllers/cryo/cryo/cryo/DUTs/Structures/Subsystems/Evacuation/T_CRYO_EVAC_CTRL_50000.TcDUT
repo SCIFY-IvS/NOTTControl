@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_EVAC_CTRL_50000" Id="{7cef991e-5ac1-4c6a-953d-1f60c3cd8bda}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVAC_CTRL_50000 :
+STRUCT
+	// Flags for control of pumps.
+	// Seeting the flag to TRUE  will start the pump.
+	// Seeting the flag to FALSE will stop  the pump.
+	bEnable_PVP:	BOOL := FALSE;	// Prevacuum pump
+	bEnable_TMP:	BOOL := FALSE;	// Turbo molecular pump
+	
+	// Flags for control of valves
+	// Seeting the flag to TRUE  will open  the valve.
+	// Seeting the flag to FALSE will close the valve.
+	bEnable_PVV1:	BOOL := FALSE;
+	bEnable_PVV2:	BOOL := FALSE;
+	bEnable_PVV3:	BOOL := FALSE;
+	bEnable_PVV4:	BOOL := FALSE;
+	bEnable_GBV:	BOOL := FALSE;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

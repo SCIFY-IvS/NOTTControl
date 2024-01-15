@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_DCTIME64_TO_ULINT" Id="{617164a4-8903-46f9-a31d-a20873d167db}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_DCTIME64_TO_ULINT : ULINT
+VAR_INPUT
+	in:		T_DCTIME64;
+END_VAR
+VAR
+	out:	ULINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[memcpy (ADR(out), ADR(in), SIZEOF(in));
+F_DCTIME64_TO_ULINT	:= out;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_DCTIME64_TO_ULINT">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

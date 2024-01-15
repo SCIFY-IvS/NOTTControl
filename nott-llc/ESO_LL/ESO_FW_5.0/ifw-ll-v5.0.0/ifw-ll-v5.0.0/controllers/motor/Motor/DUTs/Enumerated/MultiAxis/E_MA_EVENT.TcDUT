@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_MA_EVENT" Id="{9e55d28d-07ad-4abf-afae-0ce9c63cad32}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MA_EVENT :
+(
+	NONE	:= 0,
+	
+	(* events corresponding to commands - MUST match E_MA_COMMAND *)
+	RESET,
+	INIT,
+	STOP,
+	ENABLE,
+	DISABLE,
+	MA_MOVE,
+	START_TRACK,
+	STOP_TRACK,
+	
+	(* 
+		Events corresponding to internal events 
+	*)
+	
+	MOVEDONE,		// Needed for detection of HW failures during initialisation
+	STOPDONE,
+	ENABLEDONE,
+	DISABLEDONE,
+	INITDONE,
+	TRACKDONE,
+	TRACKEXIT,		// EICSSW-706: Tracking error >=  cfg.lrTrkThreshold => PRESETTING
+	PRESETDONE,		// EICSSW-706: Presetting error < cfg.lrTrkThreshold => TRACKING
+	
+
+	HWOK,
+	ERRLOCAL,
+	ERRHW,
+	
+	UNSAFE		// EICSSW-1923
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

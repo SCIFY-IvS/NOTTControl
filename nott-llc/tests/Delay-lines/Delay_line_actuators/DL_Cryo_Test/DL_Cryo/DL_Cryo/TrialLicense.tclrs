@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<TcLicenseInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2011/11/TcLicenseInfo">
+	<LicenseInfo>
+		<SystemId>{143BA646-9B2F-1D0C-E714-4D2CCE3B6379}</SystemId>
+		<IssueTime>2024-01-15T20:55:00</IssueTime>
+		<ExpireTime>2024-01-23T00:00:00</ExpireTime>
+		<LicenseKey>e2ddc5623db572ffeb290e1a41ee405c8cca9e1bf6530ee170090e1e390608ce8687a3dfd15ad1a2f83c07d2aa6a2532bd2e9e6a1f2edcecadba20bc6dd8e23f2cbfbba7c3dacb98c47c06958d0350f81bbeb0b844977f0a0a4fc6bbfbc7a005d220535d6fd7d60db1c7cceb6933e34d6f01cbf3d50b4c2d8ef889ddf2faee5220d1c0ea1db81b394b72120cf024170d32a26ff6756ddc1be1c2af2c8e2b86cbb64a6ddd1f0ef516d95d15efb51e394edbf4752a848364e1d63198f89573f3f38c1383d9d242de4891725ff586676433c38a34ff7b235a9db2ce2a697510e5fe774f9e6096ece540f3d20efd0fa1ed1d8247b3fc7498f8201441019a96736613</LicenseKey>
+		<License>
+			<LicenseId>{CC0BCBD5-3EA7-D7D4-4C71-A8B125F0DB72}</LicenseId>
+			<Name>TC3 OPC-UA Analytics Read</Name>
+		</License>
+		<License>
+			<LicenseId>{C2B7B285-EBD7-72CF-843F-15F95A86FEEE}</LicenseId>
+			<Name>TC3 OPC-UA Analytics Write</Name>
+		</License>
+		<License>
+			<LicenseId>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</LicenseId>
+			<Name>TC3 Serial-Communication</Name>
+			<OrderNo>TF6340</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{4C256767-E6E6-4AF5-BD68-9F7ABAD0C200}</LicenseId>
+			<Name>TC3 ADS</Name>
+			<OrderNo>TC1000</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{A19036CF-A53B-4E3A-99FF-023EF5C4798B}</LicenseId>
+			<Name>TC3 NC PTP Axis</Name>
+			<Instances>10</Instances>
+		</License>
+		<License>
+			<LicenseId>{66689887-CCBD-452C-AC9A-039D997C6E66}</LicenseId>
+			<Name>TC3 PLC</Name>
+			<OrderNo>TC1200</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{520DE751-9DB6-47CB-8240-BD5C466E7E64}</LicenseId>
+			<Name>TC3 NC PTP</Name>
+			<OrderNo>TF5000</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</LicenseId>
+			<Name>TC3 OPC-UA</Name>
+			<OrderNo>TF6100</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{3FF18E97-7754-401B-93FB-70544DE28A13}</LicenseId>
+			<Name>TC3 IO</Name>
+			<OrderNo>TC1100</OrderNo>
+		</License>
+	</LicenseInfo>
+</TcLicenseInfo>

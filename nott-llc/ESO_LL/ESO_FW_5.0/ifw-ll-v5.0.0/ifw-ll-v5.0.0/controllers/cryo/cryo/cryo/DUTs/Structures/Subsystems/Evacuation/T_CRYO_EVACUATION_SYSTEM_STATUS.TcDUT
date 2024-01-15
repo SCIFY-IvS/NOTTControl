@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_EVACUATION_SYSTEM_STATUS" Id="{976b3080-895c-4cf2-ab92-950757be1d9f}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVACUATION_SYSTEM_STATUS :
+STRUCT
+	bDone:			BOOL;			// Flag if controller is OK
+	bBusy:			BOOL;			// Flag if controller is BUSY
+	bEnabled:		BOOL := FALSE;	// Controller active while bEnable is TRUE
+	bError:			BOOL;			// Flag if controller is OK
+	bActive:		BOOL;			// Flag if controller is ACTIVE
+	bEmergency:		BOOL := FALSE;	// Flag if there was Emergency valve closure
+	bRootPumpON:	BOOL;			// Flag if Root Pump is running
+	bTurboPumpON:	BOOL;			// Flag if Turbo Pump is running
+	bTurboPump10min:BOOL;			// Flag if Turbo Pump has been running for more than 10 min
+	bValveOpen:		BOOL;			// Flag if Evacuation Valve is open
+
+	// Generic controller OK flag.
+	// Used for problems other than from the actuator.
+	// This flag is used for problems coming from controllers
+	// that extend the functionality of FB_CRYO_BIN_CTRL.
+	bCtrlOK:	BOOL := TRUE;		
+
+	nCycleCounter:	UDINT := 0;
+	nLastCommand:	E_CRYO_BIN_ACT_CMD	:= E_CRYO_BIN_ACT_CMD.NONE;	// Command
+	nState:			E_CRYO_EVAC_SYS_STATE	:= E_CRYO_EVAC_SYS_STATE.NONE;
+	
+	sState:			STRING(64);		// State as text
+	sStatus:		STRING(64);		// Status as text
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,285 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SIM_ACTUATOR" Id="{cdc20ae3-b7e8-4041-8913-f51782748d05}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_ACTUATOR
+VAR_INPUT
+	ptrDev:		POINTER TO FB_ACTUATOR;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA':='0'}
+	ptrCfg:		POINTER TO T_ACTUATOR_CFG;
+	{attribute 'OPC.UA.DA':='0'}
+	ptrStat:	POINTER TO T_ACTUATOR_STAT;
+
+	{attribute 'OPC.UA.DA':='1'}
+	cfg:			T_SIM_ACTUATOR_CFG;		(* ActiveLow configuration for each signal *)
+	{attribute 'OPC.UA.DA':='1'}
+	stat:			T_SIM_ACTUATOR_STAT;	(* Simulator status parameters *)
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bSwitch:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA':='0'}
+	bSwitchLast:	BOOL := FALSE;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bOn:			BOOL := TRUE;
+	{attribute 'OPC.UA.DA':='0'}
+	nCouplerState:	UINT := 8;       // normal coupler state
+	
+    (* Inputs *)
+	{attribute 'OPC.UA.DA':='0'}
+	i_bSwitch 		AT %I*: 	BOOL;
+
+	(* Outputs *)	
+	{attribute 'OPC.UA.DA':='0'}
+	q_bOn 		AT %Q*: 		BOOL;
+	{attribute 'OPC.UA.DA':='0'}
+	q_nCouplerState AT %Q*:		UINT := 8;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	timer:			TON;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	trigger:		R_TRIG;	// To capture device INIT
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT stat.bInitialised THEN
+	ptrCfg	:= ADR(ptrDev^.cfg);
+	ptrStat	:= ADR(ptrDev^.stat);
+
+	// Check for NULL pointers in input parameters
+	IF ptrCfg = 0  OR  ptrStat = 0 THEN
+		stat.nErrorCode	:= E_ACTUATOR_ERROR.ZERO_POINTER;
+		stat.sErrorText	:= 'ERROR: Input parameter is a NULL pointer';
+		stat.sStatus	:= 'ERROR';
+		RETURN;
+	END_IF
+
+	RPC_ResetConfig();	// Copy configuration from device
+	
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(100));	// Update almost immediately
+
+	stat.nErrorCode	:= E_ACTUATOR_ERROR.OK;
+	stat.sErrorText	:= 'OK';
+	stat.sStatus	:= 'OK';
+	
+	stat.bInitialised	:= TRUE;
+	RETURN;
+END_IF
+
+// There are two triggers: 
+// 	Detect device INIT
+// 	Activation of switch
+
+// Check for INIT trigger
+//trigger(CLK:=(ptrStat^.sActionDesc = 'ActionInitExecute'));
+trigger(CLK:=(	ptrStat^.nSubstate=E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_ON OR 
+				ptrStat^.nSubstate=E_ACTUATOR_SUBSTATE.NOTOP_SWITCHING_OFF));
+
+// Get the state of control command
+bSwitch := GetLogicalState(i_bSwitch, cfg.bActiveLowSwitch);
+
+IF trigger.Q THEN
+	RPC_ResetConfig();	// Copy configuration from device
+ELSIF bSwitch <> bSwitchLast THEN
+	// Switch value has changed. 
+	bSwitchLast	:= bSwitch;
+	// Delayed response
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nDelay));
+END_IF
+
+
+// Execute the timer
+timer();
+
+// Set new outputs once the timer has expired
+IF timer.Q THEN
+	timer(IN:=FALSE);	// Reset timer
+	// Set output, i.e. feedback
+	bOn	:= GetLogicalState(bSwitch,	cfg.bActiveLowOn);
+END_IF
+
+
+(* Assign outputs *)
+q_bOn 			:= bOn;
+q_nCouplerState := nCouplerState;
+
+]]></ST>
+    </Implementation>
+    <Method Name="GetLogicalState" Id="{3a675f1a-7819-414a-ae93-030e56ccbed7}">
+      <Declaration><![CDATA[METHOD GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	GetLogicalState := NOT state;
+ELSE
+	GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_ResetConfig" Id="{cefd105e-0777-45a9-b272-dea41c909353}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_ResetConfig : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowOn		:= ptrCfg^.bActiveLowOn;
+cfg.bActiveLowSwitch	:= ptrCfg^.bActiveLowSwitch;
+// Response delay = 1/2 of real switch timeout - the stable signal period
+cfg.nDelay				:= ptrCfg^.nTimeout / 2 - ptrCfg^.nSigStablePeriod;	
+IF cfg.nDelay < 0 THEN
+	cfg.nDelay	:= 0;
+END_IF
+nCouplerState			:= 8;
+
+// Get the Switch value
+bSwitch := GetLogicalState(i_bSwitch, cfg.bActiveLowSwitch);
+
+bOn	:= GetLogicalState(bSwitch,	cfg.bActiveLowOn);	// Set Switch state
+
+RPC_ResetConfig	:= TRUE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_On" Id="{23934f2f-e237-4c2f-ac22-9cf7b73719c4}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_On : BOOL
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowOn	:= bValue;
+
+RPC_SetActiveLow_On	:= TRUE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Switch" Id="{a4ecdb8e-bcef-4dcf-b895-66561c234cd6}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Switch : BOOL
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowSwitch	:= bValue;
+
+RPC_SetActiveLow_Switch	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetCouplerState" Id="{45255316-3d56-412d-a07e-b4d5796053d0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetCouplerState : BOOL
+VAR_INPUT
+	bValue:	UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCouplerState	:= bValue;
+
+RPC_SetCouplerState	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDelay" Id="{1004106a-d14c-4cdf-9cbe-1c39692b430f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDelay : BOOL
+VAR_INPUT
+	nDelay:	UDINT;	// Response delay [msec]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nDelay	:= nDelay;
+
+RPC_SetDelay	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_ACTUATOR">
+      <LineId Id="216" Count="12" />
+      <LineId Id="230" Count="13" />
+      <LineId Id="245" Count="3" />
+      <LineId Id="377" Count="1" />
+      <LineId Id="249" Count="5" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="261" Count="18" />
+      <LineId Id="281" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_ACTUATOR.GetLogicalState">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_ACTUATOR.RPC_ResetConfig">
+      <LineId Id="3" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="33" Count="2" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_ACTUATOR.RPC_SetActiveLow_On">
+      <LineId Id="3" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_ACTUATOR.RPC_SetActiveLow_Switch">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_ACTUATOR.RPC_SetCouplerState">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_ACTUATOR.RPC_SetDelay">
+      <LineId Id="2" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

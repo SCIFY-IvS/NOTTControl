@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_timeUTCToMJD" Id="{b04e8dea-84be-4e6f-a443-dbf392717c45}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+/*
+ *****************************************************************************
+ * timeUTCToMJD: convert struct ccsTIMEVAL into modified Julian date
+ *
+ *  IN   ut: time in UT
+ *  OUT    : Modified julian date 
+ ***************************************************************************** 
+ */
+*)
+FUNCTION F_timeUTCToMJD : LREAL
+VAR_INPUT
+	ut:	T_TIMEVAL;
+END_VAR
+VAR
+	mjd:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+DOUBLE timeUTCToMJD(vltTIMEVAL *ut)   /* time in UT                       */
+    {
+    DOUBLE mjd;                       /* modified julian date             */
+   /*
+    *# Get Julian Date from UT 
+    */
+    mjd = timeUTCToJD(ut);
+    
+   /*
+    *# Convert Julian Date into Modified Julian Date according to the formula:
+    *# MJD = JD - 2400000.5;
+    */
+    mjd-= CONST3;
+    return(mjd);    
+    }
+*)
+
+// Get Julian Date from UT 
+mjd := F_timeUTCToJD(ut);
+
+(*
+*# Convert Julian Date into Modified Julian Date according to the formula:
+*# MJD = JD - 2400000.5;
+*)
+F_timeUTCToMJD	:= mjd - GCL.C_CONST3;
+ ]]></ST>
+    </Implementation>
+    <LineIds Name="F_timeUTCToMJD">
+      <LineId Id="7" Count="0" />
+      <LineId Id="19" Count="14" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="4" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="39" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

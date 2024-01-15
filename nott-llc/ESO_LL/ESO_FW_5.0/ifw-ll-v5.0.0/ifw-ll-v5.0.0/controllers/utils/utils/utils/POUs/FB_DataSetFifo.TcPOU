@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_DataSetFifo" Id="{68aab722-1c15-4a1c-8558-70d8155fb516}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_DataSetFifo
+VAR_INPUT
+	bOverwrite	: BOOL;
+	in 			: T_EVENTLOG_PAYLOAD;
+END_VAR
+VAR_OUTPUT
+	bOk			: BOOL;
+	nCount		: UDINT;
+	nLoad		: UDINT;
+	out			: T_EVENTLOG_PAYLOAD;
+END_VAR
+VAR
+	arrBuffer 	: ARRAY[0..MAX_BUFFER_SIZE] OF BYTE; (* Buffer memory used by FB_MemRingBuffer function block *)
+	fbBuffer	: FB_MemRingBuffer;
+	dataset_size: UDINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[;]]></ST>
+    </Implementation>
+    <Action Name="A_Add" Id="{a7dab110-6508-416f-acc6-ce74c3eacfc5}">
+      <Implementation>
+        <ST><![CDATA[fbBuffer.A_AddTail( pWrite:= ADR( in ),
+					cbWrite:= SIZEOF( in ),
+					pBuffer:= ADR( arrBuffer ),
+					cbBuffer:= SIZEOF( arrBuffer ),
+					bOk=> bOk,
+					nCount => nCount );
+
+
+IF NOT bOk THEN (* overflow ? *)
+	IF bOverwrite THEN
+		fbBuffer.A_RemoveHead(); (* remove one oldest entry *)
+
+		fbBuffer.A_AddTail( bOk => bOk, nCount => nCount );
+	END_IF
+END_IF
+
+
+dataset_size := SIZEOF(in);
+nLoad := (fbBuffer.cbSize * 100) / MAX_BUFFER_SIZE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="A_Get" Id="{6033ce75-8df1-402c-b27d-509c03464659}">
+      <Implementation>
+        <ST><![CDATA[fbBuffer.A_GetHead( pRead:= ADR( out ),
+					cbRead:= SIZEOF( out ),
+					pBuffer:= ADR( arrBuffer ),
+					cbBuffer:= SIZEOF( arrBuffer ),
+					bOk=> bOk,
+					nCount => nCount );
+
+nLoad := (fbBuffer.cbSize * 100) / MAX_BUFFER_SIZE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="A_Remove" Id="{53dc8178-a4b4-4f80-9c5f-a4c816f0e571}">
+      <Implementation>
+        <ST><![CDATA[fbBuffer.A_RemoveHead( 	pRead:= ADR( out ),
+						cbRead:= SIZEOF( out ),
+						pBuffer:= ADR( arrBuffer ),
+						cbBuffer:= SIZEOF( arrBuffer ),
+						bOk=> bOk,
+						nCount => nCount );
+
+nLoad := (fbBuffer.cbSize * 100) / MAX_BUFFER_SIZE;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="A_Reset" Id="{13e425e4-714d-4cfe-9858-15b661921577}">
+      <Implementation>
+        <ST><![CDATA[MEMSET( ADR( arrBuffer ), 0, SIZEOF( arrBuffer ) ); (* reset (optional) internal buffer *)
+
+fbBuffer.A_Reset( 	bOk=> bOk,
+					nCount => nCount );
+
+nLoad := (fbBuffer.cbSize * 100) / MAX_BUFFER_SIZE;]]></ST>
+      </Implementation>
+    </Action>
+    <Method Name="IsEmpty" Id="{ec82b677-3208-444c-ab7b-400818fed658}">
+      <Declaration><![CDATA[METHOD IsEmpty : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCount > 0 THEN
+	IsEmpty := FALSE;
+	RETURN;
+END_IF
+
+IsEmpty := TRUE;
+return;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Size" Id="{6682d776-653b-426d-b8bb-3af27afc60e9}">
+      <Declaration><![CDATA[METHOD Size : UDINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Size := nCount;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_DataSetFifo">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DataSetFifo.A_Add">
+      <LineId Id="2" Count="17" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DataSetFifo.A_Get">
+      <LineId Id="2" Count="6" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DataSetFifo.A_Remove">
+      <LineId Id="2" Count="6" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DataSetFifo.A_Reset">
+      <LineId Id="2" Count="4" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DataSetFifo.IsEmpty">
+      <LineId Id="5" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DataSetFifo.Size">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

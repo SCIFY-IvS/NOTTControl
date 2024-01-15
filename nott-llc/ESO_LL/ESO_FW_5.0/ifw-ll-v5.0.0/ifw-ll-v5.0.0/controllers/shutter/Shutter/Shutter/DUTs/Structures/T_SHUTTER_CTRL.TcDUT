@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_SHUTTER_CTRL" Id="{17405076-e76e-47ad-8e66-f8b937714847}">
+    <Declaration><![CDATA[TYPE T_SHUTTER_CTRL :
+STRUCT
+	nCommand:	E_SHUTTER_COMMAND	:= E_SHUTTER_COMMAND.NONE; (* See E_SHUTTER_COMMAND *)
+	bExecute:	BOOL;
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

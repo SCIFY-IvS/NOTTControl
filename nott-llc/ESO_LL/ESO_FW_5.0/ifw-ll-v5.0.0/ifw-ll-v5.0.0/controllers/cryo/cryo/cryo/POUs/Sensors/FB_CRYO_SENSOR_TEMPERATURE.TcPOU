@@ -1,0 +1,472 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_SENSOR_TEMPERATURE" Id="{56a58e51-81e7-4c6e-80f0-5bfde3b31b93}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_SENSOR_TEMPERATURE EXTENDS FB_CRYO_SENSOR_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nType:				E_CRYO_SENSOR_TYPE_TEMP	:= E_CRYO_SENSOR_TYPE_TEMP.PT100;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrScale:				LREAL := 0.1;		// Scale factor, T = raw * scale. Default 0.1
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bIgnoreUnderrange:	BOOL  := FALSE;		// If T, underrange will be treated as bValid.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nRampPeriodSec:		UDINT := 60;		// Ramp measurement period [sec]. Default 60 sec.
+	// If true, temperature calculated from measured resistance.
+	// With this flag active, temperature range is extended to -240 degC.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bResistor_1_64:		BOOL := FALSE;		
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:	T_CRYO_SENSOR_STATUS_TEMP;	// Complete status
+
+	{attribute 'OPC.UA.DA' := '0'}
+	bRampTimerStarted:	BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	rampTimer:	TON;		// Timer for calculating ramp
+	
+	// Lookup table when converting resistance to Celsius, range [-240..200].
+	// NOTE: RTD Element in CoE of the RTD terminal, e.g., EL3201
+	//       must be configured for "Resistor 1/64 Ohm..."
+	//       Also, in_bResistor_1_64 must be set to TRUE.
+	LookupTable:	ARRAY [0..88] OF T_CRYO_PT100_OHM2C_REC := [
+			(celsius := 	-240.0	, ohm := 	0.911	),
+			(celsius := 	-235.0	, ohm := 	3.150	),
+			(celsius := 	-230.0	, ohm := 	5.377	),
+			(celsius := 	-225.0	, ohm := 	7.594	),
+			(celsius := 	-220.0	, ohm := 	9.799	),
+			(celsius := 	-215.0	, ohm := 	11.995	),
+			(celsius := 	-210.0	, ohm := 	14.180	),
+			(celsius := 	-205.0	, ohm := 	16.356	),
+			(celsius := 	-200.0	, ohm := 	18.522	),
+			(celsius := 	-195.0	, ohm := 	20.679	),
+			(celsius := 	-190.0	, ohm := 	22.827	),
+			(celsius := 	-185.0	, ohm := 	24.967	),
+			(celsius := 	-180.0	, ohm := 	27.098	),
+			(celsius := 	-175.0	, ohm := 	29.221	),
+			(celsius := 	-170.0	, ohm := 	31.336	),
+			(celsius := 	-165.0	, ohm := 	33.444	),
+			(celsius := 	-160.0	, ohm := 	35.545	),
+			(celsius := 	-155.0	, ohm := 	37.638	),
+			(celsius := 	-150.0	, ohm := 	39.724	),
+			(celsius := 	-145.0	, ohm := 	41.804	),
+			(celsius := 	-140.0	, ohm := 	43.877	),
+			(celsius := 	-135.0	, ohm := 	45.945	),
+			(celsius := 	-130.0	, ohm := 	48.006	),
+			(celsius := 	-125.0	, ohm := 	50.061	),
+			(celsius := 	-120.0	, ohm := 	52.110	),
+			(celsius := 	-115.0	, ohm := 	54.155	),
+			(celsius := 	-110.0	, ohm := 	56.194	),
+			(celsius := 	-105.0	, ohm := 	58.227	),
+			(celsius := 	-100.0	, ohm := 	60.256	),
+			(celsius := 	-95.0	, ohm := 	62.280	),
+			(celsius := 	-90.0	, ohm := 	64.300	),
+			(celsius := 	-85.0	, ohm := 	66.315	),
+			(celsius := 	-80.0	, ohm := 	68.326	),
+			(celsius := 	-75.0	, ohm := 	70.332	),
+			(celsius := 	-70.0	, ohm := 	72.335	),
+			(celsius := 	-65.0	, ohm := 	74.333	),
+			(celsius := 	-60.0	, ohm := 	76.328	),
+			(celsius := 	-55.0	, ohm := 	78.319	),
+			(celsius := 	-50.0	, ohm := 	80.306	),
+			(celsius := 	-45.0	, ohm := 	82.290	),
+			(celsius := 	-40.0	, ohm := 	84.271	),
+			(celsius := 	-35.0	, ohm := 	86.248	),
+			(celsius := 	-30.0	, ohm := 	88.222	),
+			(celsius := 	-25.0	, ohm := 	90.192	),
+			(celsius := 	-20.0	, ohm := 	92.160	),
+			(celsius := 	-15.0	, ohm := 	94.124	),
+			(celsius := 	-10.0	, ohm := 	96.086	),
+			(celsius := 	-5.0	, ohm := 	98.044	),
+			(celsius := 	0.0		, ohm := 	100.000	),
+			(celsius := 	5.0		, ohm := 	101.953	),
+			(celsius := 	10.0	, ohm := 	103.903	),
+			(celsius := 	15.0	, ohm := 	105.850	),
+			(celsius := 	20.0	, ohm := 	107.794	),
+			(celsius := 	25.0	, ohm := 	109.735	),
+			(celsius := 	30.0	, ohm := 	111.674	),
+			(celsius := 	35.0	, ohm := 	113.610	),
+			(celsius := 	40.0	, ohm := 	115.542	),
+			(celsius := 	45.0	, ohm := 	117.473	),
+			(celsius := 	50.0	, ohm := 	119.400	),
+			(celsius := 	55.0	, ohm := 	121.324	),
+			(celsius := 	60.0	, ohm := 	123.246	),
+			(celsius := 	65.0	, ohm := 	125.164	),
+			(celsius := 	70.0	, ohm := 	127.080	),
+			(celsius := 	75.0	, ohm := 	128.992	),
+			(celsius := 	80.0	, ohm := 	130.901	),
+			(celsius := 	85.0	, ohm := 	132.808	),
+			(celsius := 	90.0	, ohm := 	134.710	),
+			(celsius := 	95.0	, ohm := 	136.610	),
+			(celsius := 	100.0	, ohm := 	138.506	),
+			(celsius := 	105.0	, ohm := 	140.399	),
+			(celsius := 	110.0	, ohm := 	142.288	),
+			(celsius := 	115.0	, ohm := 	144.173	),
+			(celsius := 	120.0	, ohm := 	146.054	),
+			(celsius := 	125.0	, ohm := 	147.932	),
+			(celsius := 	130.0	, ohm := 	149.805	),
+			(celsius := 	135.0	, ohm := 	151.674	),
+			(celsius := 	140.0	, ohm := 	153.539	),
+			(celsius := 	145.0	, ohm := 	155.400	),
+			(celsius := 	150.0	, ohm := 	157.256	),
+			(celsius := 	155.0	, ohm := 	159.107	),
+			(celsius := 	160.0	, ohm := 	160.953	),
+			(celsius := 	165.0	, ohm := 	162.794	),
+			(celsius := 	170.0	, ohm := 	164.630	),
+			(celsius := 	175.0	, ohm := 	166.460	),
+			(celsius := 	180.0	, ohm := 	168.285	),
+			(celsius := 	185.0	, ohm := 	170.104	),
+			(celsius := 	190.0	, ohm := 	171.917	),
+			(celsius := 	195.0	, ohm := 	173.723	),
+			(celsius := 	200.0	, ohm := 	175.523	)];
+
+			lrTemStep:	LREAL	:= 5.0; 	// Temperature step in the table.
+			nLastIndex:	INT		:= 0;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+RefStat	REF=stat;
+
+// Execute the base FB
+SUPER^();
+
+// Calculate Temperature change ramp
+M_GetRamp();
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetRamp" Id="{079f1da4-67f1-4105-9619-ed35ad7d2fb8}">
+      <Declaration><![CDATA[METHOD M_GetRamp
+VAR_INPUT
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	lrRampStartTempK:	LREAL;	// Temperature at start of ramp timer [K]
+END_VAR
+VAR
+	nRampPeriodSec:		UDINT;	// Ramp measurement period [sec].
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bRampTimerStarted THEN
+	bRampTimerStarted	:= TRUE;
+	lrRampStartTempK	:= stat.lrTempK;
+	rampTimer(IN:=FALSE);
+END_IF
+
+// Execute timer.
+// Ramp measurement period should be > 0
+nRampPeriodSec	:= in_nRampPeriodSec;
+IF nRampPeriodSec = 0 THEN
+	nRampPeriodSec	:= 60;
+END_IF
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(nRampPeriodSec)*1000);
+
+// Calculate ramp at time expiry
+IF rampTimer.Q THEN
+	// Calculate the temperature ramp per minute
+	IF stat.bValid THEN
+		stat.lrRamp	:= (stat.lrTempK - lrRampStartTempK) * 60.0 / nRampPeriodSec;
+	ELSE
+		stat.lrRamp	:= 0.0;
+	END_IF
+
+	// Current temperature is the starting value of the ramp
+	lrRampStartTempK	:= stat.lrTempK;
+
+	// Restart the timer
+	rampTimer(IN:=FALSE);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PT100_Interpolate_Ohm2C" Id="{36952af0-3a8f-4a1f-bbcc-6170e2d6b08a}">
+      <Declaration><![CDATA[METHOD M_PT100_Interpolate_Ohm2C : LREAL
+VAR_INPUT
+	in_lrOhm:	LREAL;	// Resistance reading [Ohm]
+	// Index of the first lookup table entry with 
+	// value lower than the measured resistance.
+	in_nIndex:	INT;	
+END_VAR
+VAR
+	lrR1, lrR2:	LREAL;	// Temporary variables
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF in_nIndex = 0 OR in_nIndex = 88	THEN
+	M_PT100_Interpolate_Ohm2C	:= LookupTable[in_nIndex].celsius;
+ELSE
+	// Linear interpolation Example
+	//	Index 8		(celsius := 	-200.0	, ohm := 	18.522	),
+	//  Reading                               ohm := 	20.123
+	//	Index 9		(celsius := 	-195.0	, ohm := 	20.679	),
+	//
+	//   TempC = -200.0 + (20.123-18.522) / (20.679-18.522) * 5.0 
+	//         = -200.0 + 1.601 / 2.157 * 5.0
+	//         = -196.289 degC
+
+	lrR1	:= in_lrOhm - LookupTable[in_nIndex].ohm;
+	lrR2	:= LookupTable[in_nIndex+1].ohm - LookupTable[in_nIndex].ohm;
+	M_PT100_Interpolate_Ohm2C	:= LookupTable[in_nIndex].celsius + lrR1/lrR2 * lrTemStep;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PT100_Ohm2C" Id="{b84269b1-04e9-4703-ac45-cc61ab680721}">
+      <Declaration><![CDATA[// Convert raw resistance reading [bit] (Ohm*64) to degrees Celsius.
+// The input value has to be devided by 64 to get the reading in [Ohm].
+METHOD M_PT100_Ohm2C : LREAL
+VAR_INPUT
+	in_lrOhmRaw:	INT;	// Raw reading [bit]. [Ohm] = in_lrOhmRaw/64
+END_VAR
+VAR
+	i:		INT;
+	lrOhm:	LREAL; 	// PT100 Resistance reading [Ohm]
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Raw reading of -1 means a broken wire or failed sensor.
+// The convention is to return 850 degC
+IF in_lrOhmRaw	= -1	THEN
+	M_PT100_Ohm2C	:= 850.0;
+	RETURN;
+END_IF
+
+// Get reading in [Ohm]
+lrOhm	:= INT_TO_LREAL(in_lrOhmRaw) / 64.0;
+
+
+// Find the first index in the table
+// where the resistance value is lower that the reading.
+
+IF lrOhm > LookupTable[nLastIndex].ohm	THEN
+	// We are increasing the index until we find a reading in the
+	// table that is higher than the measurement
+	FOR i := nLastIndex TO 88	DO
+		IF i = 88	THEN
+			// We are at the highest temperature in the lookup table.
+			// Take that value;
+			M_PT100_Ohm2C	:= LookupTable[i].celsius;
+			RETURN;
+		ELSE
+			IF lrOhm < LookupTable[i].ohm	THEN
+				// We crossed the correct reading.
+				// Remember the index for faster next reading.
+				nLastIndex	:= i-1;
+				IF nLastIndex < 0	THEN
+					nLastIndex	:= 0;
+				END_IF
+				M_PT100_Ohm2C	:= M_PT100_Interpolate_Ohm2C(lrOhm,nLastIndex);
+				RETURN;
+			ELSIF lrOhm = LookupTable[i].ohm	THEN
+				// We crossed the correct reading.
+				// Remember the index for faster next reading.
+				nLastIndex	:= i;
+				M_PT100_Ohm2C	:= M_PT100_Interpolate_Ohm2C(lrOhm,nLastIndex);
+				RETURN;
+			END_IF
+		END_IF
+	END_FOR
+ELSIF lrOhm < LookupTable[nLastIndex].ohm	THEN
+	// We are decreasing the index until we find a reading in the
+	// table that is higher than the measurement
+	FOR i := nLastIndex TO 0 BY  -1	DO
+		IF i <= 0	THEN
+			// We are at the lowest temperature in the lookup table.
+			// Take that value;
+			M_PT100_Ohm2C	:= LookupTable[0].celsius;
+			RETURN;
+		ELSE
+			IF lrOhm > LookupTable[i].ohm	THEN
+				// We crossed the correct reading.
+				// Remember the index for faster next reading.
+				nLastIndex	:= i;
+				M_PT100_Ohm2C	:= M_PT100_Interpolate_Ohm2C(lrOhm,nLastIndex);
+				RETURN;
+			ELSIF lrOhm = LookupTable[i].ohm	THEN
+				// We crossed the correct reading.
+				// Remember the index for faster next reading.
+				nLastIndex	:= i;
+				M_PT100_Ohm2C	:= M_PT100_Interpolate_Ohm2C(lrOhm,nLastIndex);
+				RETURN;
+			END_IF
+		END_IF
+	END_FOR
+ELSE
+	M_PT100_Ohm2C	:= M_PT100_Interpolate_Ohm2C(lrOhm,nLastIndex);
+	RETURN;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{1c584e3b-7461-47e9-995a-4c07bb477f3d}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Set temperature sensor type
+stat.nType	:= in_nType;
+
+// Update value depending on the sensor type.
+// So far, only PT100 supported.
+CASE in_nType OF
+	E_CRYO_SENSOR_TYPE_TEMP.PT100:
+		M_SetStatus_PT100();
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_PT100" Id="{b4d00742-9c55-4b7f-86cc-d744f7dac717}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus_PT100
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Set the temperature as it is read.
+// Later on we decide if it is valid or not.
+//
+IF NOT in_bResistor_1_64	THEN
+	// Standard RTD reading
+	stat.lrTempC	:= i_nValue * in_lrScale;	// Set temperature in deg C
+	stat.lrTempK	:= stat.lrTempC + 273.15;	// Set temperature in deg K
+ELSE	
+	// RTD reading of resistance.
+	// i_nValue is in [Ohm]
+	stat.lrTempC	:= M_PT100_Ohm2C(i_nValue);	// Set temperature in deg C
+	stat.lrTempK	:= stat.lrTempC + 273.15;	// Set temperature in deg K
+END_IF
+
+// Reading in Celsius of 850.0 means an error.
+// In this case, set the Kelvin reading to 850.0 as well.
+// Set error and not Valid and return.
+IF stat.lrTempC = 850.0	THEN
+	stat.lrTempK	:= 850.0;
+	stat.bError		:= TRUE;
+	stat.bValid		:= FALSE;
+	RETURN;
+END_IF
+
+//
+// Update validity
+// Note: bInputError = (bInputUnder OR bInputOver)
+//       bValid      = TRUE if PDO is OK (nothing to do with bError)
+//
+IF stat.bInputActive THEN
+	IF stat.bInputError  AND  stat.bInputUnder  AND  in_bIgnoreUnderrange 	THEN
+		// Sometimes we ignore underrange because PT100 cannot read below -200C.
+		// The bUnderrange flag is still active!!!
+		stat.bError	:= FALSE;
+		stat.bValid	:= TRUE;
+	ELSIF stat.bInputError 	THEN
+		stat.bError	:= TRUE;
+		stat.bValid	:= FALSE;
+	ELSE
+		stat.bError	:= FALSE;
+		stat.bValid	:= TRUE;
+	END_IF
+ELSE
+	stat.bError	:= TRUE;
+	stat.bValid	:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_SENSOR_TEMPERATURE">
+      <LineId Id="17" Count="4" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_TEMPERATURE.M_GetRamp">
+      <LineId Id="38" Count="4" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="66" Count="3" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="44" Count="7" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="55" Count="2" />
+      <LineId Id="52" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_TEMPERATURE.M_PT100_Interpolate_Ohm2C">
+      <LineId Id="51" Count="14" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_TEMPERATURE.M_PT100_Ohm2C">
+      <LineId Id="115" Count="5" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="122" Count="20" />
+      <LineId Id="187" Count="2" />
+      <LineId Id="143" Count="36" />
+      <LineId Id="181" Count="1" />
+      <LineId Id="26" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_TEMPERATURE.M_SetStatus">
+      <LineId Id="130" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="122" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_TEMPERATURE.M_SetStatus_PT100">
+      <LineId Id="262" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="294" Count="1" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="302" Count="1" />
+      <LineId Id="306" Count="2" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="264" Count="1" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="282" Count="2" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

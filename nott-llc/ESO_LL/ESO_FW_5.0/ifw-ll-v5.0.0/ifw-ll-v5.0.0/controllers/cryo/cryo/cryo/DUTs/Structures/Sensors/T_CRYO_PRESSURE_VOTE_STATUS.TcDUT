@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_PRESSURE_VOTE_STATUS" Id="{5e4f0fe9-c65b-4207-8a0e-12540bca9cb5}">
+    <Declaration><![CDATA[TYPE T_CRYO_PRESSURE_VOTE_STATUS :
+STRUCT
+	bSimulated:		BOOL;				// Flag indicating if the value is simulated.
+	lrSimPressure:	LREAL;				// Simulated pressure value [mbar]
+
+	bValid:			BOOL	:= FALSE;	// Flag indicating if the value is valid.
+	lrPressure:		LREAL;				// Calculated Pressure [mbar]
+	sStatus:		STRING;				// Status string
+
+	// Flags indicating warnings for each connected sensor.
+	// Only connected sensors can have warnings!!!
+	bWarnSens1:		BOOL	:= TRUE;
+	bWarnSens2:		BOOL	:= TRUE;
+	bWarnSens3:		BOOL	:= TRUE;
+	bWarnSens4:		BOOL	:= TRUE;
+	bWarnSens5:		BOOL	:= TRUE;
+
+	// Flags for each sensor indicating if it is connected.
+	bConnSens1:		BOOL	:= FALSE;
+	bConnSens2:		BOOL	:= FALSE;
+	bConnSens3:		BOOL	:= FALSE;
+	bConnSens4:		BOOL	:= FALSE;
+	bConnSens5:		BOOL	:= FALSE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

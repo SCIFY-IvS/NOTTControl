@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="IpAdressToInteger" Id="{b32b6121-fa86-4b45-9647-992fa01e9566}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION IpAdressToInteger : UDINT
+VAR_INPUT
+	IpAddress : Tc2_System.T_IPv4Addr;
+END_VAR
+VAR
+	IpAddressArray : Tc2_System.T_IPv4AddrArr;
+    IpAddressInteger : UDINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IpAddressArray := Tc2_System.F_ScanIPv4AddrIds(sIPv4 := IpAddress);
+IpAddressInteger := LREAL_TO_UDINT(IpAddressArray[0] * EXPT(256, 3) +
+                                   IpAddressArray[1] * EXPT(256, 2) +
+                                   IpAddressArray[2] * EXPT(256, 1) +
+                                   IpAddressArray[3]);
+
+IpAdressToInteger := IpAddressInteger;]]></ST>
+    </Implementation>
+    <LineIds Name="IpAdressToInteger">
+      <LineId Id="11" Count="5" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

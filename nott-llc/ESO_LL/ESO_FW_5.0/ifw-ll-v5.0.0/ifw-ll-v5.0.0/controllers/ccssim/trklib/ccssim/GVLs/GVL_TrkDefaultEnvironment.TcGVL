@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <GVL Name="GVL_TrkDefaultEnvironment" Id="{1d79663d-7cf4-4c17-b282-d6478abf764a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	C_HUMIDITY:    LREAL := 50.0;
+	C_LAPSERATE:   LREAL := 0.0065;
+	C_PRESSURE:    LREAL := 760.0;
+	C_TEMPERATURE: LREAL := 20;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

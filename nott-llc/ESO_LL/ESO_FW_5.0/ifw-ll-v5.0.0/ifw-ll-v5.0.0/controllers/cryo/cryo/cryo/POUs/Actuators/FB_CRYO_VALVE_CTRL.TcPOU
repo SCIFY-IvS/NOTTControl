@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_VALVE_CTRL" Id="{821ef5cb-5c3c-4548-8cdd-f457c89df676}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_VALVE_CTRL EXTENDS FB_CRYO_BIN_CTRL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute parent FB.
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_SetStatus" Id="{4aedb583-a641-44e2-9926-6d1ee3abadf1}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_BIN_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute the status of the parent FB
+SUPER^.M_SetStatus(nState);
+
+// Set proper error description, if any.
+IF Actuator.stat.bError THEN
+	stat.sState	:= 'Valve failure';
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_User_SetAction" Id="{60abe389-4ad1-49f5-a9ed-250397cb9229}">
+      <Declaration><![CDATA[METHOD M_User_SetAction : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// Set Valve command based on the input parameter in_bEnable.
+//
+	
+IF	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF  AND in_bEnable THEN
+	// Activate the actuator, i.e. open the valve
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.ON;
+ELSIF  stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON AND NOT in_bEnable THEN
+	// Dectivate the actuator, i.e. close the valve
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+ELSE
+	// Don't do anything
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.NONE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_VALVE_CTRL">
+      <LineId Id="11" Count="0" />
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_SetStatus">
+      <LineId Id="159" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="148" Count="2" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_User_SetAction">
+      <LineId Id="5" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

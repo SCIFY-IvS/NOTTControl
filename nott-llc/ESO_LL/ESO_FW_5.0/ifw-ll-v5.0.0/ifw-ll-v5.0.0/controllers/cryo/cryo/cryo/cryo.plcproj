@@ -1,0 +1,792 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{90b3145e-2135-4b8a-9a17-7c28b75b5f1d}</ProjectGuid>
+    <SubObjectsSortedByName>True</SubObjectsSortedByName>
+    <Name>cryo</Name>
+    <ProgramVersion>3.1.4022.4</ProgramVersion>
+    <Application>{a329aa5b-4aa1-4ecd-b093-56f723a2ddc7}</Application>
+    <TypeSystem>{5661778c-ae14-4e38-bda0-1ce7641938ac}</TypeSystem>
+    <Implicit_Task_Info>{e7528192-7432-4065-a4a2-39abf3320d2a}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{98d4fb99-b6b9-48cc-b6c9-3fc5f2cd8025}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{eb88d2f2-97b4-477b-b4b3-ec32140da31d}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{c3c6e963-af1f-4d0c-adaa-5e02ebe40f55}</LibraryReferences>
+    <SccProjectName>Svn</SccProjectName>
+    <SccProvider>SubversionScc</SccProvider>
+    <SccAuxPath>Svn</SccAuxPath>
+    <SccLocalPath>Svn</SccLocalPath>
+    <CombineIds>false</CombineIds>
+    <Company>ESO</Company>
+    <Released>false</Released>
+    <Title>ESO LDC Cryo Library</Title>
+    <ProjectVersion>0.0.0.10</ProjectVersion>
+    <LibraryCategories>
+      <LibraryCategory xmlns="">
+        <Id>{1d802231-f99f-45c2-a1ef-ac02fba16fd5}</Id>
+        <Version>1.0.0.0</Version>
+        <DefaultName>ESO</DefaultName>
+      </LibraryCategory>
+      <LibraryCategory xmlns="">
+        <Id>{e8c6def2-cb77-4d8a-afc3-d5e83e5c5fef}</Id>
+        <Version>1.0.0.0</Version>
+        <ParentCategory>
+          <Id>{1d802231-f99f-45c2-a1ef-ac02fba16fd5}</Id>
+        </ParentCategory>
+        <DefaultName>ELT</DefaultName>
+      </LibraryCategory>
+      <LibraryCategory xmlns="">
+        <Id>{2eae7953-da28-4e9c-bbde-188ba27ea179}</Id>
+        <Version>1.0.0.0</Version>
+        <ParentCategory>
+          <Id>{1d802231-f99f-45c2-a1ef-ac02fba16fd5}</Id>
+        </ParentCategory>
+        <DefaultName>VLT</DefaultName>
+      </LibraryCategory>
+    </LibraryCategories>
+    <SelectedLibraryCategories>
+      <Id xmlns="">{e8c6def2-cb77-4d8a-afc3-d5e83e5c5fef}</Id>
+    </SelectedLibraryCategories>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="ClassDiagram.TcCD">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ClassDiagram_All.TcCD">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ClassDiagram_Sensors.TcCD">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_BIN_ACT_CMD.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_BIN_ACT_FEEDBACK.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_BIN_ACT_FEEDBACK_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_BIN_ACT_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_BIN_CTRL_ACTION.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_BIN_CTRL_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_CTRL_CMD.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_CTRL_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Actuators\E_CRYO_GEN_CTRL_EVENT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Coolers\E_CRYO_CPA_ALARM.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Coolers\E_CRYO_CPA_CMDS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Coolers\E_CRYO_CPA_DIAG_IDX.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Coolers\E_CRYO_CRYOTELGT_CMD.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Coolers\E_CRYO_CRYOTELGT_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Misc\E_CRYO_ALARM_IDX.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Misc\E_CRYO_ALARM_LEVEL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Misc\E_CRYO_THLD_MODE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Misc\E_CRYO_VOTE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Pumps\E_CRYO_PUMP_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Pumps\E_ECODRY_VERSION.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Sensors\E_CRYO_SBG232_SENSOR_TYPE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Sensors\E_CRYO_SENSOR_TYPE_PRESS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Sensors\E_CRYO_SENSOR_TYPE_TEMP.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Sensors\E_CRYO_SIM_SENS_CMD.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Subsystems\Evacuation\E_CRYO_EVAC_PRESSURES_50000.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Subsystems\Evacuation\E_CRYO_EVAC_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Subsystems\Evacuation\E_CRYO_EVAC_STATE_50000.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Subsystems\Evacuation\E_CRYO_EVAC_SYS_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\Subsystems\Evacuation\E_CRYO_EVAC_VALVES_50000.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Actuators\T_CRYO_BIN_ACT_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Actuators\T_CRYO_BIN_CTRL_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Actuators\T_CRYO_GEN_CTRL_STATUS_BASE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CPA_ACTIVE_LIMITS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CPA_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CPA_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CPA_DIAG_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CPA_INFO.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CPA_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CRYOTELGT_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CRYOTELGT_CMD.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CRYOTELGT_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Coolers\T_CRYO_CRYOTELGT_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Misc\T_CRYO_VOTE_LIST.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_ATM2303M_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_ATM2303M_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_BASE_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_BASE_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_BASE_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_CMD.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_HIPACE30_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_HIPACE30_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_MODBUS_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_MODBUS_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_MODBUS_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_MVP030_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_MVP030_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Pumps\T_CRYO_PUMP_SERIAL_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_IOLINK_SENSOR_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_PRESSURE_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_PRESSURE_VOTE_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_PT100_OHM2C_REC.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_SBG232_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_SENSOR_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_SENSOR_STATUS_PRESS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_SENSOR_STATUS_TEMP.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Sensors\T_CRYO_TEMPERATURE_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVACUATION_SYSTEM_STATUS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_CFG_50000.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_CTRL_50000.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_STAT_50000.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Subsystems\Evacuation\T_CRYO_EVAC_SYS_INPUT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\System\T_CRYO_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\System\T_CRYO_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\System\T_CRYO_LOG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\System\T_CRYO_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GlobalTextList.TcGTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ImagePool.TcIPO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PlcTask.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_ACTUATOR_CMD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_CMD_OVERRIDE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_BIN_ACT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_BIN_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_GEN_CTRL_BASE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_CCC_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_HEATER_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_LN2_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Actuators\FB_CRYO_VALVE_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Comm\FB_MODBUS_COMM_CPA.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Coolers\FB_CRYO_CPA.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Coolers\FB_CRYO_CRYOTELGT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Coolers\FB_RS_COMM_CRYOTELGT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Coolers\FB_SIM_RS_COMM_CRYOTELGT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\MAIN.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_ATH2303M.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_BASE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_ECODRY.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_HIPACE30.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_MODBUS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_MVP030.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Pumps\FB_CRYO_PUMP_SERIAL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_PRESSURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_PRESSURE_VOTE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_SBG232.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_SENSOR_BASE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_SENSOR_PRESSURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_SENSOR_TEMPERATURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Sensors\FB_CRYO_TEMPERATURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Simulation\FB_CRYO_SIM_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Simulation\FB_CRYO_SIM_SBG232.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Simulation\FB_CRYO_SIM_TEMPERATURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Simulation\FB_CRYO_SIM_PRESSURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Simulation\FB_CRYO_SIM_SINE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Simulation\FB_SIM_MODBUS_COMM_CPA.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Evacuation\FB_CRYO_EVACUATION_SYSTEM.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Evacuation\FB_CRYO_EVAC_BASE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Evacuation\FB_CRYO_EVAC_BASE_50000.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\Evacuation\FB_CRYO_EVAC_ECODRY_ATH2303M.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\Evacuation\FB_CRYO_EVAC_MICADO.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\Evacuation\FB_CRYO_EVAC_PDS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\Evacuation\FB_SIM_MICADO_PUMPS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\Evacuation\FB_SIM_MICADO_VALVES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\LN2_Precooling\FB_CRYO_LN2_PRECOOL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\Examples\LN2_Precooling\FB_SIM_LN2_PRECOOL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\System\FB_CRYO_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Utilities\FB_CRYO_THLD_BASE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Visualization Manager.TcVMO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_ATH2303M_EVAC_LAB.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_CMD_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_CPA.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_CRYO.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_CRYOTELGT.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_ECODRY_V01_EVAC_LAB.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_EVAC_LAB.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_EVAC_MICADO.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_EVAC_PDS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_HIPACE_30_EVAC_PDS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_IRATEC.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_MICADO_Valves.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_MVP030_EVAC_PDS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_P2_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_Pressures.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_PVV1_CMD.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_SBG232.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_SBG232_SIM.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_T2_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_ACTUATOR_CMD.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_ACTUATOR_ENG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_SENSOR_SIM_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_ATH2303M.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_CMD_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_CRYOTELGT.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_CRYO_CPA.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_CRYO_EVAC_BASE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_ECODRY_V01.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_HIPACE_30.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_MVP030.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_SBG232.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_TEMP_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\GUI_TEMPLATE_PRESS_OVERRIDE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="DUTs" />
+    <Folder Include="DUTs\Enumerations" />
+    <Folder Include="DUTs\Enumerations\Actuators" />
+    <Folder Include="DUTs\Enumerations\Misc" />
+    <Folder Include="DUTs\Enumerations\Coolers" />
+    <Folder Include="DUTs\Enumerations\Subsystems" />
+    <Folder Include="DUTs\Enumerations\Pumps" />
+    <Folder Include="DUTs\Enumerations\Sensors" />
+    <Folder Include="DUTs\Enumerations\Subsystems\Evacuation" />
+    <Folder Include="DUTs\Structures" />
+    <Folder Include="DUTs\Structures\Actuators" />
+    <Folder Include="DUTs\Structures\Coolers" />
+    <Folder Include="DUTs\Structures\Misc" />
+    <Folder Include="DUTs\Structures\System" />
+    <Folder Include="DUTs\Structures\Subsystems" />
+    <Folder Include="DUTs\Structures\Sensors" />
+    <Folder Include="DUTs\Structures\Pumps" />
+    <Folder Include="DUTs\Structures\Subsystems\Evacuation" />
+    <Folder Include="GVLs" />
+    <Folder Include="config" />
+    <Folder Include="POUs\Comm" />
+    <Folder Include="POUs\Actuators" />
+    <Folder Include="POUs\Coolers" />
+    <Folder Include="POUs\Subsystems\Examples\LN2_Precooling" />
+    <Folder Include="POUs\Subsystems\Examples\Evacuation" />
+    <Folder Include="POUs\Utilities" />
+    <Folder Include="POUs\Subsystems\Evacuation" />
+    <Folder Include="POUs\Subsystems\Examples" />
+    <Folder Include="POUs\System" />
+    <Folder Include="POUs\Subsystems" />
+    <Folder Include="POUs\Pumps" />
+    <Folder Include="POUs\Sensors" />
+    <Folder Include="POUs\Simulation" />
+    <Folder Include="VISUs" />
+    <Folder Include="POUs" />
+    <Folder Include="VISUs\GUIs" />
+    <Folder Include="VISUs\Templates" />
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="ESO LDC Comm Tcp Library">
+      <DefaultResolution>ESO LDC Comm Tcp Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Comm_Tcp_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemMeter">
+      <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemMeter</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElems">
+      <DefaultResolution>VisuElems, 3.5.13.40 (System)</DefaultResolution>
+      <Namespace>VisuElems</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsSpecialControls">
+      <DefaultResolution>VisuElemsSpecialControls, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemsSpecialControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsWinControls">
+      <DefaultResolution>VisuElemsWinControls, 3.5.13.20 (System)</DefaultResolution>
+      <Namespace>VisuElemsWinControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemTextEditor">
+      <DefaultResolution>VisuElemTextEditor, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemTextEditor</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="system_visuinputs">
+      <DefaultResolution>visuinputs, 3.5.13.0 (system)</DefaultResolution>
+      <Namespace>visuinputs</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuNativeControl">
+      <DefaultResolution>VisuNativeControl, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuNativeControl</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_SerialCom">
+      <DefaultResolution>Tc2_SerialCom, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_SerialCom</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_Standard">
+      <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Standard</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_System">
+      <DefaultResolution>Tc2_System, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_System</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_Utilities">
+      <DefaultResolution>Tc2_Utilities, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Utilities</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_Module">
+      <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_Module</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="VisuDialogs">
+      <DefaultResolution>VisuDialogs, * (System)</DefaultResolution>
+      <Namespace>VisuDialogs</Namespace>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <LibraryReference Include="ESO LDC Comm Common Library,0.2.0.2,ESO">
+      <Namespace>ESO_LDC_Comm_Common_Library</Namespace>
+    </LibraryReference>
+    <LibraryReference Include="ESO LDC Comm Serial Library,0.2.0.2,ESO">
+      <Namespace>ESO_LDC_Comm_Serial_Library</Namespace>
+    </LibraryReference>
+    <LibraryReference Include="VisuSymbols,3.5.10.0,System">
+      <Namespace>VisuSymbols</Namespace>
+    </LibraryReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="config\CPA_Mapping_SPLC016.xml">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="config\IRATEC_Mapping.xml">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="config\MICADO_Mapping_Evacuation_Local.xml">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="config\SIM_Mapping.xml">
+      <SubType>Content</SubType>
+    </Content>
+    <None Include="cryo.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ProjectExtensions>
+    <PlcProjectOptions>
+      <XmlArchive>
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
+      <v n="Name">"&lt;ProjectRoot&gt;"</v>
+      <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
+        <o>
+          <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
+        <o>
+          <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
+          <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>Rules</v>
+            <o>
+              <v n="Name">"Rules"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+          </d>
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
+        <o>
+          <v n="Name">"{40450F57-0AA3-4216-96F3-5444ECB29763}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="String">
+            <v>ActiveVisuProfile</v>
+            <v>IR0whWr8bwfwBwAAiD2qpQAAAABVAgAA37x72QAAAAABAAAAAAAAAAEaUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwACTHsAZgA5ADUAYgBiADQAMgA2AC0ANQA1ADIANAAtADQAYgA0ADUALQA5ADQAMAAwAC0AZgBiADAAZgAyAGUANwA3AGUANQAxAGIAfQADCE4AYQBtAGUABDBUAHcAaQBuAEMAQQBUACAAMwAuADEAIABCAHUAaQBsAGQAIAA0ADAAMgA0AC4ANwAFFlAAcgBvAGYAaQBsAGUARABhAHQAYQAGTHsAMQA2AGUANQA1AGIANgAwAC0ANwAwADQAMwAtADQAYQA2ADMALQBiADYANQBiAC0ANgAxADQANwAxADMAOAA3ADgAZAA0ADIAfQAHEkwAaQBiAHIAYQByAGkAZQBzAAhMewAzAGIAZgBkADUANAA1ADkALQBiADAANwBmAC0ANABkADYAZQAtAGEAZQAxAGEALQBhADgAMwAzADUANgBhADUANQAxADQAMgB9AAlMewA5AGMAOQA1ADgAOQA2ADgALQAyAGMAOAA1AC0ANAAxAGIAYgAtADgAOAA3ADEALQA4ADkANQBmAGYAMQBmAGUAZABlADEAYQB9AAoOVgBlAHIAcwBpAG8AbgALBmkAbgB0AAwKVQBzAGEAZwBlAA0KVABpAHQAbABlAA4aVgBpAHMAdQBFAGwAZQBtAE0AZQB0AGUAcgAPDkMAbwBtAHAAYQBuAHkAEAxTAHkAcwB0AGUAbQARElYAaQBzAHUARQBsAGUAbQBzABIwVgBpAHMAdQBFAGwAZQBtAHMAUwBwAGUAYwBpAGEAbABDAG8AbgB0AHIAbwBsAHMAEyhWAGkAcwB1AEUAbABlAG0AcwBXAGkAbgBDAG8AbgB0AHIAbwBsAHMAFCRWAGkAcwB1AEUAbABlAG0AVABlAHgAdABFAGQAaQB0AG8AcgAVIlYAaQBzAHUATgBhAHQAaQB2AGUAQwBvAG4AdAByAG8AbAAWFHYAaQBzAHUAaQBuAHAAdQB0AHMAFwxzAHkAcwB0AGUAbQAYGFYAaQBzAHUARQBsAGUAbQBCAGEAcwBlABkmRABlAHYAUABsAGEAYwBlAGgAbwBsAGQAZQByAHMAVQBzAGUAZAAaCGIAbwBvAGwAGyJQAGwAdQBnAGkAbgBDAG8AbgBzAHQAcgBhAGkAbgB0AHMAHEx7ADQAMwBkADUAMgBiAGMAZQAtADkANAAyAGMALQA0ADQAZAA3AC0AOQBlADkANAAtADEAYgBmAGQAZgAzADEAMABlADYAMwBjAH0AHRxBAHQATABlAGEAcwB0AFYAZQByAHMAaQBvAG4AHhRQAGwAdQBnAGkAbgBHAHUAaQBkAB8WUwB5AHMAdABlAG0ALgBHAHUAaQBkACBIYQBmAGMAZAA1ADQANAA2AC0ANAA5ADEANAAtADQAZgBlADcALQBiAGIANwA4AC0AOQBiAGYAZgBlAGIANwAwAGYAZAAxADcAIRRVAHAAZABhAHQAZQBJAG4AZgBvACJMewBiADAAMwAzADYANgBhADgALQBiADUAYwAwAC0ANABiADkAYQAtAGEAMAAwAGUALQBlAGIAOAA2ADAAMQAxADEAMAA0AGMAMwB9ACMOVQBwAGQAYQB0AGUAcwAkTHsAMQA4ADYAOABmAGYAYwA5AC0AZQA0AGYAYwAtADQANQAzADIALQBhAGMAMAA2AC0AMQBlADMAOQBiAGIANQA1ADcAYgA2ADkAfQAlTHsAYQA1AGIAZAA0ADgAYwAzAC0AMABkADEANwAtADQAMQBiADUALQBiADEANgA0AC0ANQBmAGMANgBhAGQAMgBiADkANgBiADcAfQAmFk8AYgBqAGUAYwB0AHMAVAB5AHAAZQAnVFUAcABkAGEAdABlAEwAYQBuAGcAdQBhAGcAZQBNAG8AZABlAGwARgBvAHIAQwBvAG4AdgBlAHIAdABpAGIAbABlAEwAaQBiAHIAYQByAGkAZQBzACgQTABpAGIAVABpAHQAbABlACkUTABpAGIAQwBvAG0AcABhAG4AeQAqHlUAcABkAGEAdABlAFAAcgBvAHYAaQBkAGUAcgBzACs4UwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBIAGEAcwBoAHQAYQBiAGwAZQAsEnYAaQBzAHUAZQBsAGUAbQBzAC1INgBjAGIAMQBjAGQAZQAxAC0AZAA1AGQAYwAtADQAYQAzAGIALQA5ADAANQA0AC0AMgAxAGYAYQA3ADUANgBhADMAZgBhADQALihJAG4AdABlAHIAZgBhAGMAZQBWAGUAcgBzAGkAbwBuAEkAbgBmAG8AL0x7AGMANgAxADEAZQA0ADAAMAAtADcAZgBiADkALQA0AGMAMwA1AC0AYgA5AGEAYwAtADQAZQAzADEANABiADUAOQA5ADYANAAzAH0AMBhNAGEAagBvAHIAVgBlAHIAcwBpAG8AbgAxGE0AaQBuAG8AcgBWAGUAcgBzAGkAbwBuADIMTABlAGcAYQBjAHkAMzBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAFYAZQByAHMAaQBvAG4ASQBuAGYAbwA0MEwAbwBhAGQATABpAGIAcgBhAHIAaQBlAHMASQBuAHQAbwBQAHIAbwBqAGUAYwB0ADUaQwBvAG0AcABhAHQAaQBiAGkAbABpAHQAeQDQAAIaA9ADAS0E0AUGGgfQBwgaAUUHCQjQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtDtAPAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60BAAAA0A0BLRHQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0S0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAUAAAA0AwLrQIAAADQDQEtE9APAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAAAAAANAMC60CAAAA0A0BLRTQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0V0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtFtAPAS0X0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60EAAAA0A0BLRjQDwEtENAZGq0BRRscAdAAHBoCRR0LBAMAAAAFAAAADQAAAAAAAADQHh8tINAhIhoCRSMkAtAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAAAAANADAS0n0CgBLRHQKQEtENAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAQAAANADAS0n0CgBLRHQKQEtEJoqKwFFAAEC0AABLSzQAAEtF9AAHy0t0C4vGgPQMAutAQAAANAxC60XAAAA0DIarQDQMy8aA9AwC60CAAAA0DELrQMAAADQMhqtANA0Gq0A0DUarQA=</v>
+          </d>
+        </o>
+        <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
+        <o>
+          <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
+        <o>
+          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>GlobalVisuImageFilePath</v>
+            <v>"%APPLICATIONPATH%\"</v>
+            <v>UnicodeStrings</v>
+            <v>false</v>
+          </d>
+        </o>
+      </d>
+      <d n="Values" t="Hashtable" />
+    </o>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
+    </PlcProjectOptions>
+  </ProjectExtensions>
+</Project>

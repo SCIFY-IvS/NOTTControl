@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<TcEventSources Version="2">
+	<Source>
+		<GUID>{FADD0057-9BEC-4FF9-8DE5-9D74AA3B07C0}</GUID>
+		<Name LcId="1033">Operational Logs</Name>
+		<Event>
+			<Id>1</Id>
+			<Message LcId="1033">Action {0} started.</Message>
+		</Event>
+		<Event>
+			<Id>2</Id>
+			<Message LcId="1033">Action {0} completed.</Message>
+		</Event>
+		<Event>
+			<Id>3</Id>
+			<Message LcId="1033">Error: {0}</Message>
+		</Event>
+		<Event>
+			<Id>4</Id>
+			<Message LcId="1033">Debug: {0}</Message>
+		</Event>
+		<Event>
+			<Id>5</Id>
+			<Message LcId="1033">{0}</Message>
+		</Event>
+		<Event>
+			<Id>6</Id>
+			<Message LcId="1033">MOVE ABS: Pos {0}, Vel {1} Started</Message>
+		</Event>
+		<Event>
+			<Id>7</Id>
+			<Message LcId="1033">MOVE REL: Rel Pos {0} from Pos {1}, Vel {2} Started</Message>
+		</Event>
+		<Event>
+			<Id>8</Id>
+			<Message LcId="1033">MOVE VEL: Vel {0} Started</Message>
+		</Event>
+	</Source>
+</TcEventSources>

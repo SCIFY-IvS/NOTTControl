@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_CCC_STATUS" Id="{55df7cc8-896a-4704-ad79-90eb4afb9a7c}">
+    <Declaration><![CDATA[TYPE E_CCC_STATUS :
+(
+	NOT_INIT	:= -1,
+	IDLE		:= 0,
+	ERROR		:= 1,
+	BUSY		:= 2
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

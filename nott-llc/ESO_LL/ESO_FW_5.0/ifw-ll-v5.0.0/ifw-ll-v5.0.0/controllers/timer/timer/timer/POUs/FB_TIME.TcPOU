@@ -1,0 +1,1057 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_TIME" Id="{0ec6221a-cd4c-4239-8d48-cc90d24f1b76}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TIME
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_TIME_STAT;
+
+	{attribute 'OPC.UA.DA' := '1'}
+    cfg:         T_TIME_CFG;	
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	fb_CoE:         FB_ReadEL6688CoE;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	fb_SendDiag:         FB_SendEL6688Diag;
+	
+	// Input variables from EL6688 
+	{attribute 'OPC.UA.DA' := '0'}
+	i_inTime               AT %I* : ULINT := 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_exTime               AT %I* : ULINT := 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_dc2TcOffset          AT %I* : LINT := GVL_TimeConstants.C_INVALID;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_dc2ExtOffset         AT %I* : LINT := GVL_TimeConstants.C_INVALID;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_extDevNotConnected   AT %I* : BOOL := TRUE;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_syncMode             AT %I* : UINT;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_AdsAddr	           AT %I*:	AMSADDR;				// ADS address structure
+	{attribute 'OPC.UA.DA' := '0'}
+	
+	// Input variables from NTP
+	{attribute 'OPC.UA.DA' := '0'}
+    i_exNtpExtTime               AT %I* : LINT := 0;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+    i_exNtpSysTime         AT %I* : LINT := 0;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+    i_exNtpExtOffset         AT %I* : LINT := 0;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_exNtpConnected   AT %I* : BOOL := FALSE;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_exNtpSynchronized  AT %I* : BOOL := FALSE;
+	
+	
+ 	{attribute 'OPC.UA.DA' := '0'}
+	q_timeInfo             AT %Q*: T_TIME_INFO;    
+	
+	rtrigEnableDiagReport        : R_TRIG;
+    ftrigDisableDiagReport       : F_TRIG;  
+	waitTime			 : TIME := T#10000MS;
+	waitTout			 : TON;    // timer for resting time when reading CoE parameters.
+	payload              : T_PAYLOAD;
+	   
+	
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+fb_CoE(st_amsAddr := i_AdsAddr, i_coe_stat := stat.el6688);
+fb_SendDiag();
+
+CycleUpdate();
+
+// If TIMER is configured to send diagnostic reports to the Time System then
+// it enables the sending of the data.
+rtrigEnableDiagReport(CLK := cfg.diag_report.enabled);
+ftrigDisableDiagReport(CLK := cfg.diag_report.enabled);
+
+// Check for the rising edge of the enable flag
+IF rtrigEnableDiagReport.Q THEN
+	stat.diag_report.state := E_DIAG_STATE.E_DIAG_INIT;
+	stat.diag_report.enabled := TRUE;
+END_IF
+
+// Check for the falling edge of the enable flag
+IF ftrigDisableDiagReport.Q THEN
+	stat.diag_report.state := E_DIAG_STATE.E_DIAG_DISABLED;
+	stat.diag_report.counter := 0;
+	stat.diag_report.enabled := FALSE;
+END_IF
+
+CASE stat.diag_report.state OF
+E_DIAG_STATE.E_DIAG_INIT:
+
+	fb_SendDiag.SetConfigurationParameters(DestinationIpAddress := cfg.diag_report.address,
+		DestinationPort := cfg.diag_report.destination_port,
+		SourcePort := cfg.diag_report.source_port,
+		TopicId := cfg.diag_report.topic_id,
+		ComponentId := cfg.diag_report.compontent_id);
+	
+	IF DINT_TO_TIME(cfg.diag_report.sampling) < T#500MS THEN
+		waitTime := T#500MS;
+	ELSE
+		waitTime :=  DINT_TO_TIME(cfg.diag_report.sampling);
+	END_IF	
+	waitTout (IN := TRUE, PT := waitTime); (* enable timer *)
+	
+	stat.diag_report.state := E_DIAG_STATE.E_DIAG_WAITING;
+E_DIAG_STATE.E_DIAG_WAITING:	
+	waitTout (IN := TRUE);  (* activate timer counting per each cycle *)
+ 	IF waitTout.Q THEN
+		waitTout (IN := FALSE);
+		stat.diag_report.state := E_DIAG_STATE.E_DIAG_SENDING;
+ 	END_IF
+E_DIAG_STATE.E_DIAG_SENDING:  
+	// Added information to the payload structure
+	// Not all fields are currently supported.
+ 	payload.port_state1 := fb_CoE.GetPtpState();
+	payload.offset_from_master := fb_CoE.GetOffsetFromMaster();
+	payload.mean_path_delay := fb_CoE.GetMeanPathDelay();
+	payload.current_utc_offset := fb_CoE.GetLeapSecond();
+	payload.clock_identity := fb_CoE.GetClockIdentity();
+	payload.gm_identity := fb_CoE.GetGrandmasterIdentity();
+	payload.parent_port_identity := fb_CoE.GetParentPortIdentity();
+	payload.steps_removed := fb_CoE.GetStepRemoved();
+	payload.sync_msg_count := fb_CoE.GetSyncMsgCounter();
+	
+    fb_SendDiag.SendDiagnosticData(payload := ADR(payload),
+					timeStamp := stat.lrTaiUnixTimeinSecs) ;	
+	stat.diag_report.counter := stat.diag_report.counter + 1;
+	// Reset timer
+	waitTout (IN := FALSE);  
+	// Go back to the init
+	stat.diag_report.state := E_DIAG_STATE.E_DIAG_INIT;
+END_CASE
+]]></ST>
+    </Implementation>
+    <Method Name="CheckNtpSignal" Id="{b6a69311-7d97-45bf-9417-5ecdd874136e}">
+      <Declaration><![CDATA[METHOD CheckNtpSignal : BOOL
+VAR_INPUT
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.signal.status :=  E_TIME_SIGNAL_STATUS.CONNECTED;
+stat.signal.qos := E_TIME_SIGNAL_QOS.VALID;
+
+
+// Check external signal. This variable must be mapped to the EL6688 terminal.
+IF (NOT i_exNtpConnected) THEN
+	stat.signal.status :=  E_TIME_SIGNAL_STATUS.NOT_CONNECTED;
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	CheckNtpSignal:=FALSE;
+	RETURN;
+END_IF	
+
+// Check NTP is synchronized
+IF (NOT i_exNtpSynchronized) THEN
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.NTP_NOT_SYNCHRONIZED);
+END_IF	
+
+// Check time delivered by NTP is not zero. This variable
+// shall be mapped to the TcNtpExternalTimeProvider
+IF (i_exNtpExtTime = 0) THEN
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.INT_EXT_NOT_MAPPED);
+	CheckNtpSignal:=FALSE;
+	RETURN;
+END_IF
+
+
+CheckNtpSignal := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckPtpSignal" Id="{64dbebbf-6e6f-43e1-80a4-8956e87ffb43}">
+      <Declaration><![CDATA[METHOD CheckPtpSignal : BOOL
+VAR_INPUT
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.signal.status :=  E_TIME_SIGNAL_STATUS.CONNECTED;
+stat.signal.qos := E_TIME_SIGNAL_QOS.VALID;
+
+
+// Check external signal. This variable must be mapped to the EL6688 terminal.
+IF (i_extDevNotConnected) THEN
+	stat.signal.status :=  E_TIME_SIGNAL_STATUS.NOT_CONNECTED;
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	CheckPtpSignal:=FALSE;
+	RETURN;
+END_IF	
+
+// Check DC times computed by EL6688 are not zero. These variables
+// shall be mapped to the EL6688 terminal.	
+IF ((i_inTime = 0) OR (i_exTime = 0)) THEN
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.INT_EXT_NOT_MAPPED);
+	CheckPtpSignal:=FALSE;
+	RETURN;
+END_IF
+
+IF (i_dc2TcOffset = GVL_TimeConstants.C_INVALID)  THEN
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.DC2TC_OFFSET_NOT_MAPPED);
+	CheckPtpSignal:=FALSE;
+	RETURN;
+END_IF
+		
+// Check quality of the signal synchronization. If the offset from master is
+// greater than one second if it is consider not synchronized.
+IF (ABS(fb_CoE.GetOffsetFromMaster()) >= GVL_TimeConstants.C_ONE_SEC) THEN
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_SYNCHRONIZED;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.PTP_NOT_SYNCHRONIZED);
+END_IF
+
+// Check CoE diagnostic parameter from EL6688. Terminal shall be
+// in SLAVE state and not LISTENNING.
+
+IF (NOT fb_CoE.IsErrorFree()) THEN
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.COE_NOT_VALID);
+	CheckPtpSignal:=FALSE;
+	RETURN;
+END_IF
+	
+IF (fb_CoE.GetPtpState() <> E_COE_PTP_STATE.SLAVE) THEN
+	stat.signal.status :=  E_TIME_SIGNAL_STATUS.NOT_CONNECTED;
+	stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.PTP_WRONG_STATE);
+	CheckPtpSignal:=FALSE;
+	RETURN;
+END_IF
+
+CheckPtpSignal := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ComputeNtpOffset" Id="{795887e8-7b09-4d9c-b48d-2ba3fb276031}">
+      <Declaration><![CDATA[METHOD ComputeNtpOffset
+VAR_INPUT
+END_VAR
+
+VAR
+	dcExtNtpTime : LINT;
+	dcExtNtpLocalTime : LINT;
+	tmp : ULINT;
+	nFileTime : T_FILETIME;
+	str: STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+
+MEMCPY(ADR(nFileTime), ADR(i_exNtpExtTime), SIZEOF(nFileTime));
+
+dcExtNtpTime := ULINT_TO_LINT(FILETIME_TO_DCTIME64(nFileTime));
+MEMCPY(ADR(nFileTime), ADR(i_exNtpSysTime), SIZEOF(nFileTime));
+dcExtNtpLocalTime := ULINT_TO_LINT(FILETIME_TO_DCTIME64(nFileTime));
+stat.lNtpOffsetTime := dcExtNtpLocalTime - dcExtNtpTime;
+stat.lOffsetTime := stat.lNtpOffsetTime;
+
+stat.lTaiTime := LINT_TO_ULINT(ULINT_TO_LINT(stat.lDcCurrentTime) - stat.lNtpOffsetTime + (INT_TO_LINT(cfg.nLeapSecond) * GVL_TimeConstants.C_ONE_SEC));
+stat.sTaiTime := DCTIME64_TO_STRING(stat.lTaiTime);
+
+// Convert TAI time from nanoseconds to microseconds
+tmp := stat.lTaiTime / 10#1000;
+
+// Add offset wrt Unix Base System
+tmp := tmp + GVL_TimeConstants.C_UNIX_OFFSET_MICROSEC;
+
+// Convert offset from microseconds to seconds for the MUDPI protocol
+stat.lrTaiUnixTimeinSecs := ULINT_TO_LREAL(tmp) / 1000000.0;
+
+
+stat.lUtcTime := LINT_TO_ULINT(ULINT_TO_LINT(stat.lDcCurrentTime) - stat.lNtpOffsetTime);						
+stat.sUtcTime := DCTIME64_TO_STRING(stat.lUtcTime);
+q_timeInfo.time_offset := stat.lNtpOffsetTime;
+q_timeInfo.leap_second := cfg.nLeapSecond;
+							]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ComputePtpOffset" Id="{39a6fbcc-fd9e-44c4-b5dc-7516684d7ca6}">
+      <Declaration><![CDATA[METHOD ComputePtpOffset
+VAR_INPUT
+END_VAR
+
+VAR
+	dc2ExtOffset : LINT;
+	taiOffset : LINT;
+	tmp : ULINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+dc2ExtOffset := ULINT_TO_LINT(i_inTime) - ULINT_TO_LINT(i_exTime);
+
+taiOffset := dc2ExtOffset + i_dc2TcOffset;
+
+stat.lPtpOffsetTime := (dc2ExtOffset) + i_dc2TcOffset +
+                           (GVL_TimeConstants.C_ONE_SEC *  fb_CoE.GetLeapSecond());
+
+stat.lOffsetTime := stat.lPtpOffsetTime;
+stat.lTaiTime := LINT_TO_ULINT(ULINT_TO_LINT(stat.lDcCurrentTime) - taiOffset);
+stat.sTaiTime := DCTIME64_TO_STRING(stat.lTaiTime);
+
+// Convert TAI time from nanoseconds to microseconds
+tmp := stat.lTaiTime / 10#1000;
+
+// Add offset wrt Unix Base System
+tmp := tmp + GVL_TimeConstants.C_UNIX_OFFSET_MICROSEC;
+
+// Convert offset from microseconds to seconds for the MUDPI protocol
+stat.lrTaiUnixTimeinSecs := ULINT_TO_LREAL(tmp) / 1000000.0;
+
+stat.lUtcTime := LINT_TO_ULINT(ULINT_TO_LINT(stat.lDcCurrentTime) - stat.lPtpOffsetTime);							
+stat.sUtcTime := DCTIME64_TO_STRING(stat.lUtcTime);
+q_timeInfo.time_offset := stat.lPtpOffsetTime;
+q_timeInfo.leap_second := fb_CoE.GetLeapSecond();
+							]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ComputeSimulationOffset" Id="{18a5e57c-3bea-4210-854e-7d8142a20c5b}">
+      <Declaration><![CDATA[METHOD ComputeSimulationOffset
+VAR_INPUT
+END_VAR
+
+VAR
+	lSimOffsetTime:	LINT	:= 0;
+	tDcUserTime      : ULINT;
+	tmp : ULINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Get the time from the user given time string, e.g.
+// cfg.sUserTime = '2019-12-07-07:07:07.380500000'
+// tDcUserTime   = 629017627380500000
+tDcUserTime  := STRING_TO_DCTIME64(cfg.sUserTime);
+// Adjust the offset only if user modified the time string.
+IF (stat.tUserTime <> tDcUserTime) THEN
+	IF (tDcUserTime = 0) THEN
+		stat.sErrorMsg := 'ERROR: format of user datetime is not correct';
+		RETURN;
+	END_IF
+	lSimOffsetTime := (ULINT_TO_LINT(stat.lDcCurrentTime) - ULINT_TO_LINT(tDcUserTime));
+	stat.lOffsetTime := lSimOffsetTime;
+	stat.lSimOffsetTime := lSimOffsetTime;
+	stat.tUserTime := tDcUserTime;
+END_IF
+
+stat.lUtcTime := LINT_TO_ULINT(ULINT_TO_LINT(stat.lDcCurrentTime) - stat.lSimOffsetTime);
+stat.sUtcTime := DCTIME64_TO_STRING(stat.lUtcTime);
+stat.lTaiTime := stat.lUtcTime + LINT_TO_ULINT(GVL_TimeConstants.C_ONE_SEC * cfg.nLeapSecond);
+stat.sTaiTime := DCTIME64_TO_STRING(stat.lTaiTime);
+// Convert TAI time from nanoseconds to microseconds
+tmp := stat.lTaiTime / 10#1000;
+
+// Add offset wrt Unix Base System
+tmp := tmp + GVL_TimeConstants.C_UNIX_OFFSET_MICROSEC;
+
+// Convert offset from microseconds to seconds for the MUDPI protocol
+stat.lrTaiUnixTimeinSecs := ULINT_TO_LREAL(tmp) / 1000000.0;
+q_timeInfo.time_offset := stat.lSimOffsetTime;
+q_timeInfo.leap_second := cfg.nLeapSecond;
+
+
+
+							]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CycleUpdate" Id="{b444b727-6eb6-45b4-ab44-68d174f7f436}">
+      <Declaration><![CDATA[METHOD CycleUpdate : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	fbGetSystemTime  : GETSYSTEMTIME;
+    fileTime         : T_FILETIME;
+	tDcCurrentTime	 : ULINT;
+	tDcUserTime      : ULINT;
+    sTime            : STRING;
+	bSignalOk        : BOOL := FALSE;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	lSimOffsetTime:	LINT	:= 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get System Time
+fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
+stat.sSystemTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
+
+// Get DC Time
+tDcCurrentTime	:= F_GetCurDcTaskTime64();
+stat.lDcCurrentTime := tDcCurrentTime; 
+stat.sDcTime := DCTIME64_TO_STRING(tDcCurrentTime);	(* DC time as STRING *)
+
+
+IF (cfg.nMode =  E_TIME_MODE.LOCAL) THEN
+	// In local mode, time used is the time DC time delivered by TwinCAT.
+	SetDefaultMode('');
+ELSIF (cfg.nMode =  E_TIME_MODE.UTC_PTP)  THEN
+	stat.sErrorMsg := '';
+	// Check PTP time signal.
+	// This will set:
+	//	stat.signal.status
+	//	stat.signal.qos
+	bSignalOk := CheckPtpSignal();
+	IF bSignalOk	THEN
+		stat.mode := E_TIME_MODE.UTC_PTP;
+		ComputePtpOffset();	
+	ELSE
+		SetDefaultMode('PTP signal NOT ok');
+	END_IF
+ELSIF (cfg.nMode =  E_TIME_MODE.UTC_NTP)  THEN
+	stat.sErrorMsg := '';
+	// Check NTP time signal.
+	// This will set:
+	//	stat.signal.status
+	//	stat.signal.qos
+	bSignalOk := CheckNtpSignal();
+	IF bSignalOk	THEN
+		stat.mode := E_TIME_MODE.UTC_NTP;
+		// This call computes:
+		//	stat.lUtcTime							
+		//	stat.sUtcTime
+		//	q_timeInfo.time_offset
+		ComputeNtpOffset();	
+	ELSE
+		SetDefaultMode(GetErrorText(E_TIME_ERROR.NTP_NOT_CONNECTED));
+	END_IF
+ELSIF  (cfg.nMode =  E_TIME_MODE.SIMULATION ) THEN
+	// Uses the simulated time
+	stat.mode := E_TIME_MODE.SIMULATION;
+	stat.sErrorMsg := '';
+	// This call computes:
+			//	stat.tUserTime							
+			//	stat.sUtcTime
+			//	q_timeInfo.time_offset
+	ComputeSimulationOffset();	
+END_IF
+
+q_timeInfo.time_mode := stat.mode;
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{c5724a0f-f8b6-4718-943a-886dd638d38f}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.sLibVersion := stLibVersion_ESO_LDC_Timer_Library.sVersion;
+stat.sErrorMsg := '';
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetErrorText" Id="{2df2b95d-264e-4988-bacd-cf624fe43647}">
+      <Declaration><![CDATA[METHOD GetErrorText : STRING
+VAR_INPUT
+	i_errorId: DINT;
+END_VAR
+
+VAR
+	str:	STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+CASE i_errorId OF
+	E_TIME_ERROR.OK:						str	:= 'OK';
+	E_TIME_ERROR.NO_SIMULATION_MODE:	    str	:= 'ERROR: Time can only be set in simulation mode.';	
+	E_TIME_ERROR.INT_EXT_NOT_MAPPED:        str := 'ERROR: Did you forget to map the internal or external EL6688 time stamps?';
+	E_TIME_ERROR.DC2TC_OFFSET_NOT_MAPPED:   str := 'ERROR: Did you forget to map the dc2tc_offset?';
+	E_TIME_ERROR.COE_NOT_VALID:             str := 'ERROR: Error reading COE parameter';
+	E_TIME_ERROR.PTP_WRONG_STATE:           str := 'ERROR: EL6688 is not in SLAVE state';
+	E_TIME_ERROR.NTP_NOT_CONNECTED:         str := 'ERROR: NTP not connected. Did you forget to map attributes?';
+	E_TIME_ERROR.NTP_NOT_SYNCHRONIZED:      str := 'WARNING: NTP not synchronized';
+END_CASE
+
+GetErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetMode" Id="{cf9d8221-5b91-450c-bc4d-7b9677df1c5c}">
+      <Declaration><![CDATA[METHOD GetMode : E_TIME_MODE
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[GetMode := stat.mode;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetMudpiTime" Id="{e849f73f-655c-446e-a609-c2a97bb22cde}">
+      <Declaration><![CDATA[METHOD GetMudpiTime : LREAL
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetMudpiTime := stat.lrTaiUnixTimeinSecs;
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetTime" Id="{9c201d5a-ff13-4962-8c67-797bf61e30d3}">
+      <Declaration><![CDATA[METHOD GetTime : ULINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF (GetMode() =  E_TIME_MODE.LOCAL) THEN
+	GetTime := stat.lDcCurrentTime;
+ELSE
+	GetTime := LINT_TO_ULINT(ULINT_TO_LINT(stat.lDcCurrentTime) - stat.lOffsetTime);	
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetUtcTime" Id="{a48a3267-c95b-4678-9374-12651da1c3de}">
+      <Declaration><![CDATA[METHOD GetUtcTime : ULINT
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+GetUtcTime := LINT_TO_ULINT(i_exNtpSysTime);
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MudpiTimeToDc" Id="{9808cda0-0d78-4f1f-bd62-395151963f51}">
+      <Declaration><![CDATA[METHOD MudpiTimeToDc : ULINT
+VAR_INPUT
+	mudipiTime: LREAL;
+END_VAR
+
+VAR
+	tmp: LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Convert offset from seconds (MUDPI protocol) to microseconds 
+tmp := mudipiTime * 1000000.0;
+
+// Remove offset wrt Unix Base System
+tmp := tmp - ULINT_TO_LREAL(GVL_TimeConstants.C_UNIX_OFFSET_MICROSEC);
+
+// Convert offset from microseconds to nanoseconds - DC unit
+tmp := tmp * 10#1000;
+
+MudpiTimeToDc := LREAL_TO_ULINT(tmp);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PublishPtpDiagnostics" Id="{78cc3b32-34e0-4da0-9de2-bc3547a8243f}">
+      <Declaration><![CDATA[(*
+  This method sends the diagnostic data to the TRS system for long term
+  monitoring.
+  
+  The format of the data follows the specification in document ESO-331947.
+  The data is sent via UDP packets using the implementation of the MUDPI
+  protocol.
+  *)
+
+METHOD PublishPtpDiagnostics : BOOL
+VAR_INPUT
+END_VAR
+
+VAR
+    (* TF6311 realtime driver parameters *)
+    {attribute 'TcInitSymbol'}
+    oid : OTCID;
+    ipUdp : ITcIoUdpProtocol;
+    nReceivedPackets : UINT;
+    uLastReceivedIP : T_IP_ADDRESS;
+    hrInit : HRESULT;
+    hrSend : HRESULT; 
+    bSuccessfulInitializationOfRealtimeDriver : BOOL := FALSE; // Indication of whether the realtime driver is properly initialized.
+
+    (* Data/contents parameters *)
+    MudpiPacket : ESO_MUDPI.FB_MudpiPacket(topicId := 500, componentId := 10);
+
+    (* Transmission/communication parameters *)
+    _DestinationIpAddress : UDINT; // Destination address for the data
+    _DestinationPort : UINT; // Destination port for the data
+    _SourcePort : UINT; // Source port of the data
+
+   
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_GetMode" Id="{e017fbeb-b3bd-494b-97bb-6f321b68c9ba}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_GetMode : E_TIME_MODE
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+RPC_GetMode := GetMode();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_GetUTC" Id="{498a3cec-32a9-4f50-8a08-9c3e29f9aaa6}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_GetUTC : STRING(255)
+VAR_INPUT
+END_VAR
+
+VAR
+	part1: STRING;
+	part2: STRING;
+	timeStr: STRING(255);
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+CASE stat.mode OF
+	E_TIME_MODE.LOCAL:
+		part2 := ' Mode: LOCAL';
+	E_TIME_MODE.UTC:
+	    part2 := ' Mode: UTC';
+	E_TIME_MODE.SIMULATION:
+	    part2 := ' Mode: SIMULATION';
+END_CASE
+
+part1 := CONCAT('UTC: ', stat.sUtcTime);
+timeStr := CONCAT(part1, part2);
+RPC_GetUTC := timeStr;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetMode" Id="{bdfde5a5-0833-4073-a399-3aa1b45249a5}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetMode : DINT
+VAR_INPUT
+	in_mode : E_TIME_MODE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+RPC_SetMode := SetMode(in_mode);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetTime" Id="{8c244ace-dfb7-4c06-8a98-aa26623c0346}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetTime : DINT
+
+VAR_INPUT
+	in_time : STRING(29);
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+RPC_SetTime := SetTime(in_time);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetDefaultMode" Id="{b01427b9-705a-497b-b45e-e7c6dc687a77}">
+      <Declaration><![CDATA[METHOD SetDefaultMode
+VAR_INPUT
+	str: STRING := '';
+END_VAR
+
+VAR
+	tmp : ULINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Time signal not OK. Go to LOCAL mode.
+cfg.nMode := E_TIME_MODE.LOCAL;
+stat.mode := E_TIME_MODE.LOCAL;
+stat.signal.qos := E_TIME_SIGNAL_QOS.NOT_VALID;
+stat.lUtcTime := stat.lDcCurrentTime;
+stat.sUtcTime := stat.sDcTime;
+IF (str <> '') THEN
+	stat.sErrorMsg := str;
+END_IF
+stat.lTaiTime := stat.lDcCurrentTime;
+stat.sTaiTime := stat.sDcTime;
+//stat.lSimOffsetTime := 0;  
+
+// Convert TAI time from nanoseconds to microseconds
+tmp := stat.lTaiTime / 10#1000;
+// Add offset wrt Unix Base System
+tmp := tmp + GVL_TimeConstants.C_UNIX_OFFSET_MICROSEC;
+// Convert offset from microseconds to seconds for the MUDPI protocol
+stat.lrTaiUnixTimeinSecs := ULINT_TO_LREAL(tmp) / 1000000.0;				
+
+q_timeInfo.time_offset := 0;
+q_timeInfo.leap_second := 0;
+
+
+
+							]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetMode" Id="{c85c6956-2b94-4731-8c7b-6544db0a0216}">
+      <Declaration><![CDATA[METHOD SetMode : DINT
+VAR_INPUT
+	i_mode : E_TIME_MODE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+cfg.nMode := i_mode;
+
+SetMode := GVL_TimeConstants.C_STAT_OK;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetTime" Id="{29443d67-0320-47ec-9737-adb7427702a3}">
+      <Declaration><![CDATA[METHOD SetTime : DINT;
+
+VAR_INPUT
+	in_time : STRING(29);
+END_VAR
+
+VAR
+	dc_time :ULINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF (cfg.nMode <> E_TIME_MODE.SIMULATION) THEN
+	stat.sErrorMsg := GetErrorText(E_TIME_ERROR.NO_SIMULATION_MODE); 
+	SetTime := E_TIME_ERROR.NO_SIMULATION_MODE;
+	RETURN;
+END_IF
+
+cfg.sUserTime := in_time;
+dc_time := STRING_TO_DCTIME64(in_time);
+cfg.tUserTime := dc_time;
+//st_stat.lSimOffsetTime := (st_stat.lDcCurrentTime - ULINT_TO_LINT(dc_time));
+//q_timeInfo.time_offset := st_stat.lSimOffsetTime;
+SetTime := GVL_TimeConstants.C_STAT_OK;
+RETURN;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TIME">
+      <LineId Id="143" Count="1" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="241" Count="4" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="288" Count="3" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="201" Count="6" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="357" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="358" Count="4" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="237" Count="1" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="214" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.CheckNtpSignal">
+      <LineId Id="166" Count="10" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="228" Count="1" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="178" Count="7" />
+      <LineId Id="217" Count="1" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.CheckPtpSignal">
+      <LineId Id="166" Count="52" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.ComputeNtpOffset">
+      <LineId Id="64" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="72" Count="7" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.ComputePtpOffset">
+      <LineId Id="6" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.ComputeSimulationOffset">
+      <LineId Id="64" Count="0" />
+      <LineId Id="110" Count="10" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="121" Count="1" />
+      <LineId Id="139" Count="3" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="143" Count="6" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.CycleUpdate">
+      <LineId Id="142" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="200" Count="3" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="152" Count="1" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="233" Count="2" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="206" Count="4" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="226" Count="3" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.FB_init">
+      <LineId Id="7" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.GetErrorText">
+      <LineId Id="10" Count="3" />
+      <LineId Id="26" Count="4" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.GetMode">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.GetMudpiTime">
+      <LineId Id="59" Count="1" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.GetTime">
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.GetUtcTime">
+      <LineId Id="59" Count="1" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.MudpiTimeToDc">
+      <LineId Id="11" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.PublishPtpDiagnostics">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.RPC_GetMode">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.RPC_GetUTC">
+      <LineId Id="13" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_TIME.RPC_SetMode">
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.RPC_SetTime">
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.SetDefaultMode">
+      <LineId Id="152" Count="5" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="160" Count="1" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="182" Count="2" />
+      <LineId Id="186" Count="1" />
+      <LineId Id="189" Count="1" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.SetMode">
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIME.SetTime">
+      <LineId Id="18" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="28" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

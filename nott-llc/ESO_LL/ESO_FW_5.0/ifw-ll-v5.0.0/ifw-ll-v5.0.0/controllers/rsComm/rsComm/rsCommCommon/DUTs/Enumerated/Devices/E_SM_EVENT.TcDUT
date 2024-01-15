@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_SM_EVENT" Id="{1d476cca-8a8a-4e65-b2a4-766710d718fa}">
+    <Declaration><![CDATA[TYPE E_SM_EVENT :
+(
+	NONE	:= 0,
+	
+	(* events corresponding to commands *)
+	RESET,
+	INIT,
+	STOP,
+	ENABLE,
+	DISABLE,
+	
+	READ,
+	READ_USER,
+	MONITOR,
+	MONITOR_USER,
+	STOPMON,
+	CTRL_CMD,
+	
+	(* 
+		Events corresponding to internal events 
+	*)
+	INITDONE,
+	READDONE,
+	
+	
+	(* events mapped to HW signals *)
+	HWOK,
+	COMMOK,
+	ERRCOMM,
+	ERRHW,
+	ERRINIT
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

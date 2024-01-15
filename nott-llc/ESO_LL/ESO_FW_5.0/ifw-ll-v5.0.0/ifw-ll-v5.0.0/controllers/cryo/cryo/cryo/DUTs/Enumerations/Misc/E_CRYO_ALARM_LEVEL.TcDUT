@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_ALARM_LEVEL" Id="{8df3dcf8-2a26-4030-a985-dede8c3543ed}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_ALARM_LEVEL :
+(
+	ALARM_LOW 		:= -2,
+	WARNING_LOW		:= -1,
+	NORMAL			:= 0,
+	WARNING_HIGH	:= 1,
+	ALARM_HIGH		:= 2
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_ASTRO_SITE_CONSTANTS" Id="{f712cf4f-58e8-4581-bcf6-ac3ae6e4bc8d}">
+    <Declaration><![CDATA[TYPE T_ASTRO_SITE_CONSTANTS :
+STRUCT
+	// Using Paranal Site configuration
+	longitude :	LREAL := 1.228800386;
+	latitude :	LREAL := -0.429833092;
+	height :	LREAL := 2648;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

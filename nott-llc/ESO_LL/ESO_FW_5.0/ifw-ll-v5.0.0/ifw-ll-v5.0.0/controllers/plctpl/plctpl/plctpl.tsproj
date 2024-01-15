@@ -1,0 +1,401 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.15">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{55C374E3-C1EF-4F11-A333-1D532EE8CBC2}" PersistentType="true">plctplOpsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[Function Actions]]></DisplayName>
+			<EventId>
+				<Name Id="1">ActionStart</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} started.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">ActionEnd</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} completed.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="4">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="5">General</Name>
+				<DisplayName TxtId=""><![CDATA[{0}]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{331780DE-E197-4F5C-9E28-DD88C363A2AD}"/>
+				<Hide GUID="{358D6D68-9EA1-4D54-BDD4-957AFA3FF71F}"/>
+				<Hide GUID="{A68A4FB9-B04E-4AB3-BA5C-285153C203F0}"/>
+				<Hide GUID="{3DC1216A-4936-4276-A1FF-52E71AC21288}"/>
+				<Hide GUID="{C6E2E935-5181-4F92-BB1C-AA6D0301EB05}"/>
+				<Hide GUID="{96D05FD3-6CB5-468A-A8C1-0A6BDBC86E6A}"/>
+				<Hide GUID="{6F0B1B66-9381-4AA2-B9A3-8D765A60AD3A}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{C6E2E935-5181-4F92-BB1C-AA6D0301EB05}" PersistentType="true">OpsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[Function Actions]]></DisplayName>
+			<EventId>
+				<Name Id="1">ActionStart</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} started.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">ActionEnd</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} completed.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="4">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="5">General</Name>
+				<DisplayName TxtId=""><![CDATA[{0}]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{331780DE-E197-4F5C-9E28-DD88C363A2AD}"/>
+				<Hide GUID="{358D6D68-9EA1-4D54-BDD4-957AFA3FF71F}"/>
+				<Hide GUID="{A68A4FB9-B04E-4AB3-BA5C-285153C203F0}"/>
+				<Hide GUID="{3DC1216A-4936-4276-A1FF-52E71AC21288}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{A68A4FB9-B04E-4AB3-BA5C-285153C203F0}" PersistentType="true">ObsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[Function Actions]]></DisplayName>
+			<EventId>
+				<Name Id="1">ActionStart</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} started.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">ActionEnd</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} completed.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="4">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{331780DE-E197-4F5C-9E28-DD88C363A2AD}"/>
+				<Hide GUID="{358D6D68-9EA1-4D54-BDD4-957AFA3FF71F}"/>
+			</Hides>
+		</DataType>
+	</DataTypes>
+	<Project SccProjectName="Svn" SccAuxPath="Svn" SccLocalPath="Svn" SccProvider="SubversionScc" ProjectGUID="{3712A8DC-FF8D-4920-B725-44D9D663AC3F}" Target64Bit="true" ShowHideConfigurations="#x106">
+		<System>
+			<Tasks>
+				<Task Id="1" Priority="20" CycleTime="100000" AmsPort="350">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{A79B41B2-0BFE-47F8-ACC7-481E57970DAE}" Name="plctpl" PrjFilePath="plctpl\plctpl.plcProj" TmcFilePath="plctpl\plctpl.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" TmcPath="plctpl\plctpl.tmc">
+					<Name>plctpl Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.Device001.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device001.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device001.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device001.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device002.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device002.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device002.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device002.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device003.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device003.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device003.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device003.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device004.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device004.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device004.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device004.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device005.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device005.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device005.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device005.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device002.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device003.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device004.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device005.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device001.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.Device001.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device002.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device003.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device004.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Device005.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device001.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device001.q_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device001.q_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device001.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device002.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device002.q_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device002.q_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device002.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device003.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device003.q_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device003.q_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device003.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device004.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device004.q_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device004.q_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device004.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device005.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device005.q_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device005.q_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Device005.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+					</Vars>
+					<Contexts>
+						<Context>
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010010</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>10000000</CycleTime>
+						</Context>
+					</Contexts>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io/>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500800205008}" Id="#x02030010"/>
+		<OwnerA Name="TIPC^plctpl^plctpl Instance">
+			<OwnerB Name="TIPC^plctpl^plctpl Instance">
+				<Link VarA="PlcTask Inputs^MAIN.Device001.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Device001.q_bClosed"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device001.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Device001.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device001.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Device001.q_bOpen"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device001.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Device001.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device002.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Device002.q_bClosed"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device002.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Device002.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device002.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Device002.q_bOpen"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Device002.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device003.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Device003.q_bClosed"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device003.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Device003.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device003.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Device003.q_bOpen"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device003.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Device003.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device004.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Device004.q_bClosed"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device004.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Device004.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device004.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Device004.q_bOpen"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device004.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Device004.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device005.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Device005.q_bClosed"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device005.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Device005.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device005.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Device005.q_bOpen"/>
+				<Link VarA="PlcTask Inputs^MAIN.Device005.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Device005.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Device001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Device001.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Device002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Device002.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Device003.i_bSwitch" VarB="PlcTask Outputs^MAIN.Device003.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Device004.i_bSwitch" VarB="PlcTask Outputs^MAIN.Device004.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Device005.i_bSwitch" VarB="PlcTask Outputs^MAIN.Device005.q_bSwitch"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_EVAC_STATE_50000" Id="{62c79864-2988-44a6-87c5-b257e6f6658f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_EVAC_STATE_50000 :
+(
+	NONE := 0,				// Undefined state.
+	OFF,					// Everything is OFF.
+	START_PVP,				// Starting PreVacuum Pump (Roughing Pump).
+	OPEN_GBV,				// Opening gas-ballast valve
+	WAIT_VAG3,				// Waiting for VAG3 pressure < 0.1 mbar.
+	OPEN_PVV1,				// Opening PVV1 Pre-vacuum Valve.
+	WAIT_VAG_1_3,			// Waiting for VAG1 & VAG3 pressure < 0.1 mbar.
+	OPEN_PVV2,				// Opening PVV2 Pre-vacuum Valve.
+	WAIT_VAG_F_G_1,			// Waiting for VAGF & VAGG pressure < 0.9x0.1 mbar.
+	CLOSE_PVV2,				// Closing PVV2 Pre-vacuum Valve.
+	CLOSE_PVV1,				// Closing PVV1 Pre-vacuum Valve.
+	START_TMP,				// Starting Turbo-Molecular Pump (TMP).
+	OPEN_PVV3,				// Opening PVV3 Pre-vacuum Valve.
+	WAIT_VAG_2_3,			// Waiting for VAG2 & VAG3 pressure < 0.1 mbar.
+	OPEN_PVV4,				// Opening PVV4 Pre-vacuum Valve.
+	WAIT_VAG_F_G_2,			// Waiting for VAGF & VAGG pressure < 0.0001 mbar.
+	CLOSE_GBV,				// Closing gas-ballast valve
+	EVACUATING,				// System is running. Evacuation in progress.
+	CLOSE_ALL_VALVES,		// Closing All Valves.
+	DELAY_STOPPING,			// Delay after closing valves before stopping pumps.
+	STOP_TMP_1,				// Stopping Turbo-Molecular Pump (TMP) - case 1.
+	STOP_TMP_2,				// Stopping Turbo-Molecular Pump (TMP) - case 2.
+	STOP_PVP,				// Stopping PreVacuum Pump (Roughing Pump).
+	WAIT_TMP_STANDSTILL		// Waiting for the Turbo-Molecular Pump to standstill.
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

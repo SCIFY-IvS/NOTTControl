@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_SENSOR_STATUS" Id="{9b770cfc-178d-4f11-85bb-305ea2ec7199}">
+    <Declaration><![CDATA[TYPE T_CRYO_SENSOR_STATUS :
+STRUCT
+	//
+	// Status coming from the analog input terminal.
+	// This is nothing to do with the sensor, i.e. the reading can be
+	// inside the input terminal measuring range but still it might
+	// not be inside the sensor measuring range!
+	//
+	bInputUnder:		BOOL;
+	bInputOver:			BOOL;
+	bInputError:		BOOL;
+	bInputToggle:		BOOL;
+	bInputValid:		BOOL;
+	bInputActive:		BOOL	:= FALSE;
+	nRawValue:			INT;
+
+	// Calculated status of the sensor
+	bError:				BOOL;
+	bValid:				BOOL;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

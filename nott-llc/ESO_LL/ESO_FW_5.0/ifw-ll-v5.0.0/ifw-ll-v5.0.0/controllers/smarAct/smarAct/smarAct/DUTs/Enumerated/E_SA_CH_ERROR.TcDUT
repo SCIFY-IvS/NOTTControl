@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="E_SA_CH_ERROR" Id="{4921bf0b-46a2-4adb-9997-96612de65a31}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+// 'strict' cannot be used since we mix our own codes with TC codes
+//{attribute 'strict'}
+TYPE E_SA_CH_ERROR :
+(
+	OK				:= 0,
+	HW_NOT_OP,
+	CONFIG,				// Configuration problem, e.g. pointers not set.		
+	LOCAL,			
+	SETPOS,
+	STOP,
+	
+	ABORT,
+	SW_LIMIT_LOWER,
+	SW_LIMIT_UPPER,
+	ENABLE,
+	CTRL,				// MCS2 controller error
+	COMM				// MCS2 controller communication problem
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

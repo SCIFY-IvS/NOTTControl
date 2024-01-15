@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_THLD_MODE" Id="{ac00de54-7c1d-46b1-a80a-25710f9b3e24}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_THLD_MODE :
+(
+	FIXED := 0,		// Thresholds as set with input parameters
+	ACTIVE,			// Thresholds are calculated based on input parameter(s)
+	LAST_ACTIVE		// Thresholds are kept at last ACTIVE levels 
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

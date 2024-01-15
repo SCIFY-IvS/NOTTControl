@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CCC_STAT" Id="{d7b316c1-9937-4ae2-ae02-b48b87b92a2f}">
+    <Declaration><![CDATA[TYPE T_CCC_STAT EXTENDS T_RS_BASE_STAT:
+STRUCT
+	(* STAT *)
+	nRetries:			INT := 0;			// Total number of retries in case of communication problems
+	
+	bPeriodic:			BOOL := FALSE;		(* Flag if device is reading periodically *)
+
+	sReply:				STRING; 			(* Last Reply to predefined commands*)
+	
+	sDeviceID:			STRING(48);
+	
+	(* Status retrieved with command CCC_CMD_GET_STAT *)
+	(* decode CSTAT1 byte *)
+	bWarn_cabinet_high:			BOOL;
+	bWarn_cabinet_no_control:	BOOL;
+	bWarn_outlet_high:			BOOL;
+	bWarn_inlet_high:			BOOL;
+	bWarn_airflow_insufficient:	BOOL;
+	bWarn_coolant_insufficient:	BOOL;
+	bWarn_door_open:			BOOL;
+	bWarn_relay1_warning:		BOOL;
+	bWarn_relay2_alarm:			BOOL;
+
+	(* decode CSTAT2 byte *)
+	bFault_temp_sensor_ambient:	BOOL;
+	bFault_temp_sensor_cabinet:	BOOL;
+	bFault_temp_sensor_inlet:	BOOL;
+	bFault_temp_sensor_outlet:	BOOL;
+	bFault_analog_supply:		BOOL;
+	bFault_digital_supply:		BOOL;
+	
+	(* Temperatures [degC] retrieved with command CCC_CMD_GET_TEMP *)
+	lrTemp_outlet:	LREAL;
+	lrTemp_inlet:	LREAL;
+	lrTemp_cabinet:	LREAL;
+	lrTemp_ambient:	LREAL;
+	
+	(* Flows [l/h] retrieved with command CCC_CMD_GET_FLOW *)
+	lrFlow_1:		LREAL;
+	lrFlow_2:		LREAL;
+	lrFlow_3:		LREAL;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

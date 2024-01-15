@@ -1,0 +1,957 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_LAKESHORE_TCP_RT" Id="{ee25d118-6636-4dac-9b37-929190635bed}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_LAKESHORE_TCP_RT EXTENDS FB_LAKESHORE_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sDeviceTcpIpAdr:	STRING(16);		// Lakeshore IP address, e.g. '192.168.0.80'
+	{attribute 'OPC.UA.DA' := '0'}
+    in_nDeviceTcpPort:  UINT := 7777;	// Lakeshore Tcp port, default 7777
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+	// Monitoring states
+	{attribute 'OPC.UA.DA' := '0'}
+	C_STATE_SEND_CMD:			INT	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	C_STATE_DELAY_AFTER_SEND:	INT	:= 10;
+	{attribute 'OPC.UA.DA' := '0'}
+	C_STATE_WAIT_DATA_RECEIVED:	INT	:= 20;
+	{attribute 'OPC.UA.DA' := '0'}
+	C_STATE_WAIT:				INT	:= 30;
+END_VAR
+VAR
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_TCP_RT_CLIENT;			// Instance of generic comm FB. OPC UA Disabled!!!
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+(* Execute comm instance *)
+comm(	in_sDeviceTcpIpAdr:=in_sDeviceTcpIpAdr,
+		in_nDeviceTcpPort:=in_nDeviceTcpPort);
+
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{2f2cb053-52d7-4d5c-9727-ba6c95dc0955}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Init will start from the first init command
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set communication parameters and Model configuration
+		(* Set comm suffixes for commands and replies *)
+		// TODO: Suffix
+//		ptrCommCfg^.sCmdSuffix		:= sCmdSuffix;
+//		ptrCommCfg^.sReplySuffix	:= sReplySuffix;
+		// Set Model and monitoring period (input parameters)
+		cfg.nModel			:= in_nModel;
+		cfg.bAutoMonitor	:= in_bAutoMonitor;
+		cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+		
+		(* Pointers to INIT and READ commands set in M_Configure() depending on the model *)
+
+		(* Set initial state and status *)
+		stat.bInitialised	:= FALSE;
+		stat.sReply			:= '';
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+		
+		// DPO NEW START
+		// Wait for connected
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#10S); (* TODO: 80 sec timeout for reply *)
+		nMethodState := 5;				// Go to next state, i.e. INIT_COMM
+		RETURN;
+		// DPO NEW END
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+		
+		
+	5:
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF comm.stat.bConnected THEN
+			fbTimer (IN := FALSE);
+			nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+		END_IF
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+//		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+//		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#20S); (* TODO: 80 sec timeout for reply *)
+
+//		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		nMethodState 	:= 20;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait for completion of command.
+		// If command has no reply, wait for comm.stat.lastTcpEvent = TCPIP_EVENT.TCPIP_EVENT_DATA_SENT.
+		// If it has, wait for               comm.stat.lastTcpEvent = TCPIP_EVENT.TCPIP_EVENT_DATA_RECEIVED.
+		fbTimer (IN := TRUE);
+		IF ((cfg.cmdList_Init[cmdCounter].nReplies = 0) AND 
+			(comm.stat.lastTcpEvent = TCPIP_EVENT.TCPIP_EVENT_DATA_SENT OR 
+			 comm.stat.lastTcpEvent = TCPIP_EVENT.TCPIP_EVENT_CONN_IDLE)) OR 
+			((cfg.cmdList_Init[cmdCounter].nReplies > 0) AND 
+			(comm.stat.lastTcpEvent = TCPIP_EVENT.TCPIP_EVENT_DATA_RECEIVED))THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			cmdCounter		:= cmdCounter + 1;	// Increment init command index
+			fbTimer (IN := FALSE);	// disable timer 
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Init); // Wait INIT delay
+			bCommProblem	:= FALSE;
+			nMethodState 	:= 18;	// Execute next device INIT command
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF cfg.cmdList_Init[cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+//		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= CONCAT(cfg.cmdList_Init[cmdCounter].cmd,in_sCmdSuffix);
+//		ptrCommCtrl^.nNumReplies	:= ptrInitCmds^ [cmdCounter].nReplies;
+//		ptrCommCtrl^.bHasReply		:= ptrInitCmds^ [cmdCounter].nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{55d18553-1058-46de-85a0-eea7ebf2f309}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := C_STATE_SEND_CMD;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+	{attribute 'OPC.UA.DA' := '0'}
+	tDelay:			TIME	:= T#50MS;	// Min delay to wait after a command
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT cfg.bAutoMonitor AND stat.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY THEN
+	SetAction('No Monitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'IDLE');
+	nMethodState	:= C_STATE_SEND_CMD;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	RETURN;
+END_IF
+
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+//	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= C_STATE_SEND_CMD;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	/////////////////
+	C_STATE_SEND_CMD:	// Execute a command from the command array
+	/////////////////
+		IF cfg.cmdList_Read[cmdCounter].cmd = '' OR cmdCounter > 16 THEN
+			// We arrived to the end of the array of pre-defined commands
+			// Check if we have to exit Monitoring
+			IF nReadType = E_RS_BASE_READ_TYPE.SINGLE	THEN
+				// If it's a single read, exit here.
+				SetStatus(E_SM_ERROR.OK, 'IDLE');
+				nInternalEvent := E_SM_EVENT.READDONE;
+				RETURN;
+			END_IF
+
+			// Periodic READ is done. Wait tDelay_Periodic before re-starting the READ.
+			cmdCounter	:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+			nMethodState := C_STATE_WAIT;				// Goto Wait for tDelay_Periodic
+			RETURN;
+		ELSIF NOT comm.stat.bConnected THEN
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'Send Failed.');	
+			// Not connected yet. Don't do anything
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#3S);
+			nMethodState := C_STATE_WAIT;				// Goto Wait for tDelay_Periodic
+			nEvent := E_SM_EVENT.ERRCOMM;
+			RETURN;
+		ELSE
+			(* Send command with index cmdCounter *)
+			ptrCommCtrl^.sCmd		:= CONCAT(cfg.cmdList_Read[cmdCounter].cmd,in_sCmdSuffix);
+			ptrCommCtrl^.bExecute	:= TRUE;
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#3MS); // 3 msec timeout before waiting for reply 
+	
+			nMethodState := C_STATE_DELAY_AFTER_SEND;	// Apply short WAIT for SEND to complete
+		END_IF
+		
+
+		
+	/////////////////////////
+	C_STATE_DELAY_AFTER_SEND:	// Apply short WAIT for SEND to complete
+	/////////////////////////
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+			SetStatus(E_SM_ERROR.OK, 'BUSY');
+			nMethodState 	:= C_STATE_WAIT_DATA_RECEIVED;	// Goto Wait for TCPIP_EVENT_DATA_RECEIVED
+			RETURN;
+		END_IF
+	
+
+	///////////////////////////
+	C_STATE_WAIT_DATA_RECEIVED:	// Wait for the reading to complete, i.e. TCPIP_EVENT_DATA_RECEIVED
+	///////////////////////////
+		fbTimer (IN := TRUE);
+		IF	comm.stat.lastTcpEvent = TCPIP_EVENT.TCPIP_EVENT_DATA_RECEIVED THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			
+			// Copy readings to status variable(s)
+			
+			// This was a single read.
+			// The reply is already in stat.sReply.
+			(* Store the last reading into stat.lrArrReadings array. The index is [cmdCounter] *)
+			M_ReadFromReply(idx := DINT_TO_INT(cfg.cmdList_Read[cmdCounter].offset),
+							n 	:= DINT_TO_INT(cfg.cmdList_Read[cmdCounter].nValues),
+							str := stat.sReply,
+							ok 	=> bResult);
+
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+
+			
+			cmdCounter		:= cmdCounter + 1;	// Reading will start from the first command in the array
+			
+			// Apply a short delay of 50 ms
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := tDelay);
+			nMethodState := C_STATE_WAIT;	// Goto WAIT for IDLE
+			nEvent := E_SM_EVENT.COMMOK;
+			RETURN;
+		ELSIF NOT comm.stat.bConnected OR comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			// There is a communication problem.
+			// Try to recover by waiting for 5 sec and retrying.
+			fbTimer (IN := FALSE);
+			bCommProblem	:= TRUE;
+			// Increase Retry count
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'Receive failed');	
+			nEvent := E_SM_EVENT.ERRCOMM;	
+			cmdCounter	:= 1;	// Start from the first command
+			// Apply a long delay of 1 sec and then retry.
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#1S);
+			nMethodState	:= C_STATE_WAIT;	// wait a bit
+			RETURN;
+		END_IF
+
+
+	//////////////////
+	C_STATE_WAIT:	// Wait until the timer expires
+	//////////////////
+		fbTimer (IN := TRUE);
+
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE THEN
+			fbTimer (IN := FALSE); (* Stop the timer *)
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= '';
+			RETURN;
+		END_IF
+	
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q	THEN
+			fbTimer (IN := FALSE);
+//			SetStatus(E_SM_ERROR.OK, 'BUSY');
+			statRef.sErrorText 	:= 'BUSY';
+			nMethodState 	:= C_STATE_SEND_CMD;	// Goto SEND command
+			RETURN;
+		END_IF
+	
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoringUser" Id="{28d72e25-dcd1-4bc7-ae5c-8b101cab99c5}">
+      <Declaration><![CDATA[METHOD ActivityMonitoringUser
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoringUser'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute the User command ctrl.sCmdUser.cmd
+		
+//		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ctrl.sCmdUser.cmd;
+//		ptrCommCtrl^.nNumReplies	:= ctrl.sCmdUser.nReplies;
+//		ptrCommCtrl^.bHasReply		:= ctrl.sCmdUser.nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 20;				// Goto WAIT for Reading to complete,
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE THEN
+			fbTimer (IN := FALSE); (* Stop the timer *)
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= '';
+			RETURN;
+		END_IF
+	
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_SM_ERROR.OK, 'BUSY');
+			nMethodState 	:= 0;				// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+	
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			
+			// Save the reply. That's all since we don't know how too process the reply
+			stat.sReplyUser	:= ptrCommStat^.sReply;	
+			
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+
+			
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE THEN
+				fbTimer (IN := FALSE); (* Stop the timer *)
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= '';
+				RETURN;
+			ELSIF nReadType <> E_RS_BASE_READ_TYPE.PERIODIC_USER	THEN
+				// This was single READ_USER
+				SetStatus(E_SM_ERROR.OK, 'IDLE');
+				nInternalEvent := E_SM_EVENT.READDONE;
+				RETURN;
+			ELSE
+				// Periodic READ is done. Wait tDelay_Periodic before re-starting the READ.
+				SetStatus(E_SM_ERROR.OK, 'IDLE');
+				
+				(* Start the timer by going false/true *)
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+				nMethodState := 10;				// Goto Wait for tDelay_Periodic
+			END_IF
+			RETURN;
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 3 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 3 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+			ELSE
+				// Apply a short delay of 1 sec and retry
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#1000MS);
+				nMethodState := 10;				// Goto Wait 
+			END_IF
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{3402b685-1456-4671-9a0b-5e76e690ae1d}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	// This is OK for models 224 and 336
+	cmdList_Init_224:	ARRAY [1..8] OF T_LAKESHORE_COMMAND := [
+							(cmd := 'MODE 1', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '*IDN?', 	nReplies := 1, 	nValues := 1,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+	cmdList_Init_336:	ARRAY [1..8] OF T_LAKESHORE_COMMAND := [
+							(cmd := 'MODE 1', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '*IDN?', 	nReplies := 1, 	nValues := 1,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+
+	(*	List of READ commands *)
+	(* Lakeshore 218 commands:
+		Command "KRDG? 0" requests all 8 temperature values in K.
+		Command "CRDG? 0" requests all 8 temperature values in C.
+		Reply format: 
+			+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn<CR><LF>
+	*)
+
+	cmdList_Read_224:	ARRAY [1..16] OF T_LAKESHORE_COMMAND := [
+							(cmd := 'KRDG? 0', 	nReplies := 1, 	nValues := 12,	offset := 0),
+							(cmd := 'CRDG? 0', 	nReplies := 1, 	nValues := 12,	offset := 12),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+	cmdList_Read_336:	ARRAY [1..16] OF T_LAKESHORE_COMMAND := [
+							(cmd := 'KRDG? A', 	nReplies := 1, 	nValues := 1,	offset := 0),
+							(cmd := 'KRDG? B', 	nReplies := 1, 	nValues := 1,	offset := 1),
+							(cmd := 'SETP? 1', 	nReplies := 1, 	nValues := 1,	offset := 2),
+							(cmd := 'PID? 1', 	nReplies := 1, 	nValues := 3,	offset := 3),
+							(cmd := 'RAMP? 1', 	nReplies := 1, 	nValues := 2,	offset := 6),
+							(cmd := 'RANGE? 1', nReplies := 1, 	nValues := 1,	offset := 8),
+							(cmd := 'HTR? 1', 	nReplies := 1, 	nValues := 1,	offset := 9),
+							(cmd := 'SETP? 2', 	nReplies := 1, 	nValues := 1,	offset := 10),
+							(cmd := 'PID? 2', 	nReplies := 1, 	nValues := 3,	offset := 11),
+							(cmd := 'RAMP? 2', 	nReplies := 1, 	nValues := 2,	offset := 14),
+							(cmd := 'RANGE? 2', nReplies := 1, 	nValues := 1,	offset := 16),
+							(cmd := 'HTR? 2', 	nReplies := 1, 	nValues := 1,	offset := 17),
+							(cmd := 'AOUT? 3', 	nReplies := 1, 	nValues := 1,	offset := 18),
+							(cmd := 'AOUT? 4', 	nReplies := 1, 	nValues := 1,	offset := 19),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute base FB M_Configure().
+// This will set cfg.nModel
+SUPER^.M_Configure();
+
+// TODO
+// Populate cfg.cmdList_Init and cmdList_Read tables for the specific cfg.nModel.
+IF cfg.nModel = 224 THEN
+	cfg.cmdList_Init	:= cmdList_Init_224;
+	cfg.cmdList_Read	:= cmdList_Read_224;
+ELSIF cfg.nModel = 336 THEN
+	cfg.cmdList_Init	:= cmdList_Init_336;
+	cfg.cmdList_Read	:= cmdList_Read_336;
+END_IF
+
+
+// Set pointers to comm, i.e.
+ptrCommCfg	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+ptrCommCtrl	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+ptrCommStat	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+
+// Set comm suffixes for commands and replies
+ptrCommCfg^.sCmdSuffix		:= in_sCmdSuffix;
+ptrCommCfg^.sReplySuffix	:= in_sReplySuffix;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{75dceabc-d544-482b-a041-2f2833f3f4f5}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetCouplerState	:= TRUE;	
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{6d0a644e-d42b-47da-a3e1-2492a7c9c3f4}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+(* FB to extract 'n' values from 'str' and copy them into stat.lrArrReadings starting from index 'idx'.
+
+	Example: 
+		M_ReadFromReply (	idx := 5, 
+							n := 3, 
+							str := '0050.1,0020.2,0000$0D$0A', 
+							ok => ok);
+		res [5] = 50.1
+		res [6] = 20.2
+		res [7] = 0.0
+		ok = TRUE
+*)
+
+VAR_INPUT
+	idx:	INT;		(* arr [idx] will hold the first extracted value, arr [idx+1] the second one, etc. *)
+	n:		INT;		(* Number of values to extract from the string - command specific *)
+	str:	STRING(255);		(* String returned in Lakeshore reply *)
+END_VAR
+VAR_OUTPUT
+	ok:		BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+END_VAR
+
+VAR
+	i:		INT;
+	str_l:	STRING(255);
+	pos:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[i	:= 0;
+str_l	:= str;
+ok	:= TRUE; (* OK *)
+
+
+WHILE i < n DO
+	stat.lrArrReadings [idx + i].lrValue	:= STRING_TO_LREAL (str_l); (* take the first number *)
+	(* move to just after the comma *)
+	IF i < (n-1) THEN
+		pos := FIND (str_l, ','); (* find the comma *)
+		IF pos = 0 THEN (* less than 'n' numbers present in the string *)
+			ok	:= FALSE; (* ERROR *)
+			i 	:= n;
+		ELSE
+			str_l := RIGHT (str_l, LEN(str_l) - pos);
+			i	:= i + 1;
+		END_IF
+	ELSE
+		i	:= i + 1;
+	END_IF
+END_WHILE
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{9d55b943-a8bb-4038-ba50-0a76d8a0f9df}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+VAR
+	i:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Digital inputs are mapped to physical input signals.
+// Assign preconfigured label depending on the value
+//
+//FOR i := 0 TO (cfg.nNumInDig - 1) DO
+//	arrDI[i].M_Compute();
+//END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{fc511bef-a77b-43c9-a98e-14add351b482}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO
+//
+// Copy values from stat.lrReadings to correspondig stat variables.
+// Check M_Configure(). It has to match!
+//
+// This is an example for model 340.
+// This method has to match the list of commands in T_LAKESHORE_CFG::cmdList_Read
+IF cfg.nModel = 224 THEN
+	// Nothing to do.
+	// NOTE: 12 readings [K]: stat.lrArrReadings[0..11].lrValue
+	// NOTE: 12 readings [C]: stat.lrArrReadings[12..23].lrValue
+	;	
+ELSIF cfg.nModel = 336 THEN
+	// TODO NOTE: Only loop 1 is handled !!!
+	stat.lrKRDG_A		:= stat.lrArrReadings[0].lrValue;
+	stat.lrCRDG_A		:= stat.lrKRDG_A - 273.15;
+	stat.lrKRDG_B		:= stat.lrArrReadings[1].lrValue;
+	stat.lrCRDG_B		:= stat.lrKRDG_B - 273.15;
+	// Loop 1
+	stat.lrSETP			:= stat.lrArrReadings[2].lrValue;
+	stat.nPID_P			:= LREAL_TO_UINT(stat.lrArrReadings[3].lrValue);
+	stat.nPID_I			:= LREAL_TO_UINT(stat.lrArrReadings[4].lrValue);
+	stat.nPID_D			:= LREAL_TO_UINT(stat.lrArrReadings[5].lrValue);
+	stat.bRAMP_On		:= LREAL_TO_BOOL(stat.lrArrReadings[6].lrValue);
+	stat.lrRAMP_Rate	:= stat.lrArrReadings[7].lrValue;
+	stat.nRANGE			:= LREAL_TO_UINT(stat.lrArrReadings[8].lrValue);
+	stat.lrHTR			:= stat.lrArrReadings[9].lrValue;
+	// Loop 2
+	stat.lrSETP2		:= stat.lrArrReadings[10].lrValue;
+	stat.nPID2_P		:= LREAL_TO_UINT(stat.lrArrReadings[11].lrValue);
+	stat.nPID2_I		:= LREAL_TO_UINT(stat.lrArrReadings[12].lrValue);
+	stat.nPID2_D		:= LREAL_TO_UINT(stat.lrArrReadings[13].lrValue);
+	stat.bRAMP2_On		:= LREAL_TO_BOOL(stat.lrArrReadings[14].lrValue);
+	stat.lrRAMP2_Rate	:= stat.lrArrReadings[15].lrValue;
+	stat.nRANGE			:= LREAL_TO_UINT(stat.lrArrReadings[16].lrValue);
+	stat.lrHTR			:= stat.lrArrReadings[17].lrValue;
+	// Outputs
+	stat.lrAOUT3		:= stat.lrArrReadings[18].lrValue;
+	stat.lrAOUT4		:= stat.lrArrReadings[19].lrValue;
+
+END_IF
+		]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_LAKESHORE_TCP_RT">
+      <LineId Id="563" Count="2" />
+      <LineId Id="643" Count="0" />
+      <LineId Id="566" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.ActivityInitializing">
+      <LineId Id="6" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="259" Count="1" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="261" Count="1" />
+      <LineId Id="340" Count="1" />
+      <LineId Id="70" Count="2" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="292" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="297" Count="2" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="287" Count="3" />
+      <LineId Id="300" Count="6" />
+      <LineId Id="308" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="276" Count="1" />
+      <LineId Id="103" Count="1" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="233" Count="4" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="158" Count="1" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="170" Count="8" />
+      <LineId Id="186" Count="2" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="192" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.ActivityMonitoring">
+      <LineId Id="507" Count="17" />
+      <LineId Id="735" Count="0" />
+      <LineId Id="525" Count="0" />
+      <LineId Id="736" Count="0" />
+      <LineId Id="526" Count="18" />
+      <LineId Id="805" Count="0" />
+      <LineId Id="877" Count="0" />
+      <LineId Id="812" Count="0" />
+      <LineId Id="807" Count="3" />
+      <LineId Id="876" Count="0" />
+      <LineId Id="811" Count="0" />
+      <LineId Id="813" Count="0" />
+      <LineId Id="815" Count="8" />
+      <LineId Id="545" Count="1" />
+      <LineId Id="734" Count="0" />
+      <LineId Id="556" Count="0" />
+      <LineId Id="737" Count="0" />
+      <LineId Id="659" Count="0" />
+      <LineId Id="738" Count="0" />
+      <LineId Id="660" Count="11" />
+      <LineId Id="739" Count="0" />
+      <LineId Id="672" Count="0" />
+      <LineId Id="740" Count="0" />
+      <LineId Id="673" Count="24" />
+      <LineId Id="699" Count="0" />
+      <LineId Id="875" Count="0" />
+      <LineId Id="700" Count="1" />
+      <LineId Id="755" Count="1" />
+      <LineId Id="702" Count="0" />
+      <LineId Id="704" Count="3" />
+      <LineId Id="873" Count="1" />
+      <LineId Id="711" Count="3" />
+      <LineId Id="859" Count="0" />
+      <LineId Id="717" Count="3" />
+      <LineId Id="824" Count="4" />
+      <LineId Id="846" Count="10" />
+      <LineId Id="829" Count="0" />
+      <LineId Id="832" Count="2" />
+      <LineId Id="872" Count="0" />
+      <LineId Id="835" Count="4" />
+      <LineId Id="654" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.ActivityMonitoringUser">
+      <LineId Id="28" Count="1" />
+      <LineId Id="301" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="31" Count="3" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="143" Count="4" />
+      <LineId Id="154" Count="3" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="167" Count="2" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="262" Count="2" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="177" Count="3" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="185" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="72" Count="4" />
+      <LineId Id="323" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="269" Count="2" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="272" Count="2" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="325" Count="12" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="347" Count="15" />
+      <LineId Id="90" Count="2" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.M_Configure">
+      <LineId Id="185" Count="3" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="189" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.M_GetCouplerState">
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.M_ReadFromReply">
+      <LineId Id="3" Count="22" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.M_ReadSensors">
+      <LineId Id="12" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_TCP_RT.M_UpdateStatus">
+      <LineId Id="85" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="87" Count="3" />
+      <LineId Id="110" Count="2" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="115" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="95" Count="5" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="118" Count="7" />
+      <LineId Id="129" Count="2" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="76" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

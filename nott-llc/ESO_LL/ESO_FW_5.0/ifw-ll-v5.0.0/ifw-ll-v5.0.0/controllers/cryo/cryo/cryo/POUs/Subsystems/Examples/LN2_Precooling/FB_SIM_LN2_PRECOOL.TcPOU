@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SIM_LN2_PRECOOL" Id="{c1beba32-da09-462b-b192-0d6a520c88ae}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_LN2_PRECOOL
+VAR_INPUT
+	ln2Ref:	REFERENCE TO FB_CRYO_LN2_PRECOOL;
+END_VAR
+VAR_OUTPUT
+	lrTempK:	LREAL;	// Simulated temperature value [K]
+END_VAR
+VAR
+	SIM_ln2_temp:	FB_CRYO_SIM_TEMPERATURE;	// Simulated temperature FB
+	
+	trgEnable:		R_TRIG;						// Precooling  enable change trigger
+	trgDisable:		F_TRIG;						// Precooling disable change trigger
+	trgState:		R_TRIG;						// State change trigger
+
+	nState:			E_CRYO_BIN_CTRL_STATE	:= E_CRYO_BIN_CTRL_STATE.NONE;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Detect change of LN2 system Enable 
+trgEnable(CLK := ln2Ref.in_bEnable);
+
+// Detect change of LN2 system Disable 
+trgDisable(CLK := ln2Ref.in_bEnable);
+
+// Detect change of LN2 system State 
+trgState(CLK := (	(ln2Ref.stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON OR 
+					 ln2Ref.stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF) 	AND 
+					ln2Ref.stat.nState <> nState));
+
+IF trgEnable.Q	THEN
+	// System enabled.
+
+	// Save current state
+	nState	:= ln2Ref.stat.nState;
+	
+	// Start changing temperature just to get the system 
+	// working for the first time.
+	IF SIM_ln2_temp.lrTempK >= ln2Ref.in_lrTempValveClose	THEN
+		// Lower simulated temperature to lower limit -1 deg in 5 sec.
+		SIM_ln2_temp.M_RampTo(ln2Ref.in_lrTempValveClose - 1, 5000);
+	ELSE
+		// Rise simulated temperature to upper limit +1 deg in 5 sec.
+		SIM_ln2_temp.M_RampTo(ln2Ref.in_lrTempValveOpen + 1, 5000);
+	END_IF
+ELSIF trgDisable.Q	THEN
+	// System disabled. Stop the temperature ramp.
+	SIM_ln2_temp.M_Stop();	
+ELSIF ln2Ref.in_bEnable AND trgState.Q	THEN
+	// State of enabled system changed.
+	// Save new state
+	nState	:= ln2Ref.stat.nState;
+	
+	// Start a ramp, depending on the new state.
+	IF ln2Ref.stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON	THEN
+		// Valve open, the temperature should start falling.
+		// Ramp it down to the CLOSE limit minus 1 deg in 10 sec.
+		SIM_ln2_temp.M_RampTo(ln2Ref.in_lrTempValveClose - 1.0, 10000);
+	ELSIF ln2Ref.stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF	THEN
+		// Valve closed, the temperature should start rising.
+		// Ramp it up to the OPEN limit plus 1 deg in 10 sec.
+		SIM_ln2_temp.M_RampTo(ln2Ref.in_lrTempValveOpen + 1.0, 10000);
+	END_IF
+END_IF
+
+
+// Execute temperature simulator FB.
+SIM_ln2_temp();
+
+// Assign the simulated temperature to the output var
+lrTempK	:= SIM_ln2_temp.lrTempK;
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SIM_LN2_PRECOOL">
+      <LineId Id="151" Count="7" />
+      <LineId Id="212" Count="1" />
+      <LineId Id="159" Count="2" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="207" Count="1" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="203" Count="1" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="196" Count="2" />
+      <LineId Id="201" Count="1" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="164" Count="22" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

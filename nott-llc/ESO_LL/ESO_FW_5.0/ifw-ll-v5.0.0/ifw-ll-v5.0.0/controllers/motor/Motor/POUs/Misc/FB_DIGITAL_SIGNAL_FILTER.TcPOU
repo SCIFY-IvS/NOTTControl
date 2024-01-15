@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_DIGITAL_SIGNAL_FILTER" Id="{46424504-30fd-415d-ab8a-61a19627b0f3}" SpecialFunc="None">
+    <Declaration><![CDATA[// 
+// Filtering of digital signal in order to remove glitches.
+// It returns the dominant signal level (FALSE or TRUE) during
+// the period of in_nPeriod_ms.
+// It is a moving window. Therefore the output is 
+// recalculated on every PLC cycle.
+//
+// Variable mapping:
+//   i_bSig - Linked to the physical input signal coming from the switch.
+//   q_bSig - Filtered output signal to be linked to motor switch var.
+//
+// Usage:
+// 	df:	FB_DIGITAL_SIGNAL_FILTER;
+//  df(in_nPeriod_ms:=nPeriod_ms);
+//
+FUNCTION_BLOCK FB_DIGITAL_SIGNAL_FILTER
+VAR_INPUT
+	// Sampling period [ms].
+	// Resulting delay in signal change = MAX((period/2),in_nConseqToggle) + 1 cycle.
+	// Switch detection error = (motor travel during (in_nPeriod_ms/2 + 1 cycle)).
+	//
+	// Example:
+	//    PLC cycle = 1 ms
+	//    in_nPeriod_ms = 7 ms  ==> nTotal = 7 (7 samples to process).
+	//    in_nConseqToggle = 3 samples
+	//    delay = MAX((7/2,3) + 1 = 3 + 1 = 4 PLC cycles
+	//    The signal level that appeares >=3 times out of 5 samples,
+	//    determines the resulting level TRUE/FALSE.
+	//    Needed accuracy in switch detection = 0.6 um = 0.0006 mm.
+	//    V = D / T  = 0.0006 / (4/1000) 
+	//      = 0.0006 / (4/1000) = 0.0006 / 0.004 = 0.15 mm/sec
+	//
+	//    Conclusion: 
+	//       The fine motor velocity for switch detection should be <= 0.15 mm/sec.
+	//
+	in_nPeriod_ms:		UINT := 5;	
+	// Minimum consequtive toggles to toggle the filtered output.
+	in_nConseqToggle:	UINT := 2;	
+END_VAR
+VAR
+	//
+	// Signals to map.
+	//
+	// Physical input signal that we want to process/filter.
+	i_bSig     AT %I*: BOOL;
+	// Generated filtered output signal.
+	// The input signal, e.g., motor limit switch, should
+	// be mapped to this signal instead of i_bSig.
+	q_bSig     AT %Q*: BOOL;
+	
+	fbGetCurTaskIdx:	GETCURTASKINDEX;
+	nCycleTime:			UDINT;	// Cycle time in microsec.
+
+	nToggles: 		UINT := 0;
+	nConseqToggles: UINT := 0;
+	nTotal:			UINT;	// Total number of samples.
+	// Number of consequtive same readings to swap the output.
+	nToggleLimit: 	UINT := 1;	
+	
+	bReady:			BOOL;	// If TRUE, the FB is configured.
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Find out the total number of samples, i.e., PLC cycles.
+IF NOT bReady	THEN
+
+	// Get cycle time in microsec.
+	// CycleTime in _TaskInfo is given in 100 ns. 1 us = 1000 ns
+	fbGetCurTaskIdx();
+	nCycleTime	:=  (TwinCAT_SystemInfoVarList._TaskInfo[fbGetCurTaskIdx.index].CycleTime)/10;
+
+	// Get total number of samples to process
+	nTotal	:= UDINT_TO_UINT(1000 * in_nPeriod_ms / nCycleTime);
+
+	// There should be at least three samples
+	nTotal	:= MAX(nTotal, 3);
+	// Number of samples should be an odd number, i.e., 3, 5, 7, etc.
+	IF nTotal MOD 2 = 0	THEN
+		nTotal	:= nTotal + 1;
+	END_IF
+
+	// The number of consecutive cycles with opposite value
+	// before swapping the output.
+	nToggleLimit	:= nTotal / 2 + 1;
+
+	bReady := TRUE;
+	
+	RETURN;
+END_IF
+
+
+//
+// System is configured, i.e., ready to run.
+//
+
+//
+// Check if the input signal is the same as the filtered output.
+//
+IF i_bSig <> q_bSig THEN
+	IF nToggles > 1  AND  nConseqToggles = 0	THEN
+		// The previous non-toggle lasted only one sample,
+		// This was a glitch.
+		// Discard it by incrementing toggles by 2 
+		// {this one plus the previous one)
+		nToggles 		:= nToggles + 2;
+	ELSE
+		nToggles 		:= nToggles + 1;
+	END_IF
+	
+	// Increment the number of consequtive toggles.
+	nConseqToggles	:= nConseqToggles + 1;
+	// At least in_nConseqToggle consequtive toggle readings
+	// needed to toggle the filtered signal.
+	IF nToggles >= nToggleLimit  AND  nConseqToggles >= in_nConseqToggle 	THEN
+		// Toggle output
+		q_bSig 			:= NOT q_bSig;
+		nToggles		:= 0;
+		nConseqToggles	:= 0;	
+	END_IF
+ELSE
+	IF nToggles = 1  AND  nConseqToggles = 1	THEN
+		// There was a toggle in the previous sample,
+		// but now there is no toggle.
+		// This was a glitch.
+		nToggles		:= 0;	
+	ELSE
+		// Decrement the number of toggles.
+		IF nToggles > 1	THEN
+			nToggles := nToggles - 1;
+		ELSE	
+			nToggles := 0;
+		END_IF
+	END_IF
+	
+	// Reset the counter for consequtive toggles.
+	nConseqToggles	:= 0;	
+END_IF
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_DIGITAL_SIGNAL_FILTER">
+      <LineId Id="637" Count="34" />
+      <LineId Id="764" Count="10" />
+      <LineId Id="803" Count="0" />
+      <LineId Id="775" Count="3" />
+      <LineId Id="804" Count="0" />
+      <LineId Id="779" Count="22" />
+      <LineId Id="696" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

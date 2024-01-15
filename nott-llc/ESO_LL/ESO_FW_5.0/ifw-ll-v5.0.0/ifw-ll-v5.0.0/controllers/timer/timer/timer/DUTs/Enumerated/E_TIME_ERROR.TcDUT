@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_TIME_ERROR" Id="{b286dc66-1cad-4eef-b272-1d259d07c599}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TIME_ERROR :
+(
+	OK := 0,
+	NO_SIMULATION_MODE,
+	DC2TC_OFFSET_NOT_MAPPED,
+	INT_EXT_NOT_MAPPED,
+	COE_NOT_VALID,
+	PTP_WRONG_STATE,
+	PTP_NOT_SYNCHRONIZED,
+	NTP_NOT_CONNECTED,
+	NTP_NOT_SYNCHRONIZED
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

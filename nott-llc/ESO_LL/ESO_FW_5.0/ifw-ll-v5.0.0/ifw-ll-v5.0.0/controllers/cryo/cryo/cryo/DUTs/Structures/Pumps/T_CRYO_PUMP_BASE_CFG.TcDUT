@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_BASE_CFG" Id="{b3fd9928-f620-4fd1-8c8a-9d5239f86562}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_BASE_CFG EXTENDS T_RS_BASE_CFG:
+STRUCT
+
+	nModel:				DINT := 0;			// Model 0 indicates the base FB.
+	nTimeoutState:		UDINT	:= 600000;	// 600 sec default timeout for starting and stopping pump
+	
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

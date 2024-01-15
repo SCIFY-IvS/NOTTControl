@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_MODBUS_INFO" Id="{9ee983e5-b4b2-41b1-9ff2-982f9204f75e}">
+    <Declaration><![CDATA[TYPE T_MODBUS_INFO :
+STRUCT
+(*
+	Driver Information
+
+	Change LOG:
+	01/09/2016:	0.1	- First version. Based on FB_RS_COMM.
+	05/09/2016:	0.2	- Implemented Modbus protocol.
+	09/11/2016:	0.3	- Status cleared on INIT.
+*)
+
+	sDate:			STRING(32)	:= '2016-11-09';
+	sDescription:	STRING(80) 	:= 'IR-301 Black Body RS-232 Modbus Driver';
+	sName:			STRING(64)	:= 'FB_RS_COMM';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'IR-301 Black Body RS-232 Modbus Driver';
+	nVersionMajor:	DINT		:= 0;
+	nVersionMinor:	DINT		:= 3;
+
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

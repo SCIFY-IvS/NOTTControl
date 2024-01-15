@@ -1,0 +1,780 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_EVACUATION_SYSTEM" Id="{3a5b4b27-7f89-4008-be6d-bf7a09a5b7ad}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// Evacuation System Controller.
+// The system consists of:
+// - Evacuation Valve
+// - Root Pump
+// - Turbo Pump
+//
+FUNCTION_BLOCK FB_CRYO_EVACUATION_SYSTEM
+VAR_INPUT
+	in_Cryo_Cfg:			T_CRYO_CFG;					// Cryo configuration
+	in_Temp_Cryo:			T_CRYO_TEMPERATURE_STATUS;	// Cold Bench temperature	
+	in_Pressure_Cryo:		T_CRYO_PRESSURE_STATUS;		// Cryostat Pressure
+	in_Pressure_Evac:		T_CRYO_PRESSURE_STATUS;		// Evacuation Pressure
+	
+	in_bRepressValveOpen:	BOOL;	// Repressure Valve Open flag
+	in_bRepressValveOK:		BOOL;	// Repressure Valve OK flag
+	in_nFeedback:	E_CRYO_BIN_ACT_FEEDBACK := E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY;	// Feedbacks
+	// Time between closing Vac valve and Switching OFF the vac Pump [ms]
+	in_nTimeout:	UDINT := 3200;	// Timeout for switching on/off [ms]
+	in_bEnable:		BOOL := FALSE;	// Controller active while in_bEnable is TRUE
+	in_bCmd:		BOOL := FALSE;	// ON=TRUE, OFF=FALSE
+END_VAR
+VAR
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bRootPumpOn	AT%I*:	BOOL;		// Root Pump Feedback
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bTurboPumpOn	AT%I*:	BOOL;		// Turbo Pump Feedback
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	q_bPumpCtrl		AT%Q*:	BOOL;			// Pump Control signal
+	
+	stat:			T_CRYO_EVACUATION_SYSTEM_STATUS;
+
+	{attribute 'OPC.UA.DA' := '1'}
+	Valve:	FB_CRYO_BIN_ACT;			// Evacuation Valve 
+
+	{attribute 'OPC.UA.DA' := '0'}
+	bExecute_Valve:	BOOL := FALSE;
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nCommand_Valve:	E_CRYO_BIN_ACT_CMD	:= E_CRYO_BIN_ACT_CMD.NONE;	// Command
+
+	{attribute 'OPC.UA.DA' := '0'}
+	bReset:		BOOL := FALSE;		// RESET Command
+
+	{attribute 'OPC.UA.DA' := '0'}
+	bValveCmd:	BOOL := FALSE;		// Valve Command - TRUE=OPEN, FALSE=CLOSE
+
+
+	{attribute 'OPC.UA.DA' := '0'}
+	timerTurbo:	TON;		// Timer for Turbo Pump
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	timerValveDelay:	TON;		// Timer for measuring time after Valve is closed
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	timerValveCtrl:	TON;		// Timer for Valve open/close timeout
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	trigEnable:	R_TRIG;			// Trigger for in_bEnable
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	trigDisable:F_TRIG;			// Trigger for in_bEnable=FALSE, i.e. Disable
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	trigTurbo:	R_TRIG;		// Trigger for start of TurboPump
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	trigValveClosed:	R_TRIG;		// Trigger for Valve Closed. Start timerValve on trigger.
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Increment cycle counter
+stat.nCycleCounter := stat.nCycleCounter + 1;
+
+// Pump control based on Valve status.
+M_PumpCtrl();
+
+// Check for errors
+M_CheckErrors();
+
+// Get Valve Command based on pressure and temperature conditions
+M_SetValveCommand();
+
+
+// Execute Valve FB on every cycle
+Valve(	in_bExecute	:= bExecute_Valve,
+		in_nCommand	:= nCommand_Valve,
+		in_nFeedback:= in_nFeedback);
+
+
+M_StateMachine();
+]]></ST>
+    </Implementation>
+    <Method Name="M_CheckErrors" Id="{58dbdb83-37fb-45ac-99a0-3e2b7ddf2bbb}">
+      <Declaration><![CDATA[METHOD M_CheckErrors
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Set stat.sStatus for each failure
+IF Valve.stat.bON  AND  (in_bRepressValveOpen  OR  NOT in_bRepressValveOK) THEN
+	// Emergency situation. Close the Valve
+	stat.bEmergency	:= TRUE;
+	stat.bError	:= TRUE;
+ELSIF stat.bEnabled  AND  (in_bRepressValveOpen  OR  NOT in_bRepressValveOK) THEN
+	// The Evacuation system should never be enabled 
+	// if there is a problem with the repressurizing valve.
+	// Emergency situation. Do not operate.
+	stat.bEmergency	:= TRUE;
+	stat.bError	:= TRUE;
+ELSIF NOT in_bRepressValveOK THEN
+	stat.bError	:= TRUE;
+ELSIF NOT in_Pressure_Cryo.bValid THEN
+	stat.bError	:= TRUE;
+ELSIF NOT in_Pressure_Evac.bValid THEN
+	stat.bError	:= TRUE;
+ELSIF Valve.stat.bError THEN
+	stat.bError	:= TRUE;
+ELSE
+	stat.bError	:= FALSE;
+END_IF
+
+// Additional check for emergency situation.
+// If there is an error while the Evacuation Valve is open, close it immediately.
+IF stat.bError  AND  Valve.stat.bON  THEN
+	stat.bEmergency	:= TRUE;
+END_IF
+
+IF stat.bError  THEN
+	stat.bEnabled	:= FALSE;	// Disable Evacuation System
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PumpCtrl" Id="{17f9ea11-2824-4193-b10b-a821d2e435e3}">
+      <Declaration><![CDATA[// Pump control based on Valve status.
+METHOD M_PumpCtrl
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Capture in_bEnable going TRUE.
+// When it happens, start the pumps by activating the control output.
+//
+trigEnable(CLK:=in_bEnable);
+IF trigEnable.Q THEN
+	stat.bEnabled	:= TRUE;
+	stat.bEmergency	:= FALSE;	// Clear emergency warning, if any
+	stat.bError		:= FALSE;	// Clear error
+	q_bPumpCtrl		:= TRUE;	// Start pumps
+ELSIF NOT in_bEnable THEN
+	stat.bEnabled		:= FALSE;
+END_IF
+
+
+//
+// Set the status of the Root Pump
+//
+stat.bRootPumpON	:= i_bRootPumpOn;
+
+
+//
+// Set the status of the Turbo Pump
+//
+IF i_bTurboPumpOn THEN
+	// Turbo pump is running.
+	stat.bTurboPumpON	:= TRUE;
+ELSE
+	timerTurbo(IN:=FALSE);
+	stat.bTurboPumpON		:= FALSE;
+	stat.bTurboPump10min	:= FALSE;
+END_IF
+
+
+
+//
+// Capture the moment when Turbo Pump started.
+// Turbo Pump is fully operational after 10 min of operation (in_nTime_TurboPump).
+//
+// Execute timer for Turbo Pump
+timerTurbo();
+
+trigTurbo(CLK:=stat.bTurboPumpON);
+IF trigTurbo.Q  THEN
+	//
+	// Turbo Pump has just started.
+	// Start the timer that will signal that the turbo pump is fully operational.
+	//
+	// Reset the timer.
+	timerTurbo(IN:=FALSE);
+	// Start the timer for Turbo Pump warmup.
+	timerTurbo(IN:=TRUE,PT:=UDINT_TO_TIME(in_Cryo_Cfg.nTime_TurboPump));
+END_IF
+
+IF timerTurbo.Q THEN
+	// Turbo Pump is now fully operational.
+	stat.bTurboPump10min	:= TRUE;
+END_IF
+
+
+//
+// Capture the moment when the Valve is closed or the system is disabled.
+// Pumps should be stopped in_nTime_DeltaTValve [ms] (e.g. 2000ms) after this event.
+//
+// Execute timer for Valve timer
+timerValveDelay();
+
+
+//
+// Capture the moment when the valve is closed.
+// Start the delay timer for in_Cryo_Cfg.nTime_DeltaTValve ms.
+// After the delay, it is safe to stop the pumps.
+//
+trigValveClosed(CLK:=NOT stat.bValveOpen);
+trigDisable(CLK:=stat.bEnabled);	// Falling edge of bEnable
+IF trigValveClosed.Q OR trigDisable.Q  THEN
+	// Reset the timer
+	timerValveDelay(IN:=FALSE);
+	// Start the Valve timer.
+	timerValveDelay(IN:=TRUE,PT:=UDINT_TO_TIME(in_Cryo_Cfg.nTime_DeltaTValve));
+END_IF
+
+
+//
+// The delay timer has expired.
+// It is safe to stop the pumps.
+//
+IF timerValveDelay.Q THEN
+	// Reset the timer
+	timerValveDelay(IN:=FALSE);
+	// Stop the pumps if evacuation is disabled
+	IF NOT stat.bEnabled THEN
+		q_bPumpCtrl	:= FALSE;
+	END_IF
+END_IF
+
+// Update output var
+stat.bValveOpen	:= Valve.stat.bON;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{4df05ad5-8278-4f54-b5f4-4c2d99497b64}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_EVAC_SYS_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Complete this
+
+
+CASE nState OF
+	
+	E_CRYO_EVAC_SYS_STATE.OFF:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	IF NOT stat.bError THEN
+		stat.sState	:= 'OFF';
+	END_IF
+	stat.bActive	:= FALSE;
+	
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	IF NOT stat.bError THEN
+		stat.sState	:= 'ACTIVE_OFF';
+	END_IF
+	stat.bActive	:= TRUE;
+	
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive	:= TRUE;
+	stat.sState	:= 'ACTIVE_ON';
+	
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_OPENING:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive	:= TRUE;
+	stat.sState	:= 'ACTIVE_SWITCHING_ON...';
+	
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSING:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive	:= TRUE;
+	stat.sState	:= 'ACTIVE_SWITCHING_OFF...';
+	
+	E_CRYO_EVAC_SYS_STATE.ERROR:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+//	stat.bError	:= TRUE;
+	stat.bActive	:= FALSE;
+//	stat.sState	:= 'ERROR';
+
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetValveCommand" Id="{548f543d-7acd-4484-a57d-4f54716e6ed7}">
+      <Declaration><![CDATA[//
+// Determines if the valve should be open or closed.
+// It sets the internal variable nCommand_Valve.
+//
+METHOD M_SetValveCommand
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Reset bExecute_Valve flag and the Valve command.
+// They might be set again depending on the bEnable flag and the environmental conditions.
+bExecute_Valve	:= FALSE;
+nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.NONE;
+
+
+// 
+// Set the Valve command based on temperature and pressure.
+// If the system is not enabled or there is an error, the valve should be closed.
+//
+IF stat.bError THEN
+	// Close the Valve on any error.
+	nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.OFF;
+ELSIF NOT stat.bEnabled THEN
+	// Close the Valve if the system is Disabled/OFF.
+	nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.OFF;
+ELSIF 	(in_Pressure_Cryo.lrPressure > in_Cryo_Cfg.lrPress_Atm)  AND  
+		(in_Temp_Cryo.lrTempK > in_Cryo_Cfg.lrTemp_Warm) THEN
+	// Cryo is Warm and Pressurized - safe to open Valve.
+	nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.ON;
+//ELSIF NOT in_Pressure_Cryo.bInVacuum THEN
+ELSIF in_Pressure_Cryo.lrPressure >= in_Cryo_Cfg.lrPress_InVac THEN
+	// If not in vacuum, it means the cryostat must be WARM.
+	IF (in_Pressure_Evac.lrPressure < in_Pressure_Cryo.lrPressure) THEN
+		nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.ON;
+	END_IF
+ELSIF in_Temp_Cryo.lrTempK < in_Cryo_Cfg.lrTemp_Precooled THEN
+	// Cryostat is COLD.
+	IF ((in_Pressure_Evac.lrPressure < in_Pressure_Cryo.lrPressure) AND stat.bTurboPumpON) OR  
+		(stat.bTurboPump10min AND in_Pressure_Evac.lrPressure < 7.0E-5) THEN
+		nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.ON;
+	END_IF
+//ELSIF in_Pressure_Cryo.bInVacuum THEN
+ELSIF in_Pressure_Cryo.lrPressure < in_Cryo_Cfg.lrPress_InVac THEN
+	// Cryostat is in vacuum.
+	IF (in_Pressure_Evac.lrPressure < in_Pressure_Cryo.lrPressure)  AND stat.bTurboPumpON THEN
+		nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.ON;
+	END_IF
+END_IF
+
+
+//
+// Apply Valve command depending on the Evacuation System state.
+// Update the State as well.
+//
+IF (stat.bError OR stat.bEmergency) AND stat.nState	<> E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSING THEN
+	//
+	// There is an error or emergency in the system. 
+	// Close the valve. 
+	//
+	// Trigger Valve closing
+	bExecute_Valve	:= TRUE;
+	nCommand_Valve	:= E_CRYO_BIN_ACT_CMD.OFF;
+	Valve(in_bExecute	:= FALSE);
+	Valve(in_bExecute	:= TRUE, in_nCommand := nCommand_Valve);
+	stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSING;
+ELSIF stat.nState = E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED  THEN 
+	IF  nCommand_Valve = E_CRYO_BIN_ACT_CMD.ON THEN
+		bExecute_Valve	:= TRUE;
+		timerValveCtrl(IN:=FALSE);
+		timerValveCtrl(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_OPENING;
+	ELSE
+		bExecute_Valve	:= FALSE;
+		IF stat.bEnabled THEN
+			stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED;
+		ELSE
+			stat.nState	:= E_CRYO_EVAC_SYS_STATE.OFF;
+		END_IF
+	END_IF
+ELSIF stat.nState	= E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN  THEN 
+	IF  nCommand_Valve = E_CRYO_BIN_ACT_CMD.OFF  OR  NOT stat.bEnabled  THEN
+		bExecute_Valve	:= TRUE;
+		timerValveCtrl(IN:=FALSE);
+		timerValveCtrl(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSING;
+	ELSE
+		bExecute_Valve	:= FALSE;
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN;
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{ea15b5d4-c035-42bd-a71e-59771f61f8ca}">
+      <Declaration><![CDATA[METHOD M_StateMachine
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nState OF
+	/////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.NONE:
+	/////////////////////////////////
+	//
+	// This is the state on power-up.
+	// Determine the initial state based on the command and actuator state.
+	IF NOT stat.bEnabled THEN
+		IF Valve.stat.bOFF  AND  NOT stat.bRootPumpON AND NOT stat.bTurboPumpON THEN
+			stat.nState	:= E_CRYO_EVAC_SYS_STATE.OFF;
+		END_IF
+	ELSE
+		IF	stat.bError	THEN
+			IF Valve.stat.bON THEN
+				stat.nState	:= E_CRYO_EVAC_SYS_STATE.EMERGENCY;
+			ELSE
+				stat.nState	:= E_CRYO_EVAC_SYS_STATE.ERROR;
+			END_IF
+			stat.nState	:= E_CRYO_EVAC_SYS_STATE.ERROR;
+		ELSIF Valve.stat.bON THEN
+			stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN;
+		ELSIF Valve.stat.bOFF  THEN
+			stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED;
+		END_IF
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.OFF:
+	/////////////////////////////////
+	//
+	IF stat.bEnabled  THEN
+		// Set next state.
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	////////////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSING:
+	////////////////////////////////////////
+	//
+	timerValveCtrl();
+	IF timerValveCtrl.Q THEN
+		// Closing failure
+		stat.bCtrlOK	:= FALSE;
+		stat.sStatus	:= 'Valve failed to close';
+		stat.bError	:= TRUE;
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ERROR;
+	ELSIF NOT stat.bValveOpen THEN
+		timerValveCtrl(IN:=FALSE);
+		// Set next state.
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	////////////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED:
+	////////////////////////////////////////
+	//
+	IF	NOT stat.bEnabled  THEN
+		// Set next state
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.OFF;
+	ELSIF stat.bValveOpen THEN
+		// Set next state.
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	////////////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_OPENING:
+	////////////////////////////////////////
+	//
+	timerValveCtrl();
+	IF timerValveCtrl.Q THEN
+		// Closing failure
+		stat.bCtrlOK	:= FALSE;
+		stat.sStatus	:= 'Valve failed to open';
+		stat.bError	:= TRUE;
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ERROR;
+	ELSIF stat.bValveOpen THEN
+		timerValveCtrl(IN:=FALSE);
+		// Set next state.
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	//////////////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.ACTIVE_OPEN:
+	//////////////////////////////////////////
+	//
+	IF NOT stat.bValveOpen THEN
+		// Set next state.
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+
+	///////////////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.EMERGENCY:
+	///////////////////////////////////////////
+	//
+	IF Valve.stat.bOFF THEN
+		// The actuator is OFF, transition completed.
+		// Goto Active_Off.
+		stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSED;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	/////////////////////////////////
+	E_CRYO_EVAC_SYS_STATE.ERROR:
+	/////////////////////////////////
+	//
+	M_User_TryRecovery();
+
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_TrgValveClosure" Id="{17f1425d-8dde-4c31-a85f-f9b73461252b}">
+      <Declaration><![CDATA[METHOD M_TrgValveClosure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_User_TryRecovery" Id="{207ebf33-5778-4baf-9998-80ec070d5d31}">
+      <Declaration><![CDATA[METHOD M_User_TryRecovery
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// This is the default recovery routine.
+// To be customided by the user, if needed.
+//
+IF bReset THEN
+	// RESET the controller in order to try to clear error
+	bReset	:= FALSE;	// Clear RESET flag
+	
+	// Trigger action
+	Valve(in_bExecute:=FALSE);
+	Valve(in_bExecute:=TRUE, in_nCommand:=E_CRYO_BIN_ACT_CMD.OFF);
+	
+	// Goto SWITCHING_OFF state
+	stat.nState	:= E_CRYO_EVAC_SYS_STATE.ACTIVE_CLOSING;
+	M_SetStatus(stat.nState);	
+ELSIF NOT Valve.stat.bError AND stat.bCtrlOK  THEN
+	// Self recovery since everything seems to be OK now.
+	// Goto NONE state.
+	// From there proper state will be found and set.
+	stat.nState	:= E_CRYO_EVAC_SYS_STATE.NONE;
+	M_SetStatus(stat.nState);	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM">
+      <LineId Id="3200" Count="2" />
+      <LineId Id="3207" Count="16" />
+      <LineId Id="3128" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_CheckErrors">
+      <LineId Id="22" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="67" Count="2" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="33" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_PumpCtrl">
+      <LineId Id="160" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="164" Count="2" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="180" Count="1" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="161" Count="1" />
+      <LineId Id="88" Count="2" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="96" Count="24" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="199" Count="1" />
+      <LineId Id="121" Count="18" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="142" Count="5" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="195" Count="2" />
+      <LineId Id="149" Count="3" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_SetStatus">
+      <LineId Id="148" Count="1" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="158" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="109" Count="2" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_SetValveCommand">
+      <LineId Id="143" Count="1" />
+      <LineId Id="146" Count="2" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="98" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="157" Count="0" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="158" Count="3" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="137" Count="1" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="103" Count="2" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="60" Count="2" />
+      <LineId Id="89" Count="1" />
+      <LineId Id="63" Count="4" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_StateMachine">
+      <LineId Id="6" Count="125" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_TrgValveClosure">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVACUATION_SYSTEM.M_User_TryRecovery">
+      <LineId Id="29" Count="3" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="15" Count="6" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

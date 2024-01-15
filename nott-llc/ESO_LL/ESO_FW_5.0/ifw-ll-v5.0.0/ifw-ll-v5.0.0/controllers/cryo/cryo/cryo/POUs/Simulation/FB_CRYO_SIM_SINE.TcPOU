@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_SIM_SINE" Id="{cdc20ae3-b7e8-4041-8913-f51782748d05}" SpecialFunc="None">
+    <Declaration><![CDATA[// Simulator that generates sine wave 
+FUNCTION_BLOCK FB_CRYO_SIM_SINE
+VAR_INPUT
+	in_lrAmplitude:	LREAL := 1.0;
+	in_nPeriod:		UDINT := 10000;
+END_VAR
+VAR_OUTPUT
+	out_lrValue:	LREAL;
+END_VAR
+VAR
+	
+	{attribute 'OPC.UA.DA':='0'}
+	timer:			TON;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bInitialised:	BOOL := FALSE;		// Used to start timer for the first time
+	
+	{attribute 'OPC.UA.DA':='0'}
+	i:	INT;
+
+END_VAR
+VAR_TEMP
+	t1:	LREAL;
+	t2:	LREAL;
+	t3:	LREAL;
+	t4:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Check possible devision by zero
+IF in_nPeriod = 0 THEN
+	in_nPeriod	:= 1000;
+END_IF
+
+IF NOT bInitialised THEN
+	bInitialised := TRUE;
+	
+	// Start timer for signal=FALSE
+	timer(IN:=FALSE);
+	timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nPeriod));
+	RETURN;
+END_IF
+
+// Execute timer
+// The timer is actually used just for the 'angle' for the sin().
+// Angle = ET / PT * 2PI
+timer();
+
+// If the timer expired, just restart it
+IF timer.Q THEN
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nPeriod));
+END_IF
+
+// Set the output
+t1	:= TIME_TO_LREAL(timer.ET);
+t2	:= TIME_TO_LREAL(timer.PT);
+t3	:= t1 / t2 * 2 * 3.14;
+t4	:= in_lrAmplitude * SIN(t3);
+
+// Set output
+out_lrValue	:= t4;
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_CRYO_SIM_SINE">
+      <LineId Id="439" Count="32" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

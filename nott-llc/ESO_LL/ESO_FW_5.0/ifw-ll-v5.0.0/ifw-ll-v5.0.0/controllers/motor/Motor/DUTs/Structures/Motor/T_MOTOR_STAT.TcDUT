@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_MOTOR_STAT" Id="{b8d52083-9990-40a7-82e3-575bf4048bc9}">
+    <Declaration><![CDATA[TYPE T_MOTOR_STAT :
+STRUCT
+	bLocal:			BOOL	:= FALSE;			// if TRUE, device operated from PLC GUI 
+	nCounter:		UDINT	:= 0;				// Alive flag - increments on every PLC cycle
+	nCmdCycleCounter:	UDINT := 0;				// Number of cycles since last command
+	
+
+	nLastCommand:	E_MOTOR_COMMAND		:= E_MOTOR_COMMAND.NONE;// Last command sent to the device 
+
+	nErrorCode: 	E_MOTOR_ERROR 		:= E_MOTOR_ERROR.OK;	// Error code 
+	nRpcErrorCode: 	E_MOTOR_RPC_ERROR 	:= E_MOTOR_RPC_ERROR.OK;// RPC Error code
+	nStatus: 		E_MOTOR_STATUS		:= E_MOTOR_STATUS.OK;	// Device status 
+
+	nState:			E_MOTOR_STATE		:= E_MOTOR_STATE.NOTOP;
+	nSubstate:		E_MOTOR_SUBSTATE	:= E_MOTOR_SUBSTATE.NOTOP_NOTREADY;
+
+	nMode:			E_MOTOR_MODE 		:= E_MOTOR_MODE.POS;	// Mode of operation, POS or VEL
+
+
+	sErrorText: 	STRING 	:= 'OK'; 			// Error text 
+	sRpcErrorText: 	STRING 	:= 'OK'; 			// RPC Error text 
+	sStatus: 		STRING 	:= 'OK'; 			// Status in textual form, e.g. 'OFF' 
+	sLibVersion:	STRING	:= 'UNKNOWN';		// Library version as string, e.g. '1.2.0.0'
+	sFirstError:	string	:= '';				// First error to cause failure and to be logged
+	
+	sState:			STRING	:= 'NOT OP';
+	sSubstate:		STRING	:= 'NOT READY';
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+	
+	
+	lrPosError:		LREAL := 0.0;	 	// Position error 
+	lrPosTarget:	LREAL := 0.0;	 	// Target position adjusted to full Enc position 
+	lrPosActual: 	LREAL;				// Actual position 
+	lrScaleFactor:	LREAL;				// Scale [UU]/Enc
+	lrVelActual: 	LREAL;				// Actual velocity 
+
+	nBacklashStep:	DINT;	// Backlash step (1 or 2). If Backlash=0.0, motion starts from step 2.
+	nInitStep:		DINT;	// Initialisation step in progress.
+	nInitAction:	DINT;	// Passed to simulator to know if searching for limits
+	
+	// NOTE that the original Info Data is of type UINT, i.e. 16 bit unsigned.
+	nInfoData1:		INT;	// Info Data 1 from Motor I/O terminal
+	nInfoData2:		INT;	// Info Data 2 from Motor I/O terminal
+
+	bAxisReady:		BOOL := FALSE;	// Flag if axis is ready
+	bBrakeActive:	BOOL := FALSE;	// Flag if brake is active
+	bEnabled:		BOOL := FALSE;	// Flag if axis is enabled
+	bInitialised:	BOOL := FALSE;	// Flag if axis is initialised
+	bInPosition:	BOOL := FALSE;	// Flag if axis is In-Position
+	bStopSwitchPos:	BOOL := FALSE;	// Flag if LSTOP signal is active
+	bStopSwitchNeg:	BOOL := FALSE;	// Flag if USTOP signal is active
+	bLock:			BOOL := FALSE;	// Flag if motor is locked
+
+	// Switch signals
+	signals:		ARRAY [E_MOTOR_SWITCH_INDEX.LSTOP..E_MOTOR_SWITCH_INDEX.USTOP] OF T_MOTOR_SIGNAL;
+
+	axis:			T_MOTOR_AXIS_CFG;	// Axis Config parameters - Read from TwinCAT Axis
+
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

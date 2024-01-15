@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_COE_STATE" Id="{03348d45-262c-40cd-8f2e-403dce8bb23c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_COE_STATE :
+(
+	E_COE_UNKNOWN := -1,
+	E_COE_NOT_STARTED := 0,	
+	E_COE_INIT,
+	E_COE_IDLE,
+	E_COE_READ,
+	E_COE_WAITING,
+	E_COE_SLEEPING,
+	E_COE_ERROR := 100
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

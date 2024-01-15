@@ -1,0 +1,423 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_CRYO_LN2_PRECOOL" Id="{01dbaf30-d219-4feb-bb44-39afda4b5c99}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_LN2_PRECOOL EXTENDS FB_CRYO_GEN_CTRL_BASE
+VAR_INPUT
+	in_lrTempK:				LREAL;			// Temperature input value [K]
+	in_bTempValid:			BOOL := TRUE;	// Temperature Valid flag
+	// Two parameters for decision making
+	in_lrTempValveOpen:		LREAL := 91.27;		// Open  valve if temperature above this value [K]
+	in_lrTempValveClose:	LREAL := 79.148;	// Close valve if temperature below this value [K]
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Status structure
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:				T_CRYO_GEN_CTRL_STATUS_BASE;
+	
+	// LN2 valve
+	valve:				FB_CRYO_VALVE_CTRL;
+	bEnable_valve:		BOOL := FALSE;	// Valve open when bEnable_valve = TRUE
+		
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_ActionOffExecute" Id="{914ec106-2ab3-47b6-8a78-a2c068ffcecc}">
+      <Declaration><![CDATA[METHOD M_ActionOffExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// In this method the Enable flag of the valve is set to FALSE,
+// meaning close the valve.
+// 
+// In the corresponding Activity M_ActivitySwitchingOff(), 
+// the completion of the CLOSE/OFF command will be checked.
+//
+timer(IN:=FALSE);	// Reset Timer - mandatory!
+
+// Close the valve
+bEnable_valve	:= FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActionOnExecute" Id="{c769b257-2ad7-4e3d-80ac-bd10fea18e00}">
+      <Declaration><![CDATA[METHOD M_ActionOnExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// In this method the Enable flag of the valve is set to TRUE,
+// meaning open the valve.
+// 
+// In the corresponding Activity M_ActivitySwitchingOn(), 
+// the completion of the OPEN/ON command will be checked.
+//
+timer(IN:=FALSE);	// Reset Timer - mandatory!
+
+// Close the valve
+bEnable_valve	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActivitySwitchingOff" Id="{2541c467-5996-46ec-887b-4f36c70f21c2}">
+      <Declaration><![CDATA[METHOD M_ActivitySwitchingOff : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Wait for the valve to CLOSE/OFF.
+// The valve state is available in its status structure.
+// When complete, the method shall return TRUE, otherwise FALSE.
+
+
+//
+// Execute the timer - mandatory.
+// Timer expiry is checked in M_ProcessEvents().
+//
+timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+	
+// If valve is closed, return TRUE, otherwise FALSE.
+IF valve.stat.bActOFF THEN
+	M_ActivitySwitchingOff := TRUE;
+ELSE
+	M_ActivitySwitchingOff := FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActivitySwitchingOn" Id="{19c071f3-4450-4753-974a-78ee88d9e3d8}">
+      <Declaration><![CDATA[METHOD M_ActivitySwitchingOn : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Wait for the valve to OPEN/ON.
+// The valve state is available in its status structure.
+// When complete, the method shall return TRUE, otherwise FALSE.
+
+
+//
+// Execute the timer - mandatory.
+// Timer expiry is checked in M_ProcessEvents().
+//
+timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+	
+// If valve is open, return TRUE, otherwise FALSE.
+IF valve.stat.bActON THEN
+	M_ActivitySwitchingOn := TRUE;
+ELSE
+	M_ActivitySwitchingOn := FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{f21ce1e8-203f-46f2-9062-ca50ece5da47}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Configure the system and set the bConfigured flag to TRUE.
+
+(*
+	TODO USER: 
+	- Set references to extended structures. e.g.
+	     statRef REF=stat;
+	- Configure the system.
+*)
+
+//	MUST be the very first line!!!
+statRef REF=stat;
+
+// The system has been configured
+bConfigured := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ControlLoop" Id="{d2f77303-de70-4f2d-a948-f128b596ac02}">
+      <Declaration><![CDATA[METHOD M_ControlLoop : BOOL
+VAR_INPUT
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// This method implements the logic for controlling the LN2 valve.
+// 
+// The return value indicates if the valve should be OPEN/TRUE or CLOSED/FALSE
+//
+	
+CASE statRef.nState OF
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON,
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+		IF in_bTempValid AND in_lrTempK < in_lrTempValveClose THEN
+			// Temperature too low.
+			// Close the valve to stop cooling.
+			M_ControlLoop	:= FALSE;
+		ELSE
+			// Keep the valve open
+			M_ControlLoop	:= TRUE;
+		END_IF
+
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF,
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+		IF in_bTempValid AND in_lrTempK > in_lrTempValveOpen THEN
+			// Temperature too high.
+			// Open the valve to start cooling.
+			M_ControlLoop	:= TRUE;
+		ELSE
+			// Keep the valve closed
+			M_ControlLoop	:= FALSE;
+		END_IF
+ELSE
+	// Keep the valve closed
+	M_ControlLoop	:= FALSE;
+END_CASE
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteActuators" Id="{9abf21cc-1b1d-432a-883c-7267a479b019}">
+      <Declaration><![CDATA[METHOD M_ExecuteActuators
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*
+	TODO USER: Execute all actuators, e.g. valve, heater, etc.
+*)
+
+valve(	in_nTimeout	:= 3000, 
+		in_bEnable	:= bEnable_valve);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsError" Id="{5df1fcd2-ca20-405b-9600-d73bbdf7b059}">
+      <Declaration><![CDATA[METHOD M_IsError : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check all possible failure conditions.
+//
+// This includes:
+// - Configuration,
+// - Validity of temperature reading,
+// - Valve failure.
+// 
+// Return TRUE in case of errors.
+// Set error description as well.
+//
+IF in_lrTempValveClose >= in_lrTempValveOpen THEN
+	// The temperatue at which valve opens must be
+	// higher than the one at which it closes.
+	M_IsError	:= TRUE;
+	stat.sError	:= 'ERROR: Wrong temperature limits!';
+ELSIF NOT in_bTempValid	THEN
+	// Temperature reading invalid.
+	M_IsError	:= TRUE;
+	stat.sError	:= 'ERROR: Reference temperature invalid!';
+ELSIF valve.stat.bError 	THEN
+	// Valve has failed.
+	M_IsError	:= TRUE;
+	stat.sError	:= 'ERROR: Valve failure!';
+ELSE
+	M_IsError	:= FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{012a76b0-ddac-4b60-acc4-399fdb37cac5}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute M_SetStatus() of the base FB
+SUPER^.M_SetStatus();
+
+
+// Correct for LN2 specific labels
+
+CASE statRef.nState OF
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+	statRef.sState	:= 'ACTIVE_VALVE_CLOSED';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+	statRef.sState	:= 'ACTIVE_VALVE_OPEN';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+	statRef.sState	:= 'OPENING VALVE...';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+	statRef.sState	:= 'CLOSING VALVE...';
+	
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_ActionOffExecute">
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_ActionOnExecute">
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_ActivitySwitchingOff">
+      <LineId Id="33" Count="0" />
+      <LineId Id="22" Count="3" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_ActivitySwitchingOn">
+      <LineId Id="33" Count="0" />
+      <LineId Id="22" Count="3" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_Configure">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_ControlLoop">
+      <LineId Id="121" Count="2" />
+      <LineId Id="159" Count="1" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="174" Count="1" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="181" Count="1" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="183" Count="2" />
+      <LineId Id="176" Count="1" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="202" Count="1" />
+      <LineId Id="194" Count="1" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="196" Count="2" />
+      <LineId Id="205" Count="1" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_ExecuteActuators">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_IsError">
+      <LineId Id="44" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="39" Count="3" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_PRECOOL.M_SetStatus">
+      <LineId Id="149" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="153" Count="1" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

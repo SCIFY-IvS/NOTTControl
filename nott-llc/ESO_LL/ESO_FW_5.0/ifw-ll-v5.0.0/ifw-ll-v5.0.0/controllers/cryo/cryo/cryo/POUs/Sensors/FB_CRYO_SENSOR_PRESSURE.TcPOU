@@ -1,0 +1,558 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_CRYO_SENSOR_PRESSURE" Id="{a13fac8d-67c3-4ff9-855e-21bca9147827}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_SENSOR_PRESSURE EXTENDS FB_CRYO_SENSOR_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nType:	E_CRYO_SENSOR_TYPE_PRESS;
+	{attribute 'OPC.UA.DA' := '0'}
+	// Scale factor bits -> Volt, U = raw / scale. 
+	// Default for 16-bit, +-10V or 0..10V AI: 2^16/10/2 = 3276.8 bit
+	in_lrBitsPerVolt:	LREAL := 3276.8;	// Scale factor, U = raw / scale. Default 3276.8
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nSampleTime:		UINT := 2000;	// Time for average read sample [ms]
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:	T_CRYO_SENSOR_STATUS_PRESS;	// Complete status
+
+	// Timers 
+	{attribute 'OPC.UA.DA' := '0'}
+	fbReadTimer:	TON; (* General Timeout *)
+
+	// Misc internal vars
+	{attribute 'OPC.UA.DA' := '0'}
+	nCount:			UINT := 0;		// Number of effective samples
+	{attribute 'OPC.UA.DA' := '0'}
+	bReadStarted:	BOOL := FALSE;	// Used for initial trigger of the read timer
+	{attribute 'OPC.UA.DA' := '0'}
+	lrVoltageSum:	LREAL := 0.0;	// Total sum of Valid voltages during sample time.
+	{attribute 'OPC.UA.DA' := '0'}
+	lrVoltageAve:	LREAL := 0.0;	// Average voltage over in_nSampleTime
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+RefStat	REF=stat;
+
+IF NOT bReadStarted THEN
+	bReadStarted	:= TRUE;
+	fbReadTimer(IN:=FALSE);
+END_IF
+fbReadTimer(IN:=TRUE,PT:=UINT_TO_TIME(in_nSampleTime));
+
+
+// Execute the base FB
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_SetStatus" Id="{75b3e411-61b9-4f54-808c-48ddd38099df}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Set pressure sensor type
+stat.nType	:= in_nType;
+
+// Update validity and the pressure in user units, i.e. mbar
+CASE in_nType OF
+	E_CRYO_SENSOR_TYPE_PRESS.PKR_250:
+		M_SetStatus_PKR_250();
+	E_CRYO_SENSOR_TYPE_PRESS.PKR_360:
+		M_SetStatus_PKR_360();
+	E_CRYO_SENSOR_TYPE_PRESS.CMR_361:
+		M_SetStatus_CMR_361();
+	E_CRYO_SENSOR_TYPE_PRESS.WRG_D_NW25:
+		M_SetStatus_WRG_D_NW25();
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_CMR_361" Id="{2415056b-df92-4ab3-8a5d-50182d2af700}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus_CMR_361
+VAR_INPUT
+END_VAR
+VAR
+	// Pfeiffer CMR361 Conversion Volt -> mbar.
+	// P = (U - 1) * C1 * C2 [mbar]
+	// Defaults are for Pfeiffer CMR361 (note: C1 = 0.125, C2=FullScale = 1000): 
+	// P = (U - 1) * 0.125 * 1000.0 = (U-1) * 125[mbar]
+	
+	lrVoltage:		LREAL;	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update validity and the pressure in user units, i.e. mbar.
+
+// Sum up all valid voltages in the range (1.0..9.8V].
+IF NOT stat.bInputError  AND  stat.bInputValid  AND stat.bInputActive  THEN
+	// Convert bits -> Volt
+	lrVoltage	:= i_nValue / in_lrBitsPerVolt;
+
+	// If reading is (1.0..9.8V], add the voltage to the Sum
+	IF lrVoltage > 1.0  AND  lrVoltage <= 9.8 THEN
+		nCount			:= nCount + 1;
+		lrVoltageSum	:= lrVoltageSum + lrVoltage;
+	END_IF
+END_IF
+
+
+// If the timer has expired, calculate the average voltage/pressure.
+// Also, restart timer, and reset the counter and lrVoltageSum.
+IF fbReadTimer.Q THEN
+	fbReadTimer(IN:=FALSE);	// Reset timer
+	IF nCount > 0 THEN
+		stat.lrVoltage	:= lrVoltageSum / nCount;	// Average voltage
+	ELSE
+		stat.lrVoltage	:= 0.0;	// Dummy voltage - error.
+	END_IF
+	nCount			:= 0;
+	lrVoltageSum	:= 0.0;
+
+	// Convert Volt -> Pressure [mbar]
+	// Measuring range [0.1...1100mbar] = [1.0008...9.8V]
+	stat.lrPressure		:= (stat.lrVoltage - 1.0) * 125.0;
+
+	// Check the validity of the measurement.
+	// < 0.4 V - ERROR, sensor problem, Underrange
+	// < 1.0V - NOT Valid, Underrange
+	// < 1.0008V (0.1mbar) - Valid, underrange
+	//   1.0008V (0.1mbar) .. 9.8V (1100mbar) - Valid, in range
+	// > 9.8V (1100mbar) - NOT Valid, Overrange
+	IF stat.lrVoltage <= 0.4	THEN
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 1.0	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage < 1.0008	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 9.8	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= TRUE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= FALSE;
+	ELSE
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+	END_IF
+
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_PKR_250" Id="{137d5e89-0aae-411c-839f-8c1f715cb4b0}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus_PKR_250
+VAR_INPUT
+END_VAR
+VAR
+	// Pfeiffer PKR250/251 Conversion Volt -> mbar.
+	// P = 10^(C1 * U - C2).
+	// Defaults are for Pfeiffer PKR250/251 (note: C1 = 1.667, C2 = d = 11.33): 
+	// P = 10^(1.667 * U - 11.33)
+	// Valid range for U is 1.8-8.6
+	//
+	
+	lrVoltage:		LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update validity and the pressure in user units, i.e. mbar.
+
+// Sum up all valid voltages in the range [1.4..9.5V].
+IF NOT stat.bInputError  AND  stat.bInputValid  AND stat.bInputActive  THEN
+	// Convert bits -> Volt
+	lrVoltage	:= i_nValue / in_lrBitsPerVolt;
+
+	// If reading is [1.4..9.5V], add the voltage to the Sum
+	IF lrVoltage >= 1.4  AND  lrVoltage <= 9.5 THEN
+		nCount			:= nCount + 1;
+		lrVoltageSum	:= lrVoltageSum + lrVoltage;
+	END_IF
+END_IF
+
+
+// If the timer has expired, calculate the average voltage/pressure.
+// Also, restart timer, and reset the counter and lrVoltageSum.
+IF fbReadTimer.Q THEN
+	fbReadTimer(IN:=FALSE);	// Reset timer
+	IF nCount > 0 THEN
+		stat.lrVoltage	:= lrVoltageSum / nCount;	// Average voltage
+	ELSE
+		stat.lrVoltage	:= 0.0;	// Dummy voltage - error.
+	END_IF
+	nCount			:= 0;
+	lrVoltageSum	:= 0.0;
+
+	// Convert Volt -> Pressure [mbar]
+	// Measuring range [0.1...1100mbar] = [1.0008...9.8V]
+	stat.lrPressure		:= EXPT(10.0, (1.667 * stat.lrVoltage - 11.33));
+
+	// Check the validity of the measurement.
+	// < 0.5 V - ERROR, sensor problem, Underrange
+	// < 1.4V (1E-09mbar)- NOT Valid, Underrange
+	// < 1.76V (4E-09mbar) - Valid, underrange
+	//   1.76V (4E-09mbar) .. 8.6V (1014mbar) - Valid, in range
+	// < 9.5V (1014mbar) - Valid, Overrange, fixed pressure to 1014mbar
+	// >= 9.5V  - NOT Valid, Overrange
+	IF stat.lrVoltage <= 0.5	THEN
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage < 1.4	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage < 1.76	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 8.6	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= TRUE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 9.5	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+		stat.lrPressure			:= 1014.0;
+	ELSE
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+	END_IF
+
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_PKR_360" Id="{f06ea1c3-2cbd-4191-b366-7ed8c5a567bc}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus_PKR_360
+VAR_INPUT
+END_VAR
+VAR
+	// Pfeiffer PKR360 Conversion Volt -> mbar.
+	// P = 10^(C1 * U - C2).
+	// Defaults are for Pfeiffer PKR250/251 (note: C1 = 1.667, C2 = d = 11.33): 
+	// P = 10^(1.667 * U - 11.33)
+	// Valid range for U is 1.397-8.6 (up to 9.5 fixed to 1014 mbar in SW)
+	//
+	
+	lrVoltage:		LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update validity and the pressure in user units, i.e. mbar.
+
+// Sum up all valid voltages in the range [1.397 .. 9.5V].
+IF NOT stat.bInputError  AND  stat.bInputValid  AND stat.bInputActive  THEN
+	// Convert bits -> Volt
+	lrVoltage	:= i_nValue / in_lrBitsPerVolt;
+
+	// If reading is [1.4..9.5V], add the voltage to the Sum
+	IF lrVoltage >= 1.397  AND  lrVoltage <= 9.5 THEN
+		nCount			:= nCount + 1;
+		lrVoltageSum	:= lrVoltageSum + lrVoltage;
+	END_IF
+END_IF
+
+
+// If the timer has expired, calculate the average voltage/pressure.
+// Also, restart timer, and reset the counter and lrVoltageSum.
+IF fbReadTimer.Q THEN
+	fbReadTimer(IN:=FALSE);	// Reset timer
+	IF nCount > 0 THEN
+		stat.lrVoltage	:= lrVoltageSum / nCount;	// Average voltage
+	ELSE
+		stat.lrVoltage	:= 0.0;	// Dummy voltage - error.
+	END_IF
+	nCount			:= 0;
+	lrVoltageSum	:= 0.0;
+
+	// Convert Volt -> Pressure [mbar]
+	// Measuring range [0.1...1100mbar] = [1.0008...9.5V]
+	stat.lrPressure		:= EXPT(10.0, (1.667 * stat.lrVoltage - 11.33));
+
+	// Check the validity of the measurement.
+	// < 1.217 V - ERROR, sensor problem, Underrange
+	// < 1.397V (1E-09mbar)- NOT Valid, Underrange
+	//   8.6V (4E-09mbar) .. 8.6V (1014mbar) - Valid, in range
+	// < 9.5V (1014mbar) - Valid, Overrange, fixed pressure to 1014mbar
+	// >= 9.5V  - NOT Valid, Overrange
+	IF stat.lrVoltage <= 1.217	THEN
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage < 1.397	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 8.6	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= TRUE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 9.5	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+		stat.lrPressure			:= 1014.0;
+	ELSE
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+	END_IF
+
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_WRG_D_NW25" Id="{4045f866-af75-4fe2-a82a-498f59898714}">
+      <Declaration><![CDATA[// Calculate pressure based on the status in input value
+METHOD M_SetStatus_WRG_D_NW25
+VAR_INPUT
+END_VAR
+VAR
+	// Edwards WRG-D-NW25 Conversion Volt -> mbar.
+	// Range 10^-9 .. 100
+	// P = 10^(C1 * U - C2).
+	// P = 10^(1.5 * U - 12.0)
+	// Valid range for U is 2.0-10.0
+	//
+	
+	lrVoltage:		LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update validity and the pressure in user units, i.e. mbar.
+
+// Sum up all valid voltages in the range [2.0..10.0V].
+IF NOT stat.bInputError  AND  stat.bInputValid  AND stat.bInputActive  THEN
+	// Convert bits -> Volt
+	lrVoltage	:= i_nValue / in_lrBitsPerVolt;
+
+	// If reading is [2.0..10.0V], add the voltage to the Sum
+	IF lrVoltage >= 2.0  AND  lrVoltage <= 10.0 THEN
+		nCount			:= nCount + 1;
+		lrVoltageSum	:= lrVoltageSum + lrVoltage;
+	END_IF
+END_IF
+
+
+// If the timer has expired, calculate the average voltage/pressure.
+// Also, restart timer, and reset the counter and lrVoltageSum.
+IF fbReadTimer.Q THEN
+	fbReadTimer(IN:=FALSE);	// Reset timer
+	IF nCount > 0 THEN
+		stat.lrVoltage	:= lrVoltageSum / nCount;	// Average voltage
+	ELSE
+		stat.lrVoltage	:= 0.0;	// Dummy voltage - error.
+	END_IF
+	nCount			:= 0;
+	lrVoltageSum	:= 0.0;
+
+	// Convert Volt -> Pressure [mbar]
+	// Measuring range [0.1...1000mbar] = [2.0...10.0V]
+	stat.lrPressure		:= EXPT(10.0, (1.5 * stat.lrVoltage - 12.0));
+
+	// Check the validity of the measurement.
+	// < 1.5 V - ERROR, sensor problem, Underrange
+	// < 2.0V (1E-09mbar)- NOT Valid, Underrange
+	// < 10.0V (1000mbar) - Valid
+	// < 10.15V (1678mbar) - NOT Valid, Overrange
+	// >= 10.15V  - Error, Overrange
+	IF stat.lrVoltage < 1.5	THEN
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage < 2.0	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= TRUE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 10.0	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= TRUE;
+		stat.bValueInRange		:= TRUE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= FALSE;
+	ELSIF stat.lrVoltage <= 10.15	THEN
+		stat.bError				:= FALSE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+	ELSE
+		stat.bError				:= TRUE;
+		stat.bValid				:= FALSE;
+		stat.bValueInRange		:= FALSE;
+		stat.bValueUnderrange	:= FALSE;
+		stat.bValueOverrange	:= TRUE;
+	END_IF
+
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_SENSOR_PRESSURE">
+      <LineId Id="17" Count="2" />
+      <LineId Id="49" Count="4" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_PRESSURE.M_SetStatus">
+      <LineId Id="154" Count="6" />
+      <LineId Id="165" Count="1" />
+      <LineId Id="161" Count="3" />
+      <LineId Id="122" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_PRESSURE.M_SetStatus_CMR_361">
+      <LineId Id="228" Count="14" />
+      <LineId Id="260" Count="11" />
+      <LineId Id="277" Count="40" />
+      <LineId Id="275" Count="1" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_PRESSURE.M_SetStatus_PKR_250">
+      <LineId Id="127" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="128" Count="3" />
+      <LineId Id="221" Count="4" />
+      <LineId Id="228" Count="1" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="235" Count="3" />
+      <LineId Id="296" Count="1" />
+      <LineId Id="239" Count="2" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="246" Count="17" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="264" Count="4" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="269" Count="4" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="274" Count="4" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="279" Count="5" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="285" Count="4" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="210" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_PRESSURE.M_SetStatus_PKR_360">
+      <LineId Id="127" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="128" Count="3" />
+      <LineId Id="221" Count="4" />
+      <LineId Id="228" Count="1" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="235" Count="3" />
+      <LineId Id="296" Count="1" />
+      <LineId Id="239" Count="2" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="246" Count="6" />
+      <LineId Id="254" Count="9" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="264" Count="3" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="274" Count="4" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="279" Count="5" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="285" Count="4" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="210" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_PRESSURE.M_SetStatus_WRG_D_NW25">
+      <LineId Id="127" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="128" Count="3" />
+      <LineId Id="221" Count="4" />
+      <LineId Id="228" Count="1" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="235" Count="3" />
+      <LineId Id="296" Count="1" />
+      <LineId Id="239" Count="2" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="246" Count="6" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="255" Count="8" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="264" Count="3" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="274" Count="4" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="279" Count="3" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="285" Count="4" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="210" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

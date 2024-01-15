@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_MA_MODE" Id="{a7e51e1f-1d24-4dbd-9a8a-d6b6bf6f435a}">
+    <Declaration><![CDATA[TYPE E_MA_MODE :
+(
+	// WARNING: modes shall be a positive number
+	MA_MODE_ENG	:= 0
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

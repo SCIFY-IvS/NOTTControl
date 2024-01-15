@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_PLCTPL_EVENT" Id="{b9b752d4-78ea-4bbd-a5f6-5682bd13dc8f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_PLCTPL_EVENT :
+(
+	NONE	:= 0,
+	
+	(* events corresponding to commands *)
+	RESET,
+	INIT,
+	STOP,
+	ENABLE,
+	DISABLE,
+	OPEN,
+	CLOSE,
+	
+	(* 
+		Events corresponding to internal events 
+	*)
+	
+	INITOPEN,		// Needed for detection of HW failures during initialisation
+	INITCLOSED,
+	DISABLEOPEN,
+	DISABLECLOSED,
+	
+	(* events mapped to HW signals *)
+	ISOPEN,
+	ISCLOSED,
+
+	HWOK,
+	ERRHW,
+	ERRFAULT,
+	ERRALLACTIVE,
+	ERRNONEACTIVE,	
+	ERRINIT,
+	ERRDISABLE,
+	ERRTIMEOUTCLOSE,
+	ERRTIMEOUTOPEN
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

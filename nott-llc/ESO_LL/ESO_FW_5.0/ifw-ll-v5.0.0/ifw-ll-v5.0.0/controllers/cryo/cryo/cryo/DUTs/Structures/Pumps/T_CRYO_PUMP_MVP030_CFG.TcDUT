@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_PUMP_MVP030_CFG" Id="{367ca819-7d0c-4ee1-9d18-05b98f1a3274}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_MVP030_CFG EXTENDS T_CRYO_PUMP_SERIAL_CFG:
+STRUCT
+// MVP030 specific command configuration.
+// Pfeiffer Vacuum protocol for RS-485 interface.
+// Assumed RS-485 device ID=1 (001) !!!
+
+	// Definition of commands
+	C_CMD_NONE:				STRING(16) := '';
+	C_CMD_sCtrlViaInt:		STRING(16) := '0011006003001';	// Control via DIO
+	C_CMD_sFwVersion:		STRING(16) := '0010031202=?';
+	C_CMD_sHwVersion:		STRING(16) := '0010035402=?';
+	C_CMD_nNominalSpeed:	STRING(16) := '0010039902=?';
+	
+	C_CMD_bON:				STRING(16) := '0010001002=?';
+	C_CMD_nCtrlMode:		STRING(16) := '0010006002=?';
+	C_CMD_sErrorCode:		STRING(16) := '0010030302=?';
+	C_CMD_nMotorCurr:		STRING(16) := '0010031002=?';
+	C_CMD_nPumpHours:		STRING(16) := '0010031102=?';
+	C_CMD_nMotorVolt:		STRING(16) := '0010031302=?';
+	C_CMD_nElecPower:		STRING(16) := '0010031602=?';
+	C_CMD_nPumpTemp:		STRING(16) := '0010033002=?';
+	C_CMD_nPumpSpeed:		STRING(16) := '0010039802=?';
+	
+	C_CMD_sID000:			STRING(16) := '0001079706000001';	// Change all IDs to 1
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

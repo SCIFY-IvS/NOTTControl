@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_DROT_CFG" Id="{16b99801-a93c-40fc-8f27-e9eca85740bb}">
+    <Declaration><![CDATA[TYPE T_DROT_CFG EXTENDS T_MA_CFG :
+STRUCT
+	nFocusSign: 	DINT  := -1;             (* Sign 2 in LCU code *)
+	nDirSign:   	DINT  := 1;              (* Sign 1 in LCU code *)
+	lrSkyRef:    	LREAL := 0;              (* SKY reference position  *)
+    lrElevRef:   	LREAL := 0;              (* ELEV reference position *)
+	lrStatRef:   	LREAL := 0;              (* STAt reference position *)
+	lrUserRef:   	LREAL := 0;              (* USER reference position *)
+	lrUserPar1:  	LREAL := 0;				 (* User parameter 1        *)
+	lrUserPar2:  	LREAL := 0;				 (* User parameter 2        *)
+	lrUserPar3:  	LREAL := 0;				 (* User parameter 3        *)
+	lrUserPar4:     LREAL := 0;              (* User parameter 4        *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

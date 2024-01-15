@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_ACTUATOR_SUBSTATE" Id="{799404c9-da36-48d5-9ce1-118394e18490}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_ACTUATOR_SUBSTATE :
+(
+	NONE					:= 0,
+	
+	NOTOP_NOTREADY			:= 100,
+	NOTOP_READY_OFF			:= 103,
+	NOTOP_READY_ON			:= 104,
+	NOTOP_SWITCHING_OFF		:= 109,           
+	NOTOP_SWITCHING_ON		:= 110,
+	NOTOP_ERROR				:= 199,
+	
+	OP_OFF					:= 206,            
+	OP_SWITCHING_OFF		:= 207,           
+	OP_ON					:= 209,
+	OP_SWITCHING_ON			:= 210,
+	OP_ERROR				:= 299
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

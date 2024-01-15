@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_PLCTPL_INFO" Id="{60381d66-4f77-490a-ab04-08a7c3e7a5cb}">
+    <Declaration><![CDATA[TYPE T_PLCTPL_INFO :
+STRUCT
+(*
+Driver Information 
+
+Change Log:
+	0.1	2020-04-22	- First version - dummy implementation.
+*)
+	sDate:			STRING(32)	:= '2019-04-25';
+	sDescription:	STRING(80) 	:= 'State Machine based PLC controller';
+	sName:			STRING(64)	:= 'FB_PLCTPL';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'State Machine based PLC controller';
+	nVersionMajor:	DINT		:= 0;
+	nVersionMinor:	DINT		:= 1;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

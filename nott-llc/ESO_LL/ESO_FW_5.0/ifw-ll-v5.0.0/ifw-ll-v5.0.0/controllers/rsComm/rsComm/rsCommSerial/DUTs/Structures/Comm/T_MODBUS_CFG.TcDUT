@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_MODBUS_CFG" Id="{0397cdf9-4e21-4e69-9691-8a8d415fbcb9}">
+    <Declaration><![CDATA[TYPE T_MODBUS_CFG EXTENDS T_RS_COMM_CFG:
+STRUCT
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

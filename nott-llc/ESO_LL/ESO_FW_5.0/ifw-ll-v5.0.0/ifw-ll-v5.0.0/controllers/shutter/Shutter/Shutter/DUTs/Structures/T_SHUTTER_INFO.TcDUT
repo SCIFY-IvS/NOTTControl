@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_SHUTTER_INFO" Id="{60381d66-4f77-490a-ab04-08a7c3e7a5cb}">
+    <Declaration><![CDATA[TYPE T_SHUTTER_INFO :
+STRUCT
+(*
+Driver Information 
+
+Change Log:
+	0.1	2015-12-11	- First version - dummy implementation.
+	0.2	2015-12-15	- Added timer for dummy initialization. Cleanup.
+	0.3	2015-12-15	- One method per state.
+	0.4	2016-06-24	- Transfer of code from FB_SHUTTER (VLT code).
+	0.6 2016-06-30	- OPC UA Read Only for info and stat.
+					- New method: GetLogicalState() to replace F_GET_LOGICAL_STATE
+					  coming from TC3 Common.library.
+					- Removed Common.library from References.
+					- Implemented simulator FB_SIM_SHUTTER.
+					- References are 'Always Newest'.
+					- Removed Recording project.
+	0.7 2016-07-01	- Added RPC_SetCouplerState() in FB_SIM_SHUTTER.
+					- OPC UA Configuration cleanup
+					- Removed FB_SHUTTER_SIM.
+	0.8 2016-07-01	- Renaming from *_SHUTTER_* to *_SHUTTER_*.
+					- Restructuring of GUI.
+					- Addition of GUI Template.
+					- Addition of sName as FB_SHUTTER input parameter.
+					- Addition of Shutter.library
+	0.9 2016-07-12	- Addition of method ActionResetExecute().
+					- Errors updated only if it is currently equal to OK.
+	0.10 2016-07-13	- bOpen and bClosed determined taking into account configuration.
+	0.11 2017-01-25	- Addition of stat.sLastCommand.
+					- Adopted Simulator from VLT FB_SIM_SHUTTER.
+	0.12 2017-08-07	- Addition of BOOL return value for all RPC Calls.
+					- Addition of stat.sRPCErrorText variable.
+	0.13 2017-08-25	- Improved RPC Calls for all possible failures.
+	0.14 2017-08-25	- Removed E_SHUTTER_SUBSTATE.NOTOP_READY substate.
+					- Fixed RPC_Enable bug.
+	0.15.0.0		- Single pointer to simulator
+					- Updated Visualisation version
+	0.16.0.0		- Corrected Simulator handling of Update.
+					- Removed bUpdate variable from Simulator.
+					- Addition of SetState() Simulator method.
+	0.17.0.0		- Simulator delay set to half real shutter timeout.
+	0.18.0.0		- Addition of all cfg params as input params.
+					- Addition of M_Configure() in FB_SHUTTER_BASE.
+					- Added return value for Simulator RPC calls.
+					- Added small delay to simulator on re-boot.
+					- Moved sName to cfg structure.
+					- Single GUI for all shutters.
+	0.19.0.0		- Addition of measured times for open/close in T_SHUTTER_STAT.
+	0.20.0.0		- Addition of stat.sLibVersion
+	0.21.0.0		- RPC calls return INT.
+					- Addition of E_SHUTTER_RPC_ERROR.
+	0.22.0.0		- Addition of M_GetRpcErrorText().
+					- Addition of M_SetRpcStatus().
+					- Improved template GUI.
+					- Addition of M_GetErrorText().
+					- M_SetStatus() replaced SetStatus().
+					- Improved error handling.
+	0.22.0.1		- Addition of library category ESO/ELT.
+	0.23.0.0		- Renaming States STANDBY->NOTOP & FAILURE->ERROR.
+					- RPC commands rejected in Local mode.
+	0.23.0.1		- Corrected handling of IgnoreFault.
+	1.0.0.0			- WARNING: Requires TwinCAT 3.1 build 4022.20 or higher.
+					- Projects need Tc3_EventLogger library included in References.
+					- Addition of Methods for Event Logs.
+					- Addition of method RPC_Debug().
+	1.0.0.1			- Addition of cfg.bLog flag for enable/disable of logging.
+					- Renamed RPC_Debug() to RPC_SetDebug().
+					- Addition of RPC_SetLog().
+	1.0.0.2			- Compiled wit TwinCAT 3.1 build 4022.27.
+					- Renamed TC_EVENTS.OpsEventClass to TC_EVENTS.ShutterOpsEventClass.
+					- Solved problem of 'growing' libraries by setting Property/Advanced/BuildAction to None for Shutter.library.
+					- Pinned ST_ShutterOpsEventClass under External Types.
+	1.1.0.0			- Using Strict enumerations.
+*)
+	sDate:			STRING(32)	:= '2019-04-25';
+	sDescription:	STRING(80) 	:= 'State Machine based Shutter controller';
+	sName:			STRING(64)	:= 'FB_SHUTTER';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'State Machine based Shutter controller';
+	nVersionMajor:	DINT		:= 1;
+	nVersionMinor:	DINT		:= 1;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

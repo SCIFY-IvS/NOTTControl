@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_vltMod" Id="{fde37526-7a6e-4770-9cc9-4baa0770a045}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_vltMod : LREAL
+VAR_INPUT
+	number:		LREAL;
+	divisor:	LREAL;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+static double vltMod(double number, double divisor)
+{
+    if (divisor == 0.0)
+	return 0.0;
+    return number - divisor * (int) (number / divisor);
+}
+
+
+*)
+
+IF divisor = 0.0 THEN
+	F_vltMod	:= 0.0;
+ELSE
+	F_vltMod	:= number - divisor * TRUNC_INT(number / divisor);
+END_IF
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_vltMod">
+      <LineId Id="10" Count="16" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_ACTUATOR_HW_STATUS" Id="{114b996d-27ba-4ea5-8b3d-fdb43590f09c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_ACTUATOR_HW_STATUS :
+(
+	UNKNOWN	:= 0,
+	ERROR,
+	OFF,
+	ON
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

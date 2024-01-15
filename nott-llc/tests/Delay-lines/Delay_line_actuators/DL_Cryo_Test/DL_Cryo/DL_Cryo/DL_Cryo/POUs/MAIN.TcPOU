@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="MAIN" Id="{8b2c4933-f457-4550-be30-efaabcef5e69}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+
+
+
+// DL Servo
+	
+{attribute 'OPC.UA.DA':='1'}
+
+DL_Servo_1: FB_MOTOR;
+
+// DL Newport stepper
+	
+{attribute 'OPC.UA.DA':='1'}
+
+DL_2: FB_MOTOR;
+
+// Camera triggers
+
+bCameraIN_1 AT %I* : BOOL;
+
+bCameraIN_2 AT %I* : BOOL;
+
+bCameraOUT_1 AT %Q* : BOOL;
+
+bCameraOUT_2 AT %Q* : BOOL;
+
+{attribute 'OPC.UA.DA':='1'}
+b_C_in_1 :BOOL;
+{attribute 'OPC.UA.DA':='1'}
+b_C_in_2 :BOOL;
+{attribute 'OPC.UA.DA':='1'}
+b_C_out_1 :BOOL;
+{attribute 'OPC.UA.DA':='1'}
+b_C_out_2 :BOOL;
+
+{attribute 'OPC.UA.DA':='1'}
+fbCryoState : FB_Cryostat_State;
+
+// Homming
+iLocalCOntrolStatus : INT;
+
+
+//Fring Scanning
+
+// Time Stamp
+fbGetSystemTime  : GETSYSTEMTIME;
+fileTime         : T_FILETIME;
+{attribute 'OPC.UA.DA':='1'}
+sTime            : STRING;
+
+// Filter Wheel
+
+FILTER_WHEEL	:	FB_SCIFY_FILTER_WHEEL_FW102C;
+
+// Accelerometer
+
+in_nVib_X AT %I* :DINT;	
+in_nVib_Y AT %I* :DINT;
+in_nVib_Z AT %I* :DINT;
+
+{attribute 'OPC.UA.DA':='1'}
+nVib_X:	DINT;
+{attribute 'OPC.UA.DA':='1'}
+nVib_Y:	DINT;
+{attribute 'OPC.UA.DA':='1'}
+nVib_Z:	DINT;
+
+////
+
+
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+fbCryoState();
+
+DL_Servo_1(sName:='DL_Servo_1', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 1000);
+
+DL_2(sName:='DL_2_Newport', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 2000);
+
+bCameraOUT_1 := GVL_DL_Scanning_Homming.bTrigCameraImages;
+
+
+// Time Stamps
+
+fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
+sTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
+
+
+// Filter Wheel
+
+FILTER_WHEEL(in_bSimulation:= FALSE, in_sName:= 'FILTER_WHEEL', in_nPeriod:= 1200);
+
+// Vibration from Accelero sensor
+
+nVib_X := in_nVib_X;
+nVib_Y := in_nVib_Y;
+nVib_Z := in_nVib_Z;]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="28" Count="0" />
+      <LineId Id="63" Count="1" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="565" Count="0" />
+      <LineId Id="564" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="407" Count="1" />
+      <LineId Id="359" Count="0" />
+      <LineId Id="409" Count="1" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="464" Count="1" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="485" Count="0" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="487" Count="0" />
+      <LineId Id="486" Count="0" />
+      <LineId Id="488" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

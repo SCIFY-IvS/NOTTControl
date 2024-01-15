@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <ImagePool Name="ImagePool" Id="{fd9b920a-9f93-495a-8a99-b83d4182127f}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="ImagePoolObject">
+          <v n="UniqueIdGenerator">"6"</v>
+          <l n="BitmapPool" t="ArrayList" cet="ImagePoolItem">
+            <o>
+              <v n="BitmapID">"MicadoEvac"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|\\winhome\home\dpopovic\My Pictures\Cryo GUI Background 2500-50000L.PNG"</v>
+              <v n="ItemID">5</v>
+            </o>
+            <o>
+              <v n="BitmapID">""</v>
+              <v n="FileID">""</v>
+              <v n="ItemID">6</v>
+            </o>
+          </l>
+          <v n="GuidInit">{f7899d59-29a1-48d6-96ed-0e8066a32085}</v>
+          <v n="GuidReInit">{3438afce-6132-417a-80be-d1ededc0f628}</v>
+          <v n="GuidExitX">{559cdd06-65b9-42f7-a78c-342b09a39ee8}</v>
+          <v n="ValidIds">true</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Boolean">System.Boolean</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="ImagePoolItem">{215b2719-0347-4e4d-ba85-8bcd66946f66}</Type>
+        <Type n="ImagePoolObject">{bb0b9044-714e-4614-ad3e-33cbdf34d16b}</Type>
+        <Type n="Int32">System.Int32</Type>
+        <Type n="String">System.String</Type>
+      </TypeList>
+    </XmlArchive>
+  </ImagePool>
+</TcPlcObject>

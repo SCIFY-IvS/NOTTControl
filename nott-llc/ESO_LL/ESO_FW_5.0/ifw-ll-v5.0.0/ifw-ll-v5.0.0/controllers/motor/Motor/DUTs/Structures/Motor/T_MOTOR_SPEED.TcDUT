@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_SPEED" Id="{9469079c-81f3-4f5b-8b51-e3fc7bd6131a}">
+    <Declaration><![CDATA[TYPE T_MOTOR_SPEED :
+STRUCT
+	value: 		LREAL;
+	direction: 	MC_Direction;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

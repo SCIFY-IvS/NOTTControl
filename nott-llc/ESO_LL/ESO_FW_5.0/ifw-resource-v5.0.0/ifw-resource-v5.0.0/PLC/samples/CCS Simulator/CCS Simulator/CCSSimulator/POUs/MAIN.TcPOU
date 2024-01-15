@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="MAIN" Id="{9341b6a9-ab47-4021-8934-6cc66bcac750}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	ccs_sim:	FB_CCS_SIM;
+	fbTimer: FB_TIME;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTimer();
+ccs_sim();]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="8" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

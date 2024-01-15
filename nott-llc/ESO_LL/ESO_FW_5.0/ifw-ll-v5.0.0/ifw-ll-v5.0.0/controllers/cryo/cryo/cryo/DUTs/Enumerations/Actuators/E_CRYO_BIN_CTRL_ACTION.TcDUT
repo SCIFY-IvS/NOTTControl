@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_BIN_CTRL_ACTION" Id="{32f4559b-30e4-47e6-bd29-c794820ef9e9}">
+    <Declaration><![CDATA[TYPE E_CRYO_BIN_CTRL_ACTION :
+(
+	NONE := 0,
+	OFF,
+	ON
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

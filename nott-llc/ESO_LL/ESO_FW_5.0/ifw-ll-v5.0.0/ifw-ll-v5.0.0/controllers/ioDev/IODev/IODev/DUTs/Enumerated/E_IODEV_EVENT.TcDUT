@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_IODEV_EVENT" Id="{b9b752d4-78ea-4bbd-a5f6-5682bd13dc8f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_IODEV_EVENT :
+(
+	NONE	:= 0,
+	
+	(* events corresponding to commands *)
+	RESET,
+	INIT,
+	STOP,
+	ENABLE,
+	DISABLE,
+	SET,
+	
+	(* 
+		Events corresponding to internal events 
+	*)
+	INITDONE,
+	
+	
+	(* events mapped to HW signals *)
+	HWOK,
+	ERRHW,
+	ERRINIT
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

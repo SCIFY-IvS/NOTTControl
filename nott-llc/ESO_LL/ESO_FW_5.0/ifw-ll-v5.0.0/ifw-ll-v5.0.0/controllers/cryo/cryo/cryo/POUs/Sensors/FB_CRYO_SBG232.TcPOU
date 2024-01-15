@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_SBG232" Id="{e6c94a1f-972f-4390-b003-c9c52d986905}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_SBG232
+VAR_INPUT
+	in_sName:		string	   := 'IO-Link SBG232';
+	in_sUnitFlow:	STRING(16) := 'L/min';	//	Units for Flow, default [L/min] 
+	in_sUnitTemp:	STRING(16) := '°C';		//	Units for Temperature, default [°C] 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// Variables to be linked
+	//
+	
+	// InfoData -> State of IO-Link master, e.g. EL6224.
+	i_nCouplerState			AT %I*:	UINT;	
+	// DeviceState Inputs -> State Ch# of IO-Link master, e.g. EL6224.
+	i_nDeviceStateInputCh	AT %I*:	USINT;	
+	// Raw device data: IO-Link Port# -> Port#:process data
+	i_ArrPortProcessData	AT %I*:	ARRAY [0..3] OF USINT;
+	
+	
+	stat:	T_CRYO_SBG232_STAT;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Configure if it hasn't been done.
+M_Configure();
+
+// Extract sensor reading from the raw value.
+M_UpdateStatus();
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{a7ccb771-f192-4710-9eee-60a9baf68c92}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT stat.bConfigured	THEN
+	stat.bConfigured	:= TRUE;
+	
+	stat.sName			:= in_sName;
+	
+	stat.flow.sUnits	:= in_sUnitFlow;
+	stat.temp.sUnits	:= in_sUnitTemp;
+
+	stat.flow.sType		:= 'Flow';
+	stat.temp.sType		:= 'Temperature';
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetError" Id="{792b505a-e20e-45cd-9b3f-32b00ec7d9d1}">
+      <Declaration><![CDATA[METHOD M_SetError
+VAR_INPUT
+	nSensor:	E_CRYO_SBG232_SENSOR_TYPE;
+	sError:		STRING;
+END_VAR
+VAR
+	refSensor:	REFERENCE TO T_CRYO_IOLINK_SENSOR_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nSensor	= E_CRYO_SBG232_SENSOR_TYPE.FLOW	THEN
+	refSensor	REF=stat.flow;
+ELSIF nSensor	= E_CRYO_SBG232_SENSOR_TYPE.TEMP	THEN
+	refSensor	REF=stat.temp;
+END_IF
+
+refSensor.bError		:= TRUE;
+refSensor.bInRange		:= FALSE;
+refSensor.bValid		:= FALSE;
+refSensor.sStatus		:= sError;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetReading" Id="{60d0bcac-5c24-498e-820f-9d68eadd1ba8}">
+      <Declaration><![CDATA[METHOD M_SetReading
+VAR_INPUT
+	nSensor:	E_CRYO_SBG232_SENSOR_TYPE;
+	lrValue:	LREAL;
+END_VAR
+VAR
+	refSensor:	REFERENCE TO T_CRYO_IOLINK_SENSOR_STATUS;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nSensor	= E_CRYO_SBG232_SENSOR_TYPE.FLOW	THEN
+	refSensor	REF=stat.flow;
+ELSIF nSensor	= E_CRYO_SBG232_SENSOR_TYPE.TEMP	THEN
+	refSensor	REF=stat.temp;
+END_IF
+
+refSensor.bOverrange	:= FALSE;
+refSensor.bUnderrange	:= FALSE;
+refSensor.bError		:= FALSE;
+refSensor.bInRange		:= TRUE;
+refSensor.bValid		:= TRUE;
+refSensor.lrValue		:= lrValue;
+refSensor.sStatus		:= 'OK';
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{8a16c9f2-2a8a-4ed0-9888-24c856716c2c}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+VAR
+	lrVal:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// General check if the EL6224 and IO-Link are OK.
+IF i_nCouplerState	<> 8	THEN
+	stat.sStatus	:= 'IO-Link terminal not in OP state. Check the mapping.';
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.FLOW, 'IO-Link terminal not in OP state');
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.TEMP, 'IO-Link terminal not in OP state');
+	RETURN;
+ELSIF i_nDeviceStateInputCh	<> 3	THEN
+	stat.sStatus	:= 'IO-Link Channel not in OP state';
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.FLOW, 'IO-Link Channel not in OP state');
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.TEMP, 'IO-Link Channel not in OP state');
+	RETURN;
+ELSE
+	stat.sStatus	:= 'OK';
+END_IF
+
+
+//////////////
+// Flow
+//////////////
+
+lrVal	:= (256.0 * i_ArrPortProcessData[0] + i_ArrPortProcessData[1]) / 100.0;
+stat.flow.lrValue	:= lrVal;
+
+IF lrVal = 18.05	THEN
+	stat.flow.bOverrange	:= TRUE;
+	stat.flow.bUnderrange	:= FALSE;
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.FLOW, 'Overrange');
+ELSE
+	M_SetReading(E_CRYO_SBG232_SENSOR_TYPE.FLOW, lrVal);
+END_IF
+
+
+////////////////
+// Temperature
+////////////////
+
+lrVal	:= TRUNC(256.0 * i_ArrPortProcessData[2] + i_ArrPortProcessData[3]) / 4;	// /4 = SHR(2)
+stat.temp.lrValue	:= lrVal;
+
+
+IF lrVal = 123.0	THEN
+	stat.temp.bOverrange	:= TRUE;
+	stat.temp.bUnderrange	:= FALSE;
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.TEMP, 'Overrange');
+ELSIF lrVal = -33.0	THEN
+	stat.temp.bOverrange	:= FALSE;
+	stat.temp.bUnderrange	:= TRUE;
+	M_SetError(E_CRYO_SBG232_SENSOR_TYPE.TEMP, 'Underrange');
+ELSE
+	M_SetReading(E_CRYO_SBG232_SENSOR_TYPE.TEMP, lrVal);
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_SBG232">
+      <LineId Id="85" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SBG232.M_Configure">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SBG232.M_SetError">
+      <LineId Id="37" Count="9" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SBG232.M_SetReading">
+      <LineId Id="39" Count="12" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SBG232.M_UpdateStatus">
+      <LineId Id="121" Count="52" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

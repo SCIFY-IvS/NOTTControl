@@ -1,0 +1,864 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_CCC" Id="{4b684aa8-e11b-4471-8caa-190ce016d4bb}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CCC EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:	DINT := 10000;	// Interval for periodic reading [ms], default 10000 ms = 10 sec 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+	{attribute 'OPC.UA.DA' := '0'}
+	sCmdSuffix:		STRING(16) := '$0D';
+	{attribute 'OPC.UA.DA' := '0'}
+	sReplySuffix:	STRING(16) := '$0D';
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_CCC_CFG;					//  Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_CCC_CTRL;					//  Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_CCC_INFO; 				//  Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_CCC_STAT;					//  Status parameters - ReadOnly
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_RS_COMM_NO_SIM;					// Instance of generic comm object. OPC UA Disabled!!!
+	
+	(* Pointers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_RS_COMM_CFG 	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_RS_COMM_CTRL 	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_RS_COMM_STAT 	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrInitCmds:	POINTER TO ARRAY [1..4] OF T_CCC_COMMAND;		(* Pointer to INIT commands *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrReadCmds:	POINTER TO ARRAY [1..4] OF T_CCC_COMMAND;		(* Pointer to READ commands *)
+
+
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:			TON; (* General Timeout *)
+	
+	(* Misc internal vars *)
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdCounter:			INT := 1;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+cfgRef	REF=cfg;
+ctrlRef	REF=ctrl;
+statRef	REF=stat;
+
+
+(* Execute comm instance *)
+comm(in_sCmdSuffix:=sCmdSuffix, in_sReplySuffix:=sReplySuffix, in_nTimeout:=3000);
+
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{9df5c031-8345-420a-baee-413f216ef19e}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Init will start from the first init command
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set communication parameters and Model configuration
+
+		(* Set comm suffixes for commands and replies *)
+		ptrCommCfg^.sCmdSuffix		:= sCmdSuffix;
+		ptrCommCfg^.sReplySuffix	:= sReplySuffix;
+
+		// Set monitoring period (input parameter)
+		cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+		// Auto monitor, i.e. monitor in Standby_Ready as well
+		cfg.bAutoMonitor	:= TRUE;
+
+		(* Set pointer to INIT and READ commands *)
+		ptrInitCmds := ADR(cfg.cmdList_Init);
+		ptrReadCmds := ADR(cfg.cmdList_Read);
+		(* Set initial state and status *)
+		stat.bInitialised	:= FALSE;
+		stat.sReply			:= '';
+		stat.sDeviceID		:= '';
+
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		// Init dev will start from the first init command.
+		// We set counter to 0. It will be incremented in Wait IDLE.
+		cmdCounter	:= 0;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+
+			IF cmdCounter >= 1 THEN
+				// We are IDLE after an INIT command, i.e. CCC_CMD_RESET or CCC_CMD_GET_VERS
+				IF ptrInitCmds^ [cmdCounter].cmd = cfg.CCC_CMD_RESET  THEN
+					(* No action. Just check proper reply. *)
+					IF FIND (stat.sReply, 'N')= 1 THEN
+						SetStatus(E_CCC_ERROR.COMM, 'ERROR: Failed to RESET device');
+						bCommProblem	:= TRUE;
+						nEvent := E_SM_EVENT.ERRINIT;
+						RETURN;
+					END_IF
+				ELSIF ptrInitCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_VERS  THEN
+					(* Save the reply into stat.sDeviceID. *)
+					IF FIND (stat.sReply, 'N')= 1 THEN
+						SetStatus(E_CCC_ERROR.COMM, 'ERROR: Command GET_VERS failed');
+						bCommProblem	:= TRUE;
+						nEvent := E_SM_EVENT.ERRINIT;
+						RETURN;
+					ELSIF FIND (stat.sReply, 'ESO')<> 2 THEN
+						SetStatus(E_CCC_ERROR.COMM, 'ERROR: Failed to get device ID');
+						bCommProblem	:= TRUE;
+						nEvent := E_SM_EVENT.ERRINIT;
+						RETURN;
+					ELSE
+						stat.sDeviceID	:= MID (stat.sReply, LEN(stat.sReply)-5, 2);
+					END_IF
+				END_IF
+			END_IF
+
+			// Restart the timer for delay between INIT commands
+			fbTimer (IN := FALSE);	// disable timer 
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Init); // Wait INIT delay
+			
+			cmdCounter		:= cmdCounter + 1;	// Increment init command index
+			bCommProblem	:= FALSE;
+			nMethodState 	:= 18;	// Execute next device INIT command
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF ptrInitCmds^ [cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_CCC_STATUS.IDLE, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrInitCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= 1;
+		ptrCommCtrl^.bHasReply		:= TRUE;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{a4472bcc-53e9-4a16-82e4-0b297ecd81e2}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+END_VAR
+VAR
+	bError:			BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	nRetries		:= 0;					
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		IF ptrReadCmds^ [cmdCounter].cmd = '' OR cmdCounter > 4 THEN
+			// We arrived to the end of the array of pre-defined commands
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE	THEN
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= 'IDLE';
+				RETURN;
+			END_IF
+
+			// Periodic READ is done. Wait tDelay_Periodic before re-starting the READ.
+			cmdCounter	:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+			nMethodState := 10;				// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+		
+		(* Send command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrReadCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= 1;
+		ptrCommCtrl^.bHasReply		:= TRUE;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		stat.sErrorText := 'BUSY';
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 20;				// Goto WAIT for Reading to complete,
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE THEN
+			fbTimer (IN := FALSE); (* Stop the timer *)
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= 'IDLE';
+			RETURN;
+		END_IF
+	
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			cmdCounter		:= 1;	// Reading will start from the first command in the array
+			nMethodState 	:= 0;	// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+	
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			bError	:= FALSE;
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			
+			(* Extract the readins from the reply. *)
+			IF ptrReadCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_STAT  THEN
+				IF NOT M_UpdateDevStatus() THEN
+					SetStatus(E_CCC_ERROR.COMM, 'ERROR: GET_STAT reply format not correct');
+					bError	:= TRUE;
+				END_IF
+			ELSIF ptrReadCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_TEMP  THEN
+				IF NOT M_UpdateDevTemps() THEN
+					SetStatus(E_CCC_ERROR.COMM, 'ERROR: GET_TEMP reply format not correct');
+					bError	:= TRUE;
+				END_IF
+			ELSIF ptrReadCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_FLOW  THEN
+				IF NOT M_UpdateDevFlows() THEN
+					SetStatus(E_CCC_ERROR.COMM, 'ERROR: GET_FLOW reply format not correct');
+					bError	:= TRUE;
+				END_IF
+			END_IF
+
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+			
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE THEN
+				fbTimer (IN := FALSE); (* Stop the timer *)
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= 'IDLE';
+				RETURN;
+			END_IF
+	
+			cmdCounter		:= cmdCounter + 1;	// Reading will start from the first command in the array
+			
+			nMethodState 	:= 0;				// Goto Send command
+			nEvent := E_SM_EVENT.COMMOK;
+			RETURN;
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 2 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 1 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+			END_IF
+			// Apply a short delay of 1 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#1000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		ELSIF bError THEN
+			// Apply a short delay of 3 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#3000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ConvertTemp" Id="{d3252d32-35be-4462-9024-b1f1ee1f67e9}">
+      <Declaration><![CDATA[METHOD M_ConvertTemp : LREAL
+VAR_INPUT
+	lrTempNorm:	WORD;	(* Normalised temperature *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_ConvertTemp	:= (WORD_TO_LREAL(lrTempNorm) - 5750) / 375.0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetAllFaulty" Id="{e50e1601-6ca9-4c04-998f-0e2998fc538a}">
+      <Declaration><![CDATA[METHOD M_SetAllFaulty : BOOL
+(* 
+	Method to set all readings to faulty, i.e. 9999.
+	Used when communication fails.
+*)
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bWarn_relay2_alarm	:= TRUE;
+
+stat.lrTemp_outlet	:= 9999;
+stat.lrTemp_inlet	:= 9999;
+stat.lrTemp_cabinet	:= 9999;
+stat.lrTemp_ambient	:= 9999;
+
+stat.lrFlow_1	:= 9999;
+stat.lrFlow_2	:= 9999;
+stat.lrFlow_3	:= 9999;
+
+M_SetAllFaulty	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_TrimDevReply" Id="{0f8e39f2-9a7c-4562-80db-adefd583bf7a}">
+      <Declaration><![CDATA[METHOD M_TrimDevReply : BOOL
+(* 
+	 *
+	 * reply syntax is:
+	 * <init char><parameters><checksum><end char>
+	 * whereby
+	 * init char = 'A' for OK or 'N' for ERROR.
+	 * parameters = reply body for reply OK or <error code> for error
+	 * checksum, 2 chars
+	 * end char = <CR> (but there is also another undocumented char in the reply)
+	 
+	 We want to extract <parameters>. We start from the 2nd char and take LEN-5 chars.
+*)
+
+VAR_INPUT
+	sReply:	STRING;		(* Device reply string *)
+END_VAR
+VAR_OUTPUT
+	sTrimmedString:	STRING;
+END_VAR
+
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* If the first char is 'N', this is an error reply. *)
+IF FIND (sReply, 'N')= 1 THEN
+	sTrimmedString	:= '';
+	M_TrimDevReply	:= FALSE;
+	RETURN;
+END_IF
+
+(* Remove the first char and the last 3 chars *)
+sTrimmedString := MID (sReply, LEN(sReply)-5, 2);
+M_TrimDevReply	:= TRUE;
+RETURN;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateDevFlows" Id="{c4ba75e4-aabe-45e9-8bcb-cbedcc8fb51e}">
+      <Declaration><![CDATA[METHOD M_UpdateDevFlows : BOOL
+(* 
+	Method to extract CCC device flow rates
+	from the reply to command cfg.CCC_CMD_GET_FLOW, i.e. '>00f'.
+	
+         Body of reply to GET_TEMP command is:
+         * flow rate #1 (main flow)	- 4 chars
+         * flow rate #2 (main flow)	- 4 chars
+         * flow rate #3 (main flow)	- 4 chars
+         
+	Reply is in HEX format !!!
+	
+*)
+
+VAR_INPUT
+END_VAR
+VAR
+	bOK:	BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+	
+	sTrimmedReply:	STRING;
+    data: 	ARRAY[0..5] OF WORD;
+    cbData: UDINT;
+	nWord:	WORD;
+
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Trim the reply *)
+bOK := M_TrimDevReply(sReply := stat.sReply, sTrimmedString => sTrimmedReply);
+
+(* We are expecting 3 4-char strings (hex words) in the reply (6 bytes) *)
+cbData := HEXSTR_TO_DATA (sTrimmedReply, ADR( data ), SIZEOF( data ));
+
+IF NOT bOK  OR  cbData <> 6 THEN
+	sTrimmedReply	:= '';
+	M_UpdateDevFlows	:= FALSE;
+	RETURN;
+END_IF
+
+stat.lrFlow_1	:= WORD_TO_LREAL(HOST_TO_BE16 (data[0]));
+stat.lrFlow_2	:= WORD_TO_LREAL(HOST_TO_BE16 (data[1]));
+stat.lrFlow_3	:= WORD_TO_LREAL(HOST_TO_BE16 (data[2]));
+
+
+M_UpdateDevFlows	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateDevStatus" Id="{7e5542f2-008b-481f-8c11-78bc495367d1}">
+      <Declaration><![CDATA[METHOD M_UpdateDevStatus : BOOL
+(* 
+	Method to extract CCC device status from the 
+	reply to command cfg.CCC_CMD_GET_STAT, i.e. '>00o'.
+	
+         Body of reply to GET_STAT command is:
+         * <CSTAT1> 				- 2 chars
+         * <CSTAT2> 				- 2 chars
+         * <feprom status> 			- 2 chars
+         * <communication status> 	- 2 chars
+         * <debugr> 				- 2 chars
+         
+	Reply is in HEX format !!!
+	We use only <CSTAT1> and <CSTAT2>.
+	
+*)
+
+VAR_INPUT
+END_VAR
+VAR
+	bOK:		BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+	
+	sTrimmedReply:	STRING;
+    data    : ARRAY[0..5] OF BYTE;
+    cbData  : UDINT;
+	bByte:	BYTE;
+
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Trim the reply *)
+bOK := M_TrimDevReply(sReply := stat.sReply, sTrimmedString => sTrimmedReply);
+
+(* We are expecting 5 2-char strings in the reply *)
+cbData := HEXSTR_TO_DATA (sTrimmedReply, ADR( data ), SIZEOF( data ));
+
+IF NOT bOK  OR  cbData <> 5 THEN
+	sTrimmedReply	:= '';
+	M_UpdateDevStatus	:= FALSE;
+	RETURN;
+END_IF
+
+(*
+	<CSTAT1> = data [0]
+	<CSTAT2> = data [1]
+*)
+
+(* Handling of <CSTAT1>, i.e. data[0] *)
+stat.bWarn_cabinet_high			:= (data[0] AND 16#0001) <> 0;
+stat.bWarn_cabinet_no_control	:= (data[0] AND 16#0002) <> 0;
+
+IF (data[0] AND 16#0010) <> 0  THEN
+	(* Warning code bit4 is active. Check bit2-3 for meaning. *) 
+	bByte	:= (SHL(data[0],2) AND 16#0003);
+	CASE bByte OF
+	0:	stat.bWarn_outlet_high			:= TRUE;
+	1:	stat.bWarn_inlet_high			:= TRUE;
+	2:	stat.bWarn_airflow_insufficient	:= TRUE;
+	3:	stat.bWarn_coolant_insufficient	:= TRUE;
+	END_CASE
+ELSE
+	stat.bWarn_outlet_high			:= FALSE;
+	stat.bWarn_inlet_high			:= FALSE;
+	stat.bWarn_airflow_insufficient	:= FALSE;
+	stat.bWarn_coolant_insufficient	:= FALSE;
+END_IF
+
+stat.bWarn_door_open			:= (data[0] AND 16#0020) = 0;
+stat.bWarn_relay1_warning		:= (data[0] AND 16#0040) <> 0;
+stat.bWarn_relay2_alarm			:= (data[0] AND 16#0080) <> 0;
+
+
+(* Handling of <CSTAT2>, i.e. data[1] *)
+stat.bFault_temp_sensor_ambient	:= (data[1] AND 16#0001) <> 0;
+stat.bFault_temp_sensor_cabinet	:= (data[1] AND 16#0002) <> 0;
+stat.bFault_temp_sensor_inlet	:= (data[1] AND 16#0004) <> 0;
+stat.bFault_temp_sensor_outlet	:= (data[1] AND 16#0008) <> 0;
+stat.bFault_analog_supply		:= (data[1] AND 16#0040) <> 0;
+stat.bFault_digital_supply		:= (data[1] AND 16#0080) <> 0;
+
+M_UpdateDevStatus	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateDevTemps" Id="{73ed5be5-7012-493a-b75f-2246eef15f68}">
+      <Declaration><![CDATA[METHOD M_UpdateDevTemps : BOOL
+(* 
+	Method to extract CCC device temperatures and the main flow rate
+	from the reply to command cfg.CCC_CMD_GET_TEMP, i.e. '>00H'.
+	
+         Body of reply to GET_TEMP command is:
+         * flow rate #2 (main flow)	- 4 chars (ignored !!! Will be read with GET_FLOW)
+         * <outlet temperature> 	- 4 chars
+         * <inlet temperature> 		- 4 chars
+         * <cabinet temperature> 	- 4 chars
+         * <ambient temperature> 	- 4 chars
+         
+		 Temperatures are normalised. Real temperature is calculated as:
+		 	Celsius = (TN - 5750)/375 
+		 
+	Reply is in HEX format !!!
+	
+*)
+
+VAR_INPUT
+END_VAR
+VAR
+	bOK:	BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+	
+	sTrimmedReply:	STRING;
+    data: 	ARRAY[0..5] OF WORD;
+    cbData: UDINT;
+	nWord:	WORD;
+
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Trim the reply *)
+bOK := M_TrimDevReply(sReply := stat.sReply, sTrimmedString => sTrimmedReply);
+
+(* We are expecting 5 4-char strings (hex words) in the reply (10 bytes) *)
+cbData := HEXSTR_TO_DATA (sTrimmedReply, ADR( data ), SIZEOF( data ));
+
+IF NOT bOK  OR  cbData <> 10 THEN
+	sTrimmedReply	:= '';
+	M_UpdateDevTemps	:= FALSE;
+	RETURN;
+END_IF
+
+(*	Before calculating the temperature, check for sensor failure.
+	In case of sensor failure, set the value to the magic number 9999.
+	Generic GUI's understand this as N/A, i.e. error or simulation. *)
+IF stat.bFault_temp_sensor_outlet THEN
+	stat.lrTemp_outlet	:= 9999;
+ELSE
+	stat.lrTemp_outlet	:= M_ConvertTemp(HOST_TO_BE16 (data[1]));
+END_IF
+
+IF stat.bFault_temp_sensor_inlet THEN
+	stat.lrTemp_inlet	:= 9999;
+ELSE
+	stat.lrTemp_inlet	:= M_ConvertTemp(HOST_TO_BE16 (data[2]));
+END_IF
+
+IF stat.bFault_temp_sensor_cabinet THEN
+	stat.lrTemp_cabinet	:= 9999;
+ELSE
+	stat.lrTemp_cabinet	:= M_ConvertTemp(HOST_TO_BE16 (data[3]));
+END_IF
+
+IF stat.bFault_temp_sensor_ambient THEN
+	stat.lrTemp_ambient	:= 9999;
+ELSE
+	stat.lrTemp_ambient	:= M_ConvertTemp(HOST_TO_BE16 (data[4]));
+END_IF
+
+
+M_UpdateDevTemps	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CCC">
+      <LineId Id="391" Count="12" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.ActivityInitializing">
+      <LineId Id="6" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="267" Count="2" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="270" Count="6" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="287" Count="1" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="296" Count="3" />
+      <LineId Id="320" Count="1" />
+      <LineId Id="300" Count="5" />
+      <LineId Id="316" Count="1" />
+      <LineId Id="306" Count="2" />
+      <LineId Id="318" Count="1" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="311" Count="3" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="291" Count="1" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="233" Count="4" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="170" Count="8" />
+      <LineId Id="186" Count="2" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="192" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.ActivityMonitoring">
+      <LineId Id="29" Count="0" />
+      <LineId Id="301" Count="1" />
+      <LineId Id="118" Count="1" />
+      <LineId Id="369" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="257" Count="1" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="134" Count="3" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="139" Count="8" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="383" Count="0" />
+      <LineId Id="155" Count="2" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="167" Count="2" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="262" Count="2" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="177" Count="3" />
+      <LineId Id="192" Count="1" />
+      <LineId Id="185" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="72" Count="2" />
+      <LineId Id="387" Count="0" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="331" Count="3" />
+      <LineId Id="388" Count="0" />
+      <LineId Id="336" Count="3" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="341" Count="3" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="346" Count="2" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="269" Count="2" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="272" Count="2" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="275" Count="2" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="378" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="79" Count="2" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="357" Count="4" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="379" Count="3" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="391" Count="0" />
+      <LineId Id="393" Count="4" />
+      <LineId Id="90" Count="2" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.M_ConvertTemp">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.M_SetAllFaulty">
+      <LineId Id="3" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.M_TrimDevReply">
+      <LineId Id="3" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.M_UpdateDevFlows">
+      <LineId Id="3" Count="17" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.M_UpdateDevStatus">
+      <LineId Id="3" Count="50" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCC.M_UpdateDevTemps">
+      <LineId Id="3" Count="40" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

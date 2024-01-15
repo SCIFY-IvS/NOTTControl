@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN" Id="{0da3a7ac-0d35-4c21-8d5f-ea439bb447f7}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbTimeObj: FB_TIME;
+	fbTimerObj: FB_TIMER;
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTimeObj();
+
+fbTimerObj(fbTimerRef := fbTimeObj);
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="8" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

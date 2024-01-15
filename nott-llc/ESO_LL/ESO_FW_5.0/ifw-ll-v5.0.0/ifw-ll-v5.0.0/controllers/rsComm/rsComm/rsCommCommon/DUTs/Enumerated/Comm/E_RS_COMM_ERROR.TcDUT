@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_RS_COMM_ERROR" Id="{8b43b5ba-2f4d-45aa-b0cd-227329fdb312}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{attribute 'strict'}
+TYPE E_RS_COMM_ERROR :
+(
+	OK				:= 0,
+	NOT_IN_OP_STATE,
+	NOT_INIT,
+	TIMEOUT,
+	LISTEN,
+	ACCEPT,
+	SEND,
+	RECEIVE,
+	WRONG_STATE,
+	NOT_IDLE,
+	CONNECT,
+	DISCONNECT
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

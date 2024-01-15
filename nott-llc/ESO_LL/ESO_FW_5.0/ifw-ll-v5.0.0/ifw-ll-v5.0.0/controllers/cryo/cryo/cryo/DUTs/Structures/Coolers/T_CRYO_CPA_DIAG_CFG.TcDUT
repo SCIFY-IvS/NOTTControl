@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CPA_DIAG_CFG" Id="{93f3ca4f-44e3-41e6-85a3-d094c7eae4ec}">
+    <Declaration><![CDATA[TYPE T_CRYO_CPA_DIAG_CFG :
+STRUCT
+	sLabel:				STRING(56)	:= '';	// Label for Inputs, e.g. 'Water IN'
+	sUnits:				STRING(8)	:= '';	// User units
+	nBitLow:			INT;	// Bit position in warnings/errors for Low
+	nBitHigh:			INT;	// Bit position in warnings/errors for High
+	rErrorLow:			REAL;	// Error for Low  range
+	rAlarmLow_CPA:		REAL;	// Alarm for Low  range as defined by CRYOMECH
+	rAlarmLow_ESO:		REAL;	// Alarm for Low  range as defined by ESO
+	rAlarmHigh_ESO:		REAL;	// Alarm for High range as defined by ESO
+	rAlarmHigh_CPA:		REAL;	// Alarm for High range as defined by CRYOMECH
+	rErrorHigh:			REAL;	// Error for High range
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

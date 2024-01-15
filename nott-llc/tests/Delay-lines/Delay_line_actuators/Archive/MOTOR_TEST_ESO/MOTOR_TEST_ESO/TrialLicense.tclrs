@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<TcLicenseInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2011/11/TcLicenseInfo">
+	<LicenseInfo>
+		<SystemId>{0634EBFB-4281-06D1-DBC1-D9B6BF58E856}</SystemId>
+		<IssueTime>2023-01-12T12:46:00</IssueTime>
+		<ExpireTime>2023-01-20T00:00:00</ExpireTime>
+		<LicenseKey>c54620f67cfd90b946c0e3d86dead0cd895b2a4565b02792f2859f50f57232499a1aeb4e0476f231dcdda9355b422a9829385384dbb61eeb8f2260324296b2421597bb63788942e3e7bc8a9e88ab3aace184860f6be41f245fadda5af2293325e16552a9d525659bb468c1879e0af911cd1b72f3c0495c759d7108928fef0b56d1d367cf04ed21de74f63189f0370aa300bd32d4001f9bee1f71312761404b98b42c14eaca3c98208ab1adf3f03ec0950147d1153a0191f589e2fd15fd70e1c386de12b2b38a79fb04b9feb77bd948d7e6c1e891aeb48ea987455be33b372f298deaae2b925b7f2b4eeb2cfc64d93175f55cd830ea2f6673320517ce28658380</LicenseKey>
+		<License>
+			<LicenseId>{2C358067-6E81-4F6A-B8D9-AC1F63FEB6FD}</LicenseId>
+			<Name>TC3 Vision Base</Name>
+			<OrderNo>TF7100</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{2FF93140-10E2-4662-A464-31B8A4673F26}</LicenseId>
+			<Name>TC3 GigE Vision Connector</Name>
+			<Instances>2</Instances>
+		</License>
+		<License>
+			<LicenseId>{B1065A48-8131-4608-A378-D67FA8BD826E}</LicenseId>
+			<Name>TC3 GigE Vision Connector Base</Name>
+			<OrderNo>TF7000</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{4C256767-E6E6-4AF5-BD68-9F7ABAD0C200}</LicenseId>
+			<Name>TC3 ADS</Name>
+			<OrderNo>TC1000</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{081AC839-28D0-49CA-9792-72680E1F3249}</LicenseId>
+			<Name>TC3 TCP/UDP RT</Name>
+			<OrderNo>TF6311</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{A19036CF-A53B-4E3A-99FF-023EF5C4798B}</LicenseId>
+			<Name>TC3 NC PTP Axis</Name>
+			<Instances>10</Instances>
+		</License>
+		<License>
+			<LicenseId>{66689887-CCBD-452C-AC9A-039D997C6E66}</LicenseId>
+			<Name>TC3 PLC</Name>
+			<OrderNo>TC1200</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{520DE751-9DB6-47CB-8240-BD5C466E7E64}</LicenseId>
+			<Name>TC3 NC PTP</Name>
+			<OrderNo>TF5000</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{3FF18E97-7754-401B-93FB-70544DE28A13}</LicenseId>
+			<Name>TC3 IO</Name>
+			<OrderNo>TC1100</OrderNo>
+		</License>
+	</LicenseInfo>
+</TcLicenseInfo>

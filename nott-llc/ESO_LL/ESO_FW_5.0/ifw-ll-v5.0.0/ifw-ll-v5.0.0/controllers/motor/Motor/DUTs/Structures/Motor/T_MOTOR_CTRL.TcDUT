@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_MOTOR_CTRL" Id="{17405076-e76e-47ad-8e66-f8b937714847}">
+    <Declaration><![CDATA[TYPE T_MOTOR_CTRL :
+STRUCT
+	// Command value and execution flag
+	nCommand:	E_MOTOR_COMMAND	:= E_MOTOR_COMMAND.NONE;// See E_MOTOR_COMMAND 
+	bExecute:	BOOL;									// Triggers command execution
+	
+	// If bLocalCmd is TRUE, commands are accepted in Local mode.
+	// This var is set by each button press in local GUI.
+	// This var is reset after each command handling.
+	// Each button in local GUI has to have the first command:
+	//    m_Instance.ctrl.bLocalCmd := TRUE;
+	// This variable is not available in OPC UA namespace.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	bLocalCmd:		BOOL	:= FALSE;				
+
+	// Motion parameters
+	nMoveType:		DINT	:= E_MOTOR_MOVE_TYPE.NONE;
+	nDirection:		DINT 	:= MC_Positive_Direction;
+	lrPosition: 	LREAL 	:= 0.0;		// Value for MOVE_ABS
+	lrOffset: 		LREAL 	:= 0.0;		// Value for MOVE_REL (EICSSW-781)
+	lrVelocity:		LREAL 	:= 0.0001;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

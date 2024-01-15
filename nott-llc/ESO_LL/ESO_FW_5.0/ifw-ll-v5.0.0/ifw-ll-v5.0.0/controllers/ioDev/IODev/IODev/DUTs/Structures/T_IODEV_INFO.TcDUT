@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_INFO" Id="{60381d66-4f77-490a-ab04-08a7c3e7a5cb}">
+    <Declaration><![CDATA[TYPE T_IODEV_INFO :
+STRUCT
+(*
+Driver Information 
+
+Change Log:
+	0.1	2017-09-07	- First version - dummy implementation.
+	0.2	2017-09-11	- Implemented digital/analog IN/OUT.
+	0.3	2017-09-14	- Implemented digital/analog IN/OUT as FBs with methods.
+					- Removed unused structures.
+	0.6.0.0			- Restructure with pointers to channel arrays.
+					- Removed input vars for number of channels. Defined in each derived FB.
+					- Addition of FB_IODEV_SENS_8_4.
+					- Addition of customised FB's.
+	0.7.0.0			- Addition of stat.sLibVersion
+	0.8.0.0			- RPC calls return INT.
+					- Addition of E_IODEV_RPC_ERROR.
+	0.8.0.1			- Addition of library category ESO/ELT.
+	0.8.0.2			- Removed input parameters from OPC UA.
+	0.9.0.0			- Renaming States STANDBY->NOTOP & FAILURE->ERROR.
+	1.0.0.0			- WARNING: Requires TwinCAT 3.1 build 4022.20 or higher.
+					- Projects need Tc3_EventLogger library included in References.
+					- Addition of Methods for Event Logs.
+					- Addition of cfg.bLog flag for enable/disable of logging.
+					- Addition of RPC_SetDebug() and RPC_SetLog().
+					- RPC calls not allowed in Local mode.
+	1.0.0.1			- Compiled wit TwinCAT 3.1 build 4022.27.
+					- Renamed TC_EVENTS.OpsEventClass to TC_EVENTS.IODevOpsEventClass.
+					- Solved problem of 'growing' libraries by setting Property/Advanced/BuildAction to None for IODev.library and pdf files in dir config.
+	1.0.0.2			- Pinned ST_IODevOpsEventClass under External Types.
+	1.0.0.3			- Renumbered enumerations in E_IODEV_SUBSTATE to match WS.
+	1.1.0.0			- Moved user defined structures under ctrl and stat.
+					- Strict enumerated types.
+					- Used RefCtrl and RefStat in BASE FB.
+*)
+	sDate:			STRING(32)	:= '2019-04-24';
+	sDescription:	STRING(80) 	:= 'State Machine based IODev controller';
+	sName:			STRING(64)	:= 'FB_IODEV';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'State Machine based IODev controller';
+	nVersionMajor:	DINT		:= 1;
+	nVersionMinor:	DINT		:= 1;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

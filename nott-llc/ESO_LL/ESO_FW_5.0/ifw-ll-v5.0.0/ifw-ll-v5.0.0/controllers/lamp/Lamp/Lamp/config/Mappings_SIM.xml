@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^Lamp^Lamp Instance">
+		<OwnerB Name="TIPC^Lamp^Lamp Instance">
+			<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Lamp001.q_bOn"/>
+			<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Lamp002.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Lamp001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Lamp001.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Lamp002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Lamp002.q_bSwitch"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Lamp001.q_bFault" VarB="PlcTask Inputs^MAIN.Lamp001.i_bFault"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Lamp001.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Lamp001.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Lamp002.q_bFault" VarB="PlcTask Inputs^MAIN.Lamp002.i_bFault"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Lamp002.q_bOn" VarB="PlcTask Inputs^MAIN.Lamp002.i_bOn"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

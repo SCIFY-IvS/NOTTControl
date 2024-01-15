@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	
+	{attribute 'OPC.UA.DA':='1'}
+	Switch001:		FB_SWITCH;	// Simulated power always
+	{attribute 'OPC.UA.DA':='1'}
+	Switch002:		FB_SWITCH;	// Simulated power always
+	{attribute 'OPC.UA.DA':='1'}
+	Switch003:		FB_SWITCH;	// Real power if connected to a PLC
+	{attribute 'OPC.UA.DA':='1'}
+	Switch004:		FB_SWITCH;	// Real power if connected to a PLC
+
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Switch001:	FB_SIM_SWITCH;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Switch002:	FB_SIM_SWITCH;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Switch003:	FB_SIM_SWITCH;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Switch004:	FB_SIM_SWITCH;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Switch001 configuration:
+// - Go to  OPERATIONAL on PLC reboot
+// - Initial state is OFF
+Switch001(in_sName:='Switch001', in_bAutoOp:=TRUE,in_bInitialState:=FALSE);
+
+// Switch002 configuration:
+// - Go to  OPERATIONAL on PLC reboot
+// - Initial state is ON
+Switch002(in_sName:='Switch002', in_bAutoOp:=TRUE,in_bInitialState:=TRUE);
+
+// Switch003 configuration:
+// - Remain in NOTOP on PLC reboot
+// - Initial state is OFF
+Switch003(in_sName:='Switch003', in_bAutoOp:=FALSE,in_bInitialState:=FALSE);
+
+// Switch004 configuration:
+// - Go to  OPERATIONAL on PLC reboot
+// - Initial state is ON
+Switch004(in_sName:='Switch004', in_bAutoOp:=TRUE,in_bInitialState:=TRUE);
+
+
+// Switch001 Simulator
+SIM_Switch001(ptrDev:=ADR(Switch001));
+// Switch002 Simulator
+SIM_Switch002(ptrDev:=ADR(Switch002));
+// Switch003 Simulator
+SIM_Switch003(ptrDev:=ADR(Switch003));
+// Switch004 Simulator
+SIM_Switch004(ptrDev:=ADR(Switch004));
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="342" Count="4" />
+      <LineId Id="359" Count="2" />
+      <LineId Id="347" Count="1" />
+      <LineId Id="362" Count="2" />
+      <LineId Id="349" Count="1" />
+      <LineId Id="365" Count="2" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="352" Count="2" />
+      <LineId Id="356" Count="1" />
+      <LineId Id="373" Count="3" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

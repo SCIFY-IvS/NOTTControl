@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_TCP_RT_CLIENT_CFG" Id="{0a000772-f1a3-425f-9592-f50c60cc7e15}">
+    <Declaration><![CDATA[TYPE T_TCP_RT_CLIENT_CFG :
+STRUCT
+	sTcpServerAdr:	STRING(16)	:= '62.159.14.51';	// Beckhoff Test-Website
+    nTcpPort:    	UINT := 80;						// Beckhoff Test-Website
+	
+
+	// Parameters hidden from OPC UA access
+	{attribute 'OPC.UA.DA' := '0'}
+	tcpServerAdr:	U_IpAdr; 
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_STAT" Id="{b8d52083-9990-40a7-82e3-575bf4048bc9}">
+    <Declaration><![CDATA[TYPE T_IODEV_STAT :
+STRUCT
+	bLocal:			BOOL	:= FALSE;						(* Device operated from PLC GUI *)
+
+	nState:			E_IODEV_STATE	:= E_IODEV_STATE.NOTOP;				// State
+	nSubstate:		E_IODEV_SUBSTATE:= E_IODEV_SUBSTATE.NOTOP_NOTREADY;	// Substate
+
+	nErrorCode: 	E_IODEV_ERROR 	:= E_IODEV_ERROR.OK;		(* Error code *)
+	nLastCommand:	E_IODEV_COMMAND	:= E_IODEV_COMMAND.NONE;	(* Last command sent to the device *)
+	nRpcErrorCode: 	E_IODEV_RPC_ERROR 	:= E_IODEV_RPC_ERROR.OK;(* RPC Error code *)
+	nStatus: 		E_IODEV_STATUS	:= E_IODEV_STATUS.OK; 		(* Device status *)
+
+	sState:			STRING	:= 'NOT OP';					(* State textual description *)
+	sSubstate:		STRING	:= 'NOT READY';					(* Substate textual description *)
+	sErrorText: 	STRING 	:= 'OK'; 						(* Error text *)
+	sRPCErrorText: 	STRING 	:= 'OK'; 						(* RPC Error text *)
+	sStatus: 		STRING 	:= 'OK'; 						(* Status in textual form, e.g. 'OFF' *)
+	sLastCommand:	STRING	:= 'NONE';						(* Last command, as string, sent to the device *)
+	sLibVersion:	STRING	:= 'UNKNOWN';					(* Library version as string, e.g. '1.2.0.0' *)
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+
+	nCycleCounter:	UDINT	:= 0;	// Alive flag
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

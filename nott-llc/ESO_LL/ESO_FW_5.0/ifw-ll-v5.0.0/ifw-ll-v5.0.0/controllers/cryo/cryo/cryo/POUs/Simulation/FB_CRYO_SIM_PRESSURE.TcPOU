@@ -1,0 +1,371 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_CRYO_SIM_PRESSURE" Id="{78b74781-76cc-43b9-a2d3-35c69da28250}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// This FB simulates pressure.
+//
+FUNCTION_BLOCK FB_CRYO_SIM_PRESSURE
+VAR_INPUT
+	in_nType:	E_CRYO_SENSOR_TYPE_PRESS;
+	// Scale factor bits -> Volt, U = raw / scale. 
+	// Default for 16-bit, +-10V or 0..10V AI: 2^16/10/2 = 3276.8 bit
+	in_lrBitsPerVolt:	LREAL := 3276.8;	// Scale factor, U = raw / scale. Default 3276.8
+	in_lrPress:		LREAL	:= 777.0;	// Starting Pressure
+	in_nPeriod:		UDINT	:= 10000;	// RAMP Command period, default 10000ms = 10s
+	
+END_VAR
+VAR
+	q_nStatus	AT%Q*:	UINT	:= 0;		// Simulated status
+	q_nValue	AT%Q*:	INT		:= 27953;	// Simulated value [bit] = 777 mbar
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	bStarted:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	toggleTimer:	TON;		// Timer for PDO (alive) toggle
+	{attribute 'OPC.UA.DA' := '0'}
+	rampTimer:		TON;		// Timer for temperature ramp
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nToggleMask:	UINT := 2#1000_0000_0000_0000;
+
+	lrPress:		LREAL	:= 777.0;	// Simulated Pressure
+	{attribute 'OPC.UA.DA' := '0'}
+	lrPressStart:	LREAL	:= 0.0;		// Simulated Pressure start[mbar]
+	{attribute 'OPC.UA.DA' := '0'}
+	lrPressEnd:		LREAL	:= 0.0;		// Simulated Pressure end  [mbar]
+	{attribute 'OPC.UA.DA' := '0'}
+	lrPressDelta:	LREAL	:= 0.0;		// Simulated Pressure delta for curve  [mbar]
+	{attribute 'OPC.UA.DA' := '0'}
+	lrCurveScale:	LREAL	:= 0.3;		// t^lrCurveScale factor
+	{attribute 'OPC.UA.DA' := '0'}
+	nValue:			INT		:= 27953;	// Simulated value [bit]
+	{attribute 'OPC.UA.DA' := '0'}
+	nPeriod:		UDINT	:= 10000;	// RAMP Command period, default 10000ms = 10s
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	State:		INT	:= SIM_VACUUM_STATE_FIXED;
+	
+	// Temporary variables
+	{attribute 'OPC.UA.DA' := '0'}
+	lrTmp1:		LREAL;
+	
+END_VAR
+VAR CONSTANT 
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_VACUUM_STATE_NONE:	INT :=  0;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_VACUUM_STATE_FIXED:	INT := 10;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_VACUUM_STATE_RAMP:	INT := 20;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_VACUUM_STATE_CURVE:	INT := 30;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_VACUUM_RAMP_UP:		INT := 0;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_VACUUM_RAMP_DOWN:	INT := 1;
+	
+END_VAR 
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Simulate terminal alive toggle every 160ms.
+//
+IF NOT bStarted THEN
+	bStarted	:= TRUE;
+	lrPress		:= in_lrPress;
+	nPeriod		:= in_nPeriod;
+	toggleTimer(IN:=FALSE);
+END_IF
+toggleTimer(IN:=TRUE,PT:=T#160MS);
+
+IF toggleTimer.Q THEN
+	q_nStatus	:= q_nStatus XOR nToggleMask;
+	// Restart the timer
+	toggleTimer(IN:=FALSE);
+END_IF
+
+
+
+//
+// Handle states
+//
+rampTimer(IN:=TRUE);
+IF State = SIM_VACUUM_STATE_RAMP THEN
+	lrPress	:=	lrPressStart + 
+				(lrPressEnd - lrPressStart)* TIME_TO_LREAL(rampTimer.ET)/TIME_TO_LREAL(rampTimer.PT);
+	IF rampTimer.Q THEN
+		rampTimer(IN:=FALSE);
+		State	:= SIM_VACUUM_STATE_FIXED;
+	END_IF
+ELSIF State = SIM_VACUUM_STATE_CURVE THEN
+	lrTmp1	:= TIME_TO_LREAL(rampTimer.ET)/TIME_TO_LREAL(rampTimer.PT);
+	lrTmp1	:= EXPT(lrTmp1,lrCurveScale);
+	lrPress	:=	lrPressStart + (lrPressEnd - lrPressStart)* lrTmp1;
+	IF rampTimer.Q THEN
+		rampTimer(IN:=FALSE);
+		State	:= SIM_VACUUM_STATE_FIXED;
+	END_IF
+END_IF
+
+
+//
+// Set the raw reading, i.e. mbar -> bit.
+// Conversion is mbar -> Volt -> bit.
+//
+IF lrPress > 0.0  THEN
+	q_nValue	:= M_mbar2bit(lrPress);
+END_IF
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_bit2mbar" Id="{7a23cb8c-a4c7-4f83-8058-eb9cc7b63991}">
+      <Declaration><![CDATA[METHOD M_bit2mbar : LREAL
+VAR_INPUT
+	in_nBits:	INT;
+END_VAR
+VAR
+	lrVoltage:	LREAL;
+	lrPressure:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[lrVoltage	:= in_nBits / in_lrBitsPerVolt;
+
+CASE in_nType OF 
+	E_CRYO_SENSOR_TYPE_PRESS.PKR_250,
+	E_CRYO_SENSOR_TYPE_PRESS.PKR_360:
+		// Conversion Volt -> mbar.
+		// Pfeiffer PKR250/251
+		// P = 10^(C1 * U - C2).
+		// C1 = 1.667, C2 = d = 11.33
+		// P = 10^(1.667 * U - 11.33)
+		// U = (log(P)+C2)/C1
+		// U = (log(P)+11.33)/1.667
+		lrPressure	:= EXPT(10.0, (1.667 * lrVoltage - 11.33));
+	E_CRYO_SENSOR_TYPE_PRESS.CMR_361:
+		// Conversion Volt -> mbar.
+		// Pfeiffer CMR361
+		// P = (U - 1) * C1 * C2 [mbar]
+		// C1 = 0.125, C2=FullScale = 1000 
+		// P = (U - 1) * 0.125 * 1000.0 = (U-1) * 125[mbar]
+		// P = (U-1) * 125
+		// U = P/125 + 1
+		lrPressure	:= (lrVoltage - 1) * 125;
+	E_CRYO_SENSOR_TYPE_PRESS.WRG_D_NW25:
+		// Edwards WRG-D-NW25 Conversion Volt -> mbar.
+		// Range 10^-9 .. 100
+		// P = 10^(C1 * U - C2).
+		// P = 10^(1.5 * U - 12.0)
+		// Valid range for U is 2.0-10.0
+		lrPressure	:= EXPT(10.0, (1.5 * lrVoltage - 12.0));
+END_CASE
+
+M_bit2mbar	:= lrPressure;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_mbar2bit" Id="{7bf58985-7acb-4a71-8c5e-937988d8b5c1}">
+      <Declaration><![CDATA[METHOD M_mbar2bit : INT
+VAR_INPUT
+	in_lrValue:	LREAL;
+END_VAR
+VAR
+	lrValue:	LREAL;
+	lrVoltage:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Pressure cannot be zero
+lrValue := MAX(1.0E-9,in_lrValue);
+
+CASE in_nType OF 
+	E_CRYO_SENSOR_TYPE_PRESS.PKR_250,
+	E_CRYO_SENSOR_TYPE_PRESS.PKR_360:
+		// Conversion Volt -> mbar.
+		// Pfeiffer PKR250/251
+		// P = 10^(C1 * U - C2).
+		// C1 = 1.667, C2 = d = 11.33
+		// P = 10^(1.667 * U - 11.33)
+		// U = (log(P)+C2)/C1
+		// U = (log(P)+11.33)/1.667
+		lrVoltage	:= (LOG(lrValue) + 11.33) / 1.667;
+	E_CRYO_SENSOR_TYPE_PRESS.CMR_361:
+		// Conversion Volt -> mbar.
+		// Pfeiffer CMR361
+		// P = (U - 1) * C1 * C2 [mbar]
+		// C1 = 0.125, C2=FullScale = 1000 
+		// P = (U - 1) * 0.125 * 1000.0 = (U-1) * 125[mbar]
+		// P = (U-1) * 125
+		// U = P/125 + 1
+		lrVoltage	:= lrValue/125 + 1.0;
+	E_CRYO_SENSOR_TYPE_PRESS.WRG_D_NW25:
+		// Edwards WRG-D-NW25 Conversion Volt -> mbar.
+		// Range 10^-9 .. 100
+		// P = 10^(C1 * U - C2).
+		// P = 10^(1.5 * U - 12.0)
+		// Valid range for U is 2.0-10.0
+		lrVoltage	:= (LOG(lrValue) + 12.0) / 1.5;
+END_CASE
+
+M_mbar2bit	:= LREAL_TO_INT(lrVoltage * in_lrBitsPerVolt);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RampTo" Id="{83f4c077-abf6-4efe-887e-e9126fdd7bc3}">
+      <Declaration><![CDATA[METHOD M_RampTo
+VAR_INPUT
+	in_lrValueEnd:		LREAL;
+	in_nPeriod:			UDINT	:= 10000;	// RAMP/SINE Command period, default 10000ms = 10s
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(in_nPeriod));
+lrPressStart	:= lrPress;
+lrPressEnd		:= in_lrValueEnd;
+nPeriod			:= in_nPeriod;
+State			:= SIM_VACUUM_STATE_RAMP;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetValue" Id="{7e4a13fc-e9fe-4bfa-84db-4534781ae76a}">
+      <Declaration><![CDATA[METHOD M_SetValue
+VAR_INPUT
+	in_lrValue:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+lrPress	:= in_lrValue;
+State	:= SIM_VACUUM_STATE_FIXED;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartCurve" Id="{15d2e667-7bfd-4464-b16c-0ce125c133dc}">
+      <Declaration><![CDATA[METHOD M_StartCurve
+VAR_INPUT
+	in_lrValueEnd:		LREAL;
+	in_nPeriod:			UDINT	:= 20000;	// RAMP/SINE Command period, default 10000ms = 10s
+	in_lrCurveScale:	LREAL	:= 0.3;		// t^lrCurveScale factor
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(in_nPeriod));
+lrPressStart	:= lrPress;
+lrPressEnd		:= in_lrValueEnd;
+lrCurveScale	:= in_lrCurveScale;
+State			:= SIM_VACUUM_STATE_CURVE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartRamp" Id="{45949ee0-f123-4ec7-b09d-365004429a43}">
+      <Declaration><![CDATA[METHOD M_StartRamp
+VAR_INPUT
+	in_lrValueStart:	LREAL;
+	in_lrValueEnd:		LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(nPeriod));
+lrPressStart	:= in_lrValueStart;
+lrPressEnd		:= in_lrValueEnd;
+State			:= SIM_VACUUM_STATE_RAMP;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Stop" Id="{3de6ccad-28c4-4002-b55a-b1e799284846}">
+      <Declaration><![CDATA[METHOD M_Stop
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Stop ramping.
+// Keep value as it is.
+rampTimer(IN:=FALSE);
+State	:= SIM_VACUUM_STATE_FIXED;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE">
+      <LineId Id="672" Count="4" />
+      <LineId Id="821" Count="0" />
+      <LineId Id="820" Count="0" />
+      <LineId Id="677" Count="10" />
+      <LineId Id="720" Count="11" />
+      <LineId Id="892" Count="0" />
+      <LineId Id="903" Count="1" />
+      <LineId Id="893" Count="0" />
+      <LineId Id="895" Count="2" />
+      <LineId Id="891" Count="0" />
+      <LineId Id="732" Count="10" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_bit2mbar">
+      <LineId Id="6" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="27" Count="6" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="35" Count="7" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="56" Count="5" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_mbar2bit">
+      <LineId Id="33" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="46" Count="4" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="53" Count="6" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="80" Count="4" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_RampTo">
+      <LineId Id="6" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_SetValue">
+      <LineId Id="23" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_StartCurve">
+      <LineId Id="6" Count="3" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_StartRamp">
+      <LineId Id="6" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_PRESSURE.M_Stop">
+      <LineId Id="28" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MOTOR_SUBSTATE" Id="{799404c9-da36-48d5-9ce1-118394e18490}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MOTOR_SUBSTATE :
+(
+	NONE					:= 0,
+	
+	NOTOP_NOTREADY			:= 100,
+	NOTOP_READY				:= 101,
+	NOTOP_INITIALIZING		:= 102,
+	NOTOP_ABORTING			:= 107,
+	NOTOP_CLEARING_NOVRAM	:= 108,
+	
+	NOTOP_ERROR				:= 199,
+	
+	
+	OP_STANDSTILL			:= 216,            
+	OP_MOVING				:= 217,
+	OP_SETTING_POS			:= 218,
+	OP_STOPPING				:= 219,
+	
+	OP_ERROR				:= 299
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

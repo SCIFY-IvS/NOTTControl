@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_LAKESHORE_CFG" Id="{8bbfb3a6-f881-49d0-9695-784a9a070eec}">
+    <Declaration><![CDATA[TYPE T_LAKESHORE_CFG EXTENDS T_RS_BASE_CFG:
+STRUCT
+	cmdList_Init:	ARRAY [1..8]	OF T_LAKESHORE_COMMAND;	// List of INIT commands
+	cmdList_Read:	ARRAY [1..16] 	OF T_LAKESHORE_COMMAND;	// List of READ commands
+
+	nModel:			DINT := 336;		// Supported models: 218, 224, 340 and 336.
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

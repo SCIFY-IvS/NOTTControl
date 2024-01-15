@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_SA_POS_SM_STATE" Id="{a27c1224-1631-470d-8cc1-7596488d7d50}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_POS_SM_STATE :
+(
+	// Positioner State Machine States
+	NOT_READY := 0,	// The system just started.
+	CALIB,			// The Positioner is Calibrating
+	INIT,			// The Positioner is INITialising/REFerencing
+	POST_INIT,		// In POST_INIT we calibrate REF and read CFG once.
+	CALIB_REF,		// Calibrate REF position.
+	READY,			// NOT OPERATIONAL / READY (i.e. REFerenced)
+	
+	OP,				// Positioner is Operational
+	ERROR,			// Positioner is in error
+	
+	BASE_DRIVE_MODE, // Janssen controller Basic Drive Mode 
+	MOVING,			// Positioner is moving in Basic Drive Mode
+	
+	STOP,			// Positioner is stopping in Basic Drive Mode OR Exiting a Mode
+ 	
+	
+	FLEX_DRIVE_MODE, // Janssen controller external input mode
+	
+	SERVO_DRIVE_MODE, // ENABLE Janssen controller Servo Drive Mode
+	DISABLE_SERVO_DRIVE_MODE, //Disable Janssen controller Servo Drive Mode
+	MOVING_TO_SETPOINT,// 3 positioners are Moving to their respective set points in Servo Drive Mode
+	EMERGENCY_STOP,    // Emergency stop to halt the positioners
+	MOVING_TO_SET_POINT 
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

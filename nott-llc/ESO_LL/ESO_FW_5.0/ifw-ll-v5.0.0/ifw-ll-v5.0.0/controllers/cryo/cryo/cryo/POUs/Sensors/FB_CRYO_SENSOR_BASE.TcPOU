@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_CRYO_SENSOR_BASE" Id="{c37197f1-7325-44a1-a2c9-824a796d0c57}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_SENSOR_BASE
+VAR_INPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nStatus	AT %I*: UINT;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nValue	AT%I*:	INT;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	bStarted:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	toggleTimer:	TON;		// Timer for PDO (alive) toggle
+	{attribute 'OPC.UA.DA' := '0'}
+	toggleTrig:		R_TRIG;		// PDO (alive) toggle detection
+	
+	RefStat: 	REFERENCE TO T_CRYO_SENSOR_STATUS;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Get the raw reading and the status of the input channel
+M_ReadSensor();
+
+// Calculate value and validity
+M_SetStatus();
+]]></ST>
+    </Implementation>
+    <Method Name="M_ReadSensor" Id="{af917b5a-b58d-4cde-9881-8b0f43d46c6f}">
+      <Declaration><![CDATA[// Get input channel status and the raw reading
+METHOD M_ReadSensor
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get input channel status
+RefStat.bInputUnder	:= (i_nStatus AND 2#0000_0000_0000_0001) <> 0;
+RefStat.bInputOver	:= (i_nStatus AND 2#0000_0000_0000_0010) <> 0;
+RefStat.bInputError	:= (i_nStatus AND 2#0000_0000_0100_0000) <> 0;
+RefStat.bInputToggle:= (i_nStatus AND 2#1000_0000_0000_0000) <> 0;
+RefStat.bInputValid	:= (i_nStatus AND 2#0100_0000_0000_0000)  = 0;	// 0 -> PDO OK
+
+// Get the raw reading
+RefStat.nRawValue	:= i_nValue;
+
+//
+// Check if the terminal is alive.
+// Start the time that will expire in 3 sec.
+// If bToggle bit triggers before the timer expires, 
+// this is the sign that the terminal is alive.
+//
+IF NOT bStarted THEN
+	bStarted	:= TRUE;
+	toggleTimer(IN:=FALSE);
+END_IF
+toggleTimer(IN:=TRUE,PT:=T#3S);
+toggleTrig(CLK:=RefStat.bInputToggle);
+
+IF toggleTrig.Q THEN
+	// bToggle bit has triggered. Terminal is alive.
+	RefStat.bInputActive	:= TRUE;
+	// Restart the timer
+	toggleTimer(IN:=FALSE);
+ELSIF toggleTimer.Q THEN
+	// bInputToggle bit has not triggered within 3 sec. Terminal is NOT alive.
+	RefStat.bInputActive	:= FALSE;
+	// Restart the timer
+	toggleTimer(IN:=FALSE);
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{32db71e3-1ed5-4278-a637-97edbf1d9e83}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER: Implement the method.
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_SENSOR_BASE">
+      <LineId Id="81" Count="4" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_BASE.M_ReadSensor">
+      <LineId Id="29" Count="0" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="101" Count="2" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="92" Count="2" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="80" Count="2" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SENSOR_BASE.M_SetStatus">
+      <LineId Id="12" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

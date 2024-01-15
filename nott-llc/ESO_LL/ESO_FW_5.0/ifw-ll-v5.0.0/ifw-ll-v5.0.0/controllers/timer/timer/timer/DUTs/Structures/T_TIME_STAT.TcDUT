@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_TIME_STAT" Id="{f622f41d-18bd-41ee-b135-10e8087a8d6d}">
+    <Declaration><![CDATA[TYPE T_TIME_STAT :
+STRUCT
+	sLibVersion:	   STRING	:= 'UNKNOWN'; // Library version as string, e.g. '1.2.0.0'
+	sSystemTime:       STRING := '';
+	sDcTime:           STRING := '';
+	sUtcTime:          STRING := '';
+	sTaiTime:          STRING := '';
+	sErrorMsg:         STRING := '';
+	mode:              E_TIME_MODE := E_TIME_MODE.LOCAL;
+	signal:            T_TIME_SIGNAL;
+	lNtpOffsetTime:    LINT := 0;
+	lPtpOffsetTime:    LINT := 0;
+	lSimOffsetTime:    LINT := 0;
+	lOffsetTime:       LINT := 0;
+	lDcCurrentTime:    ULINT := 0;
+	lUtcTime:          ULINT := 0;   // UTC time in nanoseconds
+	lTaiTime:          ULINT := 0;   // TAI time in nanoseconds 
+	lTaiUnixTime:      ULINT := 0;   // UNIX time in nanoseconds
+	lrTaiUnixTimeinSecs: LREAL := 0; // UNIX time in seconds - used in MUDPI protocol
+	
+	sUserTime:         STRING(29) := 'YYYY-MM-DD-hh:mm:ss.nnnnnnnnn'; // Last user configured datetime in format YYYY-MM-DD-hh:mm:ss.nnnnnnnnn
+	tUserTime :        ULINT := 0;
+	el6688:            T_COE_STAT; 
+	diag_report:       T_DIAG_REP_STAT;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

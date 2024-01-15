@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_STAT_8_4" Id="{79c5ad27-a38a-4d44-8589-dc12c3bd2a7c}">
+    <Declaration><![CDATA[// EXAMPLE:	Extension of T_IODEV_STAT with 8 DI and 4 AI.
+// 			Used in FB_SENS_8_4.
+TYPE T_IODEV_STAT_8_4 EXTENDS T_IODEV_STAT :
+STRUCT
+	//
+	// Signals, inputs.
+	//
+	arrDI:	ARRAY [0..7] OF FB_IODEV_CH_DIG_IN;		// 8 digital inputs
+	arrAI:	ARRAY [0..3] OF FB_IODEV_CH_ANLG_IN;	// 4 analog inputs
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,1259 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_RS_BASE" Id="{8a806b03-7cf4-4352-b7d5-3020b40b4ebd}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bSimulation:	BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sName:		STRING := 'RS Dev';	// Instance name
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR RETAIN
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	cfgRef:			REFERENCE TO T_RS_BASE_CFG;	
+	{attribute 'OPC.UA.DA' := '0'}
+	ctrlRef:		REFERENCE TO T_RS_BASE_CTRL;	
+	{attribute 'OPC.UA.DA' := '0'}
+	statRef:		REFERENCE TO T_RS_BASE_STAT;	// Common State Machine Status - ReadOnly 
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_SM_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_SM_EVENT.NONE;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nNextState:			E_RS_BASE_STATE		:= E_RS_BASE_STATE.NONE;		// Next state after STOP	
+	{attribute 'OPC.UA.DA' := '0'}
+	nNextSubstate:		E_RS_BASE_SUBSTATE	:= E_RS_BASE_SUBSTATE.NONE;	// Next substate after STOP	
+	{attribute 'OPC.UA.DA' := '0'}
+	nNextDescription:	STRING			:= '';					// Next substate description	
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nReadType:		E_RS_BASE_READ_TYPE;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	bCommProblem:	BOOL := FALSE;	// Flag if there is a communication problem
+	{attribute 'OPC.UA.DA' := '0'}
+	nLastGoodSubstate:	INT	:= E_RS_BASE_SUBSTATE.NONE;	// Used for recovery
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Don't do anything in the first 100 cycles in order for the system to stabilise.
+statRef.nCycleCounter	:= statRef.nCycleCounter + 1;
+IF statRef.bActive AND statRef.nCycleCounter < 100 THEN
+	RETURN;
+ELSE
+	statRef.bActive	:= TRUE;
+END_IF
+
+
+// Set simulation flag in the status structure
+statRef.bSimulation	:= in_bSimulation;
+
+
+(* === Check for commands and internal events to be processed === *)
+CheckForEvents();
+
+(* === Process events according to the State Machine === *)
+ProcessEvents();
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionDisableExecute" Id="{c30200b8-ecb1-4bdf-a53d-5e484270cf90}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionDisableExecute');
+
+IF statRef.nSubstate =E_RS_BASE_SUBSTATE.OP_IDLE 	THEN
+	SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_READY);
+ELSE		
+	nNextState		:= E_RS_BASE_STATE.NOTOP;			// Next state after STOP	
+	nNextSubstate	:= E_RS_BASE_SUBSTATE.NOTOP_READY;	// Next substate after STOP	
+	nNextDescription:= 'BUSY';
+END_IF
+
+			]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableExecute" Id="{1d4b8818-0fbd-4aec-9650-721c49fce313}">
+      <Declaration><![CDATA[METHOD ActionEnableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{09b51286-a336-4492-82c0-bf6eacf1f294}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionErrExecute');
+
+IF nEvent = E_SM_EVENT.ERRHW THEN
+	SetStatus(E_SM_ERROR.HW_NOT_OP, 'ERROR: HW not in OP state');	
+ELSIF nEvent = E_SM_EVENT.ERRINIT THEN
+	SetStatus(E_SM_ERROR.INIT_FAILURE, 'ERROR: INIT failed');	
+END_IF
+		
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{8c8b92ef-a679-4e41-abf1-04b95c852860}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+ActivityInitializing(FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{7cd3a217-f153-40b3-855c-c188173d562e}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionResetExecute');
+
+// TODO
+//nEvent := E_SM_EVENT.NONE;
+
+// Clear error
+SetStatus(E_SM_ERROR.OK, 'OK');
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{9a844fa8-6b82-4e85-ab41-1435fdbb3558}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionStopExecute');
+
+IF statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY 	THEN
+	RETURN;
+ELSE		
+	nNextState		:= E_RS_BASE_STATE.OP;			// Next state after STOP	
+	nNextSubstate	:= E_RS_BASE_SUBSTATE.OP_IDLE;	// Next substate after STOP	
+	nNextDescription:= 'IDLE';
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{3280ae55-0e92-4c12-9b65-73cbb65a5bf0}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionUnexpExecute');
+
+(*
+	We don't want to overwrite initial error.
+	Update error only if it is currently equal to OK. 
+*)
+IF statRef.nErrorCode = E_SM_ERROR.OK THEN
+	IF nEvent = E_SM_EVENT.ERRHW THEN
+		statRef.nErrorCode		:= E_SM_ERROR.HW_NOT_OP;
+		statRef.sErrorText		:= 'ERROR: HW not in OP state.';	
+	ELSIF nEvent = E_SM_EVENT.ERRINIT THEN
+		statRef.nErrorCode		:= E_SM_ERROR.INIT_FAILURE;
+		statRef.sErrorText		:= 'ERROR: INIT failed.';	
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitializing" Id="{29d4348c-487f-4bf0-948b-32eb9bbf23e4}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+IF	NOT M_GetCouplerState()  THEN
+	nInternalEvent 		:= E_SM_EVENT.ERRHW;
+
+	SetStatus(E_SM_ERROR.HW_NOT_OP, 'HW not in OP state');	
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{f90da142-1171-473a-b343-f24fd96314d3}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityMonitoring');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoringUser" Id="{7fe9e0f1-87e8-4c22-8a40-1f0c076e281e}">
+      <Declaration><![CDATA[METHOD ActivityMonitoringUser
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityMonitoringUser');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{3503b2e0-ae6d-4b95-9fa9-7d52fdc1e312}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK in case there was no communication problem. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+
+//IF NOT bCommProblem	THEN
+//	nInternalEvent := E_SM_EVENT.HWOK;
+//END_IF
+
+
+
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals: if any.
+*)
+
+IF NOT M_GetCouplerState() THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_SM_EVENT.ERRHW);
+	SetStatus(E_SM_ERROR.HW_NOT_OP, 'ERROR: HW not in OPERATIONAL state');
+
+ELSIF ctrlRef.bExecute  THEN
+	(* Handle commands *)
+	ctrlRef.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	SetLastCommand(ctrlRef.nCommand);			(* Save the last command *)
+	SetEvent(ctrlRef.nCommand);
+	ctrlRef.nCommand 		:= E_RS_COMMAND.NONE;	(* Clear the Command *)
+ELSIF nInternalEvent <> E_SM_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_SM_EVENT.NONE;
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{b9c5fdfe-13a9-4977-a0fa-e9bdbb77b8c7}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{13eeb7b3-f4b9-4047-b28d-fd8137b2757b}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetCouplerState	:= true;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{389c1a9c-3bd0-4eb8-b645-ff6e3bfa1e4b}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_RS_RPC_ERROR.OK:					str	:= 'OK';
+	E_RS_RPC_ERROR.NOT_OP:				str	:= 'Cannot control device. Not in OP state.';
+	E_RS_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP_READY.';
+	E_RS_RPC_ERROR.NOT_NOTOP_NOTREADY:	str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_RS_RPC_ERROR.LOCAL:				str	:= 'RPC calls not allowed in Local mode.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{1be40262-8936-426c-8edf-e95e4380d876}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetLastGoodSubstate" Id="{94287204-df0f-4c87-afbe-ac39ad266b25}">
+      <Declaration><![CDATA[METHOD M_SetLastGoodSubstate
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF	statRef.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_ERROR	AND 
+	statRef.nSubstate <> E_RS_BASE_SUBSTATE.OP_ERROR			THEN
+	nLastGoodSubstate := statRef.nSubstate;			
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{ab66228a-6950-4af0-803a-a66526186cdf}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[statRef.nRpcErrorCode	:= nErrorCode;
+statRef.sRpcErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{283e59fd-0a0a-4619-8b92-d8e8f9c79a67}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF	statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING 		OR 
+	statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY			OR
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_ERROR 	AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY) 		OR 
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_ERROR 		AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING)			THEN
+	ActivityMonitoring(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING_USER THEN
+	ActivityMonitoringUser(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING THEN
+	ActivityInitializing(TRUE);
+END_IF
+
+// Set last known good substate. Used for recovery from comm problems.
+M_SetLastGoodSubstate();
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE statRef.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_RS_BASE_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE statRef.nSubstate OF
+	
+	E_RS_BASE_SUBSTATE.NOTOP_NOTREADY:		
+		IF 	nEvent = E_SM_EVENT.INIT OR 
+			(cfgRef.bAutoMonitor AND NOT statRef.bAutoStarted)  THEN
+			nEvent := E_SM_EVENT.INIT;
+			ActionInitExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING:			
+		IF nEvent = E_SM_EVENT.INITDONE THEN
+			nReadType := E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			IF cfgRef.bAutoMonitor THEN
+				nEvent := E_SM_EVENT.ENABLE;
+				statRef.bAutoStarted	:= TRUE;
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			ELSE
+				SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_READY);
+			END_IF
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.ERRINIT THEN
+			statRef.bAutoStarted	:= TRUE;
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_READY:			
+		IF nEvent = E_SM_EVENT.ENABLE THEN
+			IF cfgRef.bAutoMonitor THEN
+				// Monitoring is already in progress.
+				// It has to complete the read cycle in a clean way.
+				nNextState		:= E_RS_BASE_STATE.OP;					// Next state after STOP	
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.OP_MONITORING;	// Next substate after STOP	
+				nNextDescription:= 'BUSY';
+				nReadType		:= E_RS_BASE_READ_TYPE.PERIODIC;
+				RETURN;
+			ELSE
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+				// This call MUST be after SetState()
+				ActivityMonitoring(FALSE);	// Reset Monitoring method
+			END_IF
+		END_IF
+
+	E_RS_BASE_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF	nEvent = E_SM_EVENT.ERRHW OR
+		nEvent = E_SM_EVENT.ERRCOMM	THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_RS_BASE_STATE.OP:
+
+	(* Transitions from OP subastates *)
+	CASE statRef.nSubstate OF
+	E_RS_BASE_SUBSTATE.OP_ERROR:			
+		IF 	cfgRef.bAutoMonitor  THEN
+			nEvent := E_SM_EVENT.INIT;
+			ActionInitExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+			SetStatus(E_SM_ERROR.OK, 'Recovering from error...');
+			RETURN;
+		END_IF
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.OP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+
+	E_RS_BASE_SUBSTATE.OP_MONITORING:
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+			RETURN;			
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.OP_MONITORING_USER:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.OP_IDLE:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READ THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.SINGLE;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READ_USER THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.SINGLE_USER;
+			ActivityMonitoringUser(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING_USER);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR OR nEvent = E_SM_EVENT.ENABLE THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR_USER THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC_USER;
+			ActivityMonitoringUser(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING_USER);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+	
+	// Transitions from OP state.
+	// Valid for any OP substate.
+	IF nEvent = E_SM_EVENT.ERRHW THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_SM_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{4b696cfb-e45b-49d1-9a0e-b36154f41d88}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF statRef.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_RS_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF statRef.nState <> E_RS_BASE_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_RS_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	ctrlRef.nCommand := E_RS_COMMAND.DISABLE;
+	ctrlRef.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_RS_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{5d6b1d46-26a0-4c09-b400-6d4172d3778f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF statRef.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_RS_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+// Enable command is ignored (in ProcessEvents) if operational.
+IF	statRef.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_READY			AND
+	statRef.nSubstate <> E_RS_BASE_SUBSTATE.OP_MONITORING		AND
+	statRef.nSubstate <> E_RS_BASE_SUBSTATE.OP_IDLE				AND
+	statRef.nSubstate <> E_RS_BASE_SUBSTATE.OP_MONITORING_USER		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_RS_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	ctrlRef.nCommand := E_RS_COMMAND.ENABLE;
+	ctrlRef.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_RS_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{24798329-7f21-4fe6-9b96-2c4a76c05290}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF statRef.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_RS_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Init command is accepted only if device is in NOTOP_NOTREADY or ERROR.
+IF 	statRef.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_NOTREADY  AND  
+	statRef.nSubstate <> E_RS_BASE_SUBSTATE.NOTOP_ERROR 		THEN
+	RPC_Init	:= M_SetRpcStatus(E_RS_RPC_ERROR.NOT_NOTOP_NOTREADY);
+	RETURN;
+ELSE
+	ctrlRef.nCommand := E_RS_COMMAND.INIT;
+	ctrlRef.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_RS_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{75673e7f-64d8-4024-b504-41e475e34e08}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF statRef.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_RS_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrlRef.nCommand := E_RS_COMMAND.RESET;
+ctrlRef.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_RS_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{5118f84d-a4ee-415a-9f90-86373180fd21}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF statRef.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_RS_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrlRef.nCommand := E_RS_COMMAND.STOP;
+ctrlRef.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_RS_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{15a7c645-fb83-4df9-b32d-10fc593e2517}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+statRef.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{97d2186f-280a-49a8-a068-e4c7ef91d337}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_SM_EVENT.NONE:
+		statRef.sEventDesc := '';
+		RETURN;
+		
+	E_SM_EVENT.RESET:
+		statRef.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_SM_EVENT.INIT:
+		statRef.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_SM_EVENT.STOP:
+		statRef.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_SM_EVENT.ENABLE:
+		statRef.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_SM_EVENT.DISABLE:
+		statRef.sEventDesc := 'CMD DISABLE';
+		RETURN;
+
+		
+	E_SM_EVENT.READ:
+		statRef.sEventDesc := 'CMD SINGLE READ';
+		RETURN;
+
+	E_SM_EVENT.READ_USER:
+		statRef.sEventDesc := 'CMD SINGLE READ USER';
+		RETURN;
+
+	E_SM_EVENT.MONITOR:
+		statRef.sEventDesc := 'CMD MONITOR';
+		RETURN;
+
+	E_SM_EVENT.MONITOR_USER:
+		statRef.sEventDesc := 'CMD MONITOR USER';
+		RETURN;
+
+	E_SM_EVENT.STOPMON:
+		statRef.sEventDesc := 'CMD STOP MONITOR';
+		RETURN;
+
+	E_SM_EVENT.CTRL_CMD:
+		statRef.sEventDesc := 'CMD CTRL_CMD';
+		RETURN;
+
+
+	(* events corresponding to internal events *)
+	(* events mapped to HW signals *)
+	E_SM_EVENT.INITDONE:
+		statRef.sEventDesc := 'INT INITDONE';
+		RETURN;
+
+	E_SM_EVENT.READDONE:
+		statRef.sEventDesc := 'INT READDONE';
+		RETURN;
+
+	E_SM_EVENT.HWOK:
+		statRef.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_SM_EVENT.COMMOK:
+		statRef.sEventDesc := 'SIG COMMOK';
+		RETURN;
+
+	E_SM_EVENT.ERRCOMM:
+		statRef.sEventDesc := 'INT ERRCOMM';
+		RETURN;
+
+	E_SM_EVENT.ERRHW:
+		statRef.sEventDesc := 'INT ERRHW';
+		RETURN;
+
+	E_SM_EVENT.ERRINIT:
+		statRef.sEventDesc := 'INT ERRINIT';
+		RETURN;
+
+	
+END_CASE 
+
+(* INTERNAL ERROR *)
+statRef.sEventDesc := 'UNKNOWN EVENT';
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetLastCommand" Id="{7f2b8a54-c468-4a1c-ba41-656eb888a7c4}">
+      <Declaration><![CDATA[METHOD SetLastCommand
+VAR_INPUT
+	cmd:	E_RS_COMMAND;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[statRef.nLastCommand	:= cmd;
+
+CASE cmd OF
+	E_RS_COMMAND.RESET:
+		statRef.sLastCommand	:= 'RESET';
+	E_RS_COMMAND.INIT:
+		statRef.sLastCommand	:= 'INIT';
+	E_RS_COMMAND.STOP:
+		statRef.sLastCommand	:= 'STOP';
+	E_RS_COMMAND.ENABLE:
+		statRef.sLastCommand	:= 'ENABLE';
+	E_RS_COMMAND.DISABLE:
+		statRef.sLastCommand	:= 'DISABLE';
+	E_RS_COMMAND.CTRL_CMD:
+		statRef.sLastCommand	:= 'CTRL CMD';
+ELSE
+		statRef.sLastCommand	:= 'NONE';
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{388e07b7-aafe-43c8-9925-cfca0d4eae28}">
+      <Declaration><![CDATA[METHOD SetState
+VAR_INPUT
+	nState:			INT;
+	nSubstate:		INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Update State Machine active state configuration.
+
+	ToDo: support initial pseudo state/substate.
+*)
+
+IF nState <> E_RS_BASE_STATE.NONE THEN
+	statRef.nState	:= nState;
+END_IF
+IF nSubstate <> E_RS_BASE_SUBSTATE.NONE THEN
+	statRef.nSubstate	:= nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF nState = E_RS_BASE_STATE.NOTOP THEN
+	statRef.sState	:= 'NOT OP';
+ELSIF nState = E_RS_BASE_STATE.OP THEN
+	statRef.sState	:= 'OPERATIONAL';
+END_IF
+
+IF nSubstate = E_RS_BASE_SUBSTATE.NOTOP_NOTREADY THEN
+	statRef.sSubstate	:= 'NOT READY';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING THEN
+	statRef.sSubstate	:= 'INITIALIAZING';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY THEN
+	statRef.sSubstate	:= 'READY';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.NOTOP_ERROR THEN
+	statRef.sSubstate	:= 'ERROR';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING THEN
+	statRef.sSubstate	:= 'MONITORING';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING_USER THEN
+	statRef.sSubstate	:= 'MONITORING USER';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.OP_IDLE THEN
+	statRef.sSubstate	:= 'IDLE';
+ELSIF nSubstate = E_RS_BASE_SUBSTATE.OP_ERROR THEN
+	statRef.sSubstate	:= 'ERROR';
+ELSE
+	statRef.sSubstate	:= '';
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetStatus" Id="{e09674f6-40cb-4c0e-ac5e-bf05e65883ea}">
+      <Declaration><![CDATA[METHOD SetStatus
+VAR_INPUT
+	nErrorCode:	INT;
+	sErrorText:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[statRef.nErrorCode 	:= nErrorCode;
+statRef.sErrorText 	:= sErrorText;
+
+IF nErrorCode <> E_SM_ERROR.OK THEN
+	statRef.sStatus	:= 'ERROR';
+	statRef.nStatus	:= E_SM_STATUS.ERROR;
+ELSE
+	statRef.sStatus	:= 'OK';
+	statRef.nStatus	:= E_SM_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_RS_BASE">
+      <LineId Id="84" Count="3" />
+      <LineId Id="89" Count="1" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="41" Count="5" />
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionDisableExecute">
+      <LineId Id="6" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionEnableExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionErrExecute">
+      <LineId Id="6" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionInitExecute">
+      <LineId Id="6" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionResetExecute">
+      <LineId Id="6" Count="2" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionStopExecute">
+      <LineId Id="6" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="17" Count="2" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActionUnexpExecute">
+      <LineId Id="6" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActivityInitializing">
+      <LineId Id="6" Count="7" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActivityMonitoring">
+      <LineId Id="6" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ActivityMonitoringUser">
+      <LineId Id="6" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.CheckForEvents">
+      <LineId Id="3" Count="5" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="50" Count="21" />
+      <LineId Id="76" Count="5" />
+      <LineId Id="145" Count="3" />
+      <LineId Id="82" Count="2" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.M_Configure">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.M_GetCouplerState">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.M_ReadSensors">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.M_SetLastGoodSubstate">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.ProcessEvents">
+      <LineId Id="3" Count="7" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="477" Count="0" />
+      <LineId Id="479" Count="0" />
+      <LineId Id="478" Count="0" />
+      <LineId Id="480" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="438" Count="0" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="353" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="483" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="26" Count="16" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="48" Count="6" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="443" Count="0" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="460" Count="0" />
+      <LineId Id="469" Count="0" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="463" Count="2" />
+      <LineId Id="462" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="473" Count="0" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="449" Count="0" />
+      <LineId Id="453" Count="1" />
+      <LineId Id="360" Count="1" />
+      <LineId Id="410" Count="0" />
+      <LineId Id="409" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="450" Count="0" />
+      <LineId Id="452" Count="0" />
+      <LineId Id="456" Count="0" />
+      <LineId Id="455" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="113" Count="3" />
+      <LineId Id="488" Count="2" />
+      <LineId Id="117" Count="5" />
+      <LineId Id="394" Count="0" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="129" Count="8" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="498" Count="0" />
+      <LineId Id="500" Count="5" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="240" Count="1" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="246" Count="1" />
+      <LineId Id="484" Count="0" />
+      <LineId Id="486" Count="1" />
+      <LineId Id="248" Count="2" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="411" Count="0" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="412" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="413" Count="0" />
+      <LineId Id="416" Count="0" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="491" Count="0" />
+      <LineId Id="493" Count="1" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="426" Count="2" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="429" Count="7" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="444" Count="0" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="446" Count="0" />
+      <LineId Id="369" Count="0" />
+      <LineId Id="395" Count="0" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="380" Count="0" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="396" Count="1" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="398" Count="1" />
+      <LineId Id="401" Count="1" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="403" Count="3" />
+      <LineId Id="422" Count="0" />
+      <LineId Id="407" Count="1" />
+      <LineId Id="378" Count="1" />
+      <LineId Id="262" Count="1" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="265" Count="2" />
+      <LineId Id="385" Count="0" />
+      <LineId Id="387" Count="1" />
+      <LineId Id="272" Count="9" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="284" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.RPC_Disable">
+      <LineId Id="30" Count="5" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.RPC_Enable">
+      <LineId Id="50" Count="5" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="41" Count="4" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.RPC_Init">
+      <LineId Id="32" Count="5" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.RPC_Reset">
+      <LineId Id="19" Count="4" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.RPC_Stop">
+      <LineId Id="19" Count="4" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.SetAction">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.SetEvent">
+      <LineId Id="3" Count="26" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="114" Count="1" />
+      <LineId Id="119" Count="2" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="122" Count="2" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="125" Count="2" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="129" Count="2" />
+      <LineId Id="148" Count="3" />
+      <LineId Id="156" Count="3" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="102" Count="3" />
+      <LineId Id="132" Count="3" />
+      <LineId Id="65" Count="3" />
+      <LineId Id="140" Count="3" />
+      <LineId Id="110" Count="3" />
+      <LineId Id="69" Count="3" />
+      <LineId Id="85" Count="3" />
+      <LineId Id="92" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.SetLastCommand">
+      <LineId Id="3" Count="12" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.SetState">
+      <LineId Id="3" Count="24" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="59" Count="1" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="46" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_BASE.SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

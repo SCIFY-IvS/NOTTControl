@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="T_COE_PTP_ETHERNET" Id="{e3a47916-6f2c-4435-9b5a-018eaa97e4f3}">
+    <Declaration><![CDATA[TYPE T_COE_PTP_ETHERNET :
+STRUCT
+	address_type: E_COE_PTP_ADDRESS_TYPE := E_COE_PTP_ADDRESS_TYPE.UNKNOWN;
+	ip_address_arr:   DWORD;         
+	ip_address:       T_IPv4Addr;
+	subnet_mask_arr:  DWORD;
+	subnet_mask:      T_IPv4Addr;
+	gateway_arr:      DWORD;
+	gateway:          T_IPv4Addr;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

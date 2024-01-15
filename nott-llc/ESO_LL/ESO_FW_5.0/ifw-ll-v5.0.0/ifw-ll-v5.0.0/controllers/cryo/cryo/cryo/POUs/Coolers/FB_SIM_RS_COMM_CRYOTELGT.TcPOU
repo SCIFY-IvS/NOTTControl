@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_SIM_RS_COMM_CRYOTELGT" Id="{6e1e63b2-bf19-4f20-8663-99fe134213d5}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_RS_COMM_CRYOTELGT EXTENDS FB_SIM_RS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// Status structure for Cryotel GT devices
+	//
+	// Status attributes that are read from the controller via RS-232
+	sVersion:			STRING	:= 'v1.5.3 SIM';
+	sMode:				STRING	:= 'GT';
+	sSensor:			STRING	:= 'PT-100';
+	sCtrlError:			STRING	:= '00000000';
+	sCtrlMode:			STRING	:= 'OFF';
+	
+	lrPowerMeasured:	LREAL	:= 0.0;
+	lrPowerCommanded:	LREAL	:= 240.0;
+	lrTempColdHead:		LREAL	:= 289.15;	// Room temperature (289.15K = 16.0C) to start with.
+	lrTempReject:		LREAL	:= 25.3;	// [C]
+	lrTempTarget:		LREAL	:= 0.0;		// Not used
+	
+	
+	fbTimer:		TON;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ActivityDo();	// Implement ramps, if any
+
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_ActivityDo" Id="{a955a2d6-9480-40f0-afac-424cf52358e1}">
+      <Declaration><![CDATA[METHOD M_ActivityDo
+VAR_INPUT
+END_VAR
+VAR
+	lrProgress:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbTimer();
+
+IF sCtrlMode = 'POWER' THEN
+	IF NOT fbTimer.Q	THEN
+		lrProgress		:= TIME_TO_LREAL(fbTimer.ET) / TIME_TO_LREAL(fbTimer.PT);
+		lrTempColdHead	:= 	289.15 - (289.15 - 80.0) * lrProgress;
+	ELSE
+		lrTempColdHead	:= 80.0;
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSimReply" Id="{b2abda2e-72a9-4ed6-8fae-c907db546517}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReceived:	STRING(255);		// String received from a client
+END_VAR
+VAR
+	sReply:	STRING(255);
+	sTempStr:	STRING;
+	lrVal:	LREAL;
+	i:		INT;
+    fbFormat   : FB_FormatString;
+    sOut       : T_MaxString;
+	nCh:	INT := 8;	// Number of channels for models 218 and 224
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Simulated reply has to include the echo of the command.
+// For example:
+//    command = 'VERSION'
+//    reply   = 'VERSION$R$Nv1.5.3$R'
+
+IF FIND (in_sReceived, 'VERSION') = 1 THEN
+	sTempStr		:= CONCAT('VERSION$R$N', sVersion);
+	M_GetSimReply	:= CONCAT(sTempStr,in_sReplySuffix);
+ELSIF FIND (in_sReceived, 'MODE') = 1 THEN
+	sTempStr		:= CONCAT('MODE$R$N', sMode);
+	M_GetSimReply	:= CONCAT(sTempStr,in_sReplySuffix);
+ELSIF FIND (in_sReceived, 'SENSOR') = 1 THEN
+	sTempStr		:= CONCAT('SENSOR$R$N', sSensor);
+	M_GetSimReply	:= CONCAT(sTempStr,in_sReplySuffix);
+ELSIF FIND (in_sReceived, 'PWOUT=') = 1 THEN
+	// Example:         'PWOUT=240$R'.
+	// Reply should be: 'PWOUT=240$R$N240.00$R'.
+	// Get the value from the command, i.e. everything after 'PWOUT='.
+	sTempStr			:= MID(in_sReceived, LEN(in_sReceived)-6, 7);	// = '240$R'
+	lrPowerCommanded	:= STRING_TO_LREAL(sTempStr);	// = 240.0
+	sTempStr			:= CONCAT(in_sReceived, '$N');	// 'PWOUT=240$R' + '$N' = 'PWOUT=240$R$N' 
+	M_GetSimReply		:= CONCAT(sTempStr, M_Get_LREAL_TO_STRING(lrPowerCommanded,2));
+ELSIF FIND (in_sReceived, 'PWOUT') = 1 THEN
+	M_GetSimReply	:= CONCAT('PWOUT$R$N', M_Get_LREAL_TO_STRING(lrPowerCommanded,2));
+ELSIF FIND (in_sReceived, 'P') = 1 THEN
+	lrPowerMeasured	:= M_GenerateRandom_LREAL(lrPowerCommanded-0.3,0.3);
+	M_GetSimReply	:= CONCAT('P$R$N', M_Get_LREAL_TO_STRING(lrPowerMeasured,2));
+ELSIF FIND (in_sReceived, 'ERROR') = 1 THEN
+	sTempStr		:= CONCAT('ERROR$R$N', sCtrlError);
+	M_GetSimReply	:= CONCAT(sTempStr,in_sReplySuffix);
+ELSIF FIND (in_sReceived, 'COOLER=POWER') = 1 THEN
+	sCtrlMode		:= 'POWER';
+	M_GetSimReply	:= CONCAT('COOLER=POWER$R$NPOWER',in_sReplySuffix);
+	// Start ramping down the cold head temperature,
+	// starting fromroom temperature.
+	lrTempColdHead	:= 289.15;	
+	fbTimer(IN:=FALSE);
+	fbTimer(IN:=TRUE, PT:=T#60S);
+ELSIF FIND (in_sReceived, 'COOLER=OFF') = 1 THEN
+	fbTimer(IN:=FALSE);	// Stop the temperature ramp.
+	sCtrlMode			:= 'OFF';
+	M_GetSimReply		:= CONCAT('COOLER=OFF$R$NOFF',in_sReplySuffix);
+	lrPowerCommanded	:= 240.0;
+	lrPowerMeasured		:= 0.0;
+	lrTempColdHead		:= 289.15;
+ELSIF FIND (in_sReceived, 'COOLER') = 1 THEN
+	sTempStr		:= CONCAT('COOLER$R$N', sCtrlMode);
+	M_GetSimReply	:= CONCAT(sTempStr,in_sReplySuffix);
+ELSIF FIND (in_sReceived, 'TC') = 1 THEN
+	M_GetSimReply	:= CONCAT('TC$R$N', M_Get_LREAL_TO_STRING(lrTempColdHead,2));
+ELSIF FIND (in_sReceived, 'TEMP RJ') = 1 THEN
+	// Reject temperature [C] !!! should always be close to 
+	// the room temperature and slightly above the 
+	// cold head temperature [K].
+	// So, we have to convert K to C.
+	lrTempReject	:= M_GenerateRandom_LREAL(MAX(16.0,lrTempColdHead-273.15),0.1);
+	M_GetSimReply	:= CONCAT('TEMP RJ$R$N', M_Get_LREAL_TO_STRING(lrTempReject,2));
+ELSE
+	// Unknown command.
+	// Return '<CR><LF><CR>', i.e. '$R$N$R' in order to complete the reading.
+	M_GetSimReply	:= CONCAT('$R$N', in_sReplySuffix);
+END_IF
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_RS_COMM_CRYOTELGT">
+      <LineId Id="9" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="77" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_RS_COMM_CRYOTELGT.M_ActivityDo">
+      <LineId Id="18" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_RS_COMM_CRYOTELGT.M_GetSimReply">
+      <LineId Id="348" Count="0" />
+      <LineId Id="350" Count="2" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="242" Count="1" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="375" Count="1" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="374" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="283" Count="1" />
+      <LineId Id="292" Count="2" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="278" Count="1" />
+      <LineId Id="289" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="308" Count="1" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="330" Count="2" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="328" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="371" Count="1" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="305" Count="1" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="273" Count="0" />
+      <LineId Id="236" Count="2" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

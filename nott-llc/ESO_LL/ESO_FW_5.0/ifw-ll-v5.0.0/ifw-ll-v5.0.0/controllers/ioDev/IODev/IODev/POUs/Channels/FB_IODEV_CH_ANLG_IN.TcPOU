@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="FB_IODEV_CH_ANLG_IN" Id="{49a96686-17b9-4f61-aabc-a184ebb2d81d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_ANLG_IN EXTENDS FB_IODEV_CH_ANALOG
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Physical input signal
+	// No access via OPC UA.
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nValue	AT %I*:	INT;
+
+	// Status - OPC UA Read only
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	nValue:			INT;	// Raw input value
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	lrValueUser:	LREAL;	// Computed value in User Units
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Compute" Id="{badcfbc6-2b8a-4837-9627-859489c31bee}">
+      <Declaration><![CDATA[METHOD M_Compute
+VAR_INPUT
+END_VAR
+VAR
+	lrValue:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nValue	:= i_nValue;
+lrValue	:= INT_TO_LREAL(i_nValue);
+
+CASE nConversion OF
+	CONVERSION_IODEV_NONE:
+		lrValueUser	:= lrValue;
+	CONVERSION_IODEV_LINEAR:
+		lrValueUser	:= lrPar1 * lrValue  +  lrPar2;
+	CONVERSION_IODEV_QUADRATIC:
+		lrValueUser	:= lrPar1 * lrValue * lrValue  +  lrPar2 * lrValue  +  lrPar3;
+	CONVERSION_IODEV_EXP:
+		lrValueUser	:= EXP (lrPar1 * lrValue  +  lrPar2);
+	CONVERSION_IODEV_EXP10:
+		lrValueUser	:= EXPT (10.0, (lrPar1 * lrValue  +  lrPar2));
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{5cae534d-9dc1-4c38-8037-361b37375215}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR_INPUT
+	in_eConversion:	E_IODEV_CONVERSION;
+	in_lrPar1:		LREAL := 0.0;
+	in_lrPar2:		LREAL := 0.0;
+	in_lrPar3:		LREAL := 0.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion		:= in_eConversion;
+lrPar1			:= in_lrPar1;
+lrPar2			:= in_lrPar2;
+lrPar3			:= in_lrPar3;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{71c9a646-81d7-4dea-9594-9e9fa21f9f1f}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion	:= CONVERSION_IODEV_NONE;
+lrPar1			:= 0.0;
+lrPar2			:= 0.0;
+lrPar3			:= 0.0;
+
+nValue			:= 0;
+lrValueUser		:= 0.0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_CH_ANLG_IN">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_ANLG_IN.M_Compute">
+      <LineId Id="9" Count="13" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_ANLG_IN.M_Configure">
+      <LineId Id="12" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_ANLG_IN.M_Reset">
+      <LineId Id="6" Count="4" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

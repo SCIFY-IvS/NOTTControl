@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4020.12">
+  <POU Name="FB_SIM_SIGNAL_DIGITAL" Id="{dc347124-619b-4e4e-8abc-a95f3ca41bd2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_SIGNAL_DIGITAL
+VAR_INPUT
+	in_nPeriodLow:	DINT	:= 10000;	// Period for signal = FALSE
+	in_nPeriodHigh:	DINT	:= 1000;	// Period for signal = TRUE
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	q_bSignal	AT %Q*:	BOOL;			//	Simulated output signal to be linked to sensor input
+	
+	timer:	TON;
+	initialised:	BOOL := FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT initialised THEN
+	initialised := TRUE;
+	
+	// Set initial state of the simulated signal to FALSE
+	q_bSignal := FALSE;
+	
+	// Start timer for signal=FALSE
+	timer(IN:=FALSE);
+	timer(IN:=TRUE, PT:=DINT_TO_TIME(in_nPeriodLow));
+	RETURN;
+END_IF
+
+// Execute timer
+timer();
+
+// If the timer expired, swap the signal and start corresponding timer
+IF timer.Q THEN
+	IF q_bSignal = FALSE THEN
+		q_bSignal := TRUE;
+	
+		// Start timer for signal=TRUE
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=DINT_TO_TIME(in_nPeriodHigh));
+	ELSE
+		q_bSignal := FALSE;
+	
+		// Start timer for signal=FALSE
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=DINT_TO_TIME(in_nPeriodLow));
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SIM_SIGNAL_DIGITAL">
+      <LineId Id="3" Count="29" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

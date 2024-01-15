@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_timeGetUTC" Id="{57877a60-3d8e-4cd4-861c-1fecb05b44fc}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+ *****************************************************************************
+ * timeGetUTC: Get UTC time from TwinCAT DC time
+ *
+ *  IN   dcTime: TwinCAT DC time
+ *  OUT  vltUTC: UTC time 
+ ***************************************************************************** 
+ *)
+FUNCTION F_timeGetUTC : T_TIMEVAL
+VAR_INPUT
+	dcTime:   ULINT;
+END_VAR
+VAR
+	ut:	T_TIMEVAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+HRESULT timeGetUTC(LONGLONG dcTime, vltTIMEVAL *vltUTC)
+{
+	HRESULT hr = S_OK; 
+	
+	// DC time is in nano seconds
+	vltUTC->tv_sec = (LONGLONG)(dcTime/1000000000);
+	vltUTC->tv_usec = (dcTime - (vltUTC->tv_sec * 1000000000))/1000;
+	
+	// Added offset between year 1970 and 2000 needed by the different references
+	// used in UNIX and TWINCAT
+	vltUTC->tv_sec += OFFSET_UNIX;
+	return hr; 
+}
+*)
+
+// DC time is in nano seconds
+ut.tv_sec := ULINT_TO_UDINT(dcTime/1000000000);
+ut.tv_usec := ULINT_TO_DINT((dcTime - UDINT_TO_ULINT(ut.tv_sec) * 1000000000)/1000);
+
+// Added offset between year 1970 and 2000 needed by the different references
+// used in UNIX and TWINCAT
+ut.tv_sec := (ut.tv_sec + DINT_TO_UDINT(GCL.C_OFFSET_UNIX));
+
+F_timeGetUTC	:= ut; 
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_timeGetUTC">
+      <LineId Id="7" Count="0" />
+      <LineId Id="17" Count="12" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="34" Count="6" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="30" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,713 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScopeProject AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+  <Version>1.0.0.0</Version>
+  <SubMember>
+    <YTChart AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+      <SubMember>
+        <AxisGroup AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <SubMember>
+            <TimeAxis AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <Orientation>X</Orientation>
+              <ManualMin>-0.5</ManualMin>
+              <ManualMax>100000000</ManualMax>
+              <ScalingMode>MinMax</ScalingMode>
+              <SubMember>
+                <AxisStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <GridColor>-13676721</GridColor>
+                  <ShowName>false</ShowName>
+                  <DisplayColor>-13676721</DisplayColor>
+                  <SortPriority>100</SortPriority>
+                </AxisStyle>
+              </SubMember>
+              <Guid>ba8a2f16-cb98-4ad6-ad48-e73f28140bf3</Guid>
+              <Title>Time Axis</Title>
+              <Name>Time Axis</Name>
+            </TimeAxis>
+            <ValueAxis AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <Orientation>Y</Orientation>
+              <ScalingMode>AutoGrowOnly</ScalingMode>
+              <SubMember>
+                <AxisStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <GridColor>-13676721</GridColor>
+                  <Precision>6</Precision>
+                  <ShowName>true</ShowName>
+                  <LineWidth>1</LineWidth>
+                  <DisplayColor>-16776961</DisplayColor>
+                  <SortPriority>100</SortPriority>
+                </AxisStyle>
+              </SubMember>
+              <Title>Position absolute</Title>
+              <SortPriority>0</SortPriority>
+            </ValueAxis>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>879f7f13-054b-496f-ad00-30dd95c65ed1</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x10002</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-14774017</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-14774017</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>ACTPOS</Title>
+              <Name>ACTPOS</Name>
+              <SortPriority>-1</SortPriority>
+            </Channel>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>2bd0f8a6-c9b1-4a51-a2d5-ae4cb5b19d39</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x000A</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <Visible>true</Visible>
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-16776961</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-16776961</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>SETPOS</Title>
+              <Name>SETPOS</Name>
+              <SortPriority>0</SortPriority>
+            </Channel>
+          </SubMember>
+          <Title>Position absolute</Title>
+          <Name>Position absolute</Name>
+          <DisplayColor>-1118482</DisplayColor>
+          <SortPriority>10</SortPriority>
+        </AxisGroup>
+        <AxisGroup AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <SubMember>
+            <RefGuid-TimeAxis>ba8a2f16-cb98-4ad6-ad48-e73f28140bf3</RefGuid-TimeAxis>
+            <ValueAxis AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <Orientation>Y</Orientation>
+              <ScalingMode>AutoGrowOnly</ScalingMode>
+              <SubMember>
+                <AxisStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <GridColor>-13676721</GridColor>
+                  <ShowName>true</ShowName>
+                  <LineWidth>1</LineWidth>
+                  <Visible>true</Visible>
+                  <DisplayColor>-8355585</DisplayColor>
+                  <SortPriority>100</SortPriority>
+                </AxisStyle>
+              </SubMember>
+              <Title>Position modulo</Title>
+              <SortPriority>1</SortPriority>
+            </ValueAxis>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>973022cb-1806-4e02-8ae1-49262c7a0688</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x10003</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <Visible>true</Visible>
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-8355585</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-8355585</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>ACTPOSMODULO</Title>
+              <Name>ACTPOSMODULO</Name>
+              <SortPriority>-1</SortPriority>
+            </Channel>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>542d34df-a13e-4f6c-aaaf-40f2531f2e11</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x000B</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <Visible>true</Visible>
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-16777056</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-16777056</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>SETPOSMODULO</Title>
+              <Name>SETPOSMODULO</Name>
+              <SortPriority>0</SortPriority>
+            </Channel>
+          </SubMember>
+          <Title>Position modulo</Title>
+          <Name>Position modulo</Name>
+          <DisplayColor>-1118482</DisplayColor>
+          <SortPriority>11</SortPriority>
+        </AxisGroup>
+        <AxisGroup AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <SubMember>
+            <RefGuid-TimeAxis>ba8a2f16-cb98-4ad6-ad48-e73f28140bf3</RefGuid-TimeAxis>
+            <ValueAxis AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <Orientation>Y</Orientation>
+              <ScalingMode>AutoGrowOnly</ScalingMode>
+              <SubMember>
+                <AxisStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <GridLineWidth>1</GridLineWidth>
+                  <GridColor>-13676721</GridColor>
+                  <Precision>6</Precision>
+                  <ShowName>true</ShowName>
+                  <LineWidth>1</LineWidth>
+                  <Visible>true</Visible>
+                  <DisplayColor>-16744384</DisplayColor>
+                  <SortPriority>100</SortPriority>
+                </AxisStyle>
+              </SubMember>
+              <Title>Velocity</Title>
+              <SortPriority>2</SortPriority>
+            </ValueAxis>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>9264350b-e39f-41bc-b221-cf7ed173782d</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x10005</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <Visible>true</Visible>
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-16711936</MarkColor>
+                      <FillMode>None</FillMode>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-16711936</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>ACTVELO</Title>
+              <Name>ACTVELO</Name>
+              <SortPriority>-1</SortPriority>
+            </Channel>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>f4c83d1d-9b07-4c11-9cd4-c5014f76e562</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x000E</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-16744448</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-16744448</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>SETVELO</Title>
+              <Name>SETVELO</Name>
+              <SortPriority>0</SortPriority>
+            </Channel>
+          </SubMember>
+          <Title>Velocity</Title>
+          <Name>Velocity</Name>
+          <DisplayColor>-1118482</DisplayColor>
+          <SortPriority>12</SortPriority>
+        </AxisGroup>
+        <AxisGroup AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <SubMember>
+            <RefGuid-TimeAxis>ba8a2f16-cb98-4ad6-ad48-e73f28140bf3</RefGuid-TimeAxis>
+            <ValueAxis AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <Orientation>Y</Orientation>
+              <ScalingMode>AutoGrowOnly</ScalingMode>
+              <SubMember>
+                <AxisStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <GridLineWidth>1</GridLineWidth>
+                  <GridColor>-13676721</GridColor>
+                  <Precision>6</Precision>
+                  <ShowName>true</ShowName>
+                  <LineWidth>1</LineWidth>
+                  <Visible>true</Visible>
+                  <DisplayColor>-65536</DisplayColor>
+                  <SortPriority>100</SortPriority>
+                  <IsFileBased>false</IsFileBased>
+                </AxisStyle>
+              </SubMember>
+              <Title>Acceleration</Title>
+              <SortPriority>3</SortPriority>
+            </ValueAxis>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>b322991b-3306-48ef-b709-0cce19e88d81</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x10006</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkColor>-23296</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-23296</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>ACTACC</Title>
+              <Name>ACTACC</Name>
+              <SortPriority>-1</SortPriority>
+            </Channel>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>56017591-c815-4133-96cc-8cc111643ae3</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x000F</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkSize>5</MarkSize>
+                      <MarkColor>-65536</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <SeriesType>Line</SeriesType>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-65536</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>SETACC</Title>
+              <Name>SETACC</Name>
+              <SortPriority>0</SortPriority>
+            </Channel>
+          </SubMember>
+          <Title>Acceleration</Title>
+          <Name>Acceleration</Name>
+          <DisplayColor>-1118482</DisplayColor>
+          <SortPriority>13</SortPriority>
+        </AxisGroup>
+        <AxisGroup AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <SubMember>
+            <RefGuid-TimeAxis>ba8a2f16-cb98-4ad6-ad48-e73f28140bf3</RefGuid-TimeAxis>
+            <ValueAxis AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <Orientation>Y</Orientation>
+              <ScalingMode>AutoGrowOnly</ScalingMode>
+              <SubMember>
+                <AxisStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <GridLineWidth>1</GridLineWidth>
+                  <GridColor>-13676721</GridColor>
+                  <Precision>6</Precision>
+                  <ShowName>true</ShowName>
+                  <LineWidth>1</LineWidth>
+                  <DisplayColor>-65281</DisplayColor>
+                  <SortPriority>100</SortPriority>
+                </AxisStyle>
+              </SubMember>
+              <Title>Position Lag</Title>
+              <SortPriority>4</SortPriority>
+            </ValueAxis>
+            <Channel AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+              <SubMember>
+                <AcquisitionInterpreter AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <BitMask>18446744073709551615</BitMask>
+                  <Usage>Y</Usage>
+                  <AcquisitionGUID>d64e82b0-f1e4-4971-b404-8cff50589f70</AcquisitionGUID>
+                  <SubMember />
+                  <Name>Y: IdxGrp: 0x4101 - IdxOff: 0x2000F</Name>
+                  <SortPriority>2</SortPriority>
+                </AcquisitionInterpreter>
+                <ChannelStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                  <SubMember>
+                    <SeriesStyle AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+                      <MarkSize>5</MarkSize>
+                      <MarkColor>-65281</MarkColor>
+                      <FillColor>853385437</FillColor>
+                      <LineWidth>2</LineWidth>
+                      <Antialias>true</Antialias>
+                      <DisplayColor>-65281</DisplayColor>
+                      <SortPriority>100</SortPriority>
+                    </SeriesStyle>
+                  </SubMember>
+                  <SortPriority>100</SortPriority>
+                </ChannelStyle>
+              </SubMember>
+              <Title>POSDIFF</Title>
+              <Name>POSDIFF</Name>
+              <SortPriority>-1</SortPriority>
+            </Channel>
+          </SubMember>
+          <Title>Position Lag</Title>
+          <Name>Position Lag</Name>
+          <DisplayColor>-1118482</DisplayColor>
+          <SortPriority>14</SortPriority>
+        </AxisGroup>
+      </SubMember>
+      <Title>NC Axis 1</Title>
+      <Name>NC Axis 1</Name>
+      <DisplayColor>-1973016</DisplayColor>
+      <SortPriority>10</SortPriority>
+    </YTChart>
+    <DataPool AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+      <SubMember>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>65538</IndexOffset>
+          <SymbolName>AXES.AXIS 1.ACTPOS</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>879f7f13-054b-496f-ad00-30dd95c65ed1</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x10002</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>10</IndexOffset>
+          <SymbolName>AXES.AXIS 1.SETPOS</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>2bd0f8a6-c9b1-4a51-a2d5-ae4cb5b19d39</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x000A</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>65539</IndexOffset>
+          <SymbolName>AXES.AXIS 1.ACTPOSMODULO</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>973022cb-1806-4e02-8ae1-49262c7a0688</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x10003</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>11</IndexOffset>
+          <SymbolName>AXES.AXIS 1.SETPOSMODULO</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>542d34df-a13e-4f6c-aaaf-40f2531f2e11</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x000B</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>65541</IndexOffset>
+          <SymbolName>AXES.AXIS 1.ACTVELO</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <UseLocalServer>true</UseLocalServer>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>9264350b-e39f-41bc-b221-cf7ed173782d</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x10005</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>14</IndexOffset>
+          <SymbolName>AXES.AXIS 1.SETVELO</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>f4c83d1d-9b07-4c11-9cd4-c5014f76e562</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x000E</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>65542</IndexOffset>
+          <SymbolName>AXES.AXIS 1.ACTACC</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>b322991b-3306-48ef-b709-0cce19e88d81</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x10006</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>15</IndexOffset>
+          <SymbolName>AXES.AXIS 1.SETACC</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <UseLocalServer>true</UseLocalServer>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>56017591-c815-4133-96cc-8cc111643ae3</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x000F</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+        <AdsAcquisition AssemblyName="TwinCAT.Measurement.Scope.API.Model">
+          <IndexGroup>16641</IndexGroup>
+          <IndexOffset>131087</IndexOffset>
+          <SymbolName>AXES.AXIS 1.POSDIFF</SymbolName>
+          <SymbolBased>false</SymbolBased>
+          <TargetPort>501</TargetPort>
+          <IsHistorical>false</IsHistorical>
+          <Enabled>true</Enabled>
+          <AmsNetId>127.0.0.1.1.1</AmsNetId>
+          <DataType>REAL64</DataType>
+          <UseTaskSampleTime>true</UseTaskSampleTime>
+          <ContextMask>-1</ContextMask>
+          <VariableSize>8</VariableSize>
+          <DataAccess>
+            <DataAccessMode>
+              <Source>TwinCAT</Source>
+              <Protocoll>ADS</Protocoll>
+              <Format>TcBinary</Format>
+              <TimeContext>Present</TimeContext>
+              <TimeTangeInfo>
+                <StartTimeStamp>0</StartTimeStamp>
+                <EndTimeStamp>0</EndTimeStamp>
+              </TimeTangeInfo>
+            </DataAccessMode>
+          </DataAccess>
+          <Area>None</Area>
+          <Guid>d64e82b0-f1e4-4971-b404-8cff50589f70</Guid>
+          <Name>IdxGrp: 0x4101 - IdxOff: 0x2000F</Name>
+          <SortPriority>10</SortPriority>
+          <ChannelStyleInformation />
+        </AdsAcquisition>
+      </SubMember>
+      <SortPriority>0</SortPriority>
+    </DataPool>
+    <TriggerModule AssemblyName="TwinCAT.Measurement.Scope.API.Model"/>
+  </SubMember>
+  <Title>NcScopeConfiguration</Title>
+  <Name>Scope YT NC Project</Name>
+  <SortPriority>-1</SortPriority>
+  <IsFileBased>true</IsFileBased>
+</ScopeProject>

@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_LAMP_INFO" Id="{60381d66-4f77-490a-ab04-08a7c3e7a5cb}">
+    <Declaration><![CDATA[TYPE T_LAMP_INFO :
+STRUCT
+(*
+Driver Information 
+
+Change Log:
+	0.1	2016-07-07	- First version.
+	0.2	2016-07-08	- Implemented warming up and cooling down.
+					- Creation of Lamp.library.
+					- Cleanup of code.
+	0.3	2016-07-11	- Implemented time ON/OFF update.
+					- Implemented MAXON protection.
+	0.4	2016-07-11	- Addition of Configuration and Status in Template GUI.
+					- Addition of Local Control in Template GUI.
+	0.5	2016-07-11	- GUI buttons disabled if not in Local Mode.
+	0.6	2016-07-12	- Corrected Time Update.
+					- Corrected error handling and display.
+	0.7 2017-01-30	- Addition of stat.sLastCommand.
+					- Adopted Simulator from VLT FB_SIM_LAMP.
+	0.8 2017-09-04	- Removed METHOD ActionDisableComplete.
+					- Re-odered config and status parameters.
+					- Improved checks returned values in RPC calls.
+					- Addition of input parameter in_lrIntensity to RPC_On().
+	0.9.0.0			- Single pointer to simulator
+					- Updated Visualisation version
+	0.10.0.0		- Simulator pointer renamed to ptrDev.
+					- Additional checks in RPC_On/Off.
+	0.11.0.0		- Corrected handling of intensity.
+					- Addition of RPC Call Status in GUI template.
+	0.12.0.0		- Corrected Simulator handling of Update.
+					- Removed bUpdate variable from Simulator.
+					- Errors cleared on ON and OFF commands.
+	0.13.0.0		- Addition of all cfg params as input params.
+					- Addition of M_Configure() in FB_LAMP_BASE.
+					- Added return value for Simulator RPC calls.
+					- Added small delay to simulator on re-boot.
+					- Moved sName to cfg structure.
+	0.14.0.0		- Addition of stat.sLibVersion
+	0.15.0.0		- RPC calls return INT.
+					- Addition of E_LAMP_RPC_ERROR.
+	0.16.0.0		- Addition of M_GetErrorText().
+					- M_SetStatus() replaced SetStatus().
+					- Improved error handling.
+	0.17.0.0		- Addition of M_GetRpcErrorText().
+					- Addition of M_SetRpcStatus().
+					- Improved template GUI.
+	0.18.0.0		- Improved the State Machine to reflect HW State.
+	0.18.0.1		- Tc2_System.F_GetSystemTime() used in GetTimeInSec().
+					- Addition of library category ESO/ELT.
+	0.19.0.0		- Renaming States STANDBY->NOTOP & FAILURE->ERROR.
+					- RPC commands rejected in Local mode.
+	0.20.0.0		- Addition of nTimeOnLimit control parameter.
+	1.0.0.0			- WARNING: Requires TwinCAT 3.1 build 4022.20 or higher.
+					- Projects need Tc3_EventLogger library included in References.
+					- Addition of Methods for Event Logs.
+					- Addition of method RPC_Debug().
+	1.0.0.1			- Addition of cfg.bLog flag for enable/disable of logging.
+					- Renamed RPC_Debug() to RPC_SetDebug().
+					- Addition of RPC_SetLog().
+	1.0.0.2			- Addition of {attribute 'OPC.UA.DA':='0'} before in_bLog declaration.
+	1.0.0.3			- Compiled with TwinCAT 3.1 build 4022.27.
+					- Renamed TC_EVENTS.OpsEventClass to TC_EVENTS.LampOpsEventClass.
+					- Solved problem of 'growing' libraries by setting Property/Advanced/BuildAction to None for Lamp.library.
+	1.1.0.0			- Using Strict enumerations.
+*)
+	sDate:			STRING(32)	:= '2019-04-24';
+	sDescription:	STRING(80) 	:= 'State Machine based Lamp controller';
+	sName:			STRING(64)	:= 'FB_LAMP';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'State Machine based Lamp controller';
+	nVersionMajor:	DINT		:= 1;
+	nVersionMinor:	DINT		:= 1;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

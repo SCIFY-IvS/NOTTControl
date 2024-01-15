@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_SA_CH_STATE" Id="{6dd3cf5f-a8fa-4026-999b-d75fd2adda82}">
+    <Declaration><![CDATA[TYPE T_SA_CH_STATE :
+STRUCT
+	//
+	// Channel State
+	// Got with the ':CHAN#:STAT?' command
+	//
+	bBASE_DRIVE_ENABLED:			BOOL;
+	bFLEX_DRIVE_ENABLED:			BOOL;
+	bSERVO_DRIVE_ENABLED:			BOOL;
+	
+	bACTIVELY_MOVING:			BOOL;
+	bCLOSED_LOOP_ACTIVE:		BOOL;
+	bCALIBRATING:				BOOL;
+	bREFERENCING:				BOOL;
+	bMOVE_DELAYED:				BOOL;
+	bSENSOR_PRESENT:			BOOL;
+	bIS_CALIBRATED:				BOOL;
+	bIS_REFERENCED:				BOOL;
+	bEND_STOP_REACHED:			BOOL;
+	bRANGE_LIMIT_REACHED:		BOOL;
+	bFOLLOWING_LIMIT_REACHED:	BOOL;
+	bMOVEMENT_FAILED:			BOOL;
+	bIS_STREAMING:				BOOL;
+	bPOSITIONER_OVERLOAD:		BOOL;
+	
+	bOVER_TEMPERATURE:			BOOL;
+	
+	bREFERENCE_MARK:			BOOL;
+	bIS_PHASED:					BOOL;
+	bPOSITIONER_FAULT:			BOOL;
+	bAMPLIFIER_ENABLED:			BOOL;
+	bIN_POSITION:				BOOL;
+
+	bERROR:						BOOL := TRUE;
+	bControllerStateError:			BOOL := TRUE;
+END_STRUCT
+END_TYPE
+
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

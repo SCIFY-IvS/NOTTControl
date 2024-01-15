@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_BIN_ACT_STATUS" Id="{bca20d17-fc50-4248-845d-eb6fe30452a6}">
+    <Declaration><![CDATA[TYPE T_CRYO_BIN_ACT_STATUS :
+STRUCT
+	bDone:		BOOL;			// Flag if switch is OK
+	bBusy:		BOOL;			// Flag if switch is BUSY
+	bError:		BOOL;			// Flag if switch is OK
+	bON:		BOOL;			// Flag if switch state is ON
+	bOFF:		BOOL;			// Flag if switch state is OFF
+
+	nLastCommand:	E_CRYO_BIN_ACT_CMD		:= E_CRYO_BIN_ACT_CMD.NONE;	// Command
+	nState:			E_CRYO_BIN_ACT_STATE	:= E_CRYO_BIN_ACT_STATE.NONE;
+	
+	sState:		STRING(64);			// State as text
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_RS_COMM_INFO" Id="{e75d9dd6-c5d4-407c-8ceb-bf523ca1bc21}">
+    <Declaration><![CDATA[TYPE T_RS_COMM_INFO :
+STRUCT
+(*
+	Driver Information
+
+	Change LOG:
+	0.1 2018-02-07	- Copy of VLT RS_Comm_TC3 project @306329.
+*)
+
+	sDate:			STRING(32)	:= '2018-02-06';
+	sDescription:	STRING(80) 	:= 'Serial Port Communication Drivers';
+	sName:			STRING(64)	:= 'FB_RS_COMM';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'Serial Port Communication Drivers';
+	nVersionMajor:	DINT		:= 0;
+	nVersionMinor:	DINT		:= 1;
+
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

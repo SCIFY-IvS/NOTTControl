@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^actuator^actuator Instance">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)">
+			<Link VarA="PlcTask Inputs^MAIN.Actuator003.i_nCouplerState" VarB="InfoData^State"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator004.i_nCouplerState" VarB="InfoData^State"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 23 (EL2008)">
+			<Link VarA="PlcTask Outputs^MAIN.Actuator003.q_bSwitch" VarB="Channel 2^Output"/>
+			<Link VarA="PlcTask Outputs^MAIN.Actuator004.q_bSwitch" VarB="Channel 1^Output"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 24 (EL1008)">
+			<Link VarA="PlcTask Inputs^MAIN.Actuator003.i_bOn" VarB="Channel 2^Input"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator004.i_bOn" VarB="Channel 1^Input"/>
+		</OwnerB>
+		<OwnerB Name="TIPC^actuator^actuator Instance">
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator001.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator002.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator001.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Actuator001.q_bOn"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator002.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Actuator002.q_bOn"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator001.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Actuator001.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator002.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Actuator002.i_nCouplerState"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

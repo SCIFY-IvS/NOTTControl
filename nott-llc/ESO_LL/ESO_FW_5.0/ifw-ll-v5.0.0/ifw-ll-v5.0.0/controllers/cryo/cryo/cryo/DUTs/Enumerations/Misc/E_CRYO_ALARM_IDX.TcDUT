@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_ALARM_IDX" Id="{68f1fe99-4a14-4aaf-a43b-936aebbbc0bd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_ALARM_IDX :
+(
+	ALARM_LOW 		:= 1,
+	WARNING_LOW		:= 2,
+	WARNING_HIGH	:= 3,
+	ALARM_HIGH		:= 4
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

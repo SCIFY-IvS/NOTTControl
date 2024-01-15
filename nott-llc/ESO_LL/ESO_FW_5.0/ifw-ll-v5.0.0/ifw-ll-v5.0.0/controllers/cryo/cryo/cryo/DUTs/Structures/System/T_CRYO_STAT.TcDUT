@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_STAT" Id="{e0babf34-620b-4f3b-9ccd-c42cad9ef3ae}">
+    <Declaration><![CDATA[TYPE T_CRYO_STAT :
+STRUCT
+	bConfigured:	BOOL := FALSE;
+
+	bDone:			BOOL;			// Flag if controller is OK
+	bBusy:			BOOL;			// Flag if controller is BUSY
+	bError:			BOOL;			// Flag if controller is OK
+	bActive:		BOOL;			// Flag if controller is ACTIVE
+	// Generic controller OK flag.
+	// Used for problems other than from the actuator.
+	// This flag is used for problems coming from controllers
+	// that extend the functionality of FB_CRYO_BIN_CTRL.
+	bCtrlOK:		BOOL := TRUE;		
+
+	bInVacuum:		BOOL := FALSE;		
+	bGoodVacuum:	BOOL := FALSE;		
+
+	bHighestTempValid:	BOOL := FALSE;	// Highest temperature Valid flag
+	bLowestTempValid:	BOOL := FALSE;	// Lowest temperature Valid flag
+	bDiffTempValid:		BOOL := FALSE;	// TRUE if Temperature difference is Valid
+
+	lrHighestTempK:	LREAL;	// Highest temperature [K] in Cryostat
+	lrLowestTempK:	LREAL;	// Lowest temperature [K] in Cryostat
+	lrDiffTempK:	LREAL;	// Temperature difference (DET -Lowest temperature) [K]
+	lrLS_Power:		LREAL;	// Lakeshore Power Output [%]
+	
+	nCycleCounter:	UDINT := 0;
+	nLastCommand:	E_CRYO_CTRL_CMD 	:= E_CRYO_CTRL_CMD.NONE;
+	nState:			E_CRYO_CTRL_STATE	:= E_CRYO_CTRL_STATE.NONE;
+	
+	
+	sState:			STRING(64);		// State as text
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

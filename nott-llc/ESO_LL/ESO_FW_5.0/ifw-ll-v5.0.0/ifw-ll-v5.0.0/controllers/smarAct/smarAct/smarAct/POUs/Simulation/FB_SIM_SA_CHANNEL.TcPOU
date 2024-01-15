@@ -1,0 +1,481 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SIM_SA_CHANNEL" Id="{84d5a22a-8fbd-474a-92ad-3ec9d00e1a18}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_SA_CHANNEL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	cfg:	T_SA_SIM_CH_CFG;
+	ctrl:	T_SA_SIM_CH_CTRL;
+	stat:	T_SA_SIM_CH_STATUS;
+	
+	fbTimer:		TON;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute State Machine
+M_StateMachine();]]></ST>
+    </Implementation>
+    <Method Name="M_GetChSimReply" Id="{90494e50-17c0-43f1-97ab-c84ea9729b3e}">
+      <Declaration><![CDATA[METHOD M_GetChSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sCmd:	STRING(255);		// String received from a client
+END_VAR
+VAR
+	sReply:	STRING(255);
+	sTmp:	STRING;
+	lrVal:	LREAL;
+	nValue:	UINT;
+	i:		INT;
+    fbFormat   : FB_FormatString;
+    sOut       : T_MaxString;
+	nCh:	INT := 8;	// Number of channels for models 218 and 224
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+IF FIND (in_sCmd, '?') > 0 THEN
+	// This is a query command.
+	// There is a reply.
+	// Check commands one by one.
+
+	IF FIND (in_sCmd, 'STAT?') > 0 THEN
+		// Channel state
+		M_GetChSimReply	:= UDINT_TO_STRING(stat.nSTATE);
+	ELSIF FIND (in_sCmd, 'CAL:OPT?') > 0 THEN
+		// Channel state
+		M_GetChSimReply	:= UINT_TO_STRING(cfg.nCAL_OPT);
+	ELSIF FIND (in_sCmd, 'REF:OPT?') > 0 THEN
+		// Channel state
+		M_GetChSimReply	:= UINT_TO_STRING(cfg.nREF_OPT);
+	ELSIF FIND (in_sCmd, 'PCON:OPT?') > 0 THEN
+		// Channel Positioner control otions
+		M_GetChSimReply	:= UINT_TO_STRING(cfg.nPCON_OPT);
+	ELSIF FIND (in_sCmd, 'INP:THR?') > 0 THEN
+		// Channel in-position threshold
+		M_GetChSimReply	:= UDINT_TO_STRING(cfg.nINP_THR);
+	ELSIF FIND (in_sCmd, 'INP:DEL?') > 0 THEN
+		// Channel in-position delay
+		M_GetChSimReply	:= UDINT_TO_STRING(cfg.nINP_DEL);
+	ELSIF FIND (in_sCmd, 'RLIM:MIN?') > 0 THEN
+		// Channel Limit Min
+		M_GetChSimReply	:= LINT_TO_STRING(cfg.lnRLIM_MIN);
+	ELSIF FIND (in_sCmd, 'RLIM:MAX?') > 0 THEN
+		// Channel Limit Max
+		M_GetChSimReply	:= LINT_TO_STRING(cfg.lnRLIM_MAX);
+	ELSIF FIND (in_sCmd, 'POS:TARG?') > 0 THEN
+		// Channel target position
+		M_GetChSimReply	:= LINT_TO_STRING(stat.lnPosTarget);
+	ELSIF FIND (in_sCmd, 'POS:CURR?') > 0 THEN
+		// Channel actual position
+		M_GetChSimReply	:= LINT_TO_STRING(stat.lnPosActual);
+	ELSIF FIND (in_sCmd, 'CLIN?') > 0 THEN
+		// Channel 
+		M_GetChSimReply	:= DINT_TO_STRING(cfg.nCLIN);
+	ELSIF FIND (in_sCmd, 'TUN:BASE:UNIT?') > 0 THEN
+		// Channel 
+		M_GetChSimReply	:= DINT_TO_STRING(cfg.nBASE_UNIT);
+	ELSIF FIND (in_sCmd, 'TUN:BASE:RES?') > 0 THEN
+		// Channel 
+		M_GetChSimReply	:= DINT_TO_STRING(cfg.nBASE_RES);
+	ELSIF FIND (in_sCmd, 'TUN:MTYP?') > 0 THEN
+		// Channel 
+		M_GetChSimReply	:= DINT_TO_STRING(cfg.nTUN_MTYP);
+	ELSIF FIND (in_sCmd, 'TUN:RTYP?') > 0 THEN
+		// Channel 
+		M_GetChSimReply	:= LINT_TO_STRING(cfg.nTUN_RTYP);
+	END_IF
+ELSE
+	// This is a control command.
+	// There is NO reply.
+	// BUT there are some action to be taken
+
+	IF FIND (in_sCmd, 'CAL:OPT ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,8,1);
+		cfg.nCAL_OPT	:= STRING_TO_UINT(sTmp);
+	ELSIF FIND (in_sCmd, 'REF:OPT ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,8,1);
+		cfg.nREF_OPT	:= STRING_TO_UINT(sTmp);
+	ELSIF FIND (in_sCmd, 'PCON:OPT ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,9,1);
+		cfg.nPCON_OPT	:= STRING_TO_UINT(sTmp);
+	ELSIF FIND (in_sCmd, 'INP:THR ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,8,1);
+		cfg.nINP_THR	:= STRING_TO_UDINT(sTmp);
+	ELSIF FIND (in_sCmd, 'INP:DEL ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,8,1);
+		cfg.nINP_DEL	:= STRING_TO_UDINT(sTmp);
+	ELSIF FIND (in_sCmd, 'RLIM:MIN ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,9,1);
+		cfg.lnRLIM_MIN	:= STRING_TO_UINT(sTmp);
+	ELSIF FIND (in_sCmd, 'RLIM:MAX ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,9,1);
+		cfg.lnRLIM_MAX	:= STRING_TO_UINT(sTmp);
+	ELSIF FIND (in_sCmd, 'POS:TARG ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,9,1);
+		stat.lnPosTarget:= F_STRING_TO_LINT(sTmp);
+	ELSIF FIND (in_sCmd, 'POS:CURR ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,9,1);
+		stat.lnPosActual:= F_STRING_TO_LINT(sTmp);
+	ELSIF FIND (in_sCmd, 'VEL ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,4,1);
+		cfg.lnVEL		:= F_STRING_TO_LINT(sTmp);
+		ctrl.lnVEL		:= F_STRING_TO_LINT(sTmp);
+	ELSIF FIND (in_sCmd, 'POS ') > 0 THEN
+		// Get the value
+		sTmp			:= DELETE(in_sCmd,4,1);
+		stat.lnPosActual:= F_STRING_TO_LINT(sTmp);
+	END_IF
+	
+	// There is no reply to control commands !!!
+	M_GetChSimReply	:= '';
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartCAL" Id="{ce5cd431-a44b-4368-99ae-5503f9f284a5}">
+      <Declaration><![CDATA[METHOD M_StartCAL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Start CALibration simulation
+;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartMOVE" Id="{9b92d063-b605-4251-8b3f-d34b573d095a}">
+      <Declaration><![CDATA[METHOD M_StartMOVE
+VAR_INPUT
+	in_lnPos:	LINT;	// Target Position
+	in_lnVel:	LINT;	// Target Velocity
+END_VAR
+VAR 
+	nState:		UDINT := 0;
+	nTime:		UDINT :=0;	// Calculated move time [ms].
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Start MOVE simulation
+
+// Set target velocity and position.
+ctrl.lnVEL			:= in_lnVel;
+ctrl.lnPOS			:= in_lnPos;
+stat.lnPosTarget	:= in_lnPos;
+stat.lnPosStart		:= stat.lnPosActual;	// MOVE started from this position
+
+// Get the distance to move.
+// If distance is zero, do nothing.
+stat.lnDistance	:= ctrl.lnPOS - stat.lnPosActual;
+IF stat.lnDistance = 0	THEN
+	// No movement
+	fbTimer(IN:=FALSE);
+	RETURN;
+END_IF
+
+nState	:= nState OR E_SA_CH_STATE.BIT_ACTIVELY_MOVING;
+nState	:= nState OR E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE;
+nState	:= nState OR E_SA_CH_STATE.BIT_SENSOR_PRESENT;
+nState	:= nState OR E_SA_CH_STATE.BIT_IS_CALIBRATED;
+nState	:= nState OR E_SA_CH_STATE.BIT_IS_REFERENCED;
+nState	:= nState OR E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED;
+
+stat.nSTATE	:= nState;
+
+// Get time [ms] needed for the move
+IF in_lnVel = 0	THEN
+	nTime	:= 1000;
+ELSE	
+	nTime	:= LINT_TO_UDINT(1000 * ABS(stat.lnDistance) / in_lnVel);
+END_IF
+
+IF nTime > 0 THEN
+	// Set the positioner State Machine State
+	stat.nPosState	:=	E_SA_POS_SM_STATE.MOVING;
+	
+	// Start the timer.
+	// Simulated REFerencing should finish in 5 sec.
+	fbTimer(IN:=FALSE);
+	fbTimer(IN:=TRUE,PT:=UDINT_TO_TIME(nTime));
+ELSE
+	// No movement
+	fbTimer(IN:=FALSE);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartREF" Id="{331d8561-6b8c-4e93-b808-11a785be6764}">
+      <Declaration><![CDATA[METHOD M_StartREF
+VAR_INPUT
+END_VAR
+VAR 
+	nState:		UDINT := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Start REFerencing simulation
+
+nState	:= nState OR E_SA_CH_STATE.BIT_ACTIVELY_MOVING;
+nState	:= nState OR E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE;
+nState	:= nState OR E_SA_CH_STATE.BIT_REFERENCING;
+nState	:= nState OR E_SA_CH_STATE.BIT_SENSOR_PRESENT;
+nState	:= nState OR E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED;
+
+stat.nSTATE	:= nState;
+
+// Set the positioner State Machine State
+stat.nPosState	:=	E_SA_POS_SM_STATE.CALIB_REF;
+
+// Start the timer.
+// Simulated REFerencing should finish in 5 sec.
+fbTimer(IN:=FALSE);
+fbTimer(IN:=TRUE,PT:=T#5S);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{2584681c-8189-424d-b208-9753c62b37fa}">
+      <Declaration><![CDATA[METHOD M_StateMachine
+VAR_INPUT
+END_VAR
+VAR 
+	nState:		UDINT := 0;
+	lrProgress:	LREAL;		// Movement progress [0.0..1.0]
+	lnPosInc:	LINT;		// Position increment from starting position.
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute the timer.
+fbTimer();
+
+CASE stat.nPosState OF
+	E_SA_POS_SM_STATE.CALIB_REF:
+		// Check if referencing is complete.
+		IF fbTimer.Q THEN
+			// Reset timer
+			fbTimer(IN:=FALSE);
+			// Set flags for completed REFerencing
+			nState	:= nState OR E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE;
+			nState	:= nState OR E_SA_CH_STATE.BIT_SENSOR_PRESENT;
+			nState	:= nState OR E_SA_CH_STATE.BIT_IS_CALIBRATED;
+			nState	:= nState OR E_SA_CH_STATE.BIT_IS_REFERENCED;
+			nState	:= nState OR E_SA_CH_STATE.BIT_REFERENCE_MARK;
+			nState	:= nState OR E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED;
+			nState	:= nState OR E_SA_CH_STATE.BIT_IN_POSITION;
+			
+			stat.nSTATE	:= nState;
+			
+			// Set the calibrated position
+			stat.lnPosTarget	:= cfg.lnREF_POS;
+			stat.lnPosActual	:= cfg.lnREF_POS;
+			
+			// Set the positioner State Machine State
+			stat.nPosState	:=	E_SA_POS_SM_STATE.OP;
+		END_IF
+	E_SA_POS_SM_STATE.MOVING:
+		// Simulate movement progress
+		IF fbTimer.PT = T#0MS THEN
+			RETURN;
+		END_IF
+		lrProgress	:= TIME_TO_LREAL(fbTimer.ET) / TIME_TO_LREAL(fbTimer.PT);
+		lnPosInc	:= LREAL_TO_LINT(LINT_TO_LREAL(stat.lnDistance) * lrProgress);
+		stat.lnPosActual	:= stat.lnPosStart + lnPosInc;
+		
+		// Check if the move is complete.
+		IF fbTimer.Q THEN
+			// Reset timer
+			fbTimer(IN:=FALSE);
+			// Set flags for completed REFerencing
+			nState	:= nState OR E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE;
+			nState	:= nState OR E_SA_CH_STATE.BIT_SENSOR_PRESENT;
+			nState	:= nState OR E_SA_CH_STATE.BIT_IS_CALIBRATED;
+			nState	:= nState OR E_SA_CH_STATE.BIT_IS_REFERENCED;
+			nState	:= nState OR E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED;
+			nState	:= nState OR E_SA_CH_STATE.BIT_IN_POSITION;
+			
+			stat.nSTATE	:= nState;
+			
+			// Set the positioner State Machine State
+			stat.nPosState	:=	E_SA_POS_SM_STATE.OP;
+		END_IF
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_STOP" Id="{a3b503df-f708-4e31-a191-0c056e34c1e0}">
+      <Declaration><![CDATA[METHOD M_STOP
+VAR_INPUT
+END_VAR
+VAR 
+	nState:		UDINT := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// STOP MOVE simulation
+// Start MOVE simulation
+
+// No movement. Stop the timer.
+fbTimer(IN:=FALSE);
+
+nState	:= nState OR E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE;
+nState	:= nState OR E_SA_CH_STATE.BIT_SENSOR_PRESENT;
+nState	:= nState OR E_SA_CH_STATE.BIT_IS_CALIBRATED;
+nState	:= nState OR E_SA_CH_STATE.BIT_IS_REFERENCED;
+nState	:= nState or E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED;
+
+stat.nSTATE	:= nState;
+
+stat.nPosState	:=	E_SA_POS_SM_STATE.OP;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_SA_CHANNEL">
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SA_CHANNEL.M_GetChSimReply">
+      <LineId Id="126" Count="0" />
+      <LineId Id="109" Count="1" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="113" Count="3" />
+      <LineId Id="131" Count="41" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="128" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="177" Count="1" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="224" Count="2" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="227" Count="2" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="230" Count="2" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="233" Count="2" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="236" Count="2" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="239" Count="2" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="242" Count="2" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="245" Count="2" />
+      <LineId Id="250" Count="3" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="254" Count="3" />
+      <LineId Id="219" Count="0" />
+      <LineId Id="248" Count="1" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SA_CHANNEL.M_StartCAL">
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SA_CHANNEL.M_StartMOVE">
+      <LineId Id="9" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="84" Count="5" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="82" Count="1" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="49" Count="7" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SA_CHANNEL.M_StartREF">
+      <LineId Id="9" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SA_CHANNEL.M_StateMachine">
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="32" Count="3" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="68" Count="2" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="38" Count="7" />
+      <LineId Id="47" Count="4" />
+      <LineId Id="56" Count="2" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SA_CHANNEL.M_STOP">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="6" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

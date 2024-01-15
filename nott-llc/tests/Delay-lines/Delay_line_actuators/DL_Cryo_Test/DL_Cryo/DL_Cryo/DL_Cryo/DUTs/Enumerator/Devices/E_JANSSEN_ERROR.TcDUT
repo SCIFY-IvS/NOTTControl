@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_JANSSEN_ERROR" Id="{4e36a70e-9943-47b1-8d0d-a55a1286da68}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_JANSSEN_ERROR :
+(
+	OK				:= 16#0000,
+	NOT_IN_OP_STATE	:= 16#0001,
+	NOT_INIT		:= 16#0002,
+	TIMEOUT			:= 16#0004,
+	COMM			:= 16#0008,
+	WRONG_STATE		:= 16#0010,
+	NOT_IDLE		:= 16#0020
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

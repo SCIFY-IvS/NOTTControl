@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_SIM_LAMP_CFG" Id="{edbef554-0fe8-4611-8104-3e2beb2a8221}">
+    <Declaration><![CDATA[TYPE T_SIM_LAMP_CFG :
+STRUCT
+	bActiveLowFault:	BOOL := FALSE;
+	bActiveLowOn:		BOOL := FALSE;
+	bActiveLowSwitch:	BOOL := FALSE;
+
+	bInvertAnalog:		BOOL := FALSE;	// If TRUE, analog feedback is active, if signal < nAnalogThreshold
+	
+	nAnalogThreshold:	DINT := 0;		// Analog feedback signal threshold [bits].
+	nDelay:     		UDINT := 1000;	// Simulated delay for commands [msec]
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

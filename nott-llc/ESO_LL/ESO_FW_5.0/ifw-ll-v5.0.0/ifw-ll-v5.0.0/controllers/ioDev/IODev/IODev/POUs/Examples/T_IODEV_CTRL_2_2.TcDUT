@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_CTRL_2_2" Id="{6e3de610-a630-4255-bae7-d0abdd872fcc}">
+    <Declaration><![CDATA[// EXAMPLE:	Extension of T_IODEV_CTRL with 2 DO and 2 AO.
+// 			Used in FB_IODEV_2_4_2_2_USER_CONFIG.
+TYPE T_IODEV_CTRL_2_2 EXTENDS T_IODEV_CTRL :
+STRUCT
+	// Signals, Outputs
+	arrDO:	ARRAY [0..1] OF FB_IODEV_CH_DIG_OUT;	// 2 digital outputs
+	arrAO:	ARRAY [0..1] OF FB_IODEV_CH_ANLG_OUT;	// 2 analog outputs
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

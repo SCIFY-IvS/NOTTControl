@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="F_timeUTCToJD" Id="{0fe20a4c-58af-45bf-a6b0-727ce9f434ea}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+/*
+ *****************************************************************************
+ * timeUTCToJD: convert struct ccsTIMEVAL into Julian date
+ *
+ *  IN   ut: time in UT
+ *  OUT    : Julian date  
+ ***************************************************************************** 
+ */
+*)
+FUNCTION F_timeUTCToJD : LREAL
+VAR_INPUT
+	ut:	T_TIMEVAL;
+END_VAR
+VAR
+	temp1:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+DOUBLE timeUTCToJD(vltTIMEVAL *ut)    /* time in UT                       */
+    {
+    DOUBLE jd;
+    
+   /*
+    * CONST4 = jd(70-01-01 00:00:00.000000)
+    */
+    jd = CONST4 + (ut->tv_sec + ut->tv_usec/1000000.)/86400.;
+    return(jd);
+    }
+*)
+
+//F_timeUTCToJD := GCL.C_CONST4 + (UDINT_TO_REAL(ut.tv_sec) + DINT_TO_REAL(ut.tv_usec)/1000000.0)/86400.0;
+
+temp1	:= DINT_TO_LREAL(ut.tv_usec)/1000000.0;
+temp1	:= temp1 + UDINT_TO_LREAL(ut.tv_sec);
+
+F_timeUTCToJD := GCL.C_CONST4 + (temp1)/86400.0;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_timeUTCToJD">
+      <LineId Id="7" Count="0" />
+      <LineId Id="21" Count="9" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="51" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

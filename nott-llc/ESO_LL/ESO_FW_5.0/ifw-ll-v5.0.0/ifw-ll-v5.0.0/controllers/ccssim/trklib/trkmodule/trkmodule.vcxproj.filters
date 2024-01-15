@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{ff2c25c4-a962-4c77-8509-8720d300bb22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4bb37df4-4d1a-414e-a1db-47ff09193649}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TwinCAT UM Files">
+      <UniqueIdentifier>{123ff901-c131-4ef9-beb7-a9fb8b8416f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TwinCAT RT Files">
+      <UniqueIdentifier>{4f8529da-8e4c-476a-91a0-f76f178cf023}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TMC Files">
+      <UniqueIdentifier>{a7825a5c-e14f-4667-b087-50a6c0e16376}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="slalib">
+      <UniqueIdentifier>{e0b6bbe0-7fc8-4a82-9702-26aaa5f3c1f7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TcPch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trkmoduleClassFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trkmoduleInterfaces.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trkmoduleServices.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trkmoduleCtrl.h">
+      <Filter>TwinCAT UM Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trkmoduleDriver.h">
+      <Filter>TwinCAT RT Files</Filter>
+    </ClInclude>
+    <ClInclude Include="trkModule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Astro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Computation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="slalib\slalib.h">
+      <Filter>slalib</Filter>
+    </ClInclude>
+    <ClInclude Include="slalib\slamac.h">
+      <Filter>slalib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TcPch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trkmoduleClassFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trkmoduleCtrl.cpp">
+      <Filter>TwinCAT UM Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trkmoduleW32.cpp">
+      <Filter>TwinCAT UM Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trkmoduleDriver.cpp">
+      <Filter>TwinCAT RT Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trkModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Astro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeFunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="trkCompute.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\addet.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\afin.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\airmas.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\altaz.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\amp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ampqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\aop.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\aoppa.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\aoppat.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\aopqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\atmdsp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\av2m.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\bear.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\c2i.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\c2ipa.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\c2ipad.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\c2ipas.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\c2iqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\c2iqkz.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\caf2r.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\caldj.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\calyd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cc2s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cc62s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cd2tf.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cldj.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\clyd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\combn.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cr2af.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cr2tf.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cs2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\cs2c6.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ctf2d.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ctf2r.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\daf2r.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dafin.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dat.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dav2m.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dbear.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dbjin.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dc62s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dcc2s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dcmpf.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dcs2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dd2tf.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\de2h.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\deuler.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dfltin.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dh2e.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dimxv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\djcal.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\djcl.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dm2av.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dmat.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dmoon.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dmxm.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dmxv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dpav.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dr2af.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dr2tf.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\drange.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dranrm.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ds2c6.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ds2tp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dsep.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dsepv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dt.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtf2d.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtf2r.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtp2s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtp2v.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtps2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtpv2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dtt.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dv2tp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dvdv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dvn.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\dvxv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\e2h.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\earth.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ecleq.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ecmat.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ecor.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\eg50.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\el2ue.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\eo.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\eors.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\epb.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\epb2d.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\epco.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\epj.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\epj2d.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\epv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\eqecl.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\eqeqx.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\eqgal.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\era.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\etrms.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\euler.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\evp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fitxy.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fk5hz.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fk45z.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fk52h.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fk54z.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fk425.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fk524.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\flotin.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fw2m.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\fw2xy.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\g2ixys.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\galeq.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\galsup.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ge50.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\geoc.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\gmst.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\gmsta.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\gst.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\h2e.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\h2fk5.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\hfk5z.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2cqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2o.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2opa.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2opad.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2opat.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\i2oqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\imxv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\int2in.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\intin.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\invf.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\kbj.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\m2av.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\map.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\mappa.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\mapqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\mapqkz.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\moon.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\mxm.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\mxv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\nu.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\nu00a.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\nut.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\nutc.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\nutc80.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\o2i.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\o2iqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\oap.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\oapqk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\obs.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pa.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pav.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pcd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pda2h.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pdq2h.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\permut.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pertel.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pertue.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pfw.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\planel.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\planet.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\plante.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\plantu.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pm.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pncio.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pneqx.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\polmo.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pomom.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\prebn.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\prec.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\preces.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\precl.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\prenut.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pv2el.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pv2ue.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pvobs.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\pxy.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\range.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ranorm.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rcc.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rdplan.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\refco.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\refcoq.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\refro.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\refv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\refz.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rverot.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rvgalc.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rvlg.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rvlsrd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\rvlsrk.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\s2tp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\sep.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\sepv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\smat.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\sp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\subet.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\supgal.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\svd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\svdcov.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\svdsol.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\tp2s.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\tp2v.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\tps2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\tpv2c.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ue2el.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\ue2pv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\unpcd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\v2tp.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\vdv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\vn.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\vxv.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\xy2xy.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+    <ClCompile Include="slalib\zd.cpp">
+      <Filter>slalib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="trkmodule.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="trkmoduleW32.def">
+      <Filter>TwinCAT UM Files</Filter>
+    </None>
+    <None Include="trkmodule.tmc">
+      <Filter>TMC Files</Filter>
+    </None>
+    <None Include="slalib\sla.pdf">
+      <Filter>slalib</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="trkmoduleW32.idl">
+      <Filter>TwinCAT UM Files</Filter>
+    </Midl>
+  </ItemGroup>
+</Project>

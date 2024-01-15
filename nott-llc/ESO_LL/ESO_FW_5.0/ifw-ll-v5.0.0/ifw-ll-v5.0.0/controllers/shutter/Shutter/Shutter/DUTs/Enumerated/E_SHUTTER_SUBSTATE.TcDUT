@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_SHUTTER_SUBSTATE" Id="{799404c9-da36-48d5-9ce1-118394e18490}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SHUTTER_SUBSTATE :
+(
+	NONE                 	:= 0,
+	
+	NOTOP_NOTREADY     		:= 100,
+	NOTOP_INITIALIZING		:= 102,
+	NOTOP_READY_CLOSED		:= 105,
+	NOTOP_READY_OPEN		:= 106,
+	NOTOP_ERROR				:= 199,
+	
+	OP_DISABLING         	:= 205,
+	OP_CLOSED				:= 212,            
+	OP_CLOSING				:= 213,           
+	OP_OPEN					:= 214,
+	OP_OPENING				:= 215,
+	OP_ERROR				:= 299
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_ADC_CMD" Id="{484ac2ca-6092-4b24-a3a8-46907b5e0eb0}">
+    <Declaration><![CDATA[TYPE T_ADC_CMD :
+STRUCT
+	motor_ctrl: T_MOTOR_CTRL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

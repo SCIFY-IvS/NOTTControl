@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_SENS_8_4" Id="{83b968c7-772a-42b5-a741-5d1e761bab2c}" SpecialFunc="None">
+    <Declaration><![CDATA[// EXAMPLE: FB for SENSORS with 8 DI and 4 AI
+FUNCTION_BLOCK FB_SENS_8_4 EXTENDS FB_IODEV_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Control parameters as defined in T_IODEV_CTRL.
+	// For sensors use the base control structure T_IODEV_CTRL.
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:	T_IODEV_CTRL;	
+	// Status parameters that EXTEND T_IODEV_STAT
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:	T_IODEV_STAT_8_4;	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// TODO_USER
+//
+//
+// Set References
+RefCtrl	REF=ctrl;
+RefStat	REF=stat;
+
+// Set number of channels for each type.
+// Default values are set to zero.
+// Set whatever is not zero, i.e. whatever is defined.
+// WARNING: The values MUST match the sizes of corresponding arrays above !!!
+//
+cfg.nNum_DI		:=	8; 	// Number of digital INPUT signals, arrDI:	ARRAY [0..7]
+cfg.nNum_AI		:=	4; 	// Number of analog INPUT signals,  arrAI:	ARRAY [0..3]
+
+//
+// Set pointers for EXISTING arrays ONLY, e.g. arrDI, arrAI, etc.
+//
+pArrDI	:= ADR(stat.arrDI[0]);
+pArrAI	:= ADR(stat.arrAI[0]);
+
+//
+// Execute the base class object FB_IODEV_BASE
+//
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SENS_8_4">
+      <LineId Id="77" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="113" Count="1" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="72" Count="1" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

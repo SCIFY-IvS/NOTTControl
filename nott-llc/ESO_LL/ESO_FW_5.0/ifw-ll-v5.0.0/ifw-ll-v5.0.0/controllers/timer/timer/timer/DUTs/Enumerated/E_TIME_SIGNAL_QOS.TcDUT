@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_TIME_SIGNAL_QOS" Id="{f18a3e26-b804-4acb-ba8b-6bbaaa0e8b9b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TIME_SIGNAL_QOS :
+(
+	NOT_VALID := 0,
+	NOT_SYNCHRONIZED,
+	VALID
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

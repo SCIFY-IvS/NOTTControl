@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CTRL" Id="{2da33da8-4f14-41e4-a10e-543b4b220305}">
+    <Declaration><![CDATA[TYPE T_CRYO_CTRL :
+STRUCT
+	bExecute:	BOOL := FALSE;
+	nCommand:	E_CRYO_CTRL_CMD := E_CRYO_CTRL_CMD.NONE;
+	
+	bReset:		BOOL := FALSE;		// RESET Command
+
+	bEnable_Evac:		BOOL := FALSE;
+	bEnable_Heater:		BOOL := FALSE;
+	bEnable_Precool:	BOOL := FALSE;
+	bEnable_Cool:		BOOL := FALSE;
+	bEnable_Warmup:		BOOL := FALSE;
+	bEnable_CCC:		BOOL := FALSE;
+	bEnable_RepressSys:	BOOL := FALSE;
+	bEnable_RepressCtrl:BOOL := FALSE;
+
+	// Safe flags
+	bSafe_Precool:		BOOL := FALSE;
+	bSafe_Cooling:		BOOL := FALSE;
+	bSafe_Warmup:		BOOL := FALSE;
+	bSafe_Repress:		BOOL := FALSE;
+	
+	// Ignore underrange flags.
+	// We know that the ColdBench PT100 is broken and gives -200 C.
+	bIgnoreUnderrange_ColdBench:	BOOL := FALSE;
+	
+	// Lakeshore related control parameters
+	bLS_UpdateSETP:		BOOL := FALSE;	// If TRUE, this flag will trigger Lakeshore SETP.
+	lrLS_SETP:			LREAL := 40.0;	// New SETP
+	lrLS_RAMP:			LREAL := 0.5;	// RAMP [K/min]
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

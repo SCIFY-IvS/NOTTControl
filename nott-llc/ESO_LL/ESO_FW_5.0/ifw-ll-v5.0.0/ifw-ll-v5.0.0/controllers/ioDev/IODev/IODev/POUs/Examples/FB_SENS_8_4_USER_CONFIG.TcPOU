@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_SENS_8_4_USER_CONFIG" Id="{dbf470de-1fa2-41a9-8c80-7ae28c2af164}" SpecialFunc="None">
+    <Declaration><![CDATA[// EXAMPLE: Customised FB_SENS_8_4 with additional User Configuration of channels
+//          Only the M_UserConfigure() method is added to FB_SENS_8_4.
+FUNCTION_BLOCK FB_SENS_8_4_USER_CONFIG EXTENDS FB_SENS_8_4
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Execute the base class FB_IODEV_SENS_8_4 object.
+//
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_UserConfigure" Id="{269945b5-dbf1-46f2-80fa-3bf3508f9ec0}">
+      <Declaration><![CDATA[// TODO_USER
+//
+// Define individual channel configurations, if used.
+METHOD M_UserConfigure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO_USER
+//
+// Example implementation.
+// Hard code any signal configuration.
+//
+
+// Configuration parameter cfg.bUserConfig defines if 
+// the hard-coded configuration below should be used or
+// the signals will be configured from the WS.
+
+//
+// Digital inputs
+// Signal DI[0] is a LASER ON/OFF signal
+// Signal DI[1] is a motor RUNNING/STOPPED signal
+stat.arrDI[0].M_Configure('LASER OFF', 'LASER ON');
+stat.arrDI[1].M_Configure('MOTOR STOPPED', 'MOTOR RUNNING');
+
+
+//
+// Analog inputs
+//
+stat.arrAI[0].M_Configure(CONVERSION_IODEV_NONE, 		0.0,   0.0, 0.0);
+stat.arrAI[1].M_Configure(CONVERSION_IODEV_LINEAR, 		2.0,   1.0, 0.0);
+stat.arrAI[2].M_Configure(CONVERSION_IODEV_QUADRATIC,	2.0,   1.0, 5.0);
+// Edwards pressure guage
+// P =10^(1.5*V - 12)    [mbar]
+// 16-bit A/D converter, +=10V, e.g. EL3102.
+// 1V = 2^16/10/2 = 3276.8 bit
+// P = 10^(1.5*V - 12) = 10^(1.5/3276.8*bit - 12) = 10^(0.000457763*bit - 12)
+stat.arrAI[3].M_Configure(CONVERSION_IODEV_EXP10, 	0.000457763, -12.0, 0.0);	
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SENS_8_4_USER_CONFIG">
+      <LineId Id="69" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SENS_8_4_USER_CONFIG.M_UserConfigure">
+      <LineId Id="113" Count="0" />
+      <LineId Id="108" Count="4" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="64" Count="4" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

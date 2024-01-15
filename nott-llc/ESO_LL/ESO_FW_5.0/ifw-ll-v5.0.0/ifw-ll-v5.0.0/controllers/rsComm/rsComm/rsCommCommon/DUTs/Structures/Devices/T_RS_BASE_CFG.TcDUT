@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_RS_BASE_CFG" Id="{e487a145-1489-47ca-9ea5-d2de2d33e1e3}">
+    <Declaration><![CDATA[TYPE T_RS_BASE_CFG :
+STRUCT
+	tDelay_Periodic:	TIME := T#5000MS;	// Delay between sets of PERIODIC reads.
+	tDelay_Init:		TIME := T#500MS;	// Delay between INIT commands
+	tDelay_Ctrl:		TIME := T#100MS;	// Delay between CTRL commands
+	bAutoMonitor:		BOOL := TRUE;		// If true, it starts PERIODIC reads (monitoring) after INIT
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

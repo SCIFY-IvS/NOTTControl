@@ -1,0 +1,746 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_TIMER" Id="{883ab99b-55e3-4ff6-ab62-e9fc39462efe}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK PUBLIC FB_TIMER
+VAR CONSTANT
+	OVSMAX:			UDINT:=1000;(*Oversampling factor, Index start with 1, always needed!*)
+	OVSMAXBYTES:	UDINT:=125;	(*if EL2262 in Byte-PDO: OVS/8, start with 1*)
+END_VAR
+VAR_INPUT
+	fbTimerRef: REFERENCE TO FB_TIME;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_TIMER_CFG;		//  Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_TIMER_CTRL;		//  Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_TIMER_STAT;		//  Status parameters - ReadOnly
+	
+	(* Variables to be linked to I/O *)
+    DcOutputShift   		AT %I*:	DINT;
+
+(*	Output					AT %Q*:	ARRAY[1..OVSMAX] OF BOOL;*)
+	Output0 				AT %Q*:	ARRAY[1..OVSMAXBYTES] OF BYTE;
+	Output1 				AT %Q*:	ARRAY[1..OVSMAXBYTES] OF BYTE;
+	CyclicCounter			AT %Q*:	WORD;
+
+	ActivePattern:	ARRAY[1..OVSMAX] 		OF BOOL;	(* Generated pattern for next cycle *)
+	BitPattern:		ARRAY[1..(3*OVSMAX)]	OF BOOL;	(* Bit pattern for 3 full cycles, i.e. 3 ms period *)
+	
+	tTargetTime					:ULINT;
+	sTargetTime					:STRING;
+	
+	NewTrigger					:R_TRIG;
+	tDcCurrentTime				:LINT;
+	tDc2UtcDiff					:LINT;
+	timeDiffNum					:LREAL;
+	cmpRes						:DINT;
+	nCyclesPerSecond			:UDINT;
+	nCycleCounter				:UDINT;	(* Used to stop after single shot *)
+	nMicroCyclesPerSecond		:UDINT;
+	nTaskCycleTimeNs			:UDINT;
+	intervalOffset				:UDINT:=0;
+	timboardOffset              :UDINT:=0;
+
+	fbGETCURTASKINDEX		    :GETCURTASKINDEX;
+	iCurrentTaskIndex			:INT;
+	
+	nFirstShotWidth:			UDINT;
+	nSecondShotWidth:			UDINT;
+	nSingleShotCycles:			UDINT;
+	bFirstShotInSingleCycle:	BOOL;
+
+	lastPos:		UDINT;
+	bFirstCycle:	BOOL	:= FALSE;
+	nNextActiveCycles:	UDINT;
+	nNewByte:		BYTE;
+	strPulse:		T_TIMER_PULSE; (* Pulse data for slow frequencies *)
+		
+	fbTrigger:		R_TRIG; (* Rising edge trigger FB *)
+
+	State:			INT := E_TIMER_STATE.STATE_TIMER_NOT_INIT;
+
+	(* Test vars *)
+	(*
+	nTimeDiff:				UDINT;
+	nOffsetFromSyncMaster: 	DINT;
+	*)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Update counter
+stat.nCounter := stat.nCounter + 1;	// Increment counter
+
+
+(* Handle commands on the rising edge of parameter Execute *)
+fbTrigger(CLK:= ctrl.bExecute);
+IF fbTrigger.Q THEN
+	stat.nLastCommand 	:= ctrl.nCommand;
+	ctrl.nCommand		:= E_TIMER_COMMAND.COMMAND_TIMER_NONE;
+
+	(* Device has to be initialised before being used *)
+	IF stat.nLastCommand <> E_TIMER_COMMAND.COMMAND_TIMER_INIT THEN
+		IF stat.bInitialised = FALSE  THEN
+			M_SetError(E_TIMER_ERROR.ERROR_TIMER_NOT_INIT, 'ERROR: Device not initialised');
+			RETURN;
+		END_IF
+	ELSE
+		IF M_Init() THEN
+			RETURN;
+		END_IF
+		State	:= E_TIMER_STATE.STATE_TIMER_IDLE;
+	END_IF
+
+	CASE stat.nLastCommand OF
+	E_TIMER_COMMAND.COMMAND_TIMER_NEXT_MINUTE:
+		M_SetTargetTimeOnFullMinute();
+	E_TIMER_COMMAND.COMMAND_TIMER_ARM:
+		IF M_Arm() THEN
+			RETURN;
+		END_IF
+		State	:= E_TIMER_STATE.STATE_TIMER_ARMED;
+	E_TIMER_COMMAND.COMMAND_TIMER_STOP:
+		M_Stop();
+		State	:= E_TIMER_STATE.STATE_TIMER_IDLE;
+	END_CASE
+END_IF
+
+(* Clear the execute bit *)
+ctrl.bExecute	:= FALSE;
+
+(*======================
+=======================
+ 	State machine 
+=======================
+=======================*)
+
+CASE State OF
+
+E_TIMER_STATE.STATE_TIMER_ERROR:
+	stat.nStatus	:= E_TIMER_STATUS.STATUS_TIMER_ERROR;
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+
+
+E_TIMER_STATE.STATE_TIMER_NOT_INIT:
+	stat.bInitialised	:= FALSE;
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_NOT_INIT, 'NOT INITIALISED');
+
+
+E_TIMER_STATE.STATE_TIMER_IDLE:
+	stat.bArmed		:= FALSE;
+	stat.bActive	:= FALSE;
+
+E_TIMER_STATE.STATE_TIMER_ARMED:
+	M_WaitStart();
+
+E_TIMER_STATE.STATE_TIMER_ACTIVE:
+	IF stat.nPeriod <= OVSMAX  OR  NOT stat.bPeriodic  THEN
+		(* Handling of periods 10-1000 microsec (f = 1..100 kHz) or a single shot *)
+		M_SetNextPattern_bytes();
+	ELSE
+		(* Handling of periods longer than 1000 microsec (f < 1 kHz) *)
+		M_SetNextPattern_bytes_Slow();
+	END_IF
+
+
+ELSE
+(* Unsuported state *)
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_WRONG_STATE, 'ERROR: Unknown State');
+END_CASE]]></ST>
+    </Implementation>
+    <Method Name="M_Arm" Id="{445aaa37-b164-4b38-9021-9bc5e92c9eb6}">
+      <Declaration><![CDATA[METHOD M_Arm : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Stop any activity 
+*)
+
+(* Disarm *)
+stat.bArmed	:= FALSE;
+
+(* Clear Output if active *)
+IF stat.bActive	= TRUE THEN
+	stat.bActive	:= FALSE;
+	(* Clear output buffer *)
+	MEMSET( ADR(Output0), 0, OVSMAXBYTES );
+	MEMSET( ADR(Output1), 0, OVSMAXBYTES );
+END_IF
+
+
+(*
+	Check input parameters
+*)
+
+(* Trigger period must be >= 10 microsec. *)
+IF ctrl.nPeriod < 10  THEN
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_PERIOD, 'ERROR: Trigger period must be >= 10 microsec.');
+	M_Arm	:= TRUE;
+	RETURN;
+END_IF
+
+(*	Pulse width must be in range [5..1000] microsec.
+	This includes both signal widths: high and low. *)
+IF	ctrl.nPulseWidth < 5  					OR  
+	ctrl.nPulseWidth > 1000 				OR
+	(ctrl.nPeriod - ctrl.nPulseWidth) < 5  	THEN
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_PERIOD, 'ERROR: Pulse width (1 & 0) must be [5..1000] microsec.');
+	M_Arm	:= TRUE;
+	RETURN;
+END_IF
+
+(*	Pulse width must be at least 5 microsec shorter than the period. *)
+IF	ctrl.nPulseWidth > (ctrl.nPeriod - 5)	THEN
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_PERIOD, 'ERROR: Pulse width must be <= (period - 5 microsec).');
+	M_Arm	:= TRUE;
+	RETURN;
+END_IF
+
+
+(* 
+	Copy control parameters to status 
+*)
+stat.bPeriodic		:= ctrl.bPeriodic;
+stat.nChannel		:= ctrl.nChannel;
+stat.nPulseWidth	:= ctrl.nPulseWidth;
+stat.nPeriod		:= ctrl.nPeriod;
+stat.sStartTime		:= ctrl.sStartTime;
+
+(*
+	Prepare to arm
+*)
+
+(* Get the target time *)
+//tTargetTime := STRING_TO_DCTIME64(ctrl.sStartTime);
+//sTargetTime	:= DCTIME64_TO_STRING(tTargetTime);
+
+(* Set the bit pattern for given control parameters *)
+M_SetBitPattern();
+
+(* The system is armed from now on. *)
+stat.bArmed	:= TRUE;
+
+(* Update the status *)
+M_SetStatus(E_TIMER_STATUS.STATUS_TIMER_ARMED, 'ARMED');
+
+(* Return OK *)
+M_Arm	:= FALSE;	(* OK *)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_DefineCyclePattern" Id="{a0c97fe2-797b-4c78-9684-6bc1478bb4b8}">
+      <Declaration><![CDATA[METHOD M_DefineCyclePattern
+VAR_INPUT
+	offset:		UDINT;
+END_VAR
+VAR_OUTPUT
+	nEndPos:	UDINT;
+END_VAR
+VAR
+	i:			UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Check if the pulse fits into one cycle *)
+nEndPos	:= offset + stat.nPulseWidth;
+IF nEndPos > OVSMAX THEN
+	(* Complete pulse cannot fit into current cycle *)
+	nEndPos	:= OVSMAX;
+	(* High bits in the current cycle *)
+	strPulse.offset1	:= offset;
+	strPulse.w1			:= OVSMAX - offset;
+	(* High bits at the beginning of the next cycle *)
+	strPulse.offset2	:= 0;
+	strPulse.w2			:= stat.nPulseWidth - strPulse.w1;
+ELSE
+	(* Complete pulse fits inside current cycle *)
+	(* High bits in the current cycle *)
+	strPulse.offset1	:= offset;
+	strPulse.w1			:= stat.nPulseWidth;
+	(* There is nothing from this puls to go into next cycle *)
+	strPulse.offset2	:= 0;
+	strPulse.w2			:= 0;
+END_IF
+
+(* Set the high bits of offset1 and w1 *)
+FOR i := 1+strPulse.offset1 TO nEndPos DO
+	ActivePattern [i] := TRUE; 
+END_FOR
+
+(*	Next trigger will happen at strPulse.offset1 + stat.nPeriod.
+	Get the cycle number for that trigger and the offset inside that cycle. *)
+strPulse.nextOffset	:= offset + stat.nPeriod;
+strPulse.nextCycle	:= nCycleCounter + strPulse.nextOffset / OVSMAX; (* TODO: Check this!!! *)
+strPulse.nextOffset	:= strPulse.nextOffset - (strPulse.nextOffset / OVSMAX) * OVSMAX;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Init" Id="{4d454c3a-232c-47bb-a2ea-775da6dc64ef}">
+      <Declaration><![CDATA[METHOD M_Init : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	nTaskIndex:	INT;
+	nTaskCycleTimeNs:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bInitialised	:= FALSE;
+stat.sLibVersion := stLibVersion_ESO_LDC_Timer_Library.sVersion;
+
+(* If timer is used, cycle time must be 1 ms. *)
+fbGETCURTASKINDEX(index=>nTaskIndex );
+nTaskCycleTimeNs :=  TwinCAT_SystemInfoVarList._TaskInfo[nTaskIndex].cycleTime  * 100; 	(*in ns *)
+
+IF nTaskCycleTimeNs <> 1000000  THEN
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_WRONG_TIME, 'ERROR: Task cycle time must be 1 ms.');
+	M_Init	:= TRUE;
+	RETURN;
+END_IF
+
+fbTimerRef.SetMode(E_TIME_MODE.UTC_PTP);
+stat.bInitialised	:= TRUE;
+M_SetStatus(E_TIMER_STATUS.STATUS_TIMER_IDLE, 'INITIALISED');
+
+M_Init	:= FALSE; (* OK *)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetBitPattern" Id="{7218f947-5d0a-4600-a271-348ba6cad016}">
+      <Declaration><![CDATA[METHOD M_SetBitPattern : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i, j:			UDINT;
+	nNumPeriods:	UDINT; (* Number of full periods in BitPattern *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Set all bits to zero *)
+MEMSET( ADR(BitPattern), 0, (3*OVSMAX));
+
+(* 	For slow frequencies, e.g. stat.nPeriod > 1000 the pattern is not used.
+	But in case of a single shot we still need the very first pulse. *)
+IF stat.nPeriod > OVSMAX THEN
+	FOR i := 1 TO stat.nPulseWidth DO
+		BitPattern [i]	:= TRUE;
+	END_FOR
+ELSE
+	(*	
+		Set only the bits for the pulses.
+		BitPattern starts with a pulse. 
+	*)
+	nNumPeriods	:= 3 * OVSMAX / stat.nPeriod;	(* Total number of full cycles in 3 ms period *)
+	
+	FOR i := 1 TO nNumPeriods DO
+		FOR j := 1 TO stat.nPulseWidth DO
+			BitPattern [(i-1)*stat.nPeriod + j]	:= TRUE;
+		END_FOR
+	END_FOR
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetError" Id="{e64c2352-1737-48fd-8b53-32ab23f1d388}">
+      <Declaration><![CDATA[METHOD M_SetError : BOOL
+VAR_INPUT
+	nNum:	DINT;	(* Error number *)
+	sText:	STRING;	(* Error text *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[State			:= E_TIMER_STATE.STATE_TIMER_ERROR;
+stat.nStatus	:= E_TIMER_STATUS.STATUS_TIMER_ERROR;
+stat.nErrorCode	:= nNum;
+stat.sStatus	:= 'ERROR';
+stat.sErrorText	:= sText;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetNextPattern_bytes" Id="{efdf411b-ceba-4806-9be7-ee0df93a1cd5}">
+      <Declaration><![CDATA[METHOD M_SetNextPattern_bytes
+VAR_INPUT
+END_VAR
+VAR
+	i, j, k:	UDINT;
+	nEndPos:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Clear the pattern to be generated *)
+MEMSET( ADR(ActivePattern), 0, SIZEOF(ActivePattern));
+
+IF bFirstCycle THEN
+	(* 	The very first cycle is populated from the offset position.
+		The first intervalOffset bits are zero. MEMSET has cleared them already. *)
+	bFirstCycle		:= FALSE;
+	nCycleCounter	:= 1;
+	
+	nEndPos	:= OVSMAX;
+	IF NOT stat.bPeriodic THEN
+		(* 	In a sigle shot, we want to set only the high bits of the first pulse.
+			This might not fit into the first cycle. 
+		*)
+		nEndPos	:= intervalOffset + stat.nPulseWidth;
+		IF nEndPos > OVSMAX THEN
+			nSecondShotWidth		:= nEndPos - OVSMAX;
+			nEndPos					:= OVSMAX;
+			nSingleShotCycles		:= 2;
+			bFirstShotInSingleCycle	:= FALSE;
+		ELSE
+			nSecondShotWidth		:= 0;
+			nSingleShotCycles		:= 1;
+			bFirstShotInSingleCycle	:= TRUE;
+		END_IF
+	END_IF
+
+	FOR i := 1+intervalOffset TO nEndPos DO
+		ActivePattern [i] := BitPattern [i-intervalOffset]; 
+	END_FOR
+	(*	lastPos is applicable to periodic and two-cycle single shot. 
+		Use of OVSMAX (instead of nEndPos) is correct *)
+	lastPos := OVSMAX - intervalOffset;	
+ELSE
+	(* Increment cycle counter *)
+	nCycleCounter	:= nCycleCounter + 1;
+	
+	IF NOT stat.bPeriodic AND nCycleCounter > nSingleShotCycles THEN
+		(* For single shot we terminate here *)
+		(* Clear output buffer *)
+		MEMSET( ADR(Output0), 0, OVSMAXBYTES );
+		MEMSET( ADR(Output1), 0, OVSMAXBYTES );
+		State	:= E_TIMER_STATE.STATE_TIMER_IDLE;
+		M_SetStatus(E_TIMER_STATUS.STATUS_TIMER_IDLE, 'IDLE');
+		RETURN;
+	END_IF
+	
+	(* 	Populate complete pattern with offset BitPattern. *)
+	nEndPos	:= OVSMAX;
+	IF NOT stat.bPeriodic THEN
+		nEndPos	:= nSecondShotWidth;
+	END_IF
+	FOR i := 1 TO nEndPos DO
+		ActivePattern [i] := BitPattern [i+intervalOffset]; 
+	END_FOR
+	lastPos := i+intervalOffset - 1;	(* i = OVSMAX + 1 at the end of the loop! *)
+END_IF
+
+
+(* Copy bit pattern to Output byte pattern(s) *)
+FOR i := 1 TO  OVSMAXBYTES DO
+	nNewByte := 0;	(* start populating empty byte *)
+	FOR j := 0 TO 7 DO
+		k := (i-1)*8 + j + 1;	(* bit position in ActivePattern[] *)
+		nNewByte 	:= nNewByte OR SHL(BOOL_TO_BYTE(ActivePattern [k]), j);
+	END_FOR
+	CASE stat.nChannel OF
+		0: 
+		Output0[i]	:= nNewByte;
+		1: 
+		Output1[i]	:= nNewByte;
+		2: 
+		Output0[i]	:= nNewByte;
+		Output1[i]	:= nNewByte;
+	END_CASE
+END_FOR
+
+
+(* 	Set new offset.
+	We just shift it back a whole number of cycles. *)
+intervalOffset := lastPos - (lastPos / stat.nPeriod) * stat.nPeriod;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetNextPattern_bytes_Slow" Id="{e9fb30ea-cdce-4aa0-9771-d74096737434}">
+      <Declaration><![CDATA[METHOD M_SetNextPattern_bytes_Slow
+VAR_INPUT
+END_VAR
+VAR
+	i, j, k:	UDINT;
+	nEndPos:	UDINT;
+	bSetOutput:	BOOL	:= FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Clear the pattern to be generated. The pattern is OVSMAX wide. *)
+MEMSET( ADR(ActivePattern), 0, SIZEOF(ActivePattern));
+
+IF bFirstCycle THEN
+	bSetOutput	:= TRUE; (* We will write outputs in this cycle *)
+	
+	(* 	The very first cycle is populated from the offset position.
+		The first intervalOffset bits are zero. MEMSET has cleared them already. *)
+	bFirstCycle		:= FALSE;
+	nCycleCounter	:= 1;
+	
+	(* Set bit pattern(s) for the cycle *)
+	M_DefineCyclePattern(offset := intervalOffset, nEndPos => nEndPos);
+ELSE
+	(* Increment cycle counter *)
+	nCycleCounter	:= nCycleCounter + 1;
+	
+	(* Check if anything remained from the previous pulse *)
+	IF strPulse.w2 > 0 THEN
+		bSetOutput	:= TRUE; (* We will write outputs in this cycle *)
+		FOR i := 1 TO strPulse.w2 DO
+			ActivePattern [i] := TRUE; 
+		END_FOR
+		(* Clear the pulse data *)
+		strPulse.offset1	:= 0;
+		strPulse.w1			:= 0;
+		strPulse.offset2	:= 0;
+		strPulse.w2			:= 0;
+	END_IF
+	
+	IF nCycleCounter = strPulse.nextCycle THEN
+		(* Reset cycle counter *)
+		nCycleCounter	:= 1;
+		bSetOutput	:= TRUE; (* We will write outputs in this cycle *)
+		(* Set bit pattern(s) for the cycle *)
+		M_DefineCyclePattern(offset := strPulse.nextOffset, nEndPos => nEndPos);
+	END_IF
+	
+END_IF
+
+
+(* Copy bit pattern to Output byte pattern(s) *)
+IF bSetOutput = TRUE THEN
+	FOR i := 1 TO  OVSMAXBYTES DO
+		nNewByte := 0;	(* start populating empty byte *)
+		FOR j := 0 TO 7 DO
+			k := (i-1)*8 + j + 1;	(* bit position in ActivePattern[] *)
+			nNewByte 	:= nNewByte OR SHL(BOOL_TO_BYTE(ActivePattern [k]), j);
+		END_FOR
+		CASE stat.nChannel OF
+			0: 
+			Output0[i]	:= nNewByte;
+			1: 
+			Output1[i]	:= nNewByte;
+			2: 
+			Output0[i]	:= nNewByte;
+			Output1[i]	:= nNewByte;
+		END_CASE
+	END_FOR
+ELSE
+	FOR i := 1 TO  OVSMAXBYTES DO
+		Output0[i]	:= 0;
+		Output1[i]	:= 0;
+	END_FOR
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{8b8a20ea-09bc-4f9d-9048-816dc9839cc5}">
+      <Declaration><![CDATA[METHOD M_SetStatus : BOOL
+VAR_INPUT
+	nStatus:	DINT;	(* Status number *)
+	sStatus:	STRING;	(* Status text, e.g. IDLE, BUSY, etc. *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nErrorCode	:= E_TIMER_ERROR.ERROR_TIMER_OK;
+stat.nStatus	:= nStatus;
+stat.sErrorText	:= 'OK';
+stat.sStatus	:= sStatus;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetTargetTimeOnFullMinute" Id="{902ba237-2880-41b3-b2c6-69905d0bf099}">
+      <Declaration><![CDATA[METHOD M_SetTargetTimeOnFullMinute : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	dcTime:		ULINT;
+	dcStruct:	DCTIMESTRUCT; 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(*dcStruct	:= DCTIME64_TO_DCTIMESTRUCT(stat.dcAbsoluteTime);*)
+dcStruct	:= DCTIME64_TO_DCTIMESTRUCT(fbTimerRef.stat.lUtcTime);
+
+dcStruct.wMinute	:= dcStruct.wMinute + 1;
+
+IF dcStruct.wMinute = 60 THEN
+	dcStruct.wMinute	:= 0;
+	IF dcStruct.wHour = 23 THEN
+		dcStruct.wDay := dcStruct.wDay + 1;
+		dcStruct.wHour := 0;
+	ELSE
+		dcStruct.wHour		:= dcStruct.wHour + 1;
+	END_IF
+END_IF
+
+dcStruct.wSecond         := 0;
+dcStruct.wMilliseconds   := 0;
+dcStruct.wMicroseconds   := 0;
+dcStruct.wNanoseconds    := 0;
+
+(*dcTime	:= DCTIMESTRUCT_TO_DCTIME64(dcStruct);*)
+dcTime	:= DCTIMESTRUCT_TO_DCTIME64(dcStruct);
+
+
+ctrl.sStartTime	:= DCTIME64_TO_STRING(dcTime);
+tTargetTime := dcTime;
+sTargetTime	:= ctrl.sStartTime;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Stop" Id="{aa560336-4f04-48d8-b143-199c261ee17f}">
+      <Declaration><![CDATA[METHOD M_Stop : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Clear output buffer *)
+MEMSET( ADR(Output0), 0, OVSMAXBYTES );
+MEMSET( ADR(Output1), 0, OVSMAXBYTES );
+stat.bArmed		:= FALSE;
+stat.bActive	:= FALSE;
+
+M_SetStatus(E_TIMER_STATUS.STATUS_TIMER_IDLE, 'IDLE');
+
+M_Stop	:= FALSE;	(* OK *)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_WaitStart" Id="{5d389554-f85e-49e3-8632-3d96ab246ecb}">
+      <Declaration><![CDATA[METHOD M_WaitStart : BOOL
+VAR CONSTANT
+	SYNC1_MASK:	ULINT	:= 16#00000000FFFFFFFF;	
+END_VAR
+VAR_INPUT
+END_VAR
+VAR
+	tTimeDiff:		LREAL;
+	tDcStartTime:	ULINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Convert UTC target time to DC target time.
+	tDc2UtcDiff has been calculated in M_DcAbsoluteTime(). 
+*)
+(*tDcStartTime := F_ULARGE_INTEGER_TO_LINT(tTargetTime) + tDc2UtcDiff + (10000000 - DcShiftOutput);*)
+tDcStartTime := LINT_TO_ULINT(ULINT_TO_LINT(tTargetTime) + fbTimerRef.stat.lOffsetTime + (1000000 - DcOutputShift));
+//tDcStartTime := LINT_TO_ULINT(ULINT_TO_LINT(tTargetTime) + fbTimerRef.stat.lOffsetTime);
+(* 
+	Get the difference between the target time and the current cycle time. 
+	If the difference is < 0, then we missed the starting time.
+	This is an error.
+*)
+tTimeDiff := ULINT_TO_LREAL(tDcStartTime - fbTimerRef.stat.lDcCurrentTime);
+//timeDiffTmp := tTimeDiff;
+IF  tTimeDiff > 0 THEN
+	(* 
+		We wait for the moment when we are less than 2 cycles away from the trigger.
+		2 cycles = 2 ms = 2000000 ns
+	*)
+	IF (tTimeDiff < 2000000  AND  tTimeDiff >= 1000000) THEN
+		(* 
+			Get the offset of the first high bit from the SYNC1 signal
+			This offset has to be less than 1 ms = 1000 microseconds = 1 cycle.
+		*)
+		intervalOffset	:= ULINT_TO_UDINT(((tDcStartTime - fbTimerRef.stat.lDcCurrentTime) - 1000000) / 1000);
+
+		(*
+			We are less than 1 ms from the SYNC1.
+			It's time to set the output pattern.
+			intervalOffset is the offset between the SYNC1 and the first
+			high bit in the pattern in microseconds.
+		*)
+		stat.bActive	:= TRUE;
+		bFirstCycle		:= TRUE;
+		State			:= E_TIMER_STATE.STATE_TIMER_ACTIVE;
+		M_SetStatus(E_TIMER_STATUS.STATUS_TIMER_ACTIVE, 'ACTIVE');
+		(* Generate the pattern for the very first pattern cycle *)
+		IF stat.nPeriod <= OVSMAX  OR  NOT stat.bPeriodic  THEN
+			(* Handling of periods 10-1000 microsec (f = 1..100 kHz) or a single shot *)
+			M_SetNextPattern_bytes();
+		ELSE
+			(* Handling of periods longer than 1000 microsec (f < 1 kHz) *)
+			M_SetNextPattern_bytes_Slow();
+		END_IF
+		RETURN;
+	ELSE
+		(* Wait for the next cycle *)
+		bFirstCycle		:= FALSE;
+		RETURN;
+	END_IF
+ELSE
+	(* We somehow missed the start time *)
+	stat.bArmed := FALSE;
+	M_SetError(E_TIMER_ERROR.ERROR_TIMER_WRONG_TIME, 'ERROR: Wrong start time');
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TIMER">
+      <LineId Id="25" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="33" Count="44" />
+      <LineId Id="79" Count="31" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_Arm">
+      <LineId Id="6" Count="52" />
+      <LineId Id="60" Count="18" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_DefineCyclePattern">
+      <LineId Id="3" Count="29" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_Init">
+      <LineId Id="3" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="8" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="14" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_SetBitPattern">
+      <LineId Id="3" Count="22" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_SetError">
+      <LineId Id="3" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_SetNextPattern_bytes">
+      <LineId Id="3" Count="81" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_SetNextPattern_bytes_Slow">
+      <LineId Id="3" Count="66" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_SetStatus">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_SetTargetTimeOnFullMinute">
+      <LineId Id="3" Count="25" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_Stop">
+      <LineId Id="3" Count="8" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TIMER.M_WaitStart">
+      <LineId Id="3" Count="56" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

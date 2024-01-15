@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="F_Dms2Rad" Id="{3de940f6-7641-4100-9cfe-5ff1bf8393d4}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+ *   astroDms2rad   :   Convert an angle,given in user format, to radians.
+ *   ===========
+ *
+ *   Given    :  angle      an angle as ddmmss.ttt (DegreesMinutesSecs)
+ *   Returned :  rad        the angle as radians
+ *
+ *    The given angle, a floating value in the format DDMMSS.TTT, is 
+ *    converted to radians. See also tcsSplitHms.
+ *)
+FUNCTION F_Dms2Rad : LREAL
+VAR_INPUT
+	angle:	LREAL;
+END_VAR
+VAR
+	hh,hm,hs:	LREAL;
+	ded,der:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+double astroDms2rad (double angle)
+{
+   double hh,hm,hs;
+   double ded,der;
+   double de2ra = 0.017453292519943;
+
+   astroSplitHms(fabs_(angle),&hh,&hm,&hs);
+   ded=hh + hm/60.0 + hs/3600.0;
+   if (angle<0.0) ded=-ded; 
+   der=ded*de2ra;
+   
+   return(der);
+}*)
+
+F_SplitHms(ABS(angle),h=>hh,m=>hm,sec=>hs);
+
+ded	:= hh + hm/60.0 + hs/3600.0;
+
+IF angle<0.0 THEN
+	ded := -ded;
+END_IF
+
+der	:= ded * GCL.C_DEG2RAD;
+
+
+F_Dms2Rad	:= der;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_Dms2Rad">
+      <LineId Id="112" Count="26" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

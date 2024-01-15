@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_STAT_2_4" Id="{bc7ac56e-e0f1-4b54-8179-6e8b9e9c09fb}">
+    <Declaration><![CDATA[// EXAMPLE:	Extension of T_IODEV_STAT with 2 DI and 4 AI.
+// 			Used in FB_IODEV_2_4_2_2_USER_CONFIG.
+TYPE T_IODEV_STAT_2_4 EXTENDS T_IODEV_STAT :
+STRUCT
+	//
+	// Signals, inputs.
+	//
+	arrDI:	ARRAY [0..1] OF FB_IODEV_CH_DIG_IN;		// 2 digital inputs
+	arrAI:	ARRAY [0..3] OF FB_IODEV_CH_ANLG_IN;	// 4 analog inputs
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

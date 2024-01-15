@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_THLD_BASE" Id="{444425cb-ac17-43d2-88ff-ed23623aa366}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_THLD_BASE
+VAR_INPUT
+	in_nMode:		E_CRYO_THLD_MODE := E_CRYO_THLD_MODE.FIXED;
+	in_aThld:		ARRAY [1..4] OF LREAL;	// Array of fixed thresholds. See E_CRYO_ALARM_LEVELS and E_CRYO_ALARM_IDX.
+	in_aThldDelay:	ARRAY [1..4] OF UDINT;	// Array of delays for each threshold [ms].
+	in_lrHyst:		LREAL := 0.0;			// Hysteresis value, percent or absolute (see in_bHystPct)
+	in_bHystPct:	BOOL := TRUE;			// If TRUE, hysteresis is in %, otherwise absolute value.
+	in_lrValue:		LREAL;					// Value to compare against the thresholds
+	in_lrPar1:		LREAL := 0.0;			// Par1, e.g. temperature, for ACTIVE thresholds
+END_VAR
+VAR_OUTPUT
+	out_aThld:			ARRAY [1..4] OF LREAL;	// Active thresholds
+	out_nAlarmState:	E_CRYO_ALARM_LEVEL	:= E_CRYO_ALARM_LEVEL.NORMAL;	// Alarm state, e.g. ALARM_HIGH
+	out_sAlarmState:	STRING := 'NORMAL';	// Alarm state as a string, e.g. 'ALARM HIGH'
+END_VAR
+VAR
+	timer:	TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set thresholds
+M_SetThresholds();
+
+// Compare input value against the thresholds
+M_CheckAlarms();
+]]></ST>
+    </Implementation>
+    <Method Name="M_CheckAlarms" Id="{fd6d363d-95cf-421c-9888-bf474639abc3}">
+      <Declaration><![CDATA[METHOD M_CheckAlarms : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	lrHyst:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Execute the delay timer.
+timer();
+
+//
+// Check the input value against the thresholds
+// and set alarms and warnings.
+// If configured for, activate alarms after a delay.
+// Note: the value is compared against the OUT Thresholds !!!
+//
+CASE out_nAlarmState OF
+	E_CRYO_ALARM_LEVEL.NORMAL:
+		IF in_lrValue > out_aThld[E_CRYO_ALARM_IDX.ALARM_HIGH] THEN
+			IF in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_HIGH] > 0	THEN
+				// Activation delay is configured.
+				// Start the timer and change state to WARNING_HIGH.
+				timer(IN:=FALSE);
+				timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_HIGH]));
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_HIGH;
+			ELSE
+				timer(IN:=FALSE);
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_HIGH;
+			END_IF
+		ELSIF in_lrValue < out_aThld[E_CRYO_ALARM_IDX.ALARM_LOW] THEN
+			IF in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_LOW] > 0	THEN
+				// Activation delay is configured.
+				// Start the timer and change state to WARNING_LOW.
+				timer(IN:=FALSE);
+				timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_LOW]));
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_LOW;
+			ELSE
+				timer(IN:=FALSE);
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_LOW;
+			END_IF
+		ELSIF in_lrValue > out_aThld[E_CRYO_ALARM_IDX.WARNING_HIGH] THEN
+			IF in_aThldDelay[E_CRYO_ALARM_IDX.WARNING_HIGH] > 0	THEN
+				// Activation delay is configured.
+				// Activate the warning once the timer expires.
+				timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_aThldDelay[E_CRYO_ALARM_IDX.WARNING_HIGH]));
+				IF timer.Q	THEN
+					IF in_lrValue > out_aThld[E_CRYO_ALARM_IDX.ALARM_HIGH] THEN
+						// It might be that due to the delay the alarm level has been reached.
+						out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_HIGH;
+					ELSE
+						out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_HIGH;
+					END_IF
+				END_IF
+			ELSE
+				timer(IN:=FALSE);
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_HIGH;
+			END_IF
+		ELSIF	in_lrValue < out_aThld[E_CRYO_ALARM_IDX.WARNING_LOW]	THEN
+			IF in_aThldDelay[E_CRYO_ALARM_IDX.WARNING_LOW] > 0	THEN
+				// Activation delay is configured.
+				// Activate the warning once the timer expires.
+				timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_aThldDelay[E_CRYO_ALARM_IDX.WARNING_LOW]));
+				IF timer.Q	THEN
+					IF in_lrValue < out_aThld[E_CRYO_ALARM_IDX.ALARM_LOW] THEN
+						// It might be that due to the delay the alarm level has been reached.
+						out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_LOW;
+					ELSE
+						out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_LOW;
+					END_IF
+				END_IF
+			ELSE
+				timer(IN:=FALSE);
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_LOW;
+			END_IF
+		ELSE
+			timer(IN:=FALSE);
+		END_IF
+	E_CRYO_ALARM_LEVEL.WARNING_HIGH:
+		lrHyst	:= M_GetHysteresis(E_CRYO_ALARM_IDX.WARNING_HIGH);
+		IF	in_lrValue > out_aThld[E_CRYO_ALARM_IDX.ALARM_HIGH]	THEN
+			IF in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_HIGH] > 0	THEN
+				// Activation delay is configured.
+				// Activate the alarm once the timer expires.
+				timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_HIGH]));
+				IF timer.Q	THEN
+					out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_HIGH;
+				END_IF
+			ELSE
+				timer(IN:=FALSE);
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_HIGH;
+			END_IF
+		ELSIF in_lrValue < (out_aThld[E_CRYO_ALARM_IDX.WARNING_HIGH] - lrHyst) THEN
+			timer(IN:=FALSE);
+			out_nAlarmState	:= E_CRYO_ALARM_LEVEL.NORMAL;
+		ELSE
+			timer(IN:=FALSE);
+		END_IF
+	E_CRYO_ALARM_LEVEL.WARNING_LOW:
+		lrHyst	:= M_GetHysteresis(E_CRYO_ALARM_IDX.WARNING_LOW);
+		IF	in_lrValue < out_aThld[E_CRYO_ALARM_IDX.ALARM_LOW]	THEN
+			IF in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_LOW] > 0	THEN
+				// Activation delay is configured.
+				// Activate the alarm once the timer expires.
+				timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_aThldDelay[E_CRYO_ALARM_IDX.ALARM_LOW]));
+				IF timer.Q	THEN
+					out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_LOW;
+				END_IF
+			ELSE
+				timer(IN:=FALSE);
+				out_nAlarmState	:= E_CRYO_ALARM_LEVEL.ALARM_LOW;
+			END_IF
+		ELSIF in_lrValue > (out_aThld[E_CRYO_ALARM_IDX.WARNING_LOW] + lrHyst) THEN
+			timer(IN:=FALSE);
+			out_nAlarmState	:= E_CRYO_ALARM_LEVEL.NORMAL;
+		ELSE
+			timer(IN:=FALSE);
+		END_IF
+	E_CRYO_ALARM_LEVEL.ALARM_HIGH:
+		lrHyst	:= M_GetHysteresis(E_CRYO_ALARM_IDX.ALARM_HIGH);
+		IF in_lrValue < (out_aThld[E_CRYO_ALARM_IDX.ALARM_HIGH] - lrHyst) THEN
+			out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_HIGH;
+		END_IF
+	E_CRYO_ALARM_LEVEL.ALARM_LOW:
+		lrHyst	:= M_GetHysteresis(E_CRYO_ALARM_IDX.ALARM_LOW);
+		IF in_lrValue > (out_aThld[E_CRYO_ALARM_IDX.ALARM_LOW] + lrHyst) THEN
+			out_nAlarmState	:= E_CRYO_ALARM_LEVEL.WARNING_LOW;
+		END_IF
+END_CASE
+
+// Set alarm level labels
+M_UserSetLabel(out_nAlarmState);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetHysteresis" Id="{a1c163dc-0c4c-44fd-9369-2012badcc023}">
+      <Declaration><![CDATA[METHOD M_GetHysteresis : LREAL
+VAR_INPUT
+	in_nIndex:	E_CRYO_ALARM_IDX;
+END_VAR
+VAR
+	lrHyst:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Get the absolute value of hysteresis.
+// 
+IF in_bHystPct THEN
+	// The vaue is given as percentage of threshold.
+	lrHyst	:= in_aThld[in_nIndex] * in_lrHyst / 100.0;
+ELSE
+	// The vaue is given as absolute value.
+	lrHyst	:= in_lrHyst;
+END_IF
+
+M_GetHysteresis	:= ABS(lrHyst);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetThresholds" Id="{a93233dd-9155-4b13-bc45-3914752de314}">
+      <Declaration><![CDATA[METHOD M_SetThresholds : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE in_nMode OF
+	E_CRYO_THLD_MODE.FIXED:
+		// Take the input array for thresholds
+		FOR i:=1 TO 4 DO
+			out_aThld[i]	:= in_aThld[i];
+		END_FOR
+	E_CRYO_THLD_MODE.ACTIVE:
+		// Dynamically set thresholds
+		M_UserSetActiveThresholds();
+	E_CRYO_THLD_MODE.LAST_ACTIVE:
+		// Keep last thresholds. Don't do anything.
+		;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UserSetActiveThresholds" Id="{f8fcbf4a-3da3-480e-b5e4-e005cec0e4ff}">
+      <Declaration><![CDATA[METHOD M_UserSetActiveThresholds : BOOL
+// This is a Dummy implementation of active thresholds.
+// TODO User: Define specific implementation.
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User
+// Define specific implementation.
+// This is just an example.
+//
+out_aThld[E_CRYO_ALARM_IDX.ALARM_LOW]	:= in_aThld[E_CRYO_ALARM_IDX.ALARM_LOW]    + in_lrPar1;
+out_aThld[E_CRYO_ALARM_IDX.WARNING_LOW]	:= in_aThld[E_CRYO_ALARM_IDX.WARNING_LOW]  + in_lrPar1;
+out_aThld[E_CRYO_ALARM_IDX.WARNING_HIGH]	:= in_aThld[E_CRYO_ALARM_IDX.WARNING_HIGH] - in_lrPar1;
+out_aThld[E_CRYO_ALARM_IDX.ALARM_HIGH]	:= in_aThld[E_CRYO_ALARM_IDX.ALARM_HIGH]   - in_lrPar1;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UserSetLabel" Id="{bf781e12-91ec-4d3c-884b-b49bf551b4aa}">
+      <Declaration><![CDATA[METHOD M_UserSetLabel : BOOL
+VAR_INPUT
+	in_nLevel:	E_CRYO_ALARM_LEVEL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Set labels depending on the alarm level.
+// This is the default implementation.
+// To be overwritten by User if different labels are needed.
+//
+CASE in_nLevel OF
+	E_CRYO_ALARM_LEVEL.ALARM_LOW:
+		out_sAlarmState	:= 'ALARM LOW';
+	E_CRYO_ALARM_LEVEL.WARNING_LOW:
+		out_sAlarmState	:= 'WARNING LOW';
+	E_CRYO_ALARM_LEVEL.NORMAL:
+		out_sAlarmState	:= 'NORMAL';
+	E_CRYO_ALARM_LEVEL.WARNING_HIGH:
+		out_sAlarmState	:= 'WARNING HIGH';
+	E_CRYO_ALARM_LEVEL.ALARM_HIGH:
+		out_sAlarmState	:= 'ALARM HIGH';
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_THLD_BASE">
+      <LineId Id="155" Count="4" />
+      <LineId Id="120" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_THLD_BASE.M_CheckAlarms">
+      <LineId Id="123" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="124" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="210" Count="3" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="223" Count="3" />
+      <LineId Id="230" Count="3" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="234" Count="5" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="168" Count="4" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="174" Count="4" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="189" Count="15" />
+      <LineId Id="185" Count="1" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="158" Count="1" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="156" Count="1" />
+      <LineId Id="147" Count="7" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="163" Count="1" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="90" Count="1" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="98" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_THLD_BASE.M_GetHysteresis">
+      <LineId Id="6" Count="9" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_THLD_BASE.M_SetThresholds">
+      <LineId Id="54" Count="12" />
+      <LineId Id="53" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_THLD_BASE.M_UserSetActiveThresholds">
+      <LineId Id="30" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="40" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_THLD_BASE.M_UserSetLabel">
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="8" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

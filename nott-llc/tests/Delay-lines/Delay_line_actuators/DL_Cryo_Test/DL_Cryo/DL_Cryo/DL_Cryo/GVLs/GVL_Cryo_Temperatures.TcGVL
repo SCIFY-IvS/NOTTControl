@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="GVL_Cryo_Temperatures" Id="{84573308-e50a-4a80-bed9-7ff4def19a4e}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	
+// Temperature Sensors
+	{attribute 'OPC.UA.DA' := '1'}
+	Temp_1 : REAL;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	Temp_2 : REAL;
+
+	{attribute 'OPC.UA.DA' := '1'}
+	Temp_3 : REAL;
+
+	{attribute 'OPC.UA.DA' := '1'}
+	Temp_4 : REAL;	
+	
+// Heater 
+
+	{attribute 'OPC.UA.DA' := '1'}
+	CryoHeater_1 : UINT;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	CryoHeater_2 : UINT;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	CryoHeater_3 : UINT;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4020.12">
+  <DUT Name="E_IODEV_CONVERSION" Id="{68206790-ab63-4204-adcd-ad7865c061fc}">
+    <Declaration><![CDATA[TYPE E_IODEV_CONVERSION :
+(
+	CONVERSION_IODEV_NONE	:= 0,
+	
+	// Digital signals
+	CONVERSION_IODEV_DIGITAL,
+	// Analog signals
+	CONVERSION_IODEV_LINEAR,
+	CONVERSION_IODEV_QUADRATIC,
+	CONVERSION_IODEV_EXP,
+	CONVERSION_IODEV_EXP10
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

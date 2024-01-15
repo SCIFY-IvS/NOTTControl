@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="MAIN2" Id="{0130fff6-1a17-435b-ac7d-f0aa5d46a553}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN2
+VAR
+	
+	fbSender: FB_MUDPI_SENDER;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_trk_data          AT %I*: PointingKernelPositions;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+fbSender();
+fbSender.SetTimestamp(i_trk_data.time_tai);
+fbSender.SetMudpiPayload(ADR(i_trk_data), SIZEOF(i_trk_data));
+fbSender.SendData();]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN2">
+      <LineId Id="14" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

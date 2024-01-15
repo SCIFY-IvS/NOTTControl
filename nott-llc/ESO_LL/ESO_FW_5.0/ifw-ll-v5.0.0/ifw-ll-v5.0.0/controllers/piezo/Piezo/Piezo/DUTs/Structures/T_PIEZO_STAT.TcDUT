@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_PIEZO_STAT" Id="{b8d52083-9990-40a7-82e3-575bf4048bc9}">
+    <Declaration><![CDATA[TYPE T_PIEZO_STAT :
+STRUCT
+	bLocal:			BOOL	:= FALSE;						(* if TRUE, device operated from PLC GUI *)
+
+	nLastCommand:	E_PIEZO_COMMAND		:= E_PIEZO_COMMAND.NONE;			(* Last command sent to the device *)
+
+	nErrorCode: 	E_PIEZO_ERROR 		:= E_PIEZO_ERROR.OK;				(* Error code *)
+	nHwStatus: 		E_PIEZO_HW_STATUS	:= E_PIEZO_HW_STATUS.UNKNOWN; 	(* HW status. See E_PIEZO_HW_STATUS *)
+	nRpcErrorCode: 	E_PIEZO_RPC_ERROR 	:= E_PIEZO_RPC_ERROR.OK;		(* RPC Error code *)
+	nStatus: 		E_PIEZO_STATUS		:= E_PIEZO_STATUS.OK; 			(* Device status *)
+	nState:			E_PIEZO_STATE		:= E_PIEZO_STATE.NOTOP;
+	nSubstate:		E_PIEZO_SUBSTATE	:= E_PIEZO_SUBSTATE.NOTOP_NOTREADY;
+	
+
+	sErrorText: 	STRING 	:= 'OK'; 						(* Error text *)
+	sHwStatus: 		STRING 	:= 'UNKNOWN'; 					(* HW Status in textual form: 'UNKNOWN', 'ERROR', 'ON' or 'OFF' *)
+	sLastCommand:	STRING	:= 'NONE';						(* Last command, as string, sent to the device *)
+	sLibVersion:	STRING	:= 'UNKNOWN';					(* Library version as string, e.g. '1.2.0.0' *)
+	sRpcErrorText: 	STRING 	:= 'OK'; 						(* RPC Error text *)
+	sStatus: 		STRING 	:= 'OK'; 						(* Status in textual form, e.g. 'OFF' *)
+	
+	sState:			STRING	:= 'NOT OP';
+	sSubstate:		STRING	:= 'NOT READY';
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+	
+	nCycleCounter:	UDINT	:= 0;							// Alive flag
+	nCycleTime:		UDINT	:= 0;							// Cycle time in us (microsec)
+
+	lrSetPosUsr:	ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_LREAL; 	// Set position in user units
+	lrActPosUsr:	ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_LREAL; 	// Actual position in user units
+	nSetPosBit:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT; 		// Set position in ADC bits
+	nActPosBit:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_DINT; 		// Actual position in ADC bits
+
+	nTimeOn: 		UDINT 	:= 0;						// Time device has been active [sec] 
+	
+	// EICSSW-634: 
+	// Slow updating OPC UA attributes to be monitored by the WS manager.
+	// These attributes are updated every 100 ms.
+	//
+	
+	// Number of cycles to skip to get update every 100 ms (default = 100 cycles).
+	// Correctly set in M_Configure() taking into account cycle time.
+	nMonSkipCycles:	DINT	:= 100;	
+	
+	monSetPosBit_0:	DINT;	// i.e. nSetPosBit[0].nValue
+	monSetPosBit_1:	DINT;
+	monSetPosBit_2:	DINT;
+	monActPosBit_0:	DINT;	// i.e. nActPosBit[0].nValue
+	monActPosBit_1:	DINT;
+	monActPosBit_2:	DINT;
+	monSetPosUsr_0:	LREAL;	// i.e. lrSetPosUsr[0].lrValue
+	monSetPosUsr_1:	LREAL;
+	monSetPosUsr_2:	LREAL;
+	monActPosUsr_0:	LREAL;	// i.e. lrActPosUsr[0].lrValue
+	monActPosUsr_1:	LREAL;
+	monActPosUsr_2:	LREAL;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

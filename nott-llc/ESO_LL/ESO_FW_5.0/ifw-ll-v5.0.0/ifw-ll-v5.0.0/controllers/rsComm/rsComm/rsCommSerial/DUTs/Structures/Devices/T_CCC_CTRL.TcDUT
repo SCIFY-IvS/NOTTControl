@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_CCC_CTRL" Id="{281d2a55-a302-41d5-a494-050abcac5065}">
+    <Declaration><![CDATA[TYPE T_CCC_CTRL  EXTENDS T_RS_BASE_CTRL:
+STRUCT
+	(* CTRL *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

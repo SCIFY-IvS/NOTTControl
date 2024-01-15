@@ -1,0 +1,627 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_ASTRO" Id="{1014d482-4860-4a3b-8dfd-8929b2722704}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ASTRO
+VAR_INPUT
+	in_TimeStat:		REFERENCE TO T_TIME_STAT;	// REF to FB_TIMER.stat
+	in_Ra_hhmmss:		LREAL	:= 0.0;
+	in_Dec_ddmmss:		LREAL	:= -890000.0;
+	in_nTel:			E_ASTRO_TELESCOPE	:= E_ASTRO_TELESCOPE.ELT;
+END_VAR
+VAR_OUTPUT
+	// CCS Deterministic data that normally come 
+	// from the Telescope via MUDPI interface.
+	{attribute 'OPC.UA.DA' := '0'}
+	out_CcsDeterministic:	T_ASTRO_POINTING_KERNEL_POSITIONS;
+END_VAR
+VAR
+
+	// All data calculated in FB_ASTRO
+	{attribute 'OPC.UA.DA' := '0'}
+	AstroData: 				T_ASTRO_DATA;	
+    UserPointingKernel: 	T_ASTRO_POINTING_KERNEL_POSITIONS;		
+ 
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	q_trk_data          AT %Q*: T_ASTRO_POINTING_KERNEL_POSITIONS;
+
+	bConfigured:	BOOL;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Copy input variables on start
+M_Configure();
+
+//
+// Update all input parameters into AstroData structure.
+//
+M_AstroDataUpdate();
+
+//
+// Update tracking data, i.e. gmst, ra, dec, alt, az, pa, ha, etc.
+// Update also CcsDeterministic output structure.
+//
+M_TrkUpdate();
+
+// Set outputs for mapping.
+q_trk_data	:= out_CcsDeterministic;
+]]></ST>
+    </Implementation>
+    <Method Name="M_AstroDataUpdate" Id="{ea9bfb53-97b5-43cb-b495-09921f77ba10}">
+      <Declaration><![CDATA[METHOD M_AstroDataUpdate
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{49ee305e-ac0c-45ea-b7e2-293bc76ee32a}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bConfigured	THEN
+	bConfigured	:= TRUE;
+	
+	AstroData.mean.alpha	:= in_Ra_hhmmss;
+	AstroData.mean.delta	:= in_Dec_ddmmss;
+	
+	// Set telescope coordinates
+	CASE in_nTel OF 
+		E_ASTRO_TELESCOPE.ELT:
+			AstroData.site.longitude	:= F_astroDms2rad( 701119.20);
+			AstroData.site.latitude		:= F_astroDms2rad(-243511.99);
+			AstroData.site.height		:= 3046.0;
+		
+		E_ASTRO_TELESCOPE.UT1:
+			AstroData.site.longitude	:= F_astroDms2rad( 702418.27);
+			AstroData.site.latitude		:= F_astroDms2rad(-243739.44);
+			AstroData.site.height		:= 2635.0;
+		
+		E_ASTRO_TELESCOPE.UT2:
+			AstroData.site.longitude	:= F_astroDms2rad( 702417.39);
+			AstroData.site.latitude		:= F_astroDms2rad(-243737.80);
+			AstroData.site.height		:= 2635.0;
+		
+		E_ASTRO_TELESCOPE.UT3:
+			AstroData.site.longitude	:= F_astroDms2rad( 702416.32);
+			AstroData.site.latitude		:= F_astroDms2rad(-243736.64);
+			AstroData.site.height		:= 2635.0;
+		
+		E_ASTRO_TELESCOPE.UT4:
+			AstroData.site.longitude	:= F_astroDms2rad( 702414.24);
+			AstroData.site.latitude		:= F_astroDms2rad(-243737.36);
+			AstroData.site.height		:= 2635.0;
+		
+	END_CASE
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetDec_ddmmss" Id="{05d95b06-16e7-4ca2-95f3-18264ec60be5}">
+      <Declaration><![CDATA[METHOD M_GetDec_ddmmss : LREAL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetDec_ddmmss	:= AstroData.mean.delta;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRa_hhmmss" Id="{63fb2569-174d-4a9a-8c94-dc687c5047d1}">
+      <Declaration><![CDATA[METHOD M_GetRa_hhmmss : LREAL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetRa_hhmmss	:= AstroData.mean.alpha;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_OffsetRaDec_arcsec" Id="{a29ca343-ab80-4f02-a702-12e551a63f85}">
+      <Declaration><![CDATA[// Set Ra and Dec offsets in arcsec
+METHOD M_OffsetRaDec_arcsec
+VAR_INPUT
+	in_lrOffsetRa_arcsec:	LREAL;	// Offset in Ra  [arcsec]
+	in_lrOffsetDec_arcsec:	LREAL;	// Offset in Dec [arcsec]
+END_VAR
+VAR
+	lrTmp:			LREAL;
+	lrOffset_rad:	LREAL;	// Offset in [rad].
+	lrOffset_h:		LREAL;	// Offset in [h].
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Ra offset
+//
+
+// Get Ra in rad
+lrTmp	:= F_astroHms2rad(AstroData.mean.alpha);
+
+// Convert arcsec->hour
+lrOffset_h	:= in_lrOffsetRa_arcsec / 3600.0 * 24 / 360.0;
+
+// Conversion h->rad
+lrOffset_rad	:= lrOffset_h / 24.0 * 2*PI;
+
+// Add the offset to the current Ra value in rad
+lrTmp	:= lrTmp + lrOffset_rad;
+
+// Convert rad to hhmmss.
+AstroData.mean.alpha	:= F_astroRad2Hms(lrTmp);
+
+
+//
+// Dec offset
+//
+
+// Get Dec in rad
+lrTmp	:= F_astroDms2rad(AstroData.mean.delta);
+
+// Get the Dec offset in rad first.
+// Conversion: arcsec->deg, and then deg->rad.
+lrOffset_rad	:= (in_lrOffsetDec_arcsec / 3600.0) * PI / 180.0;
+
+// Add the offset to the current Dec value in rad
+lrTmp	:= lrTmp + lrOffset_rad;
+
+// Convert rad to ddmmss.
+AstroData.mean.delta	:= F_astroRad2Dms(lrTmp);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRaDec_hdmmss" Id="{0978c2fc-124c-4fa2-b6e2-1743a2b6da56}">
+      <Declaration><![CDATA[// Set Ra in hhmmss.sss and Dec in ddmmss.sss
+METHOD M_SetRaDec_hdmmss
+VAR_INPUT
+	in_lrRa:	LREAL;	// Ra  [hhmmss.sss]
+	in_lrDec:	LREAL;	// Dec [ddmmss.sss]
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[AstroData.mean.alpha	:= in_lrRa;
+AstroData.mean.delta	:= in_lrDec;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_TrkUpdate" Id="{d5f63a1c-4c3c-4d6b-8408-002c5ac1d2b9}">
+      <Declaration><![CDATA[METHOD M_TrkUpdate : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	ra_r, dec_r:	LREAL;
+	temp1, temp2, temp3, temp4:	LREAL;
+	ut1, t, tu, A:	LREAL;
+	
+	sh, ch, cd, chcd, sp, sdcp, cp, sd, x, y, rsq:	LREAL;
+
+	track:	REFERENCE TO T_ASTRO_TRACKING_DATA;
+	coord:	REFERENCE TO T_ASTRO_SITE_CONSTANTS;
+	time_data:	REFERENCE TO T_ASTRO_TIME;
+	
+	latitude, longitude:	LREAL;
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// This is the slalib C code translated into ST.
+//
+// HRESULT TrkUpdate()
+//
+
+//
+// Set references to output data structures
+//
+track		REF=AstroData.tracking_data;
+coord		REF=AstroData.site;
+time_data	REF=AstroData.time_data;
+
+
+// Copy ra and dec from input to output data structures
+track.ra_hms  := AstroData.mean.alpha;
+track.dec_dms := AstroData.mean.delta;
+
+// Get ra and dec in radians and degrees
+track.ra_r		:= F_astroHms2rad(track.ra_hms);
+track.ra_deg	:= track.ra_r * GCL.C_RAD2DEG;
+track.dec_r		:= F_astroDms2rad(track.dec_dms);
+track.dec_deg	:= track.dec_r * GCL.C_RAD2DEG;
+
+ra_r	:= track.ra_r;
+dec_r	:= track.dec_r;
+	
+
+latitude	:= AstroData.site.latitude;
+longitude	:= AstroData.site.longitude;
+
+temp1 := COS(dec_r) * TAN(latitude);
+temp2 := SIN(dec_r);
+temp3 := temp2 * SIN(latitude);
+temp4 := COS(dec_r) * COS(latitude);
+
+
+//
+// Calculate times
+//
+ut1 := F_timeUTCToMJD(F_timeGetUTC(in_TimeStat.lUtcTime));	
+tu := (ut1 - 51544.5) / 36525.0;
+
+// Updata T_ASTRO_TIME structure
+time_data.leap_second	:= in_TimeStat.el6688.diagnostics.leap_second;
+IF time_data.leap_second = 0	THEN
+	time_data.leap_second	:= 37;
+END_IF
+time_data.lUtcTime		:= in_TimeStat.lUtcTime;
+time_data.sUtcTime		:= in_TimeStat.sUtcTime;
+time_data.ut1			:= ut1;
+time_data.tu			:= tu;
+
+time_data.gmst :=	F_vltMOD(ut1, 1.0) * GCL.C_2PI +
+				(24110.54841 + (8640184.812866 + (0.093104 - 6.2E-6 * tu) * tu) * tu) * GCL.C_S2R;
+time_data.gmst := F_vltMOD(time_data.gmst, GCL.C_2PI);
+
+IF time_data.gmst < 0.0 THEN
+	time_data.gmst := time_data.gmst + GCL.C_2PI;
+END_IF
+
+//
+// Hour angle
+//
+track.ha_r := time_data.gmst - (longitude + ra_r);	// TODO: Check the formula
+
+// Hour angle is in range 0..2PI [rad], i.e. 0..24 [hour]
+IF track.ha_r > GCL.C_2PI THEN
+	track.ha_r	:= track.ha_r - GCL.C_2PI;
+ELSIF track.ha_r < 0.0 THEN
+	track.ha_r	:= track.ha_r + GCL.C_2PI;
+END_IF
+
+track.ha_deg	:= track.ha_r * GCL.C_RAD2DEG;
+track.ha_hms	:= F_astroRad2Hms(track.ha_r);
+
+//
+// CALC. parallactic angle 
+//
+// t = tan(latitude) * cos(dec) - sin(dec) * cos(hourAngle); 
+t := temp1 - temp2 * COS(track.ha_r);
+IF t = 0.0 THEN
+	M_TrkUpdate := FALSE;  // error 
+	RETURN;
+END_IF
+
+
+// 
+// Parallactic angle
+// 
+track.pa_r := F_slaPa(track.ha_r, dec_r, latitude);
+
+// Original PA calculation
+track.pa_r := ATAN(SIN(track.ha_r) / t) + GCL.C_PI;
+track.pa_r := F_vltMod(GCL.C_PI2 * F_vltSign(t) + track.pa_r + GCL.C_PI2 , GCL.C_2PI) +
+					GCL.C_PI2 * (-F_vltSign(track.ha_r) + 1) * 
+				  (F_vltSign(dec_r - latitude) - 1);	
+// Keep -PI < PA < PI
+IF track.pa_r > GCL.C_PI THEN
+	track.pa_r := track.pa_r - GCL.C_2PI;
+ELSIF track.pa_r < -GCL.C_PI THEN
+	track.pa_r := track.pa_r + GCL.C_2PI;
+END_IF
+
+track.pa_deg := track.pa_r * GCL.C_RAD2DEG;
+
+
+//
+// CALC. telescope altitude in radians and degrees.
+//
+// altitude = asin(sin(dec) * sin(latitude) + cos(dec) * cos(latitude) * cos(hourAngle));
+track.alt_r := ASIN(temp3 + temp4 * COS(track.ha_r));
+track.alt_deg := track.alt_r * GCL.C_RAD2DEG;
+
+//
+// DPO: slaE2h()
+//
+(*
+	* A = acos((sin(dec) - sin(altitude) * sin(latitude))
+	*             ---------------------------------------
+	*			      cos(altitude)*cos(latitude))
+*)
+sh := SIN(track.ha_r);
+ch := COS(track.ha_r);
+sd := SIN(dec_r);
+cd := COS(dec_r);
+sp := SIN(latitude);
+cp := COS(latitude);
+chcd := ch * cd;
+sdcp := sd * cp;
+x := - chcd * sp + sdcp;
+y := - sh * cd;
+rsq := x *x + y * y;
+
+IF rsq <> 0.0 THEN
+	A := F_atan2(y,x);
+ELSE
+	A := 0.0;
+END_IF
+
+
+// The above formula assumes 0deg North and 90deg East. This
+// must be corrected for VLT conventions 0deg is South. The 
+// complete range of azimuth will be between 0-360.
+// if (A < 0.0) A += vlt2PI;
+A := - (A + GCL.C_PI);
+IF A < 0.0 THEN
+	A := A + GCL.C_2PI;
+END_IF
+A := F_vltMOD(A,GCL.C_2PI);
+
+track.az_r 		:= A;
+track.az_deg	:= track.az_r * GCL.C_RAD2DEG;
+
+//
+// CALC. Field Rotation 
+//
+track.fr_r		:= track.pa_r -  track.alt_r;
+track.fr_deg	:= track.fr_r * GCL.C_RAD2DEG;
+
+//////////////////////////
+// Populate OUT structure
+//////////////////////////
+
+out_CcsDeterministic.current_observed_altaz[0]	:= track.alt_r;
+out_CcsDeterministic.current_observed_altaz[1]	:= track.az_r;
+
+out_CcsDeterministic.target_observed_altaz[0]	:= track.alt_r;
+out_CcsDeterministic.target_observed_altaz[1]	:= track.az_r;
+
+out_CcsDeterministic.time_tai	:= in_TimeStat.lrTaiUnixTimeinSecs;
+out_CcsDeterministic.time_utc	:= in_TimeStat.lrTaiUnixTimeinSecs + time_data.leap_second;
+
+out_CcsDeterministic.radec_at_altaz_at_requested_xy[0]	:= track.ra_r;
+out_CcsDeterministic.radec_at_altaz_at_requested_xy[1]	:= track.dec_r;
+
+out_CcsDeterministic.observed_altaz_at_requested_xy[0]	:= 0.0;
+out_CcsDeterministic.observed_altaz_at_requested_xy[1]	:= 0.0;
+
+out_CcsDeterministic.time_lst := track.ha_r + track.ra_r;
+
+out_CcsDeterministic.parallactic_angle	:= track.pa_r;
+out_CcsDeterministic.north_angle	:= track.pa_r + track.alt_r;
+out_CcsDeterministic.pupil_angle	:= track.alt_r;
+
+
+
+UserPointingKernel.parallactic_angle 	:= track.pa_r * GCL.C_RAD2DEG;
+UserPointingKernel.north_angle 			:= out_CcsDeterministic.north_angle * GCL.C_RAD2DEG;
+UserPointingKernel.pupil_angle 			:= track.alt_r * GCL.C_RAD2DEG;
+UserPointingKernel.radec_at_altaz_at_requested_xy[0]:= F_astroRad2Hms(track.ra_r);
+UserPointingKernel.radec_at_altaz_at_requested_xy[1]:= F_astroRad2Dms(track.dec_r);
+UserPointingKernel.target_observed_altaz[0]		:= track.alt_r  * GCL.C_RAD2DEG;
+UserPointingKernel.target_observed_altaz[1]		:= track.az_r  * GCL.C_RAD2DEG;
+UserPointingKernel.current_observed_altaz[0]	:= track.alt_r  * GCL.C_RAD2DEG;
+UserPointingKernel.current_observed_altaz[1]	:= track.az_r  * GCL.C_RAD2DEG;
+
+M_TrkUpdate := TRUE;  // OK 
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ASTRO">
+      <LineId Id="254" Count="0" />
+      <LineId Id="252" Count="1" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="169" Count="1" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="224" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_AstroDataUpdate">
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_Configure">
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="22" Count="3" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="26" Count="19" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_GetDec_ddmmss">
+      <LineId Id="13" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_GetRa_hhmmss">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_OffsetRaDec_arcsec">
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="51" Count="3" />
+      <LineId Id="34" Count="12" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_SetRaDec_hdmmss">
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ASTRO.M_TrkUpdate">
+      <LineId Id="443" Count="0" />
+      <LineId Id="445" Count="1" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="447" Count="0" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="449" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="450" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="331" Count="1" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="333" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="429" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="119" Count="2" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="338" Count="0" />
+      <LineId Id="341" Count="0" />
+      <LineId Id="340" Count="0" />
+      <LineId Id="125" Count="3" />
+      <LineId Id="353" Count="1" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="452" Count="1" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="491" Count="0" />
+      <LineId Id="490" Count="0" />
+      <LineId Id="488" Count="0" />
+      <LineId Id="536" Count="2" />
+      <LineId Id="409" Count="0" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="408" Count="0" />
+      <LineId Id="410" Count="1" />
+      <LineId Id="132" Count="1" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="394" Count="0" />
+      <LineId Id="137" Count="1" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="455" Count="0" />
+      <LineId Id="454" Count="0" />
+      <LineId Id="456" Count="1" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="435" Count="0" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="434" Count="0" />
+      <LineId Id="436" Count="0" />
+      <LineId Id="438" Count="1" />
+      <LineId Id="437" Count="0" />
+      <LineId Id="244" Count="2" />
+      <LineId Id="458" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="459" Count="0" />
+      <LineId Id="145" Count="3" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="460" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="280" Count="1" />
+      <LineId Id="262" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="432" Count="0" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="430" Count="1" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="167" Count="1" />
+      <LineId Id="462" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="171" Count="1" />
+      <LineId Id="463" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="464" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="178" Count="2" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="185" Count="10" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="219" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="197" Count="6" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="204" Count="3" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="208" Count="1" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="559" Count="0" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="319" Count="0" />
+      <LineId Id="321" Count="1" />
+      <LineId Id="329" Count="0" />
+      <LineId Id="469" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="471" Count="0" />
+      <LineId Id="473" Count="1" />
+      <LineId Id="481" Count="2" />
+      <LineId Id="475" Count="2" />
+      <LineId Id="470" Count="0" />
+      <LineId Id="478" Count="1" />
+      <LineId Id="486" Count="1" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="509" Count="0" />
+      <LineId Id="539" Count="0" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="540" Count="0" />
+      <LineId Id="511" Count="0" />
+      <LineId Id="510" Count="0" />
+      <LineId Id="512" Count="1" />
+      <LineId Id="324" Count="0" />
+      <LineId Id="514" Count="1" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="517" Count="0" />
+      <LineId Id="516" Count="0" />
+      <LineId Id="518" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="117" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

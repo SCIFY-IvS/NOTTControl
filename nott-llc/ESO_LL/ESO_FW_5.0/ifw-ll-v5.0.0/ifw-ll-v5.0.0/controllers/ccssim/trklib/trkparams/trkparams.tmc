@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcModuleClass xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2009/05/TcModuleClass">
+  <Vendor>
+    <Name>C++ Module Vendor</Name>
+  </Vendor>
+  <DataTypes ><DataType><Name GUID="{c54078a5-7668-499a-8f9f-9f7741190e0f}">SlaMappa</Name><BitSize>1344</BitSize><SubItem><Name>par1</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>par2</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>64</BitOffs></SubItem><SubItem><Name>par3</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>128</BitOffs></SubItem><SubItem><Name>par4</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>192</BitOffs></SubItem><SubItem><Name>par5</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>256</BitOffs></SubItem><SubItem><Name>par6</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>320</BitOffs></SubItem><SubItem><Name>par7</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>384</BitOffs></SubItem><SubItem><Name>par8</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>448</BitOffs></SubItem><SubItem><Name>par9</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>512</BitOffs></SubItem><SubItem><Name>par10</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>576</BitOffs></SubItem><SubItem><Name>par11</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>640</BitOffs></SubItem><SubItem><Name>par12</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>704</BitOffs></SubItem><SubItem><Name>par13</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>768</BitOffs></SubItem><SubItem><Name>par14</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>832</BitOffs></SubItem><SubItem><Name>par15</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>896</BitOffs></SubItem><SubItem><Name>par16</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>960</BitOffs></SubItem><SubItem><Name>par17</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>1024</BitOffs></SubItem><SubItem><Name>par18</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>1088</BitOffs></SubItem><SubItem><Name>par19</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>1152</BitOffs></SubItem><SubItem><Name>par20</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>1216</BitOffs></SubItem><SubItem><Name>par21</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>1280</BitOffs></SubItem><Hides><Hide GUID="{0ca3f4fe-895b-45e5-a58e-18b4a8fbfa43}" /><Hide GUID="{e4f07e4d-7ce3-46df-9ae6-30863ec286e8}" /><Hide GUID="{3374560b-e505-413a-9b26-29bebc714840}" /><Hide GUID="{afef7166-ea2e-4351-959e-d41eddf113b6}" /><Hide GUID="{ddb03f9f-bd11-45a7-977a-affb605aafa8}" /><Hide GUID="{00e6e742-1e12-4876-b481-98960f833bb9}" /><Hide GUID="{e5913acc-9b47-48c2-b753-ef6e7fdf1cc6}" /></Hides></DataType><DataType><Name GUID="{e87dd8ea-7465-4059-a5d3-da46b4fbb7e1}">SlaAoppa</Name><BitSize>896</BitSize><SubItem><Name>par1</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>par2</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>64</BitOffs></SubItem><SubItem><Name>par3</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>128</BitOffs></SubItem><SubItem><Name>par4</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>192</BitOffs></SubItem><SubItem><Name>par5</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>256</BitOffs></SubItem><SubItem><Name>par6</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>320</BitOffs></SubItem><SubItem><Name>par7</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>384</BitOffs></SubItem><SubItem><Name>par8</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>448</BitOffs></SubItem><SubItem><Name>par9</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>512</BitOffs></SubItem><SubItem><Name>par10</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>576</BitOffs></SubItem><SubItem><Name>par11</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>640</BitOffs></SubItem><SubItem><Name>par12</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>704</BitOffs></SubItem><SubItem><Name>par13</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>768</BitOffs></SubItem><SubItem><Name>par14</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>832</BitOffs></SubItem><Hides><Hide GUID="{4311ddbc-e303-4c4a-9c88-95956a136a3c}" /><Hide GUID="{e2a456fa-b199-49df-b140-ffc524db5f28}" /><Hide GUID="{e8f8c07f-c0cf-42e1-8281-ae6c041b7f66}" /><Hide GUID="{0cd4ff7b-bd8d-43f8-b341-b1cac4286ff4}" /></Hides></DataType><DataType><Name GUID="{049afe5a-58e6-4fe5-b980-2a0250be5d02}">TrkEnvironment</Name><BitSize>256</BitSize><SubItem><Name>temperature</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>pressure</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>64</BitOffs></SubItem><SubItem><Name>humidity</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>128</BitOffs></SubItem><SubItem><Name>lapserate</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>192</BitOffs></SubItem><Hides><Hide GUID="{a43b66ee-63ae-492c-8ad4-c14c4511be67}" /><Hide GUID="{b79896e1-4f70-4860-9f05-9add0041140d}" /></Hides></DataType><DataType><Name GUID="{b20151a0-127e-4fec-8580-88b0462a0ed6}">TrkSiteConstants</Name><BitSize>192</BitSize><SubItem><Name>longitude</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>latitude</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>64</BitOffs></SubItem><SubItem><Name>height</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>128</BitOffs></SubItem></DataType><DataType><Name GUID="{54e29db2-5fb7-4cce-9241-c355a71cbb91}">TrkPolarMotion</Name><BitSize>128</BitSize><SubItem><Name>x</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>y</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>64</BitOffs></SubItem></DataType><DataType><Name GUID="{250f9509-3aff-475a-96d4-ffabbb4ae5b0}">TimeInfo</Name><BitSize>128</BitSize><SubItem><Name>offset</Name><Type GUID="{18071995-0000-0000-0000-00000000000c}">LINT</Type><BitSize>64</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>leap_second</Name><Type GUID="{18071995-0000-0000-0000-000000000006}">INT</Type><BitSize>16</BitSize><BitOffs>64</BitOffs></SubItem><SubItem><Name>mode</Name><Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type><BitSize>32</BitSize><BitOffs>96</BitOffs></SubItem><Hides><Hide GUID="{fec34917-a781-40a2-a88e-be204582b209}" /><Hide GUID="{ca651e0a-05f3-41e5-a508-40799e24e77a}" /></Hides></DataType><DataType><Name GUID="{082d96cf-eb15-47ff-931f-c8a4bd575526}">SlaParams</Name><BitSize>2240</BitSize><SubItem><Name>mappa</Name><Type GUID="{c54078a5-7668-499a-8f9f-9f7741190e0f}">SlaMappa</Type><BitSize>1344</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>aoppa</Name><Type GUID="{e87dd8ea-7465-4059-a5d3-da46b4fbb7e1}">SlaAoppa</Type><BitSize>896</BitSize><BitOffs>1344</BitOffs></SubItem></DataType><DataType><Name GUID="{260ac415-f646-450c-b3d0-7610fcdbaefa}">CcsData</Name><BitSize>768</BitSize><SubItem><Name>environment</Name><Type GUID="{049afe5a-58e6-4fe5-b980-2a0250be5d02}">TrkEnvironment</Type><BitSize>256</BitSize><BitOffs>0</BitOffs></SubItem><SubItem><Name>site</Name><Type GUID="{b20151a0-127e-4fec-8580-88b0462a0ed6}">TrkSiteConstants</Type><BitSize>192</BitSize><BitOffs>256</BitOffs></SubItem><SubItem><Name>motion</Name><Type GUID="{54e29db2-5fb7-4cce-9241-c355a71cbb91}">TrkPolarMotion</Type><BitSize>128</BitSize><BitOffs>448</BitOffs></SubItem><SubItem><Name>dut</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>576</BitOffs></SubItem><SubItem><Name>equinox</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>640</BitOffs></SubItem><SubItem><Name>wavelength</Name><Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type><BitSize>64</BitSize><BitOffs>704</BitOffs></SubItem></DataType></DataTypes>
+  <Groups>
+    <Group SortOrder="701">
+      <Name>C++</Name>
+      <DisplayName>C++ Modules</DisplayName>
+    </Group>
+  </Groups>
+  <Modules>
+    <Module GUID="{15952e35-5679-4d71-9f28-196df14bbd2e}" Group="C++">
+      <Name>trkParams</Name>
+      <CLSID ClassFactory="trkparams">{15952e35-5679-4d71-9f28-196df14bbd2e}</CLSID>
+      <Licenses>
+        <License>
+          <LicenseId>{304D006A-8299-4560-AB79-438534B50288}</LicenseId>
+          <Comment>TC3 C++</Comment>
+        </License>
+      </Licenses>
+      <InitSequence>SO</InitSequence>
+      <Contexts>
+        <Context>
+          <Id>1</Id>
+        </Context>
+      </Contexts>
+      <Interfaces>
+        <Interface DisableCodeGeneration="true">
+          <Type GUID="{00000012-0000-0000-E000-000000000064}">ITComObject</Type>
+        </Interface>
+        <Interface>
+          <Type GUID="{03000010-0000-0000-E000-000000000064}">ITcCyclic</Type>
+        </Interface>
+        <Interface DisableCodeGeneration="true">
+          <Type GUID="{03000012-0000-0000-E000-000000000064}">ITcADI</Type>
+        </Interface>
+        <Interface DisableCodeGeneration="true">
+          <Type GUID="{03000018-0000-0000-E000-000000000064}">ITcWatchSource</Type>
+        </Interface>
+      </Interfaces>
+      <Parameters>
+        <Parameter HideParameter="true">
+          <Name>TraceLevelMax</Name>
+          <Comment>Controls the amount of log messages.</Comment>
+          <BaseType GUID="{8007ae3b-86bb-40f2-b385-ef87fcc239a4}">TcTraceLevel</BaseType>
+          <PTCID>#x03002103</PTCID>
+          <ContextId>1</ContextId>
+        </Parameter>
+        <Parameter>
+          <Name>Parameter</Name>
+          <SubItem>
+            <Name>data1</Name>
+            <Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+          </SubItem>
+          <SubItem>
+            <Name>data2</Name>
+            <Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+          </SubItem>
+          <SubItem>
+            <Name>data3</Name>
+            <Type GUID="{18071995-0000-0000-0000-00000000000e}">LREAL</Type>
+          </SubItem>
+          <PTCID>#x00000001</PTCID>
+          <ContextId>1</ContextId>
+        </Parameter>
+      </Parameters>
+      <DataAreas>
+        <DataArea>
+          <AreaNo AreaType="InputDst">0</AreaNo>
+          <Name>Inputs</Name>
+          <ContextId>1</ContextId><Symbol><Name>TimeInfo</Name><BaseType GUID="{250f9509-3aff-475a-96d4-ffabbb4ae5b0}">TimeInfo</BaseType></Symbol><Symbol><Name>CcsData</Name><BaseType GUID="{260ac415-f646-450c-b3d0-7610fcdbaefa}">CcsData</BaseType></Symbol>
+        </DataArea>
+        <DataArea>
+          <AreaNo AreaType="OutputSrc">1</AreaNo>
+          <Name>Outputs</Name>
+          <ContextId>1</ContextId><Symbol><Name>SlaParams</Name><BaseType GUID="{082d96cf-eb15-47ff-931f-c8a4bd575526}">SlaParams</BaseType></Symbol>
+        </DataArea>
+      </DataAreas>
+      <InterfacePointers>
+        <InterfacePointer>
+          <PTCID>#x03002060</PTCID>
+          <Name>CyclicCaller</Name>
+          <Type GUID="{0300001e-0000-0000-e000-000000000064}">ITcCyclicCaller</Type>
+        </InterfacePointer>
+      </InterfacePointers>
+      <DataPointers />
+      <Deployment>
+        <FileEntry TargetPlatform="TwinCAT RT (x86)">
+          <SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x86)\%CLASSFACTORYNAME%.sys</SourceFile>
+          <DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.sys</DestinationFile>
+        </FileEntry>
+        <FileEntry TargetPlatform="TwinCAT RT (x86)">
+          <SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x86)\%CLASSFACTORYNAME%.pdb</SourceFile>
+          <DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.pdb</DestinationFile>
+        </FileEntry>
+        <FileEntry TargetPlatform="TwinCAT RT (x64)">
+          <SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x64)\%CLASSFACTORYNAME%.sys</SourceFile>
+          <DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.sys</DestinationFile>
+        </FileEntry>
+        <FileEntry TargetPlatform="TwinCAT RT (x64)">
+          <SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x64)\%CLASSFACTORYNAME%.pdb</SourceFile>
+          <DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.pdb</DestinationFile>
+        </FileEntry>
+      </Deployment>
+    </Module>
+  </Modules>
+</TcModuleClass>

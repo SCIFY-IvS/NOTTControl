@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_ASTRO_TELESCOPE" Id="{bc6a08e4-e76c-4038-b448-89392524f9bd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_ASTRO_TELESCOPE :
+(
+	ELT := 0,
+	UT1,
+	UT2,
+	UT3,
+	UT4
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

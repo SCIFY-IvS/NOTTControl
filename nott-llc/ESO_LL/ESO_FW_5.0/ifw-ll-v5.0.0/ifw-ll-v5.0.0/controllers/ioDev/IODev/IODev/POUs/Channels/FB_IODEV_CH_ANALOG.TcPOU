@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="FB_IODEV_CH_ANALOG" Id="{15665260-c08f-4a30-ad06-7139af0a8f7f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_ANALOG EXTENDS FB_IODEV_CHANNEL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Configuration parameters
+	// Configured for R/W OPC UA Data Access !!!
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	nConversion:	E_IODEV_CONVERSION	:= CONVERSION_IODEV_NONE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrPar1:			LREAL 	:= 0.0;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrPar2:			LREAL 	:= 0.0;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrPar3:			LREAL 	:= 0.0;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_IODEV_CH_ANALOG">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

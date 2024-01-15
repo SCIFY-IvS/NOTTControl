@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="E_MOTOR_PRE_INIT_STATE" Id="{80265c8e-8536-4fe7-8478-12b4d7b9ef5c}">
+    <Declaration><![CDATA[TYPE E_MOTOR_PRE_INIT_STATE :
+(
+	MOTOR_PRE_INIT_STATE_START	:= 0,
+	MOTOR_PRE_INIT_STATE_READ,
+	MOTOR_PRE_INIT_STATE_GET_USER_UNITS,
+	MOTOR_PRE_INIT_STATE_WRITE,
+	MOTOR_PRE_INIT_STATE_END
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

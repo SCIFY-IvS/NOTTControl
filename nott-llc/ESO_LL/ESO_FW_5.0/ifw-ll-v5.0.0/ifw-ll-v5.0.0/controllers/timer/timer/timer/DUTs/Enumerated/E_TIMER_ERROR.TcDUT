@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="E_TIMER_ERROR" Id="{6c1eb919-3501-4c79-a02d-a82ea75a3322}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TIMER_ERROR :
+(
+	ERROR_TIMER_OK				:= 0,
+	ERROR_TIMER_NOT_IN_OP_STATE	:= 1,
+	ERROR_TIMER_NOT_INIT			:= 2,
+	ERROR_TIMER_CYCLE				:= 3,
+	ERROR_TIMER_PERIOD,
+	ERROR_TIMER_PULSE_WIDTH,
+	ERROR_TIMER_WRONG_TIME,
+	ERROR_TIMER_WRONG_STATE
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

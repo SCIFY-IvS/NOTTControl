@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_ADC_CFG" Id="{fb692e41-492e-47af-9301-5fedb70328b1}">
+    <Declaration><![CDATA[TYPE T_ADC_CFG EXTENDS T_MA_CFG :
+STRUCT
+	//
+	// Configuration common to both ADC's.
+	//
+	lrPslope:       LREAL := 0.0023;		// Pressure slope [arcsec/mbar] (
+	lrPoffset:		LREAL := 743.0;			// Default Pressure offset [mbar].
+	lrTslope:       LREAL := -0.0061;		// Default Temperature slope [arcsec/degC]
+	lrToffset:      LREAL := 12;			// Default Temperature offset [degC]
+	lrAfactor:		LREAL := 3.32;			// ADC refraction factor [1/arcsec]
+	lrZDlimit:      LREAL := 0.0174533;     // 1.0 deg Zenith Distance limit [rad]
+
+	lrMinElev:      LREAL := 27.64;			// Minimum elevation [deg]
+
+
+	// Specific configuration for each ADC unit, i.e. for each motor
+	unitCfg:		ARRAY [1..2] OF T_ADC_UNIT_CFG;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

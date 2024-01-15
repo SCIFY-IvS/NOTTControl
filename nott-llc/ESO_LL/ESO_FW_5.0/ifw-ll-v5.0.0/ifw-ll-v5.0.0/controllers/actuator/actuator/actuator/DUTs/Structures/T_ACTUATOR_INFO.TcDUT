@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_ACTUATOR_INFO" Id="{60381d66-4f77-490a-ab04-08a7c3e7a5cb}">
+    <Declaration><![CDATA[TYPE T_ACTUATOR_INFO :
+STRUCT
+(*
+Driver Information 
+
+Change Log:
+*)
+	sDate:			STRING(32)	:= '2018-10-26';
+	sDescription:	STRING(80) 	:= 'State Machine based Actuator controller';
+	sName:			STRING(64)	:= 'FB_ACTUATOR';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'State Machine based Actuator controller';
+	nVersionMajor:	DINT		:= 1;
+	nVersionMinor:	DINT		:= 0;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

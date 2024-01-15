@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+sVer:	STRING := stLibVersion_ESO_LDC_IODev_Library.sVersion;
+
+	// IMPORTANT:	In order to access RPC Calls via OPC UA, 
+	//				attribute 'OPC.UA.DA':='1' is needed!!!
+	{attribute 'OPC.UA.DA':='1'}
+	IODev001:		FB_IODEV_2_4_2_2_USER_CONFIG;
+	{attribute 'OPC.UA.DA':='1'}
+	IODev002:		FB_SENS_8_4;
+	{attribute 'OPC.UA.DA':='1'}
+	IODev003:		FB_SENS_8_4_USER_CONFIG;
+	{attribute 'OPC.UA.DA':='1'}
+	IODev004:		FB_SENS_2_4A_2R_USER_CONFIG;
+	
+	// Simulated signals
+	//
+	// Digital
+	SIM_bDig1:	FB_SIM_SIGNAL_DIGITAL;
+	SIM_bDig2:	FB_SIM_SIGNAL_DIGITAL;
+	
+	// Analog
+	SIM_nAnlg1:	FB_SIM_SIGNAL_ANALOG;
+	SIM_nAnlg2:	FB_SIM_SIGNAL_ANALOG;
+	SIM_nAnlg3:	FB_SIM_SIGNAL_ANALOG;
+	SIM_nAnlg4:	FB_SIM_SIGNAL_ANALOG;
+
+	SIM_rAnlg1:	FB_SIM_SIGNAL_REAL;
+	SIM_rAnlg2:	FB_SIM_SIGNAL_REAL;
+	
+	q_nCouplerState	AT %Q*:	UINT := 8;	// Coupler state for full simulation
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Simulated signals
+//
+SIM_bDig1(in_nPeriodLow:=5000, in_nPeriodHigh:=2000);
+SIM_bDig2(in_nPeriodLow:=2000, in_nPeriodHigh:=4000);
+
+SIM_nAnlg1(in_nPeriod:=10000, in_nScale:=10000.0,	in_nOffset:=0);
+SIM_nAnlg2(in_nPeriod:=10000, in_nScale:=100.0, 	in_nOffset:=5000);
+SIM_nAnlg3(in_nPeriod:=10000, in_nScale:=10.0, 		in_nOffset:=1000);
+
+// Simulation of Edwards pressure guage
+// Vary input from 4.5 to 5.0 V 
+// 16-bit A/D converter, +=10V, e.g. EL3102.
+// 1V = 2^16/10/2 = 3276.8 bit
+// 4.5 to 5.0 V ==> 4.5*3276.8 to 5.0*3276.8 bit ==> 14745 to 16384
+// in_nScale = (16384 - 14745) / 2 = 819.5
+// in_nOffset = 14745 + 819.5 = 15564.5
+SIM_nAnlg4(in_nPeriod:=30000, in_nScale:=819.5, 	in_nOffset:=15564);
+
+
+SIM_rAnlg1(in_nPeriod:=20000, in_nScale:=1000.0,	in_nOffset:=1000.0);
+SIM_rAnlg2(in_nPeriod:=10000, in_nScale:=100.0,		in_nOffset:=0.0);
+
+
+//
+// Real devices
+//
+
+//
+// IODev1
+//
+// The device will go directly to OP/MONITORING on PLC reboot.
+// The configuration defined in M_UserConfigure() will be applied.
+IODev001(	in_sName:='IODev001', in_bAutoOp:= TRUE, in_bUserConfig:=TRUE);
+
+//
+// IODev2
+//
+// The device will go directly to OP/MONITORING on PLC reboot.
+// The configuration defined in M_UserConfigure() will NOT be applied.
+IODev002(	in_sName:='IODev002', in_bAutoOp:= TRUE);
+		
+//
+// IODev3
+//
+// The device will go directly to OP/MONITORING on PLC reboot.
+// The configuration defined in M_UserConfigure() will be applied.
+IODev003(	in_sName:='IODev003', in_bAutoOp:= TRUE, in_bUserConfig:=TRUE);
+
+//
+// IODev4
+//
+// The device will go directly to OP/MONITORING on PLC reboot.
+// The configuration defined in M_UserConfigure() will be applied.
+IODev004(	in_sName:='IODev004', in_bAutoOp:= TRUE, in_bUserConfig:=TRUE);
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="574" Count="54" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

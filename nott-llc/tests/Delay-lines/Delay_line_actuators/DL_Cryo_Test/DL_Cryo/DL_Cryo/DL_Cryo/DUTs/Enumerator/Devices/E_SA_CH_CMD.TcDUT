@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_SA_CH_CMD" Id="{e9ce59e5-53ab-4287-baf2-c6a5fd0bf9c8}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_CH_CMD :
+(
+	NONE	:= 0,
+	RESET,
+	CALIB,
+	REF,
+	ENABLE,
+	DISABLE,
+	ENABLE_BASE_DRIVE,
+	DISABLE_BASE_DRIVE,
+	ENABLE_SERVO_DRIVE,
+	DISABLE_SERVO_DRIVE,
+	ENABLE_FLEX_DRIVE,
+	DISABLE_FLEX_DRIVE,
+	STOP,
+	MOV,
+	MOVE_TO_SETPOINT,
+	EMERGENCY_STOP,
+	SET_POINT_ACHIEVED
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

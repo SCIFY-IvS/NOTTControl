@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_COE_PTP_ADDRESS_TYPE" Id="{7b3cd1c6-607e-4ae0-9814-63a3a4a20935}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_COE_PTP_ADDRESS_TYPE :
+(
+	UNKNOWN := -1,
+	DHCP := 0,
+	FIXED := 1
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

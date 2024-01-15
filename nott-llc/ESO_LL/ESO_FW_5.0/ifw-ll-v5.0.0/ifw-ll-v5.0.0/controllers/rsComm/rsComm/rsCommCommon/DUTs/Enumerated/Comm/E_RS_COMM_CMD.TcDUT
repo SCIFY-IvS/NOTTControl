@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_RS_COMM_CMD" Id="{ed36096b-dc96-49e0-8953-07af4654a927}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+////{xxxattribute 'strict'}
+TYPE E_RS_COMM_CMD :
+(
+	NONE		:=	0,
+	INIT		:=	1,
+	SEND		:=	2,
+	DISCONNECT	:=	3
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

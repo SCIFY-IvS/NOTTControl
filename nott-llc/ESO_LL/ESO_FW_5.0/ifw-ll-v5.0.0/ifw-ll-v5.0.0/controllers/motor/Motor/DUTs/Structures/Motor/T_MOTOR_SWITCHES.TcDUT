@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_SWITCHES" Id="{241c9ed9-a65f-4ad5-8cb7-b99045825711}">
+    <Declaration><![CDATA[TYPE T_MOTOR_SWITCHES :
+STRUCT
+(* Variables that need mapping *)
+	bLSTOP:			BOOL;
+	bLHW:			BOOL;
+	bREF:			BOOL;
+	bINDEX:			BOOL;
+	bUHW:			BOOL;
+	bUSTOP:			BOOL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

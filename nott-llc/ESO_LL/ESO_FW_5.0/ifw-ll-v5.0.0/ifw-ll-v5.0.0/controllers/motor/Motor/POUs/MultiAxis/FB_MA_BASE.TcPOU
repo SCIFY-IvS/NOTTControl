@@ -1,0 +1,2173 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_MA_BASE" Id="{451d8f3a-78b5-4e42-964f-f567cf67ab7f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MA_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	sName:			STRING	:= 'MA';	// Default system name, e.g. 'ADC'
+	{attribute 'OPC.UA.DA' := '0'}
+	nNumAxes:		INT		:= 1;		// Total number of motors/axes, max 6
+	// Pointers to motors.
+	// It must be at least two motors, so no defaults to zero for the first two.
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor1:		POINTER TO FB_MOTOR;
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor2:		POINTER TO FB_MOTOR	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor3:		POINTER TO FB_MOTOR	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor4:		POINTER TO FB_MOTOR	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor5:		POINTER TO FB_MOTOR	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor6:		POINTER TO FB_MOTOR	:= 0;
+
+	// EICSSW-1923
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bSafe:		BOOL	:= TRUE;	// Flag if safe to move the motor
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bDisableIfUnsafe:	BOOL := FALSE;	// If unsafe, motor is disabled
+END_VAR
+VAR
+	
+	// Pointers to motors configuration, control and status.
+	// Initialised in M_Configure().
+	{attribute 'OPC.UA.DA' := '0'}
+	pMotor:			ARRAY [1..GPL.C_MA_MAX_AXES] OF POINTER TO FB_MOTOR;
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrMotorCfg:	ARRAY [1..GPL.C_MA_MAX_AXES] OF POINTER TO T_MOTOR_CFG;
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrMotorCtrl:	ARRAY [1..GPL.C_MA_MAX_AXES] OF POINTER TO T_MOTOR_CTRL;
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrMotorStat:	ARRAY [1..GPL.C_MA_MAX_AXES] OF POINTER TO T_MOTOR_STAT;
+	
+	// References
+	{attribute 'OPC.UA.DA' := '0'}
+	RefCfg:			REFERENCE TO T_MA_CFG;	    // Reference to Config parameters
+	{attribute 'OPC.UA.DA' := '0'}
+	RefCtrl:		REFERENCE TO T_MA_CTRL;	    // Reference to Control parameters
+	{attribute 'OPC.UA.DA' := '0'}
+	RefStat:		REFERENCE TO T_MA_STAT;	    // Reference to Status parameters
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nPtpOffset:   	DINT := 0;			// TODO What is this?
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nState:       	DINT := E_MA_STATE.NOTOP;
+	{attribute 'OPC.UA.DA' := '0'}
+	nSubState:    	DINT := E_MA_SUBSTATE.NOTOP_NOTREADY;
+	{attribute 'OPC.UA.DA' := '0'}
+	sState:			STRING := 'UNKNOWN';
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_MA_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_MA_EVENT.NONE;
+
+	{attribute 'OPC.UA.DA' := '0'}
+	waitTout:     	TON;                    (* General Timeout *)
+	
+	// Operational Events
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventGeneral:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventError:	FB_TcMessage;
+	
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Configure the system, i.e. set pointers
+M_Configure();
+
+// If the pointers to motors have not been configured, don't do anything.
+// Otherwise the system will crash with exception.
+IF NOT RefStat.bConfigured THEN
+	RETURN;
+END_IF
+
+// Read configuration parameters of the ADC device
+
+//ptrMotorCfg := ADR(motor.cfg);
+// Create an instance of the motor device. Internally it handles the axis
+//ptrMotorCfg^.nTypeAxis := nAxisType;
+
+// Transfer external parameters to the FB variables.
+THIS^.User_GetParams();
+
+// Handles commands received through the external interface, normally OPC-UA.
+//THIS^.User_HandleExternalCmds();
+
+
+// Handles the internal states of the device.
+//THIS^.HandleStates();
+
+(* === Check for commands and internal events to be processed === *)
+CheckForEvents();
+
+(* === Process events according to the State Machine === *)
+ProcessEvents();
+
+// Update device status object
+THIS^.User_SetParams();
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionDisableExecute" Id="{d7689440-bf8f-4591-8ad4-e503da13a2c2}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute 
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nStopTimeout);
+
+FOR i := 1 TO nNumAxes DO
+	// Send DISABLE command to the motors
+	ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.DISABLE;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableExecute" Id="{047c1042-ca0d-4428-9a57-63c8034071da}">
+      <Declaration><![CDATA[METHOD ActionEnableExecute 
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nStopTimeout);
+
+FOR i := 1 TO nNumAxes DO
+	// Send ENABLE command to the motors
+	ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.ENABLE;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{ff4cf1e1-c482-4800-95ab-4cca74be3e4e}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+// Don't move if not safe.
+IF (NOT in_bSafe) THEN
+	THIS^.M_SetStatus('ERROR: MA cannot INIT. Not safe to move.');
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+
+
+
+
+// Restart timer
+M_RestartTimer (RefCfg.timeout.nInitTimeout);
+
+// Initialise motors that are NOTOP.
+// Motors that are OP_STANDSTILL will be disabled.
+// Motors that are moving will be stopped BUT global INIT will fail
+// since the system will not end up in NOTOP/READY.
+//
+FOR i := 1 TO nNumAxes DO
+	IF	ptrMotorStat[i]^.nState = E_MOTOR_STATE.NOTOP	THEN
+		ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.INIT;
+	ELSIF ptrMotorStat[i]^.nSubstate = E_MOTOR_SUBSTATE.OP_STANDSTILL THEN
+		ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.DISABLE;
+	ELSE
+		// Motor will stop but INIT will fail with timeout!!!
+		ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.STOP;
+	END_IF
+
+	// Execute the commands
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+
+// Set NOT Initialised
+M_SetInit(FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMoveAbsExecute" Id="{eb075484-8e8d-4b7f-bdb0-5d2347f53365}">
+      <Declaration><![CDATA[// Move motors. Pos and Vel are already set!
+METHOD ActionMoveAbsExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:			INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nMoveTimeout);
+
+// Move all axis.
+// Pos and Vel are already set!
+FOR i := 1 TO nNumAxes DO
+	ptrMotorCtrl[i]^.nCommand 	:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ptrMotorCtrl[i]^.nMoveType	:= E_MOTOR_MOVE_TYPE.ABSOLUTE;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMoveVelExecute" Id="{106d620f-ff24-4bae-ae27-f35c2f27edf9}">
+      <Declaration><![CDATA[METHOD ActionMoveVelExecute
+VAR_INPUT
+	vel: LREAL;
+    dir: DINT;
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nMoveTimeout);
+
+FOR i := 1 TO nNumAxes DO
+	ptrMotorCtrl[i]^.nCommand 	:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ptrMotorCtrl[i]^.nMoveType	:= E_MOTOR_MOVE_TYPE.VELOCITY;
+	ptrMotorCtrl[i]^.lrVelocity	:= vel;
+	ptrMotorCtrl[i]^.nDirection	:= dir;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{d25fdad7-96eb-4875-85a5-5f40bed338c0}">
+      <Declaration><![CDATA[METHOD ActionResetExecute 
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nStopTimeout);
+
+// Send RESET command to the motors
+FOR i := 1 TO nNumAxes DO
+	ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.RESET;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+
+// Set NOT Initialised
+M_SetInit(FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{8da4bb36-f702-45c1-ae1e-f1065e2a3473}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_SetStatus('Stopping ...');
+
+// Restart timer
+M_RestartTimer (RefCfg.timeout.nStopTimeout);
+
+FOR i := 1 TO nNumAxes DO
+	// Send STOP command to the motors
+	ptrMotorCtrl[i]^.nCommand := E_MOTOR_COMMAND.STOP;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionTrackExecute" Id="{8cce140e-ab6f-4fa0-962a-d0a9dd0f8fc3}">
+      <Declaration><![CDATA[// Move motors in tracking mode. Pos and Vel are already set!
+// In tracking mode motor logs are disabled.
+// Otherwise the system would be flooded with logs.
+METHOD ActionTrackExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:			INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nMoveTimeout);
+
+// Move all axis.
+// Pos and Vel are already set!
+// Set TRACKING MODE E_MOTOR_MOVE_TYPE.TRACKING !!!
+FOR i := 1 TO nNumAxes DO
+	ptrMotorCtrl[i]^.nCommand 	:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ptrMotorCtrl[i]^.nMoveType	:= E_MOTOR_MOVE_TYPE.TRACKING;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityDisabling" Id="{a74e94f6-c9b9-4f49-9f3d-866272ecfc39}">
+      <Declaration><![CDATA[METHOD ActivityDisabling : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[waitTout (IN := TRUE);	// Update timeout timer
+
+IF M_CheckAxesState(E_MOTOR_STATE.NOTOP, 
+					E_MOTOR_SUBSTATE.NOTOP_READY) THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_READY);
+	THIS^.M_SetStatus('Motors Disabled');
+	RETURN;
+END_IF
+
+// Check the timeout
+IF waitTout.Q THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	// Stop the motor
+	THIS^.ActionStopExecute();
+	THIS^.M_SetStatus('ERROR: Timeout on Disable');
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityEnabling" Id="{b54d9a36-7144-4336-b716-c06ade8a174e}">
+      <Declaration><![CDATA[METHOD ActivityEnabling : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[waitTout (IN := TRUE);	// Update timeout timer
+
+IF M_CheckAxesState(E_MOTOR_STATE.OP, 
+					E_MOTOR_SUBSTATE.OP_STANDSTILL) THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_STANDSTILL);
+	THIS^.M_SetStatus('Motors Operational');
+	RETURN;
+END_IF
+
+// Check the timeout
+IF waitTout.Q THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	// Stop the motor
+	THIS^.ActionStopExecute();
+	THIS^.M_SetStatus('ERROR: Timeout on Enable');
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitialising" Id="{3797d637-cca7-4fdb-8509-40f5bbd54fcf}">
+      <Declaration><![CDATA[METHOD ActivityInitialising : BOOL
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Activity monitors the MA initialisation task 
+*)
+
+
+SetAction('ActivityInitialising');
+
+waitTout (IN := TRUE);	// Update timeout timer
+
+IF (NOT in_bSafe) THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	THIS^.M_SetStatus('ERROR: MA error during INIT. Not safe to move.');
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+
+
+
+
+IF (M_CheckError()) THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	THIS^.M_SetStatus('ERROR: MA error during INIT');
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+
+
+
+//
+// The device is initialised if:
+// - Motor is initialised, i.e NOTOP_READY
+// - The reading of the Leap Second is complete, i.e. bCoEReadFlag = FALSE (if used)
+//
+IF M_CheckAxesState(E_MOTOR_STATE.NOTOP, 
+					E_MOTOR_SUBSTATE.NOTOP_READY) THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	THIS^.M_SetStatus('Device initialised');
+	M_SetInit(TRUE);
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_READY);
+	RETURN;
+END_IF
+
+// Check the timeout
+IF waitTout.Q THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	// Stop the motor
+	THIS^.ActionStopExecute();
+	THIS^.M_SetStatus('ERROR: INIT Timeout!');
+	//nInternalEvent  := E_MA_EVENT.ERRINIT;
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMoving" Id="{fcbd7006-5fb7-4444-a083-5d3726deb9aa}">
+      <Declaration><![CDATA[METHOD ActivityMoving : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If nSkipCycle < GPL.C_CYCLE_IDLE, the motor has not moved off yet.
+// Wait GPL.C_CYCLE_IDLE cycles so the motor status has been updated.
+//RefStat.nSkippedCycles	:= RefStat.nSkippedCycles + 1;
+IF RefStat.nSkippedCycles < RefCfg.nMinSkipCycles THEN
+	RETURN;
+END_IF
+
+waitTout (IN := TRUE);	// Update timeout timer
+
+// Check for motor errors
+IF (M_CheckError()) THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	RefStat.sStatus	:= 'ERROR: Motor in error state';
+	SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);	
+	RETURN;
+END_IF
+
+// Check if the motor state is standstill for all motors.
+// If yes, the motion is complete.
+// Start checking it GPL.C_CYCLE_IDLE after the motor has received the MOVE command.
+// EICSSW-706: Also check the positioning error.
+IF RefStat.nSkippedCycles > 2*RefCfg.nMinSkipCycles THEN
+	// Don't check the status immediately since motor starts from standstill.
+	// The timer should have at least one increment, i.e. ET>0.
+	IF 	waitTout.ET > INT_TO_TIME(0)							AND
+		M_GetMaxPosError() < RefCfg.lrTrkThreshold	AND 
+		M_CheckAxesState(E_MOTOR_STATE.OP, 
+						 E_MOTOR_SUBSTATE.OP_STANDSTILL)	THEN
+		waitTout (IN := FALSE);	// Stop the timer
+		SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_STANDSTILL);
+		THIS^.M_SetStatus('Motors Standstill');
+		RETURN;
+	END_IF
+END_IF
+
+
+// Check for timeout
+IF waitTout.Q THEN
+	waitTout (IN := FALSE);	// Stop the timer
+	// Stop the motor
+	THIS^.ActionStopExecute();
+	THIS^.M_SetStatus('ERROR: Motion Timeout');
+	SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityPresetting" Id="{06c8dbb0-b17c-46a8-bffd-35d729c672fb}">
+      <Declaration><![CDATA[METHOD ActivityPresetting : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Essentially, Presetting is identical to Tracking with the only difference
+// that the actual position is far away from the target position.
+ActivityTracking();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityResetting" Id="{9a654195-5c03-40e2-92f5-98f9cb02cbbf}">
+      <Declaration><![CDATA[METHOD ActivityResetting : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[waitTout (IN := TRUE);	// Update timeout timer
+
+IF M_CheckAxesState(E_MOTOR_STATE.NOTOP, 
+					E_MOTOR_SUBSTATE.NOTOP_NOTREADY) THEN
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_NOTREADY);
+	THIS^.M_SetStatus('Control Reset');
+	waitTout (IN := FALSE);	// Stop the timer
+	RETURN;
+END_IF
+
+// Check the timeout
+IF waitTout.Q THEN
+	// Stop the motor
+	THIS^.ActionStopExecute();
+	waitTout (IN := FALSE);	// Stop the timer
+	THIS^.M_SetStatus('ERROR: Timeout on Reset');
+	SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+	RETURN;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityStopping" Id="{42eec5ac-ccb0-4ece-88b9-c16d1c5a3038}">
+      <Declaration><![CDATA[METHOD ActivityStopping : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[waitTout (IN := TRUE);	// Update timeout timer
+
+CASE RefStat.sm.nState OF	
+	
+  E_MA_STATE.NOTOP:	
+	//
+	// NotOperational - NotRead case
+	//
+	IF NOT M_CheckAxesState(E_MOTOR_STATE.NOTOP, 
+							E_MOTOR_SUBSTATE.NOTOP_INITIALIZING)  THEN
+		// If INIT was interrupted, set substate to NOT READY.
+		// Otherwise, keep the same state.
+		IF M_AxesInitialised() THEN
+			SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_READY);
+		ELSE
+			SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_NOTREADY);
+		END_IF
+		THIS^.M_SetStatus('Motors Standstill');
+		waitTout (IN := FALSE);	// Stop the timer
+		RETURN;
+	END_IF
+
+	// Check the timeout
+	IF waitTout.Q THEN
+		// Stop the motor
+		THIS^.ActionStopExecute();
+		waitTout (IN := FALSE);	// Stop the timer
+		THIS^.M_SetStatus('ERROR: Motors initialization timeout');
+		SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+
+  E_MA_STATE.OP:
+	//
+	// OPERATIONAL
+	//
+	IF M_CheckAxesState(E_MOTOR_STATE.OP, 
+						E_MOTOR_SUBSTATE.OP_STANDSTILL)  THEN
+		SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_STANDSTILL);
+		THIS^.M_SetStatus('Motors Standstill');
+		waitTout (IN := FALSE);	// Stop the timer
+		RETURN;
+	END_IF
+
+	// Check the timeout
+	IF waitTout.Q THEN
+		// Stop the motor
+		THIS^.ActionStopExecute();
+		waitTout (IN := FALSE);	// Stop the timer
+		THIS^.M_SetStatus('ERROR: Timeout while stopping motors');
+		SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityTracking" Id="{ade675dc-ded3-4a21-b5be-c9b6c30ddd20}">
+      <Declaration><![CDATA[METHOD ActivityTracking : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT in_bSafe THEN
+	RefStat.sStatus	:= 'ERROR: Not safe to move motor.';
+	M_LogEventError('Not safe to move motor. Tracking stopped.');	
+	SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);
+	RETURN;
+END_IF
+
+IF (M_CheckError()) THEN
+	RefStat.sStatus	:= 'ERROR: Aborted tracking mode.';
+	M_LogEventError('Aborted tracking mode.');	
+	SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);	
+	RETURN;
+END_IF
+
+
+// Since it takes at least 4 cycles for a move, new Move command is sent every nCyclesIdle.
+// nCyclesIdle should be >= 5.
+//RefStat.nSkippedCycles := RefStat.nSkippedCycles + 1;
+
+IF (RefStat.nSkippedCycles >= RefCfg.nMinSkipCycles) THEN
+	M_NextMove();
+	RefStat.nSkippedCycles:= 0;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{c48fc1d3-ff49-4526-9b66-22e500e72022}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+
+VAR
+	i:		     INT;
+	minState:    INT := 1000;
+	maxSubstate: INT := -1000;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := E_MA_EVENT.HWOK;
+
+IF NOT in_bSafe THEN
+	// Not safe to operate the motor
+	SetEvent(E_MOTOR_EVENT.UNSAFE);
+ELSIF nInternalEvent <> E_MA_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_MA_EVENT.NONE;
+ELSIF RefCtrl.bExecute = TRUE  THEN
+	(* Handle commands *)
+	RefCtrl.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	//M_SetLastCommand(ctrl.nCommand);			(* Save the last command *)
+	
+	// Device specific log.
+	// To be overloaded.
+	M_LogCommand();
+	
+	IF NOT in_bSafe  THEN
+		// It is not safe to move motor.
+		SetEvent(E_MOTOR_EVENT.UNSAFE);
+		M_SetStatus('Unsafe to move motors');
+	ELSE
+		// WARNING: Here commands are the same as events.
+		// Have a look to E_MA_EVENT and E_MA_COMMAND enumerations. They should match!!!
+		// This event will be handled by method ProcessEvent
+		SetEvent(RefCtrl.nCommand);
+	END_IF
+	
+	RefCtrl.nCommand 		:= E_MA_COMMAND.NONE;	(* Clear the Command *)
+ELSIF RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_PRESETTING AND RefStat.bTrackingOK THEN
+	// If the system is Presetting and the position error becomes smaller than the threshold,
+	// switch to Tracking.
+	SetEvent(E_MA_EVENT.PRESETDONE);
+	RefCtrl.nCommand 	:= E_MA_COMMAND.NONE;	(* Clear the Command *)
+ELSIF RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_TRACKING AND RefStat.bTrackingBAD THEN
+	// If the system is Tracking and the position error becomes larger than twice the threshold,
+	// switch back to Presetting.
+	SetEvent(E_MA_EVENT.TRACKEXIT);
+	RefCtrl.nCommand 	:= E_MA_COMMAND.NONE;	(* Clear the Command *)
+ELSE
+	// Capture unexpected state changes or errors
+	FOR i := 1 TO nNumAxes DO
+		// Save the minimum state of all axes
+		IF (ptrMotorStat[i]^.nState < minState) THEN
+			minState := ptrMotorStat[i]^.nState;
+		END_IF
+		IF (ptrMotorStat[i]^.nSubstate > maxSubstate) THEN
+			maxSubstate := ptrMotorStat[i]^.nSubstate;
+		END_IF
+		// Try to capture a state change when axes are controlled outside the multiaxis.
+		// Note: INT_TO_DINT() is used just to be able to compare two variables
+		//       of different enumerated type.
+		IF	(RefStat.sm.nSubstate <> E_MA_SUBSTATE.OP_DISABLING) AND
+			(INT_TO_DINT(ptrMotorStat[i]^.nState) < INT_TO_DINT(RefStat.sm.nState)) THEN
+			IF ptrMotorStat[i]^.nState = E_MOTOR_STATE.NOTOP THEN
+				SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+			ELSE
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);
+			END_IF
+			M_SetStatus('Unexpected motor state change.');
+			RETURN;
+		END_IF
+		// Capture unexpected motor failure.
+		IF (ptrMotorStat[i]^.nSubstate = E_MOTOR_SUBSTATE.OP_ERROR) THEN
+			IF RefStat.sm.nState = E_MA_STATE.NOTOP THEN
+				SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ERROR);
+			ELSE
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_ERROR);
+			END_IF
+			M_SetStatus('Unexpected motor error state.');
+			RETURN;
+		END_IF
+    END_FOR
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_AxesIdle" Id="{24013eba-a1e7-4f48-adaa-b8566a8aec45}">
+      <Declaration><![CDATA[METHOD M_AxesIdle : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+	nState:	INT;
+	nSubstate:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If any of the motors is not standstill, return FALSE.
+FOR i := 1 TO nNumAxes DO
+	nState		:= ptrMotorStat[i]^.nState;
+	nSubstate	:= ptrMotorStat[i]^.nSubstate;
+	
+	IF ((nState = E_MOTOR_STATE.NOTOP) AND 
+		((nSubstate = E_MA_SUBSTATE.NOTOP_INITIALISING) OR 
+		 (nSubstate = E_MA_SUBSTATE.NOTOP_ABORTING))) THEN
+		M_AxesIdle	:= FALSE;
+		RETURN;
+	ELSIF ((nState = E_MOTOR_STATE.OP) AND 
+		((nSubstate = E_MA_SUBSTATE.OP_MOVING) OR 
+		 (nSubstate = E_MA_SUBSTATE.OP_TRACKING) OR 
+		 (nSubstate = E_MA_SUBSTATE.OP_STOPPING))) THEN
+		M_AxesIdle	:= FALSE;
+		RETURN;
+	END_IF
+END_FOR
+
+M_AxesIdle	:= TRUE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_AxesInitialised" Id="{0e2f02c1-97e8-4f5c-9a49-ff9b0042bd9f}">
+      <Declaration><![CDATA[METHOD M_AxesInitialised : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If any axis is not initialised, return FALSE.
+FOR i := 1 TO nNumAxes DO
+	IF NOT ptrMotorStat[i]^.bInitialised THEN
+		M_AxesInitialised	:= FALSE;
+		RETURN;
+	END_IF	
+END_FOR
+
+M_AxesInitialised	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckAxesState" Id="{23c0b799-6b62-4cc5-be8c-903436d05949}">
+      <Declaration><![CDATA[// Check the state and substate of the motor.
+// Returns TRUE if both state and substate match input parameters.
+METHOD M_CheckAxesState : BOOL
+VAR_INPUT
+	in_nState:		E_MOTOR_STATE;
+	in_nSubstate:	E_MOTOR_SUBSTATE;
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If any axis state doesn't match, return FALSE.
+FOR i := 1 TO nNumAxes DO
+	IF (ptrMotorStat[i]^.nState <> in_nState)  OR (ptrMotorStat[i]^.nSubstate <> in_nSubstate) THEN
+		M_CheckAxesState	:= FALSE;
+		RETURN;
+	END_IF	
+END_FOR
+
+M_CheckAxesState	:= TRUE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckError" Id="{e0e82585-a619-4b41-8aca-608a7f32cbbe}">
+      <Declaration><![CDATA[METHOD M_CheckError : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO nNumAxes DO
+	IF (ptrMotorStat[i]^.nErrorCode <> E_MOTOR_ERROR.OK) THEN
+		M_CheckError	:= TRUE;
+		RETURN;
+	END_IF	
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{899f2132-8105-4993-a4e7-0e233b23a383}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	j:					INT;
+	fbGetCurTaskIdx:	GETCURTASKINDEX;
+	nCycleTime:			UDINT;END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	i:	INT := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nNumAxes < 1 OR nNumAxes > GPL.C_MA_MAX_AXES THEN
+	RefStat.sStatus	:= 'ERROR: Number of axes is not between 2 and 6.';
+	RETURN;
+END_IF
+
+// Configure the system in stages after boot-up.
+// WARNING:
+// It seems that setting of pointers takes some time and cannot be done in FB_Init.
+// After 40 cycles, we set pointers to motors.
+// After 60 cycles, we set pointers to motor sub-structures.
+// After 80 cycles, we set general configuration parameters and complete configuration.
+IF NOT RefStat.bConfigured THEN
+	i	:= i + 1;
+	IF i = 40 THEN
+		// Assign pointers to the motor device instances
+		pMotor[1] := pMotor1;
+		pMotor[2] := pMotor2;
+		pMotor[3] := pMotor3;
+		pMotor[4] := pMotor4;
+		pMotor[5] := pMotor5;
+		pMotor[6] := pMotor6;
+	ELSIF i = 60 THEN
+		// Set pointers to motor configuration, control and status.
+		// Only set pointers for motors that exist, i.e. != 0.
+		FOR j := 1 TO nNumAxes DO
+			IF pMotor[j] <> 0 THEN
+				ptrMotorCfg[j]	:= ADR(pMotor[j]^.cfg);
+				ptrMotorCtrl[j]	:= ADR(pMotor[j]^.ctrl);
+				ptrMotorStat[j]	:= ADR(pMotor[j]^.stat);
+			ELSE
+				RefStat.sStatus	:= 'ERROR: Motor registered but pointer in NULL.';
+				i	:= 0;	// Critical error. We must not pass this point.
+				RETURN;
+			END_IF
+		END_FOR
+	ELSIF i = 80 THEN
+
+		// Set Motor.library version
+		RefStat.sLibVersion	:= Global_Version.stLibVersion_ESO_LDC_Motor_Library.sVersion;
+		
+		// Get cycle time
+		fbGetCurTaskIdx();
+		RefStat.nCycleTime := TwinCAT_SystemInfoVarList._TaskInfo[fbGetCurTaskIdx.index].CycleTime;
+
+		// Execute User_Configure().
+		User_Configure();
+		
+		// Create Event instances
+		fbEventGeneral.CreateEx	(TC_EVENTS.MotorOpsEventClass.General,0);
+		fbEventError.CreateEx	(TC_EVENTS.MotorOpsEventClass.Error,0);
+
+		// We have finished configuration.
+		RefStat.bConfigured	:= TRUE;
+	END_IF
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetMaxPosError" Id="{359245fb-78d3-41db-8c3a-76914142419b}">
+      <Declaration><![CDATA[// Get maximum positioning error of all motors.
+// This value should be compared with the 
+// threshold for tracking since it takes some time for
+// the motors to start following the trajectory properly.
+METHOD M_GetMaxPosError : LREAL
+VAR_INPUT
+END_VAR
+VAR
+	i: 			INT;
+	lrMaxError:	LREAL := 0.0;
+	lrError:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO nNumAxes DO
+	lrError	:= ABS(ptrMotorStat[i]^.lrPosActual - ptrMotorStat[i]^.lrPosTarget);
+	IF lrError > lrMaxError THEN
+		lrMaxError := lrError;
+	END_IF
+END_FOR
+
+M_GetMaxPosError	:= lrMaxError;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{1f616c07-0031-455e-b0d3-a9909bd9456f}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_MOTOR_RPC_ERROR.OK:					str	:= 'OK';
+	E_MOTOR_RPC_ERROR.NOT_OP:				str	:= 'Cannot control motor. Not in OP state.';
+	E_MOTOR_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP_READY.';
+	E_MOTOR_RPC_ERROR.NOT_NOTOP_NOTREADY:	str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_MOTOR_RPC_ERROR.LOCAL:				str	:= 'RPC calls not allowed in Local mode.';
+	E_MOTOR_RPC_ERROR.SW_LIMIT_LOWER:		str	:= 'Move rejected. Target Pos < Lower SW Limit';
+	E_MOTOR_RPC_ERROR.SW_LIMIT_UPPER:		str	:= 'Move rejected. Target Pos > Upper SW Limit';
+	E_MOTOR_RPC_ERROR.INIT_WHILE_MOVING:	str	:= 'Cannot INIT moving motor. Motor stopped. Retry.';
+	E_MOTOR_RPC_ERROR.VEL_ZERO:				str	:= 'Set velocity cannot be zero';
+	E_MOTOR_RPC_ERROR.VEL_NEG:				str	:= 'Set velocity not allowed (<=0)';
+	E_MOTOR_RPC_ERROR.VEL_MAX:				str	:= 'Set velocity not allowed (>Vel_max)';
+	E_MOTOR_RPC_ERROR.UNSAFE:				str	:= 'Unsafe to move the motor.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_HomeMotors" Id="{c124fc30-d178-425d-8df3-7de7efa2b14e}">
+      <Declaration><![CDATA[// Move motors. Pos and Vel are already set!
+METHOD M_HomeMotors
+VAR_INPUT
+END_VAR
+VAR
+	i:			INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+M_RestartTimer (RefCfg.timeout.nMoveTimeout);
+
+// Home all axis.
+FOR i := 1 TO nNumAxes DO
+	ptrMotorCtrl[i]^.lrPosition	:= 0.0;
+	ptrMotorCtrl[i]^.lrVelocity	:= ptrMotorCfg[i]^.lrDefaultVelocity;
+	ptrMotorCtrl[i]^.nCommand 	:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ptrMotorCtrl[i]^.nMoveType	:= E_MOTOR_MOVE_TYPE.ABSOLUTE;
+	ptrMotorCtrl[i]^.bExecute	:= TRUE;
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogCommand" Id="{26db211c-4fda-4dc0-ad01-7957235891f4}">
+      <Declaration><![CDATA[METHOD M_LogCommand : BOOL
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Placeholder for MA specific logs, e.g. for DROT or ADC.
+// Called in FB_MA_BASE::CheckForEvents():15
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventError" Id="{8dd22700-5436-4774-a0f6-dc683de71f87}">
+      <Declaration><![CDATA[METHOD M_LogEventError : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbEventError.ipArguments.Clear().AddString(sText);
+fbEventError.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventGeneral" Id="{ebfd8d6f-02d8-4cc4-a6d6-afb1ad161cf0}">
+      <Declaration><![CDATA[METHOD M_LogEventGeneral : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled AND it is not a tracking command
+//IF  NOT cfg.bLog OR ctrl.nMoveType = E_MOTOR_MOVE_TYPE.TRACKING THEN
+//	RETURN;
+//END_IF
+
+fbEventGeneral.ipArguments.Clear().AddString(sText);
+fbEventGeneral.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_NextMove" Id="{15121892-19f4-4b6b-a91c-b7bb4bd46ceb}">
+      <Declaration><![CDATA[// Command motors to move to next position.
+METHOD M_NextMove
+VAR_INPUT
+END_VAR
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Calculate next position for each axes based on the current mode.
+User_ComputeNextPos();
+
+// Move axes
+ActionTrackExecute();
+
+
+
+
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_NextMoveAbs" Id="{58708f5e-7fdd-445e-aa8d-91067d1a08d9}">
+      <Declaration><![CDATA[// Command motors to move to next position.
+METHOD M_NextMoveAbs
+VAR_INPUT
+END_VAR
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Calculate next position for each axes based on the current mode.
+User_ComputeNextPos();
+
+// Move axes
+ActionMoveAbsExecute();
+
+
+
+
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RestartTimer" Id="{9cdd83f4-eed5-46e2-9ab6-ad848f8e406a}">
+      <Declaration><![CDATA[METHOD M_RestartTimer : BOOL
+VAR_INPUT
+	in_time:	UDINT := 10000;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Restart timer
+waitTout (IN := FALSE); 				// Reset timer 
+waitTout (IN := TRUE, PT := UDINT_TO_TIME(in_time));	// Enable timer 
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetInit" Id="{401e786d-2440-432e-bb03-1c12e729253e}">
+      <Declaration><![CDATA[METHOD M_SetInit
+VAR_INPUT
+	newState: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.bInitialised := newState;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetMode" Id="{5d43ed66-a5b1-4b92-9416-52da987e1022}">
+      <Declaration><![CDATA[METHOD M_SetMode : BOOL
+VAR_INPUT
+	nMode:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefCtrl.nMode	:= nMode;
+RefStat.nMode	:= nMode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{23c720bd-2127-4a27-9af6-334bf698ea0d}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nRpcErrorCode	:= nErrorCode;
+RefStat.sRpcErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{30dda1cd-bf9a-466a-9882-a0cec27f495e}">
+      <Declaration><![CDATA[// Set status string
+METHOD M_SetStatus : BOOL
+VAR_INPUT
+	in_sStatus:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.sStatus	:= in_sStatus;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{416d0447-67d2-411d-a081-c9ba95af89b7}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+RefStat.nSkippedCycles	:= RefStat.nSkippedCycles + 1;
+
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.NOTOP_RESETTING THEN
+	ActivityResetting();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.NOTOP_INITIALISING THEN
+	ActivityInitialising();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.NOTOP_ENABLING THEN
+	ActivityEnabling();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.NOTOP_ABORTING THEN
+	ActivityStopping();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_DISABLING THEN
+	ActivityDisabling();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_MOVING	AND 
+	RefCtrl.nCommand <> E_MA_COMMAND.STOP 				THEN
+	ActivityMoving();
+END_IF
+
+IF	RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_PRESETTING	AND 
+	RefCtrl.nCommand <> E_MA_COMMAND.STOP 				AND 
+	RefCtrl.nCommand <> E_MA_COMMAND.STOP_TRACK 			THEN
+	ActivityPresetting();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_TRACKING	AND 
+	RefCtrl.nCommand <> E_MA_COMMAND.STOP 			AND 
+	RefCtrl.nCommand <> E_MA_COMMAND.STOP_TRACK 		 THEN
+	ActivityTracking();
+END_IF
+
+IF RefStat.sm.nSubstate = E_MA_SUBSTATE.OP_STOPPING THEN
+	ActivityStopping();
+END_IF
+
+CASE RefStat.sm.nState OF	
+
+  // NotOperational - NotRead case
+  E_MA_STATE.NOTOP:	
+	  CASE nEvent OF
+		  E_MA_EVENT.RESET:
+			  ActionResetExecute();
+			  SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_RESETTING);
+		  E_MA_EVENT.INIT:
+			  ActionInitExecute();
+			  SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_INITIALISING);
+		  E_MA_EVENT.ENABLE: 
+			  ActionEnableExecute();
+			  SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ENABLING);
+		  E_MA_EVENT.STOP:
+			  ActionStopExecute();
+			  SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_ABORTING);
+	      E_MA_EVENT.STOP_TRACK:
+		        M_SetStatus('ERROR: controller is not Operational');
+			E_MA_EVENT.MA_MOVE:
+				M_SetStatus('ERROR: controller is not Operational');
+			E_MA_EVENT.START_TRACK:
+				M_SetStatus('ERROR: controller is not Operational');
+	  END_CASE
+		
+  // Operational case //
+  E_MA_STATE.OP:
+       CASE nEvent OF
+			E_MA_EVENT.DISABLE: 
+				THIS^.ActionDisableExecute();
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_DISABLING);
+				
+			E_MA_EVENT.RESET: 
+				THIS^.ActionResetExecute();
+				SetState(E_MA_STATE.NOTOP, E_MA_SUBSTATE.NOTOP_RESETTING);
+				
+			E_MA_EVENT.STOP:
+				// Stop the motor at current position, whatever it is.
+				RefStat.nSkippedCycles 	:= RefCfg.nMinSkipCycles + 1; // Immediate action
+				M_SetMode(E_MA_MODE.MA_MODE_ENG);
+				ActionStopExecute();
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_STOPPING);
+				
+			E_MA_EVENT.STOP_TRACK:
+				M_SetMode(RefCtrl.nMode);	
+				// Set nCyclesIdle to zero.
+				// Needed to distinguish if the motor is about to move off or it completed the move.
+//				RefStat.nSkippedCycles 	:= 0;	// Delayed action
+				RefStat.nSkippedCycles 	:= RefCfg.nMinSkipCycles + 1; // Immediate action
+				M_NextMoveAbs();
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+				
+			E_MA_EVENT.MA_MOVE:
+				M_SetMode(RefCtrl.nMode);	
+				M_SetStatus('Moving  ...');
+				IF (RefStat.nMode = MA_MODE_ENG) THEN
+					// Set nCyclesIdle to zero.
+					// Needed to distinguish if the motor is about to move off or it completed the move.
+					RefStat.nSkippedCycles	:= 0;
+					M_NextMove();		// Set new position and move absolute
+					SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+				ELSE
+					M_NextMove();
+//					SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_TRACKING);
+					SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_PRESETTING);
+				END_IF
+			E_MA_EVENT.START_TRACK:
+				M_SetMode(RefCtrl.nMode);	
+				// Set nCyclesIdle to zero.
+				// Needed to distinguish if the motor is about to move off or it completed the move.
+				RefStat.nSkippedCycles 	:= 0;	// Delayed action
+				M_NextMoveAbs();
+//				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_TRACKING);
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_PRESETTING);
+			E_MA_EVENT.PRESETDONE:
+				// Preset is done, start tracking.
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_TRACKING);
+			E_MA_EVENT.TRACKEXIT:
+				// Tracking is not good, it's more like presetting.
+				SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_PRESETTING);
+		END_CASE
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{3a2a1527-2035-490f-a1e9-38c027097aec}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+
+VAR 
+	i: INT;
+	bMotorMoving:	BOOL := FALSE;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log similar string in every derived FB
+//M_LogEventGeneral('Initialising MA motors');
+
+//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_Init	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+// It does all the verifications for the MOTOR device before
+// triggering the Init event.
+
+FOR i := 1 TO nNumAxes DO
+	// RPC calls are not allowed in Local mode.
+	// Fail on the first occurrence.
+	IF ptrMotorStat[i]^.bLocal THEN
+		RPC_Init	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	END_IF
+
+	// If any of the motors is moving, RPC_Init() will fail.
+	// However, the moving motor will be stopped, so next INIT will be OK.
+	// We loop through all motors.
+	IF	ptrMotorStat[i]^.nState = E_MOTOR_STATE.OP	AND  
+		ptrMotorStat[i]^.nSubstate <> E_MOTOR_SUBSTATE.OP_STANDSTILL	THEN
+		// There is a moving motor in the system.
+		bMotorMoving	:= TRUE;
+		// Stop the motor.
+		// Send STOP command to the motors.
+		ptrMotorCtrl[i]^.nCommand	:= E_MOTOR_COMMAND.STOP;
+		ptrMotorCtrl[i]^.bExecute	:= TRUE;
+		// RPC_Init() will fail !!!
+		RPC_Init	:= M_SetRpcStatus(E_MA_RPC_ERROR.INIT_WHILE_MOVING);
+	END_IF
+END_FOR
+
+IF bMotorMoving THEN
+	// RPC_Init is already set to failure.
+	RETURN;
+ELSE
+	// Proceed with INIT.
+	RefCtrl.nCommand := E_MA_COMMAND.INIT;
+	RefCtrl.bExecute := TRUE;
+		
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{5a33432a-48a1-433d-b580-6530a3e411be}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+RefStat.sm.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{d5079cd5-fa38-48fa-aade-b5b434f6088b}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_MA_EVENT.NONE:
+		RefStat.sm.sEventDesc := '';
+		RETURN;
+		
+	E_MA_EVENT.RESET:
+		RefStat.sm.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_MA_EVENT.INIT:
+		RefStat.sm.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_MA_EVENT.STOP:
+		RefStat.sm.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_MA_EVENT.ENABLE:
+		RefStat.sm.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_MA_EVENT.DISABLE:
+		RefStat.sm.sEventDesc := 'CMD DISABLE';
+		RETURN;
+		
+	E_MA_EVENT.MA_MOVE:
+		RefStat.sm.sEventDesc := 'CMD MOVE';
+		RETURN;
+		
+	E_MA_EVENT.START_TRACK:
+		RefStat.sm.sEventDesc := 'CMD START_TRACK -> PRESETTING';
+		RETURN;
+
+	E_MA_EVENT.STOP_TRACK:
+		RefStat.sm.sEventDesc := 'CMD STOP_TRACK';
+		RETURN;
+		
+	E_MA_EVENT.PRESETDONE:
+		RefStat.sm.sEventDesc := 'TRACKING';
+		RETURN;
+		
+	E_MA_EVENT.TRACKEXIT:
+		RefStat.sm.sEventDesc := 'TRACKING -> PRESETTING';
+		RETURN;
+		
+	E_MA_EVENT.HWOK:
+		RefStat.sm.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_MA_EVENT.ERRHW:
+		RefStat.sm.sEventDesc := 'INT ERRHW';
+		RETURN;
+	
+	E_MA_EVENT.UNSAFE:
+		RefStat.sm.sEventDesc := 'EXT UNSAFE';
+		RETURN;
+	
+END_CASE 
+
+(* INTERNAL ERROR *)
+RefStat.sm.sEventDesc := 'UNKNOWN EVENT';]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{2b2354a3-6aca-48b0-97ba-6f854b8e91eb}">
+      <Declaration><![CDATA[// Set the state and substate of the device
+METHOD SetState : BOOL
+VAR_INPUT
+	in_nState:		INT;
+	in_nSubstate:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Update State Machine active state configuration.
+*)
+
+IF in_nState <> E_MA_STATE.NONE THEN
+	RefStat.sm.nState	:= in_nState;
+END_IF
+IF in_nSubstate <> E_MA_SUBSTATE.NONE THEN
+	RefStat.sm.nSubstate	:= in_nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF in_nState = E_MA_STATE.NOTOP THEN
+	RefStat.sm.sState	:= 'NOT OP';
+ELSIF in_nState = E_MA_STATE.OP THEN
+	RefStat.sm.sState	:= 'OPERATIONAL';
+END_IF
+
+IF in_nSubstate = E_MA_SUBSTATE.NOTOP_NOTREADY THEN
+	RefStat.sm.sSubstate	:= 'NOT READY';
+ELSIF in_nSubstate = E_MA_SUBSTATE.NOTOP_INITIALISING THEN
+	RefStat.sm.sSubstate	:= 'INITIALISING';
+ELSIF in_nSubstate = E_MA_SUBSTATE.NOTOP_READY THEN
+	RefStat.sm.sSubstate	:= 'READY';
+ELSIF in_nSubstate = E_MA_SUBSTATE.NOTOP_ERROR THEN
+	RefStat.sm.sSubstate	:= 'ERROR';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_DISABLING THEN
+	RefStat.sm.sSubstate	:= 'DISABLING';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_MOVING THEN
+	RefStat.sm.sSubstate	:= 'MOVING';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_STANDSTILL THEN
+	RefStat.sm.sSubstate	:= 'STANDSTILL';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_TRACKING THEN
+	RefStat.sm.sSubstate	:= 'TRACKING';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_PRESETTING THEN
+	RefStat.sm.sSubstate	:= 'PRESETTING';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_STOPPING THEN
+	RefStat.sm.sSubstate	:= 'STOPPING';
+ELSIF in_nSubstate = E_MA_SUBSTATE.OP_ERROR THEN
+	RefStat.sm.sSubstate	:= 'ERROR';
+ELSE
+	RefStat.sm.sSubstate	:= '';
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_ComputeNextPos" Id="{51e58d32-3a0f-4b7d-bed3-0c71f0033f7d}">
+      <Declaration><![CDATA[METHOD User_ComputeNextPos : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	int;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODOUSER: Calculate next position for each axes based on the current mode.
+IF RefStat.nMode = MA_MODE_ENG THEN
+	FOR i := 1 TO nNumAxes DO
+		;
+	END_FOR
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_Configure" Id="{3369fa4a-2bdd-4712-8ae0-3ef07bb26921}">
+      <Declaration><![CDATA[// Method for hard-coding of configuration parameters by the User.
+METHOD User_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// TODOUSER: Configure anything that is different from default configuration or
+//           that has to take all motors into account.
+//
+
+//
+// This is mandatory.
+//
+// Set the global timeouts to the longest ones. 
+FOR i := 1 TO nNumAxes DO
+	IF ptrMotorCfg[i]^.nTimeoutInit > RefCfg.timeout.nInitTimeout THEN
+		RefCfg.timeout.nInitTimeout  := ptrMotorCfg[i]^.nTimeoutInit;
+	END_IF
+	IF ptrMotorCfg[i]^.nTimeoutMove > RefCfg.timeout.nMoveTimeout THEN
+		RefCfg.timeout.nMoveTimeout  := ptrMotorCfg[i]^.nTimeoutMove;
+	END_IF
+END_FOR
+
+//
+// TODOUSER: Any other configuration
+//
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_GetParams" Id="{9943d9c7-8c6c-4be7-90cb-37d17c75701e}">
+      <Declaration><![CDATA[// User Method executed on each cycle before processing events and states.
+METHOD User_GetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// TODOUSER: Set anything that should be set on every cycle, if any.
+//
+
+// Example: Any settings that are mode dependant.
+CASE RefCtrl.nMode OF
+			MA_MODE_ENG:
+			    ; 
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_SetParams" Id="{ccc0a3ce-d500-4461-8159-76527512fc68}">
+      <Declaration><![CDATA[// User Method executed on each cycle after processing events and states.
+METHOD User_SetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Mandatory
+//
+// Set maximum positioning error
+RefStat.lrPosError	:= M_GetMaxPosError();
+
+
+// TODO Add code for handling individual axes, if any.
+FOR i := 1 TO nNumAxes DO
+	;
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MA_BASE">
+      <LineId Id="1211" Count="35" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionDisableExecute">
+      <LineId Id="35" Count="2" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionEnableExecute">
+      <LineId Id="35" Count="2" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionInitExecute">
+      <LineId Id="75" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="104" Count="5" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="46" Count="3" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="81" Count="3" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="85" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="53" Count="2" />
+      <LineId Id="63" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionMoveAbsExecute">
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="44" Count="2" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionMoveVelExecute">
+      <LineId Id="23" Count="2" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionResetExecute">
+      <LineId Id="24" Count="2" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="21" Count="2" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionStopExecute">
+      <LineId Id="41" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="29" Count="5" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActionTrackExecute">
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="44" Count="2" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityDisabling">
+      <LineId Id="86" Count="18" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityEnabling">
+      <LineId Id="45" Count="18" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityInitialising">
+      <LineId Id="102" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="109" Count="2" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="119" Count="7" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="78" Count="2" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="45" Count="3" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="56" Count="2" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityMoving">
+      <LineId Id="89" Count="1" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="93" Count="14" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="163" Count="1" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="144" Count="5" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="116" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityPresetting">
+      <LineId Id="123" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="122" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityResetting">
+      <LineId Id="20" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="22" Count="5" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="28" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityStopping">
+      <LineId Id="45" Count="0" />
+      <LineId Id="109" Count="1" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="117" Count="2" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="59" Count="1" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="48" Count="2" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="91" Count="2" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="79" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="52" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ActivityTracking">
+      <LineId Id="119" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="121" Count="3" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="103" Count="12" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.CheckForEvents">
+      <LineId Id="7" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="137" Count="2" />
+      <LineId Id="14" Count="7" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="82" Count="3" />
+      <LineId Id="142" Count="1" />
+      <LineId Id="146" Count="1" />
+      <LineId Id="151" Count="4" />
+      <LineId Id="149" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="125" Count="1" />
+      <LineId Id="121" Count="1" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="127" Count="1" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="54" Count="2" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="72" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="88" Count="1" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="95" Count="5" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_AxesIdle">
+      <LineId Id="95" Count="20" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_AxesInitialised">
+      <LineId Id="29" Count="8" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_CheckAxesState">
+      <LineId Id="50" Count="9" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_CheckError">
+      <LineId Id="19" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="21" Count="2" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_Configure">
+      <LineId Id="111" Count="0" />
+      <LineId Id="115" Count="1" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="33" Count="14" />
+      <LineId Id="117" Count="1" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="48" Count="1" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="143" Count="3" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_GetMaxPosError">
+      <LineId Id="34" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="35" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_HomeMotors">
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_LogCommand">
+      <LineId Id="7" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_LogEventError">
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_LogEventGeneral">
+      <LineId Id="21" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_NextMove">
+      <LineId Id="187" Count="1" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="189" Count="1" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="92" Count="3" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_NextMoveAbs">
+      <LineId Id="187" Count="1" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="189" Count="1" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="92" Count="3" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_RestartTimer">
+      <LineId Id="7" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_SetInit">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_SetMode">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.M_SetStatus">
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.ProcessEvents">
+      <LineId Id="232" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="64" Count="4" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="271" Count="1" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="77" Count="2" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="269" Count="0" />
+      <LineId Id="275" Count="1" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="286" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="287" Count="2" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="217" Count="1" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="204" Count="2" />
+      <LineId Id="196" Count="2" />
+      <LineId Id="200" Count="2" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="258" Count="1" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="136" Count="15" />
+      <LineId Id="153" Count="3" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="158" Count="14" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="222" Count="3" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="296" Count="1" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.RPC_Init">
+      <LineId Id="63" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="70" Count="2" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="77" Count="4" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.SetAction">
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.SetEvent">
+      <LineId Id="7" Count="26" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="114" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="104" Count="2" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="120" Count="7" />
+      <LineId Id="69" Count="6" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="132" Count="3" />
+      <LineId Id="97" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.SetState">
+      <LineId Id="112" Count="0" />
+      <LineId Id="72" Count="26" />
+      <LineId Id="133" Count="1" />
+      <LineId Id="103" Count="1" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="105" Count="5" />
+      <LineId Id="70" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.User_ComputeNextPos">
+      <LineId Id="24" Count="0" />
+      <LineId Id="61" Count="3" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.User_Configure">
+      <LineId Id="44" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.User_GetParams">
+      <LineId Id="67" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_BASE.User_SetParams">
+      <LineId Id="100" Count="0" />
+      <LineId Id="98" Count="1" />
+      <LineId Id="94" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

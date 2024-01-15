@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="FB_IODEV_CH_DIGITAL" Id="{608d734d-b375-4889-bba1-588cb9a9f25e}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_DIGITAL EXTENDS FB_IODEV_CHANNEL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Configuration parameters
+	// Configured for R/W OPC UA Data Access !!!
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	sLabel_0:	STRING(16)	:= '0';
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	sLabel_1:	STRING(16)	:= '1';
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_IODEV_CH_DIGITAL">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

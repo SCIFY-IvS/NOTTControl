@@ -1,0 +1,1447 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_IODEV_BASE" Id="{9b20579e-46f1-487a-b0e9-71610139463f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA':='0'}
+	in_sName:		STRING	:= 'IODev';	// Instance name
+	{attribute 'OPC.UA.DA':='0'}
+	in_bAutoOp:		BOOL 	:= FALSE;	// If TRUE, go automatically to OPERATIONAL state. Default FALSE.
+	{attribute 'OPC.UA.DA':='0'}
+	in_bUserConfig:	BOOL 	:= FALSE;	// If TRUE, configuration in M_UserConfigure() is used. Default FALSE.
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR RETAIN
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_IODEV_CFG;	
+	{attribute 'OPC.UA.DA' := '0'}
+	RefCtrl:	REFERENCE TO T_IODEV_CTRL;	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_IODEV_INFO;	(* ReadOnly *)
+	{attribute 'OPC.UA.DA' := '0'}
+	RefStat:	REFERENCE TO T_IODEV_STAT;	    // Reference to Status parameters
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_IODEV_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_IODEV_EVENT.NONE;
+	
+	// Pointers to I/O data to be defined in FB's that inherit from this BASE FB.
+	// In the BASE FB they are set to zero to prevent any access to data.
+	pArrDI:	POINTER TO FB_IODEV_CH_DIG_IN	:= 0;	// pointer to DI
+	pArrAI:	POINTER TO FB_IODEV_CH_ANLG_IN	:= 0;	// pointer to AI
+	pArrRI:	POINTER TO FB_IODEV_CH_REAL_IN	:= 0;	// pointer to RI
+	pArrDO:	POINTER TO FB_IODEV_CH_DIG_OUT	:= 0;	// pointer to DO
+	pArrAO:	POINTER TO FB_IODEV_CH_ANLG_OUT	:= 0;	// pointer to AO
+
+	
+	// Operational Events
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventError:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventDebug:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventGeneral:	FB_TcMessage;
+	
+	(***** Physical signals - to be mapped!!! *****)
+
+	(* Outputs *)
+
+	(* Inputs *)	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nCouplerState	AT %I*: 	UINT;	(* Link it to Coupler->InfoData->State *)
+
+	// Flag if the device is ready to receive commands.
+	// It takes a couple of cycles for the system to read inputs after reboot.
+	{attribute 'OPC.UA.DA' := '0'}
+	bDeviceNotReady:		BOOL 	:= TRUE;
+	
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// On first cycle configure from input params and internally execute M_UserConfigure()
+IF bDeviceNotReady THEN
+	// Set device Configuration
+	M_Configure();
+	RETURN;
+END_IF
+
+// Increment counter.
+// This will be seen as 'alive' flag.
+RefStat.nCycleCounter	:= RefStat.nCycleCounter + 1;
+
+
+(* === Check for commands and internal events to be processed === *)
+CheckForEvents();
+
+(* === Process events according to the State Machine === *)
+ProcessEvents();
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionDisableExecute" Id="{6fc35504-cac0-44ac-ad71-a249e896f4d1}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionDisableExecute');
+
+// Log event
+M_LogEventGeneral('DISABLE executed.');
+
+// Reset all outputs
+M_ResetOutputs();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableExecute" Id="{ef01bce1-e3d5-44f4-9ac2-7266aba2948c}">
+      <Declaration><![CDATA[METHOD ActionEnableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{f0b03128-67d1-4f29-8bef-9e922ed95113}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionErrExecute');
+
+IF nEvent = E_IODEV_EVENT.ERRHW THEN
+	SetStatus(E_IODEV_ERROR.HW_NOT_OP, 'ERROR: HW not in OP state');	
+ELSIF nEvent = E_IODEV_EVENT.ERRINIT THEN
+	SetStatus(E_IODEV_ERROR.INIT_FAILURE, 'ERROR: INIT failed');	
+END_IF
+		
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{7c08ae8b-b17b-4fe9-92ef-38c23e0bebc2}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+// Apply User configuration if configured so
+IF cfg.bUserConfig THEN
+	M_UserConfigure();
+END_IF
+
+// Log event
+M_LogEventGeneral('INIT executed.');
+
+
+// Clear any error
+SetStatus(E_IODEV_ERROR.OK, 'OK');
+
+// Set INITDONE event
+nInternalEvent 		:= E_IODEV_EVENT.INITDONE;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{ed28dfa9-8c19-4ef7-b6fa-7e3c1a84e955}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionResetExecute');
+
+M_ResetConfig();	// Reset existing User configuration
+
+// Log event
+M_LogEventGeneral('RESET executed.');
+
+
+// Clear any error
+SetStatus(E_IODEV_ERROR.OK, 'OK');
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionSetExecute" Id="{7e32a4c6-40e9-4483-ae7a-330aeaa799ea}">
+      <Declaration><![CDATA[METHOD ActionSetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionSetExecute');
+
+// Log event
+M_LogEventGeneral('SET executed. Outputs activated.');
+
+(* Clear the error *)
+SetStatus(E_IODEV_ERROR.OK,'OK');
+
+// Set Outputs
+M_SetOutputs();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{8fda38ea-3886-482d-9eb2-9445c00e1069}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionStopExecute');
+
+// Reset all outputs
+M_ResetOutputs();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{fabeea70-ef5f-4c6d-b939-031dc980b796}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionUnexpExecute');
+
+(*
+	We don't want to overwrite initial error.
+	Update error only if it is currently equal to OK. 
+*)
+IF RefStat.nErrorCode = E_IODEV_ERROR.OK THEN
+	IF nEvent = E_IODEV_EVENT.ERRHW THEN
+		RefStat.nErrorCode		:= E_IODEV_ERROR.HW_NOT_OP;
+		RefStat.sErrorText		:= 'ERROR: HW not in OP state.';	
+	ELSIF nEvent = E_IODEV_EVENT.ERRINIT THEN
+		RefStat.nErrorCode		:= E_IODEV_ERROR.INIT_FAILURE;
+		RefStat.sErrorText		:= 'ERROR: INIT failed.';	
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{1228c683-5117-4fbc-a2ed-13fdab0adf28}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityMonitoring');
+
+IF	i_nCouplerState <> 8  THEN
+	nInternalEvent 		:= E_IODEV_EVENT.ERRHW;
+
+	SetStatus(E_IODEV_ERROR.HW_NOT_OP, 'HW not in OP state');	
+	RETURN;
+END_IF
+
+// Read all sensors define in the system
+M_ReadSensors();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{1bcb3be0-13a0-4554-b509-be6652ab20ef}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+nEvent := E_IODEV_EVENT.HWOK;
+
+
+
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals: if any.
+*)
+
+IF i_nCouplerState <> 8 THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_IODEV_EVENT.ERRHW);
+	SetStatus(E_IODEV_ERROR.HW_NOT_OP, 'ERROR: HW not in OPERATIONAL state');
+
+ELSIF nInternalEvent <> E_IODEV_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_IODEV_EVENT.NONE;
+ELSIF RefCtrl.bExecute = TRUE  THEN
+	(* Handle commands *)
+	RefCtrl.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	SetLastCommand(RefCtrl.nCommand);			(* Save the last command *)
+	SetEvent(RefCtrl.nCommand);
+	RefCtrl.nCommand 		:= E_IODEV_COMMAND.NONE;	(* Clear the Command *)
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{bd336feb-f03a-429f-92a9-35a747dfe0f6}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If first cycle, copy configuration AND RETURN in order for the system to read all inputs before doing any work
+IF RefStat.nCycleCounter = 0 THEN
+	// Copy input parameters into configuration
+	cfg.sName		:=	in_sName;		// Instance name
+
+	cfg.bAutoOp		:=	in_bAutoOp;		// If TRUE, go automatically to OPERATIONAL state
+	cfg.bUserConfig	:=	in_bUserConfig;	// If TRUE, configuration in M_UserConfigure() is used.
+	
+	// Get the version number 
+	RefStat.sLibVersion	:= stLibVersion_ESO_LDC_IODev_Library.sVersion;
+
+	// Increment counter.
+	RefStat.nCycleCounter	:= RefStat.nCycleCounter + 1;
+	RETURN;
+ELSIF RefStat.nCycleCounter < 100 THEN
+	// Give the system a couple of cycles
+	// Increment counter.
+	RefStat.nCycleCounter	:= RefStat.nCycleCounter + 1;
+	RETURN;
+END_IF
+
+// After 100 cycles the system is read, e.g. coupler state is 8.
+
+// Create Event instances
+fbEventError.CreateEx	(TC_EVENTS.IODevOpsEventClass.Error,0);
+fbEventDebug.CreateEx	(TC_EVENTS.IODevOpsEventClass.Debug,0);
+fbEventGeneral.CreateEx	(TC_EVENTS.IODevOpsEventClass.General,0);
+
+
+// The device is ready now.
+bDeviceNotReady := FALSE;
+
+
+// Clear errors
+RefStat.nErrorCode		:= E_IODEV_ERROR.OK;
+RefStat.sErrorText		:= 'OK';	
+
+
+//
+// Execute User configuration, if configured to do so.
+//
+IF cfg.bUserConfig THEN
+	M_UserConfigure();
+END_IF
+
+//
+// Set next state based on cfg.bAutoOp
+//
+IF cfg.bAutoOp THEN
+	SetState(E_IODEV_STATE.OP, E_IODEV_SUBSTATE.OP_MONITORING);
+ELSE
+	// Monitoring but cannot activate outputs
+	SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_READY);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{a6395d91-813f-4cab-a494-3e3d4e48bd2a}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_IODEV_RPC_ERROR.OK:						str	:= 'OK';
+	E_IODEV_RPC_ERROR.NOT_OP:					str	:= 'Cannot control function. Not in OP state.';
+	E_IODEV_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP/(READY or MONITORING).';
+	E_IODEV_RPC_ERROR.NOT_NOTOP_NOTREADY:		str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_IODEV_RPC_ERROR.LOCAL:					str	:= 'RPC calls not allowed in Local mode.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventDebug" Id="{76ff400f-eecc-453d-bdbd-16ea83a14a8b}">
+      <Declaration><![CDATA[METHOD M_LogEventDebug : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log Debug events only if both logging and debugging is enabled
+IF  cfg.bLog AND cfg.bDebug THEN
+	fbEventDebug.ipArguments.Clear().AddString(sText);
+	fbEventDebug.Send(0);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventError" Id="{09811c01-7dc5-4d6f-9199-d2731ce1b7ee}">
+      <Declaration><![CDATA[METHOD M_LogEventError : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventError.ipArguments.Clear().AddString(sText);
+fbEventError.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventGeneral" Id="{a9dfeb89-9fc4-4c54-af42-3043d81bb670}">
+      <Declaration><![CDATA[METHOD M_LogEventGeneral : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventGeneral.ipArguments.Clear().AddString(sText);
+fbEventGeneral.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{05793912-4922-497d-85e7-1e3cb39dc06c}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+VAR
+	i:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Digital inputs are mapped to physical input signals.
+// Assign preconfigured label depending on the value
+//
+IF pArrDI <> 0 AND cfg.nNum_DI > 0  THEN
+	FOR i := 0 TO (cfg.nNum_DI - 1) DO
+		pArrDI[i].M_Compute();
+	END_FOR
+END_IF
+
+//
+// Analog inputs of type INT are mapped to physical input signals.
+// Compute the reading in User Units
+//
+IF pArrAI <> 0 AND cfg.nNum_AI > 0  THEN
+	FOR i := 0 TO (cfg.nNum_AI - 1) DO
+		pArrAI[i].M_Compute();
+	END_FOR
+END_IF
+
+//
+// Analog inputs of type REAL are mapped to physical input signals.
+// Compute the reading in User Units
+//
+IF pArrRI <> 0 AND cfg.nNum_RI > 0  THEN
+	FOR i := 0 TO (cfg.nNum_RI - 1) DO
+		pArrRI[i].M_Compute();
+	END_FOR
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ResetConfig" Id="{b058cc22-512f-4434-9b50-497a9670b383}">
+      <Declaration><![CDATA[METHOD M_ResetConfig
+VAR_INPUT
+END_VAR
+VAR
+	i:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Reset Digital inputs.
+//
+IF pArrDI <> 0 AND cfg.nNum_DI > 0  THEN
+	FOR i := 0 TO (cfg.nNum_DI - 1) DO
+		pArrDI[i].M_Reset();
+	END_FOR
+END_IF
+
+//
+// Reset Digital outputs.
+//
+IF pArrDO <> 0 AND cfg.nNum_DO > 0  THEN
+	FOR i := 0 TO (cfg.nNum_DO - 1) DO
+		pArrDO[i].M_Reset();
+	END_FOR
+END_IF
+
+//
+// Reset Analog inputs of type INT
+//
+IF pArrAI <> 0 AND cfg.nNum_AI > 0  THEN
+	FOR i := 0 TO (cfg.nNum_AI - 1) DO
+		pArrAI[i].M_Reset();
+	END_FOR
+END_IF
+
+//
+// Reset Analog inputs of type REAL
+//
+IF pArrRI <> 0 AND cfg.nNum_RI > 0  THEN
+	FOR i := 0 TO (cfg.nNum_RI - 1) DO
+		pArrRI[i].M_Reset();
+	END_FOR
+END_IF
+
+//
+// Reset Analog outputs.
+//
+IF pArrAO <> 0 AND cfg.nNum_AO > 0  THEN
+	FOR i := 0 TO (cfg.nNum_AO - 1) DO
+		pArrAO[i].M_Reset();
+	END_FOR
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ResetOutputs" Id="{a8344f45-cb7f-4702-947c-f383d87d364b}">
+      <Declaration><![CDATA[METHOD M_ResetOutputs
+VAR_INPUT
+END_VAR
+VAR
+	i:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Reset digital outputs.
+//
+IF pArrDO <> 0 AND cfg.nNum_DO > 0  THEN
+	FOR i := 0 TO (cfg.nNum_DO - 1) DO
+		pArrDO[i].M_Reset();
+	END_FOR
+END_IF
+
+//
+// Reset analog outputs.
+//
+IF pArrAO <> 0 AND cfg.nNum_AO > 0  THEN
+	FOR i := 0 TO (cfg.nNum_AO - 1) DO
+		pArrAO[i].M_Reset();
+	END_FOR
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetOutputs" Id="{a2b989ce-0bb9-487e-b757-b254b0a919dc}">
+      <Declaration><![CDATA[METHOD M_SetOutputs
+VAR_INPUT
+END_VAR
+VAR
+	i:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Set digital outputs.
+//
+IF pArrDO <> 0 AND cfg.nNum_DO > 0  THEN
+	FOR i := 0 TO (cfg.nNum_DO - 1) DO
+		pArrDO[i].M_Compute();
+	END_FOR
+END_IF
+
+//
+// Set analog outputs.
+//
+IF pArrAO <> 0 AND cfg.nNum_AO > 0  THEN
+	FOR i := 0 TO (cfg.nNum_AO - 1) DO
+		pArrAO[i].M_Compute();
+	END_FOR
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{8fc853df-88b2-40ab-99ba-2b788cf16ba9}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	E_IODEV_RPC_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nRpcErrorCode	:= nErrorCode;
+RefStat.sRpcErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UserConfigure" Id="{941ded4c-618e-43d6-9eb9-4f4a2fe5e06c}">
+      <Declaration><![CDATA[METHOD M_UserConfigure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{6e9c6b9a-4c2b-4268-a28e-d15cd6e7df03}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF	RefStat.nSubstate = E_IODEV_SUBSTATE.OP_MONITORING OR 
+	RefStat.nSubstate = E_IODEV_SUBSTATE.NOTOP_READY	THEN
+	ActivityMonitoring();
+END_IF
+
+
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE RefStat.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_IODEV_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE RefStat.nSubstate OF
+	
+	E_IODEV_SUBSTATE.NOTOP_NOTREADY:		
+		IF nEvent = E_IODEV_EVENT.INIT THEN
+			ActionInitExecute();
+			// Set next state based on cfg.bAutoOp
+			IF cfg.bAutoOp THEN
+				// Go directly to operational
+				M_LogEventGeneral('Going to OP_MONITORING state.');
+				SetState(E_IODEV_STATE.OP, E_IODEV_SUBSTATE.OP_MONITORING);
+			ELSE
+				// Monitoring but cannot activate outputs
+				M_LogEventGeneral('Going to NOTOP_READYstate.');
+				SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_READY);
+			END_IF
+			RETURN;
+		END_IF
+		
+	E_IODEV_SUBSTATE.NOTOP_READY:			
+		IF nEvent = E_IODEV_EVENT.ENABLE THEN
+			M_LogEventGeneral('ENABLE executed.');
+			SetState(E_IODEV_STATE.OP, E_IODEV_SUBSTATE.OP_MONITORING);
+			RETURN;
+		END_IF
+
+	E_IODEV_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_IODEV_EVENT.HWOK THEN
+			M_LogEventGeneral('Recovered from ERROR.');
+			SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF nEvent = E_IODEV_EVENT.ERRHW THEN
+		ActionUnexpExecute();
+		SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_IODEV_STATE.OP:
+
+	(* Transitions from OP subastates *)
+	CASE RefStat.nSubstate OF
+	E_IODEV_SUBSTATE.OP_ERROR:			
+		IF nEvent = E_IODEV_EVENT.HWOK THEN
+			M_LogEventGeneral('Recovered from ERROR.');
+			SetStatus(E_IODEV_ERROR.OK, 'OK');
+			SetState(E_IODEV_STATE.OP, E_IODEV_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_IODEV_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_READY);
+			RETURN;			
+		END_IF
+
+	E_IODEV_SUBSTATE.OP_MONITORING:			
+		IF nEvent = E_IODEV_EVENT.SET THEN
+			ActionSetExecute();
+			RETURN;
+		ELSIF nEvent = E_IODEV_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_READY);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+	
+	// Transitions from OP state.
+	// Valid for any OP substate.
+	IF nEvent = E_IODEV_EVENT.ERRHW THEN
+		ActionUnexpExecute();
+		SetState(E_IODEV_STATE.OP, E_IODEV_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_IODEV_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_IODEV_STATE.NOTOP, E_IODEV_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+ELSIF
+	nEvent = E_IODEV_EVENT.STOP THEN
+	ActionStopExecute();
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{5148a2a0-e2a2-41c7-9f36-f227af947f1a}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF RefStat.nState <> E_IODEV_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Set disable command
+	RefCtrl.nCommand := E_IODEV_COMMAND.DISABLE;
+	RefCtrl.bExecute := TRUE;
+
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{cac06e45-6051-49af-8e79-cf506ac7dcde}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+// Enable command is ignored (in ProcessEvents) in OP_MONITORING.
+IF	RefStat.nSubstate <> E_IODEV_SUBSTATE.NOTOP_READY	AND
+	RefStat.nSubstate <> E_IODEV_SUBSTATE.OP_MONITORING	THEN
+	RPC_Enable	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	// Set enable command
+	RefCtrl.nCommand := E_IODEV_COMMAND.ENABLE;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{09fbd6ab-48a0-42c5-ada5-4601dab6673b}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Init command is accepted only if device is in NOTOP_NOTREADY or ERROR.
+IF 	RefStat.nSubstate <> E_IODEV_SUBSTATE.NOTOP_NOTREADY  AND  
+	RefStat.nSubstate <> E_IODEV_SUBSTATE.NOTOP_ERROR 		THEN
+	RPC_Init	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.NOT_NOTOP_NOTREADY);
+	RETURN;
+ELSE
+	// Set INIT command
+	RefCtrl.nCommand := E_IODEV_COMMAND.INIT;
+	RefCtrl.bExecute := TRUE;
+
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{35532b66-9a62-4e6e-a599-ba9a6fbae3a1}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+RefCtrl.nCommand := E_IODEV_COMMAND.RESET;
+RefCtrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDebug" Id="{6040db75-ab4c-46c7-98e4-7457ef13f944}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDebug : INT
+VAR_INPUT
+	in_bDebug:	BOOL 	:= FALSE;		// If TRUE, activate event logging of Debug type
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Debugging
+cfg.bDebug	:= in_bDebug;
+
+// Call was successful
+RPC_SetDebug	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetLog" Id="{43bfa140-8be5-4a9c-bdd7-b6149496dbd5}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetLog : INT
+VAR_INPUT
+	in_bLog:	BOOL 	:= FALSE;		// If TRUE, activate event logging
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Logging
+cfg.bLog	:= in_bLog;
+
+// Call was successful
+RPC_SetLog	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetOutputs" Id="{e317db98-832c-431e-8751-797806abe541}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetOutputs : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_SetOutputs	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// SET command is accepted only in OP state.
+IF RefStat.nState <> E_IODEV_STATE.OP THEN
+	RPC_SetOutputs	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Set SET command
+	RefCtrl.nCommand := E_IODEV_COMMAND.SET_OUTPUTS;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_SetOutputs	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{026b8edf-35c8-4c46-a298-77b1898b9d81}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+RefCtrl.nCommand := E_IODEV_COMMAND.STOP;
+RefCtrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_IODEV_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{2acba3b2-45b6-4a2a-b462-51ba88d57ca8}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+RefStat.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{6b68da34-70da-405a-b0a8-7235e5482c8e}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_IODEV_EVENT.NONE:
+		RefStat.sEventDesc := '';
+		RETURN;
+		
+	E_IODEV_EVENT.RESET:
+		RefStat.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_IODEV_EVENT.INIT:
+		RefStat.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_IODEV_EVENT.STOP:
+		RefStat.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_IODEV_EVENT.ENABLE:
+		RefStat.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_IODEV_EVENT.DISABLE:
+		RefStat.sEventDesc := 'CMD DISABLE';
+		RETURN;
+
+	(* events corresponding to internal events *)
+	(* evetnts mapped to HW signals *)
+	E_IODEV_EVENT.SET:
+		RefStat.sEventDesc := 'CMD SET';
+		RETURN;
+
+	E_IODEV_EVENT.INITDONE:
+		RefStat.sEventDesc := 'SIG INITDONE';
+		RETURN;
+
+	E_IODEV_EVENT.HWOK:
+		RefStat.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_IODEV_EVENT.ERRHW:
+		RefStat.sEventDesc := 'INT ERRHW';
+		RETURN;
+
+	E_IODEV_EVENT.ERRINIT:
+		RefStat.sEventDesc := 'INT ERRINIT';
+		RETURN;
+
+	
+END_CASE 
+
+(* INTERNAL ERROR *)
+RefStat.sEventDesc := 'UNKNOWN EVENT';
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetLastCommand" Id="{8884cbe4-d05c-426a-b153-0020c36595df}">
+      <Declaration><![CDATA[METHOD SetLastCommand
+VAR_INPUT
+	cmd:	E_IODEV_COMMAND;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nLastCommand	:= cmd;
+
+CASE cmd OF
+	E_IODEV_COMMAND.RESET:
+		RefStat.sLastCommand	:= 'RESET';
+	E_IODEV_COMMAND.INIT:
+		RefStat.sLastCommand	:= 'INIT';
+	E_IODEV_COMMAND.STOP:
+		RefStat.sLastCommand	:= 'STOP';
+	E_IODEV_COMMAND.ENABLE:
+		RefStat.sLastCommand	:= 'ENABLE';
+	E_IODEV_COMMAND.DISABLE:
+		RefStat.sLastCommand	:= 'DISABLE';
+	E_IODEV_COMMAND.SET_OUTPUTS:
+		RefStat.sLastCommand	:= 'SET';
+ELSE
+		RefStat.sLastCommand	:= 'NONE';
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{725c2510-95cb-4885-9251-304ab558f2e2}">
+      <Declaration><![CDATA[METHOD SetState : BOOL
+VAR_INPUT
+	nState:			E_IODEV_STATE;
+	nSubstate:		E_IODEV_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Update State Machine active state configuration.
+
+	ToDo: support initial pseudo state/substate.
+*)
+
+IF nState <> E_IODEV_STATE.NONE THEN
+	RefStat.nState	:= nState;
+END_IF
+IF nSubstate <> E_IODEV_SUBSTATE.NONE THEN
+	RefStat.nSubstate	:= nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF nState = E_IODEV_STATE.NOTOP THEN
+	RefStat.sState	:= 'NOT OP';
+ELSIF nState = E_IODEV_STATE.OP THEN
+	RefStat.sState	:= 'OPERATIONAL';
+END_IF
+
+IF nSubstate = E_IODEV_SUBSTATE.NOTOP_NOTREADY THEN
+	RefStat.sSubstate	:= 'NOT READY';
+ELSIF nSubstate = E_IODEV_SUBSTATE.NOTOP_READY THEN
+	RefStat.sSubstate	:= 'READY';
+ELSIF nSubstate = E_IODEV_SUBSTATE.NOTOP_ERROR THEN
+	RefStat.sSubstate	:= 'ERROR';
+ELSIF nSubstate = E_IODEV_SUBSTATE.OP_MONITORING THEN
+	RefStat.sSubstate	:= 'MONITORING';
+ELSIF nSubstate = E_IODEV_SUBSTATE.OP_ERROR THEN
+	RefStat.sSubstate	:= 'ERROR';
+ELSE
+	RefStat.sSubstate	:= '';
+END_IF
+
+
+SetState	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetStatus" Id="{5b3227cf-119a-4e13-9ac9-4e4585108264}">
+      <Declaration><![CDATA[METHOD SetStatus
+VAR_INPUT
+	nErrorCode:	E_IODEV_ERROR;
+	sErrorText:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nErrorCode 	:= nErrorCode;
+RefStat.sErrorText 	:= sErrorText;
+
+IF nErrorCode <> E_IODEV_ERROR.OK THEN
+	RefStat.sStatus	:= 'ERROR';
+	RefStat.nStatus	:= E_IODEV_STATUS.ERROR;
+ELSE
+	RefStat.sStatus	:= 'OK';
+	RefStat.nStatus	:= E_IODEV_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_BASE">
+      <LineId Id="237" Count="19" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionDisableExecute">
+      <LineId Id="12" Count="1" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionEnableExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionErrExecute">
+      <LineId Id="6" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionInitExecute">
+      <LineId Id="6" Count="1" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="36" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionResetExecute">
+      <LineId Id="20" Count="3" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionSetExecute">
+      <LineId Id="15" Count="1" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionStopExecute">
+      <LineId Id="15" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActionUnexpExecute">
+      <LineId Id="6" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ActivityMonitoring">
+      <LineId Id="22" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.CheckForEvents">
+      <LineId Id="137" Count="44" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_Configure">
+      <LineId Id="221" Count="7" />
+      <LineId Id="278" Count="1" />
+      <LineId Id="238" Count="11" />
+      <LineId Id="283" Count="1" />
+      <LineId Id="287" Count="4" />
+      <LineId Id="250" Count="24" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_LogEventDebug">
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_LogEventError">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_LogEventGeneral">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_ReadSensors">
+      <LineId Id="12" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="84" Count="9" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_ResetConfig">
+      <LineId Id="12" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="66" Count="2" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="99" Count="8" />
+      <LineId Id="72" Count="2" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_ResetOutputs">
+      <LineId Id="9" Count="2" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="15" Count="3" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_SetOutputs">
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.M_UserConfigure">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.ProcessEvents">
+      <LineId Id="3" Count="7" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="15" Count="3" />
+      <LineId Id="26" Count="16" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="362" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="357" Count="2" />
+      <LineId Id="369" Count="0" />
+      <LineId Id="360" Count="1" />
+      <LineId Id="51" Count="2" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="91" Count="3" />
+      <LineId Id="113" Count="1" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="115" Count="7" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="129" Count="8" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="367" Count="0" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="240" Count="1" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="246" Count="7" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="260" Count="3" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="265" Count="2" />
+      <LineId Id="272" Count="9" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="344" Count="1" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="283" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_Disable">
+      <LineId Id="30" Count="5" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_Enable">
+      <LineId Id="50" Count="5" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="41" Count="4" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_Init">
+      <LineId Id="32" Count="5" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_Reset">
+      <LineId Id="19" Count="5" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_SetDebug">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_SetLog">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_SetOutputs">
+      <LineId Id="61" Count="19" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.RPC_Stop">
+      <LineId Id="19" Count="5" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.SetAction">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.SetEvent">
+      <LineId Id="3" Count="27" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="106" Count="3" />
+      <LineId Id="102" Count="3" />
+      <LineId Id="65" Count="7" />
+      <LineId Id="85" Count="3" />
+      <LineId Id="92" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.SetLastCommand">
+      <LineId Id="3" Count="14" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.SetState">
+      <LineId Id="3" Count="22" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="59" Count="1" />
+      <LineId Id="46" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_BASE.SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

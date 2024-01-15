@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{f277cd49-2465-421d-84d9-365cee665a4b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	MCHR:	FB_RS_COMM_NO_SIM;
+	PICO:	FB_RS_COMM_NO_SIM;
+
+	{attribute 'OPC.UA.DA' := '1'}
+	CCC:	FB_CCC;
+
+
+	BBDY1:	FB_MODBUS_COMM_NO_SIM;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	JUMO:	FB_JUMO;
+	
+	// Lakeshore 340 (RS-232 interface)
+	{attribute 'OPC.UA.DA' := '1'}
+	LS340:			FB_LAKESHORE_RS;
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[MCHR(in_sCmdSuffix:='$0D$0A',in_sReplySuffix:='>', in_nTimeout:=30000);
+PICO(in_sCmdSuffix:='$0D',in_sReplySuffix:='$0D', in_nTimeout:=5000);
+
+CCC(in_sName:='CCC', in_nPeriod := 1200);
+
+BBDY1();
+
+JUMO(in_sName:='JUMO',in_nPeriod:=1000);	// Read all JUMOs every second
+
+
+LS340(	in_bSimulation		:= TRUE,		
+		in_sName			:= 'Lake 340', 
+		in_nModel			:= 340, 
+		in_bAutoMonitor		:= TRUE,
+		in_sCmdSuffix		:= '$0D$0A',
+		in_sReplySuffix		:= '$0D$0A',
+		in_nPeriod			:= 1700);
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="51" Count="2" />
+      <LineId Id="56" Count="5" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

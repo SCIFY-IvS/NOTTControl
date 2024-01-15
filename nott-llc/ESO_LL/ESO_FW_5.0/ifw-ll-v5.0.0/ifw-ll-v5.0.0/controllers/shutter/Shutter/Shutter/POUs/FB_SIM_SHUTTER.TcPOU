@@ -1,0 +1,382 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_SIM_SHUTTER" Id="{cdc20ae3-b7e8-4041-8913-f51782748d05}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_SHUTTER
+VAR_INPUT
+	ptrDev:		POINTER TO FB_SHUTTER;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	ptrCfg:		POINTER TO T_SHUTTER_CFG;
+	ptrStat:	POINTER TO T_SHUTTER_STAT;
+
+	{attribute 'OPC.UA.DA':='1'}
+	cfg:			T_SIM_SHUTTER_CFG;	(* ActiveLow configuration for each signal *)
+	{attribute 'OPC.UA.DA':='1'}
+	stat:			T_SIM_SHUTTER_STAT;	(* Simulator status parameters *)
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bSwitch:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA':='0'}
+	bSwitchLast:	BOOL := FALSE;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bClosed:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA':='0'}
+	bOpen:			BOOL := TRUE;
+	{attribute 'OPC.UA.DA':='0'}
+	bFault:			BOOL := FALSE;
+	{attribute 'OPC.UA.DA':='0'}
+	nCouplerState:	UINT := 8;       // normal coupler state
+	
+    (* Inputs *)
+	{attribute 'OPC.UA.DA':='0'}
+	i_bSwitch 		AT %I*: 		BOOL;
+
+	(* Outputs *)	
+	{attribute 'OPC.UA.DA':='0'}
+	q_bFault 		AT %Q*: 		BOOL;
+	{attribute 'OPC.UA.DA':='0'}
+	q_bOpen 		AT %Q*: 		BOOL;
+	{attribute 'OPC.UA.DA':='0'}
+	q_bClosed		AT %Q*: 		BOOL;
+	{attribute 'OPC.UA.DA':='0'}
+	q_nCouplerState AT %Q*:         UINT := 8;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	timer:			TON;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	trigger:		R_TRIG;	// To capture device INIT
+	
+	{attribute 'OPC.UA.DA':='0'}
+	counter:		INT	:= 0; 	// Counter used to delay simulator initialisation
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Give simulator 20 cycles of idle until real device is ready.
+IF counter < 20 THEN
+	counter	:= counter + 1;
+	RETURN;
+END_IF
+
+// Initialise the simulator, i.e. set pointers to the real device, etc.
+IF NOT stat.bInitialised THEN
+	// Set pointers to configuration and status
+	ptrCfg	:= ADR(ptrDev^.cfg);
+	ptrStat	:= ADR(ptrDev^.stat);
+
+	// Check for NULL pointers in input parameters
+	IF ptrCfg = 0  OR  ptrStat = 0 THEN
+		stat.nErrorCode	:= E_SHUTTER_ERROR.SIM_NULL_POINTER;
+		stat.sErrorText	:= 'ERROR: Input parameter is a NULL pointer';
+		stat.sStatus	:= 'ERROR';
+		RETURN;
+	END_IF
+
+	RPC_ResetConfig();	// Copy configuration from device
+	
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(100));	// Update almost immediately
+
+	stat.nErrorCode	:= E_SHUTTER_ERROR.OK;
+	stat.sErrorText	:= 'OK';
+	stat.sStatus	:= 'OK';
+	
+	stat.bInitialised	:= TRUE;
+	RETURN;
+END_IF
+
+
+// There are three triggers: 
+// 	Detect device INIT or RESET
+// 	RPC_ResetConfig() called (sets bUpdate to TRUE)
+// 	Activation of switch
+
+// Check for INIT or RESET trigger
+trigger(CLK:=	(ptrStat^.sActionDesc = 'ActionInitExecute') OR 
+				(ptrStat^.sActionDesc = 'ActionResetExecute'));
+
+// Check if the control command has changed.
+// If yes, set new outputs after a delay.
+bSwitch := M_GetLogicalState(i_bSwitch, cfg.bActiveLowSwitch);
+
+IF trigger.Q THEN
+	RPC_ResetConfig();	// Copy configuration from device
+ELSIF bSwitch <> bSwitchLast THEN
+	// Switch value has changed. 
+	bSwitchLast	:= bSwitch;	// Remember last switch value
+	
+	// Clear switches since the shutter is moving from one state to the other.
+	bOpen	:= FALSE;
+	bClosed	:= FALSE;
+
+	// Update state after a delay.
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nDelay));
+END_IF
+
+// Execute the timer
+timer();
+
+// Set new outputs once the timer has expired
+IF timer.Q THEN
+	timer(IN:=FALSE);	// Reset timer
+	SetState();
+END_IF
+
+
+(* Assign outputs *)
+q_bFault		:= M_GetLogicalState(bFault, cfg.bActiveLowFault);
+q_bOpen 		:= M_GetLogicalState(bOpen,	cfg.bActiveLowOpen);
+q_bClosed 		:= M_GetLogicalState(bClosed,	cfg.bActiveLowClosed);
+q_nCouplerState := nCouplerState;
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetLogicalState" Id="{3a675f1a-7819-414a-ae93-030e56ccbed7}">
+      <Declaration><![CDATA[METHOD M_GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	M_GetLogicalState := NOT state;
+ELSE
+	M_GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_ResetConfig" Id="{cefd105e-0777-45a9-b272-dea41c909353}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_ResetConfig : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowOpen		:= ptrCfg^.bActiveLowOpen;
+cfg.bActiveLowClosed	:= ptrCfg^.bActiveLowClosed;
+cfg.bActiveLowFault		:= ptrCfg^.bActiveLowFault;
+cfg.bActiveLowSwitch	:= ptrCfg^.bActiveLowSwitch;
+cfg.nDelay				:= ptrCfg^.nTimeout / 2;	// Response delay = 1/2 of real shutter timeout
+nCouplerState			:= 8;
+
+// Reset Fault signal
+bFault		:= FALSE;
+
+// Set the Switch value to its initial state
+bSwitch	:= ptrCfg^.bInitialState;
+
+// Set Shutter state
+SetState();
+
+RPC_ResetConfig	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Closed" Id="{8f5dc677-766e-4019-b1b8-e56d19ad70b8}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Closed : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowClosed:= bValue;
+
+RPC_SetActiveLow_Closed	:= E_SHUTTER_RPC_ERROR.OK;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Fault" Id="{6ccde042-cf6f-4575-bdf0-06366a66a95a}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Fault : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowFault	:= bValue;
+
+RPC_SetActiveLow_Fault	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Open" Id="{23934f2f-e237-4c2f-ac22-9cf7b73719c4}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Open : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowOpen	:= bValue;
+
+RPC_SetActiveLow_Open	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Switch" Id="{a4ecdb8e-bcef-4dcf-b895-66561c234cd6}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Switch : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowSwitch:= bValue;
+
+RPC_SetActiveLow_Switch	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetCouplerState" Id="{45255316-3d56-412d-a07e-b4d5796053d0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetCouplerState : INT
+VAR_INPUT
+	nValue:	UINT;	// Coupler state, 8 = OPERATIONAL
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCouplerState	:= nValue;
+
+RPC_SetCouplerState	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDelay" Id="{1004106a-d14c-4cdf-9cbe-1c39692b430f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDelay : INT
+VAR_INPUT
+	nDelay:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nDelay	:= nDelay;
+
+RPC_SetDelay	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetFault" Id="{b6977385-799f-43dd-85f1-bcc9ffea15b2}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetFault : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bFault:= M_GetLogicalState(bValue, cfg.bActiveLowFault);
+
+RPC_SetFault	:= E_SHUTTER_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{b072a095-95f0-4308-8265-99bbeb919b22}">
+      <Declaration><![CDATA[METHOD SetState : BOOL
+// Set Shutter state based on the input Switch value
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bSwitch THEN
+	bOpen	:= TRUE;
+	bClosed	:= FALSE;
+ELSE
+	bOpen	:= FALSE;
+	bClosed	:= TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_SHUTTER">
+      <LineId Id="312" Count="40" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="353" Count="34" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.M_GetLogicalState">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_ResetConfig">
+      <LineId Id="3" Count="5" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="25" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetActiveLow_Closed">
+      <LineId Id="3" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetActiveLow_Fault">
+      <LineId Id="3" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetActiveLow_Open">
+      <LineId Id="3" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetActiveLow_Switch">
+      <LineId Id="3" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetCouplerState">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetDelay">
+      <LineId Id="2" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.RPC_SetFault">
+      <LineId Id="3" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_SHUTTER.SetState">
+      <LineId Id="29" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

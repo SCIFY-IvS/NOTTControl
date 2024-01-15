@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_PUMP_HIPACE30_STAT" Id="{26bba95c-671f-4a83-943f-cf9af62136da}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_HIPACE30_STAT EXTENDS T_CRYO_PUMP_BASE_STAT :
+STRUCT
+
+(*
+Type:
+0 - old bool: 0=FALSE, NOT 0 = TRUE.
+1 - UDINT
+2 - REAL * 100 (with leading zeros), e.g. 001571 corresponds with 15.71
+4 - STRING (6)
+7 - UINT (000 to 999)
+
+INIT commands
+023 MotorPump Motor pump 0 = off 1 = on 0 RW 0 1 1
+060 CtrlViaInt Control via interface 7 RW 1 255 1
+	1 = remote 
+	2 = RS-485 
+	4 = PV.can
+	8 = Fieldbus
+	16 = E74
+	255 = unlock interface selection
+
+312 Fw version Firmware version electronic drive unit 4 R
+354 HW Version Hardware version electronic drive unit 4 R
+
+STATUS commands
+303 Error code Error code 4 R
+306 SetSpdAtt Target speed reached 0 = no 1 = yes 0 R 0 1
+310 DrvCurrent Drive current 2 R A 0 9999.99
+311 OpHrsPump Operating hours pump 1 R h 0 65535
+313 DrvVoltage Drive voltage 2 R V 0 9999.99
+314 OpHrsElec Operating hours electronic drive unit 1 R h 0 65535
+316 *** DrvPower Drive power 1 R W 0 999999
+319 *** PumpCycles Pump cycles 1 R 0 65535
+326 TempElec Temperature electronics 1 R °C 0 999999
+346 ^^^ TempMotor Temperature motor 1 R °C 0 999999
+397 *** SetRotSpd Set rotation speed (rpm) 1 R rpm 0 999999
+398 ActualSpd Actual rotation speed (rpm) 1 R rpm 0 999999
+399 NominalSpd Nominal rotation speed (rpm) 1 R rpm 0 999999
+
+*)
+
+// INIT commands
+	sFwVersion:		STRING(8);
+	sHwVersion:		STRING(8);
+
+// STATUS commands
+	sFailureCode:	STRING(8) := 'OK';
+	bTargetSpeed:	BOOL;		// Target Speed Reached
+	nNominalSpeed:	DINT;		// [rpm] Nominal Pump Speed
+	lrMotorVolt:	LREAL;		// Pump Motor Voltage [V]
+	
+	bFailure:		BOOL := FALSE;	// Err of Wrn (see cmd 303)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

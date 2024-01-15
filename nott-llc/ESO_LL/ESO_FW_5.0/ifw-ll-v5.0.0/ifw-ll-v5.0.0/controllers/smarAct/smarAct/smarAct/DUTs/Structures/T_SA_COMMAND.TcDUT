@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_COMMAND" Id="{df881070-b052-4446-85ad-988e8d48c83b}">
+    <Declaration><![CDATA[TYPE T_SA_COMMAND :
+STRUCT
+	cmd:		STRING := '';	(* Command to send *)
+	nReplies:	UINT;   		(* Number of replies, i.e. reply terminators *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

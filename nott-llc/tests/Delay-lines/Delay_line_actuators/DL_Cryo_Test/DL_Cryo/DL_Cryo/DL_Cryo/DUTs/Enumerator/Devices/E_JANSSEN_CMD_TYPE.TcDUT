@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_JANSSEN_CMD_TYPE" Id="{590bbf37-3984-46f5-ae76-08b83384c968}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_JANSSEN_CMD_TYPE :
+(
+	INIT := 0,	// Commands for system initialisation
+	READ,		// Commands for Reading status
+	CFG,		// Commands for Configuring channels
+	CTRL		// Commands for Controlling positioners, e.g. CAL, REF, MOVE, STOP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

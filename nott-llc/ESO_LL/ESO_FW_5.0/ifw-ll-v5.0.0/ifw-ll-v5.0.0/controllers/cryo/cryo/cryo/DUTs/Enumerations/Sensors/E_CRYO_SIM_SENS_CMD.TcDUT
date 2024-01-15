@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_SIM_SENS_CMD" Id="{693e5828-7eee-4016-8883-f8da3aab0d99}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_SIM_SENS_CMD :
+(
+	NONE	:= 0,
+	SET 	:= 1,	// Set value
+	RAMP	:= 2,	// Ramp value
+	SINE	:= 3	// Vary value as SINE signal
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

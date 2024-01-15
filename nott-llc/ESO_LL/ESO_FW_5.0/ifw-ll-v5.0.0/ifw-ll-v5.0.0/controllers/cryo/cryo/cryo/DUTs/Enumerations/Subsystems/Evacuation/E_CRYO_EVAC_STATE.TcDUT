@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_EVAC_STATE" Id="{5f38881c-f74a-42f4-9a5c-a0a782cc6a0f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_EVAC_STATE :
+(
+	NONE := 0,				// Undefined state.
+	OFF,					// Everything is OFF.
+	START_R_PUMP,			// Starting Roughing Pump.
+	WAIT_PREVAC,			// Waiting for the prevaccum pressure to be reached.
+	OPEN_INSULATION_VALVE,	// Opening Insulation Valve.
+	START_T_PUMP,			// Starting Turbo-Molecular Pump.
+	WAIT_CRYO_VAC,			// Waiting for the cryo pressure to drop below threshold.
+	EVACUATING,				// System is running. Evacuation in progress.
+	CLOSE_INSULATION_VALVE,	// Closing Insulation Valve.
+	DELAY_STOPPING,			// Delay after closing Insulation valve before stopping pumps.
+	STOP_T_PUMP,			// Stopping Turbo-Molecular Pump.
+	STOP_R_PUMP,			// Stopping Roughing Pump.
+	WAIT_T_PUMP_STOP		// Waiting for the Turbo-Molecular Pump to stop.
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

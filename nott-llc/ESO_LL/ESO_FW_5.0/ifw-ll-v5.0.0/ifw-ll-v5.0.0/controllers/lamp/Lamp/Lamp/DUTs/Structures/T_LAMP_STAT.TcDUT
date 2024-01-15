@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_LAMP_STAT" Id="{b8d52083-9990-40a7-82e3-575bf4048bc9}">
+    <Declaration><![CDATA[TYPE T_LAMP_STAT :
+STRUCT
+	//
+	// Common variables START
+	//
+	bLocal:			BOOL	:= FALSE;						(* if TRUE, device operated from PLC GUI *)
+	bCheckTimeLeft:	BOOL	:= FALSE;						(* if TRUE, check for max time is active *)
+	bOnAnalog:		BOOL	:= FALSE;						(* if TRUE, analog  ON is active *)
+	bOnDigital:		BOOL	:= FALSE;						(* if TRUE, digital ON is active *)
+
+	nOn:			DINT		:= 0;		// Analog feedback [bit]
+	
+	nLastCommand:	E_LAMP_COMMAND	:= E_LAMP_COMMAND.NONE;		(* Last command sent to the device *)
+
+	nErrorCode: 	E_LAMP_ERROR 	:= E_LAMP_ERROR.HW_NOT_OP;	(* Error code *)
+	nHwStatus: 		E_LAMP_HW_STATUS:= E_LAMP_HW_STATUS.UNKNOWN;(* Unknown, error, on, of. See E_LAMP_HW_STATUS *)
+	nRpcErrorCode: 	E_LAMP_RPC_ERROR:= E_LAMP_RPC_ERROR.OK;		(* RPC Error code *)
+	nStatus: 		E_LAMP_STATUS	:= E_LAMP_STATUS.ERROR; 	(* Device status *)
+
+	sErrorText: 	STRING 	:= 'OK'; 						(* Error text *)
+	sHwStatus: 		STRING 	:= 'UNKNOWN'; 					(* HW Status in textual form: 'UNKNOWN', 'ERROR', 'OPEN' or 'CLOSED' *)
+	sLastCommand:	STRING	:= 'NONE';						(* Last command, as string, sent to the device *)
+	sLibVersion:	STRING	:= 'UNKNOWN';					(* Library version as string, e.g. '1.2.0.0' *)
+	sRpcErrorText: 	STRING 	:= 'OK'; 						(* RPC Error text *)
+	sStatus: 		STRING 	:= 'OK'; 						(* Status in textual form, e.g. 'OFF' *)
+	
+	sState:			STRING	:= 'NOT OP';
+	sSubstate:		STRING	:= 'NOT READY';
+	
+	nState:			E_LAMP_STATE	:= E_LAMP_STATE.NOTOP;
+	nSubstate:		E_LAMP_SUBSTATE	:= E_LAMP_SUBSTATE.NOTOP_NOTREADY;
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+
+	nCycleCounter:	UDINT	:= 0;							// Alive flag
+	nCycleTime:		UDINT	:= 0;							// Cycle time in us (microsec)
+	//
+	// Common variables END
+	//
+	
+	//
+	// Device specific variables
+	//
+	lrIntensity: 		LREAL	:= 0.0; 	(* Intensity: 0-100% [%]*)
+
+	nTimeLeft: 			UDINT 	:= 777;		(* Remaining Time before lamp is switched OFF [sec]. 777 means no limit. *)
+	nTimeOn: 			UDINT 	:= 0;		(* Time lamp has been ON since last ON command [sec] *)
+	nTimeOnLimit:		UDINT	:= 0;		(* Auto OFF after this time [sec]. 0 - no limit *)
+	nTimeOnStart:		UDINT 	:= 0;		(* Absolute start time of last lamp ON command [sec] *)
+	nTimeOnTotal:		UDINT 	:= 0;		(* Total time lamp has been ON [sec] *)
+	nTimeOnTotalStart:	UDINT 	:= 0;		(* Absolute start time of lamp ON [sec] *)
+	nTimeOff: 			UDINT 	:= 0;		(* Time lamp has been OFF [sec] *)
+	nTimeOffStart:		UDINT 	:= 0;		(* Time lamp has been OFF [sec] *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

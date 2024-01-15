@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_PIEZO_CTRL" Id="{17405076-e76e-47ad-8e66-f8b937714847}">
+    <Declaration><![CDATA[TYPE T_PIEZO_CTRL :
+STRUCT
+	nCommand:	E_PIEZO_COMMAND	:= E_PIEZO_COMMAND.NONE;			// See E_PIEZO_COMMAND
+	bExecute:	BOOL;
+
+	nPosBit:	ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT; 		// Set position in A/D Converter bits
+	lrPosUser:	ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_LREAL; 	// Set position in user units
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

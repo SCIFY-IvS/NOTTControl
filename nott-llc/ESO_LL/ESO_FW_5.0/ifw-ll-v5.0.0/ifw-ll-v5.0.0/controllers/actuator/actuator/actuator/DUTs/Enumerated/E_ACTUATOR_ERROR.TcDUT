@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_ACTUATOR_ERROR" Id="{4921bf0b-46a2-4adb-9997-96612de65a31}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_ACTUATOR_ERROR :
+(
+	OK					:= 0,
+	HW_NOTOP,			
+	WRONG_CMD,			
+	INCONSISTENT,		
+	INIT_FAILURE,		
+	ENABLE_FAILURE,
+	DISABLE_FAILURE,
+	ON_FAILURE,
+	OFF_FAILURE,
+	FAILURE_SIG,
+	MAXON,
+	STILL_COOLING,
+	TIMEOUT,
+	// Simulator errors
+	NOT_INITIALISED		:= 90,
+	ZERO_POINTER		:= 100	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_DEV_STATUS" Id="{1d415fac-4484-44d2-b826-939b88c2bd3a}">
+    <Declaration><![CDATA[//
+// Device/Channel/Positioner status in user units, i.e. [pm] and [nd]
+//
+TYPE T_SA_DEV_STATUS :
+STRUCT
+	nCAL_OPT:			DINT;			// Calibration option
+	nREF_OPT:			DINT;			// Referencing option
+	nPCON_OPT:			DINT;			// Positioner Control Options, 256-'in-pos' flag
+	nCLIN:				DINT;			// Control Loop Input, 1-SENSOR
+	nTUN_BASE_UNIT:		DINT;			// Positioner Base Unit, 2-meter, 3-degree
+	nTUN_BASE_RES:		DINT;			// Positioner Base Resolution, 1x10-9 or 1x10-12
+	nTUN_MTYP:			DINT;			// Positioner Movement Type, 0-linear, 1-rotation, etc
+	nTUN_RTYP:			DINT;			// Positioner Reference Type, 2-SINGLE_CODED
+	nINP_THR:			DINT;			// In Position Threshold [DevU]
+	nINP_DEL:			DINT;			// In Position Delay [ms]
+	nRLIM_MIN:			LINT;			// MIN Limit [DevU]
+	nRLIM_MAX:			LINT;			// MAX Limit [DevU]
+
+	lnPosTarget:		LINT;			// Target  position in Positioner Units
+	lnPosActual:		LINT;			// Current position in Positioner Units
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

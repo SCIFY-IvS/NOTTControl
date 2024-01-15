@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="T_ADC_UNIT_CFG" Id="{f59299bb-8b8c-43be-9ab6-4fb2980e3b22}">
+    <Declaration><![CDATA[TYPE T_ADC_UNIT_CFG :
+STRUCT
+	nSignOff:   	DINT  := 1;				// sign, e.g. ADC position sign for OFF  mode
+	nSignAuto:      DINT  := 1;				// sign, e.g. ADC position sign for AUTO mode
+	nSignPhi: 	    DINT  := 1;				// sign, e.g. ADC sign for phi (refraction) component
+
+	lrRefOff:       LREAL := 0.0;			// Reference (offset) for OFF  mode
+	lrRefAuto:      LREAL := 0.0;			// Reference (offset) for AUTO mode
+
+	lrCoffset:		LREAL := 1.7387;		// Default C offset [arcsec]
+	lrPosOffset:    LREAL := 90;			// Default Position offset [deg]
+	lrDrotFactor:   LREAL := 2;				// Derotator factor
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_RS_COMM_STAT" Id="{0ce7a372-1e0a-4f28-b847-a5cf9140c2c6}">
+    <Declaration><![CDATA[TYPE T_RS_COMM_STAT :
+STRUCT
+	(* STAT *)
+	bInitialised:		BOOL := FALSE;		(* Flag if device is initialised *)
+	bSimulation:		BOOL := FALSE;		(* Device simulated *)
+	bConnected:			BOOL := FALSE;		(* Established connection status *)
+
+
+	nLastCommand:		E_RS_COMM_CMD 		:= E_RS_COMM_CMD.NONE;
+	nErrorCode:			E_RS_COMM_ERROR 	:= E_RS_COMM_ERROR.OK;
+	nStatus: 			E_RS_COMM_STATUS	:= E_RS_COMM_STATUS.NOT_INIT; (* See E_RS_COMM_STATUS definitions *)
+
+	sErrorText: 		STRING 	:= 'OK';
+	sStatus:			STRING	:= '';			(* Status description *)
+
+	sReply:				STRING(255);			(* Last  Reply from the device *)
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

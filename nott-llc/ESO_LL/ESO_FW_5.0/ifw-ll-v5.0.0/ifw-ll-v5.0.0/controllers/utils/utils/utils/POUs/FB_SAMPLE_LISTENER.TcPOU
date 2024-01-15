@@ -1,0 +1,237 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SAMPLE_LISTENER" Id="{50ed088d-9a7d-4c16-86a9-e90b487e4982}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SAMPLE_LISTENER EXTENDS FB_ListenerBase2
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	sJsonAttribute : STRING (10000);	
+	hr : HRESULT;
+	
+	nCntMessagesSent : INT;
+	nCntAlarmsRaised : INT;
+	nCntAlarmsConfirmed : INT;
+	nCntAlarmsCleared : INT;
+	
+	fbSender: FB_MUDPI_SENDER;
+	arrEvents : ARRAY[0..MAX_EVENTS_SIZE] OF T_EVENT_PUB_ELEM;
+	nCntEventReceived : INT := 0;
+	fbFifo 		: FB_DataSetFifo := ( bOverwrite := TRUE );
+	newEntry	: T_EVENTLOG_PAYLOAD;
+	oldEntry	: T_EVENTLOG_PAYLOAD;
+	bSuccess	: BOOL;
+	nCount		: UDINT;
+	nLoad		: UDINT;
+	nWaitCounter : UDINT := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="CustomExecute" Id="{3c7f655d-2c73-41dc-b085-26c5a3b1cef1}">
+      <Declaration><![CDATA[METHOD CustomExecute : HRESULT
+VAR_INPUT
+	refFbTime:  REFERENCE TO FB_TIME;
+END_VAR
+
+VAR
+	hr : HRESULT;
+	counter: INT := 0;
+END_VAR
+
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[hr := SUPER^.Execute(); //retrieve events
+fbSender();
+(* Go through the list of buffers to check if there new events *)
+FOR counter := 0 TO MAX_EVENTS_SIZE BY 1 DO
+	IF arrEvents[counter].bTextRequest THEN
+		IF arrEvents[counter].fbEventText.bError THEN
+			arrEvents[counter].payload.text := 'Error';
+			arrEvents[counter].bTextRequest := FALSE;
+			fbFifo.A_Add(	in := arrEvents[counter].payload, bOk=>bSuccess, nCount=> nCount, nLoad => nLoad );
+		ELSIF NOT arrEvents[counter].fbEventText.bBusy THEN
+			arrEvents[counter].fbEventText.GetString(arrEvents[counter].payload.text, SIZEOF(arrEvents[counter].payload.text));
+			arrEvents[counter].bTextRequest := FALSE;
+			(* add new entry to the fifo *)
+			fbFifo.A_Add(	in := arrEvents[counter].payload, bOk=>bSuccess, nCount=> nCount, nLoad => nLoad );
+		END_IF
+	END_IF
+END_FOR
+
+// Forces to send one log per every ten cycles.
+// Due to the asynchronous nature of the TC Event Logging, sending the logs faster has 
+// shown some problems. 
+IF NOT fbFifo.IsEmpty() THEN
+	nWaitCounter := nWaitCounter + 1;
+	IF nWaitCounter > 10 THEN
+		(* remove oldest entry from them ring buffer*)
+		fbFifo.A_Remove( out => oldEntry, bOk => bSuccess, nCount => nCount, nLoad => nLoad );
+		IF bSuccess THEN
+			(* Send log info *)
+			fbSender.SetTimestamp(refFbTime.GetMudpiTime());
+			fbSender.SetMudpiPayload(ADR(oldEntry), SIZEOF(oldEntry));
+			fbSender.SendData();
+			(* Reset counter *)
+			nWaitCounter := 0;
+		END_IF
+	END_IF
+END_IF 
+
+
+
+CustomExecute:= hr;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="OnAlarmCleared" Id="{036602cd-44fc-40d2-99e6-e6b033452290}">
+      <Declaration><![CDATA[METHOD OnAlarmCleared : HRESULT
+VAR_INPUT
+	fbEvent : REFERENCE TO FB_TcEvent;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCntAlarmsCleared := nCntAlarmsCleared + 1;
+
+OnAlarmCleared := S_OK; // in order to receive more callbacks (Set <> S_OK in order to cancel the callbacks for this program cycle.)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="OnAlarmConfirmed" Id="{efe870ed-8bbd-4c42-9405-bf33d81f12d4}">
+      <Declaration><![CDATA[METHOD OnAlarmConfirmed : HRESULT
+VAR_INPUT
+	fbEvent : REFERENCE TO FB_TcEvent;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCntAlarmsConfirmed := nCntAlarmsConfirmed + 1;
+
+OnAlarmConfirmed := S_OK; // in order to receive more callbacks (Set <> S_OK in order to cancel the callbacks for this program cycle.)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="OnAlarmRaised" Id="{1df5b803-888d-4d2d-ab12-93687f9c1a1e}">
+      <Declaration><![CDATA[METHOD OnAlarmRaised : HRESULT
+VAR_INPUT
+	fbEvent : REFERENCE TO FB_TcEvent;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[hr := fbEvent.GetJsonAttribute(sJsonAttribute, SIZEOF(sJsonAttribute));
+nCntAlarmsRaised := nCntAlarmsRaised + 1;
+
+OnAlarmRaised := S_OK; // in order to receive more callbacks (Set <> S_OK in order to cancel the callbacks for this program cycle.)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="OnMessageSent" Id="{b4dac56d-cfe9-4434-ae5b-afa117054bdb}">
+      <Declaration><![CDATA[METHOD OnMessageSent : HRESULT
+VAR_INPUT
+	fbEvent : REFERENCE TO FB_TcEvent;
+END_VAR
+
+VAR
+	payload: T_EVENTLOG_PAYLOAD;
+	fbRequestEventText : FB_RequestEventText;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[hr := fbEvent.GetJsonAttribute(sJsonAttribute, SIZEOF(sJsonAttribute));
+
+(* Store events in an array since they could arrive in bursts *)
+arrEvents[nCntEventReceived].bTextRequest :=  TRUE;
+arrEvents[nCntEventReceived].payload.source := fbEvent.ipSourceInfo.sName;
+arrEvents[nCntEventReceived].payload.severity := fbEvent.eSeverity;
+arrEvents[nCntEventReceived].payload.timestamp := fbEvent.nTimestamp;
+arrEvents[nCntEventReceived].fbEventText.Request(eventClass:=fbEvent.EventClass, nEventId:=fbEvent.nEventId, nLangId:=1033, ipArgs:=fbEvent.ipArguments );
+arrEvents[nCntEventReceived].bTextRequest :=  TRUE;
+nCntMessagesSent := nCntMessagesSent + 1;
+nCntEventReceived := nCntEventReceived + 1;
+(*
+If number of events are bigger than the buffer size, start overiding 
+The risk of loosing events is low since we have a ring buffer storing 
+the events to be sent outside. 
+*)
+IF nCntEventReceived >= MAX_EVENTS_SIZE THEN
+	nCntEventReceived := 0;
+END_IF
+
+
+
+OnMessageSent := S_OK; // in order to receive more callbacks (Set <> S_OK in order to cancel the callbacks for this program cycle.)
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SAMPLE_LISTENER">
+      <LineId Id="59" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SAMPLE_LISTENER.CustomExecute">
+      <LineId Id="6" Count="1" />
+      <LineId Id="66" Count="5" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="72" Count="2" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="95" Count="1" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="84" Count="2" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SAMPLE_LISTENER.OnAlarmCleared">
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SAMPLE_LISTENER.OnAlarmConfirmed">
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SAMPLE_LISTENER.OnAlarmRaised">
+      <LineId Id="6" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SAMPLE_LISTENER.OnMessageSent">
+      <LineId Id="6" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="76" Count="3" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="84" Count="1" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="40" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

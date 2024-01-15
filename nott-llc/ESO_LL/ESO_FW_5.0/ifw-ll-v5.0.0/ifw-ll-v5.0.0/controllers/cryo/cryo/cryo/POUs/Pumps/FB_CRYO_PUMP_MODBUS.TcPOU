@@ -1,0 +1,576 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_PUMP_MODBUS" Id="{12ada2fa-6223-464f-a170-50450fdda237}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_PUMP_MODBUS EXTENDS FB_CRYO_PUMP_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nSlaveID:	BYTE := 1;		// Slave ID
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sVersion:	STRING := 'V21';	// Version number. String starting with 'V', e.g. 'V21'.
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	cfgModbusRef:	REFERENCE TO T_CRYO_PUMP_MODBUS_CFG;
+	{attribute 'OPC.UA.DA' := '0'}
+	ctrlModbusRef:	REFERENCE TO T_CRYO_PUMP_MODBUS_CTRL;
+	{attribute 'OPC.UA.DA' := '0'}
+	statModbusRef:	REFERENCE TO T_CRYO_PUMP_MODBUS_STAT;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_MODBUS_COMM_NO_SIM;		// Instance of generic comm object. OPC UA Disabled!!!
+	
+	(* Pointers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_MODBUS_CFG 	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_MODBUS_CTRL 	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_MODBUS_STAT 	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+
+
+	(* Timers *)
+
+
+	// Input signals
+	i_bRunning		AT %I*:	BOOL;	// TRUE, if pump is running
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute the base class object FB_CRYO_PUMP_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{f743b41f-88ad-483c-b086-8890592169e3}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+VAR
+	nInt:	INT;	// Temporary INT for conversion of ENUM types
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set communication parameters and Model configuration
+
+
+		// Set monitoring period (input parameter)
+		cfgRef.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+		// Auto monitor, i.e. monitor in Standby_Ready as well
+		cfgRef.bAutoMonitor	:= TRUE;
+
+		(* Set initial state and status *)
+		statRef.bInitialised	:= FALSE;
+		statBaseRef.nRetries		:= 0;
+
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+		
+		// User configuration of the system
+//		M_UserConfigure();
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		nInt	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.nCommand	:= nInt;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			statModbusRef.nInputBuffer		:= ptrCommStat^.DeviceReply;	// Save the reply
+
+			bCommProblem	:= FALSE;
+			// Device INIT is done. Go to IDLE 
+			statRef.bInitialised 	:= TRUE;
+			SetStatus(E_CCC_STATUS.IDLE, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{b8bb6145-a248-480b-a0ab-8fa558b93b28}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;			// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nAddressIndex:	INT := 1;			// Which address space to read
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;			// Number of retries in case of communication problems
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	nAddressIndex	:= 1;
+	ctrlModbusRef.nRegister	:= cfgModbusRef.aAddr  [1];
+	ctrlModbusRef.nWords	:= cfgModbusRef.aWords [1];
+	nRetries		:= 0;					
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE	THEN
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= 'IDLE';
+			RETURN;
+		END_IF
+		
+		
+		// Send command
+		ptrCommCtrl^.nCommand		:= E_MODBUS_CMD.SEND;
+		ptrCommCtrl^.nSlaveID		:= cfgModbusRef.nSlaveID;
+		ptrCommCtrl^.nRegister		:= ctrlModbusRef.nRegister;
+		ptrCommCtrl^.nWords			:= ctrlModbusRef.nWords;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 20;				// Goto WAIT for Reading to complete,
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE THEN
+			fbTimer (IN := FALSE); (* Stop the timer *)
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= 'IDLE';
+			RETURN;
+		END_IF
+	
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_SM_ERROR.OK, 'BUSY');
+			nMethodState 	:= 0;	// Goto next reading
+			RETURN;
+		END_IF
+	
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE  
+			fbTimer (IN := FALSE);	// disable timer 
+			statModbusRef.nInputBuffer		:= ptrCommStat^.DeviceReply;	// Save the reply
+			
+			// Extract the readings from the reply.
+			M_ReadFromReply(nAddressIndex);
+
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+			
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE THEN
+				fbTimer (IN := FALSE); (* Stop the timer *)
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= 'IDLE';
+				RETURN;
+			END_IF
+	
+			IF NOT M_SetCommand(nAddressIndex) THEN
+				// We completed a full read cycle.
+				// Wait periodic delay.
+				// Periodic READ is done. Wait tDelay_Periodic before re-starting the READ.
+				SetStatus(E_SM_ERROR.OK, 'IDLE');
+				(* Start the timer by going false/true *)
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := cfgRef.tDelay_Periodic);
+				nMethodState := 10;				// Goto Wait 
+				RETURN;
+			ELSE
+				// Apply a short delay of 30 ms after each command
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#30MS);
+				nMethodState := 10;				// Goto Wait 
+				RETURN;
+			END_IF
+
+		ELSIF INT_TO_DINT(comm.stat.nStatus) = INT_TO_DINT(E_MODBUS_STATUS.ERROR) OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_MODBUS_ERROR.RECEIVE, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 3 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			statModbusRef.nRetries	:= statModbusRef.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 3 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+			ELSE
+				// Apply a short delay of 1 sec and retry
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#1000MS);
+				nMethodState := 10;				// Goto Wait 
+			END_IF
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapFLOAT" Id="{befd93d6-f54b-444b-9bce-9c115c5f4413}">
+      <Declaration><![CDATA[METHOD M_ByteSwapFLOAT : REAL
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	rResult:	REAL;
+	pResult:	POINTER TO BYTE	:= ADR(rResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+pResult[2]	:= pByte[3];
+pResult[3]	:= pByte[2];
+
+M_ByteSwapFLOAT	:= rResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapINT" Id="{b46ca140-2d48-40ed-a1c1-8cd4bf646ec4}">
+      <Declaration><![CDATA[METHOD M_ByteSwapINT : INT
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	nResult:	INT;
+	pResult:	POINTER TO BYTE	:= ADR(nResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+
+M_ByteSwapINT	:= nResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapUINT" Id="{d45b9c28-7547-43d2-97cc-d44b27b3e2cc}">
+      <Declaration><![CDATA[METHOD M_ByteSwapUINT : UINT
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	nResult:	UINT;
+	pResult:	POINTER TO BYTE	:= ADR(nResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+
+M_ByteSwapUINT	:= nResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteComm" Id="{4ce2d0d0-b4f7-45c5-b83a-9967f6bf55ee}">
+      <Declaration><![CDATA[METHOD M_ExecuteComm
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Execute comm instance *)
+comm(	in_bSimulation	:= in_bSimulation,
+		in_nModel		:= 0,
+		in_cReadFunction:= 3);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{1b9a3203-a00f-479f-b544-62b2dfb1f1f3}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF comm.i_nCouplerState = 8 THEN
+	M_GetCouplerState	:= TRUE;	
+ELSE
+	M_GetCouplerState	:= FALSE;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{bd6ba1fd-b722-4f66-8307-2033d757b24e}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+VAR_INPUT
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: For every pump implementation]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCommand" Id="{c94bc41f-35f9-4ebd-893a-bda76ba8d997}">
+      <Declaration><![CDATA[METHOD M_SetCommand : BOOL
+VAR_IN_OUT
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// We always read from ECODRY
+ctrlModbusRef.nCmdType	:= E_MODBUS_CMD_TYPE.READ;
+
+// Go to next register address to read
+nAddressIndex	:= nAddressIndex + 1;
+
+IF nAddressIndex > 8  OR  cfgModbusRef.aAddr[nAddressIndex] = 0	OR  cfgModbusRef.aWords[nAddressIndex] = 0	THEN
+	ctrlModbusRef.nRegister	:= cfgModbusRef.aAddr  [1];
+	ctrlModbusRef.nWords	:= cfgModbusRef.aWords [1];
+	nAddressIndex	:= 1;
+	M_SetCommand	:= FALSE;	// Restarting from first address
+ELSE
+	ctrlModbusRef.nRegister	:= cfgModbusRef.aAddr  [nAddressIndex];
+	ctrlModbusRef.nWords	:= cfgModbusRef.aWords [nAddressIndex];
+	M_SetCommand	:= TRUE;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS">
+      <LineId Id="401" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.ActivityInitializing">
+      <LineId Id="6" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="343" Count="1" />
+      <LineId Id="346" Count="2" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="236" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.ActivityMonitoring">
+      <LineId Id="29" Count="0" />
+      <LineId Id="301" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="359" Count="0" />
+      <LineId Id="423" Count="0" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="257" Count="1" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="141" Count="2" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="379" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="154" Count="3" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="167" Count="2" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="262" Count="2" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="177" Count="3" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="185" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="72" Count="5" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="269" Count="2" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="272" Count="2" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="275" Count="2" />
+      <LineId Id="392" Count="3" />
+      <LineId Id="397" Count="5" />
+      <LineId Id="405" Count="0" />
+      <LineId Id="418" Count="3" />
+      <LineId Id="407" Count="0" />
+      <LineId Id="403" Count="1" />
+      <LineId Id="79" Count="2" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="430" Count="0" />
+      <LineId Id="433" Count="0" />
+      <LineId Id="431" Count="0" />
+      <LineId Id="434" Count="3" />
+      <LineId Id="432" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="90" Count="2" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_ByteSwapFLOAT">
+      <LineId Id="32" Count="3" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_ByteSwapINT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_ByteSwapUINT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_ExecuteComm">
+      <LineId Id="16" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_GetCouplerState">
+      <LineId Id="6" Count="1" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_ReadFromReply">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MODBUS.M_SetCommand">
+      <LineId Id="85" Count="4" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="135" Count="1" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="137" Count="4" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

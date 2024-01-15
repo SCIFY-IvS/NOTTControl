@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PRESSURE_STATUS" Id="{036de0f4-7ecd-4b2a-b95e-8f73419e4e03}">
+    <Declaration><![CDATA[TYPE T_CRYO_PRESSURE_STATUS :
+STRUCT
+	bInRange:		BOOL	:= FALSE;
+	bValid:			BOOL	:= FALSE;
+	bWarningSens1:	BOOL	:= TRUE;
+	bWarningSens2:	BOOL	:= TRUE;
+	bInVacuum:		BOOL	:= FALSE;
+	bVacuumGood:	BOOL	:= FALSE;
+	lrPressure:		LREAL;	// Pressure [mbar]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
