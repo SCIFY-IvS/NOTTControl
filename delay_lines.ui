@@ -285,35 +285,6 @@ background-color: rgb(202, 202, 151);</string>
     <string>HOME</string>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_homming">
-   <property name="geometry">
-    <rect>
-     <x>780</x>
-     <y>350</y>
-     <width>180</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Segoe UI</family>
-     <pointsize>12</pointsize>
-     <weight>50</weight>
-     <italic>false</italic>
-     <bold>false</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">font: 12pt &quot;Segoe UI&quot;;
-color:rgb(170, 85, 255)</string>
-   </property>
-   <property name="text">
-    <string>Homing</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-  </widget>
   <widget class="QPushButton" name="dl1_pb_move_rel">
    <property name="geometry">
     <rect>
@@ -540,35 +511,6 @@ background-color: rgb(202, 202, 151);</string>
    </property>
    <property name="text">
     <string>Current Speed (μm)</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="dl_dl1_scanning">
-   <property name="geometry">
-    <rect>
-     <x>780</x>
-     <y>430</y>
-     <width>180</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Segoe UI</family>
-     <pointsize>12</pointsize>
-     <weight>50</weight>
-     <italic>false</italic>
-     <bold>false</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">font: 12pt &quot;Segoe UI&quot;;
-color:rgb(255, 170, 127)</string>
-   </property>
-   <property name="text">
-    <string>Homing</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
    </property>
   </widget>
   <widget class="QLabel" name="label_11">
@@ -811,7 +753,7 @@ background-color: rgb(211, 230, 216);</string>
     <rect>
      <x>300</x>
      <y>580</y>
-     <width>171</width>
+     <width>441</width>
      <height>16</height>
     </rect>
    </property>
