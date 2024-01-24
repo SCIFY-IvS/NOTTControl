@@ -155,11 +155,6 @@ class MainWindow(QMainWindow):
         self.temp4 = str(values[3])
         self.ui.main_label_temp4.setText(self.temp4)
 
-class FringeScanStatus(Enum):
-    NOT_SCANNING = 'Not scanning'
-    MOVE_TO_START = 'Moving to start position'
-    SCANNING = 'Scanning'
-
 class DelayLinesWindow(QWidget):
     closing = pyqtSignal()
 
@@ -167,7 +162,6 @@ class DelayLinesWindow(QWidget):
         super(DelayLinesWindow, self).__init__()
 
         self.parent = parent
-        self._scan_status = FringeScanStatus.NOT_SCANNING
 
         config = ConfigParser()
         config.read('config.ini')
@@ -294,26 +288,6 @@ class DelayLinesWindow(QWidget):
             if self._activeCommand is not None and self._activeCommand.check_progress():
                 self.clearActiveCommand()
 
-            match self._scan_status:
-                case FringeScanStatus.MOVE_TO_START:
-                    status = self.ui.dl_dl1_status.text()
-                    state = self.ui.dl_dl1_state.text()
-                    if(status == 'STANDING' and state == 'OPERATIONAL'):
-                        self.parent.camera_window.start_recording()
-                        self.t_pos.setInterval(10)
-                        self.__move_abs_motor(self.scan_fringes_end_pos(), self.scan_fringes_speed())
-                        self._scan_status = FringeScanStatus.SCANNING
-                        print ('SCANNING')
-                case FringeScanStatus.SCANNING:
-                    status = self.ui.dl_dl1_status.text()
-                    state = self.ui.dl_dl1_state.text()
-                    if(status == 'STANDING' and state == 'OPERATIONAL'):
-                        #TODO
-                        self._scan_status = FringeScanStatus.NOT_SCANNING
-                        self.parent.camera_window.stop_recording()
-                        self.t_pos.setInterval(450)
-                        print ('SCANNING COMPLETE')
-
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
@@ -380,30 +354,6 @@ class DelayLinesWindow(QWidget):
 
             scanFringes = ScanFringesCommand(self._motor1, start_pos, end_pos, speed, self.parent.camera_window)
             self.executeCommand(scanFringes)
-
-            # self.__move_abs_motor(self.scan_fringes_start_pos(),self.scan_fringes_speed())
-            # self._scan_status = FringeScanStatus.MOVE_TO_START
-
-            # # Open camera window
-            # self.parent.open_camera_interface()
-            # self.parent.camera_window.connect_camera()
-            # Connect camera
-
-            # parent = self.opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
-            # method = parent.get_child("4:RPC_MoveVel")
-            # arguments = [speed]
-            # res = parent.call_method(method, *arguments)
-
-            # if self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.lrPosActual") >= pos:
-            #     self.ui.dl_dl1_scanning.setText("Scanning Complete")
-            #     # Triggering camera to STOP taking images
-            #     #self.trigger_camera_to_take_images(False)
-            #     self.stop_motor()
-
-            # elif self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.lrPosActual") <pos:
-            #     self.ui.dl_dl1_scanning.setText("Scanning")
-        
-
 
         except Exception as e:
             print(f"an error happened: {e}")
