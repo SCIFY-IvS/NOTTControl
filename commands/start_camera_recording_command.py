@@ -6,7 +6,7 @@ class StartCameraRecordingCommand(SyncCommand):
 
     def execute(self):
         print('start recording')
-        self.camera_window.start_recording()
+        self._camera_window.start_recording()
     
     def text(self):
         return "Starting camera recording"

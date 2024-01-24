@@ -1,5 +1,6 @@
 from collections import deque
 
+#TODO does this work properly when finishing on a synchronous step?
 class CommandSequence:
     def __init__(self, commands, name):
         self._commands = deque(commands)
@@ -10,8 +11,11 @@ class CommandSequence:
         self.execute_next_step()
     
     def execute_next_step(self):
-        self._activeCommand = self._commands.popleft()
+        if not self._commands:
+            self._activeCommand = None
+            return
 
+        self._activeCommand = self._commands.popleft()
         self._activeCommand.execute()
 
         #If the next command is synchronous, execute it, then immediately continue
@@ -25,9 +29,10 @@ class CommandSequence:
     
     def check_progress(self):
         print('check progress')
+        if self._activeCommand is None:
+            return True
+        
         if self._activeCommand.check_progress():
-            if not self._commands: #queue empty
-                return True
-            else:
-                self.execute_next_step()
+            self.execute_next_step()
+
         return False

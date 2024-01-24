@@ -14,6 +14,7 @@ from enum import Enum
 from commands.move_abs_command import MoveAbsCommand
 from commands.move_rel_command import MoveRelCommand
 from commands.scan_fringes_command import ScanFringesCommand
+from components.motor import Motor
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -176,6 +177,8 @@ class DelayLinesWindow(QWidget):
         self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
+        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.DL_Servo_1")
+
         self.redis_client = redis_client
 
         # set up the delay lines window
@@ -330,7 +333,7 @@ class DelayLinesWindow(QWidget):
     # Reset motor
     def reset_motor(self):
         try:
-            res = self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_Reset", [])
+            res = self._motor1.reset()
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
@@ -375,7 +378,7 @@ class DelayLinesWindow(QWidget):
             end_pos = self.scan_fringes_end_pos()
             speed = self.scan_fringes_speed()
 
-            scanFringes = ScanFringesCommand(self.opcua_conn, start_pos, end_pos, speed, self.parent.camera_window)
+            scanFringes = ScanFringesCommand(self._motor1, start_pos, end_pos, speed, self.parent.camera_window)
             self.executeCommand(scanFringes)
 
             # self.__move_abs_motor(self.scan_fringes_start_pos(),self.scan_fringes_speed())
@@ -408,29 +411,28 @@ class DelayLinesWindow(QWidget):
     # Initialize motor
     def init_motor(self):
         try:
-            res = self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_Init", [])
+            res = self._motor1.init()
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
     # Enable motor
     def enable_motor(self):
         try:
-            res = self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_Enable", [])
+            res = self._motor1.enable()
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
     # Disable motor
     def disable_motor(self):
         try:
-            res = self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_Disable", [])
+            res = self._motor1.disable()
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
     # Stop motor
     def stop_motor(self):
         try:
-            res = self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_Stop", [])
-            parent = self.opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
+            res = self._motor1.stop()
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
@@ -450,7 +452,7 @@ class DelayLinesWindow(QWidget):
 
     def __move_abs_motor(self, pos, speed):
         try:
-            cmd = MoveAbsCommand(self.opcua_conn, pos, speed)
+            cmd = self._motor1.command_move_absolute(pos, speed)
             self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
@@ -464,7 +466,7 @@ class DelayLinesWindow(QWidget):
             print("rel_pos = ",rel_pos)
             speed = 0.05
 
-            cmd = MoveRelCommand(self.opcua_conn, rel_pos, speed)
+            cmd = self._motor1.command_move_relative(rel_pos, speed)
             self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")

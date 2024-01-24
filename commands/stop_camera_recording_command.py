@@ -6,7 +6,7 @@ class StopCameraRecordingCommand(SyncCommand):
 
     def execute(self):
         print('stop recording')
-        self.camera_window.stop_recording()
+        self._camera_window.stop_recording()
     
     def text(self):
         return "Stopping camera recording"
