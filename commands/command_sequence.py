@@ -1,6 +1,5 @@
 from collections import deque
 
-#TODO does this work properly when finishing on a synchronous step?
 class CommandSequence:
     def __init__(self, commands, name):
         self._commands = deque(commands)
