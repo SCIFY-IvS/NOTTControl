@@ -5,12 +5,12 @@
   <Children>
     <Node>
       <Title>YT Scope Project</Title>
-      <Expanded>True</Expanded>
-      <FileName>C:\Users\u0149673\NOTT\NOTTControl\nott-llc\tests\Delay-lines\Delay_line_actuators\DL_Cryo_Test\DL_Cryo\YT-Measurement\YT Scope Project.tcscopex</FileName>
+      <Expanded>False</Expanded>
+      <FileName>C:\Users\fys-lab-ivs\Desktop\NOTT Low level control\NOTT Controll repo for PLC code\NOTTControl\nott-llc\tests\Delay-lines\Delay_line_actuators\DL_Cryo_Test\DL_Cryo\YT-Measurement\YT Scope Project.tcscopex</FileName>
       <Children>
         <Node>
           <Title>DataPool</Title>
-          <Expanded>True</Expanded>
+          <Expanded>False</Expanded>
           <FileName></FileName>
           <Children>
             <Node>
@@ -89,12 +89,12 @@
         </Node>
         <Node>
           <Title>YT Chart</Title>
-          <Expanded>True</Expanded>
+          <Expanded>False</Expanded>
           <FileName></FileName>
           <Children>
             <Node>
               <Title>Axis ActPos</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
@@ -107,7 +107,7 @@
             </Node>
             <Node>
               <Title>Axis ActVelo</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
@@ -122,12 +122,12 @@
         </Node>
         <Node>
           <Title>Vibrations</Title>
-          <Expanded>True</Expanded>
+          <Expanded>False</Expanded>
           <FileName></FileName>
           <Children>
             <Node>
               <Title>Axis Group</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
@@ -154,12 +154,12 @@
         </Node>
         <Node>
           <Title>DL_Servo</Title>
-          <Expanded>True</Expanded>
+          <Expanded>False</Expanded>
           <FileName></FileName>
           <Children>
             <Node>
               <Title>Position absolute</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
@@ -178,7 +178,7 @@
             </Node>
             <Node>
               <Title>Velocity</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
@@ -197,7 +197,7 @@
             </Node>
             <Node>
               <Title>Acceleration</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
@@ -216,7 +216,7 @@
             </Node>
             <Node>
               <Title>Position Lab</Title>
-              <Expanded>True</Expanded>
+              <Expanded>False</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>

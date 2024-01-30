@@ -15,7 +15,6 @@ DL_Servo_1: FB_MOTOR;
 // DL Newport stepper
 	
 {attribute 'OPC.UA.DA':='1'}
-
 DL_2: FB_MOTOR;
 
 // Camera triggers
@@ -70,7 +69,10 @@ nVib_Y:	DINT;
 nVib_Z:	DINT;
 
 ////
-
+//Shutters
+//////
+{attribute 'OPC.UA.DA':='1'}
+shutter_1:		FB_SHUTTER;
 
 
 
@@ -101,7 +103,23 @@ FILTER_WHEEL(in_bSimulation:= FALSE, in_sName:= 'FILTER_WHEEL', in_nPeriod:= 120
 
 nVib_X := in_nVib_X;
 nVib_Y := in_nVib_Y;
-nVib_Z := in_nVib_Z;]]></ST>
+nVib_Z := in_nVib_Z;
+
+////  Shutters
+
+shutter_1(
+	in_sName:= 'Shutter_1', 
+	in_bActiveLowClosed:= , 
+	in_bActiveLowFault:= , 
+	in_bActiveLowOpen:= TRUE, 
+	in_bActiveLowSwitch:= , 
+	in_bIgnoreClosed:= , 
+	in_bIgnoreFault:= , 
+	in_bIgnoreOpen:= , 
+	in_bInitialState:= , 
+	in_nTimeout:= , 
+	in_bLogExtTime:= , 
+	in_bLog:= );]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
       <LineId Id="28" Count="0" />
@@ -124,6 +142,10 @@ nVib_Z := in_nVib_Z;]]></ST>
       <LineId Id="487" Count="0" />
       <LineId Id="486" Count="0" />
       <LineId Id="488" Count="1" />
+      <LineId Id="644" Count="0" />
+      <LineId Id="643" Count="0" />
+      <LineId Id="646" Count="12" />
+      <LineId Id="645" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

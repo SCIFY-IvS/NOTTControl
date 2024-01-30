@@ -898,4 +898,28 @@
 			<Message LcId="1033">MOVE VEL: Vel {0} Started</Message>
 		</Event>
 	</Source>
+	<Source>
+		<GUID>{96D05FD3-6CB5-468A-A8C1-0A6BDBC86E6A}</GUID>
+		<Name LcId="1033">Function Actions</Name>
+		<Event>
+			<Id>1</Id>
+			<Message LcId="1033">Action {0} started.</Message>
+		</Event>
+		<Event>
+			<Id>2</Id>
+			<Message LcId="1033">Action {0} completed.</Message>
+		</Event>
+		<Event>
+			<Id>3</Id>
+			<Message LcId="1033">Error: {0}</Message>
+		</Event>
+		<Event>
+			<Id>4</Id>
+			<Message LcId="1033">Debug: {0}</Message>
+		</Event>
+		<Event>
+			<Id>5</Id>
+			<Message LcId="1033">{0}</Message>
+		</Event>
+	</Source>
 </TcEventSources>

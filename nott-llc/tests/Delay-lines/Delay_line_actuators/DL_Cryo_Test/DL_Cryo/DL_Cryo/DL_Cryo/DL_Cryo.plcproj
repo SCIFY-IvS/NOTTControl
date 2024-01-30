@@ -122,6 +122,10 @@
       <SubType>Code</SubType>
       <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="VISUs\Shutter_1.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="VISUs\VisualizationManager.TcVMO">
       <SubType>Code</SubType>
     </Compile>
@@ -145,10 +149,15 @@
     </PlaceholderReference>
     <PlaceholderReference Include="ESO LDC Comm Serial Library">
       <DefaultResolution>ESO LDC Comm Serial Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Comm_Serial_Library</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="ESO LDC Motor Library">
       <DefaultResolution>ESO LDC Motor Library, * (ESO)</DefaultResolution>
       <Namespace>ESO_LDC_Motor_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Shutter Library">
+      <DefaultResolution>ESO LDC Shutter Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Shutter_Library</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="System_VisuElemMeter">
       <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.47">
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.40">
 	<DataTypes>
 		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-000000000035}" TcBaseType="true" HideType="true">UINTARR2</Name>
@@ -1808,6 +1808,7 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="2"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -2304,7 +2305,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{1A411490-A261-49DC-AB92-F2679BECCE77}" Name="DL_Cryo" PrjFilePath="DL_Cryo\DL_Cryo.plcproj" TmcFilePath="DL_Cryo\DL_Cryo.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{A33E64EF-A81E-64DB-0047-5D6E3AC12ABF}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{944F4900-DFA4-CD45-2564-C5CCFE293129}">
 					<Name>DL_Cryo Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -2445,6 +2446,23 @@ External Setpoint Generation:
 							<Name>MAIN.in_nVib_Z</Name>
 							<Type>DINT</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.shutter_1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.shutter_1.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.shutter_1.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.shutter_1.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
@@ -2491,10 +2509,16 @@ External Setpoint Generation:
 							<Comment><![CDATA[ linked to the EL60xx ]]></Comment>
 							<Type GUID="{93C8CB88-3DD4-CAF2-246F-BC392FD6816E}" Namespace="ESO_LDC_Comm_Serial_Library.Tc2_SerialCom">KL6outData22B</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.shutter_1.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Contexts>
 						<Context>
-							<Id>0</Id>
+							<Id NeedCalleeCall="true">0</Id>
 							<Name>PlcTask</Name>
 							<ManualConfig>
 								<OTCID>#x02010050</OTCID>
@@ -6140,9 +6164,15 @@ External Setpoint Generation:
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 20 (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.i_nCouplerState" VarB="InfoData^State"/>
 			</OwnerB>
+			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 23 (EL2624)">
+				<Link VarA="PlcTask Inputs^MAIN.shutter_1.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Outputs^MAIN.shutter_1.q_bSwitch" VarB="Channel 1^Output"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 29 (EL1124)">
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.switches^bLHW" VarB="Channel 1^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.switches^bUHW" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.shutter_1.i_bClosed" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.shutter_1.i_bOpen" VarB="Channel 3^Input"/>
 			</OwnerB>
 			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^DL_Servo">
 				<Link VarA="PlcTask Inputs^MAIN.DL_Servo_1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
