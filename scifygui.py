@@ -15,6 +15,7 @@ from commands.move_abs_command import MoveAbsCommand
 from commands.move_rel_command import MoveRelCommand
 from commands.scan_fringes_command import ScanFringesCommand
 from components.motor import Motor
+from motorwidget import MotorWidget
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -171,7 +172,8 @@ class DelayLinesWindow(QWidget):
         self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
-        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.DL_Servo_1")
+        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.DL_Servo_1", 'DL_Servo_1')
+        self._motor2 = Motor(self.opcua_conn, "ns=4;s=MAIN.DL_2", 'DL_2_Newport')
 
         self.redis_client = redis_client
 
@@ -180,25 +182,14 @@ class DelayLinesWindow(QWidget):
         # Dl statuses
         #self.dl1_status()
 
-        self.ui.dl1_pb_homming.clicked.connect(lambda: self.homing())
-        self.ui.dl_dl1_pb_scan.clicked.connect(lambda: self.scan_fringes())
-
-        self.ui.dl1_pb_reset.clicked.connect(lambda: self.reset_motor())
-        self.ui.dl1_pb_init.clicked.connect(lambda: self.init_motor())
-        self.ui.dl1_pb_enable.clicked.connect(lambda: self.enable_motor())
-        self.ui.dl1_pb_disable.clicked.connect(lambda: self.disable_motor())
-        self.ui.dl1_pb_stop.clicked.connect(lambda: self.stop_motor())
-        self.ui.dl1_pb_move_rel.clicked.connect(lambda: self.move_rel_motor())
-        self.ui.dl1_pb_move_abs.clicked.connect(lambda: self.move_abs_motor())
+        self.ui.motor_widget_1.setup(self.opcua_conn, self.redis_client, self._motor1)
+        self.ui.motor_widget_2.setup(self.opcua_conn, self.redis_client, self._motor2)
 
         self._activeCommand = None
 
-        # update the initial value in the window
-        self.update_value()
-
         self.timestamp = None
         self.t_pos = QTimer()
-        self.t_pos.timeout.connect(self.load_position)
+        self.t_pos.timeout.connect(self.load_positions)
         self.t_pos.start(10)
 
         self.t = QTimer()
@@ -244,228 +235,10 @@ class DelayLinesWindow(QWidget):
     def refresh_status(self):
         self.dl1_status()
     
-    def load_position(self):
-        if self.timestamp is not None:
-            previous_timestamp = self.timestamp
-        else:
-            previous_timestamp = None
-        
-        current_pos, current_speed, timestamp = self.opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.lrPosActual", "ns=4;s=MAIN.DL_Servo_1.stat.lrVelActual", "ns=4;s=MAIN.sTime"])
-
-        if (previous_timestamp is not None) and previous_timestamp == timestamp:
-            #print('Duplicate timestamp!')
-            #print(self.timestamp)
-            return
-        
-        # Convert mm -> micron
-        self.current_pos = current_pos * 1000
-        self.current_speed = current_speed * 1000
-        self.timestamp = timestamp
-
-        timestamp_d = datetime.utcnow()
-        # datetime.strptime(self.timestamp, '%Y-%m-%d-%H:%M:%S.%f')  ! Does not record in DB like this (TO BE FIXED)
-        self.redis_client.add_dl_position_1(timestamp_d, self.current_pos)
-
+    def load_positions(self):
+        self.ui.motor_widget_1.load_position()
+        self.ui.motor_widget_2.load_position()
 
     def dl1_status(self):
-        try:
-            self.ui.dl_dl1_status.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sStatus")))
-            self.ui.dl_dl1_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sState")))
-
-            self.ui.dl_dl1_substate.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sSubstate")))
-            #timestamp?
-            
-            self.ui.dl_dl1_current_position.setText(f'{self.current_pos:.1f}')
-
-            target_pos = self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.ctrl.lrPosition")
-            target_pos = target_pos * 1000
-            self.ui.dl_dl1_target_position.setText(f'{target_pos:.1f}')
-
-            self.ui.dl_dl1_current_speed.setText(f'{self.current_speed:.1f}')
-
-            self.ui.label_error.clear()
-
-            if self._activeCommand is not None and self._activeCommand.check_progress():
-                self.clearActiveCommand()
-
-        except Exception as e:
-            print(e)
-            self.ui.label_error.setText(str(e))
-            
-
-    def update_value(self):
-        # update the value in the delay lines window
-        value = self.opcua_conn.read_node("ns=4;s=GVL_Cryo_Temperatures.Temp_1")
-        # self.ui.value_label.setText(str(value))
-
-    def write_to_server(self):
-        # write the value to the server
-        value = self.ui.value_input.text()
-        # self.opcua_conn.write_node("ns=4;s=GVL_Cryo_Temperatures.Temp_1", value)
-        # self.update_value()
-
-    # Reset motor
-    def reset_motor(self):
-        try:
-            res = self._motor1.reset()
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    # Homming
-    def homing(self):
-        try:
-            self.reset_motor()
-            time.sleep(5.0)
-            self.init_motor()
-            time.sleep(10)
-            if not self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.bInitialised"):
-                self.ui.dl_command_status.setText("Homing")
-            else:
-                self.ui.dl_command_status.setText("Home")
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    def scan_fringes_start_pos(self):
-        return float(self.ui.lineEdit_scan_from.text()) / 1000
-    def scan_fringes_end_pos(self):
-        return float(self.ui.lineEdit_scan_to.text()) / 1000
-    def scan_fringes_speed(self):
-        return 0.1
-
-    # Scan Fringes
-    def scan_fringes(self):
-        try:
-            pos = 10.0  #the required position
-            speed = 0.1 # mm/s
-
-            # Homing motor first
-            #self.reset_motor()
-            #time.sleep(5.0)
-            #self.init_motor()
-            #time.sleep(10)
-
-            # Triggering camera to START taking images
-
-            #self.trigger_camera_to_take_images(True)
-
-            start_pos = self.scan_fringes_start_pos()
-            end_pos = self.scan_fringes_end_pos()
-            speed = self.scan_fringes_speed()
-
-            scanFringes = ScanFringesCommand(self._motor1, start_pos, end_pos, speed, self.parent.camera_window)
-            self.executeCommand(scanFringes)
-
-        except Exception as e:
-            print(f"an error happened: {e}")
-
-    # Initialize motor
-    def init_motor(self):
-        try:
-            res = self._motor1.init()
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    # Enable motor
-    def enable_motor(self):
-        try:
-            res = self._motor1.enable()
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    # Disable motor
-    def disable_motor(self):
-        try:
-            res = self._motor1.disable()
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    # Stop motor
-    def stop_motor(self):
-        try:
-            res = self._motor1.stop()
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-
-    # Move absolute motor
-    def move_abs_motor(self):
-        try:
-            pos = self.ui.dl1_textEdit_pos.text()
-            #Convert to mm
-            pos = float(pos) / 1000
-            speed = 0.1
-
-            self.__move_abs_motor(pos, speed)
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-    
-
-    def __move_abs_motor(self, pos, speed):
-        try:
-            cmd = self._motor1.command_move_absolute(pos, speed)
-            self.executeCommand(cmd)
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    # Move rel motor
-    def move_rel_motor(self):
-        try:
-            rel_pos = self.ui.dl1_textEdit_rel_pos.text()
-            # Convert to mm
-            rel_pos = float(rel_pos) / 1000
-            print("rel_pos = ",rel_pos)
-            speed = 0.05
-
-            cmd = self._motor1.command_move_relative(rel_pos, speed)
-            self.executeCommand(cmd)
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    # Move velocity
-    def move_velocity_motor(self, vel):
-        try:
-            self.opcua_conn.execute_rpc('ns=4;s=MAIN.DL_Servo_1', "4:RPC_MoveVel", [vel])
-        except Exception as e:
-            print(f"Error calling RPC method: {e}")
-
-    def trigger_camera_to_take_images(self, bTrig):
-
-        # Triggering camera to start taking images
-        # CameraOut1_node = self.opcua_conn.read_node("ns = 4;s = GVL_DL_Scanning_Homming.bTrigCameraImages")
-        CameraOut1_node_dv = ua.DataValue(ua.Variant(bTrig, ua.VariantType.Boolean))
-        # CameraOut1_node.set_value(CameraOut1_node_dv)
-        self.opcua_conn.write_node("ns = 4;s = GVL_DL_Scanning_Homming.bTrigCameraImages", CameraOut1_node_dv)
-
-
-# if __name__=='__main__':
-#     app = QApplication(sys.argv)
-
-    # Connect to OPC-UA server
-    # url = "opc.tcp://10.33.178.141:4840"
-    # client = Client(url)
-    # client.connect()
-    #
-    # # Read a variable
-    # var_node = client.get_node("ns=4;s=GVL_Cryo_Temperatures.Temp_1")
-    # print("Original value:", var_node.get_value())
-    #
-    # # Write a new value to the variable
-    #
-    # # new_value = 10.0
-    # # var_node.set_value(60.3)
-    # # var_node.set_attribute(client.A
-    # # .AttributeIds.Value, ua.DataValue(True))
-    # # print("New value:", var_node.get_value())
-    #
-    # # Disconnect from OPC-UA server
-    # client.disconnect()
-
-    # window_1 = Window()
-    # window_1.show()
-    #
-    #
-    #
-    # try:
-    #     sys.exit(app.exec())
-    # except:
-    #     print("Exiting")
+        self.ui.motor_widget_1.dl1_status()
+        self.ui.motor_widget_2.dl1_status()
