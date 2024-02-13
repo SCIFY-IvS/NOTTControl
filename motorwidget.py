@@ -23,16 +23,16 @@ class MotorWidget(QWidget):
         # Dl statuses
         #self.dl1_status()
 
-        self.ui.dl1_pb_homming.clicked.connect(lambda: self.homing())
-        self.ui.dl_dl1_pb_scan.clicked.connect(lambda: self.scan_fringes())
+        self.ui.dl1_pb_homming.clicked.connect(self.homing)
+        self.ui.dl_dl1_pb_scan.clicked.connect(self.scan_fringes)
 
-        self.ui.dl1_pb_reset.clicked.connect(lambda: self.reset_motor())
-        self.ui.dl1_pb_init.clicked.connect(lambda: self.init_motor())
-        self.ui.dl1_pb_enable.clicked.connect(lambda: self.enable_motor())
-        self.ui.dl1_pb_disable.clicked.connect(lambda: self.disable_motor())
-        self.ui.dl1_pb_stop.clicked.connect(lambda: self.stop_motor())
-        self.ui.dl1_pb_move_rel.clicked.connect(lambda: self.move_rel_motor())
-        self.ui.dl1_pb_move_abs.clicked.connect(lambda: self.move_abs_motor())
+        self.ui.dl1_pb_reset.clicked.connect(self.reset_motor)
+        self.ui.dl1_pb_init.clicked.connect(self.init_motor)
+        self.ui.dl1_pb_enable.clicked.connect(self.enable_motor)
+        self.ui.dl1_pb_disable.clicked.connect(self.disable_motor)
+        self.ui.dl1_pb_stop.clicked.connect(self.stop_motor)
+        self.ui.dl1_pb_move_rel.clicked.connect(self.move_rel_motor)
+        self.ui.dl1_pb_move_abs.clicked.connect(self.move_abs_motor)
 
         self.ui.label_name.setText(self._motor.name)
 

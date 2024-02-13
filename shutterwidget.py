@@ -16,11 +16,11 @@ class ShutterWidget(QWidget):
 
         self.ui = loadUi('shutter_widget.ui', self)
 
-        self.ui.dl1_pb_reset.clicked.connect(lambda: self.reset())
-        self.ui.dl1_pb_init.clicked.connect(lambda: self.init())
-        self.ui.dl1_pb_enable.clicked.connect(lambda: self.enable())
-        self.ui.dl1_pb_disable.clicked.connect(lambda: self.disable())
-        self.ui.dl1_pb_stop.clicked.connect(lambda: self.stop())
+        self.ui.dl1_pb_reset.clicked.connect(self.reset)
+        self.ui.dl1_pb_init.clicked.connect(self.init)
+        self.ui.dl1_pb_enable.clicked.connect(self.enable)
+        self.ui.dl1_pb_disable.clicked.connect(self.disable)
+        self.ui.dl1_pb_stop.clicked.connect(self.stop)
 
         self.ui.pb_open.clicked.connect(self.open)
         self.ui.pb_close.clicked.connect(self.close)
