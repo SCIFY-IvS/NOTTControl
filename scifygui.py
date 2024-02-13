@@ -16,6 +16,7 @@ from commands.move_rel_command import MoveRelCommand
 from commands.scan_fringes_command import ScanFringesCommand
 from components.motor import Motor
 from motorwidget import MotorWidget
+from shutters_window import ShutterWindow
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -45,6 +46,7 @@ class MainWindow(QMainWindow):
 
         self.camera_window = None
         self.delayline_window = None
+        self.shutter_window = None
 
         config = ConfigParser()
         config.read('config.ini')
@@ -57,6 +59,7 @@ class MainWindow(QMainWindow):
         # print("self.opcua_conn in MainWindow", self.opcua_conn)
         # Show Delay line window
         self.ui.main_pb_delay_lines.clicked.connect(self.open_delay_lines)
+        self.ui.pushButton_shutters.clicked.connect(self.open_shutter_window)
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
 
@@ -126,6 +129,21 @@ class MainWindow(QMainWindow):
                 self.delayline_window.activateWindow()
         except Exception as e:
             print(f"Error opening delay lines window: {e}")
+
+    def open_shutter_window(self):
+        try:
+            if self.shutter_window is None:
+                self.shutter_window = ShutterWindow(self, self.opcua_conn, self.redis_client)
+                self.shutter_window.closing.connect(self.clear_shutter_window)
+                self.shutter_window.show()
+                print("Shutter window is opening fine")
+            else:
+                self.shutter_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening shutter window: {e}")
+    
+    def clear_shutter_window(self):
+        self.shutter_window = None
     
     def clear_dl_window(self):
         self.delayline_window = None
