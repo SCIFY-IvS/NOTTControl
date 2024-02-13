@@ -60,32 +60,6 @@ class MotorWidget(QWidget):
         self.ui.pb_scan.setEnabled(True)
 
     def refresh_status(self):
-        self.dl1_status()
-    
-    def load_position(self):
-        if self.timestamp is not None:
-            previous_timestamp = self.timestamp
-        else:
-            previous_timestamp = None
-        
-        current_pos, current_speed, timestamp = self._motor.getPositionAndSpeed()
-
-        if (previous_timestamp is not None) and previous_timestamp == timestamp:
-            #print('Duplicate timestamp!')
-            #print(self.timestamp)
-            return
-        
-        # Convert mm -> micron
-        self.current_pos = current_pos * 1000
-        self.current_speed = current_speed * 1000
-        self.timestamp = timestamp
-
-        timestamp_d = datetime.utcnow()
-        # datetime.strptime(self.timestamp, '%Y-%m-%d-%H:%M:%S.%f')  ! Does not record in DB like this (TO BE FIXED)
-        self.redis_client.add_dl_position_1(timestamp_d, self.current_pos)
-
-
-    def dl1_status(self):
         try:
             status, state, substate = self._motor.getStatusInformation()
             self.ui.label_status.setText(str(status))
@@ -108,6 +82,28 @@ class MotorWidget(QWidget):
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
+    
+    def load_position(self):
+        if self.timestamp is not None:
+            previous_timestamp = self.timestamp
+        else:
+            previous_timestamp = None
+        
+        current_pos, current_speed, timestamp = self._motor.getPositionAndSpeed()
+
+        if (previous_timestamp is not None) and previous_timestamp == timestamp:
+            #print('Duplicate timestamp!')
+            #print(self.timestamp)
+            return
+        
+        # Convert mm -> micron
+        self.current_pos = current_pos * 1000
+        self.current_speed = current_speed * 1000
+        self.timestamp = timestamp
+
+        timestamp_d = datetime.utcnow()
+        # datetime.strptime(self.timestamp, '%Y-%m-%d-%H:%M:%S.%f')  ! Does not record in DB like this (TO BE FIXED)
+        self.redis_client.add_dl_position_1(timestamp_d, self.current_pos)
 
     # Reset motor
     def reset_motor(self):
