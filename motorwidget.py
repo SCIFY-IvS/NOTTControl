@@ -1,9 +1,7 @@
-from components.motor import Motor
-from opcua import OPCUAConnection
 from commands.scan_fringes_command import ScanFringesCommand
 
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 
 from datetime import datetime

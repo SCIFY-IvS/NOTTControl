@@ -1,17 +1,9 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton
+from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from opcua import OPCUAConnection
-from asyncua.sync import Client
-import asyncio
-from asyncua import ua
-import time
-from datetime import datetime
-from redisclient import RedisClient
 from configparser import ConfigParser
-from enum import Enum
 from components.shutter import Shutter
-from shutterwidget import ShutterWidget
 
 class ShutterWindow(QWidget):
     closing = pyqtSignal()

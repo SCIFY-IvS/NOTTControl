@@ -1,21 +1,13 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton
+from PyQt5.QtWidgets import QMainWindow, QWidget
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from opcua import OPCUAConnection
-from asyncua.sync import Client
-import asyncio
 from asyncua import ua
-import time
 from datetime import datetime
 from redisclient import RedisClient
 from camera.scify import MainWindow as camera_ui
 from configparser import ConfigParser
-from enum import Enum
-from commands.move_abs_command import MoveAbsCommand
-from commands.move_rel_command import MoveRelCommand
-from commands.scan_fringes_command import ScanFringesCommand
 from components.motor import Motor
-from motorwidget import MotorWidget
 from shutters_window import ShutterWindow
 
 # async def call_method_async(opcua_client, node_id, method_name, args):

@@ -2,8 +2,6 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 
-from datetime import datetime
-
 class ShutterWidget(QWidget):
     closing = pyqtSignal()
 
