@@ -47,7 +47,7 @@
     <string>Relative Position (μm)</string>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_status">
+  <widget class="QLabel" name="label_status">
    <property name="geometry">
     <rect>
      <x>20</x>
@@ -72,7 +72,7 @@
     <string>Status</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="dl1_pb_move_abs">
+  <widget class="QPushButton" name="pb_move_abs">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -93,7 +93,7 @@
     <string>MOVE ABSOLUTE</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="dl_dl1_pb_scan">
+  <widget class="QPushButton" name="pb_scan">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -114,7 +114,7 @@
     <string>SCAN FRINGES</string>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_state">
+  <widget class="QLabel" name="label_state">
    <property name="geometry">
     <rect>
      <x>200</x>
@@ -165,7 +165,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_target_position">
+  <widget class="QLabel" name="label_target_position">
    <property name="geometry">
     <rect>
      <x>200</x>
@@ -187,7 +187,7 @@
     <string>target position</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="dl1_pb_move_rel">
+  <widget class="QPushButton" name="pb_move_rel">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -239,7 +239,7 @@ background-color: rgb(202, 202, 151);</string>
     <string>Current Position (μm)</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="dl1_pb_homming">
+  <widget class="QPushButton" name="pb_homing">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -278,7 +278,7 @@ background-color: rgb(202, 202, 151);</string>
     <string>Not executing command</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="dl1_textEdit_rel_pos">
+  <widget class="QLineEdit" name="lineEdit_relpos">
    <property name="geometry">
     <rect>
      <x>220</x>
@@ -356,7 +356,7 @@ border-color: rgb(0, 0, 0);</string>
     <string>Status</string>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_current_position">
+  <widget class="QLabel" name="label_current_position">
    <property name="geometry">
     <rect>
      <x>20</x>
@@ -396,7 +396,7 @@ border-color: rgb(0, 0, 0);</string>
     <string>Position (μm)</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="dl1_textEdit_pos">
+  <widget class="QLineEdit" name="lineEdit_pos">
    <property name="geometry">
     <rect>
      <x>220</x>
@@ -406,7 +406,7 @@ border-color: rgb(0, 0, 0);</string>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_substate">
+  <widget class="QLabel" name="label_substate">
    <property name="geometry">
     <rect>
      <x>380</x>
@@ -449,7 +449,7 @@ border-color: rgb(0, 0, 0);</string>
     <string>To (μm)</string>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_current_speed">
+  <widget class="QLabel" name="label_current_speed">
    <property name="geometry">
     <rect>
      <x>380</x>
@@ -517,7 +517,7 @@ border-color: rgb(0, 0, 0);</string>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QPushButton" name="dl1_pb_reset">
+     <widget class="QPushButton" name="pb_reset">
       <property name="font">
        <font>
         <family>Segoe UI</family>
@@ -540,7 +540,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_init">
+     <widget class="QPushButton" name="pb_init">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -557,7 +557,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_enable">
+     <widget class="QPushButton" name="pb_enable">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -574,7 +574,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_disable">
+     <widget class="QPushButton" name="pb_disable">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -591,7 +591,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_stop">
+     <widget class="QPushButton" name="pb_stop">
       <property name="font">
        <font>
         <pointsize>12</pointsize>

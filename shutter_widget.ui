@@ -24,7 +24,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QPushButton" name="dl1_pb_reset">
+     <widget class="QPushButton" name="pb_reset">
       <property name="font">
        <font>
         <family>Segoe UI</family>
@@ -47,7 +47,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_init">
+     <widget class="QPushButton" name="pb_init">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -64,7 +64,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_enable">
+     <widget class="QPushButton" name="pb_enable">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -81,7 +81,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_disable">
+     <widget class="QPushButton" name="pb_disable">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -98,7 +98,7 @@ background-color: rgb(211, 230, 216);</string>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="dl1_pb_stop">
+     <widget class="QPushButton" name="pb_stop">
       <property name="font">
        <font>
         <pointsize>12</pointsize>

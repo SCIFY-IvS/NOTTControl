@@ -228,19 +228,19 @@ class DelayLinesWindow(QWidget):
         self._activeCommand = cmd
         self.ui.dl_command_status.setText(f'Executing command \'{self._activeCommand.text()}\' ...')
 
-        self.ui.dl1_pb_homming.setEnabled(False)
-        self.ui.dl1_pb_move_rel.setEnabled(False)
-        self.ui.dl1_pb_move_abs.setEnabled(False)
-        self.ui.dl_dl1_pb_scan.setEnabled(False)
+        self.ui.pb_homing.setEnabled(False)
+        self.ui.pb_move_rel.setEnabled(False)
+        self.ui.pb_move_abs.setEnabled(False)
+        self.ui.pb_scan.setEnabled(False)
     
     def clearActiveCommand(self):
         self._activeCommand = None
         self.ui.dl_command_status.setText('Not executing command')
 
-        self.ui.dl1_pb_homming.setEnabled(True)
-        self.ui.dl1_pb_move_rel.setEnabled(True)
-        self.ui.dl1_pb_move_abs.setEnabled(True)
-        self.ui.dl_dl1_pb_scan.setEnabled(True)
+        self.ui.pb_homing.setEnabled(True)
+        self.ui.pb_move_rel.setEnabled(True)
+        self.ui.pb_move_abs.setEnabled(True)
+        self.ui.pb_scan.setEnabled(True)
 
     def refresh_status(self):
         self.dl1_status()
