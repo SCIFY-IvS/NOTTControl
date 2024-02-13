@@ -48,7 +48,7 @@ border-color: rgb(0, 0, 0);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>390</y>
+      <y>400</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -220,7 +220,7 @@ color: rgb(0, 0, 255);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>320</y>
+      <y>300</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -414,7 +414,7 @@ color: rgb(50, 129, 140);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>530</y>
+      <y>500</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -461,7 +461,7 @@ color: rgb(255, 0, 0);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>460</y>
+      <y>450</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -547,7 +547,7 @@ border-color: rgb(0, 0, 0);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>600</y>
+      <y>550</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -559,6 +559,24 @@ color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
      <string>Camera</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_tiptilt">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>350</y>
+      <width>200</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(50, 129, 140);
+font: 700 14pt &quot;Segoe UI&quot;;
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Tip-Tilt</string>
     </property>
    </widget>
   </widget>

@@ -9,6 +9,7 @@ from camera.scify import MainWindow as camera_ui
 from configparser import ConfigParser
 from components.motor import Motor
 from shutters_window import ShutterWindow
+from tiptilt_window import TipTiltWindow
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -39,6 +40,7 @@ class MainWindow(QMainWindow):
         self.camera_window = None
         self.delayline_window = None
         self.shutter_window = None
+        self.tiptilt_window = None
 
         config = ConfigParser()
         config.read('config.ini')
@@ -52,6 +54,7 @@ class MainWindow(QMainWindow):
         # Show Delay line window
         self.ui.main_pb_delay_lines.clicked.connect(self.open_delay_lines)
         self.ui.pushButton_shutters.clicked.connect(self.open_shutter_window)
+        self.ui.pushButton_tiptilt.clicked.connect(self.open_tiptilt_window)
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
 
@@ -133,12 +136,27 @@ class MainWindow(QMainWindow):
                 self.shutter_window.activateWindow()
         except Exception as e:
             print(f"Error opening shutter window: {e}")
+
+    def open_tiptilt_window(self):
+        try:
+            if self.tiptilt_window is None:
+                self.tiptilt_window = TipTiltWindow(self, self.opcua_conn, self.redis_client)
+                self.tiptilt_window.closing.connect(self.clear_tiptilt_window)
+                self.tiptilt_window.show()
+                print("Tiptilt window is opening fine")
+            else:
+                self.tiptilt_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening tiptilt window: {e}")
     
     def clear_shutter_window(self):
         self.shutter_window = None
     
     def clear_dl_window(self):
         self.delayline_window = None
+
+    def clear_tiptilt_window(self):
+        self.tiptilt_window = None
 
     def load_dl1_status(self):
 
@@ -243,12 +261,9 @@ class DelayLinesWindow(QWidget):
         self.ui.pb_scan.setEnabled(True)
 
     def refresh_status(self):
-        self.dl1_status()
+        self.ui.motor_widget_1.refresh_status()
+        self.ui.motor_widget_2.refresh_status()
     
     def load_positions(self):
         self.ui.motor_widget_1.load_position()
         self.ui.motor_widget_2.load_position()
-
-    def dl1_status(self):
-        self.ui.motor_widget_1.dl1_status()
-        self.ui.motor_widget_2.dl1_status()
