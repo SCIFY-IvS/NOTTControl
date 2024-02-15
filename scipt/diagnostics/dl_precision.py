@@ -52,10 +52,10 @@ def enveloppe(dl_pos, flx_coh):
     # Define the bins
     dl_min  = np.min(dl_pos)
     dl_max  = np.max(dl_pos)
-    wav     = 3.8
+    wav     = 3.8 # in um
     n_bin   = np.floor((dl_max-dl_min)/wav)
     n_bin   = n_bin.astype(int)
-    #print('Numer of bins :', n_bin)
+    print('Numer of bins :', n_bin)
 
     # Extract max per bin
     pos_env = np.array(range(n_bin))
@@ -72,7 +72,8 @@ def enveloppe(dl_pos, flx_coh):
     return (pos_env, flx_env)  
 
 # Move rel motor
-def move_rel_dl(rel_pos, speed):
+def move_rel_dl(rel_pos, speed, opcua_motor):
+
     # initialize the OPC UA connection
     config = ConfigParser()
     config.read('../../config.ini')
@@ -81,7 +82,8 @@ def move_rel_dl(rel_pos, speed):
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
     
-    parent = opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
+    # parent = opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
+    parent = opcua_conn.client.get_node('ns=4;s=MAIN.'+opcua_motor)
     method = parent.get_child("4:RPC_MoveRel")
     arguments = [rel_pos, speed]
     res = parent.call_method(method, *arguments)
@@ -90,15 +92,17 @@ def move_rel_dl(rel_pos, speed):
     on_destination = False
     while not on_destination:
         time.sleep(0.01)
-        status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.DL_Servo_1.stat.sStatus', 'ns=4;s=MAIN.DL_Servo_1.stat.sState'])
+        # status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.DL_Servo_1.stat.sStatus', 'ns=4;s=MAIN.DL_Servo_1.stat.sState'])
+        status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.'+opcua_motor+'.stat.sStatus', 'ns=4;s=MAIN.'+opcua_motor+'.stat.sState'])
+
         on_destination = status == 'STANDING' and state == 'OPERATIONAL'
 
     # Disconnect
     opcua_conn.disconnect()
     return 'done'
 
-# Move rel motor
-def move_abs_dl(pos, speed):
+# Move abs motor
+def move_abs_dl(pos, speed, opcua_motor):
     
     # initialize the OPC UA connection
     config = ConfigParser()
@@ -108,7 +112,8 @@ def move_abs_dl(pos, speed):
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
     
-    parent = opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
+    # parent = opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_'+dl_id)
+    parent = opcua_conn.client.get_node('ns=4;s=MAIN.'+opcua_motor)
     method = parent.get_child("4:RPC_MoveAbs")
     arguments = [pos, speed]
     res = parent.call_method(method, *arguments)
@@ -117,14 +122,16 @@ def move_abs_dl(pos, speed):
     on_destination = False
     while not on_destination:
         time.sleep(0.01)
-        status, state = opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.sStatus", "ns=4;s=MAIN.DL_Servo_1.stat.sState"])
+        # status, state = opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.sStatus", "ns=4;s=MAIN.DL_Servo_1.stat.sState"])
+        status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.'+opcua_motor+'.stat.sStatus', 'ns=4;s=MAIN.'+opcua_motor+'.stat.sState'])
+
         on_destination = status == 'STANDING' and state == 'OPERATIONAL'
 
     # Disconnect
     opcua_conn.disconnect()      
     return 'done'
 
-def get_field(field1, field2, field3, field4, delay):
+def get_field(field1, field2, field3, field4, delay, dl_name):
     
     # Define time interval
     end   = datetime.utcnow() # - timedelta(seconds=0.9) # There is a 0.9 sec delay with redis
@@ -145,14 +152,13 @@ def get_field(field1, field2, field3, field4, delay):
     output2 = [(x[1]) for x in result2]
     output3 = [(x[1]) for x in result3]
     output4 = [(x[1]) for x in result4]
-    #print(len(output1))
+    # print('!!!', len(output1))
     
     # Get DL position
-    temp   = ts.range('dl_pos_1', unix_time_ms(start), unix_time_ms(end))
+    # temp   = ts.range('dl_pos_1', unix_time_ms(start), unix_time_ms(end))
+    temp   = ts.range(dl_name, unix_time_ms(start), unix_time_ms(end))
     x_time = [(x[0] / 1000) for x in temp]
     x_pos0 = [(x[1]) for x in temp]
-    # from pdb import set_trace
-    # set_trace()
     
     # Interpolate DL position on ROIs time stamps
     vm = np.mean(x_pos0)
@@ -193,14 +199,22 @@ ax_t1.clear()
 ax_t1.set_xlabel('DL position [microns]')
 ax_t1.set_ylabel('ROI value')
 
-# Loop over DL scanning iteratoin
-dl_start = 1.180 # m
-dl_end   = 1.300 # ms
+# Loop over DL scanning iteration
+dl_start = 1.1 # mm
+dl_end   = 1.3 # mm
 rel_pos  = dl_end - dl_start
 speed    = 0.05 #mm/s
+dl_id = 1
+
+if dl_id == 2:
+    opcua_motor = 'DL_2'
+    dl_name = 'DL_2_Newport_pos'
+else:
+    opcua_motor = 'DL_Servo_1'
+    dl_name = 'DL_Servo_1_pos'
 
 # Set DL to initial position
-move_abs_dl(dl_start, speed)
+move_abs_dl(dl_start, speed, opcua_motor)
 
 # Init line
 x = np.linspace(dl_start, dl_end, 10)
@@ -220,10 +234,10 @@ for it in range(n_iter):
     #print(cur_pos)
 
     # Send DL comment
-    move_rel_dl(rel_pos*(-1)**it, speed)  # Will go back and forth
+    move_rel_dl(rel_pos*(-1)**it, speed, opcua_motor)  # Will go back and forth
 
     # Get data
-    data  = get_field('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay)
+    data  = get_field('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay, dl_name)
     dl_pos = data[0]
     flux1  = data[1]
     flux2  = data[2]
@@ -313,11 +327,11 @@ opcua_conn.disconnect()
 # Set DL to NULL
 print('Now mving to null position :', null_pos[0])
 print('Sending command', np.abs(target_pos - null_pos[0])/1000)
-move_rel_dl(np.abs(target_pos - null_pos[0])/1000, speed)
-#move_abs_dl(null_pos[0]/1000, speed)
+move_rel_dl(np.abs(target_pos - null_pos[0])/1000, speed, opcua_motor)
+#move_abs_dl(null_pos[0]/1000, speed, opcua_motor)
 
 plt.ioff()
 plt.show()
 
 # Go back to starting position when closed
-move_abs_dl(dl_start, speed)
+move_abs_dl(dl_start, speed, opcua_motor)
