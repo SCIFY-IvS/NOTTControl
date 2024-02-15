@@ -7,9 +7,9 @@ class RedisClient:
         self.ts = self.db.ts()
         self.epoch = datetime.utcfromtimestamp(0)
 
-    def add_dl_position_1(self, time, pos):
+    def add_dl_position(self, motor, time, pos):
         unix_time = self.unix_time_ms(time)
-        self.ts.add('dl_pos_1', unix_time, pos)
+        self.ts.add(f'dl_{motor}_pos', unix_time, pos)
     
     def add_temperature_1(self, time, temp):
         unix_time = self.unix_time_ms(time)

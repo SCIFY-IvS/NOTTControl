@@ -103,7 +103,7 @@ class MotorWidget(QWidget):
 
         timestamp_d = datetime.utcnow()
         # datetime.strptime(self.timestamp, '%Y-%m-%d-%H:%M:%S.%f')  ! Does not record in DB like this (TO BE FIXED)
-        self.redis_client.add_dl_position_1(timestamp_d, self.current_pos)
+        self.redis_client.add_dl_position(self._motor.name, timestamp_d, self.current_pos)
 
     # Reset motor
     def reset_motor(self):
