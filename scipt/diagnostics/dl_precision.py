@@ -152,7 +152,6 @@ def get_field(field1, field2, field3, field4, delay, dl_name):
     output2 = [(x[1]) for x in result2]
     output3 = [(x[1]) for x in result3]
     output4 = [(x[1]) for x in result4]
-    # print('!!!', len(output1))
     
     # Get DL position
     # temp   = ts.range('dl_pos_1', unix_time_ms(start), unix_time_ms(end))
