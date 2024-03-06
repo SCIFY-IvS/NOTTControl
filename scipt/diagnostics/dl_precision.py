@@ -55,7 +55,7 @@ def enveloppe(dl_pos, flx_coh):
     wav     = 3.8 # in um
     n_bin   = np.floor((dl_max-dl_min)/wav)
     n_bin   = n_bin.astype(int)
-    print('Numer of bins :', n_bin)
+    print('ENVELOPE - Number of bins :', n_bin)
 
     # Extract max per bin
     pos_env = np.array(range(n_bin))
@@ -199,18 +199,30 @@ ax_t1.set_xlabel('DL position [microns]')
 ax_t1.set_ylabel('ROI value')
 
 # Loop over DL scanning iteration
-dl_start = 1.1 # mm
-dl_end   = 1.3 # mm
-rel_pos  = dl_end - dl_start
+dl_id = 2
 speed    = 0.05 #mm/s
-dl_id = 1
 
 if dl_id == 2:
     opcua_motor = 'DL_2'
     dl_name = 'DL_2_Newport_pos'
+    dl_start = 1. # mm
+    dl_end   = 1.3 # mm
+    dl_init_pos1 = 1.1 # mm
+    move_abs_dl(dl_init_pos1, speed, 'DL_Servo_1')
 else:
     opcua_motor = 'DL_Servo_1'
     dl_name = 'DL_Servo_1_pos'
+    dl_start = 1.1 # mm
+    dl_end   = 1.4 # mm
+    dl_init_pos2  = 1.3 # mm
+    move_abs_dl(dl_init_pos2, speed, 'DL_2')
+
+rel_pos  = dl_end - dl_start
+
+# # Wait for the other delay lines to reach its position
+# wait_time = 3. # in second
+# print('Wait for the other delay lines to reach its position (%s sec)'%(wait_time))
+# time.sleep(wait_time)
 
 # Set DL to initial position
 move_abs_dl(dl_start, speed, opcua_motor)
@@ -224,9 +236,9 @@ line_t3, = ax_t1.plot(x, np.sin(x))
 # Loop over DL scans
 margin   = 1
 delay    = rel_pos/speed + margin
-n_iter   = 2
-null_pos = np.array(range(n_iter), dtype=float)
-for it in range(n_iter):
+n_pass   = 2 # even number=back and forth
+null_pos = np.array(range(n_pass), dtype=float)
+for it in range(n_pass):
 
     # Current DL positoin
     cur_pos = dl_start + rel_pos*(-1)**(it)
@@ -264,8 +276,8 @@ for it in range(n_iter):
     lower_bounds = [0.95*ampl, 1000*dl_start]
     upper_bounds = [1.05*ampl, 1000*dl_end]
     params, params_cov = curve_fit(fringes_env, pos_env, flx_env, p0=init_guess, bounds=(lower_bounds, upper_bounds))
-    print('Fringes amplitude :', params[0])
-    print('Group delay [microns]:', params[1])
+    print('FIT GD - Fringes amplitude :', params[0])
+    print('FIT GD - Group delay [microns]:', params[1])
     
     # Extract best-fit envelop
     pos_env = dl_pos
@@ -276,9 +288,9 @@ for it in range(n_iter):
     lower_bounds = [0.99*params[0], 0.99*params[1], 0]
     upper_bounds = [1.01*params[0], 1.01*params[1], 1.9]
     params, params_cov = curve_fit(fringes, dl_pos, flx_coh, p0=init_guess, bounds=(lower_bounds, upper_bounds))
-    print('Fringes amplitude :', params[0])
-    print('Group delay [microns]:', params[1])
-    print('Phase delay [microns]:', params[2])
+    print('FIT PD - Fringes amplitude :', params[0])
+    print('FIT PD - Group delay [microns]:', params[1])
+    print('FIT PD - Phase delay [microns]:', params[2])
     #pos_fit, flx_fit = enveloppe(dl_pos, flx_coh) # This works!
     
     # Extract fitted curve
@@ -288,7 +300,7 @@ for it in range(n_iter):
     # Find best position
     idx_null     = np.argmin(flx_fit)
     null_pos[it] = dl_pos[idx_null]
-    print('Position of the null :', null_pos[it])
+    print('RESULT - Position of the null :', null_pos[it])
 
     # Adjust the axis range for time plot
     x_min, x_max = np.min(1000*dl_start), np.max(1000*dl_end) 
@@ -304,9 +316,10 @@ for it in range(n_iter):
     line_t1.remove()
     line_t2.remove()
     line_t3.remove()
-    line_t3, = ax_t1.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit')
-    line_t2, = ax_t1.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit')
+    line_t3, = ax_t1.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit fringes')
+    line_t2, = ax_t1.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit envelope')
     line_t1, = ax_t1.plot(dl_pos, flx_coh, label='Fringes')
+    plt.legend(loc='best')
 
     plt.draw()
     plt.pause(0.5)
@@ -319,12 +332,12 @@ url =  config['DEFAULT']['opcuaaddress']
 
 opcua_conn = OPCUAConnection(url)
 opcua_conn.connect()
-target_pos = opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.ctrl.lrPosition")
+target_pos = opcua_conn.read_node('ns=4;s=MAIN.'+opcua_motor+'.ctrl.lrPosition')
 target_pos = target_pos * 1000
 opcua_conn.disconnect()
 
 # Set DL to NULL
-print('Now mving to null position :', null_pos[0])
+print('Now moving to null position :', null_pos[0])
 print('Sending command', np.abs(target_pos - null_pos[0])/1000)
 move_rel_dl(np.abs(target_pos - null_pos[0])/1000, speed, opcua_motor)
 #move_abs_dl(null_pos[0]/1000, speed, opcua_motor)
