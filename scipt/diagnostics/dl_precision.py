@@ -12,6 +12,8 @@ from datetime import date
 from datetime import timedelta
 from opcua import OPCUAConnection
 from configparser import ConfigParser
+import os
+import pickle
 
 epoch = datetime.utcfromtimestamp(0)
 
@@ -188,6 +190,38 @@ def get_field(field1, field2, field3, field4, delay, dl_name):
     # Return 
     return x_pos, output1, output2, output3, output4
    
+def grab_flux(delay, dl_name):
+    data_at_null  = get_field('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay, dl_name)
+    dl_pos = data_at_null[0]
+    flux2  = data_at_null[2]
+        
+    # Rearrange
+    idx    = np.argsort(dl_pos)
+    flux2  = np.array(flux2)
+    flux2  = flux2[idx]
+    dl_pos = dl_pos[idx]
+
+    # Fit fringes
+    flx_coh = flux2.copy()
+    flx_mean = np.mean(flux2)
+    flx_coh = flx_coh - flx_mean
+
+    return dl_pos, flx_coh, data_at_null[2]
+
+def read_current_pos(opcua_motor):
+    # Read current position
+    # initialize the OPC UA connection
+    config = ConfigParser()
+    config.read('../../config.ini')
+    url =  config['DEFAULT']['opcuaaddress']
+    opcua_conn = OPCUAConnection(url)
+    opcua_conn.connect()
+    target_pos = opcua_conn.read_node('ns=4;s=MAIN.'+opcua_motor+'.ctrl.lrPosition')
+    target_pos = target_pos * 1000
+    opcua_conn.disconnect()
+
+    return target_pos
+
 # PLOT of ROI vs time
 # Start animation
 plt.ion()
@@ -199,8 +233,10 @@ ax_t1.set_xlabel('DL position [microns]')
 ax_t1.set_ylabel('ROI value')
 
 # Loop over DL scanning iteration
-dl_id = 2
-speed    = 0.05 #mm/s
+dl_id = 1
+speed = 0.05 #mm/s
+wait_time = 0.08 / speed * 2.5 # Time in sec to scan X times the coherent envelope
+grab_range = 0.08 / speed * 5 # Time in sec to scan X times the coherent envelope
 
 if dl_id == 2:
     opcua_motor = 'DL_2'
@@ -236,10 +272,16 @@ line_t3, = ax_t1.plot(x, np.sin(x))
 # Loop over DL scans
 margin   = 1
 delay    = rel_pos/speed + margin
-n_pass   = 2 # even number=back and forth
+n_pass   = 20 # even number=back and forth
 null_pos = np.array(range(n_pass), dtype=float)
-for it in range(n_pass):
 
+null_scans = []
+null_scans_pos = []
+null_scans_best_pos = []
+nb_back_forth = n_pass // 2
+
+for it in range(n_pass):
+    print('MSG - Pass', it+1, '/', n_pass)
     # Current DL positoin
     cur_pos = dl_start + rel_pos*(-1)**(it)
     #print(cur_pos)
@@ -262,10 +304,14 @@ for it in range(n_pass):
     dl_pos = dl_pos[idx]
 
     # Fit fringes
-    flx_coh = flux2 
+    flx_coh = flux2.copy()
     flx_mean = np.mean(flux2)
-    for i, value in enumerate(flux2):
-        flx_coh[i] = value - flx_mean
+    flx_coh = flx_coh - flx_mean
+    print('Scan length:', flx_coh.shape)
+
+    # # Save dl_pos and coherent flux
+    null_scans.append(flx_coh)
+    null_scans_pos.append(dl_pos)
 
     # Find enveloppe
     pos_env, flx_env = enveloppe(dl_pos, flx_coh)
@@ -301,6 +347,7 @@ for it in range(n_pass):
     idx_null     = np.argmin(flx_fit)
     null_pos[it] = dl_pos[idx_null]
     print('RESULT - Position of the null :', null_pos[it])
+    null_scans_best_pos.append(null_pos[it])
 
     # Adjust the axis range for time plot
     x_min, x_max = np.min(1000*dl_start), np.max(1000*dl_end) 
@@ -324,26 +371,115 @@ for it in range(n_pass):
     plt.draw()
     plt.pause(0.5)
 
-# Read current position
-# initialize the OPC UA connection
-config = ConfigParser()
-config.read('../../config.ini')
-url =  config['DEFAULT']['opcuaaddress']
-
-opcua_conn = OPCUAConnection(url)
-opcua_conn.connect()
-target_pos = opcua_conn.read_node('ns=4;s=MAIN.'+opcua_motor+'.ctrl.lrPosition')
-target_pos = target_pos * 1000
-opcua_conn.disconnect()
-
+print('MSG - End of pass')
+#######################
 # Set DL to NULL
-print('Now moving to null position :', null_pos[0])
-print('Sending command', np.abs(target_pos - null_pos[0])/1000)
-move_rel_dl(np.abs(target_pos - null_pos[0])/1000, speed, opcua_motor)
+#######################
+print('\n*** Set DL to NULL ***')
+current_pos = read_current_pos(opcua_motor)
+print('MSG - Current position:', current_pos)
+print('MSG - Now moving to null position :', null_pos[0])
+cmd_null = (null_pos[0] - current_pos)/1000
+print('Sending command', cmd_null)
+move_rel_dl(cmd_null, speed, opcua_motor)
 #move_abs_dl(null_pos[0]/1000, speed, opcua_motor)
+# Save the last move to check how precise the null is reached
+time.sleep(wait_time)
+to_null_pos, to_null_flx, to_null_flx2 = grab_flux(grab_range, dl_name)
+print('MSG - Reached position', read_current_pos(opcua_motor))
 
+plt.figure()
+plt.plot(to_null_flx2)
+plt.grid()
+plt.xlabel('Time (count)')
+plt.ylabel('Flux (count)')
+plt.title('Reached null position')
+
+print('TODO - Close the plot(s) to continue')
 plt.ioff()
 plt.show()
 
 # Go back to starting position when closed
+print('MSG - Moving back to initial position')
 move_abs_dl(dl_start, speed, opcua_motor)
+time.sleep(1.) # the DL overshoot, let it time to reach the targeted position
+
+#################################
+# Set DL to average NULL position
+#################################
+print('\n*** Set DL to average NULL position ***')
+null_scans_best_pos = np.array(null_scans_best_pos)
+null_scans_best_pos = np.reshape(null_scans_best_pos, (2, -1))
+
+avg_null_pos = np.mean(null_scans_best_pos[0])
+current_pos = read_current_pos(opcua_motor)
+print('MSG - Current position:', current_pos)
+print('MSG - Now moving to null position :', avg_null_pos)
+cmd_pos = (avg_null_pos - current_pos)/1000
+print('MSG - Sending command', cmd_pos)
+move_rel_dl(cmd_pos, speed, opcua_motor)
+#move_abs_dl(null_pos[0]/1000, speed, opcua_motor)
+# Save the last move to check how precise the null is reached
+time.sleep(wait_time)
+to_null_pos_avg, to_null_flx_avg, to_null_flx_avg2 = grab_flux(grab_range, dl_name)
+print('MSG - Reached position', read_current_pos(opcua_motor))
+
+plt.figure(figsize=(10, 5))
+plt.subplot(121)
+plt.plot(to_null_flx2)
+plt.grid()
+plt.xlabel('Time (count)')
+plt.ylabel('Flux (count)')
+plt.title('Reached null position 1st scan')
+plt.subplot(122)
+plt.plot(to_null_flx_avg2)
+plt.grid()
+plt.xlabel('Time (count)')
+plt.ylabel('Flux (count)')
+plt.title('Reached null position (average strategy)')
+plt.tight_layout()
+
+print('TODO - Close the plot(s) to continue')
+plt.ioff()
+plt.show()
+
+# Go back to starting position when closed
+print('MSG - Moving back to initial position')
+move_abs_dl(dl_start, speed, opcua_motor)
+
+##################################################################################
+# Show results of the scans, individual scan can have different numbers of points
+##################################################################################
+scans_forth = null_scans[::2]
+scans_forth_pos = null_scans_pos[::2]
+scans_back = null_scans[1::2]
+scans_back_pos = null_scans_pos[1::2]
+
+# This plot shows how repeatable a scan is
+plt.figure()
+[plt.plot(scans_forth_pos[i], scans_forth[i], label='Forth') for i in range(len(scans_forth))]
+[plt.plot(scans_back_pos[i], scans_back[i], label='Back') for i in range(len(scans_back))]
+plt.grid()
+plt.xlabel('DL pos ()')
+plt.ylabel('Flux (count)')
+plt.legend(loc='best')
+plt.show()
+
+###############
+# Save the data
+###############
+save_path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/scipt/diagnostics/'
+list_saved_files = [elt for elt in os.listdir(save_path) if 'null_scans_speed_%s'%(speed) in elt]
+count_file = len(list_saved_files) + 1
+name_file = 'null_scans_'+opcua_motor+'_speed_%s_%03d.pkl'%(speed, count_file)
+dbfile = open(save_path + name_file, 'wb')
+db = {'scans_forth_pos':scans_forth_pos, 'scans_forth':scans_forth, \
+      'scans_back_pos':scans_back_pos, 'scans_back':scans_back,\
+        'null_scans_best_pos': null_scans_best_pos,\
+            'to_null':[to_null_pos, to_null_flx, to_null_flx2],\
+                 'to_null_avg':[to_null_pos_avg, to_null_flx_avg, to_null_flx_avg2]}
+
+pickle.dump(db, dbfile)
+dbfile.close()
+
+print(len(null_scans), [len(elt) for elt in null_scans])
