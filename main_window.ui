@@ -469,7 +469,7 @@ color: rgb(255, 0, 0);</string>
     <property name="styleSheet">
      <string notr="true">background-color: rgb(50, 129, 140);
 font: 700 14pt &quot;Segoe UI&quot;;
-color: rgb(71, 185, 200);</string>
+color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
      <string>Shutters</string>
