@@ -97,37 +97,14 @@ class InfratecInterface:
             else:
                 res=self.irbgrab_object.connect('')
             if hirb.TIRBG_RetDef[res]=='Success':
-                res=self.irbgrab_object.startgrab(0) #hier noch abfrage des StreamIndex????
+                res=self.irbgrab_object.set_callback_func(callback,context)
                 if hirb.TIRBG_RetDef[res]=='Success':
-                    #Let image capture be 'gated' by the trigger: only capture images if the input trigger is high
-                    
-                    # res = self.irbgrab_object.setparam_int32(342, 1) #IRBG_PARAM_Trigger_GateIdx, connect to Camera In 1
-                    # if not hirb.TIRBG_RetDef[res]=='Success':
-                    #     print('set parameter IRBG_PARAM_Trigger_GateIdx failed: ' + hirb.TIRBG_RetDef[res])
-                    # print('set parameter IRBG_PARAM_Trigger_GateIdx success')
-                    # res = self.irbgrab_object.getparam_int32(340)
-                    # if hirb.TIRBG_RetDef[res[0]]=='Success':
-                    #     print(str(res[1]))
-                    
-                    # res = self.irbgrab_object.getparam_idx_string(341, 0)
-                    # if hirb.TIRBG_RetDef[res[0]]=='Success':
-                    #     print(res[1])
-                    # res = self.irbgrab_object.getparam_idx_string(341, 1)
-                    # if hirb.TIRBG_RetDef[res[0]]=='Success':
-                    #     print(res[1])
-                    # res = self.irbgrab_object.getparam_idx_string(341, 2)
-                    # if hirb.TIRBG_RetDef[res[0]]=='Success':
-                    #     print(res[1])
-                    # res = self.irbgrab_object.getparam_idx_string(341, 3)
-                    # if hirb.TIRBG_RetDef[res[0]]=='Success':
-                    #     print(res[1])
-                        
-                    res=self.irbgrab_object.set_callback_func(callback,context)
+                    res=self.irbgrab_object.startgrab(0) #hier noch abfrage des StreamIndex????
                     if hirb.TIRBG_RetDef[res]=='Success':
-                        print('Done')
+                        print('Connected succesfully!')
                         return True
-                    else:  print('set callback error: '+hirb.TIRBG_RetDef[res])
-                else:  print('startgrab error: '+hirb.TIRBG_RetDef[res])
+                    else:  print('startgrab error: '+hirb.TIRBG_RetDef[res])
+                else:  print('set callback error: '+hirb.TIRBG_RetDef[res])
             else: print('connect error: '+hirb.TIRBG_RetDef[res])
         else: print('state error: '+hirb.TIRBG_RetDef[res]) 
         
