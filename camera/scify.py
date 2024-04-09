@@ -7,7 +7,7 @@ import sys
 import time
 import threading
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import ctypes,_ctypes
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
@@ -40,11 +40,9 @@ class Roi(Enum):
     ROI_4 = 'Roi 4'
 
 def callback(context,*args):#, aHandle, aStreamIndex):
+    recording_timestamp = datetime.utcnow()
+    
     global img_timestamp_ref
-    if img_timestamp_ref is None:
-        recording_timestamp = datetime.utcnow()
-    else:
-        recording_timestamp = None
     
     context.load_image(recording_timestamp)
 
@@ -139,6 +137,7 @@ class MainWindow(QMainWindow):
 
     def connect_clicked(self):
         if not self.connected:
+            self.time_reference_frames = 0
             self.connect_camera()
         else:
             self.disconnect_camera()
@@ -146,7 +145,9 @@ class MainWindow(QMainWindow):
     def connect_camera(self):
         if self.connected:
             return
-
+        
+        global img_timestamp_ref
+        img_timestamp_ref = None
         if(self.interface.connect(callback, self)):
             self.connected = True
             self.ui.button_connect.setText('Disconnect')
@@ -222,14 +223,30 @@ class MainWindow(QMainWindow):
             img = image.get_image_data()
             timestamp_offset = image.get_timestamp()
         
-        if img_timestamp_ref is None:
-            img_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
+        if self.time_reference_frames < 100:
+            new_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
+            print(f"Timestamp reference: {new_timestamp_ref}")
+            if img_timestamp_ref is None:
+                img_timestamp_ref = new_timestamp_ref
+            #Take the earliest time because there is always a delay, and the estimated timestamp can never be earlier thatn the actual timestamp
+            img_timestamp_ref = min(img_timestamp_ref, new_timestamp_ref)
+
+            self.time_reference_frames = self.time_reference_frames + 1
+
+            if self.time_reference_frames == 100:
+                print(f"Final timestamp reference: {img_timestamp_ref}")
+
+            #Use the first 100 frames purely to establish time
+            return
         
         timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
+
+        #print(f"Delay: {recording_timestamp - timestamp}")
         
         if self.recording:
             self.calculate_roi(img, timestamp)
         
+
         if (t-tLive) > 0.4:
             tLive=t
             self.request_image_update.emit(img)
