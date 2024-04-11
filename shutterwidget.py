@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
+from datetime import datetime
 
 class ShutterWidget(QWidget):
     closing = pyqtSignal()
@@ -30,11 +31,20 @@ class ShutterWidget(QWidget):
     def refresh_status(self):
         try:
             status, state, substate = self._shutter.getStatusInformation()
+            timestamp_d = datetime.utcnow()
+
             self.ui.label_status.setText(str(status))
             self.ui.label_state.setText(str(state))
             self.ui.label_subState.setText(str(substate))
             hwStatus = self._shutter.getHardwareStatus()
             self.ui.label_opened.setText(str(hwStatus))
+
+            shutter_pos = -1
+            if hwStatus == "OPEN":
+                shutter_pos = 1
+            if hwStatus == "CLOSED":
+                shutter_pos = 0
+            self.redis_client.add_shutter_position(self._shutter.name, timestamp_d, shutter_pos)
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))

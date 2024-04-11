@@ -11,6 +11,10 @@ class RedisClient:
         unix_time = self.unix_time_ms(time)
         self.ts.add(f'{motor}_pos', unix_time, pos)
     
+    def add_shutter_position(self, shutter, time, position):
+        unix_time = self.unix_time_ms(time)
+        self.ts.add(f'{shutter}_pos', unix_time, position)
+    
     def add_temperature_1(self, time, temp):
         unix_time = self.unix_time_ms(time)
         self.ts.add('dl_T1', unix_time, temp)

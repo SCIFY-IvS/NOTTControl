@@ -33,7 +33,7 @@ class ShutterWindow(QWidget):
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
-        self.t.start(500)
+        self.t.start(5)
 
     def closeEvent(self, *args):
         self.t.stop()
