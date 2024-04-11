@@ -29,11 +29,13 @@ class ShutterWindow(QWidget):
 
         self.ui.shutter_widget.setup(self.opcua_conn, self.redis_client, self._shutter)
 
-        self.timestamp = None
+        self.t_pos = QTimer()
+        self.t_pos.timeout.connect(self.load_positions)
+        self.t_pos.start(5)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
-        self.t.start(5)
+        self.t.start(200)
 
     def closeEvent(self, *args):
         self.t.stop()
@@ -43,3 +45,6 @@ class ShutterWindow(QWidget):
 
     def refresh_status(self):
         self.ui.shutter_widget.refresh_status()
+    
+    def load_positions(self):
+        self.ui.shutter_widget.load_position()

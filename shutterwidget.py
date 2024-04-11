@@ -31,13 +31,20 @@ class ShutterWidget(QWidget):
     def refresh_status(self):
         try:
             status, state, substate = self._shutter.getStatusInformation()
-            timestamp_d = datetime.utcnow()
 
             self.ui.label_status.setText(str(status))
             self.ui.label_state.setText(str(state))
             self.ui.label_subState.setText(str(substate))
             hwStatus = self._shutter.getHardwareStatus()
             self.ui.label_opened.setText(str(hwStatus))
+        except Exception as e:
+            print(e)
+            self.ui.label_error.setText(str(e))
+    
+    def load_position(self):
+        try:
+            timestamp_d = datetime.utcnow()
+            hwStatus = self._shutter.getHardwareStatus()
 
             shutter_pos = -1
             if hwStatus == "OPEN":
