@@ -75,6 +75,10 @@ nVib_Z:	DINT;
 shutter_1:		FB_SHUTTER;
 
 
+/// Tip-tilt motors
+{attribute 'OPC.UA.DA':='1'}
+tiptilt_1: FB_MOTOR;
+
 
 END_VAR
 ]]></Declaration>
@@ -119,7 +123,14 @@ shutter_1(
 	in_bInitialState:= , 
 	in_nTimeout:= , 
 	in_bLogExtTime:= , 
-	in_bLog:= );]]></ST>
+	in_bLog:= );
+	
+/// Tip-tilt motors
+
+tiptilt_1(sName:='Tip-Tilt_1', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 4000);
+
+
+]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
       <LineId Id="28" Count="0" />
@@ -146,6 +157,12 @@ shutter_1(
       <LineId Id="643" Count="0" />
       <LineId Id="646" Count="12" />
       <LineId Id="645" Count="0" />
+      <LineId Id="739" Count="0" />
+      <LineId Id="741" Count="0" />
+      <LineId Id="743" Count="0" />
+      <LineId Id="742" Count="0" />
+      <LineId Id="746" Count="1" />
+      <LineId Id="745" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

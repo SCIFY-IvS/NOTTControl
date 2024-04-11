@@ -126,6 +126,10 @@
       <SubType>Code</SubType>
       <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="VISUs\TipTilt_Servo_1.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="VISUs\VisualizationManager.TcVMO">
       <SubType>Code</SubType>
     </Compile>

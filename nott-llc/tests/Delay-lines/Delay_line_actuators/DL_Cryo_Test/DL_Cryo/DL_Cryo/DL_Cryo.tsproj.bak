@@ -1664,7 +1664,7 @@ External Setpoint Generation:
 						<Name>Image</Name>
 					</Image>
 				</SafTask>
-				<SvbTask Priority="8" CycleTime="100000" AmsPort="511">
+				<SvbTask Priority="5" CycleTime="10000" AmsPort="511">
 					<Name>NC-Task 1 SVB</Name>
 				</SvbTask>
 				<Axis Id="1" CreateSymbols="true" AxisType="1">
@@ -2145,12 +2145,14 @@ External Setpoint Generation:
 					</Vars>
 				</Axis>
 				<Axis Id="4" CreateSymbols="true" AxisType="1">
-					<Name>Axis 4</Name>
+					<Name>Tiptilt_servo_1</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="0.8" DecelerationMaximum="0.8" Acceleration="0.8" Deceleration="0.8" Jerk="0.9"/>
+						<Velo RefSearch="0.01" RefSync="0.01" SlowManual="0.005" FastManual="0.005" Fast="0.005" Maximum="0.4"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.005" PulseDistanceNeg="0.005"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="3.05e-05" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -2211,7 +2213,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="23">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="0.4" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -2283,7 +2285,9 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="2"/>
 							<Observer BandWidth="20"/>
+							<ParameterChanged>258</ParameterChanged>
 						</CtrPara>
 					</Controller>
 					<Vars VarGrpType="1" InsertType="1">
@@ -2305,7 +2309,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{1A411490-A261-49DC-AB92-F2679BECCE77}" Name="DL_Cryo" PrjFilePath="DL_Cryo\DL_Cryo.plcproj" TmcFilePath="DL_Cryo\DL_Cryo.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{50A599CC-B71C-6788-22CD-5CCF4287E025}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{7F666B54-9000-44B6-1B3A-268CE2F8F32E}">
 					<Name>DL_Cryo Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -2424,6 +2428,11 @@ External Setpoint Generation:
 							<Type>INT</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.in_nVib_X</Name>
+							<Comment><![CDATA[ Accelerometer]]></Comment>
+							<Type>DINT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.FILTER_WHEEL.comm.i_nCouplerState</Name>
 							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
 							<Type>UINT</Type>
@@ -2432,11 +2441,6 @@ External Setpoint Generation:
 							<Name>MAIN.FILTER_WHEEL.comm.COMin_EL60xx</Name>
 							<Comment><![CDATA[ linked to the EL60xx ]]></Comment>
 							<Type GUID="{4E45CB35-7BCA-7857-A15A-9D8B7FC46C2F}" Namespace="ESO_LDC_Comm_Serial_Library.Tc2_SerialCom">KL6inData22B</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.in_nVib_X</Name>
-							<Comment><![CDATA[ Accelerometer]]></Comment>
-							<Type>DINT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.in_nVib_Y</Name>
@@ -2463,11 +2467,59 @@ External Setpoint Generation:
 							<Name>MAIN.shutter_1.i_bClosed</Name>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
 						<Var>
 							<Name>MAIN.bCameraOUT_1</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.bCameraOUT_2</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
@@ -2487,10 +2539,6 @@ External Setpoint Generation:
 						<Var>
 							<Name>MAIN.DL_2.Axis.PlcToNc</Name>
 							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.bCameraOUT_2</Name>
-							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.fbCryoState.nCryoHeater_1</Name>
@@ -2514,6 +2562,15 @@ External Setpoint Generation:
 							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
  Outputs ]]></Comment>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.tiptilt_1.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
 						</Var>
 					</Vars>
 					<Contexts>
@@ -6098,6 +6155,46 @@ External Setpoint Generation:
 				<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact^Set counter value"/>
 			</OwnerB>
 		</OwnerA>
+		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^Tiptilt_servo_1">
+			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 1 (EK1100)^Term 2 (EL7342)">
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Error" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Moving negative" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Moving positive" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Ready" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Ready to enable"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Torque reduced" Size="1" OffsA="6"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 2^Status^Warning" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="DCM Status Channel 2^Status^Digital input 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="DCM Status Channel 2^Status^Digital input 2" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="DCM Status Channel 2^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="DCM Status Channel 2^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="DCM Control Channel 2^Control^Enable"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="DCM Control Channel 2^Control^Reduce torque" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="DCM Control Channel 2^Control^Reset" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="DCM Control Channel 2^Control^Threshold active" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Outputs^Out^nDataOut2[0]" VarB="DCM Velocity Channel 2^Velocity"/>
+				<Link VarA="Enc^Inputs^In^nDataIn1[0]" VarB="ENC Status compact Channel 2^Counter value"/>
+				<Link VarA="Enc^Inputs^In^nDataIn2[0]" VarB="ENC Status compact Channel 2^Latch value"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact Channel 2^Status^Counter overflow" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact Channel 2^Status^Counter underflow" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact Channel 2^Status^Extrapolation stall" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact Channel 2^Status^Latch extern valid" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact Channel 2^Status^Set counter done" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact Channel 2^Status^Status of extern latch" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact Channel 2^Status^Status of input A"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact Channel 2^Status^Status of input B" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact Channel 2^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact Channel 2^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact Channel 2^Control^Enable latch extern on negative edge" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact Channel 2^Control^Enable latch extern on positive edge" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact Channel 2^Control^Set counter" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact Channel 2^Set counter value"/>
+			</OwnerB>
+		</OwnerA>
 		<OwnerA Name="TIPC^DL_Cryo^DL_Cryo Instance">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 8 (EK1200)^Term 13 (EL3218)">
 				<Link VarA="PlcTask Inputs^MAIN.fbCryoState.nCryotemp_1" VarB="RTD Inputs Channel 1^Value"/>
@@ -6156,10 +6253,13 @@ External Setpoint Generation:
 			</OwnerB>
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 1 (EK1100)^Term 2 (EL7342)">
 				<Link VarA="PlcTask Inputs^MAIN.DL_Servo_1.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.tiptilt_1.i_nCouplerState" VarB="InfoData^State"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 1 (EK1100)^Term 5 (EL1124)">
 				<Link VarA="PlcTask Inputs^MAIN.DL_Servo_1.switches^bLHW" VarB="Channel 2^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.DL_Servo_1.switches^bUHW" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.tiptilt_1.switches^bLHW" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.tiptilt_1.switches^bUHW" VarB="Channel 4^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 20 (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.i_nCouplerState" VarB="InfoData^State"/>
@@ -6181,6 +6281,10 @@ External Setpoint Generation:
 			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NewPort_Stepper">
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
 				<Link VarA="PlcTask Outputs^MAIN.DL_2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^Tiptilt_servo_1">
+				<Link VarA="PlcTask Inputs^MAIN.tiptilt_1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.tiptilt_1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
 			</OwnerB>
 		</OwnerA>
 	</Mappings>
