@@ -97,11 +97,15 @@ class InfratecInterface:
             else:
                 res=self.irbgrab_object.connect('')
             if hirb.TIRBG_RetDef[res]=='Success':
+                print('Connected succesfully!')
+                print('Setting triggers')
+                self.setup_triggers()
+                print('Triggers set!')
+            
                 res=self.irbgrab_object.set_callback_func(callback,context)
                 if hirb.TIRBG_RetDef[res]=='Success':
                     res=self.irbgrab_object.startgrab(0) #hier noch abfrage des StreamIndex????
                     if hirb.TIRBG_RetDef[res]=='Success':
-                        print('Connected succesfully!')
                         return True
                     else:  print('startgrab error: '+hirb.TIRBG_RetDef[res])
                 else:  print('set callback error: '+hirb.TIRBG_RetDef[res])
@@ -109,6 +113,48 @@ class InfratecInterface:
         else: print('state error: '+hirb.TIRBG_RetDef[res]) 
         
         return False
+    
+
+    def setup_triggers(self):
+        #Relevant parameters: see Infratec SDK Manual
+        self.set_output_trigger()
+
+        self.set_input_trigger()
+
+    def set_output_trigger(self):
+        IRBG_PARAM_Trigger_Out1ItemCount = 350
+        IRBG_PARAM_Trigger_Out1Item = 351
+        IRBG_PARAM_Trigger_Out1Idx = 352
+
+        nb_out1_trigger_options = self.getparam_int32(IRBG_PARAM_Trigger_Out1ItemCount)
+        if nb_out1_trigger_options == 0:
+            raise Exception("Error setting triggers")
+        
+        for i in range(0, nb_out1_trigger_options):
+            out1_trigger_name = self.getparam_idx_string(IRBG_PARAM_Trigger_Out1Item, i)
+            if out1_trigger_name == "Detector Sync":
+                self.setparam_int32(IRBG_PARAM_Trigger_Out1Idx, i)
+                return
+        
+        raise Exception("Error setting triggers")
+
+    def set_input_trigger(self):
+        #Set input trigger on "Camera In 1" to detector sync
+        IRBG_PARAM_Trigger_SyncItemCount = 346
+        IRBG_PARAM_Trigger_SyncItem = 347
+        IRBG_PARAM_Trigger_SyncIdx = 348
+
+        nb_sync_trigger_options = self.getparam_int32(IRBG_PARAM_Trigger_SyncItemCount)
+        if nb_sync_trigger_options == 0:
+            raise Exception("Error setting triggers")
+        for i in range(0, nb_sync_trigger_options):
+            sync_trigger_name = self.getparam_idx_string(IRBG_PARAM_Trigger_SyncItem, i)
+            if sync_trigger_name == "Camera In 1":
+                #Found correct index, set trigger on this index
+                self.setparam_int32(IRBG_PARAM_Trigger_SyncIdx, i)
+                return
+        
+        raise Exception("Error setting triggers")
         
     def disconnect(self):
         res=self.irbgrab_object.stopgrab(0)
