@@ -7,13 +7,84 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
+	NDL1:		FB_MOTOR;
+	NDL2:		FB_MOTOR;
+	NDL3:		FB_MOTOR;
+	NDL4:		FB_MOTOR;
+	
+	ptrDelayLines:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	// GUI stuff
+	guiShutterIndex:	UINT := 1;	// Index for Shutter Engineering GUI
+		
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[NDL1(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 1000);
+	
+NDL2(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 2000);
+	
+NDL3(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 3000);
+	
+NDL4(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 4000);
+	
+
+M_Configure();
+]]></ST>
     </Implementation>
+    <Method Name="M_Configure" Id="{fce285f8-42af-45ec-adbe-2e2f465358d7}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ptrDelayLines[1] := ADR(NDL1);
+ptrDelayLines[2] := ADR(NDL2);
+ptrDelayLines[3] := ADR(NDL3);
+ptrDelayLines[4] := ADR(NDL4);]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_NOTT_DELAY_LINES">
+      <LineId Id="19" Count="4" />
       <LineId Id="9" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="4" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="4" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="4" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="64" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_DELAY_LINES.M_Configure">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="2" />
     </LineIds>
   </POU>
 </TcPlcObject>

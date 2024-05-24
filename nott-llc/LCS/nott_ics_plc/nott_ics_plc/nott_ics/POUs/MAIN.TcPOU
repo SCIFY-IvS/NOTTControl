@@ -4,14 +4,16 @@
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
 	{attribute 'OPC.UA.DA' := '1'}
-	nOpc_ua_test:		DINT;	
-	i AT %I* : UINT;
+	nott_ics:		FB_NOTT_ICS;	
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[nOpc_ua_test := 15220;]]></ST>
+      <ST><![CDATA[
+nott_ics();]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
+      <LineId Id="9" Count="0" />
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>

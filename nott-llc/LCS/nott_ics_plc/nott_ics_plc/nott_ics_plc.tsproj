@@ -1424,6 +1424,47 @@ External Setpoint Generation:
 			</Relations>
 		</DataType>
 		<DataType>
+			<Name GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library" AutoDeleteType="true">T_MOTOR_SWITCHES</Name>
+			<BitSize>48</BitSize>
+			<SubItem>
+				<Name>bLSTOP</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<Comment><![CDATA[ Variables that need mapping ]]></Comment>
+				<BitSize>8</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bLHW</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>8</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bREF</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>16</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bINDEX</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>24</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUHW</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>32</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUSTOP</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>40</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-002000000006}" IecBaseType="true" BitType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..5] OF BIT</Name>
 			<BitSize>6</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
@@ -1528,14 +1569,18 @@ External Setpoint Generation:
 	<Project ProjectGUID="{89D9C0DD-B657-4818-B301-850D91F16F26}" TargetNetId="5.134.125.93.1.1" Target64Bit="true" ShowHideConfigurations="#x106">
 		<System>
 			<Settings MaxCpus="2" NonWinCpus="1"/>
-			<Licenses>
+			<Licenses CacheOrCheckLicensesOnStartup="true">
 				<Target>
 					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
+					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSystemId="{1CD107F1-BA00-4F1E-8F06-BB70E60A14F1}"/>
 				</Target>
 			</Licenses>
 			<Tasks>
 				<Task Id="3" Priority="20" CycleTime="100000" AmsPort="350" AdtTasks="true">
 					<Name>PlcTask</Name>
+				</Task>
+				<Task Id="6" Priority="1" CycleTime="10000" AmsPort="351" AdtTasks="true">
+					<Name>CameraTrigs</Name>
 				</Task>
 			</Tasks>
 		</System>
@@ -1557,12 +1602,14 @@ External Setpoint Generation:
 					<Name>NC-Task 1 SVB</Name>
 				</SvbTask>
 				<Axis Id="1" CreateSymbols="true" AxisType="1">
-					<Name>Axis 1</Name>
+					<Name>NDL1</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="0.3" DecelerationMaximum="0.3" Acceleration="0.3" Deceleration="0.3" Jerk="0.5"/>
+						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.02" FastManual="0.075" Fast="0.2" Maximum="0.2"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.02" PulseDistanceNeg="0.02"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="1.5259e-06" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -1623,7 +1670,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="0.2" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -1714,12 +1761,14 @@ External Setpoint Generation:
 					</Vars>
 				</Axis>
 				<Axis Id="2" CreateSymbols="true" AxisType="1">
-					<Name>Axis 2</Name>
+					<Name>NDL2</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="0.3" DecelerationMaximum="0.3" Acceleration="0.3" Deceleration="0.3" Jerk="0.5"/>
+						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.02" FastManual="0.075" Fast="0.2" Maximum="0.2"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.02" PulseDistanceNeg="0.02"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="1.5259e-06" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -1780,7 +1829,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="0.2" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -1871,12 +1920,14 @@ External Setpoint Generation:
 					</Vars>
 				</Axis>
 				<Axis Id="3" CreateSymbols="true" AxisType="1">
-					<Name>Axis 3</Name>
+					<Name>NDL3</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="0.3" DecelerationMaximum="0.3" Acceleration="0.3" Deceleration="0.3" Jerk="0.5"/>
+						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.02" FastManual="0.075" Fast="0.2" Maximum="0.2"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.02" PulseDistanceNeg="0.02"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="1.5259e-06" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -1937,7 +1988,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="0.2" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -2028,12 +2079,14 @@ External Setpoint Generation:
 					</Vars>
 				</Axis>
 				<Axis Id="4" CreateSymbols="true" AxisType="1">
-					<Name>Axis 4</Name>
+					<Name>NDL4</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="0.3" DecelerationMaximum="0.3" Acceleration="0.3" Deceleration="0.3" Jerk="0.5"/>
+						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.02" FastManual="0.075" Fast="0.2" Maximum="0.2"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.02" PulseDistanceNeg="0.02"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="1.5259e-06" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -2094,7 +2147,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="0.2" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -2188,19 +2241,353 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{B3532459-C755-A9CE-0F3B-9E02E8B2055A}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{5F914F2D-FAC2-8EE4-694E-89CA3CB90A60}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
+						<Name>CameraTrigs Inputs</Name>
+						<Var>
+							<Name>INFRATEC_TRIGERS.Cam_response_1</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.Cam_response_2</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>CameraTrigs Outputs</Name>
+						<Var>
+							<Name>INFRATEC_TRIGERS.Trig_Cam_1</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.Trig_Cam_2</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="1" ContextId="1" AreaNo="16">
 						<Name>PlcTask Inputs</Name>
 						<Var>
-							<Name>MAIN.i</Name>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
 							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH1.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH1.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH1.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH2.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH2.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH2.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH2.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH3.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH3.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH3.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH3.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH4.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH4.i_bFault</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH4.i_bOpen</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH4.i_bClosed</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL1.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL2.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL3.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Delay_Lines.NDL4.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH1.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH2.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH3.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.Shutters.NSH4.q_bSwitch</Name>
+							<Comment><![CDATA[**** Physical signals - to be mapped!!! ****
+ Outputs ]]></Comment>
+							<Type>BOOL</Type>
 						</Var>
 					</Vars>
 					<Contexts>
 						<Context>
 							<Id>0</Id>
+							<Name>CameraTrigs</Name>
+							<ManualConfig>
+								<OTCID>#x02010060</OTCID>
+							</ManualConfig>
+							<Priority>1</Priority>
+							<CycleTime>1000000</CycleTime>
+						</Context>
+						<Context>
+							<Id>1</Id>
 							<Name>PlcTask</Name>
 							<ManualConfig>
 								<OTCID>#x02010030</OTCID>
@@ -2210,6 +2597,7 @@ External Setpoint Generation:
 						</Context>
 					</Contexts>
 					<TaskPouOids>
+						<TaskPouOid Prio="1" OTCID="#x08502002"/>
 						<TaskPouOid Prio="20" OTCID="#x08502001"/>
 					</TaskPouOids>
 				</Instance>
@@ -2245,6 +2633,12 @@ External Setpoint Generation:
 				</AddressInfo>
 				<Image Id="1" AddrType="9" ImageType="3">
 					<Name>Image</Name>
+				</Image>
+				<Image Id="4" AddrType="10" ImageType="3">
+					<Name>Image-2</Name>
+				</Image>
+				<Image Id="5" AddrType="10" ImageType="3">
+					<Name>Image-3</Name>
 				</Image>
 				<Box Id="1" BoxType="9099">
 					<Name>Term 1 (EK1200)</Name>
@@ -2381,35 +2775,22 @@ External Setpoint Generation:
 				<Box Id="5" BoxType="9099">
 					<Name>Term 5 (EK1101)</Name>
 					<ImageId>1005</ImageId>
-					<EtherCAT EtherCatAddr="3000" SlaveType="1" AdsServerAddress="000000000000b80b" PdiType="#x0d04" EtherCatAddrFixed="true" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x044d2c52" RevisionNo="#x00120000" PortPhys="305" IdentificationAdo="4096" IdentificationValue="2" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EK1101 EtherCAT Coupler (2A E-Bus, ID switch)" Desc="EK1101" PortABoxInfo="#xffffffff">
+					<EtherCAT EtherCatAddr="2000" SlaveType="1" AdsServerAddress="000000000000d007" PdiType="#x0d04" EtherCatAddrFixed="true" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x044d2c52" RevisionNo="#x00120000" PortPhys="305" IdentificationAdo="4096" IdentificationValue="2" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EK1101 EtherCAT Coupler (2A E-Bus, ID switch)" Desc="EK1101" PortABoxInfo="#xffffffff">
 						<SyncMan>001002000000010004000000000000000000001000000000</SyncMan>
 						<Fmmu>0000000000000000001000010100000002000000000000000000000000000000</Fmmu>
-						<HcData>0d00000008000000020000000000000000000000000000000000000000000000</HcData>
+						<HcData>0c00000008000000020000000000000000000000000000000000000000000000</HcData>
 						<Pdo Name="ID" Index="#x1a00" Flags="#x0010" SyncMan="0">
 							<Entry Name="ID" Index="#x6000" Sub="#x01">
 								<Type>UINT</Type>
 							</Entry>
 						</Pdo>
 					</EtherCAT>
-					<Box Id="6" BoxType="9099">
-						<Name>Term 6 (EL2622-0010)</Name>
+					<Box Id="26" BoxType="9099">
+						<Name>NSH1234 (EL2624)</Name>
 						<ImageId>1006</ImageId>
-						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x0a3e3052" RevisionNo="#x0010000a" RepeatSupport="true" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL2622-0010 2Ch. Relay Output + ZCD, NO (230V AC / 30V DC)" Desc="EL2622-0010" PortABoxInfo="#x01000005">
+						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x0a403052" RevisionNo="#x00100000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL2624 4Ch. Relay Output, NO (125V AC / 30V DC)" Desc="EL2624" PortABoxInfo="#x01000005">
 							<SyncMan>000f01004400010003000000000000000000000f44090000</SyncMan>
-							<SyncMan>001001000000010004000000000000000000001000010000</SyncMan>
 							<Fmmu>0000000000000000000f00020100000001000000000000000000000000000000</Fmmu>
-							<Fmmu>0000000000000000001000010100000002000000000000000000000000000000</Fmmu>
-							<Pdo Name="Inputs" Index="#x1a00" Flags="#x0010" SyncMan="1">
-								<Entry Sub="#x01">
-									<Type>BIT</Type>
-								</Entry>
-								<Entry Sub="#x01">
-									<Type>BIT</Type>
-								</Entry>
-								<Entry Name="Status" Index="#x6000" Sub="#x01">
-									<Type>BIT</Type>
-								</Entry>
-							</Pdo>
 							<Pdo Name="Channel 1" Index="#x1600" InOut="1" Flags="#x0011" SyncMan="0">
 								<Entry Name="Output" Index="#x7000" Sub="#x01">
 									<Type>BIT</Type>
@@ -2420,43 +2801,22 @@ External Setpoint Generation:
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
-						</EtherCAT>
-					</Box>
-					<Box Id="7" BoxType="9099">
-						<Name>Term 7 (EL2622-0010)</Name>
-						<ImageId>1006</ImageId>
-						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x0a3e3052" RevisionNo="#x0010000a" RepeatSupport="true" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL2622-0010 2Ch. Relay Output + ZCD, NO (230V AC / 30V DC)" Desc="EL2622-0010" PortABoxInfo="#x01000006">
-							<SyncMan>000f01004400010003000000000000000000000f44090000</SyncMan>
-							<SyncMan>001001000000010004000000000000000000001000010000</SyncMan>
-							<Fmmu>0000000000000000000f00020100000001000000000000000000000000000000</Fmmu>
-							<Fmmu>0000000000000000001000010100000002000000000000000000000000000000</Fmmu>
-							<Pdo Name="Inputs" Index="#x1a00" Flags="#x0010" SyncMan="1">
-								<Entry Sub="#x01">
-									<Type>BIT</Type>
-								</Entry>
-								<Entry Sub="#x01">
-									<Type>BIT</Type>
-								</Entry>
-								<Entry Name="Status" Index="#x6000" Sub="#x01">
+							<Pdo Name="Channel 3" Index="#x1602" InOut="1" Flags="#x0011" SyncMan="0">
+								<Entry Name="Output" Index="#x7020" Sub="#x01">
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
-							<Pdo Name="Channel 1" Index="#x1600" InOut="1" Flags="#x0011" SyncMan="0">
-								<Entry Name="Output" Index="#x7000" Sub="#x01">
-									<Type>BIT</Type>
-								</Entry>
-							</Pdo>
-							<Pdo Name="Channel 2" Index="#x1601" InOut="1" Flags="#x0011" SyncMan="0">
-								<Entry Name="Output" Index="#x7010" Sub="#x01">
+							<Pdo Name="Channel 4" Index="#x1603" InOut="1" Flags="#x0011" SyncMan="0">
+								<Entry Name="Output" Index="#x7030" Sub="#x01">
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
 						</EtherCAT>
 					</Box>
 					<Box Id="8" BoxType="9099" BoxFlags="#x00000020">
-						<Name>Term 8 (EL7047)</Name>
+						<Name>NDL1 (EL7047)</Name>
 						<ImageId>1007</ImageId>
-						<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1b873052" RevisionNo="#x00150000" InfoDataAddr="true" InfoDataSoeDS401="true" RepeatSupport="true" SetFrameRepeatTime="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7047 1Ch. Stepper motor output stage (50V, 5A)" Desc="EL7047" PortABoxInfo="#x01000007">
+						<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1b873052" RevisionNo="#x00150000" InfoDataAddr="true" InfoDataSoeDS401="true" RepeatSupport="true" SetFrameRepeatTime="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7047 1Ch. Stepper motor output stage (50V, 5A)" Desc="EL7047" PortABoxInfo="#x0100001a">
 							<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
 							<SyncMan>801080002200010002000000400080008000801022010000</SyncMan>
 							<SyncMan>001108002400010003000000000000000800001124010000</SyncMan>
@@ -2469,6 +2829,17 @@ External Setpoint Generation:
 							<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
 							<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000150000</MBoxUserCmdData>
 							<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000001700000003000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000003000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f000000030000000000000000000000000000000000000020108002020000009600526564756365642063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000003000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000003000000000000000000000000000000000000002010800402000000e81c4d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a000000090000000300000000000000000000000000000000000000201080050200000005004d6f746f7220454d4600</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f0000000300000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001b000000030000000000000000000000000000000000000020108007020000000014456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000e00000003000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000003000000000000000000000000000000000000002010800a0200000034084d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000000b000000030000000000000000000000000000000000000020128005010000000153706565642072616e676500</MBoxUserCmdData>
 							<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 								<ExcludePdo>#x1a01</ExcludePdo>
 								<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -2882,7 +3253,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="9" BoxType="9099" BoxFlags="#x00000020">
-						<Name>Term 9 (EL7047)</Name>
+						<Name>NDL2 (EL7047)</Name>
 						<ImageId>1007</ImageId>
 						<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1b873052" RevisionNo="#x00150000" InfoDataAddr="true" InfoDataSoeDS401="true" RepeatSupport="true" SetFrameRepeatTime="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7047 1Ch. Stepper motor output stage (50V, 5A)" Desc="EL7047" PortABoxInfo="#x01000008">
 							<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
@@ -2897,6 +3268,17 @@ External Setpoint Generation:
 							<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
 							<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000150000</MBoxUserCmdData>
 							<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000001700000000000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000009600526564756365642063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e81c4d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a000000090000000000000000000000000000000000000000000000201080050200000005004d6f746f7220454d4600</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001b000000000000000000000000000000000000000000000020108007020000000014456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a0200000034084d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000000b000000000000000000000000000000000000000000000020128005010000000153706565642072616e676500</MBoxUserCmdData>
 							<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 								<ExcludePdo>#x1a01</ExcludePdo>
 								<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -3310,7 +3692,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="10" BoxType="9099" BoxFlags="#x00000020">
-						<Name>Term 10 (EL7047)</Name>
+						<Name>NDL3 (EL7047)</Name>
 						<ImageId>1007</ImageId>
 						<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1b873052" RevisionNo="#x00150000" InfoDataAddr="true" InfoDataSoeDS401="true" RepeatSupport="true" SetFrameRepeatTime="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7047 1Ch. Stepper motor output stage (50V, 5A)" Desc="EL7047" PortABoxInfo="#x01000009">
 							<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
@@ -3325,6 +3707,17 @@ External Setpoint Generation:
 							<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
 							<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000150000</MBoxUserCmdData>
 							<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000001700000000000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000009600526564756365642063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e81c4d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a000000090000000000000000000000000000000000000000000000201080050200000005004d6f746f7220454d4600</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001b000000000000000000000000000000000000000000000020108007020000000014456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a0200000034084d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000000b000000000000000000000000000000000000000000000020128005010000000153706565642072616e676500</MBoxUserCmdData>
 							<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 								<ExcludePdo>#x1a01</ExcludePdo>
 								<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -3738,7 +4131,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="11" BoxType="9099" BoxFlags="#x00000020">
-						<Name>Term 11 (EL7047)</Name>
+						<Name>NDL4 (EL7047)</Name>
 						<ImageId>1007</ImageId>
 						<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1b873052" RevisionNo="#x00150000" InfoDataAddr="true" InfoDataSoeDS401="true" RepeatSupport="true" SetFrameRepeatTime="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7047 1Ch. Stepper motor output stage (50V, 5A)" Desc="EL7047" PortABoxInfo="#x0100000a">
 							<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
@@ -3753,6 +4146,17 @@ External Setpoint Generation:
 							<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
 							<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000150000</MBoxUserCmdData>
 							<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000001700000000000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000009600526564756365642063757272656e7400</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e81c4d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a000000090000000000000000000000000000000000000000000000201080050200000005004d6f746f7220454d4600</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001b000000000000000000000000000000000000000000000020108007020000000014456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a0200000034084d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+							<MBoxUserCmdData>02000300090000000b000000000000000000000000000000000000000000000020128005010000000153706565642072616e676500</MBoxUserCmdData>
 							<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 								<ExcludePdo>#x1a01</ExcludePdo>
 								<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -4182,7 +4586,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="13" BoxType="9099">
-						<Name>Term 13 (EL1124)</Name>
+						<Name>NDL1-2.LIMITS (EL1124)</Name>
 						<ImageId>7</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04643052" RevisionNo="#x00120000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL1124 4Ch. Dig. Input 5V, 10µs, Sensor Power" Desc="EL1124" PortABoxInfo="#x0100000c">
 							<SyncMan>001001000000010004000000000000000100001000010000</SyncMan>
@@ -4210,7 +4614,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="14" BoxType="9099">
-						<Name>Term 14 (EL1124)</Name>
+						<Name>NDL3-4.LIMITS (EL1124)</Name>
 						<ImageId>7</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04643052" RevisionNo="#x00120000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL1124 4Ch. Dig. Input 5V, 10µs, Sensor Power" Desc="EL1124" PortABoxInfo="#x0100000d">
 							<SyncMan>001001000000010004000000000000000100001000010000</SyncMan>
@@ -4238,7 +4642,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="15" BoxType="9099">
-						<Name>Term 15 (EL1124)</Name>
+						<Name>NSH1234 (EL1124)</Name>
 						<ImageId>7</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04643052" RevisionNo="#x00120000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL1124 4Ch. Dig. Input 5V, 10µs, Sensor Power" Desc="EL1124" PortABoxInfo="#x0100000e">
 							<SyncMan>001001000000010004000000000000000100001000010000</SyncMan>
@@ -4266,7 +4670,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="16" BoxType="9099">
-						<Name>Term 16 (EL1124)</Name>
+						<Name>CAM.RESPONSE.12 (EL1124)</Name>
 						<ImageId>7</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04643052" RevisionNo="#x00120000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL1124 4Ch. Dig. Input 5V, 10µs, Sensor Power" Desc="EL1124" PortABoxInfo="#x0100000f">
 							<SyncMan>001001000000010004000000000000000100001000010000</SyncMan>
@@ -4294,7 +4698,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="17" BoxType="9099">
-						<Name>Term 17 (EL2124)</Name>
+						<Name>CAM.TRIG.12 (EL2124)</Name>
 						<ImageId>1006</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x084c3052" RevisionNo="#x00110000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL2124 4Ch. Dig. Output 5V, 20mA" Desc="EL2124" PortABoxInfo="#x01000010">
 							<SyncMan>000f01004400010003000000000000000000000f44090000</SyncMan>
@@ -4358,10 +4762,254 @@ External Setpoint Generation:
 		</Io>
 	</Project>
 	<Mappings>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500822000403}" Id="#x02030030"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500841000403}" Id="#x02030020"/>
+		<MappingInfo Identifier="{00000000-0010-0304-3000-040310000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{05000010-2001-0850-3000-040301205008}" Id="#x02030040" Watchdog="14000000040000000400000004000000"/>
+		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^NDL1">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1 (EL7047)">
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Error" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Motor stall" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving negative" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving positive" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready to enable"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Torque reduced" Size="1" OffsA="6"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Warning" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 2" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Enable"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reduce torque" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reset" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl2" VarB="STM Control^Control^Digital output 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Outputs^Out^nDataOut2[0]" VarB="STM Velocity^Velocity"/>
+				<Link VarA="Enc^Inputs^In^nDataIn1[0]" VarB="ENC Status compact^Counter value"/>
+				<Link VarA="Enc^Inputs^In^nDataIn2[0]" VarB="ENC Status compact^Latch value"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter overflow" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter underflow" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Extrapolation stall" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch C valid"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch extern valid" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Set counter done" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of extern latch" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input A"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input B" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input C" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch C"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on negative edge" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on positive edge" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Set counter" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact^Set counter value"/>
+			</OwnerB>
+		</OwnerA>
+		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^NDL2">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL2 (EL7047)">
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Error" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Motor stall" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving negative" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving positive" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready to enable"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Torque reduced" Size="1" OffsA="6"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Warning" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 2" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Enable"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reduce torque" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reset" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl2" VarB="STM Control^Control^Digital output 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Outputs^Out^nDataOut2[0]" VarB="STM Velocity^Velocity"/>
+				<Link VarA="Enc^Inputs^In^nDataIn1[0]" VarB="ENC Status compact^Counter value"/>
+				<Link VarA="Enc^Inputs^In^nDataIn2[0]" VarB="ENC Status compact^Latch value"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter overflow" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter underflow" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Extrapolation stall" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch C valid"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch extern valid" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Set counter done" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of extern latch" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input A"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input B" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input C" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch C"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on negative edge" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on positive edge" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Set counter" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact^Set counter value"/>
+			</OwnerB>
+		</OwnerA>
+		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^NDL3">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL3 (EL7047)">
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Error" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Motor stall" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving negative" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving positive" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready to enable"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Torque reduced" Size="1" OffsA="6"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Warning" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 2" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Enable"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reduce torque" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reset" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl2" VarB="STM Control^Control^Digital output 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Outputs^Out^nDataOut2[0]" VarB="STM Velocity^Velocity"/>
+				<Link VarA="Enc^Inputs^In^nDataIn1[0]" VarB="ENC Status compact^Counter value"/>
+				<Link VarA="Enc^Inputs^In^nDataIn2[0]" VarB="ENC Status compact^Latch value"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter overflow" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter underflow" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Extrapolation stall" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch C valid"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch extern valid" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Set counter done" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of extern latch" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input A"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input B" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input C" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch C"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on negative edge" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on positive edge" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Set counter" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact^Set counter value"/>
+			</OwnerB>
+		</OwnerA>
+		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^NDL4">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL4 (EL7047)">
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Error" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Motor stall" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving negative" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving positive" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready to enable"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Torque reduced" Size="1" OffsA="6"/>
+				<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Warning" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 2" Size="1" OffsA="4"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Enable"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reduce torque" Size="1" OffsA="2"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reset" Size="1" OffsA="1"/>
+				<Link VarA="Drive^Outputs^Out^nCtrl2" VarB="STM Control^Control^Digital output 1" Size="1" OffsA="3"/>
+				<Link VarA="Drive^Outputs^Out^nDataOut2[0]" VarB="STM Velocity^Velocity"/>
+				<Link VarA="Enc^Inputs^In^nDataIn1[0]" VarB="ENC Status compact^Counter value"/>
+				<Link VarA="Enc^Inputs^In^nDataIn2[0]" VarB="ENC Status compact^Latch value"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter overflow" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter underflow" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Extrapolation stall" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch C valid"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch extern valid" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Set counter done" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of extern latch" Size="1" OffsA="4"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input A"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input B" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input C" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Sync error" Size="1" OffsA="5"/>
+				<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^TxPDO Toggle" Size="1" OffsA="7"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^WcState"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch C"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on negative edge" Size="1" OffsA="3"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on positive edge" Size="1" OffsA="1"/>
+				<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Set counter" Size="1" OffsA="2"/>
+				<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact^Set counter value"/>
+			</OwnerB>
+		</OwnerA>
 		<OwnerA Name="TIPC^nott_ics^nott_ics Instance">
-			<OwnerB Name="TIID^Device 1 (EtherCAT)">
-				<Link VarA="PlcTask Inputs^MAIN.i" VarB="Inputs^DevState"/>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^CAM.RESPONSE.12 (EL1124)">
+				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.Cam_response_1" VarB="Channel 1^Input"/>
+				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.Cam_response_2" VarB="Channel 2^Input"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^CAM.TRIG.12 (EL2124)">
+				<Link VarA="CameraTrigs Outputs^INFRATEC_TRIGERS.Trig_Cam_1" VarB="Channel 1^Output"/>
+				<Link VarA="CameraTrigs Outputs^INFRATEC_TRIGERS.Trig_Cam_2" VarB="Channel 2^Output"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1 (EL7047)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.i_nCouplerState" VarB="InfoData^State"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1-2.LIMITS (EL1124)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.switches^bLHW" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.switches^bUHW" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL2.switches^bLHW" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL2.switches^bUHW" VarB="Channel 4^Input"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL2 (EL7047)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL2.i_nCouplerState" VarB="InfoData^State"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL3 (EL7047)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL3.i_nCouplerState" VarB="InfoData^State"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL3-4.LIMITS (EL1124)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL3.switches^bLHW" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL3.switches^bUHW" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL4.switches^bLHW" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL4.switches^bUHW" VarB="Channel 4^Input"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL4 (EL7047)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL4.i_nCouplerState" VarB="InfoData^State"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NSH1234 (EL1124)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.i_bClosed" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.i_bOpen" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.i_bClosed" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.i_bOpen" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.i_bClosed" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.i_bOpen" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.i_bClosed" VarB="Channel 4^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.i_bOpen" VarB="Channel 4^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.i_nCouplerState" VarB="InfoData^State"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NSH1234 (EL2624)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Shutters.NSH1.q_bSwitch" VarB="Channel 1^Output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Shutters.NSH2.q_bSwitch" VarB="Channel 2^Output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Shutters.NSH3.q_bSwitch" VarB="Channel 3^Output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Shutters.NSH4.q_bSwitch" VarB="Channel 4^Output"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL1">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL2">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL3">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL3.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL3.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL4">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
 			</OwnerB>
 		</OwnerA>
 	</Mappings>

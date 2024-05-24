@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="INFRATEC_TRIGERS" Id="{554c6c4b-0a56-4090-86ae-3490f5c27c88}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM INFRATEC_TRIGERS
+VAR
+	
+	Trig_Cam_1 AT %Q*:		BOOL;
+	Trig_Cam_2 AT %Q*:		BOOL;
+	
+	
+	Cam_response_1 AT %I*:	BOOL;
+	Cam_response_2 AT %I*:	BOOL;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	bTrigCam_1:				BOOL;
+	{attribute 'OPC.UA.DA' := '1'}
+	bTrigCam_2:				BOOL;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	bCamResponse_1:			BOOL;
+	{attribute 'OPC.UA.DA' := '1'}
+	bCamResponse_2:			BOOL;
+	
+	
+	
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+Trig_Cam_1 := bTrigCam_1;
+Trig_Cam_2 := bTrigCam_2;
+
+
+bCamResponse_1 := Cam_response_1;
+bCamResponse_2 := Cam_response_2;
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="INFRATEC_TRIGERS">
+      <LineId Id="30" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

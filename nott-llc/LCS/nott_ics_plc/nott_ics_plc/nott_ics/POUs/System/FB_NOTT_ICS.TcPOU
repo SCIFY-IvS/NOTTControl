@@ -7,13 +7,24 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
+	
+	Delay_Lines:		FB_NOTT_DELAY_LINES;
+	
+	Shutters:			FB_NOTT_SHUTTERS;
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[
+
+Delay_Lines();
+
+Shutters();]]></ST>
     </Implementation>
     <LineIds Name="FB_NOTT_ICS">
+      <LineId Id="18" Count="1" />
       <LineId Id="9" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

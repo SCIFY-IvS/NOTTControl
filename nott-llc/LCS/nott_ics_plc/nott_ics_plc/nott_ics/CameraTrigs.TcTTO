@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <Task Name="CameraTrigs" Id="{1d7524be-491d-497a-ab05-90cafee0cc4a}">
+    <!--CycleTime in micro seconds.-->
+    <CycleTime>1000</CycleTime>
+    <Priority>1</Priority>
+    <PouCall>
+      <Name>INFRATEC_TRIGERS</Name>
+    </PouCall>
+    <TaskFBGuid>{460f669f-1169-4e6c-9508-637fd721fc0b}</TaskFBGuid>
+    <Fb_init>{38652b77-3e15-4cbd-8968-219946c3442e}</Fb_init>
+    <Fb_exit>{f0eae97f-7e6b-4b91-98a2-9700abd72e11}</Fb_exit>
+    <CycleUpdate>{62930341-8749-42f0-9fce-39f25d24f9aa}</CycleUpdate>
+    <PostCycleUpdate>{534cd7b3-fd41-407b-aaba-f7ce454708e7}</PostCycleUpdate>
+  </Task>
+</TcPlcObject>
