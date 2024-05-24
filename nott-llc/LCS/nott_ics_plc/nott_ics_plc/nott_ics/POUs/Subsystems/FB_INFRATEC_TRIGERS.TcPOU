@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_INFRATEC_TRIGERS" Id="{08f7d1b0-9e2b-467f-b539-777e64e3b2e8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_INFRATEC_TRIGERS
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_INFRATEC_TRIGERS">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

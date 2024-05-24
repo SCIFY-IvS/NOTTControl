@@ -122,6 +122,10 @@
       <SubType>Code</SubType>
       <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="VISUs\GUI_TIME_INFORMATION.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="VISUs\Shutter_1.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>VISUs\VisualizationManager.TcVMO</DependentUpon>
@@ -162,6 +166,9 @@
     <PlaceholderReference Include="ESO LDC Shutter Library">
       <DefaultResolution>ESO LDC Shutter Library, * (ESO)</DefaultResolution>
       <Namespace>ESO_LDC_Shutter_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Timer Library">
+      <DefaultResolution>ESO LDC Timer Library, * (ESO)</DefaultResolution>
     </PlaceholderReference>
     <PlaceholderReference Include="System_VisuElemMeter">
       <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>

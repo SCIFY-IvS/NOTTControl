@@ -51,6 +51,12 @@ fileTime         : T_FILETIME;
 {attribute 'OPC.UA.DA':='1'}
 sTime            : STRING;
 
+// NPT PTP
+
+time_info:	FB_TIME;
+
+///
+
 // Filter Wheel
 
 FILTER_WHEEL	:	FB_SCIFY_FILTER_WHEEL_FW102C;
@@ -80,6 +86,8 @@ shutter_1:		FB_SHUTTER;
 tiptilt_1: FB_MOTOR;
 
 
+
+
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -98,6 +106,7 @@ bCameraOUT_1 := GVL_DL_Scanning_Homming.bTrigCameraImages;
 fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
 sTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
 
+time_info();
 
 // Filter Wheel
 
@@ -144,6 +153,7 @@ tiptilt_1(sName:='Tip-Tilt_1', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 4000);
       <LineId Id="359" Count="0" />
       <LineId Id="409" Count="1" />
       <LineId Id="358" Count="0" />
+      <LineId Id="747" Count="0" />
       <LineId Id="464" Count="1" />
       <LineId Id="2" Count="0" />
       <LineId Id="467" Count="0" />

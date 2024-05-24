@@ -2,9 +2,15 @@
 <TcLicenseInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2011/11/TcLicenseInfo">
 	<LicenseInfo>
 		<SystemId>{143BA646-9B2F-1D0C-E714-4D2CCE3B6379}</SystemId>
+<<<<<<< Updated upstream
 		<IssueTime>2024-02-12T15:11:00</IssueTime>
 		<ExpireTime>2024-02-20T00:00:00</ExpireTime>
 		<LicenseKey>0d3a2ad517f41e3fb07216b96f08071231f784719721add863133b55dcfeb0bdbd5ea6dff366647b0325022de766f9ad7286ffbe6fe9a4106f95f3188dc8f82a89136a79b247f9c963ba99373cb12880f12c278a538f671ba0555b074bfb88402bd5bdc6ccc5564b40e0d23c9ea30680617a181af8b2cbb9792708fe2408e1ea4756b6f34b5ef81c87464452e0cd8c3651f547e4e63b41266e996f8ed763027749ad190d888219734cb69dd9fb8397dee9c27239979ec3fb782f034cc048c010c8b34422a6cb03145d37b0559a8febb50305849510f18cb4c461262f7e38117eafb05c4f6a8c77a2663f36694cbb447bc6da4388d61fe30af443b1fb4d89d476</LicenseKey>
+=======
+		<IssueTime>2024-04-11T10:25:00</IssueTime>
+		<ExpireTime>2024-04-19T00:00:00</ExpireTime>
+		<LicenseKey>93ce37ceb4e9a271a43cb825b4f70d11760bd7350e95f2d83882a5754f54d9d78c1e2bbe7e693a37220db1bd3244a404e55af71ae855a0e60a2d740d44f74ccba18b4ad7c3db2579dc90c7ddc8eef711545ed0b2b66b82cabf3fe83bcb83710e857b71ced65b733b18c0a168b2dcd6a35121bf3bf5bad3af8f4aeef8cb2f20bc686dfb2d5421985cea982e9dadd3de5c31cc8d5cc74a0108c9dc5492d80b2c0c02de4d2f89929b5c84753df08ee442bae7d933c0746add41db04d84ed52d58835396a369e47e1626c7992180127eb08c43ec19da8b275a5ce3211557dae5a42017e1b043fa31c8cb79ed050ce4b02317c46f8c21fce92177d8305e6db27321df</LicenseKey>
+>>>>>>> Stashed changes
 		<License>
 			<LicenseId>{CC0BCBD5-3EA7-D7D4-4C71-A8B125F0DB72}</LicenseId>
 			<Name>TC3 OPC-UA Analytics Read</Name>

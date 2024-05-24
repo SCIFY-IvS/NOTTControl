@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_NOTT_SHUTTERS" Id="{5e7ffd6c-ffbc-4dd1-b7ad-e668e0db56a4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_SHUTTERS
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_NOTT_SHUTTERS">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

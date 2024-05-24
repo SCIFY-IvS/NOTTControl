@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_NOTT_DELAY_LINES" Id="{775cfb6f-4389-4959-8f2c-a4b0ad5c5054}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_DELAY_LINES
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_NOTT_DELAY_LINES">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
