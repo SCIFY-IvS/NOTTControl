@@ -17,6 +17,9 @@
     <LibraryReferences>{7d7c937f-c0d1-4f2b-a5d8-01117841cb96}</LibraryReferences>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CameraTrigIO.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Enumerator\Devices\E_JANSSEN_CADM2_FAIL_SAFE_STATE.TcDUT">
       <SubType>Code</SubType>
     </Compile>
@@ -95,6 +98,9 @@
       <LinkAlways>true</LinkAlways>
     </Compile>
     <Compile Include="PlcTask.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\CameraTrig.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\FB_Cryostat_State.TcPOU">

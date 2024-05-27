@@ -11,6 +11,8 @@ VAR
 	Delay_Lines:		FB_NOTT_DELAY_LINES;
 	
 	Shutters:			FB_NOTT_SHUTTERS;
+	
+	NottTime:			FB_TIME;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -18,13 +20,17 @@ END_VAR
 
 Delay_Lines();
 
-Shutters();]]></ST>
+Shutters();
+
+NottTime();]]></ST>
     </Implementation>
     <LineIds Name="FB_NOTT_ICS">
       <LineId Id="18" Count="1" />
       <LineId Id="9" Count="0" />
       <LineId Id="32" Count="0" />
       <LineId Id="31" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="46" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

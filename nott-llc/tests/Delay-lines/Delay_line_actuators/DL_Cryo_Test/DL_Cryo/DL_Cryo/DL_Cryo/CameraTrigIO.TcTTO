@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <Task Name="CameraTrigIO" Id="{03dd6365-c22c-4626-8ff7-a9d67fead136}">
+    <!--CycleTime in micro seconds.-->
+    <CycleTime>1000</CycleTime>
+    <Priority>1</Priority>
+    <PouCall>
+      <Name>CameraTrig</Name>
+    </PouCall>
+    <TaskFBGuid>{efeaa9ed-3a76-43ff-a7dd-66ab78261df5}</TaskFBGuid>
+    <Fb_init>{8e033a4e-46af-4b09-ac6c-69d9fc91b4d1}</Fb_init>
+    <Fb_exit>{01812353-1046-4740-8e3f-1706fc399abc}</Fb_exit>
+    <CycleUpdate>{5239638d-58e2-470c-8a79-932acff0257e}</CycleUpdate>
+    <PostCycleUpdate>{182b08d1-c666-4e4a-9f7c-08c110d65832}</PostCycleUpdate>
+  </Task>
+</TcPlcObject>

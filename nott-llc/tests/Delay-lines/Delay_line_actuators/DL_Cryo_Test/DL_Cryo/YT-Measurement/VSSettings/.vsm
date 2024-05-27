@@ -5,82 +5,27 @@
   <Children>
     <Node>
       <Title>YT Scope Project</Title>
+<<<<<<< Updated upstream
       <Expanded>False</Expanded>
       <FileName>C:\Users\u0149673\NOTT\NOTTControl\nott-llc\tests\Delay-lines\Delay_line_actuators\DL_Cryo_Test\DL_Cryo\YT-Measurement\YT Scope Project.tcscopex</FileName>
+=======
+      <Expanded>True</Expanded>
+      <FileName>C:\Users\fys-lab-ivs\Desktop\NOTT Low level control\NOTT Controll repo for PLC code\NOTTControl\nott-llc\tests\Delay-lines\Delay_line_actuators\DL_Cryo_Test\DL_Cryo\YT-Measurement\YT Scope Project.tcscopex</FileName>
+>>>>>>> Stashed changes
       <Children>
         <Node>
           <Title>DataPool</Title>
-          <Expanded>False</Expanded>
+          <Expanded>True</Expanded>
           <FileName></FileName>
           <Children>
             <Node>
-              <Title>ActAcc</Title>
+              <Title>b_Camera_in_1</Title>
               <Expanded>False</Expanded>
               <FileName></FileName>
               <Children />
             </Node>
             <Node>
-              <Title>ActPos</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>ActPosModulo</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>ActVelo</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>nVib_X</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>nVib_Y</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>nVib_Z</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>PosDiff</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>SetAcc</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>SetPos</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>SetPosModulo</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children />
-            </Node>
-            <Node>
-              <Title>SetVelo</Title>
+              <Title>b_Camera_in_2</Title>
               <Expanded>False</Expanded>
               <FileName></FileName>
               <Children />
@@ -88,17 +33,23 @@
           </Children>
         </Node>
         <Node>
-          <Title>YT Chart</Title>
-          <Expanded>False</Expanded>
+          <Title>CameraTrigs</Title>
+          <Expanded>True</Expanded>
           <FileName></FileName>
           <Children>
             <Node>
-              <Title>Axis ActPos</Title>
-              <Expanded>False</Expanded>
+              <Title>Axis Group (1)</Title>
+              <Expanded>True</Expanded>
               <FileName></FileName>
               <Children>
                 <Node>
-                  <Title>ActPos</Title>
+                  <Title>b_Camera_in_1</Title>
+                  <Expanded>False</Expanded>
+                  <FileName></FileName>
+                  <Children />
+                </Node>
+                <Node>
+                  <Title>b_Camera_in_2</Title>
                   <Expanded>False</Expanded>
                   <FileName></FileName>
                   <Children />
@@ -106,126 +57,10 @@
               </Children>
             </Node>
             <Node>
-              <Title>Axis ActVelo</Title>
+              <Title>Axis Group (2)</Title>
               <Expanded>False</Expanded>
               <FileName></FileName>
-              <Children>
-                <Node>
-                  <Title>ActVelo</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-              </Children>
-            </Node>
-          </Children>
-        </Node>
-        <Node>
-          <Title>Vibrations</Title>
-          <Expanded>False</Expanded>
-          <FileName></FileName>
-          <Children>
-            <Node>
-              <Title>Axis Group</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children>
-                <Node>
-                  <Title>nVib_X</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-                <Node>
-                  <Title>nVib_Y</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-                <Node>
-                  <Title>nVib_Z</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-              </Children>
-            </Node>
-          </Children>
-        </Node>
-        <Node>
-          <Title>DL_Servo</Title>
-          <Expanded>False</Expanded>
-          <FileName></FileName>
-          <Children>
-            <Node>
-              <Title>Position absolute</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children>
-                <Node>
-                  <Title>ActPos (1)</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-                <Node>
-                  <Title>SetPos</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-              </Children>
-            </Node>
-            <Node>
-              <Title>Velocity</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children>
-                <Node>
-                  <Title>ActVelo (1)</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-                <Node>
-                  <Title>SetVelo</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-              </Children>
-            </Node>
-            <Node>
-              <Title>Acceleration</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children>
-                <Node>
-                  <Title>ActAcc</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-                <Node>
-                  <Title>SetAcc</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-              </Children>
-            </Node>
-            <Node>
-              <Title>Position Lab</Title>
-              <Expanded>False</Expanded>
-              <FileName></FileName>
-              <Children>
-                <Node>
-                  <Title>PosDiff</Title>
-                  <Expanded>False</Expanded>
-                  <FileName></FileName>
-                  <Children />
-                </Node>
-              </Children>
+              <Children />
             </Node>
           </Children>
         </Node>

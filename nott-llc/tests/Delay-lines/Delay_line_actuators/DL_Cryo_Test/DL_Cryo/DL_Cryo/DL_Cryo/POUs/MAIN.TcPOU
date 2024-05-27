@@ -19,22 +19,22 @@ DL_2: FB_MOTOR;
 
 // Camera triggers
 
-bCameraIN_1 AT %I* : BOOL;
+//bCameraIN_1 AT %I* : BOOL;
 
-bCameraIN_2 AT %I* : BOOL;
+//bCameraIN_2 AT %I* : BOOL;
 
-bCameraOUT_1 AT %Q* : BOOL;
+//bCameraOUT_1 AT %Q* : BOOL;
 
-bCameraOUT_2 AT %Q* : BOOL;
+//bCameraOUT_2 AT %Q* : BOOL;
 
-{attribute 'OPC.UA.DA':='1'}
-b_C_in_1 :BOOL;
-{attribute 'OPC.UA.DA':='1'}
-b_C_in_2 :BOOL;
-{attribute 'OPC.UA.DA':='1'}
-b_C_out_1 :BOOL;
-{attribute 'OPC.UA.DA':='1'}
-b_C_out_2 :BOOL;
+//{attribute 'OPC.UA.DA':='1'}
+//b_Camera_in_1 :BOOL;
+//{attribute 'OPC.UA.DA':='1'}
+//b_Camera_in_2 :BOOL;
+//{attribute 'OPC.UA.DA':='1'}
+//b_Camera_out_1 :BOOL;
+//{attribute 'OPC.UA.DA':='1'}
+//b_Camera_out_2 :BOOL;
 
 {attribute 'OPC.UA.DA':='1'}
 fbCryoState : FB_Cryostat_State;
@@ -98,7 +98,7 @@ DL_Servo_1(sName:='DL_Servo_1', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 1000);
 
 DL_2(sName:='DL_2_Newport', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 2000);
 
-bCameraOUT_1 := GVL_DL_Scanning_Homming.bTrigCameraImages;
+//bCameraOUT_1 := GVL_DL_Scanning_Homming.bTrigCameraImages;
 
 
 // Time Stamps
@@ -139,7 +139,13 @@ shutter_1(
 tiptilt_1(sName:='Tip-Tilt_1', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 4000);
 
 
-]]></ST>
+//b_Camera_in_1 :=   bCameraIN_1; 
+
+//b_Camera_in_2 :=   bCameraIN_2; 
+
+//b_Camera_out_1 :=  bCameraOUT_1;
+
+//b_Camera_out_2 :=  bCameraOUT_2;]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
       <LineId Id="28" Count="0" />
@@ -173,6 +179,7 @@ tiptilt_1(sName:='Tip-Tilt_1', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 4000);
       <LineId Id="742" Count="0" />
       <LineId Id="746" Count="1" />
       <LineId Id="745" Count="0" />
+      <LineId Id="828" Count="5" />
     </LineIds>
   </POU>
 </TcPlcObject>

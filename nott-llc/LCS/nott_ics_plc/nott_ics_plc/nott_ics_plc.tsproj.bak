@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.47">
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.40">
 	<DataTypes>
 		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-000000000035}" TcBaseType="true" HideType="true">UINTARR2</Name>
@@ -1465,6 +1465,85 @@ External Setpoint Generation:
 			</SubItem>
 		</DataType>
 		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000041}" TcBaseType="true" HideSubItems="true" CName="AmsNetId">AMSNETID</Name>
+			<BitSize>48</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>6</Elements>
+			</ArrayInfo>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d</Printf>
+				<Parameter>[0]</Parameter>
+				<Parameter>[1]</Parameter>
+				<Parameter>[2]</Parameter>
+				<Parameter>[3]</Parameter>
+				<Parameter>[4]</Parameter>
+				<Parameter>[5]</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000042}" TcBaseType="true" CName="AmsAddr">AMSADDR</Name>
+			<BitSize>64</BitSize>
+			<SubItem>
+				<Name>netId</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000041}">AMSNETID</Type>
+				<BitSize>48</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>port</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000004}">WORD</Type>
+				<BitSize>16</BitSize>
+				<BitOffs>48</BitOffs>
+			</SubItem>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d:%d</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+			<Format Name="Iec">
+				<Printf>(netId:=[%d.%d.%d.%d.%d.%d], port :=%d)</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library" AutoDeleteType="true">T_TIME_INFO</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>time_offset</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000C}">LINT</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>leap_second</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>time_mode</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+				<Default>
+					<Value>0</Value>
+				</Default>
+			</SubItem>
+		</DataType>
+		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-002000000006}" IecBaseType="true" BitType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..5] OF BIT</Name>
 			<BitSize>6</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
@@ -2241,7 +2320,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{5F914F2D-FAC2-8EE4-694E-89CA3CB90A60}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{A025403A-93E0-194D-5471-DCA246525EE7}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -2512,6 +2591,57 @@ External Setpoint Generation:
 							<Name>MAIN.nott_ics.Shutters.NSH4.i_bClosed</Name>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_inTime</Name>
+							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_exTime</Name>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_dc2TcOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_dc2ExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_extDevNotConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_syncMode</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_AdsAddr</Name>
+							<Comment><![CDATA[ ADS address structure]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_exNtpExtTime</Name>
+							<Comment><![CDATA[ Input variables from NTP]]></Comment>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_exNtpSysTime</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_exNtpExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_exNtpConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.i_exNtpSynchronized</Name>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
@@ -2575,10 +2705,14 @@ External Setpoint Generation:
  Outputs ]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.NottTime.q_timeInfo</Name>
+							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
+						</Var>
 					</Vars>
 					<Contexts>
 						<Context>
-							<Id>0</Id>
+							<Id NeedCalleeCall="true">0</Id>
 							<Name>CameraTrigs</Name>
 							<ManualConfig>
 								<OTCID>#x02010060</OTCID>
@@ -2587,7 +2721,7 @@ External Setpoint Generation:
 							<CycleTime>1000000</CycleTime>
 						</Context>
 						<Context>
-							<Id>1</Id>
+							<Id NeedCalleeCall="true">1</Id>
 							<Name>PlcTask</Name>
 							<ManualConfig>
 								<OTCID>#x02010030</OTCID>
@@ -2596,6 +2730,15 @@ External Setpoint Generation:
 							<CycleTime>10000000</CycleTime>
 						</Context>
 					</Contexts>
+					<InitSymbols>
+						<InitSymbol>
+							<Name>MAIN.nott_ics.NottTime.fb_SendDiag.oid</Name>
+							<Type GUID="{18071995-0000-0000-0000-00000000000F}">OTCID</Type>
+							<Comment><![CDATA[ TF6311 realtime driver parameters ]]></Comment>
+							<AreaNo>#x00000013</AreaNo>
+							<Data>00000000</Data>
+						</InitSymbol>
+					</InitSymbols>
 					<TaskPouOids>
 						<TaskPouOid Prio="1" OTCID="#x08502002"/>
 						<TaskPouOid Prio="20" OTCID="#x08502001"/>
@@ -2636,6 +2779,9 @@ External Setpoint Generation:
 				</Image>
 				<Image Id="4" AddrType="10" ImageType="3">
 					<Name>Image-2</Name>
+				</Image>
+				<Image Id="5" AddrType="10" ImageType="3">
+					<Name>Image-3</Name>
 				</Image>
 				<Box Id="1" BoxType="9099">
 					<Name>Term 1 (EK1200)</Name>
@@ -4667,7 +4813,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="16" BoxType="9099">
-						<Name>Term 16 (EL1124)</Name>
+						<Name>CAM.RESPONSE.12 (EL1124)</Name>
 						<ImageId>7</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04643052" RevisionNo="#x00120000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL1124 4Ch. Dig. Input 5V, 10µs, Sensor Power" Desc="EL1124" PortABoxInfo="#x0100000f">
 							<SyncMan>001001000000010004000000000000000100001000010000</SyncMan>
@@ -4695,7 +4841,7 @@ External Setpoint Generation:
 						</EtherCAT>
 					</Box>
 					<Box Id="17" BoxType="9099">
-						<Name>Term 17 (EL2124)</Name>
+						<Name>CAM.TRIG.12 (EL2124)</Name>
 						<ImageId>1006</ImageId>
 						<EtherCAT SlaveType="1" PdiType="#x0104" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x084c3052" RevisionNo="#x00110000" RepeatSupport="true" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL2124 4Ch. Dig. Output 5V, 20mA" Desc="EL2124" PortABoxInfo="#x01000010">
 							<SyncMan>000f01004400010003000000000000000000000f44090000</SyncMan>
@@ -4759,9 +4905,10 @@ External Setpoint Generation:
 		</Io>
 	</Project>
 	<Mappings>
-		<MappingInfo Identifier="{00000000-2001-0850-0120-500822000403}" Id="#x02030030"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0120-500841000403}" Id="#x02030020"/>
-		<MappingInfo Identifier="{00000000-0010-0304-3000-040310000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500823000403}" Id="#x02030050"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500852000403}" Id="#x02030030"/>
+		<MappingInfo Identifier="{00000000-2002-0850-0020-500810000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-0040-0304-3000-040341000403}" Id="#x02030020"/>
 		<MappingInfo Identifier="{05000010-2001-0850-3000-040301205008}" Id="#x02030040" Watchdog="14000000040000000400000004000000"/>
 		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^NDL1">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1 (EL7047)">
@@ -4940,6 +5087,14 @@ External Setpoint Generation:
 			</OwnerB>
 		</OwnerA>
 		<OwnerA Name="TIPC^nott_ics^nott_ics Instance">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^CAM.RESPONSE.12 (EL1124)">
+				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.Cam_response_1" VarB="Channel 1^Input"/>
+				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.Cam_response_2" VarB="Channel 2^Input"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^CAM.TRIG.12 (EL2124)">
+				<Link VarA="CameraTrigs Outputs^INFRATEC_TRIGERS.Trig_Cam_1" VarB="Channel 1^Output"/>
+				<Link VarA="CameraTrigs Outputs^INFRATEC_TRIGERS.Trig_Cam_2" VarB="Channel 2^Output"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1 (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.i_nCouplerState" VarB="InfoData^State"/>
 			</OwnerB>

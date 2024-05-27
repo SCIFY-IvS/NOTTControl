@@ -61,6 +61,10 @@
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="VISUs\GUIs\Time\GUI_NOTT_TIME.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DUTs" />
@@ -71,6 +75,7 @@
     <Folder Include="POUs" />
     <Folder Include="VISUs\GUIs" />
     <Folder Include="VISUs\GUIs\Delay_Lines" />
+    <Folder Include="VISUs\GUIs\Time" />
     <Folder Include="VISUs\GUIs\Shutters" />
     <Folder Include="VISUs\Templates" />
   </ItemGroup>
@@ -82,6 +87,10 @@
     <PlaceholderReference Include="ESO LDC Shutter Library">
       <DefaultResolution>ESO LDC Shutter Library, * (ESO)</DefaultResolution>
       <Namespace>ESO_LDC_Shutter_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Timer Library">
+      <DefaultResolution>ESO LDC Timer Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Timer_Library</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="System_VisuElemMeter">
       <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>

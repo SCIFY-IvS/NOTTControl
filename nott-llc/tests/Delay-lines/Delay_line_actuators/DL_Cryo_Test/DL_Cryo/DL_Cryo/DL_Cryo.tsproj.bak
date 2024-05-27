@@ -1718,14 +1718,20 @@ External Setpoint Generation:
 	</ImageDatas>
 	<Project ProjectGUID="{38360C95-DDBE-45DC-B699-9EBA044BEB78}" TargetNetId="5.65.205.38.1.1" ShowHideConfigurations="#x106">
 		<System>
+			<Settings>
+				<IoIdleTask Priority="7"/>
+			</Settings>
 			<Licenses>
 				<Target>
 					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
 				</Target>
 			</Licenses>
 			<Tasks>
-				<Task Id="5" Priority="20" CycleTime="100000" AmsPort="350" AdtTasks="true">
+				<Task Id="5" Priority="9" CycleTime="100000" AmsPort="350" AdtTasks="true">
 					<Name>PlcTask</Name>
+				</Task>
+				<Task Id="6" Priority="1" CycleTime="10000" AmsPort="351" AdtTasks="true">
+					<Name>CameraTrigIO</Name>
 				</Task>
 			</Tasks>
 		</System>
@@ -2366,7 +2372,6 @@ External Setpoint Generation:
 						<CtrPara PriorControlFactor="1">
 							<PID PosKp="2"/>
 							<Observer BandWidth="20"/>
-							<ParameterChanged>258</ParameterChanged>
 						</CtrPara>
 					</Controller>
 					<Vars VarGrpType="1" InsertType="1">
@@ -2389,23 +2394,40 @@ External Setpoint Generation:
 		<Plc>
 			<Project GUID="{1A411490-A261-49DC-AB92-F2679BECCE77}" Name="DL_Cryo" PrjFilePath="DL_Cryo\DL_Cryo.plcproj" TmcFilePath="DL_Cryo\DL_Cryo.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{7F666B54-9000-44B6-1B3A-268CE2F8F32E}">
 =======
 				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{A9F1B504-1E37-E786-1A90-04C184E9FF51}">
 >>>>>>> Stashed changes
+=======
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="DL_Cryo\DL_Cryo.tmc" TmcHash="{0F22ABD9-873C-AEF7-E267-243C59E7A83D}">
+>>>>>>> Stashed changes
 					<Name>DL_Cryo Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
+						<Name>CameraTrigIO Inputs</Name>
+						<Var>
+							<Name>CameraTrig.bCameraIN_1</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>CameraTrig.bCameraIN_2</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>CameraTrigIO Outputs</Name>
+						<Var>
+							<Name>CameraTrig.bCameraOUT_1</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>CameraTrig.bCameraOUT_2</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="1" ContextId="1" AreaNo="16">
 						<Name>PlcTask Inputs</Name>
-						<Var>
-							<Name>MAIN.bCameraIN_1</Name>
-							<Comment><![CDATA[ Camera triggers]]></Comment>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.bCameraIN_2</Name>
-							<Type>BOOL</Type>
-						</Var>
 						<Var>
 							<Name>MAIN.DL_Servo_1.switches</Name>
 							<Comment><![CDATA[ Limit switches ]]></Comment>
@@ -2512,6 +2534,7 @@ External Setpoint Generation:
 						</Var>
 						<Var>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 							<Name>MAIN.in_nVib_X</Name>
 							<Comment><![CDATA[ Accelerometer]]></Comment>
 							<Type>DINT</Type>
@@ -2564,6 +2587,8 @@ External Setpoint Generation:
 >>>>>>> Stashed changes
 						</Var>
 						<Var>
+=======
+>>>>>>> Stashed changes
 							<Name>MAIN.FILTER_WHEEL.comm.i_nCouplerState</Name>
 							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
 							<Type>UINT</Type>
@@ -2572,6 +2597,11 @@ External Setpoint Generation:
 							<Name>MAIN.FILTER_WHEEL.comm.COMin_EL60xx</Name>
 							<Comment><![CDATA[ linked to the EL60xx ]]></Comment>
 							<Type GUID="{4E45CB35-7BCA-7857-A15A-9D8B7FC46C2F}" Namespace="ESO_LDC_Comm_Serial_Library.Tc2_SerialCom">KL6inData22B</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.in_nVib_X</Name>
+							<Comment><![CDATA[ Accelerometer]]></Comment>
+							<Type>DINT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.in_nVib_Y</Name>
@@ -2643,16 +2673,8 @@ External Setpoint Generation:
 							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
 						</Var>
 					</Vars>
-					<Vars VarGrpType="2" AreaNo="1">
+					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
-						<Var>
-							<Name>MAIN.bCameraOUT_1</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.bCameraOUT_2</Name>
-							<Type>BOOL</Type>
-						</Var>
 						<Var>
 							<Name>MAIN.DL_Servo_1.q_bBrake_Ctrl</Name>
 							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
@@ -2710,12 +2732,25 @@ External Setpoint Generation:
 					</Vars>
 					<Contexts>
 						<Context>
+<<<<<<< Updated upstream
 							<Id>0</Id>
+=======
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>CameraTrigIO</Name>
+							<ManualConfig>
+								<OTCID>#x02010060</OTCID>
+							</ManualConfig>
+							<Priority>1</Priority>
+							<CycleTime>1000000</CycleTime>
+						</Context>
+						<Context>
+							<Id NeedCalleeCall="true">1</Id>
+>>>>>>> Stashed changes
 							<Name>PlcTask</Name>
 							<ManualConfig>
 								<OTCID>#x02010050</OTCID>
 							</ManualConfig>
-							<Priority>20</Priority>
+							<Priority>9</Priority>
 							<CycleTime>10000000</CycleTime>
 						</Context>
 					</Contexts>
@@ -2729,7 +2764,8 @@ External Setpoint Generation:
 						</InitSymbol>
 					</InitSymbols>
 					<TaskPouOids>
-						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+						<TaskPouOid Prio="1" OTCID="#x08502002"/>
+						<TaskPouOid Prio="9" OTCID="#x08502001"/>
 					</TaskPouOids>
 				</Instance>
 			</Project>
@@ -4533,6 +4569,9 @@ External Setpoint Generation:
 				<Image Id="3" AddrType="10" ImageType="3">
 					<Name>Image-2</Name>
 				</Image>
+				<Image Id="8" AddrType="10" ImageType="3">
+					<Name>Image-3</Name>
+				</Image>
 				<Box Id="1" BoxType="9099">
 					<Name>Term 1 (EK1100)</Name>
 					<ImageId>1007</ImageId>
@@ -6209,12 +6248,14 @@ External Setpoint Generation:
 		</Io>
 	</Project>
 	<Mappings>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500821000403}" Id="#x02030020"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500831000403}" Id="#x02030040"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500852000403}" Id="#x02030060"/>
-		<MappingInfo Identifier="{00000000-0040-0304-6000-040340000403}" Id="#x02030030"/>
-		<MappingInfo Identifier="{05000010-2001-0850-6000-040300205008}" Id="#x02030050" Watchdog="14000000040000000400000004000000"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500810000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500821000403}" Id="#x02030020"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500853000403}" Id="#x02030080"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0120-500882000403}" Id="#x02030070"/>
+		<MappingInfo Identifier="{00000000-2002-0850-0020-500840000403}" Id="#x02030030"/>
+		<MappingInfo Identifier="{00000000-0030-0304-6000-040331000403}" Id="#x02030050"/>
+		<MappingInfo Identifier="{08502001-0040-0304-0020-500840000403}" Id="#x02030040" Watchdog="00000000000000000000000000000000"/>
+		<MappingInfo Identifier="{05000010-2001-0850-6000-040301205008}" Id="#x02030060" Watchdog="14000000040000000400000004000000"/>
 		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^DL_Servo">
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 1 (EK1100)^Term 2 (EL7342)">
 				<Link VarA="Drive^Inputs^In^nState1" VarB="DCM Status Channel 1^Status^Error" Size="1" OffsA="3"/>
@@ -6405,6 +6446,10 @@ External Setpoint Generation:
 				<Link VarA="PlcTask Inputs^MAIN.tiptilt_1.switches^bLHW" VarB="Channel 3^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.tiptilt_1.switches^bUHW" VarB="Channel 4^Input"/>
 			</OwnerB>
+			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 1 (EK1100)^Term 6 (EL2124)">
+				<Link VarA="CameraTrigIO Outputs^CameraTrig.bCameraOUT_1" VarB="Channel 1^Output"/>
+				<Link VarA="CameraTrigIO Outputs^CameraTrig.bCameraOUT_2" VarB="Channel 2^Output"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 20 (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.i_nCouplerState" VarB="InfoData^State"/>
 			</OwnerB>
@@ -6412,7 +6457,11 @@ External Setpoint Generation:
 				<Link VarA="PlcTask Inputs^MAIN.shutter_1.i_nCouplerState" VarB="InfoData^State"/>
 				<Link VarA="PlcTask Outputs^MAIN.shutter_1.q_bSwitch" VarB="Channel 1^Output"/>
 			</OwnerB>
+			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 26 (EL1124)">
+				<Link VarA="CameraTrigIO Inputs^CameraTrig.bCameraIN_2" VarB="Channel 2^Input"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 4 (EtherCAT)^Term 8 (EK1101)^Term 29 (EL1124)">
+				<Link VarA="CameraTrigIO Inputs^CameraTrig.bCameraIN_1" VarB="Channel 4^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.switches^bLHW" VarB="Channel 1^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.DL_2.switches^bUHW" VarB="Channel 2^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.shutter_1.i_bClosed" VarB="Channel 3^Input"/>
