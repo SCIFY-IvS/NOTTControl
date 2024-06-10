@@ -21,7 +21,7 @@ class ShutterWindow(QWidget):
         self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
-        self._shutter = Shutter(self.opcua_conn, "ns=4;s=MAIN.shutter_1", 'Shutter 1')
+        self._shutter = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
 
         self.redis_client = redis_client
 
@@ -39,6 +39,7 @@ class ShutterWindow(QWidget):
 
     def closeEvent(self, *args):
         self.t.stop()
+        self.t_pos.stop()
         self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)

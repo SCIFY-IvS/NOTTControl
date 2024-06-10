@@ -160,8 +160,8 @@ class MainWindow(QMainWindow):
 
     def load_dl1_status(self):
 
-        self.ui.label_dl_status.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sStatus")))
-        self.ui.label_dl_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.DL_Servo_1.stat.sState")))
+        self.ui.label_dl_status.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sStatus")))
+        self.ui.label_dl_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sState")))
 
     def update_cryo_temps(self):
         nodes = ["ns=4;s=GVL_Cryo_Temperatures.Temp_1", 
@@ -200,8 +200,8 @@ class DelayLinesWindow(QWidget):
         self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
-        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.DL_Servo_1", 'DL_Servo_1')
-        self._motor2 = Motor(self.opcua_conn, "ns=4;s=MAIN.DL_2", 'DL_2_Newport')
+        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1", 'DL_1')
+        self._motor2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2", 'DL_2')
 
         self.redis_client = redis_client
 
