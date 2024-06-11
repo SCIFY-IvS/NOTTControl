@@ -202,6 +202,8 @@ class DelayLinesWindow(QWidget):
 
         self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1", 'DL_1')
         self._motor2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2", 'DL_2')
+        self._motor3 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL3", 'DL_3')
+        self._motor4 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4", 'DL_4')
 
         self.redis_client = redis_client
 
@@ -212,6 +214,8 @@ class DelayLinesWindow(QWidget):
 
         self.ui.motor_widget_1.setup(self.opcua_conn, self.redis_client, self._motor1)
         self.ui.motor_widget_2.setup(self.opcua_conn, self.redis_client, self._motor2)
+        self.ui.motor_widget_3.setup(self.opcua_conn, self.redis_client, self._motor3)
+        self.ui.motor_widget_4.setup(self.opcua_conn, self.redis_client, self._motor4)
 
         self._activeCommand = None
 
@@ -237,33 +241,14 @@ class DelayLinesWindow(QWidget):
     def stopCameraRecording(self):
         self.parent.camera_window.stop_recording()
 
-    def executeCommand(self, cmd):
-        cmd.execute()
-
-        if self._activeCommand is not None:
-            raise Exception('Already an active command!')
-        
-        self._activeCommand = cmd
-        self.ui.dl_command_status.setText(f'Executing command \'{self._activeCommand.text()}\' ...')
-
-        self.ui.pb_homing.setEnabled(False)
-        self.ui.pb_move_rel.setEnabled(False)
-        self.ui.pb_move_abs.setEnabled(False)
-        self.ui.pb_scan.setEnabled(False)
-    
-    def clearActiveCommand(self):
-        self._activeCommand = None
-        self.ui.dl_command_status.setText('Not executing command')
-
-        self.ui.pb_homing.setEnabled(True)
-        self.ui.pb_move_rel.setEnabled(True)
-        self.ui.pb_move_abs.setEnabled(True)
-        self.ui.pb_scan.setEnabled(True)
-
     def refresh_status(self):
         self.ui.motor_widget_1.refresh_status()
         self.ui.motor_widget_2.refresh_status()
+        self.ui.motor_widget_3.refresh_status()
+        self.ui.motor_widget_4.refresh_status()
     
     def load_positions(self):
         self.ui.motor_widget_1.load_position()
         self.ui.motor_widget_2.load_position()
+        self.ui.motor_widget_3.load_position()
+        self.ui.motor_widget_4.load_position()

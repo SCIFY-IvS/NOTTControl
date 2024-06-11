@@ -1,6 +1,6 @@
 from commands.scan_fringes_command import ScanFringesCommand
 
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QMenu
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 
@@ -21,20 +21,33 @@ class MotorWidget(QWidget):
 
         self.ui = loadUi('motorwidget.ui', self)
 
-        self.ui.pb_homing.clicked.connect(self.homing)
-        self.ui.pb_scan.clicked.connect(self.scan_fringes)
+        self.engineering_menu = QMenu()
+        reset = self.engineering_menu.addAction("Reset")
+        reset.triggered.connect(self.reset_motor)
+        init = self.engineering_menu.addAction("Init")
+        init.triggered.connect(self.init_motor)
+        enable = self.engineering_menu.addAction("Enable")
+        enable.triggered.connect(self.enable_motor)
+        disable = self.engineering_menu.addAction("Disable")
+        disable.triggered.connect(self.disable_motor)
+        stop = self.engineering_menu.addAction("Stop")
+        stop.triggered.connect(self.stop_motor)
 
-        self.ui.pb_reset.clicked.connect(self.reset_motor)
-        self.ui.pb_init.clicked.connect(self.init_motor)
-        self.ui.pb_enable.clicked.connect(self.enable_motor)
-        self.ui.pb_disable.clicked.connect(self.disable_motor)
-        self.ui.pb_stop.clicked.connect(self.stop_motor)
-        self.ui.pb_move_rel.clicked.connect(self.move_rel_motor)
+        self.ui.pb_engineering_menu.clicked.connect(self.expand_engineering_menu)
+
+        self.ui.pb_moverel_pos.clicked.connect(self.move_rel_motor_pos)
+        self.ui.pb_moverel_neg.clicked.connect(self.move_rel_motor_neg)
         self.ui.pb_move_abs.clicked.connect(self.move_abs_motor)
 
         self.ui.label_name.setText(self._motor.name)
 
         self._activeCommand = None
+    
+    def expand_engineering_menu(self):
+        localPos = self.ui.pb_engineering_menu.pos()
+        globalPos = self.ui.pb_engineering_menu.mapToGlobal(localPos)
+
+        self.engineering_menu.exec(globalPos)
 
     def executeCommand(self, cmd):
         cmd.execute()
@@ -45,19 +58,15 @@ class MotorWidget(QWidget):
         self._activeCommand = cmd
         self.ui.dl_command_status.setText(f'Executing command \'{self._activeCommand.text()}\' ...')
 
-        self.ui.pb_homing.setEnabled(False)
         self.ui.pb_move_rel.setEnabled(False)
         self.ui.pb_move_abs.setEnabled(False)
-        self.ui.pb_scan.setEnabled(False)
     
     def clearActiveCommand(self):
         self._activeCommand = None
         self.ui.dl_command_status.setText('Not executing command')
 
-        self.ui.pb_homing.setEnabled(True)
         self.ui.pb_move_rel.setEnabled(True)
         self.ui.pb_move_abs.setEnabled(True)
-        self.ui.pb_scan.setEnabled(True)
 
     def refresh_status(self):
         try:
@@ -209,11 +218,8 @@ class MotorWidget(QWidget):
             print(f"Error calling RPC method: {e}")
 
     # Move rel motor
-    def move_rel_motor(self):
+    def move_rel_motor(self, rel_pos):
         try:
-            rel_pos = self.ui.lineEdit_relpos.text()
-            # Convert to mm
-            rel_pos = float(rel_pos) / 1000
             print("rel_pos = ",rel_pos)
             speed = 0.05
 
@@ -221,3 +227,16 @@ class MotorWidget(QWidget):
             self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
+
+    def move_rel_motor_pos(self):
+        rel_pos = self.ui.lineEdit_relpos.text()
+        # Convert to mm
+        rel_pos = float(rel_pos) / 1000
+        self.move_rel_motor(rel_pos)
+
+    def move_rel_motor_neg(self):
+        rel_pos = self.ui.lineEdit_relpos.text()
+        # Convert to mm
+        rel_pos = float(rel_pos) / 1000
+        self.move_rel_motor(-rel_pos)
+

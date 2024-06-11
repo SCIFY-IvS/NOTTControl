@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1583</width>
+    <width>1700</width>
     <height>712</height>
    </rect>
   </property>
@@ -188,18 +188,38 @@ border-color: rgb(0, 0, 0);</string>
     <rect>
      <x>280</x>
      <y>120</y>
-     <width>580</width>
-     <height>530</height>
+     <width>343</width>
+     <height>396</height>
     </rect>
    </property>
   </widget>
   <widget class="MotorWidget" name="motor_widget_2" native="true">
    <property name="geometry">
     <rect>
-     <x>930</x>
+     <x>630</x>
      <y>120</y>
-     <width>580</width>
-     <height>530</height>
+     <width>343</width>
+     <height>396</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="MotorWidget" name="motor_widget_3" native="true">
+   <property name="geometry">
+    <rect>
+     <x>980</x>
+     <y>120</y>
+     <width>343</width>
+     <height>396</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="MotorWidget" name="motor_widget_4" native="true">
+   <property name="geometry">
+    <rect>
+     <x>1320</x>
+     <y>120</y>
+     <width>343</width>
+     <height>396</height>
     </rect>
    </property>
   </widget>
