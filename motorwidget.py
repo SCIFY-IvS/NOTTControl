@@ -118,6 +118,7 @@ class MotorWidget(QWidget):
     def reset_motor(self):
         try:
             res = self._motor.reset()
+            self.clearActiveCommand()
         except Exception as e:
             print(f"Error calling RPC method: {e}")
 
