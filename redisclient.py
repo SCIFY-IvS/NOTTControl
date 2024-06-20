@@ -33,9 +33,12 @@ class RedisClient:
 
     def add_roi_max_values(self, time, value1, value2, value3, value4):
         unix_time = self.unix_time_ms(time)
-        self.ts.add('roi1_max', unix_time, value1)
-        self.ts.add('roi2_max', unix_time, value2)
-        self.ts.add('roi3_max', unix_time, value3)
-        self.ts.add('roi4_max', unix_time, value4)
+
+        pipe = self.ts.pipeline()
+        pipe.add('roi1_max', unix_time, value1)
+        pipe.add('roi2_max', unix_time, value2)
+        pipe.add('roi3_max', unix_time, value3)
+        pipe.add('roi4_max', unix_time, value4)
+        pipe.execute()
     def unix_time_ms(self, time):
         return round((time - self.epoch).total_seconds() * 1000.0)
