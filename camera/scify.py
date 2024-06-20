@@ -83,10 +83,7 @@ class MainWindow(QMainWindow):
         self.roi_calculation_finished.connect(self.on_roi_calculations_finished)
         
         self.recording_lock = threading.Lock()
-        
-        self.frame_rate_timer = QTimer()
-        self.frame_rate_timer.timeout.connect(self.calculate_frame_rates)
-        
+
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
         self.calculating_roi = False
@@ -156,7 +153,6 @@ class MainWindow(QMainWindow):
             self.ui.button_record.setEnabled(True)
             self.ui.button_takebackground.setEnabled(True)
             self.nbCameraImages = 0
-            self.frame_rate_timer.start(5000)
             
             
     def disconnect_camera(self):
@@ -170,7 +166,6 @@ class MainWindow(QMainWindow):
             self.ui.button_record.setEnabled(False)
             self.ui.button_takebackground.setEnabled(False)
             self.ui.checkBox_subtractbackground.setEnabled(False)
-            self.frame_rate_timer.stop()
 
     def record_clicked(self):
         if self.recording:
@@ -326,7 +321,12 @@ class MainWindow(QMainWindow):
         
         calculator.run()
         
-        self.redisclient.add_roi_max_values(timestamp, calculator.max_ul, calculator.max_ur, calculator.max_ll, calculator.max_lr)
+        self.redisclient.add_roi_values(timestamp, 
+                                             calculator.max_ul, calculator.avg_ul, calculator.sum_ul,
+                                             calculator.max_ur, calculator.avg_ur, calculator.sum_ur,
+                                             calculator.max_ll, calculator.avg_ll, calculator.sum_ll,
+                                             calculator.max_lr, calculator.avg_lr, calculator.sum_lr)
+        
         self.timestamps.appendleft(datetime.timestamp(timestamp))
         self.roi1_max_values.appendleft(calculator.max_ul)
         self.roi2_max_values.appendleft(calculator.max_ur)
@@ -344,29 +344,29 @@ class MainWindow(QMainWindow):
         self.ui.lineEdit_roi_ul_min.setText(f'{min:.2f}')
         max_ul = calculator.max_ul
         self.ui.lineEdit_roi_ul_max.setText(f'{max_ul:.2f}')
-        mean = calculator.mean_ul
-        self.ui.lineEdit_roi_ul_avg.setText(f'{mean:.2f}')
+        avg = calculator.avg_ul
+        self.ui.lineEdit_roi_ul_avg.setText(f'{avg:.2f}')
         
         min = calculator.min_ll
         self.ui.lineEdit_roi_ll_min.setText(f'{min:.2f}')
         max_ll = calculator.max_ll
         self.ui.lineEdit_roi_ll_max.setText(f'{max_ll:.2f}')
-        mean = calculator.mean_ll
-        self.ui.lineEdit_roi_ll_avg.setText(f'{mean:.2f}')
+        avg = calculator.avg_ll
+        self.ui.lineEdit_roi_ll_avg.setText(f'{avg:.2f}')
         
         min = calculator.min_lr
         self.ui.lineEdit_roi_lr_min.setText(f'{min:.2f}')
         max_lr = calculator.max_lr
         self.ui.lineEdit_roi_lr_max.setText(f'{max_lr:.2f}')
-        mean = calculator.mean_lr
-        self.ui.lineEdit_roi_lr_avg.setText(f'{mean:.2f}')
+        avg = calculator.avg_lr
+        self.ui.lineEdit_roi_lr_avg.setText(f'{avg:.2f}')
         
         min = calculator.min_ur
         self.ui.lineEdit_roi_ur_min.setText(f'{min:.2f}')
         max_ur = calculator.max_ur
         self.ui.lineEdit_roi_ur_max.setText(f'{max_ur:.2f}')
-        mean = calculator.mean_ur
-        self.ui.lineEdit_roi_ur_avg.setText(f'{mean:.2f}')
+        avg = calculator.avg_ur
+        self.ui.lineEdit_roi_ur_avg.setText(f'{avg:.2f}')
         
 
     def closeEvent(self, *args):
