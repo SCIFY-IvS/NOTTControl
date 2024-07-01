@@ -27,17 +27,12 @@ from redisclient import RedisClient
 from configparser import ConfigParser
 from collections import deque
 from enum import Enum
+from camera.roi import Roi
 
 t=time.perf_counter()
 tLive=t
 
 img_timestamp_ref = None
-
-class Roi(Enum):
-    ROI_1 = 'Roi 1'
-    ROI_2 = 'Roi 2'
-    ROI_3 = 'Roi 3'
-    ROI_4 = 'Roi 4'
 
 def callback(context,*args):#, aHandle, aStreamIndex):
     recording_timestamp = datetime.utcnow()
@@ -88,10 +83,65 @@ class MainWindow(QMainWindow):
         self.roi_tracking_frames = 0
         self.calculating_roi = False
 
-        config = ConfigParser()
-        config.read('config.ini')
-        url =  config['DEFAULT']['databaseurl']
+        self.config = ConfigParser()
+        self.config.read('config.ini')
+        url =  self.config['DEFAULT']['databaseurl']
         self.redisclient = RedisClient(url)
+        
+        self.load_roi_config(self.config)
+
+        self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
+        self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
+
+    def load_roi_config(self, config):
+        try:
+            self.roi1_config = self.load_roi_from_config(config, 'ROI1')
+            self.roi2_config = self.load_roi_from_config(config, 'ROI2')
+            self.roi3_config = self.load_roi_from_config(config, 'ROI3')
+            self.roi4_config = self.load_roi_from_config(config, 'ROI4')
+        except:
+            print('Failed to load roi configuration')
+            self.roi1_config = None
+            self.roi2_config = None
+            self.roi3_config = None
+            self.roi4_config = None
+    
+    def load_roi_from_config(self, config, adr):
+        roi_string = config['CAMERA'][adr]
+        roi_dimensions = roi_string.split(',')
+        if len(roi_dimensions) != 4:
+            raise Exception('Invalid Roi config')
+        return Roi(roi_dimensions[0], roi_dimensions[1], roi_dimensions[2], roi_dimensions[3])
+    
+    def load_roi_positions_from_config(self):
+        self.load_roi_config(self.config)
+        if self.imageInit:
+            self.updateRoi_from_config(self.roi1, self.roi1_config)
+            self.updateRoi_from_config(self.roi2, self.roi2_config)
+            self.updateRoi_from_config(self.roi3, self.roi3_config)
+            self.updateRoi_from_config(self.roi4, self.roi4_config)
+
+    def updateRoi_from_config(self, roi, roi_config):
+        roi.setPos([roi_config.x, roi_config.y])
+        roi.setSize([roi_config.w, roi_config.h])
+
+
+    def save_roi_positions_to_config(self):
+        if not self.config.has_section('CAMERA'):
+            self.config.add_section('CAMERA')
+
+        self.save_roi_position_to_config(self.roi1, 'ROI1')
+        self.save_roi_position_to_config(self.roi2, 'ROI2')
+        self.save_roi_position_to_config(self.roi3, 'ROI3')
+        self.save_roi_position_to_config(self.roi4, 'ROI4')
+
+        with open('config.ini', 'w') as configfile:
+            self.config.write(configfile)
+
+    def save_roi_position_to_config(self, roi, key):
+        roi_pos = roi.pos()
+        roi_size = roi.size()
+        self.config.set('CAMERA', key, f'{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}')
 
     def connectSignalSlots(self):
         self.ui.button_connect.clicked.connect(self.connect_clicked)
@@ -249,24 +299,7 @@ class MainWindow(QMainWindow):
     def initialize_image_display(self, img):
         self.image.setImage(img, autoRange=False)
         
-        y = len(img)
-        x = len(img[0])
-        
-        h = 50
-        w = 50
-        
-        self.roi_ul = pg.RectROI([x/4 - w/2 , y/4 - h /2], [w,h], centered = True, pen ='g')
-        
-        self.roi_ll = pg.RectROI([x/4 - w/2, (3/4)*y - h/2], [w,h], centered = True, pen ='r')
-        
-        self.roi_lr = pg.RectROI([(3/4)*x - w/2, (3/4)*y - h/2], [w,h], centered = True, pen ='b')
-        
-        self.roi_ur = pg.RectROI([(3/4)*x - w/2, y/4 - h/2], [w,h], centered = True, pen ='c')
-        
-        self.image.getView().addItem(self.roi_ul)
-        self.image.getView().addItem(self.roi_ll)
-        self.image.getView().addItem(self.roi_lr)
-        self.image.getView().addItem(self.roi_ur)
+        self.initialize_roi(img)
         
         self.image.autoRange()
         self.imageInit = True
@@ -291,6 +324,32 @@ class MainWindow(QMainWindow):
         self.roi2_max_values = deque(maxlen = deque_length)
         self.roi3_max_values = deque(maxlen = deque_length)
         self.roi4_max_values = deque(maxlen = deque_length)
+
+    def initialize_roi(self, img):
+        y = len(img)
+        x = len(img[0])
+        
+        h = 50
+        w = 50
+
+        if self.roi1_config is None:
+            self.roi1_config = Roi(x/4 - w/2 , y/4 - h /2, w,h)
+        if self.roi2_config is None:
+            self.roi2_config = Roi((3/4)*x - w/2, y/4 - h/2, w,h) 
+        if self.roi3_config is None:
+            self.roi3_config = Roi(x/4 - w/2, (3/4)*y - h/2, w,h)
+        if self.roi4_config is None:
+            self.roi4_config = Roi((3/4)*x - w/2, (3/4)*y - h/2, w,h)
+        
+        self.roi1 = pg.RectROI([self.roi1_config.x, self.roi1_config.y], [self.roi1_config.w, self.roi1_config.h], pen ='g')
+        self.roi2 = pg.RectROI([self.roi2_config.x, self.roi2_config.y], [self.roi2_config.w, self.roi2_config.h], pen ='c')
+        self.roi3 = pg.RectROI([self.roi3_config.x, self.roi3_config.y], [self.roi3_config.w, self.roi3_config.h], pen ='r')
+        self.roi4 = pg.RectROI([self.roi4_config.x, self.roi4_config.y], [self.roi4_config.w, self.roi4_config.h], pen ='b')
+        
+        self.image.getView().addItem(self.roi1)
+        self.image.getView().addItem(self.roi3)
+        self.image.getView().addItem(self.roi4)
+        self.image.getView().addItem(self.roi2)
         
     def update_image(self, img):
         if not self.imageInit:
@@ -314,10 +373,10 @@ class MainWindow(QMainWindow):
     def calculate_roi(self, img, timestamp):
         self.t_startroi = time.perf_counter()
         
-        calculator = BrightnessCalculator(img, self.roi_ul.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi_ll.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi_lr.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi_ur.getArrayRegion(img, self.image.getImageItem()))
+        calculator = BrightnessCalculator(img, self.roi1.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi3.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi4.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi2.getArrayRegion(img, self.image.getImageItem()))
         
         calculator.run()
         
@@ -341,32 +400,32 @@ class MainWindow(QMainWindow):
     
     def on_roi_calculations_finished(self, calculator):
         min = calculator.min_ul
-        self.ui.lineEdit_roi_ul_min.setText(f'{min:.2f}')
+        self.ui.lineEdit_roi1_min.setText(f'{min:.2f}')
         max_ul = calculator.max_ul
-        self.ui.lineEdit_roi_ul_max.setText(f'{max_ul:.2f}')
+        self.ui.lineEdit_roi1_max.setText(f'{max_ul:.2f}')
         avg = calculator.avg_ul
-        self.ui.lineEdit_roi_ul_avg.setText(f'{avg:.2f}')
+        self.ui.lineEdit_roi1_avg.setText(f'{avg:.2f}')
         
         min = calculator.min_ll
-        self.ui.lineEdit_roi_ll_min.setText(f'{min:.2f}')
+        self.ui.lineEdit_roi3_min.setText(f'{min:.2f}')
         max_ll = calculator.max_ll
-        self.ui.lineEdit_roi_ll_max.setText(f'{max_ll:.2f}')
+        self.ui.lineEdit_roi3_max.setText(f'{max_ll:.2f}')
         avg = calculator.avg_ll
-        self.ui.lineEdit_roi_ll_avg.setText(f'{avg:.2f}')
+        self.ui.lineEdit_roi3_avg.setText(f'{avg:.2f}')
         
         min = calculator.min_lr
-        self.ui.lineEdit_roi_lr_min.setText(f'{min:.2f}')
+        self.ui.lineEdit_roi4_min.setText(f'{min:.2f}')
         max_lr = calculator.max_lr
-        self.ui.lineEdit_roi_lr_max.setText(f'{max_lr:.2f}')
+        self.ui.lineEdit_roi4_max.setText(f'{max_lr:.2f}')
         avg = calculator.avg_lr
-        self.ui.lineEdit_roi_lr_avg.setText(f'{avg:.2f}')
+        self.ui.lineEdit_roi4_avg.setText(f'{avg:.2f}')
         
         min = calculator.min_ur
-        self.ui.lineEdit_roi_ur_min.setText(f'{min:.2f}')
+        self.ui.lineEdit_roi2_min.setText(f'{min:.2f}')
         max_ur = calculator.max_ur
-        self.ui.lineEdit_roi_ur_max.setText(f'{max_ur:.2f}')
+        self.ui.lineEdit_roi2_max.setText(f'{max_ur:.2f}')
         avg = calculator.avg_ur
-        self.ui.lineEdit_roi_ur_avg.setText(f'{avg:.2f}')
+        self.ui.lineEdit_roi2_avg.setText(f'{avg:.2f}')
         
 
     def closeEvent(self, *args):
