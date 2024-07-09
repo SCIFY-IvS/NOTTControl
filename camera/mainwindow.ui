@@ -93,7 +93,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ul_min"/>
+       <widget class="QLineEdit" name="lineEdit_roi1_min"/>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_3">
@@ -103,7 +103,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ul_max"/>
+       <widget class="QLineEdit" name="lineEdit_roi1_max"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_4">
@@ -113,7 +113,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ul_avg"/>
+       <widget class="QLineEdit" name="lineEdit_roi1_avg"/>
       </item>
       <item row="0" column="0" colspan="2">
        <widget class="QPushButton" name="button_roi1">
@@ -180,7 +180,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ll_min"/>
+       <widget class="QLineEdit" name="lineEdit_roi3_min"/>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_7">
@@ -190,7 +190,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ll_max"/>
+       <widget class="QLineEdit" name="lineEdit_roi3_max"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_8">
@@ -200,7 +200,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ll_avg"/>
+       <widget class="QLineEdit" name="lineEdit_roi3_avg"/>
       </item>
       <item row="0" column="0" colspan="2">
        <widget class="QPushButton" name="button_roi3">
@@ -267,7 +267,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ur_min"/>
+       <widget class="QLineEdit" name="lineEdit_roi2_min"/>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_11">
@@ -277,7 +277,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ur_max"/>
+       <widget class="QLineEdit" name="lineEdit_roi2_max"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_12">
@@ -287,7 +287,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_ur_avg"/>
+       <widget class="QLineEdit" name="lineEdit_roi2_avg"/>
       </item>
       <item row="0" column="0" colspan="2">
        <widget class="QPushButton" name="button_roi2">
@@ -354,7 +354,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_lr_min"/>
+       <widget class="QLineEdit" name="lineEdit_roi4_min"/>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_15">
@@ -364,7 +364,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_lr_max"/>
+       <widget class="QLineEdit" name="lineEdit_roi4_max"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_16">
@@ -374,7 +374,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEdit_roi_lr_avg"/>
+       <widget class="QLineEdit" name="lineEdit_roi4_avg"/>
       </item>
       <item row="0" column="0" colspan="2">
        <widget class="QPushButton" name="button_roi4">
@@ -609,8 +609,26 @@
      <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuInfratec_Camera">
+    <property name="title">
+     <string>ROI Locations</string>
+    </property>
+    <addaction name="actionLoad_from_config"/>
+    <addaction name="actionSave_to_config"/>
+   </widget>
+   <addaction name="menuInfratec_Camera"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionLoad_from_config">
+   <property name="text">
+    <string>Load from config</string>
+   </property>
+  </action>
+  <action name="actionSave_to_config">
+   <property name="text">
+    <string>Save to config</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
