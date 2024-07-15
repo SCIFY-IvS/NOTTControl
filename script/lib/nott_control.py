@@ -107,9 +107,34 @@ def shutter_close(shutter_id):
 
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
-
-    shutter = Shutter(opcua_conn, 'ns=4;s=MAIN.nott_ics.Shutters.NSH' + shutter_id, shutter_id)
+    shutter = Shutter(opcua_conn, 'ns=4;s=MAIN.nott_ics.Shutters.NSH'+shutter_id, 'Shutter '+shutter_id)
     shutter.close()
+
+    #the following commands are available:
+    #shutter.reset()
+    #shutter.init()
+    #shutter.enable()
+    #shutter.disable()
+    #shutter.stop()
+    #shutter.open()
+    #shutter.close()
+    
+    # Disconnect
+    opcua_conn.disconnect()
+    return 'done'
+
+def shutter_open(shutter_id):
+    """ Function to open a shutter """
+
+    # initialize the OPC UA connection
+    config = ConfigParser()
+    config.read('../../config.ini')
+    url =  config['DEFAULT']['opcuaaddress']
+
+    opcua_conn = OPCUAConnection(url)
+    opcua_conn.connect()
+    shutter = Shutter(opcua_conn, 'ns=4;s=MAIN.nott_ics.Shutters.NSH'+shutter_id, 'Shutter '+shutter_id)
+    shutter.open()
 
     #the following commands are available:
     #shutter.reset()
