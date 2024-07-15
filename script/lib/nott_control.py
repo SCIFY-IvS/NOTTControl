@@ -3,6 +3,7 @@
 import time
 from configparser import ConfigParser
 from opcua import OPCUAConnection
+from components.shutter import Shutter
 
 #### DELAY LINES FUNCTIONS ####
 ###############################
@@ -94,7 +95,7 @@ def read_current_pos(opcua_motor):
 
 # Move rel motor
 def shutter_close(opcua_motor):
-    """ Close shutter """
+    """ Function to close a shutter """
 
     # initialize the OPC UA connection
     config = ConfigParser()
@@ -104,8 +105,8 @@ def shutter_close(opcua_motor):
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
 
-    shutter = opcua_conn.client.get_node("ns=4;s=MAIN.nott_ics.Shutters.NSH1")
-    #shutter.close()
+    shutter = Shutter(opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
+    shutter.close()
 
     #the following commands are available:
     #shutter.reset()

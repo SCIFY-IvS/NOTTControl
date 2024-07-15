@@ -1,6 +1,7 @@
 # Import functions
 import redis
 import numpy as np
+from scipy.signal import hilbert
 
 # Fixed parameters. This should go in a config file
 # Spectrogon Saphire L narrow
@@ -13,13 +14,7 @@ bw  = 0.180
 def fringes(dl_pos, ampl, g_delay, p_delay):
     return ampl*np.sinc(2*(dl_pos-g_delay)*bw/wav**2)*np.cos(2*np.pi/wav*2*(dl_pos-p_delay))   # See Lawson 2001, Eq 2.7. Factor 2 because delay line postion is twice the OPD
 
-def fringes2(dl_pos, ampl, g_delay, p_delay, bw):
-    return ampl*np.sinc(2*(dl_pos-g_delay)*bw/wav**2)*np.cos(2*np.pi/wav*2*(dl_pos-p_delay))   # See Lawson 2001, Eq 2.7. Factor 2 because delay line postion is twice the OPD
-
 def fringes_env(dl_pos, ampl, g_delay):
-    return abs(ampl*np.sinc(2*(dl_pos-g_delay)*bw/wav**2)) # See Lawson 2001, Eq 2.7. Factor 2 because delay line postion is twice the OPD
-
-def fringes_env2(dl_pos, ampl, g_delay, bw):
     return abs(ampl*np.sinc(2*(dl_pos-g_delay)*bw/wav**2)) # See Lawson 2001, Eq 2.7. Factor 2 because delay line postion is twice the OPD
 
 def enveloppe(dl_pos, flx_coh):
@@ -42,3 +37,10 @@ def enveloppe(dl_pos, flx_coh):
         pos_env[i] = dl_pos[idx_pos]
          
     return (pos_env, flx_env)  
+
+def envelop_detector(signal):
+    signal -= signal.mean()
+    analytic_signal = hilbert(signal)
+    flx_env = np.abs(analytic_signal)
+    
+    return flx_env
