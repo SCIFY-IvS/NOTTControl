@@ -1,5 +1,4 @@
 # Import functions
-import redis
 import numpy as np
 from scipy.signal import hilbert
 

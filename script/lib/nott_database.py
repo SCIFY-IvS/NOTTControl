@@ -3,9 +3,8 @@
 # Import functions
 import redis
 import numpy as np
-from nott_time import timedelta, unix_time_ms
-from datetime import datetime
-from datetime import timedelta
+from nott_time import unix_time_ms
+from datetime import datetime, timedelta
 from scipy.interpolate import interp1d
 
 #  Function to read field values from the REDIS database and corresponding delay line position for the last 'delay' ms

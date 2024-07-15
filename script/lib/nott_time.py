@@ -1,10 +1,9 @@
 """ Basic time functions of the NOTT control software """
 
-import time
+# Import stuff
 from datetime import datetime
-from datetime import date
-from datetime import timedelta
 
+# Get epoch
 epoch = datetime.utcfromtimestamp(0)
 
 # Function definitions

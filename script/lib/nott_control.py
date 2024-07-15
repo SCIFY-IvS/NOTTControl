@@ -1,7 +1,10 @@
 """ Module with function to control the main NOTT subsystems """
-
+import sys
 import time
 from configparser import ConfigParser
+
+# Add the path to sys.path
+sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 from opcua import OPCUAConnection
 from components.shutter import Shutter
 
@@ -94,7 +97,7 @@ def read_current_pos(opcua_motor):
 ############################
 
 # Move rel motor
-def shutter_close(opcua_motor):
+def shutter_close(shutter_id):
     """ Function to close a shutter """
 
     # initialize the OPC UA connection
@@ -105,7 +108,7 @@ def shutter_close(opcua_motor):
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
 
-    shutter = Shutter(opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
+    shutter = Shutter(opcua_conn, 'ns=4;s=MAIN.nott_ics.Shutters.NSH' + shutter_id, shutter_id)
     shutter.close()
 
     #the following commands are available:
