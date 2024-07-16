@@ -39,9 +39,3 @@ delay = 1 # Average time
 
 # Start recording, get data, and average
 darks = get_darks(delay)
-
-# Close all shutters and terminate
-shutter_close('1')
-shutter_close('2')
-shutter_close('3')
-shutter_close('4')

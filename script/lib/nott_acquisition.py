@@ -25,10 +25,12 @@ __status__ = "Production"
 
 # Import libraries
 import sys
+import time
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
 from nott_control import shutter_close, shutter_open
+from nott_database import get_data
 
 # Function to get darks
 def get_darks(delay):
@@ -39,6 +41,7 @@ def get_darks(delay):
     shutter_close('4')
 
     # Start recording, get data, and average
+    time.sleep(delay)
     darks = get_data('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay)
 
     # Open all shutters and take flux measurements
