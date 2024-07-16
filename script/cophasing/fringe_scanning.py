@@ -1,53 +1,25 @@
 """ Module to scan the NOTT delay lines and search for fringes """
-
-# Define path
 import sys
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
-from nott_math import compute_mean_sampling
 from nott_control import move_rel_dl, move_abs_dl, read_current_pos, shutter_close
+from nott_database import get_field, get_data, grab_flux
+from nott_figure import move_figure
+from nott_file import save_data
+from nott_fringes import fringes, fringes_env, envelop_detector
 
 # Import functions
 import time
-import pickle
-import os
+#import os
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from scipy.optimize import curve_fit
-from scipy.signal import hilbert
 
 # Script parameters
 # delay = 40.0 # s, window to consider when scanning the fringes
-def envelop_detector(signal):
-    signal -= signal.mean()
-    analytic_signal = hilbert(signal)
-    flx_env = np.abs(analytic_signal)
-    
-    return flx_env
-
-def save_data(data, path, name):
-    print('MSG - Save data in:', path+name)
-    list_saved_files = [elt for elt in os.listdir(path) if name in elt]
-    count_file = len(list_saved_files) + 1
-    name_file = name+'_%03d.pkl'%(count_file)
-    dbfile = open(path + name_file, 'wb')
-    pickle.dump(data, dbfile)
-    dbfile.close()
-
-def move_figure(f, x, y):
-    """Move figure's upper left corner to pixel (x, y)"""
-    backend = matplotlib.get_backend()
-    if backend == 'TkAgg':
-        f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
-    elif backend == 'WXAgg':
-        f.canvas.manager.window.SetPosition((x, y))
-    else:
-        # This works for QT and GTK
-        # You can also use window.setGeometry
-        f.canvas.manager.window.move(x, y)
 
 # PLOT of ROI vs time
 # Start animation
@@ -175,19 +147,19 @@ for it in range(n_pass):
     pos_env = dl_pos
 
     # Fit group delay to enveloppe
-    func_to_fit = fringes_env2
+    func_to_fit = fringes_env
     ampl         = np.abs(np.max(flx_coh)-np.min(flx_coh))/2
     # init_guess   = [ampl, 1000*np.abs(np.max(dl_end)+np.min(dl_start))/2]
     # lower_bounds = [0.95*ampl, 1000*dl_start]
     # upper_bounds = [1.05*ampl, 1000*dl_end]
-    init_guess   = [ampl, 1000*np.abs(np.max(dl_end)+np.min(dl_start))/2, 0.18]
+    init_guess   = [ampl, 1000*np.abs(np.max(dl_end)+np.min(dl_start))/2]
     lower_bounds = [0.95*ampl, 1000*min(dl_start,dl_end), 0.1]
     upper_bounds = [1.05*ampl, 1000*max(dl_start,dl_end), 0.3]
     params, params_cov = curve_fit(func_to_fit, pos_env, flx_env, p0=init_guess, bounds=(lower_bounds, upper_bounds))
     print('FIT GD - Minimum value and its position:', flx_coh.min(), dl_pos[np.argmin(flx_coh)])
     print('FIT GD - Fringes amplitude :', params[0])
     print('FIT GD - Group delay [microns]:', params[1])
-    print('FIT GD - Bandwidth [microns]:', params[2])
+    #print('FIT GD - Bandwidth [microns]:', params[2])
     gd_params.append(params)
    
     # Extract best-fit envelop
@@ -195,18 +167,18 @@ for it in range(n_pass):
     flx_env = func_to_fit(pos_env, *params)
 
     # Now fit fringes
-    func_to_fit = fringes2
+    func_to_fit = fringes
     # init_guess   = [params[0], params[1], 0.95]
     # lower_bounds = [0.99*params[0], 0.99*params[1], 0]
     # upper_bounds = [1.01*params[0], 1.01*params[1], 1.9]
-    init_guess   = [params[0], params[1], 0.95, params[2]]
+    init_guess   = [params[0], params[1], 0.95]
     lower_bounds = [0.999*params[0], 0.999*params[1], 0, 0.999*params[2]]
     upper_bounds = [1.001*params[0], 1.001*params[1], 1.9, 1.001*params[2]]
     params, params_cov = curve_fit(func_to_fit, dl_pos, flx_coh, p0=init_guess, bounds=(lower_bounds, upper_bounds))
     print('FIT PD - Fringes amplitude :', params[0])
     print('FIT PD - Group delay [microns]:', params[1])
     print('FIT PD - Phase delay [microns]:', params[2])
-    print('FIT PD - Bandwidth [microns]:', params[3])
+    #print('FIT PD - Bandwidth [microns]:', params[3])
     #pos_fit, flx_fit = enveloppe(dl_pos, flx_coh) # This works!
     
     # Extract fitted curve
@@ -404,7 +376,7 @@ plt.ioff()
 plt.show()
 
 # Save the data
-save_path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/scipt/diagnostics/'
+save_path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/cophasing/'
 name_file = 'null_scans_'+opcua_motor+'_speed_%s'%(speed)
 db = {'scans_forth_pos':scans_forth_pos, 'scans_forth':scans_forth, \
       'scans_back_pos':scans_back_pos, 'scans_back':scans_back,\
