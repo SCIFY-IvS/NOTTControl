@@ -66,6 +66,33 @@ def get_field(field1, field2, field3, field4, delay, dl_name):
     # Return 
     return x_pos, output1, output2, output3, output4
 
+#  Function to read field values from the REDIS database
+def get_data(field1, field2, field3, field4, delay):
+    """ Read field values over delay"""
+
+    # Define time interval
+    end   = datetime.utcnow() # - timedelta(seconds=0.9) # There is a 0.9 sec delay with redis
+    start = end - timedelta(seconds=delay) 
+    
+    # Read data
+    r = redis.from_url('redis://10.33.178.176:6379')
+
+    # Extract data
+    ts = r.ts()
+
+     # Get ROI values
+    result1 = ts.range(field1, unix_time_ms(start), unix_time_ms(end))
+    result2 = ts.range(field2, unix_time_ms(start), unix_time_ms(end))
+    result3 = ts.range(field3, unix_time_ms(start), unix_time_ms(end))
+    result4 = ts.range(field4, unix_time_ms(start), unix_time_ms(end))
+    output1 = [(x[1]) for x in result1]
+    output2 = [(x[1]) for x in result2]
+    output3 = [(x[1]) for x in result3]
+    output4 = [(x[1]) for x in result4]
+
+    # Return 
+    return output1, output2, output3, output4
+
 #  Function to read the ROI max values and delay line position
 def grab_flux(delay, dl_name):
     """ Function to read the ROI max values and delay line position """
