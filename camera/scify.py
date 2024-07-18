@@ -61,14 +61,11 @@ class MainWindow(QMainWindow):
         
         self.ui = loadUi('camera/mainwindow.ui', self)
 
-        self.roiwidget1 = RoiWidget(self, 1, QColorConstants.Green)
-        self.ui.roi_layout.addWidget(self.roiwidget1)
-        self.roiwidget2 = RoiWidget(self, 2, QColorConstants.Cyan)
-        self.ui.roi_layout.addWidget(self.roiwidget2)
-        self.roiwidget3 = RoiWidget(self, 3, QColorConstants.Red)
-        self.ui.roi_layout.addWidget(self.roiwidget3)
-        self.roiwidget4 = RoiWidget(self, 4, QColorConstants.Blue)
-        self.ui.roi_layout.addWidget(self.roiwidget4)
+        self.roiwidgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
+                           RoiWidget(self, 4, QColorConstants.Blue)]
+        
+        for roiwidget in self.roiwidgets:
+            self.ui.roi_layout.addWidget(roiwidget)
 
         self.connectSignalSlots()
         
@@ -373,13 +370,13 @@ class MainWindow(QMainWindow):
 
         self.pw_roi.clear()
 
-        if self.roiwidget1.isChecked():
+        if self.roiwidgets[0].isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi1_max_values), name='ROI1', pen='g')
-        if self.roiwidget2.isChecked():
+        if self.roiwidgets[1].isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi2_max_values), name='ROI2', pen='c')
-        if self.roiwidget3.isChecked():
+        if self.roiwidgets[2].isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi3_max_values), name='ROI3', pen='r')
-        if self.roiwidget4.isChecked():
+        if self.roiwidgets[3].isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi4_max_values), name='ROI4', pen='b')
                 
     def calculate_roi(self, img, timestamp):
@@ -412,10 +409,10 @@ class MainWindow(QMainWindow):
         self.roi_tracking_frames += 1
     
     def on_roi_calculations_finished(self, calculator):
-        self.roiwidget1.setValues(calculator.results[0])
-        self.roiwidget2.setValues(calculator.results[1])
-        self.roiwidget3.setValues(calculator.results[2])
-        self.roiwidget4.setValues(calculator.results[3])
+        self.roiwidgets[0].setValues(calculator.results[0])
+        self.roiwidgets[1].setValues(calculator.results[1])
+        self.roiwidgets[2].setValues(calculator.results[2])
+        self.roiwidgets[3].setValues(calculator.results[3])
 
     def closeEvent(self, *args):
         #stopgrab
