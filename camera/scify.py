@@ -103,17 +103,14 @@ class MainWindow(QMainWindow):
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
 
     def load_roi_config(self, config):
-        try:
-            self.roi1_config = self.load_roi_from_config(config, 'ROI1')
-            self.roi2_config = self.load_roi_from_config(config, 'ROI2')
-            self.roi3_config = self.load_roi_from_config(config, 'ROI3')
-            self.roi4_config = self.load_roi_from_config(config, 'ROI4')
-        except:
-            print('Failed to load roi configuration')
-            self.roi1_config = None
-            self.roi2_config = None
-            self.roi3_config = None
-            self.roi4_config = None
+        self.roi_config = []
+        for i in range(1, 5):
+            try:
+                roi_config = self.load_roi_from_config(config, f'ROI{i}')
+            except:
+                print(f'Failed to load roi configuration for ROI{i}, using default')
+                roi_config = Roi(i*100, 600, 50,50)
+            self.roi_config.append(roi_config)
     
     def load_roi_from_config(self, config, adr):
         roi_string = config['CAMERA'][adr]
@@ -125,10 +122,10 @@ class MainWindow(QMainWindow):
     def load_roi_positions_from_config(self):
         self.load_roi_config(self.config)
         if self.imageInit:
-            self.updateRoi_from_config(self.roi1, self.roi1_config)
-            self.updateRoi_from_config(self.roi2, self.roi2_config)
-            self.updateRoi_from_config(self.roi3, self.roi3_config)
-            self.updateRoi_from_config(self.roi4, self.roi4_config)
+            self.updateRoi_from_config(self.roi1, self.roi_config[0])
+            self.updateRoi_from_config(self.roi2, self.roi_config[1])
+            self.updateRoi_from_config(self.roi3, self.roi_config[2])
+            self.updateRoi_from_config(self.roi4, self.roi_config[3])
 
     def updateRoi_from_config(self, roi, roi_config):
         roi.setPos([roi_config.x, roi_config.y])
@@ -335,30 +332,18 @@ class MainWindow(QMainWindow):
         self.roi4_max_values = deque(maxlen = deque_length)
 
     def initialize_roi(self, img):
-        y = len(img)
-        x = len(img[0])
-        
-        h = 50
-        w = 50
-
-        if self.roi1_config is None:
-            self.roi1_config = Roi(x/4 - w/2 , y/4 - h /2, w,h)
-        if self.roi2_config is None:
-            self.roi2_config = Roi((3/4)*x - w/2, y/4 - h/2, w,h) 
-        if self.roi3_config is None:
-            self.roi3_config = Roi(x/4 - w/2, (3/4)*y - h/2, w,h)
-        if self.roi4_config is None:
-            self.roi4_config = Roi((3/4)*x - w/2, (3/4)*y - h/2, w,h)
-        
-        self.roi1 = pg.RectROI([self.roi1_config.x, self.roi1_config.y], [self.roi1_config.w, self.roi1_config.h], pen ='g')
-        self.roi2 = pg.RectROI([self.roi2_config.x, self.roi2_config.y], [self.roi2_config.w, self.roi2_config.h], pen ='c')
-        self.roi3 = pg.RectROI([self.roi3_config.x, self.roi3_config.y], [self.roi3_config.w, self.roi3_config.h], pen ='r')
-        self.roi4 = pg.RectROI([self.roi4_config.x, self.roi4_config.y], [self.roi4_config.w, self.roi4_config.h], pen ='b')
+        self.roi1 = self.get_roi_from_config(self.roi_config[0], pen ='g')
+        self.roi2 = self.get_roi_from_config(self.roi_config[1], pen ='c')
+        self.roi3 = self.get_roi_from_config(self.roi_config[2], pen ='r')
+        self.roi4 = self.get_roi_from_config(self.roi_config[3], pen ='b')
         
         self.image.getView().addItem(self.roi1)
         self.image.getView().addItem(self.roi3)
         self.image.getView().addItem(self.roi4)
         self.image.getView().addItem(self.roi2)
+    
+    def get_roi_from_config(self, roi_config:Roi, pen):
+        return pg.RectROI([roi_config.x, roi_config.y], [roi_config.w, roi_config.h], pen = pen)
         
     def update_image(self, img):
         if not self.imageInit:

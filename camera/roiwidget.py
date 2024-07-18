@@ -9,7 +9,8 @@ class RoiWidget(QWidget):
         QWidget.__init__(self, parent)
 
         self.ui = loadUi('camera/roiwidget.ui', self)
-        self.ui.label.setText(f'ROI {index}')
+        self.name = f'ROI {index}'
+        self.ui.label.setText(self.name)
         frame = self.frame_roiul
         frame.setFrameShape(QFrame.Panel)
         frame.setLineWidth(2)
@@ -18,6 +19,7 @@ class RoiWidget(QWidget):
         self.setColor(color)
 
     def setColor(self, color):
+        self.color = color
         pal = self.label.palette()
         pal.setColor(QPalette.WindowText, color)
         self.label.setPalette(pal)
