@@ -26,11 +26,24 @@ __status__ = "Production"
 # Import libraries
 import sys
 import time
+import numpy as np
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
 from nott_control import shutter_close, shutter_open
 from nott_database import get_data
+
+# Function to cophase the instrument
+def cophase(delay):
+    # Find fringes on the first nuller
+    find_fringes('2')
+
+    # Find fringes on the second nuller
+    find_fringes('3')
+    
+    # Find fringe on the cross combiner
+
+    return avg
 
 # Function to get darks
 def get_darks(delay):
@@ -42,10 +55,39 @@ def get_darks(delay):
 
     # Start recording, get data, and average
     time.sleep(delay)
-    darks = get_data('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay)
+    darks = get_data('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay)  # Return a list
+
+    # Save to file
+
+    # Compute average
+    avg = np.mean(darks[0], axis=0), np.mean(darks[1], axis=0), np.mean(darks[2], axis=0), np.mean(darks[3], axis=0)
+    print('Average dark values for the 4 ROIs:', round(avg[0], 2), round(avg[1], 2), round(avg[2], 2), round(avg[3], 2))
 
     # Open all shutters and take flux measurements
     shutter_open('1')
     shutter_open('2')
     shutter_open('3')
+    shutter_open('4')    
+
+    return avg
+
+# Function to get flats
+def get_flats(delay):
+    # Open all shutters and take flux measurements
+    shutter_open('1')
+    shutter_open('2')
+    shutter_open('3')
     shutter_open('4')
+
+    # Start recording, get data, and average
+    time.sleep(delay)
+    flats = get_data('roi1_max', 'roi2_max', 'roi3_max', 'roi4_max',  delay)
+
+    # Save to file
+
+    # Compute average
+    avg = np.mean(flats[0], axis=0), np.mean(flats[1], axis=0), np.mean(flats[2], axis=0), np.mean(flats[3], axis=0)
+    print('Average flat values for the 4 ROIs:', round(avg[0], 2), round(avg[1], 2), round(avg[2], 2), round(avg[3], 2))
+
+    return avg
+

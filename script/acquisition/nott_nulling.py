@@ -7,8 +7,8 @@ This module is the general NOTT acqusition module.
 Example:
 
 To do:
-* Turn on light automatically
-*
+* Optimize tip/tilt
+* Record data
 
 Modification history:
 * Version 1.0.0: Denis Defrere (KU Leuven) -- denis.defrere@kuleuven.be
@@ -28,14 +28,33 @@ import sys
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
-from nott_acquisition import get_darks
+from nott_acquisition import cophase, get_darks, get_flats
 from nott_control import move_rel_dl, move_abs_dl, read_current_pos, shutter_close, shutter_open
 from nott_database import get_data
+from nott_maintenance import startup, shutdown
 from nott_fringes import fringes, fringes_env, envelop_detector
 
 # We assume here that the calibration light is turn on
 # Running parameters
 delay = 1 # Average time
 
-# Start recording, get data, and average
-darks = get_darks(delay)
+# NOTT startup
+startup()
+
+# Record darks
+get_darks(delay)
+
+# Record flats
+get_flats(delay)
+
+# Optimize tip/tilt
+# TO DO
+
+# Cophase (group delay and phase delay)
+cophase()
+
+# Take data
+# record()
+
+# NOTT shutdown
+shutdown()
