@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (QPushButton,QGridLayout,QCheckBox,
                              QComboBox,QLabel,QLineEdit,QFrame,
                              )
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtGui import QColorConstants
 from camera.infratec_interface import InfratecInterface, Image
 
 import numpy
@@ -28,6 +29,7 @@ from configparser import ConfigParser
 from collections import deque
 from enum import Enum
 from camera.roi import Roi
+from camera.roiwidget import RoiWidget
 
 t=time.perf_counter()
 tLive=t
@@ -58,6 +60,16 @@ class MainWindow(QMainWindow):
         pg.setConfigOption('foreground', 'k')
         
         self.ui = loadUi('camera/mainwindow.ui', self)
+
+        self.roiwidget1 = RoiWidget(self, 1, QColorConstants.Green)
+        self.ui.roi_layout.addWidget(self.roiwidget1)
+        self.roiwidget2 = RoiWidget(self, 2, QColorConstants.Cyan)
+        self.ui.roi_layout.addWidget(self.roiwidget2)
+        self.roiwidget3 = RoiWidget(self, 3, QColorConstants.Red)
+        self.ui.roi_layout.addWidget(self.roiwidget3)
+        self.roiwidget4 = RoiWidget(self, 4, QColorConstants.Blue)
+        self.ui.roi_layout.addWidget(self.roiwidget4)
+
         self.connectSignalSlots()
         
         self.connected = False
@@ -361,72 +373,49 @@ class MainWindow(QMainWindow):
 
         self.pw_roi.clear()
 
-        if self.ui.checkBox_ROI1.isChecked():
+        if self.roiwidget1.isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi1_max_values), name='ROI1', pen='g')
-        if self.ui.checkBox_ROI2.isChecked():
+        if self.roiwidget2.isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi2_max_values), name='ROI2', pen='c')
-        if self.ui.checkBox_ROI3.isChecked():
+        if self.roiwidget3.isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi3_max_values), name='ROI3', pen='r')
-        if self.ui.checkBox_ROI4.isChecked():
+        if self.roiwidget4.isChecked():
             self.pw_roi.plot(list(self.timestamps), list(self.roi4_max_values), name='ROI4', pen='b')
                 
     def calculate_roi(self, img, timestamp):
-        self.t_startroi = time.perf_counter()
-        
-        calculator = BrightnessCalculator(img, self.roi1.getArrayRegion(img, self.image.getImageItem()),
+        #Loop over all ROI: calculate values
+        # Push to redis
+        # Update corresponding GUI components
+
+        calculator = BrightnessCalculator([self.roi1.getArrayRegion(img, self.image.getImageItem()),
+                                      self.roi2.getArrayRegion(img, self.image.getImageItem()),
                                       self.roi3.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi4.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi2.getArrayRegion(img, self.image.getImageItem()))
+                                      self.roi4.getArrayRegion(img, self.image.getImageItem())])
         
         calculator.run()
+
+        roi_values = {'roi1': calculator.results[0], \
+                      'roi2': calculator.results[1], \
+                      'roi3': calculator.results[2], \
+                      'roi4': calculator.results[3]}
         
-        self.redisclient.add_roi_values(timestamp, 
-                                             calculator.max_ul, calculator.avg_ul, calculator.sum_ul,
-                                             calculator.max_ur, calculator.avg_ur, calculator.sum_ur,
-                                             calculator.max_ll, calculator.avg_ll, calculator.sum_ll,
-                                             calculator.max_lr, calculator.avg_lr, calculator.sum_lr)
+        self.redisclient.add_roi_values(timestamp, roi_values)
         
         self.timestamps.appendleft(datetime.timestamp(timestamp))
-        self.roi1_max_values.appendleft(calculator.max_ul)
-        self.roi2_max_values.appendleft(calculator.max_ur)
-        self.roi3_max_values.appendleft(calculator.max_ll)
-        self.roi4_max_values.appendleft(calculator.max_lr)
-        
-        self.t_endroi = time.perf_counter()
-        
+        self.roi1_max_values.appendleft(calculator.results[0].max)
+        self.roi2_max_values.appendleft(calculator.results[1].max)
+        self.roi3_max_values.appendleft(calculator.results[2].max)
+        self.roi4_max_values.appendleft(calculator.results[3].max)
+                
         self.roi_calculation_finished.emit(calculator)
         
         self.roi_tracking_frames += 1
     
     def on_roi_calculations_finished(self, calculator):
-        min = calculator.min_ul
-        self.ui.lineEdit_roi1_min.setText(f'{min:.2f}')
-        max_ul = calculator.max_ul
-        self.ui.lineEdit_roi1_max.setText(f'{max_ul:.2f}')
-        avg = calculator.avg_ul
-        self.ui.lineEdit_roi1_avg.setText(f'{avg:.2f}')
-        
-        min = calculator.min_ll
-        self.ui.lineEdit_roi3_min.setText(f'{min:.2f}')
-        max_ll = calculator.max_ll
-        self.ui.lineEdit_roi3_max.setText(f'{max_ll:.2f}')
-        avg = calculator.avg_ll
-        self.ui.lineEdit_roi3_avg.setText(f'{avg:.2f}')
-        
-        min = calculator.min_lr
-        self.ui.lineEdit_roi4_min.setText(f'{min:.2f}')
-        max_lr = calculator.max_lr
-        self.ui.lineEdit_roi4_max.setText(f'{max_lr:.2f}')
-        avg = calculator.avg_lr
-        self.ui.lineEdit_roi4_avg.setText(f'{avg:.2f}')
-        
-        min = calculator.min_ur
-        self.ui.lineEdit_roi2_min.setText(f'{min:.2f}')
-        max_ur = calculator.max_ur
-        self.ui.lineEdit_roi2_max.setText(f'{max_ur:.2f}')
-        avg = calculator.avg_ur
-        self.ui.lineEdit_roi2_avg.setText(f'{avg:.2f}')
-        
+        self.roiwidget1.setValues(calculator.results[0])
+        self.roiwidget2.setValues(calculator.results[1])
+        self.roiwidget3.setValues(calculator.results[2])
+        self.roiwidget4.setValues(calculator.results[3])
 
     def closeEvent(self, *args):
         #stopgrab

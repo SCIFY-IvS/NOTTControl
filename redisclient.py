@@ -1,5 +1,6 @@
 import redis
 from datetime import datetime
+from camera.utils.utils import BrightnessResults
 
 class RedisClient:
     def __init__(self, url):
@@ -31,24 +32,16 @@ class RedisClient:
         unix_time = self.unix_time_ms(time)
         self.ts.add('dl_T4', unix_time, temp)
 
-    def add_roi_values(self, time, max1, avg1, sum1, max2, avg2, sum2, max3, avg3, sum3, max4, avg4, sum4):
+    def add_roi_values(self, time, roi_results: dict[str, BrightnessResults]):
         unix_time = self.unix_time_ms(time)
 
         pipe = self.ts.pipeline()
-        pipe.add('roi1_max', unix_time, max1)
-        pipe.add('roi2_max', unix_time, max2)
-        pipe.add('roi3_max', unix_time, max3)
-        pipe.add('roi4_max', unix_time, max4)
 
-        pipe.add('roi1_avg', unix_time, avg1)
-        pipe.add('roi2_avg', unix_time, avg2)
-        pipe.add('roi3_avg', unix_time, avg3)
-        pipe.add('roi4_avg', unix_time, avg4)
-
-        pipe.add('roi1_sum', unix_time, sum1)
-        pipe.add('roi2_sum', unix_time, sum2)
-        pipe.add('roi3_sum', unix_time, sum3)
-        pipe.add('roi4_sum', unix_time, sum4)
+        for key in roi_results.keys():
+            brightness_result = roi_results[key]
+            pipe.add(f'{key}_max', unix_time, brightness_result.max)
+            pipe.add(f'{key}_avg', unix_time, brightness_result.avg)
+            pipe.add(f'{key}_sum', unix_time, brightness_result.sum)
 
         pipe.execute()
     def unix_time_ms(self, time):
