@@ -58,14 +58,14 @@ class MainWindow(QMainWindow):
         
         self.ui = loadUi('camera/mainwindow.ui', self)
 
-        self.roiwidgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
+        self.roi_widgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
                            RoiWidget(self, 4, QColorConstants.Blue), RoiWidget(self, 5, QColorConstants.Magenta), RoiWidget(self, 6, QColorConstants.DarkGreen),
                            RoiWidget(self, 7, QColorConstants.DarkBlue), RoiWidget(self, 8, QColorConstants.DarkRed), RoiWidget(self, 9, QColorConstants.DarkCyan),
                            RoiWidget(self, 10, QColorConstants.DarkYellow)]
         
         self.ui.scrollAreaWidgetContents.setLayout(QVBoxLayout())
         self.ui.scrollArea.setWidgetResizable(True)
-        for roiwidget in self.roiwidgets:
+        for roiwidget in self.roi_widgets:
             self.ui.scrollAreaWidgetContents.layout().addWidget(roiwidget)
 
         self.connectSignalSlots()
@@ -105,13 +105,13 @@ class MainWindow(QMainWindow):
 
     def load_roi_config(self, config):
         self.roi_config = []
-        for i in range(1, len(self.roiwidgets) + 1):
+        for i in range(1, len(self.roi_widgets) + 1):
             try:
                 roi_config = self.load_roi_from_config(config, f'ROI{i}')
             except:
                 print(f'Failed to load roi configuration for ROI{i}, using default')
                 roi_config = Roi(i*100, 600, 50,50)
-            self.roi_config.append(roi_config)
+            self.roi_widgets[i-1].setConfig(roi_config)
     
     def load_roi_from_config(self, config, adr):
         roi_string = config['CAMERA'][adr]
@@ -123,16 +123,8 @@ class MainWindow(QMainWindow):
     def load_roi_positions_from_config(self):
         self.load_roi_config(self.config)
         if self.imageInit:
-            self.updateRoi_from_config(self.roi1, self.roi_config[0])
-            self.updateRoi_from_config(self.roi2, self.roi_config[1])
-            self.updateRoi_from_config(self.roi3, self.roi_config[2])
-            self.updateRoi_from_config(self.roi4, self.roi_config[3])
-            self.updateRoi_from_config(self.roi5, self.roi_config[4])
-            self.updateRoi_from_config(self.roi6, self.roi_config[5])
-            self.updateRoi_from_config(self.roi7, self.roi_config[6])
-            self.updateRoi_from_config(self.roi8, self.roi_config[7])
-            self.updateRoi_from_config(self.roi9, self.roi_config[8])
-            self.updateRoi_from_config(self.roi10, self.roi_config[9])
+            for roi_widget in self.roi_widgets:
+                roi_widget.updateRoi_from_config()
 
     def updateRoi_from_config(self, roi, roi_config):
         roi.setPos([roi_config.x, roi_config.y])
@@ -143,16 +135,8 @@ class MainWindow(QMainWindow):
         if not self.config.has_section('CAMERA'):
             self.config.add_section('CAMERA')
 
-        self.save_roi_position_to_config(self.roi1, 'ROI1')
-        self.save_roi_position_to_config(self.roi2, 'ROI2')
-        self.save_roi_position_to_config(self.roi3, 'ROI3')
-        self.save_roi_position_to_config(self.roi4, 'ROI4')
-        self.save_roi_position_to_config(self.roi5, 'ROI5')
-        self.save_roi_position_to_config(self.roi6, 'ROI6')
-        self.save_roi_position_to_config(self.roi7, 'ROI7')
-        self.save_roi_position_to_config(self.roi8, 'ROI8')
-        self.save_roi_position_to_config(self.roi9, 'ROI9')
-        self.save_roi_position_to_config(self.roi10, 'ROI10')
+        for roi_widget in self.roi_widgets:
+            self.save_roi_position_to_config(roi_widget.roi, roi_widget.name)
 
         with open('config.ini', 'w') as configfile:
             self.config.write(configfile)
@@ -247,16 +231,8 @@ class MainWindow(QMainWindow):
             return
         
         self.timestamps.clear()
-        self.roi1_max_values.clear()
-        self.roi2_max_values.clear()
-        self.roi3_max_values.clear()
-        self.roi4_max_values.clear()
-        self.roi5_max_values.clear()
-        self.roi6_max_values.clear()
-        self.roi7_max_values.clear()
-        self.roi8_max_values.clear()
-        self.roi9_max_values.clear()
-        self.roi10_max_values.clear()
+        for roi_widget in self.roi_widgets:
+            roi_widget.clear_max_values()
 
         self.ui.button_record.setText('Stop')
         self.ui.label_recording.setText('Recording')
@@ -345,40 +321,11 @@ class MainWindow(QMainWindow):
         deque_length = 6000
 
         self.timestamps = deque(maxlen = deque_length)
-        self.roi1_max_values = deque(maxlen = deque_length)
-        self.roi2_max_values = deque(maxlen = deque_length)
-        self.roi3_max_values = deque(maxlen = deque_length)
-        self.roi4_max_values = deque(maxlen = deque_length)
-        self.roi5_max_values = deque(maxlen = deque_length)
-        self.roi6_max_values = deque(maxlen = deque_length)
-        self.roi7_max_values = deque(maxlen = deque_length)
-        self.roi8_max_values = deque(maxlen = deque_length)
-        self.roi9_max_values = deque(maxlen = deque_length)
-        self.roi10_max_values = deque(maxlen = deque_length)
 
     def initialize_roi(self, img):
-        self.roi1 = self.get_roi_from_config(self.roi_config[0], pen =self.roiwidgets[0].color)
-        self.roi2 = self.get_roi_from_config(self.roi_config[1], pen =self.roiwidgets[1].color)
-        self.roi3 = self.get_roi_from_config(self.roi_config[2], pen =self.roiwidgets[2].color)
-        self.roi4 = self.get_roi_from_config(self.roi_config[3], pen =self.roiwidgets[3].color)
-        self.roi5 = self.get_roi_from_config(self.roi_config[4], pen =self.roiwidgets[4].color)
-        self.roi6 = self.get_roi_from_config(self.roi_config[5], pen =self.roiwidgets[5].color)
-        self.roi7 = self.get_roi_from_config(self.roi_config[6], pen =self.roiwidgets[6].color)
-        self.roi8 = self.get_roi_from_config(self.roi_config[7], pen =self.roiwidgets[7].color)
-        self.roi9 = self.get_roi_from_config(self.roi_config[8], pen =self.roiwidgets[8].color)
-        self.roi10 = self.get_roi_from_config(self.roi_config[9], pen =self.roiwidgets[9].color)
-
-        
-        self.image.getView().addItem(self.roi1)
-        self.image.getView().addItem(self.roi3)
-        self.image.getView().addItem(self.roi4)
-        self.image.getView().addItem(self.roi2)
-        self.image.getView().addItem(self.roi5)
-        self.image.getView().addItem(self.roi6)
-        self.image.getView().addItem(self.roi7)
-        self.image.getView().addItem(self.roi8)
-        self.image.getView().addItem(self.roi9)
-        self.image.getView().addItem(self.roi10)
+        for roi_widget in self.roi_widgets:
+            roi = roi_widget.createRoi()
+            self.image.getView().addItem(roi)
     
     def get_roi_from_config(self, roi_config:Roi, pen):
         return pg.RectROI([roi_config.x, roi_config.y], [roi_config.w, roi_config.h], pen = pen)
@@ -393,86 +340,38 @@ class MainWindow(QMainWindow):
 
         self.pw_roi.clear()
 
-        if self.roiwidgets[0].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi1_max_values), name='ROI1', pen= self.roiwidgets[0].color)
-        if self.roiwidgets[1].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi2_max_values), name='ROI2', pen= self.roiwidgets[1].color)
-        if self.roiwidgets[2].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi3_max_values), name='ROI3', pen= self.roiwidgets[2].color)
-        if self.roiwidgets[3].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi4_max_values), name='ROI4', pen= self.roiwidgets[3].color)
-        if self.roiwidgets[4].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi5_max_values), name='ROI5', pen= self.roiwidgets[4].color)
-        if self.roiwidgets[5].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi6_max_values), name='ROI6', pen= self.roiwidgets[5].color)
-        if self.roiwidgets[6].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi7_max_values), name='ROI7', pen= self.roiwidgets[6].color)
-        if self.roiwidgets[7].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi8_max_values), name='ROI8', pen= self.roiwidgets[7].color)
-        if self.roiwidgets[8].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi9_max_values), name='ROI9', pen= self.roiwidgets[8].color)
-        if self.roiwidgets[9].isChecked():
-            self.pw_roi.plot(list(self.timestamps), list(self.roi10_max_values), name='ROI10', pen= self.roiwidgets[9].color)
-
+        for roi_widget in self.roi_widgets:
+            if roi_widget.isChecked():
+                self.pw_roi.plot(list(self.timestamps), list(roi_widget.max_values), name= roi_widget.name, pen= roi_widget.color)
                 
     def calculate_roi(self, img, timestamp):
         #Loop over all ROI: calculate values
         # Push to redis
         # Update corresponding GUI components
 
-        calculator = BrightnessCalculator([self.roi1.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi2.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi3.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi4.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi5.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi6.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi7.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi8.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi9.getArrayRegion(img, self.image.getImageItem()),
-                                      self.roi10.getArrayRegion(img, self.image.getImageItem())])
+        calculator = BrightnessCalculator([roi_widget.roi.getArrayRegion(img, self.image.getImageItem()) for roi_widget in self.roi_widgets])
         
         calculator.run()
 
-        roi_values = {'roi1': calculator.results[0], 
-                      'roi2': calculator.results[1], 
-                      'roi3': calculator.results[2], 
-                      'roi4': calculator.results[3], 
-                      'roi5': calculator.results[4], 
-                      'roi6': calculator.results[5], 
-                      'roi7': calculator.results[6], 
-                      'roi8': calculator.results[7],
-                      'roi9': calculator.results[8],
-                      'roi10': calculator.results[9]}
+        roi_values = dict()
+        for i in range(len(self.roi_widgets)):
+            key = self.roi_widgets[i].db_key
+            value = calculator.results[i]
+            roi_values[key] = value
         
         self.redisclient.add_roi_values(timestamp, roi_values)
         
         self.timestamps.appendleft(datetime.timestamp(timestamp))
-        self.roi1_max_values.appendleft(calculator.results[0].max)
-        self.roi2_max_values.appendleft(calculator.results[1].max)
-        self.roi3_max_values.appendleft(calculator.results[2].max)
-        self.roi4_max_values.appendleft(calculator.results[3].max)
-        self.roi5_max_values.appendleft(calculator.results[4].max)
-        self.roi6_max_values.appendleft(calculator.results[5].max)
-        self.roi7_max_values.appendleft(calculator.results[6].max)
-        self.roi8_max_values.appendleft(calculator.results[7].max)
-        self.roi9_max_values.appendleft(calculator.results[8].max)
-        self.roi10_max_values.appendleft(calculator.results[9].max)
+        for i in range(len(self.roi_widgets)):
+            self.roi_widgets[i].add_max_value(calculator.results[i].max)
                 
         self.roi_calculation_finished.emit(calculator)
         
         self.roi_tracking_frames += 1
     
     def on_roi_calculations_finished(self, calculator):
-        self.roiwidgets[0].setValues(calculator.results[0])
-        self.roiwidgets[1].setValues(calculator.results[1])
-        self.roiwidgets[2].setValues(calculator.results[2])
-        self.roiwidgets[3].setValues(calculator.results[3])
-        self.roiwidgets[4].setValues(calculator.results[4])
-        self.roiwidgets[5].setValues(calculator.results[5])
-        self.roiwidgets[6].setValues(calculator.results[6])
-        self.roiwidgets[7].setValues(calculator.results[7])
-        self.roiwidgets[8].setValues(calculator.results[8])
-        self.roiwidgets[9].setValues(calculator.results[9])
+        for i in range(len(self.roi_widgets)):
+            self.roi_widgets[i].setValues(calculator.results[i])
 
     def closeEvent(self, *args):
         #stopgrab

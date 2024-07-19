@@ -3,13 +3,17 @@ from PyQt5.uic import loadUi
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QFrame
 from camera.utils.utils import BrightnessResults
+from camera.roi import Roi
+import pyqtgraph as pg
+from collections import deque
 
 class RoiWidget(QWidget):
-    def __init__(self, parent, index: int, color : QColor):
+    def __init__(self, parent, index: int, color : QColor, deque_length = 6000):
         QWidget.__init__(self, parent)
 
         self.ui = loadUi('camera/roiwidget.ui', self)
         self.name = f'ROI {index}'
+        self.db_key = f'roi{index}'
         self.ui.label.setText(self.name)
         frame = self.frame_roiul
         frame.setFrameShape(QFrame.Panel)
@@ -17,6 +21,8 @@ class RoiWidget(QWidget):
         frame.setMidLineWidth(3)
 
         self.setColor(color)
+
+        self.max_values = deque(maxlen = deque_length)
 
     def setColor(self, color):
         self.color = color
@@ -31,3 +37,20 @@ class RoiWidget(QWidget):
     
     def isChecked(self):
         return self.ui.checkBox_ROI1.isChecked()
+    
+    def setConfig(self, config: Roi):
+        self.config = config
+    
+    def createRoi(self):
+        self.roi = pg.RectROI([self.config.x, self.config.y], [self.config.w, self.config.h], pen = self.color)
+        return self.roi
+
+    def updateRoi_from_config(self):
+        self.roi.setPos([self.config.x, self.config.y])
+        self.roi.setSize([self.config.w, self.config.h])
+    
+    def clear_max_values(self):
+        self.max_values.clear()
+    
+    def add_max_value(self, value):
+        self.max_values.appendleft(value)
