@@ -31,6 +31,7 @@ from configparser import ConfigParser
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 from opcua import OPCUAConnection
+from components.motor import Motor
 from components.shutter import Shutter
 
 #### DELAY LINES FUNCTIONS ####
@@ -84,6 +85,8 @@ def move_abs_dl(pos, speed, opcua_motor):
     method = parent.get_child("4:RPC_MoveAbs")
     arguments = [pos, speed]
     parent.call_method(method, *arguments)
+    #dl = Motor(opcua_conn, 'ns=4;s=MAIN.Delay_Lines.NDL'+dl_id, 'DL_'+dl_id)
+    #dl.command_move_absolute(pos, speed)
     
     # Wait for the DL to be ready
     on_destination = False
@@ -91,14 +94,13 @@ def move_abs_dl(pos, speed, opcua_motor):
         time.sleep(0.01)
         # status, state = opcua_conn.read_nodes(["ns=4;s=MAIN.DL_Servo_1.stat.sStatus", "ns=4;s=MAIN.DL_Servo_1.stat.sState"])
         status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.'+opcua_motor+'.stat.sStatus', 'ns=4;s=MAIN.'+opcua_motor+'.stat.sState'])
-
         on_destination = status == 'STANDING' and state == 'OPERATIONAL'
 
     # Disconnect
     opcua_conn.disconnect()      
     return 'done'
 
-# Move abs motor
+# Read current position
 def read_current_pos(opcua_motor):
     """ Read current position """
     
