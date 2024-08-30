@@ -175,3 +175,11 @@ def shutter_open(shutter_id):
     # Disconnect
     opcua_conn.disconnect()
     return 'done'
+
+def all_shutters_close(n_aper):
+    for i in range(n_aper):
+        shutter_close(str(i+1))
+        
+def all_shutters_open(n_aper):
+    for i in range(n_aper):
+        shutter_open(str(i+1))  

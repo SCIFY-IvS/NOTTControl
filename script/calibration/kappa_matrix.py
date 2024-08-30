@@ -327,7 +327,7 @@ def Kappa_matrix_measurement_1 (delay,shutter):# calculation of Kappa Matrix (In
     return(Kappa_matrix)
                                 
 def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (Interferometric outputs depending of total beam outputs )
-   
+    global startend
    
     P1='roi1_sum' # define all the ROI output
     P2='roi2_sum'
@@ -345,14 +345,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
     shutter_close('4')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start11, end11]=define_time(delay)
 
-    Value_P1=get_mean_value(P1, start,end)
-    Value_I1=get_mean_value(I1, start,end)
-    Value_I2=get_mean_value(I2, start,end)
-    Value_I3=get_mean_value(I3, start,end)
-    Value_I4=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P1=get_mean_value(P1, start11,end11)
+    Value_I1=get_mean_value(I1, start11,end11)
+    Value_I2=get_mean_value(I2, start11,end11)
+    Value_I3=get_mean_value(I3, start11,end11)
+    Value_I4=get_mean_value(I4, start11,end11)
+    Value_Shift=get_mean_value(Shift, start11,end11)
 
     shutter_close('1')
     shutter_close('2')
@@ -360,14 +360,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
     shutter_close('4')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start12, end12]=define_time(delay)
 
-    Value_P1_2=get_mean_value(P1, start,end)
-    Value_I1_2=get_mean_value(I1, start,end)
-    Value_I2_2=get_mean_value(I2, start,end)
-    Value_I3_2=get_mean_value(I3, start,end)
-    Value_I4_2=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P1_2=get_mean_value(P1, start12,end12)
+    Value_I1_2=get_mean_value(I1, start12,end12)
+    Value_I2_2=get_mean_value(I2, start12,end12)
+    Value_I3_2=get_mean_value(I3, start12,end12)
+    Value_I4_2=get_mean_value(I4, start12,end12)
+    Value_Shift_2=get_mean_value(Shift, start12,end12)
 
     P1_clean=Value_P1-Value_Shift-Value_P1_2+Value_Shift_2+shutter[0]# clean background
    
@@ -386,14 +386,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
 
     time.sleep(delay)
 
-    [start, end]=define_time(delay)
+    [start21, end21]=define_time(delay)
 
-    Value_P2=get_mean_value(P2, start,end)
-    Value_I1=get_mean_value(I1, start,end)
-    Value_I2=get_mean_value(I2, start,end)
-    Value_I3=get_mean_value(I3, start,end)
-    Value_I4=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P2=get_mean_value(P2, start21,end21)
+    Value_I1=get_mean_value(I1, start21,end21)
+    Value_I2=get_mean_value(I2, start21,end21)
+    Value_I3=get_mean_value(I3, start21,end21)
+    Value_I4=get_mean_value(I4, start21,end21)
+    Value_Shift=get_mean_value(Shift, start21,end21)
 
     shutter_close('1')
     shutter_close('2')
@@ -402,14 +402,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
 
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start22, end22]=define_time(delay)
 
-    Value_P2_2=get_mean_value(P2, start,end)
-    Value_I1_2=get_mean_value(I1, start,end)
-    Value_I2_2=get_mean_value(I2, start,end)
-    Value_I3_2=get_mean_value(I3, start,end)
-    Value_I4_2=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P2_2=get_mean_value(P2, start22,end22)
+    Value_I1_2=get_mean_value(I1, start22,end22)
+    Value_I2_2=get_mean_value(I2, start22,end22)
+    Value_I3_2=get_mean_value(I3, start22,end22)
+    Value_I4_2=get_mean_value(I4, start22,end22)
+    Value_Shift_2=get_mean_value(Shift, start22,end22)
 
     P2_clean=Value_P2-Value_Shift-Value_P2_2+Value_Shift_2+shutter[5]# clean background
    
@@ -426,14 +426,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
 
     time.sleep(delay)
 
-    [start, end]=define_time(delay)
+    [start31, end31]=define_time(delay)
 
-    Value_P3=get_mean_value(P3, start,end)
-    Value_I1=get_mean_value(I1, start,end)
-    Value_I2=get_mean_value(I2, start,end)
-    Value_I3=get_mean_value(I3, start,end)
-    Value_I4=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P3=get_mean_value(P3, start31,end31)
+    Value_I1=get_mean_value(I1, start31,end31)
+    Value_I2=get_mean_value(I2, start31,end31)
+    Value_I3=get_mean_value(I3, start31,end31)
+    Value_I4=get_mean_value(I4, start31,end31)
+    Value_Shift=get_mean_value(Shift, start31,end31)
 
     shutter_close('1')
     shutter_close('2')
@@ -441,14 +441,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
     shutter_close('4')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start32, end32]=define_time(delay)
 
-    Value_P3_2=get_mean_value(P3, start,end)
-    Value_I1_2=get_mean_value(I1, start,end)
-    Value_I2_2=get_mean_value(I2, start,end)
-    Value_I3_2=get_mean_value(I3, start,end)
-    Value_I4_2=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P3_2=get_mean_value(P3, start32,end32)
+    Value_I1_2=get_mean_value(I1, start32,end32)
+    Value_I2_2=get_mean_value(I2, start32,end32)
+    Value_I3_2=get_mean_value(I3, start32,end32)
+    Value_I4_2=get_mean_value(I4, start32,end32)
+    Value_Shift_2=get_mean_value(Shift, start32,end32)
 
     P3_clean=Value_P3-Value_Shift-Value_P3_2+Value_Shift_2+shutter[10]# clean background
     
@@ -466,14 +466,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
 
     time.sleep(delay)
 
-    [start, end]=define_time(delay)
+    [start41, end41]=define_time(delay)
 
-    Value_P4=get_mean_value(P4, start,end)
-    Value_I1=get_mean_value(I1, start,end)
-    Value_I2=get_mean_value(I2, start,end)
-    Value_I3=get_mean_value(I3, start,end)
-    Value_I4=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P4=get_mean_value(P4, start41,end41)
+    Value_I1=get_mean_value(I1, start41,end41)
+    Value_I2=get_mean_value(I2, start41,end41)
+    Value_I3=get_mean_value(I3, start41,end41)
+    Value_I4=get_mean_value(I4, start41,end41)
+    Value_Shift=get_mean_value(Shift, start41,end41)
 
     shutter_close('1')
     shutter_close('2')
@@ -481,14 +481,14 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
     shutter_close('4')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start42, end42]=define_time(delay)
 
-    Value_P4_2=get_mean_value(P4, start,end)
-    Value_I1_2=get_mean_value(I1, start,end)
-    Value_I2_2=get_mean_value(I2, start,end)
-    Value_I3_2=get_mean_value(I3, start,end)
-    Value_I4_2=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P4_2=get_mean_value(P4, start42,end42)
+    Value_I1_2=get_mean_value(I1, start42,end42)
+    Value_I2_2=get_mean_value(I2, start42,end42)
+    Value_I3_2=get_mean_value(I3, start42,end42)
+    Value_I4_2=get_mean_value(I4, start42,end42)
+    Value_Shift_2=get_mean_value(Shift, start42,end42)
 
     P4_clean=Value_P4-Value_Shift-Value_P4_2+Value_Shift_2+shutter[15]# clean background
 
@@ -500,6 +500,11 @@ def Kappa_matrix_measurement_2(delay, shutter):# calculation of Kappa Matrix (In
    
 
     shutdown()
+    
+    startend = [(start11, end11, start12, end12), 
+                (start21, end21, start22, end22),
+                (start31, end31, start32, end32),
+                (start41, end41, start42, end42)]
 
 
     P1_coefficients = np.array(P1_coefficients).reshape(-1, 1)
@@ -1072,7 +1077,8 @@ def measure_visibility(n, shutter): # measure visibility: n= nuller number, shut
 
 
 def shutter_radiation(delay): #measure shutter radiation. You must not have light from source
-    
+    global startend2
+
     P1='roi1_sum' # define all the ROI output
     P2='roi2_sum'
     I1='roi3_sum'
@@ -1088,26 +1094,26 @@ def shutter_radiation(delay): #measure shutter radiation. You must not have ligh
     shutter_close('1') #measure shutter 1 radiation
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start11, end11]=define_time(delay)
 
-    Value_P1_S1=get_mean_value(P1, start,end) #get values in each output of the shutter radiation
-    Value_I1_S1=get_mean_value(I1, start,end)
-    Value_I2_S1=get_mean_value(I2, start,end)
-    Value_I3_S1=get_mean_value(I3, start,end)
-    Value_I4_S1=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P1_S1=get_mean_value(P1, start11,end11) #get values in each output of the shutter radiation
+    Value_I1_S1=get_mean_value(I1, start11,end11)
+    Value_I2_S1=get_mean_value(I2, start11,end11)
+    Value_I3_S1=get_mean_value(I3, start11,end11)
+    Value_I4_S1=get_mean_value(I4, start11,end11)
+    Value_Shift=get_mean_value(Shift, start11,end11)
 
     shutter_open('1')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start12, end12]=define_time(delay)
 
-    Value_P1_2_S1=get_mean_value(P1, start,end)#get background
-    Value_I1_2_S1=get_mean_value(I1, start,end)
-    Value_I2_2_S1=get_mean_value(I2, start,end)
-    Value_I3_2_S1=get_mean_value(I3, start,end)
-    Value_I4_2_S1=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P1_2_S1=get_mean_value(P1, start12,end12)#get background
+    Value_I1_2_S1=get_mean_value(I1, start12,end12)
+    Value_I2_2_S1=get_mean_value(I2, start12,end12)
+    Value_I3_2_S1=get_mean_value(I3, start12,end12)
+    Value_I4_2_S1=get_mean_value(I4, start12,end12)
+    Value_Shift_2=get_mean_value(Shift, start12,end12)
 
     Shutter1=[Value_P1_S1-Value_Shift-Value_P1_2_S1+Value_Shift_2,Value_I1_S1-Value_Shift-Value_I1_2_S1+Value_Shift_2,Value_I2_S1-Value_Shift-Value_I2_2_S1+Value_Shift_2,Value_I3_S1-Value_Shift-Value_I3_2_S1+Value_Shift_2,Value_I4_S1-Value_Shift-Value_I4_2_S1+Value_Shift_2]
     #put values in a matrix [P1,I1,I2,I3,I4]
@@ -1115,52 +1121,52 @@ def shutter_radiation(delay): #measure shutter radiation. You must not have ligh
     shutter_close('2')# shutter 2 radiation
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start21, end21]=define_time(delay)
 
-    Value_P2_S2=get_mean_value(P2, start,end)
-    Value_I1_S2=get_mean_value(I1, start,end)
-    Value_I2_S2=get_mean_value(I2, start,end)
-    Value_I3_S2=get_mean_value(I3, start,end)
-    Value_I4_S2=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P2_S2=get_mean_value(P2, start21,end21)
+    Value_I1_S2=get_mean_value(I1, start21,end21)
+    Value_I2_S2=get_mean_value(I2, start21,end21)
+    Value_I3_S2=get_mean_value(I3, start21,end21)
+    Value_I4_S2=get_mean_value(I4, start21,end21)
+    Value_Shift=get_mean_value(Shift, start21,end21)
 
     shutter_open('2')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start22, end22]=define_time(delay)
 
-    Value_P2_2_S2=get_mean_value(P2, start,end)
-    Value_I1_2_S2=get_mean_value(I1, start,end)
-    Value_I2_2_S2=get_mean_value(I2, start,end)
-    Value_I3_2_S2=get_mean_value(I3, start,end)
-    Value_I4_2_S2=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P2_2_S2=get_mean_value(P2, start22,end22)
+    Value_I1_2_S2=get_mean_value(I1, start22,end22)
+    Value_I2_2_S2=get_mean_value(I2, start22,end22)
+    Value_I3_2_S2=get_mean_value(I3, start22,end22)
+    Value_I4_2_S2=get_mean_value(I4, start22,end22)
+    Value_Shift_2=get_mean_value(Shift, start22,end22)
 
     Shutter2=[Value_P2_S2-Value_Shift-Value_P2_2_S2+Value_Shift_2,Value_I1_S2-Value_Shift-Value_I1_2_S2+Value_Shift_2,Value_I2_S2-Value_Shift-Value_I2_2_S2+Value_Shift_2,Value_I3_S2-Value_Shift-Value_I3_2_S2+Value_Shift_2,Value_I4_S2-Value_Shift-Value_I4_2_S2+Value_Shift_2]
     #[P2,I1,I2,I3,I4]
     shutter_close('3') #shutter 3 radiation
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start31, end31]=define_time(delay)
 
-    Value_P3_S3=get_mean_value(P3, start,end)
-    Value_I1_S3=get_mean_value(I1, start,end)
-    Value_I2_S3=get_mean_value(I2, start,end)
-    Value_I3_S3=get_mean_value(I3, start,end)
-    Value_I4_S3=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P3_S3=get_mean_value(P3, start31,end31)
+    Value_I1_S3=get_mean_value(I1, start31,end31)
+    Value_I2_S3=get_mean_value(I2, start31,end31)
+    Value_I3_S3=get_mean_value(I3, start31,end31)
+    Value_I4_S3=get_mean_value(I4, start31,end31)
+    Value_Shift=get_mean_value(Shift, start31,end31)
 
     shutter_open('3')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start32, end32]=define_time(delay)
 
-    Value_P3_2_S3=get_mean_value(P3, start,end)
-    Value_I1_2_S3=get_mean_value(I1, start,end)
-    Value_I2_2_S3=get_mean_value(I2, start,end)
-    Value_I3_2_S3=get_mean_value(I3, start,end)
-    Value_I4_2_S3=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P3_2_S3=get_mean_value(P3, start32,end32)
+    Value_I1_2_S3=get_mean_value(I1, start32,end32)
+    Value_I2_2_S3=get_mean_value(I2, start32,end32)
+    Value_I3_2_S3=get_mean_value(I3, start32,end32)
+    Value_I4_2_S3=get_mean_value(I4, start32,end32)
+    Value_Shift_2=get_mean_value(Shift, start32,end32)
 
     Shutter3=[Value_P3_S3-Value_Shift-Value_P3_2_S3+Value_Shift_2,Value_I1_S3-Value_Shift-Value_I1_2_S3+Value_Shift_2,Value_I2_S3-Value_Shift-Value_I2_2_S3+Value_Shift_2,Value_I3_S3-Value_Shift-Value_I3_2_S3+Value_Shift_2,Value_I4_S3-Value_Shift-Value_I4_2_S3+Value_Shift_2]
     #[P3,I1,I2,I3,I4]
@@ -1168,29 +1174,35 @@ def shutter_radiation(delay): #measure shutter radiation. You must not have ligh
     shutter_close('4') #shutter 4 radiation
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start41, end41]=define_time(delay)
 
-    Value_P4_S4=get_mean_value(P4, start,end)
-    Value_I1_S4=get_mean_value(I1, start,end)
-    Value_I2_S4=get_mean_value(I2, start,end)
-    Value_I3_S4=get_mean_value(I3, start,end)
-    Value_I4_S4=get_mean_value(I4, start,end)
-    Value_Shift=get_mean_value(Shift, start,end)
+    Value_P4_S4=get_mean_value(P4, start41,end41)
+    Value_I1_S4=get_mean_value(I1, start41,end41)
+    Value_I2_S4=get_mean_value(I2, start41,end41)
+    Value_I3_S4=get_mean_value(I3, start41,end41)
+    Value_I4_S4=get_mean_value(I4, start41,end41)
+    Value_Shift=get_mean_value(Shift, start41,end41)
 
     shutter_open('4')
 
     time.sleep(delay)
-    [start, end]=define_time(delay)
+    [start42, end42]=define_time(delay)
 
-    Value_P4_2_S4=get_mean_value(P4, start,end)
-    Value_I1_2_S4=get_mean_value(I1, start,end)
-    Value_I2_2_S4=get_mean_value(I2, start,end)
-    Value_I3_2_S4=get_mean_value(I3, start,end)
-    Value_I4_2_S4=get_mean_value(I4, start,end)
-    Value_Shift_2=get_mean_value(Shift, start,end)
+    Value_P4_2_S4=get_mean_value(P4, start42,end42)
+    Value_I1_2_S4=get_mean_value(I1, start42,end42)
+    Value_I2_2_S4=get_mean_value(I2, start42,end42)
+    Value_I3_2_S4=get_mean_value(I3, start42,end42)
+    Value_I4_2_S4=get_mean_value(I4, start42,end42)
+    Value_Shift_2=get_mean_value(Shift, start42,end42)
 
     Shutter4=[Value_P4_S4-Value_Shift-Value_P4_2_S4+Value_Shift_2,Value_I1_S4-Value_Shift-Value_I1_2_S4+Value_Shift_2,Value_I2_S4-Value_Shift-Value_I2_2_S4+Value_Shift_2,Value_I3_S4-Value_Shift-Value_I3_2_S4+Value_Shift_2,Value_I4_S4-Value_Shift-Value_I4_2_S4+Value_Shift_2]
     #[P4,I1,I2,I3,I4]
+    
+    startend2 = [(start11, end11, start12, end12), 
+                (start21, end21, start22, end22),
+                (start31, end31, start32, end32),
+                (start41, end41, start42, end42)]
+    
     startup()
     return (Shutter1+ Shutter2+ Shutter3+ Shutter4) #return [P1,I1,I2,I3,I4,P2,I1,I2,I3,I4,P3,I1,I2,I3,I4,P4,I1,I2,I3,I4]
 
@@ -1238,3 +1250,167 @@ print(measure_visibility(n, shutter))
 #time.sleep(0.1)
 #shutter_open('2') # Measure the beam 1's outputs
 #shutter_close('2')
+
+# =============================================================================
+# MAM
+# =============================================================================
+import time
+from datetime import datetime, timedelta
+import nott_control
+
+def get_field(field, start, end, return_avg, db_address='redis://10.33.178.176:6379'):
+    """
+    Get the data in the database of the required `field` in a time range limited by `start` and `end`.
+    The returned object is a 2D-array which rows are the datapoints, the first column is the timestamp
+    and the 2nd column is the value of `field`.
+
+    Parameters
+    ----------
+    field : str
+        Field of the database to colect.
+    start : int
+        start timestamp in milliseconds. The timezone must be the one of the server.
+    end : int
+        end timestamp in milliseconds. The timezone must be the one of the server.
+    return_avg: bool
+        Return the average value on the number of points.
+    db_address : str, optional
+        Address of the database. The default is 'redis://10.33.178.176:6379'.
+
+    Returns
+    -------
+    output : 2d-array
+        Output of the required field from the database.
+
+    """
+    # Read data
+    r = redis.from_url(db_address)
+
+    # Extract data
+    ts = r.ts()
+
+     # Get ROI values
+    output = ts.range(field, start, end) # This function returns a list of tuples
+    output = np.array(output) # Array
+
+    if return_avg:
+        output = output.mean(0) # Average along the number of points axis
+
+    return  output
+
+    
+def build_kappa_matrix(delay, shutter_radiation, n_aper, fields, return_throughput):
+
+    
+    kappa_mat = []
+
+    for sh in range(n_aper):
+        # Measure of the bias induced by the shutters and measure the flux on the outputs of the chip
+        nott_control.all_shutters_close(n_aper)
+
+        time.sleep(delay)
+        end = datetime.fromtimestamp(time.time())
+        start = end - timedelta(seconds=delay)
+        
+        start = startend[sh][2]
+        end = startend[sh][3]
+        
+        fluxes_shutters_closed = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes_shutters_closed = np.array(fluxes_shutters_closed)
+        shift_shutters_closed = fluxes_shutters_closed[-1]
+        fluxes_shutters_closed = fluxes_shutters_closed[:-1]
+        
+        # Open one shutter and measure the flux on the outputs of the chip
+        shutter_open(str(sh))
+        time.sleep(delay)
+        end = datetime.fromtimestamp(time.time())
+        start = end - timedelta(seconds=delay)        
+        start = startend[sh][0]
+        end = startend[sh][1]
+
+        fluxes = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes = np.array(fluxes)
+        shift = fluxes[-1]
+        fluxes = fluxes[:-1]
+        
+        kappa_col = fluxes - shift - (fluxes_shutters_closed - shift_shutters_closed) + shutter_radiation[sh]
+        
+        if return_throughput:
+            kappa_col /= kappa_col.sum()
+        else:
+            kappa_col /= kappa_col[0]
+            
+        kappa_mat.append(kappa_col)
+        
+    kappa_mat = np.array(kappa_mat)
+    kappa_mat = kappa_mat.T
+    
+    nott_control.all_shutters_close(n_aper)
+    
+    return kappa_mat
+        
+def get_shutter_radiation(n_aper, delay, fields):
+    shutter_rads = []
+
+    nott_control.all_shutters_open(n_aper)
+    for sh in range(n_aper):
+        # Measure of the bias induced by the background and measure the flux on the outputs of the chip
+
+        time.sleep(delay)
+        end = datetime.fromtimestamp(time.time())
+        start = end - timedelta(seconds=delay)
+
+        start = startend2[sh][2]
+        end = startend2[sh][3]
+        
+        fluxes_bg = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes_bg = np.array(fluxes_bg)
+        shift_bg = fluxes_bg[-1]
+        fluxes_bg = fluxes_bg[:-1]
+        
+        # Close one shutter and measure the flux on the outputs of the chip
+        shutter_close(str(sh))
+        time.sleep(delay)
+        end = datetime.fromtimestamp(time.time())
+        start = end - timedelta(seconds=delay)
+        
+        start = startend2[sh][0]
+        end = startend2[sh][1]
+        
+        fluxes = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes = np.array(fluxes)
+        shift = fluxes[-1]
+        fluxes = fluxes[:-1]
+        
+        shutter_rad = fluxes - shift - (fluxes_bg - shift_bg)
+        
+        shutter_rads.append(shutter_rad)
+
+        shutter_open(str(sh))
+        
+        
+    shutter_rads = np.array(shutter_rads)
+    
+    return shutter_rads
+
+P1='roi1_sum' # define all the ROI output
+P2='roi2_sum'
+I1='roi3_sum'
+I2='roi4_sum'
+I3='roi5_sum'
+I4='roi6_sum'
+P3='roi7_sum'
+P4='roi8_sum'
+Shift='roi9_sum'
+fields = [P1, P2, I1, I2, I3, I4, P3, P4, Shift]
+
+delay = 2
+n_aper = 4
+return_throughput = False
+
+shutter=shutter_radiation(delay)
+time.sleep(15)
+a=Kappa_matrix_measurement_2(delay,shutter)
+
+shutters_radiation = get_shutter_radiation(n_aper, delay, fields)
+kappa = build_kappa_matrix(delay, shutters_radiation, n_aper, fields, return_throughput)
