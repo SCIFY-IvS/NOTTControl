@@ -31,7 +31,7 @@ def define_time(delay):# Define time interval
 
     return(start,end)
 
-def get_field(field1, start, end ):
+def get_field(field1, start, end):
     
     
     # Read data
@@ -1258,7 +1258,7 @@ import time
 from datetime import datetime, timedelta
 import nott_control
 
-def get_field(field, start, end, return_avg, db_address='redis://10.33.178.176:6379'):
+def get_field2(field, start, end, return_avg, db_address='redis://10.33.178.176:6379'):
     """
     Get the data in the database of the required `field` in a time range limited by `start` and `end`.
     The returned object is a 2D-array which rows are the datapoints, the first column is the timestamp
@@ -1315,7 +1315,7 @@ def build_kappa_matrix(delay, shutter_radiation, n_aper, fields, return_throughp
         start = startend[sh][2]
         end = startend[sh][3]
         
-        fluxes_shutters_closed = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes_shutters_closed = [get_field2(elt, start, end, True)[1] for elt in fields]
         fluxes_shutters_closed = np.array(fluxes_shutters_closed)
         shift_shutters_closed = fluxes_shutters_closed[-1]
         fluxes_shutters_closed = fluxes_shutters_closed[:-1]
@@ -1328,7 +1328,7 @@ def build_kappa_matrix(delay, shutter_radiation, n_aper, fields, return_throughp
         start = startend[sh][0]
         end = startend[sh][1]
 
-        fluxes = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes = [get_field2(elt, start, end, True)[1] for elt in fields]
         fluxes = np.array(fluxes)
         shift = fluxes[-1]
         fluxes = fluxes[:-1]
@@ -1363,7 +1363,7 @@ def get_shutter_radiation(n_aper, delay, fields):
         start = startend2[sh][2]
         end = startend2[sh][3]
         
-        fluxes_bg = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes_bg = [get_field2(elt, start, end, True)[1] for elt in fields]
         fluxes_bg = np.array(fluxes_bg)
         shift_bg = fluxes_bg[-1]
         fluxes_bg = fluxes_bg[:-1]
@@ -1377,7 +1377,7 @@ def get_shutter_radiation(n_aper, delay, fields):
         start = startend2[sh][0]
         end = startend2[sh][1]
         
-        fluxes = [get_field(elt, start, end, True)[1] for elt in fields]
+        fluxes = [get_field2(elt, start, end, True)[1] for elt in fields]
         fluxes = np.array(fluxes)
         shift = fluxes[-1]
         fluxes = fluxes[:-1]
