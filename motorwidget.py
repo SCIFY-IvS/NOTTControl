@@ -93,26 +93,14 @@ class MotorWidget(QWidget):
             self.ui.label_error.setText(str(e))
     
     def load_position(self):
-        if self.timestamp is not None:
-            previous_timestamp = self.timestamp
-        else:
-            previous_timestamp = None
-        
         current_pos, current_speed, timestamp = self._motor.getPositionAndSpeed()
-
-        if (previous_timestamp is not None) and previous_timestamp == timestamp:
-            #print('Duplicate timestamp!')
-            #print(self.timestamp)
-            return
         
         # Convert mm -> micron
         self.current_pos = current_pos * 1000
         self.current_speed = current_speed * 1000
-        self.timestamp = timestamp
-
-        timestamp_d = datetime.utcnow()
-        # datetime.strptime(self.timestamp, '%Y-%m-%d-%H:%M:%S.%f')  ! Does not record in DB like this (TO BE FIXED)
-        self.redis_client.add_dl_position(self._motor.name, timestamp_d, self.current_pos)
+        
+        timestamp_plc = datetime.strptime(timestamp, '%Y-%m-%d-%H:%M:%S.%f')        
+        self.redis_client.add_dl_position(self._motor.name, timestamp_plc, self.current_pos)
 
     # Reset motor
     def reset_motor(self):

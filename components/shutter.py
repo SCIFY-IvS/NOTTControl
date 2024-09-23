@@ -30,5 +30,5 @@ class Shutter():
         return (status, state, substate)
     
     def getHardwareStatus(self):
-        hwStatus = self._opcua_conn.read_node(f"{self._prefix}.stat.sHwStatus")
-        return hwStatus
+        hwStatus, timestamp = self._opcua_conn.read_nodes([f"{self._prefix}.stat.sHwStatus", "ns=4;s=INFRATEC_TRIGERS.NottTime.stat.sSystemTime"])
+        return (hwStatus, timestamp)
