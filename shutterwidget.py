@@ -43,7 +43,6 @@ class ShutterWidget(QWidget):
     
     def load_position(self):
         try:
-            timestamp_d = datetime.utcnow()
             hwStatus, timestamp = self._shutter.getHardwareStatus()
             timestamp_plc = datetime.strptime(timestamp, '%Y-%m-%d-%H:%M:%S.%f')
 
