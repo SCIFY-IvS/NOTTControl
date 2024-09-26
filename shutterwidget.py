@@ -43,15 +43,15 @@ class ShutterWidget(QWidget):
     
     def load_position(self):
         try:
-            timestamp_d = datetime.utcnow()
-            hwStatus = self._shutter.getHardwareStatus()
+            hwStatus, timestamp = self._shutter.getHardwareStatus()
+            timestamp_plc = datetime.strptime(timestamp, '%Y-%m-%d-%H:%M:%S.%f')
 
             shutter_pos = -1
             if hwStatus == "OPEN":
                 shutter_pos = 1
             if hwStatus == "CLOSED":
                 shutter_pos = 0
-            self.redis_client.add_shutter_position(self._shutter.name, timestamp_d, shutter_pos)
+            self.redis_client.add_shutter_position(self._shutter.name, timestamp_plc, shutter_pos)
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))

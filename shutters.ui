@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
-    <height>768</height>
+    <width>1594</width>
+    <height>946</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -179,11 +179,41 @@ color: rgb(255, 255, 255);</string>
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="ShutterWidget" name="shutter_widget" native="true">
+  <widget class="ShutterWidget" name="shutter_widget_1" native="true">
    <property name="geometry">
     <rect>
      <x>230</x>
      <y>100</y>
+     <width>554</width>
+     <height>238</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="ShutterWidget" name="shutter_widget_2" native="true">
+   <property name="geometry">
+    <rect>
+     <x>820</x>
+     <y>100</y>
+     <width>554</width>
+     <height>238</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="ShutterWidget" name="shutter_widget_3" native="true">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>390</y>
+     <width>554</width>
+     <height>238</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="ShutterWidget" name="shutter_widget_4" native="true">
+   <property name="geometry">
+    <rect>
+     <x>820</x>
+     <y>390</y>
      <width>554</width>
      <height>238</height>
     </rect>

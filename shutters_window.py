@@ -21,13 +21,19 @@ class ShutterWindow(QWidget):
         self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
-        self._shutter = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
+        self._shutter1 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
+        self._shutter2 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH2", 'Shutter 2')
+        self._shutter3 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH3", 'Shutter 3')
+        self._shutter4 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH4", 'Shutter 4')
 
         self.redis_client = redis_client
 
         self.ui = loadUi('shutters.ui', self)
 
-        self.ui.shutter_widget.setup(self.opcua_conn, self.redis_client, self._shutter)
+        self.ui.shutter_widget_1.setup(self.opcua_conn, self.redis_client, self._shutter1)
+        self.ui.shutter_widget_2.setup(self.opcua_conn, self.redis_client, self._shutter2)
+        self.ui.shutter_widget_3.setup(self.opcua_conn, self.redis_client, self._shutter3)
+        self.ui.shutter_widget_4.setup(self.opcua_conn, self.redis_client, self._shutter4)
 
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
@@ -45,7 +51,13 @@ class ShutterWindow(QWidget):
         super().closeEvent(*args)
 
     def refresh_status(self):
-        self.ui.shutter_widget.refresh_status()
+        self.ui.shutter_widget_1.refresh_status()
+        self.ui.shutter_widget_2.refresh_status()
+        self.ui.shutter_widget_3.refresh_status()
+        self.ui.shutter_widget_4.refresh_status()
     
     def load_positions(self):
-        self.ui.shutter_widget.load_position()
+        self.ui.shutter_widget_1.load_position()
+        self.ui.shutter_widget_2.load_position()
+        self.ui.shutter_widget_3.load_position()
+        self.ui.shutter_widget_4.load_position()
