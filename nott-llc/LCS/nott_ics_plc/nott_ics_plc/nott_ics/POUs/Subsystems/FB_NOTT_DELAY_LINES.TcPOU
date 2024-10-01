@@ -64,6 +64,19 @@ ptrDelayLines[3] := ADR(NDL3);
 ptrDelayLines[4] := ADR(NDL4);]]></ST>
       </Implementation>
     </Method>
+    <Method Name="M_SET_DL_ACTUAL_POS" Id="{923e0460-4163-43dd-a152-986b0e271ba0}">
+      <Declaration><![CDATA[METHOD M_SET_DL_ACTUAL_POS : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+NOTT_GVL.gv_DL1_ActualPos := NDL1.M_GetActualPos();
+NOTT_GVL.gv_DL2_ActualPos := NDL2.M_GetActualPos();
+NOTT_GVL.gv_DL3_ActualPos := NDL3.M_GetActualPos();
+NOTT_GVL.gv_DL4_ActualPos := NDL4.M_GetActualPos();]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_NOTT_DELAY_LINES">
       <LineId Id="19" Count="4" />
       <LineId Id="9" Count="0" />
@@ -82,6 +95,11 @@ ptrDelayLines[4] := ADR(NDL4);]]></ST>
       <LineId Id="64" Count="0" />
     </LineIds>
     <LineIds Name="FB_NOTT_DELAY_LINES.M_Configure">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_DELAY_LINES.M_SET_DL_ACTUAL_POS">
       <LineId Id="6" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="7" Count="2" />

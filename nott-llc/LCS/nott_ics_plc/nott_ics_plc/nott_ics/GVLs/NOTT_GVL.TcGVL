@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="NOTT_GVL" Id="{a4cfa805-779e-40b0-ae73-d2fd05489ead}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	// Actual position of the delay lines
+	gv_DL1_ActualPos:		LREAL;
+	gv_DL2_ActualPos:		LREAL;
+	gv_DL3_ActualPos:		LREAL;
+	gv_DL4_ActualPos:		LREAL;
+	
+	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

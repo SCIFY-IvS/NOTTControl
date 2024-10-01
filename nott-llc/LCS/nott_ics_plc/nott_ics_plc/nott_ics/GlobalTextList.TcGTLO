@@ -11,6 +11,36 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"229"</v>
+              <v n="TextDefault">"%.4f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"992"</v>
+              <v n="TextDefault">"%.5f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"28"</v>
+              <v n="TextDefault">"%.6f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"860"</v>
+              <v n="TextDefault">"%.7f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"753"</v>
+              <v n="TextDefault">"Absolute position used by "MOVE ABS""</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"174"</v>
+              <v n="TextDefault">"Backlash"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"335"</v>
               <v n="TextDefault">"DL 1"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -36,6 +66,21 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1168"</v>
+              <v n="TextDefault">"Offset (REL)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1376"</v>
+              <v n="TextDefault">"Position (ABS)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"510"</v>
+              <v n="TextDefault">"Position Difference"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"1345"</v>
               <v n="TextDefault">"PVV1"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -53,6 +98,11 @@
             <o>
               <v n="TextID">"115"</v>
               <v n="TextDefault">"PVV4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2351"</v>
+              <v n="TextDefault">"Relative offset used by "MOVE REL""</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -88,6 +138,21 @@
             <o>
               <v n="TextID">"549"</v>
               <v n="TextDefault">"Shutter1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1111"</v>
+              <v n="TextDefault">"Speed (Pos)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1135"</v>
+              <v n="TextDefault">"Speed (Vel)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1119"</v>
+              <v n="TextDefault">"Target              Actual"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
           </l>

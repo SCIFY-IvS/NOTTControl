@@ -1424,47 +1424,6 @@ External Setpoint Generation:
 			</Relations>
 		</DataType>
 		<DataType>
-			<Name GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library" AutoDeleteType="true">T_MOTOR_SWITCHES</Name>
-			<BitSize>48</BitSize>
-			<SubItem>
-				<Name>bLSTOP</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<Comment><![CDATA[ Variables that need mapping ]]></Comment>
-				<BitSize>8</BitSize>
-				<BitOffs>0</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bLHW</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>8</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bREF</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>16</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bINDEX</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>24</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bUHW</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>32</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bUSTOP</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>40</BitOffs>
-			</SubItem>
-		</DataType>
-		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-000000000041}" TcBaseType="true" HideSubItems="true" CName="AmsNetId">AMSNETID</Name>
 			<BitSize>48</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
@@ -1541,6 +1500,47 @@ External Setpoint Generation:
 				<Default>
 					<Value>0</Value>
 				</Default>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library" AutoDeleteType="true">T_MOTOR_SWITCHES</Name>
+			<BitSize>48</BitSize>
+			<SubItem>
+				<Name>bLSTOP</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<Comment><![CDATA[ Variables that need mapping ]]></Comment>
+				<BitSize>8</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bLHW</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>8</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bREF</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>16</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bINDEX</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>24</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUHW</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>32</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUSTOP</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>40</BitOffs>
 			</SubItem>
 		</DataType>
 		<DataType>
@@ -2320,7 +2320,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{A025403A-93E0-194D-5471-DCA246525EE7}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{2CC87226-3CEC-A0BA-A8FA-763221AFCFFE}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -2333,6 +2333,57 @@ External Setpoint Generation:
 							<Name>INFRATEC_TRIGERS.Cam_response_2</Name>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_inTime</Name>
+							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_exTime</Name>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_dc2TcOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_dc2ExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_extDevNotConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_syncMode</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_AdsAddr</Name>
+							<Comment><![CDATA[ ADS address structure]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpExtTime</Name>
+							<Comment><![CDATA[ Input variables from NTP]]></Comment>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpSysTime</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpSynchronized</Name>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>CameraTrigs Outputs</Name>
@@ -2343,6 +2394,10 @@ External Setpoint Generation:
 						<Var>
 							<Name>INFRATEC_TRIGERS.Trig_Cam_2</Name>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>INFRATEC_TRIGERS.NottTime.q_timeInfo</Name>
+							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
 						</Var>
 					</Vars>
 					<Vars VarGrpType="1" ContextId="1" AreaNo="16">
@@ -2591,57 +2646,6 @@ External Setpoint Generation:
 							<Name>MAIN.nott_ics.Shutters.NSH4.i_bClosed</Name>
 							<Type>BOOL</Type>
 						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_inTime</Name>
-							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
-							<Type>ULINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_exTime</Name>
-							<Type>ULINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_dc2TcOffset</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_dc2ExtOffset</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_extDevNotConnected</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_syncMode</Name>
-							<Type>UINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_AdsAddr</Name>
-							<Comment><![CDATA[ ADS address structure]]></Comment>
-							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_exNtpExtTime</Name>
-							<Comment><![CDATA[ Input variables from NTP]]></Comment>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_exNtpSysTime</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_exNtpExtOffset</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_exNtpConnected</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.i_exNtpSynchronized</Name>
-							<Type>BOOL</Type>
-						</Var>
 					</Vars>
 					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
@@ -2705,10 +2709,6 @@ External Setpoint Generation:
  Outputs ]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
-						<Var>
-							<Name>MAIN.nott_ics.NottTime.q_timeInfo</Name>
-							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
-						</Var>
 					</Vars>
 					<Contexts>
 						<Context>
@@ -2732,10 +2732,10 @@ External Setpoint Generation:
 					</Contexts>
 					<InitSymbols>
 						<InitSymbol>
-							<Name>MAIN.nott_ics.NottTime.fb_SendDiag.oid</Name>
+							<Name>INFRATEC_TRIGERS.NottTime.fb_SendDiag.oid</Name>
 							<Type GUID="{18071995-0000-0000-0000-00000000000F}">OTCID</Type>
 							<Comment><![CDATA[ TF6311 realtime driver parameters ]]></Comment>
-							<AreaNo>#x00000013</AreaNo>
+							<AreaNo>#x00000003</AreaNo>
 							<Data>00000000</Data>
 						</InitSymbol>
 					</InitSymbols>
@@ -2985,40 +2985,40 @@ External Setpoint Generation:
 							<MBoxUserCmdData>02000300090000000b000000030000000000000000000000000000000000000020128005010000000153706565642072616e676500</MBoxUserCmdData>
 							<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 								<ExcludePdo>#x1a01</ExcludePdo>
-								<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
+								<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Latch extern valid" Index="#x6000" Sub="#x02">
+								<Entry Name="Status__Latch extern valid" Index="#x6000" Sub="#x02" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Set counter done" Index="#x6000" Sub="#x03">
+								<Entry Name="Status__Set counter done" Index="#x6000" Sub="#x03" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Counter underflow" Index="#x6000" Sub="#x04">
+								<Entry Name="Status__Counter underflow" Index="#x6000" Sub="#x04" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Counter overflow" Index="#x6000" Sub="#x05">
+								<Entry Name="Status__Counter overflow" Index="#x6000" Sub="#x05" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
 								<Entry Name="Status__">
 									<Type GUID="{18071995-0000-0000-0000-002000000002}">ARRAY [0..1] OF BIT</Type>
 								</Entry>
-								<Entry Name="Status__Extrapolation stall" Index="#x6000" Sub="#x08">
+								<Entry Name="Status__Extrapolation stall" Index="#x6000" Sub="#x08" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Status of input A" Index="#x6000" Sub="#x09">
+								<Entry Name="Status__Status of input A" Index="#x6000" Sub="#x09" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Status of input B" Index="#x6000" Sub="#x0a">
+								<Entry Name="Status__Status of input B" Index="#x6000" Sub="#x0a" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Status of input C" Index="#x6000" Sub="#x0b">
+								<Entry Name="Status__Status of input C" Index="#x6000" Sub="#x0b" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
 								<Entry Name="Status__">
 									<Type GUID="{18071995-0000-0000-0000-002000000001}">ARRAY [0..0] OF BIT</Type>
 								</Entry>
-								<Entry Name="Status__Status of extern latch" Index="#x6000" Sub="#x0d">
+								<Entry Name="Status__Status of extern latch" Index="#x6000" Sub="#x0d" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
 								<Entry Name="Status__Sync error" Index="#x6000" Sub="#x0e">
@@ -3124,10 +3124,10 @@ External Setpoint Generation:
 								<Entry Name="Status__">
 									<Type GUID="{18071995-0000-0000-0000-002000000003}">ARRAY [0..2] OF BIT</Type>
 								</Entry>
-								<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c">
+								<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
-								<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d">
+								<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d" Flags="#x00008020">
 									<Type>BIT</Type>
 								</Entry>
 								<Entry Name="Status__Sync error" Index="#x6010" Sub="#x0e">
@@ -4909,6 +4909,7 @@ External Setpoint Generation:
 		<MappingInfo Identifier="{00000000-2001-0850-0120-500852000403}" Id="#x02030030"/>
 		<MappingInfo Identifier="{00000000-2002-0850-0020-500810000403}" Id="#x02030010"/>
 		<MappingInfo Identifier="{00000000-0040-0304-3000-040341000403}" Id="#x02030020"/>
+		<MappingInfo Identifier="{08502001-0040-0304-0020-500840000403}" Id="#x02030060" Watchdog="00000000000000000000000000000000"/>
 		<MappingInfo Identifier="{05000010-2001-0850-3000-040301205008}" Id="#x02030040" Watchdog="14000000040000000400000004000000"/>
 		<OwnerA Name="TINC^NC-Task 1 SAF^Axes^NDL1">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1 (EL7047)">
@@ -5097,10 +5098,10 @@ External Setpoint Generation:
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1 (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.switches^bLHW" VarB="STM Status^Status^Digital input 1"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.switches^bUHW" VarB="STM Status^Status^Digital input 2"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 5 (EK1101)^NDL1-2.LIMITS (EL1124)">
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.switches^bLHW" VarB="Channel 1^Input"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.switches^bUHW" VarB="Channel 2^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL2.switches^bLHW" VarB="Channel 3^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL2.switches^bUHW" VarB="Channel 4^Input"/>
 			</OwnerB>

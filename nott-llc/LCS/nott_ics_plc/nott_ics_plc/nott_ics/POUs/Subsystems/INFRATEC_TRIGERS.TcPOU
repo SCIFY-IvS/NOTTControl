@@ -21,14 +21,25 @@ VAR
 	{attribute 'OPC.UA.DA' := '1'}
 	bCamResponse_2:			BOOL;
 	
+	Trig1_Sync_Info:		T_NOTT_IR_CAMERA_DL_SYNC;
+	Trig2_Sync_Info:		T_NOTT_IR_CAMERA_DL_SYNC;
 	
+	NottTime:			FB_TIME;
 	
+	// Time Stamp
+	fbGetSystemTime  : GETSYSTEMTIME;
+	fileTime         : T_FILETIME;
+	{attribute 'OPC.UA.DA':='1'}
+	sPLCTime            : STRING;
 	
 	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
+NottTime();
+
+
 
 Trig_Cam_1 := bTrigCam_1;
 Trig_Cam_2 := bTrigCam_2;
@@ -37,17 +48,33 @@ Trig_Cam_2 := bTrigCam_2;
 bCamResponse_1 := Cam_response_1;
 bCamResponse_2 := Cam_response_2;
 
+Trig1_Sync_Info.TimeStamp := NottTime.GetTime();
+Trig1_Sync_Info.lrActPos_DL1 := NOTT_GVL.gv_DL1_ActualPos;
+Trig1_Sync_Info.lrActPos_DL2 := NOTT_GVL.gv_DL1_ActualPos;
+Trig1_Sync_Info.lrActPos_DL3 := NOTT_GVL.gv_DL1_ActualPos;
+Trig1_Sync_Info.lrActPos_DL4 := NOTT_GVL.gv_DL1_ActualPos;
 
+// Time Stamps
+
+fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
+sPLCTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
 ]]></ST>
     </Implementation>
     <LineIds Name="INFRATEC_TRIGERS">
-      <LineId Id="30" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="31" Count="0" />
       <LineId Id="5" Count="0" />
       <LineId Id="32" Count="0" />
       <LineId Id="38" Count="1" />
       <LineId Id="37" Count="0" />
       <LineId Id="41" Count="0" />
+      <LineId Id="67" Count="0" />
       <LineId Id="35" Count="1" />
+      <LineId Id="72" Count="2" />
+      <LineId Id="110" Count="4" />
       <LineId Id="34" Count="0" />
     </LineIds>
   </POU>
