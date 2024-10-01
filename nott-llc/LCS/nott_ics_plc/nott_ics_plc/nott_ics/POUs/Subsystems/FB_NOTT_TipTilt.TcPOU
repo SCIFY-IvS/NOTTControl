@@ -1,0 +1,389 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_NOTT_TipTilt" Id="{f38a4431-261f-431d-a596-42067753e201}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_TipTilt
+VAR
+//	Tip Actuators A 
+
+	NTPA1:			FB_MOTOR;
+	NTPA2:			FB_MOTOR;
+	NTPA3:			FB_MOTOR;
+	NTPA4:			FB_MOTOR;
+	
+	ptrTipActuatorsA:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	// GUI stuff
+	guiTipActuatorsAIndex:	UINT := 1;	// Index for Tip Actuators A Engineering GUI
+
+//	Tilt Actuators A 
+	
+	NTTA1:			FB_MOTOR;
+	NTTA2:			FB_MOTOR;
+	NTTA3:			FB_MOTOR;
+	NTTA4:			FB_MOTOR;
+	
+	ptrTiltActuatorsA:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	// GUI stuff
+	guiTiltActuatorsAIndex:	UINT := 1;	// Index for Tilt Actuators A Engineering GUI	
+	
+//	Tip Actuators B 
+
+	NTPB1:			FB_MOTOR;
+	NTPB2:			FB_MOTOR;
+	NTPB3:			FB_MOTOR;
+	NTPB4:			FB_MOTOR;
+	
+	ptrTipActuatorsB:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	// GUI stuff
+	guiTipActuatorsBIndex:	UINT := 1;	// Index for Tip Actuators B Engineering GUI	
+
+//	Tilt Actuators B 
+	
+	NTTB1:			FB_MOTOR;
+	NTTB2:			FB_MOTOR;
+	NTTB3:			FB_MOTOR;
+	NTTB4:			FB_MOTOR;
+	
+	ptrTiltActuatorsB:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	// GUI stuff
+	guiTiltActuatorsBIndex:	UINT := 1;	// Index for Tilt Actuators A Engineering GUI
+
+// Simulation
+
+//	Sim Tip Actuators A 
+
+	SIM_NTPA1:			FB_SIM_MOTOR;
+	SIM_NTPA2:			FB_SIM_MOTOR;
+	SIM_NTPA3:			FB_SIM_MOTOR;
+	SIM_NTPA4:			FB_SIM_MOTOR;
+
+//	Sim Tilt Actuators A 
+	
+	SIM_NTTA1:			FB_SIM_MOTOR;
+	SIM_NTTA2:			FB_SIM_MOTOR;
+	SIM_NTTA3:			FB_SIM_MOTOR;
+	SIM_NTTA4:			FB_SIM_MOTOR;
+	
+//	Sim Tip Actuators B 
+
+	SIM_NTPB1:			FB_SIM_MOTOR;
+	SIM_NTPB2:			FB_SIM_MOTOR;
+	SIM_NTPB3:			FB_SIM_MOTOR;
+	SIM_NTPB4:			FB_SIM_MOTOR;
+		
+
+//	Sim Tilt Actuators B 
+	
+	SIM_NTTB1:			FB_SIM_MOTOR;
+	SIM_NTTB2:			FB_SIM_MOTOR;
+	SIM_NTTB3:			FB_SIM_MOTOR;
+	SIM_NTTB4:			FB_SIM_MOTOR;	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_Configure();
+
+//	Tip Actuators A 
+
+NTPA1(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPA1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 5000);
+	
+NTPA2(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPA2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 6000);
+	
+NTPA3(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPA3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 7000);
+	
+NTPA4(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPA4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 8000);
+	
+//	Tilt Actuators A
+	
+NTTA1(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTA1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 9000);
+	
+NTTA2(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTA2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 10000);
+	
+NTTA3(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTA3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 11000);
+	
+NTTA4(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTA4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 12000);
+	
+//	Tip Actuators B
+
+NTPB1(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPB1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 13000);
+	
+NTPB2(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPB2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 14000);
+	
+NTPB3(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPB3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 15000);
+	
+NTPB4(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTPB4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 16000);
+
+//	Tilt Actuators B 
+
+NTTB1(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTB1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 17000);
+	
+NTTB2(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTB2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 18000);
+	
+NTTB3(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTB3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 19000);
+	
+NTTB4(
+	in_bSafe:= , 
+	in_bDisableIfUnsafe:= , 
+	sName:= 'NTTB4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 20000);
+
+// Simulation
+
+SIM_NTPA1(ptrCfg:= ADR(NTPA1.cfg), ptrStat:= ADR(NTPA1.stat));
+SIM_NTPA2(ptrCfg:= ADR(NTPA2.cfg), ptrStat:= ADR(NTPA2.stat));
+SIM_NTPA3(ptrCfg:= ADR(NTPA3.cfg), ptrStat:= ADR(NTPA3.stat));
+SIM_NTPA4(ptrCfg:= ADR(NTPA4.cfg), ptrStat:= ADR(NTPA4.stat));
+
+SIM_NTPB1(ptrCfg:= ADR(NTPB1.cfg), ptrStat:= ADR(NTPB1.stat));
+SIM_NTPB2(ptrCfg:= ADR(NTPB2.cfg), ptrStat:= ADR(NTPB2.stat));
+SIM_NTPB3(ptrCfg:= ADR(NTPB3.cfg), ptrStat:= ADR(NTPB3.stat));
+SIM_NTPB4(ptrCfg:= ADR(NTPB4.cfg), ptrStat:= ADR(NTPB4.stat));
+
+SIM_NTTA1(ptrCfg:= ADR(NTTA1.cfg), ptrStat:= ADR(NTTA1.stat));
+SIM_NTTA2(ptrCfg:= ADR(NTTA2.cfg), ptrStat:= ADR(NTTA2.stat));
+SIM_NTTA3(ptrCfg:= ADR(NTTA3.cfg), ptrStat:= ADR(NTTA3.stat));
+SIM_NTTA4(ptrCfg:= ADR(NTTA4.cfg), ptrStat:= ADR(NTTA4.stat));
+
+SIM_NTTB1(ptrCfg:= ADR(NTTB1.cfg), ptrStat:= ADR(NTTB1.stat));
+SIM_NTTB2(ptrCfg:= ADR(NTTB2.cfg), ptrStat:= ADR(NTTB2.stat));
+SIM_NTTB3(ptrCfg:= ADR(NTTB3.cfg), ptrStat:= ADR(NTTB3.stat));
+SIM_NTTB4(ptrCfg:= ADR(NTTB4.cfg), ptrStat:= ADR(NTTB4.stat));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{08fcbaf5-ced8-4250-a494-ef908cd2e0a2}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//	Tip Actuators A 
+
+ptrTipActuatorsA[1] := ADR(NTPA1);
+ptrTipActuatorsA[2] := ADR(NTPA2);
+ptrTipActuatorsA[3] := ADR(NTPA3);
+ptrTipActuatorsA[4] := ADR(NTPA4);
+
+//	Tilt Actuators A 
+
+ptrTiltActuatorsA[1] := ADR(NTTA1);
+ptrTiltActuatorsA[2] := ADR(NTTA2);
+ptrTiltActuatorsA[3] := ADR(NTTA3);
+ptrTiltActuatorsA[4] := ADR(NTTA4);
+
+//	Tip Actuators B
+
+ptrTipActuatorsB[1] := ADR(NTPB1);
+ptrTipActuatorsB[2] := ADR(NTPB2);
+ptrTipActuatorsB[3] := ADR(NTPB3);
+ptrTipActuatorsB[4] := ADR(NTPB4);
+
+//	Tilt Actuators B
+
+ptrTiltActuatorsB[1] := ADR(NTTB1);
+ptrTiltActuatorsB[2] := ADR(NTTB2);
+ptrTiltActuatorsB[3] := ADR(NTTB3);
+ptrTiltActuatorsB[4] := ADR(NTTB4);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_NOTT_TipTilt">
+      <LineId Id="215" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="54" Count="4" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="61" Count="4" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="68" Count="4" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="75" Count="4" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="93" Count="4" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="100" Count="4" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="107" Count="4" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="114" Count="4" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="123" Count="5" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="131" Count="4" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="138" Count="4" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="145" Count="4" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="154" Count="5" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="163" Count="4" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="170" Count="4" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="177" Count="4" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="217" Count="1" />
+      <LineId Id="250" Count="2" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="255" Count="2" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="260" Count="2" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="265" Count="2" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="219" Count="29" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="89" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_TipTilt.M_Configure">
+      <LineId Id="14" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="38" Count="2" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

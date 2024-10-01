@@ -43,6 +43,9 @@
     <Compile Include="POUs\Subsystems\FB_NOTT_SHUTTERS.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_TipTilt.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Subsystems\INFRATEC_TRIGERS.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -72,16 +75,50 @@
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_A_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_B_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_B_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_A_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_A_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_B_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_A_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_B_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DUTs" />
     <Folder Include="GVLs" />
+    <Folder Include="POUs\Simulation" />
     <Folder Include="POUs\Subsystems" />
     <Folder Include="POUs\System" />
     <Folder Include="VISUs" />
     <Folder Include="POUs" />
     <Folder Include="VISUs\GUIs" />
     <Folder Include="VISUs\GUIs\Delay_Lines" />
+    <Folder Include="VISUs\GUIs\TipTilt" />
     <Folder Include="VISUs\GUIs\Time" />
     <Folder Include="VISUs\GUIs\Shutters" />
     <Folder Include="VISUs\Templates" />

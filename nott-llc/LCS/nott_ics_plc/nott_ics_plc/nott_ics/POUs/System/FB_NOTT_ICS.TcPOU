@@ -12,6 +12,10 @@ VAR
 	
 	Shutters:			FB_NOTT_SHUTTERS;
 	
+	TipTilt:			FB_NOTT_TipTilt;
+	
+
+	
 	
 END_VAR
 ]]></Declaration>
@@ -23,6 +27,7 @@ Delay_Lines.M_SET_DL_ACTUAL_POS();
 
 Shutters();
 
+TipTilt();
 
 
 ]]></ST>
@@ -33,8 +38,9 @@ Shutters();
       <LineId Id="64" Count="0" />
       <LineId Id="32" Count="0" />
       <LineId Id="31" Count="0" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="46" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="87" Count="0" />
       <LineId Id="63" Count="0" />
       <LineId Id="62" Count="0" />
     </LineIds>

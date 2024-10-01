@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.40">
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.47">
 	<DataTypes>
 		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-000000000035}" TcBaseType="true" HideType="true">UINTARR2</Name>
@@ -1680,6 +1680,2455 @@ External Setpoint Generation:
 				<SvbTask Priority="8" CycleTime="100000" AmsPort="511">
 					<Name>NC-Task 1 SVB</Name>
 				</SvbTask>
+				<AxisFolder Name="TipTilt"/>
+				<Axis Id="5" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPA_1</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="6" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPA_2</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="7" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPA_3</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="8" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPA_4</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="9" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPB_1</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="10" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPB_2</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="11" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPB_3</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="12" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTPB_4</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="13" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTA_1</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="14" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTA_2</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="15" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTA_3</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="16" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTA_4</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="17" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTB_1</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="18" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTB_2</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="19" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTB_3</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
+				<Axis Id="20" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
+					<Name>NTTB_4</Name>
+					<AxisPara>
+						<OtherSettings AllowMotionCmdToSlave="true"/>
+					</AxisPara>
+					<Encoder Name="Enc" EncType="1">
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{901C2423-655B-45CE-B7E3-21F174F0F99F}" Namespace="MC">NCENCODERSTRUCT_IN2B</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn7</Name>
+									<Comment><![CDATA[Drive Velocity Actual Value
+]]></Comment>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{9CC50AB2-5D79-4869-A3C2-1FA7761BAFEA}" Namespace="MC">NCENCODERSTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Encoder>
+					<Drive Name="Drive" DrvType="5">
+						<DrvPara>
+							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+						</DrvPara>
+						<Vars VarGrpType="1">
+							<Name>Inputs</Name>
+							<Var>
+								<Name>In</Name>
+								<Type GUID="{F95C7C69-0C87-46C4-9559-1285CCA5B23A}" Namespace="MC">NCDRIVESTRUCT_IN2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn2</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataIn6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+						<Vars VarGrpType="2">
+							<Name>Outputs</Name>
+							<Var>
+								<Name>Out</Name>
+								<Type GUID="{644DC4BD-3D15-4DCB-94C7-24F3A5D579AA}" Namespace="MC">NCDRIVESTRUCT_OUT2</Type>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut1</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut2</Name>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl2</Name>
+									<Comment><![CDATA[Digital Outputs Setpoint Generator:
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar>
+									<Name>nCtrl3</Name>
+									<Comment><![CDATA[Digital Outputs (Setpoint Generator + Position Controller):
+0x41 (0100 0001) = Minus (0x42 for inverse motor polarity)
+0x42 (0100 0010) = Plus (0x41 for inverse motor polarity)
+0x80 (1000 0000) = Stop
+]]></Comment>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut3</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut4</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut5</Name>
+								</SubVar>
+								<SubVar TypeFormatIndex="2">
+									<Name>nDataOut6</Name>
+								</SubVar>
+							</Var>
+						</Vars>
+					</Drive>
+					<Controller Name="Ctrl" CtrType="1">
+						<CtrPara PriorControlFactor="1">
+							<Observer BandWidth="20"/>
+						</CtrPara>
+					</Controller>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>FromPlc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>ToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+					</Vars>
+				</Axis>
 				<Axis Id="1" CreateSymbols="true" AxisType="1">
 					<Name>NDL1</Name>
 					<AxisPara>
@@ -2320,7 +4769,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{2CC87226-3CEC-A0BA-A8FA-763221AFCFFE}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{D7CA8B9B-CB6A-CA67-C379-51376BBEB2BD}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -2370,10 +4819,6 @@ External Setpoint Generation:
 						</Var>
 						<Var>
 							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpSysTime</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>INFRATEC_TRIGERS.NottTime.i_exNtpExtOffset</Name>
 							<Type>LINT</Type>
 						</Var>
 						<Var>
@@ -2646,6 +5091,790 @@ External Setpoint Generation:
 							<Name>MAIN.nott_ics.Shutters.NSH4.i_bClosed</Name>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.switches</Name>
+							<Comment><![CDATA[ Limit switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_bInPos</Name>
+							<Comment><![CDATA[ In-position signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - DIGITAL IN ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_nInfoData1</Name>
+							<Comment><![CDATA[ Info data 1 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_nInfoData2</Name>
+							<Comment><![CDATA[ Info data 2 from Motor I/O terminal ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_nSoE_DriveStatus</Name>
+							<Comment><![CDATA[ Drive Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_nSoE_PowerStatus</Name>
+							<Comment><![CDATA[ Power Status. SoE Drives, e.g. AX5000, ONLY!!! ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.Axis.NcToPlc</Name>
+							<Type GUID="{25521FAA-EA5F-4C7F-8864-BBCCDACD2E98}" Namespace="MC">NCTOPLC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA1.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA2.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA3.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA4.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA1.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA2.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA3.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA4.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB1.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB2.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB3.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB4.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB1.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB2.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB3.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB4.i_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
@@ -2709,10 +5938,394 @@ External Setpoint Generation:
  Outputs ]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA1.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA2.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA3.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPA4.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA1.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA2.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA3.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTA4.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB1.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB2.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB3.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTPB4.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB1.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB2.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB3.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.q_bBrake_Ctrl</Name>
+							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.NTTB4.Axis.PlcToNc</Name>
+							<Type GUID="{96B75FEB-2D84-43BE-A3EC-D9A681F27D52}" Namespace="MC">PLCTONC_AXIS_REF</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA1.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA1.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA1.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA2.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA2.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA2.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA3.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA3.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA3.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA4.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA4.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPA4.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA1.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA1.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA1.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA2.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA2.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA2.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA3.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA3.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA3.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA4.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA4.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTA4.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB1.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB1.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB1.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB2.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB2.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB2.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB3.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB3.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB3.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB4.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB4.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTPB4.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB1.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB1.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB1.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB2.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB2.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB2.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB3.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB3.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB3.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB4.switches</Name>
+							<Comment><![CDATA[ Limit switches - to be linked to real Motor switches ]]></Comment>
+							<Type GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library">T_MOTOR_SWITCHES</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB4.q_bBrake_Stat</Name>
+							<Comment><![CDATA[ Brake feedback signal - to be linked to i_bBrake_Stat  ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_ics.TipTilt.SIM_NTTB4.q_nCouplerState</Name>
+							<Comment><![CDATA[ HW state - to be linked to i_nCouplerState ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
 					</Vars>
 					<Contexts>
 						<Context>
-							<Id NeedCalleeCall="true">0</Id>
+							<Id>0</Id>
 							<Name>CameraTrigs</Name>
 							<ManualConfig>
 								<OTCID>#x02010060</OTCID>
@@ -2721,7 +6334,7 @@ External Setpoint Generation:
 							<CycleTime>1000000</CycleTime>
 						</Context>
 						<Context>
-							<Id NeedCalleeCall="true">1</Id>
+							<Id>1</Id>
 							<Name>PlcTask</Name>
 							<ManualConfig>
 								<OTCID>#x02010030</OTCID>
@@ -5155,6 +8768,136 @@ External Setpoint Generation:
 			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL4">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPA_1">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPA_2">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPA_3">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA3.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA3.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPA_4">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPB_1">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPB_2">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPB_3">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB3.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB3.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTPB_4">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTA_1">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTA_2">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTA_3">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA3.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA3.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTA_4">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTB_1">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTB_2">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTB_3">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB3.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB3.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NTTB_4">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TIPC^nott_ics^nott_ics Instance">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA1.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA1.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA1.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA2.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA2.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA2.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA2.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA2.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA2.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA3.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA3.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA3.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA3.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA3.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA3.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA4.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA4.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA4.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA4.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA4.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPA4.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB1.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB1.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB1.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB1.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB1.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB1.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB2.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB2.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB2.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB2.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB2.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB2.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB3.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB3.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB3.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB3.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB3.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB3.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB4.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB4.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB4.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB4.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPB4.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTPB4.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA1.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA1.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA1.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA1.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA1.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA1.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA2.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA2.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA2.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA2.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA2.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA2.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA3.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA3.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA3.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA3.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA3.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA3.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA4.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA4.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA4.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA4.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA4.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTA4.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB1.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB1.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB1.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB1.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB1.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB1.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB2.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB2.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB2.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB2.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB2.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB2.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB3.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB3.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB3.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB3.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB3.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB3.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB4.i_bBrake_Stat" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB4.q_bBrake_Stat"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB4.i_nCouplerState" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB4.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB4.switches" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.SIM_NTTB4.switches"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPA1.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA1.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPA2.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA2.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPA3.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA3.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPA4.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPA4.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPB1.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB1.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPB2.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB2.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPB3.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB3.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTPB4.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTPB4.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTA1.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA1.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTA2.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA2.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTA3.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA3.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTA4.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTA4.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTB1.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB1.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTB2.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB2.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTB3.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB3.q_bBrake_Ctrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.SIM_NTTB4.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.nott_ics.TipTilt.NTTB4.q_bBrake_Ctrl"/>
 			</OwnerB>
 		</OwnerA>
 	</Mappings>

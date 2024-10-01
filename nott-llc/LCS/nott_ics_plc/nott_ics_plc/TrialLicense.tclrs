@@ -1,22 +1,14 @@
 <?xml version="1.0"?>
 <TcLicenseInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2011/11/TcLicenseInfo">
 	<LicenseInfo>
-		<SystemId>{688832F9-B144-EDF5-A260-2E694E8DD47F}</SystemId>
-		<IssueTime>2024-05-22T19:28:00</IssueTime>
-		<ExpireTime>2024-05-30T00:00:00</ExpireTime>
-		<LicenseKey>8c9e9c07ab26e4c99aad8630e568048aaceb3a9509d919aaa0fa5902160c79c98f7c7882a8b375e12ae104ff615c1f5883f0a5f3967495a37b2d424abd0f74dafa8ff5d92f8d75182b24aac8c8f5491cdcf9200349f478a64a50789907394198fd282d9f4c9d6bf171a42e4a1987720c9edd8d0e00e19b781baa4d8adffae58c5a7f26e1200dcf1681b0034f73c4f8cd9bb12b231fbfd17c24bf18b0ef86e504a8f347a914cce88cf4fc2f0114d0ad2a7012fe26cc0f41ed375d5bb5b2e66815b4872c12e731afdfb69af8cb845e66b713188c35c187f7ae05da925c8714c6898c64a735a74cde9de3d9d534e254c68989d64ff261551bfba0daaf047a32dbbf</LicenseKey>
+		<SystemId>{C25FA4E4-C4FD-C20C-412C-2676E676FF2A}</SystemId>
+		<IssueTime>2024-10-01T13:18:00</IssueTime>
+		<ExpireTime>2024-10-09T00:00:00</ExpireTime>
+		<LicenseKey>a512b034d0885a125665fc35132dc570255fb4467742a5e466a025fd8cab8e47735eabecdc1b8bfc3eb81812240842c52294a16baaea4afa338bf74635d2866a7183b1219b7684149128ec060873375c602e5130e5a7fe490e89637f2787bb31a8a0f4f8fff1326217ddad08b4bde1e9f311b43a2c635ee0896864392730d240a7ca22c66b95479ce54df5b9ef4dd52439acf086b591ed55912de0799ad057e0a8e57f0124d8565dfd336cbb446dccdaa2134ba476d074e24f3db67f9dfe67113e1ea95c93baf603fe42fe84d7f3f4a6b3a6bc3e29e27e2d42407caf5593bd2ce6eb8e4d7c9cdde4c6abec694955f2d94eb8821be3068e11795e1da383fba38e</LicenseKey>
 		<License>
-			<LicenseId>{CC0BCBD5-3EA7-D7D4-4C71-A8B125F0DB72}</LicenseId>
-			<Name>TC3 OPC-UA Analytics Read</Name>
-		</License>
-		<License>
-			<LicenseId>{C2B7B285-EBD7-72CF-843F-15F95A86FEEE}</LicenseId>
-			<Name>TC3 OPC-UA Analytics Write</Name>
-		</License>
-		<License>
-			<LicenseId>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</LicenseId>
-			<Name>TC3 OPC-UA</Name>
-			<OrderNo>TF6100</OrderNo>
+			<LicenseId>{BF78CFC7-2E63-42C3-8C07-BB6C346BFB8B}</LicenseId>
+			<Name>TC3 NC PTP Axes Pack 25</Name>
+			<OrderNo>TF5010</OrderNo>
 		</License>
 		<License>
 			<LicenseId>{4C256767-E6E6-4AF5-BD68-9F7ABAD0C200}</LicenseId>
@@ -24,9 +16,27 @@
 			<OrderNo>TC1000</OrderNo>
 		</License>
 		<License>
+			<LicenseId>{C2B7B285-EBD7-72CF-843F-15F95A86FEEE}</LicenseId>
+			<Name>TC3 OPC-UA Analytics Write</Name>
+		</License>
+		<License>
+			<LicenseId>{CC0BCBD5-3EA7-D7D4-4C71-A8B125F0DB72}</LicenseId>
+			<Name>TC3 OPC-UA Analytics Read</Name>
+		</License>
+		<License>
 			<LicenseId>{66689887-CCBD-452C-AC9A-039D997C6E66}</LicenseId>
 			<Name>TC3 PLC</Name>
 			<OrderNo>TC1200</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{520DE751-9DB6-47CB-8240-BD5C466E7E64}</LicenseId>
+			<Name>TC3 NC PTP</Name>
+			<OrderNo>TF5000</OrderNo>
+		</License>
+		<License>
+			<LicenseId>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</LicenseId>
+			<Name>TC3 OPC-UA</Name>
+			<OrderNo>TF6100</OrderNo>
 		</License>
 		<License>
 			<LicenseId>{3FF18E97-7754-401B-93FB-70544DE28A13}</LicenseId>
