@@ -854,7 +854,7 @@ import time
 from datetime import datetime, timedelta
 import nott_control
 
-def get_field2(field, start, end, return_avg, db_address='redis://10.33.178.176:6379'):
+def get_field2(field, start, end, return_avg, lag=0, db_address='redis://10.33.178.176:6379'):
     """
     Get the data in the database of the required `field` in a time range limited by `start` and `end`.
     The returned object is a 2D-array which rows are the datapoints, the first column is the timestamp
@@ -870,6 +870,8 @@ def get_field2(field, start, end, return_avg, db_address='redis://10.33.178.176:
         end timestamp in milliseconds. The timezone must be the one of the server.
     return_avg: bool
         Return the average value on the number of points.
+    lag: float
+        Lag to add to the timeline, in millisecond. The default is 0.
     db_address : str, optional
         Address of the database. The default is 'redis://10.33.178.176:6379'.
 
@@ -888,6 +890,7 @@ def get_field2(field, start, end, return_avg, db_address='redis://10.33.178.176:
      # Get ROI values
     output = ts.range(field, start, end) # This function returns a list of tuples
     output = np.array(output) # Array
+    output[:,0] = output[:,0] + lag
 
     if return_avg:
         output = output.mean(0) # Average along the number of points axis
@@ -1121,6 +1124,14 @@ n_aper = 4
 return_throughput = False
 
 nott_control.all_shutters_open(n_aper)
+
+# duration = 2.
+# time.sleep(0.5)
+# start, end = define_time2(duration)
+# time.sleep(0.5)
+# flux = get_field2(P1, start, end, False)
+
+# print(flux)
 
 # print('Block the source and press Enter to continue')
 # input()
