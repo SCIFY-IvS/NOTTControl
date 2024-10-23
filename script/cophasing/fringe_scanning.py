@@ -22,7 +22,7 @@ from matplotlib.animation import FuncAnimation
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 
-def synchronize_ts(arr1, arr2):
+def interpolate_ts(arr1, arr2):
 
     f = interp1d(arr1[:,0], arr1[:,1], bounds_error=False, fill_value=arr1[:,1].mean(), kind='cubic')
 
@@ -100,6 +100,135 @@ def sync_devices(delay, margin, wait_db, shutter_id, shutter_name, flux_id, n_ap
 
     nott_control.all_shutters_open(n_aper)
     return lag
+
+def do_scans(dl_name, dl_end_pos, speed, opcua_motor, fields_of_interest, delay, 
+             return_avg_ts, lag, it, n_pass, wait_db, dl_start, dl_end, wav):
+    # Start animation
+    plt.ion()
+    fig1, (ax1_t1, ax1_t2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan forth
+    move_figure(fig1, 0, 0)
+    fig2, (ax2_t1, ax2_t2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan back
+    
+    # Label axes
+    ax1_t1.clear() 
+    ax1_t1.set_xlabel('DL position [microns]')
+    ax1_t1.set_ylabel('ROI value')
+    ax1_t2.clear() 
+    ax1_t2.set_xlabel('DL position [microns]')
+    ax1_t2.set_ylabel('ROI value')
+    
+    ax2_t1.clear() 
+    ax2_t1.set_xlabel('DL position [microns]')
+    ax2_t1.set_ylabel('ROI value')
+    ax2_t2.clear() 
+    ax2_t2.set_xlabel('DL position [microns]')
+    ax2_t2.set_ylabel('ROI value')
+
+    move_abs_dl(dl_end_pos, speed, opcua_motor)
+
+    # Get data
+    time.sleep(wait_db)
+    start, end = kappa_matrix.define_time2(delay)
+    time.sleep(wait_db)
+    data_IA = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag) # Output of the first stage coupler
+    dl_pos0 = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)
+    
+    dl_pos = interpolate_ts(dl_pos0, data_IA)
+    data_IA = data_IA[:,1]
+    dl_pos = dl_pos[:,1]
+
+    # Rearrange
+    idx = np.argsort(dl_pos)
+    data_IA = data_IA[idx]
+    dl_pos = dl_pos[idx]
+
+    # Remove offset structures on the 1st stage output
+    popt = np.polyfit(dl_pos, data_IA, 3) # We fit a polynom of degree 3
+    flx_coh = data_IA - np.poly1d(popt)(dl_pos)
+
+    # Save dl_pos and coherent flux
+    null_scans.append(flx_coh)
+    null_scans_pos.append(dl_pos)
+
+    # Find enveloppe
+    flx_env = envelop_detector(flx_coh)
+
+    # Fit group delay to enveloppe
+    func_to_fit = fringes_env
+    ampl         = np.abs(np.max(flx_coh)-np.min(flx_coh))/2
+    init_guess   = [ampl, 1000*(min(dl_start,dl_end)+max(dl_start,dl_end))/2.]
+    # init_guess   = [ampl, dl_pos[np.argmax(flx_coh)]]
+    lower_bounds = [0.95*ampl, 1000*min(dl_start,dl_end)]
+    upper_bounds = [1.05*ampl, 1000*max(dl_start,dl_end)]
+    gdparams, params_cov = curve_fit(func_to_fit, dl_pos, flx_env, p0=init_guess, bounds=(lower_bounds, upper_bounds))
+    print('FIT GD - Maximum value and its position:', flx_coh.max(), dl_pos[np.argmax(flx_coh)])
+    print('FIT GD - Fringes amplitude :', gdparams[0])
+    print('FIT GD - Group delay [microns]:', gdparams[1])
+   
+    # Extract best-fit envelop
+    pos_env = np.linspace(dl_pos.min(), dl_pos.max(), dl_pos.size*2+1)
+    flx_env = func_to_fit(pos_env, *gdparams)
+
+    # Now fit fringes
+    func_to_fit = fringes
+    init_guess   = [gdparams[0], gdparams[1], 0.]
+    lower_bounds = [0.999*gdparams[0], gdparams[1]-wav/4, -wav/4] # range of 1 fringe so +/- half fringe which means 1/*4 of fringes in DL range
+    upper_bounds = [1.001*gdparams[0], gdparams[1]+wav/4, wav/4] # range of 1 fringe so +/- half fringe which means 1/*4 of fringes in DL range
+    params, params_cov = curve_fit(func_to_fit, dl_pos, flx_coh, p0=init_guess, bounds=(lower_bounds, upper_bounds))
+    print('FIT PD - Fringes amplitude :', params[0])
+    print('FIT PD - Group delay [microns]:', params[1])
+    print('FIT PD - Phase delay [microns]:', params[2])
+    
+    # Extract fitted curve
+    pos_fit = np.linspace(dl_pos.min(), dl_pos.max(), dl_pos.size*2+1)
+    flx_fit = func_to_fit(pos_fit, *params)
+
+    # Find best position
+    # We look at the bright output of the coupler
+    idx_null = np.argmax(flx_fit) 
+    null_pos[it] = pos_fit[idx_null]
+    print('RESULT - Position of the null :', null_pos[it])
+
+    fit_data = [pos_env, flx_env, pos_fit, flx_fit]
+    return null_pos[it], flx_coh, dl_pos, gdparams, fit_data
+
+def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag):
+    current_pos = read_current_pos(opcua_motor)
+    print('MSG - Current position:', current_pos)
+    print('MSG - Now moving to null position :', null_singlepass)
+    move_abs_dl(null_singlepass/1000, speed2, opcua_motor)
+    # Save the last move to check how precise the null is reached
+    time.sleep(wait_time)
+    start, end = kappa_matrix.define_time2(grab_range)
+    time.sleep(wait_db)
+    to_null_pos = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)[:,1]
+    to_null_flx = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag)
+    current_null_pos = read_current_pos(opcua_motor)
+    print('MSG - Reached position', current_null_pos)
+    print('MSG - Gap position', current_null_pos - null_singlepass)
+    
+    return to_null_pos, to_null_flx, current_null_pos
+
+
+plt.ion()
+fig1, (ax1_t1, ax1_t2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan forth
+move_figure(fig1, 0, 0)
+fig2, (ax2_t1, ax2_t2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan back
+
+# Label axes
+ax1_t1.clear() 
+ax1_t1.set_xlabel('DL position [microns]')
+ax1_t1.set_ylabel('ROI value')
+ax1_t2.clear() 
+ax1_t2.set_xlabel('DL position [microns]')
+ax1_t2.set_ylabel('ROI value')
+
+ax2_t1.clear() 
+ax2_t1.set_xlabel('DL position [microns]')
+ax2_t1.set_ylabel('ROI value')
+ax2_t2.clear() 
+ax2_t2.set_xlabel('DL position [microns]')
+ax2_t2.set_ylabel('ROI value')
 
 # Script parameters
 # delay = 40.0 # s, window to consider when scanning the fringes
@@ -184,6 +313,7 @@ n_pass = 10 # even number=back and forth
 null_pos = np.array(range(n_pass), dtype=float)
 wait_db = 0.1
 n_aper = 4
+ymargin = 1.
 
 # =============================================================================
 # Measure lag
@@ -200,7 +330,7 @@ lag = 0.
 # Global scan
 # =============================================================================
 """
-Here we check the ability of the DL to perform global scan, find the null and reach it.
+Here we check the ability of the DL to perform global scan and find the null or the bright fringe.
 Given the backlash, reaching a position is always made from the same direction.
 
 Two methods are tested:
@@ -214,41 +344,11 @@ It appears that none of these techniques accurately find the null, it will
 mostly lock on the bright fringe, sometimes on the null and sometimes on a partial fringe.
 The reason is not clear but it is the case for all the tests led with this script.
 
-All tests use the ROI2 output.
 """
-
-# PLOT of ROI vs time
-# Start animation
-plt.ion()
-fig1, (ax1_t1, ax1_t2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan forth
-move_figure(fig1, 0, 0)
-fig2, (ax2_t1, ax2_t2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan back
-
-# Label axes
-ax1_t1.clear() 
-ax1_t1.set_xlabel('DL position [microns]')
-ax1_t1.set_ylabel('ROI value')
-ax1_t2.clear() 
-ax1_t2.set_xlabel('DL position [microns]')
-ax1_t2.set_ylabel('ROI value')
-
-ax2_t1.clear() 
-ax2_t1.set_xlabel('DL position [microns]')
-ax2_t1.set_ylabel('ROI value')
-ax2_t2.clear() 
-ax2_t2.set_xlabel('DL position [microns]')
-ax2_t2.set_ylabel('ROI value')
-
-# # Wait for the other delay lines to reach its position
-# wait_time = 3. # in second
-# print('Wait for the other delay lines to reach its position (%s sec)'%(wait_time))
-# time.sleep(wait_time)
 
 # Set DL to initial position
 print('MSG - Move DL to initial position:', )
 move_abs_dl(dl_start, speed, opcua_motor)
-
-
 
 null_scans = []
 null_scans_pos = []
@@ -260,90 +360,27 @@ dl_bounds = [dl_end, dl_start]
 
 for it in range(n_pass):
     print('MSG - Pass', it+1, '/', n_pass)
-    # Current DL positoin
-    # cur_pos = dl_start + rel_pos*(-1)**(it)
-
-    # Send DL comment
-    # move_rel_dl(rel_pos*(-1)**it, speed, opcua_motor)  # Will go back and forth
-    move_abs_dl(dl_bounds[it%2], speed, opcua_motor)
-
-    # Get data
-    time.sleep(wait_db)
-    start, end = kappa_matrix.define_time2(delay)
-    time.sleep(wait_db)
-    data_IA = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag) # Output of the first stage coupler
-    dl_pos0 = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)
     
-    dl_pos = synchronize_ts(dl_pos0, data_IA)
-    data_IA = data_IA[:,1]
-    dl_pos = dl_pos[:,1]
-
-    # Rearrange
-    idx = np.argsort(dl_pos)
-    data_IA = data_IA[idx]
-    dl_pos = dl_pos[idx]
-
-    # Remove offset structures on the 1st stage output
-    popt = np.polyfit(dl_pos, data_IA, 3) # We fit a polynom of degree 3
-    flx_coh = data_IA - np.poly1d(popt)(dl_pos)
-
-    # Save dl_pos and coherent flux
-    null_scans.append(flx_coh)
-    null_scans_pos.append(dl_pos)
-
-    # Find enveloppe
-    flx_env = envelop_detector(flx_coh)
-
-    # Fit group delay to enveloppe
-    func_to_fit = fringes_env
-    ampl         = np.abs(np.max(flx_coh)-np.min(flx_coh))/2
-    init_guess   = [ampl, 1000*(min(dl_start,dl_end)+max(dl_start,dl_end))/2.]
-    # init_guess   = [ampl, dl_pos[np.argmax(flx_coh)]]
-    lower_bounds = [0.95*ampl, 1000*min(dl_start,dl_end)]
-    upper_bounds = [1.05*ampl, 1000*max(dl_start,dl_end)]
-    params, params_cov = curve_fit(func_to_fit, dl_pos, flx_env, p0=init_guess, bounds=(lower_bounds, upper_bounds))
-    print('FIT GD - Maximum value and its position:', flx_coh.max(), dl_pos[np.argmax(flx_coh)])
-    print('FIT GD - Fringes amplitude :', params[0])
-    print('FIT GD - Group delay [microns]:', params[1])
+    best_null_pos, flx_coh, dl_pos, params, pos_fit, flx_fit, fit_data = do_scans(dl_name, dl_bounds[it%2], speed, opcua_motor, fields_of_interest, delay, 
+                  return_avg_ts, lag, it, n_pass, wait_db, dl_start, dl_end, wav)
+    
+    pos_env, flx_env, pos_fit, flx_fit = fit_data
+    null_scans_best_pos.append(best_null_pos)
     gd_params.append(params)
-   
-    # Extract best-fit envelop
-    pos_env = np.linspace(dl_pos.min(), dl_pos.max(), dl_pos.size*2+1)
-    flx_env = func_to_fit(pos_env, *params)
-
-    # Now fit fringes
-    func_to_fit = fringes
-    init_guess   = [params[0], params[1], 0.]
-    lower_bounds = [0.999*params[0], params[1]-wav/4, -wav/4] # range of 1 fringe so +/- half fringe which means 1/*4 of fringes in DL range
-    upper_bounds = [1.001*params[0], params[1]+wav/4, wav/4] # range of 1 fringe so +/- half fringe which means 1/*4 of fringes in DL range
-    params, params_cov = curve_fit(func_to_fit, dl_pos, flx_coh, p0=init_guess, bounds=(lower_bounds, upper_bounds))
-    print('FIT PD - Fringes amplitude :', params[0])
-    print('FIT PD - Group delay [microns]:', params[1])
-    print('FIT PD - Phase delay [microns]:', params[2])
-    
-    # Extract fitted curve
-    pos_fit = np.linspace(dl_pos.min(), dl_pos.max(), dl_pos.size*2+1)
-    flx_fit = func_to_fit(pos_fit, *params)
-
-    # Find best position
-    # We look at the bright output of the coupler
-    idx_null = np.argmax(flx_fit) 
-    null_pos[it] = pos_fit[idx_null]
-    print('RESULT - Position of the null :', null_pos[it])
-    null_scans_best_pos.append(null_pos[it])
+    null_scans.append(flx_coh)
+    null_scans_pos.append(dl_pos)    
 
     # Adjust the axis range for time plot
     x_min, x_max = np.min(1000*min(dl_start,dl_end)), np.max(1000*max(dl_start,dl_end)) 
     marginx = 25
 
-    scale = 1
     y_min, y_max = np.min(flx_coh), np.max(flx_coh) 
     marginy = 0
 
     if (it+1)%2 != 0:
         # Clear the axes
         ax1_t1.clear() 
-        fig1.suptitle('Forward direction - Best null pos: %.5f'%(null_scans_best_pos[-1]))
+        fig1.suptitle('Forward direction - Best null pos: %.5f'%(null_pos[it]))
         ax1_t1.set_xlabel('DL position [microns]')
         ax1_t1.set_ylabel('ROI value')
         ax1_t2.clear() 
@@ -354,24 +391,24 @@ for it in range(n_pass):
         ax1_t1.set_ylim(y_min - marginy, y_max + marginy)    
         ax1_t2.set_ylim(y_min - marginy, y_max + marginy)    
         ax1_t1.set_xlim(x_min - marginx, x_max + marginx)
-        ax1_t2.set_xlim(null_scans_best_pos[-1] - marginx, null_scans_best_pos[-1] + marginx)
+        ax1_t2.set_xlim(null_pos[it] - marginx, null_pos[it] + marginx)
 
         # Plot curves
         line_t3, = ax1_t1.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit fringes')
         line_t2, = ax1_t1.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit envelope')
         line_t1, = ax1_t1.plot(dl_pos, flx_coh, label='Fringes')
-        line_t4 = ax1_t1.axvline(null_scans_best_pos[-1], y_min - margin, y_max + margin, 
-                                 color='magenta', label='Best null')
+        line_t4 = ax1_t1.axvline(null_pos[it], y_min - ymargin, y_max + ymargin, 
+                                  color='magenta', label='Best null')
         ax1_t1.legend(loc='best')
 
         line_t3, = ax1_t2.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit fringes')
         line_t2, = ax1_t2.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit envelope')
         line_t1, = ax1_t2.plot(dl_pos, flx_coh, label='Fringes')
-        line_t4 = ax1_t2.axvline(null_scans_best_pos[-1], y_min - margin, y_max + margin, 
-                                 color='magenta', label='Best null')
+        line_t4 = ax1_t2.axvline(null_pos[it], y_min - ymargin, y_max + ymargin, 
+                                  color='magenta', label='Best null')
     else:
         # Clear the axes
-        fig2.suptitle('Back direction - Best null pos: %.5f'%(null_scans_best_pos[-1]))
+        fig2.suptitle('Back direction - Best null pos: %.5f'%(null_pos[it]))
         ax2_t1.clear() 
         ax2_t1.set_xlabel('DL position [microns]')
         ax2_t1.set_ylabel('ROI value')
@@ -383,26 +420,25 @@ for it in range(n_pass):
         ax2_t1.set_ylim(y_min - marginy, y_max + marginy)    
         ax2_t2.set_ylim(y_min - marginy, y_max + marginy)    
         ax2_t1.set_xlim(x_min - marginx, x_max + marginx)
-        ax2_t2.set_xlim(null_scans_best_pos[-1] - marginx, null_scans_best_pos[-1] + marginx)
+        ax2_t2.set_xlim(null_pos[it] - marginx, null_pos[it] + marginx)
 
         # Plot curves
         line_t3, = ax2_t1.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit fringes')
         line_t2, = ax2_t1.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit envelope')
         line_t1, = ax2_t1.plot(dl_pos, flx_coh, label='Fringes')
-        line_t4 = ax2_t1.axvline(null_scans_best_pos[-1], y_min - margin, y_max + margin, 
-                                 color='magenta', label='Best null')
+        line_t4 = ax2_t1.axvline(null_pos[it], y_min - ymargin, y_max + ymargin, 
+                                  color='magenta', label='Best null')
         ax2_t1.legend(loc='best')
 
         line_t3, = ax2_t2.plot(pos_fit, flx_fit, color='grey', linewidth=0.4, label='Best-fit fringes')
         line_t2, = ax2_t2.plot(pos_env, flx_env, color='blue', linewidth=0.8, label='Best-fit envelope')
         line_t1, = ax2_t2.plot(dl_pos, flx_coh, label='Fringes')
-        line_t4 = ax2_t2.axvline(null_scans_best_pos[-1], y_min - margin, y_max + margin, 
-                                 color='magenta', label='Best null')
+        line_t4 = ax2_t2.axvline(null_pos[it], y_min - ymargin, y_max + ymargin, 
+                                  color='magenta', label='Best null')
 
     plt.draw()
     plt.tight_layout()
     plt.pause(0.5)
-    # time.sleep(np.random.uniform(0.05, 1.))
 
 print('MSG - End of pass')
 # plt.ioff()
@@ -432,23 +468,6 @@ ax32.set_ylabel('Flux (count)')
 ax32.legend(loc='best')
 fig3.tight_layout()
 
-# plt.figure()
-# plt.subplot(211)
-# plt.title('Forward')
-# [plt.plot(scans_forth_pos[i], scans_forth[i]) for i in range(len(scans_forth))]
-# plt.grid()
-# plt.xlabel('DL pos (um)')
-# plt.ylabel('Flux (count)')
-# plt.legend(loc='best')
-# plt.subplot(212)
-# plt.title('Backward')
-# [plt.plot(scans_back_pos[i], scans_back[i]) for i in range(len(scans_back))]
-# plt.grid()
-# plt.xlabel('DL pos (um)')
-# plt.ylabel('Flux (count)')
-# plt.legend(loc='best')
-# plt.tight_layout()
-
 print('TODO - Close the plot(s) to continue')
 # plt.ioff()
 # plt.show()
@@ -456,26 +475,6 @@ print('TODO - Close the plot(s) to continue')
 # =============================================================================
 # Set DL to NULL
 # =============================================================================
-def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag):
-    current_pos = read_current_pos(opcua_motor)
-    print('MSG - Current position:', current_pos)
-    print('MSG - Now moving to null position :', null_singlepass)
-    cmd_null = (null_singlepass - current_pos)/1000
-    # print('Sending command', cmd_null)
-    # move_rel_dl(cmd_null, speed2, opcua_motor)
-    move_abs_dl(null_singlepass/1000, speed2, opcua_motor)
-    # Save the last move to check how precise the null is reached
-    time.sleep(wait_time)
-    start, end = kappa_matrix.define_time2(grab_range)
-    time.sleep(wait_db)
-    to_null_pos = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)[:,1]
-    to_null_flx = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag)
-    current_null_pos = read_current_pos(opcua_motor)
-    print('MSG - Reached position', current_null_pos)
-    print('MSG - Gap position', current_null_pos - null_singlepass)
-
-    return to_null_pos, to_null_flx, current_null_pos
-
 time.sleep(1.)
 print('\n*** Set DL to NULL in FORWARD direction***')
 speed2 = speed
@@ -492,14 +491,8 @@ plt.xlabel('Time (s)')
 plt.ylabel('Flux (count)')
 plt.title('FORWARD Reached null position: %.5f\nTargeted position: %.5f'%(fwd_current_null_pos, null_singlepass))
 
-line_t5 = ax1_t1.axvline(fwd_current_null_pos, y_min - margin, y_max + margin, 
-                         ls='--', color='magenta', label='Final position forward')
-line_t5 = ax1_t2.axvline(fwd_current_null_pos, y_min - margin, y_max + margin, 
-                         ls='--', color='magenta', label='Final position forward')
-ax1_t1.legend(loc='best')
-
 ax31.axvline(fwd_current_null_pos, min([min(elt) for elt in scans_forth]) - margin, max([max(elt) for elt in scans_forth]) + margin, 
-                         ls='--', color='magenta', label='Final position forward single pass')
+                          ls='--', color='magenta', label='Final position forward single pass')
 
 print('TODO - Close the plot(s) to continue')
 # plt.ioff()
@@ -524,14 +517,8 @@ plt.xlabel('Time (s)')
 plt.ylabel('Flux (count)')
 plt.title('BACKWARD Reached null position: %.5f\nTargeted position: %.5f'%(bcw_current_null_pos, null_singlepass))
 
-line_t5 = ax2_t1.axvline(bcw_current_null_pos, y_min - margin, y_max + margin, 
-                         ls='--', color='magenta', label='Final position backward')
-line_t5 = ax2_t2.axvline(bcw_current_null_pos, y_min - margin, y_max + margin, 
-                         ls='--', color='magenta', label='Final position backward')
-ax2_t1.legend(loc='best')
-
 ax32.axvline(bcw_current_null_pos, min([min(elt) for elt in scans_back]) - margin, max([max(elt) for elt in scans_back]) + margin,
-                         ls='--', color='magenta', label='Final position backward single pass')
+                          ls='--', color='magenta', label='Final position backward single pass')
 
 print('TODO - Close the plot(s) to continue')
 # plt.ioff()
@@ -545,36 +532,16 @@ time.sleep(1.) # the DL overshoot, let it time to reach the targeted position
 # =============================================================================
 # Set DL to average NULL position
 # =============================================================================
-def set_dl_to_avg_position(null_scans_best_pos, avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag):
-    current_pos = read_current_pos(opcua_motor)
-    print('MSG - Mean, std, median, mini, maxi of forward null depth')
-    print(avg_null_pos, np.std(null_scans_best_pos[0]), np.median(null_scans_best_pos[0]), np.min(null_scans_best_pos[0]), np.max(null_scans_best_pos[0]))
-    print('MSG - Current position:', current_pos)
-    print('MSG - Now moving to null position :', avg_null_pos)
-    cmd_pos = (avg_null_pos - current_pos)/1000
-    # print('MSG - Sending command', cmd_pos)
-    # move_rel_dl(cmd_pos, speed2, opcua_motor)
-    move_abs_dl(avg_null_pos/1000, speed2, opcua_motor)
-    # Save the last move to check how precise the null is reached
-    time.sleep(wait_time)
-    start, end = kappa_matrix.define_time2(grab_range)
-    time.sleep(wait_db)
-    to_null_pos_avg = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)[:,1]
-    to_null_flx_avg = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag)[:,1]
-    current_null_pos_avg = read_current_pos(opcua_motor)
-    print('MSG - Reached position', current_null_pos_avg)
-    print('MSG - Gap position', current_null_pos_avg - avg_null_pos)
-
-    return to_null_pos_avg, to_null_flx_avg, current_null_pos_avg
-
 print('\n*** Set DL to average FORWARD NULL position ***')
 null_scans_best_pos = np.array(null_scans_best_pos)
 null_scans_best_pos = np.reshape(null_scans_best_pos, (-1, 2))
 null_scans_best_pos = null_scans_best_pos.T
 null_singlepass = null_pos[0]
-
 fwd_avg_null_pos = np.median(null_scans_best_pos[0,:])
-fwd_to_null_pos_avg, fwd_to_null_flx_avg, fwd_current_null_pos_avg = set_dl_to_avg_position(null_scans_best_pos, fwd_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag)
+print('MSG - Mean, std, median, mini, maxi of forward null depth')
+print(fwd_avg_null_pos, np.std(null_scans_best_pos[0]), np.median(null_scans_best_pos[0]), np.min(null_scans_best_pos[0]), np.max(null_scans_best_pos[0]))
+
+fwd_to_null_pos_avg, fwd_to_null_flx_avg, fwd_current_null_pos_avg = set_dl_to_null(fwd_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag)
 
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
@@ -592,7 +559,7 @@ plt.title('FORWARD Reached null position average strategy\n (%.5f, %.5f)'%(fwd_a
 plt.tight_layout()
 
 ax31.axvline(fwd_current_null_pos_avg, min([min(elt) for elt in scans_forth]) - margin, max([max(elt) for elt in scans_forth]) + margin,  
-                         ls='-', color='magenta', label='Final position forward average')
+                          ls='-', color='magenta', label='Final position forward average')
 
 print('TODO - Close the plot(s) to continue')
 # plt.ioff()
@@ -606,7 +573,7 @@ time.sleep(1.) # the DL overshoot, let it time to reach the targeted position
 print('\n*** Set DL to average BACKWARD NULL position ***')
 null_singlepass = null_pos[1]
 bcw_avg_null_pos = np.median(null_scans_best_pos[1,:])
-bcw_to_null_pos_avg, bcw_to_null_flx_avg, bcw_current_null_pos_avg = set_dl_to_avg_position(null_scans_best_pos, bcw_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag)
+bcw_to_null_pos_avg, bcw_to_null_flx_avg, bcw_current_null_pos_avg = set_dl_to_null(bcw_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag)
 
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
@@ -624,7 +591,7 @@ plt.title('BACKWARD Reached null position average strategy\n (%.5f, %.5f)'%(bcw_
 plt.tight_layout()
 
 ax32.axvline(bcw_current_null_pos_avg, min([min(elt) for elt in scans_back]) - margin, max([max(elt) for elt in scans_back]) + margin, 
-                         ls='-', color='magenta', label='Final position backward average')
+                          ls='-', color='magenta', label='Final position backward average')
 
 ax31.legend(loc='best')
 ax32.legend(loc='best')
@@ -637,9 +604,9 @@ db = {'scans_forth_pos':scans_forth_pos, 'scans_forth':scans_forth,
       'scans_back_pos':scans_back_pos, 'scans_back':scans_back,
         'null_scans_best_pos': null_scans_best_pos,
             'fwd_to_null':[fwd_to_null_pos, fwd_to_null_flx],
-                 'fwd_to_null_avg':[fwd_to_null_pos_avg, fwd_to_null_flx_avg],
-                             'bcw_to_null':[bcw_to_null_pos, bcw_to_null_flx],
-                 'bcw_to_null_avg':[bcw_to_null_pos_avg, bcw_to_null_flx_avg]}
+                  'fwd_to_null_avg':[fwd_to_null_pos_avg, fwd_to_null_flx_avg],
+                              'bcw_to_null':[bcw_to_null_pos, bcw_to_null_flx],
+                  'bcw_to_null_avg':[bcw_to_null_pos_avg, bcw_to_null_flx_avg]}
 
 save_data(db, save_path, name_file)
 
@@ -652,87 +619,87 @@ print('TODO - Close the plot(s) to continue')
 plt.ioff()
 plt.show()
 
-# # =============================================================================
-# # Repeat DL location
-# # =============================================================================
-# """
-# Here we qualify the ability of the DL to reach precisely and accurately a position given
-# a relative move.
-# """
-# print('\n*** Repeatedly Setting DL to NULL ***')
+# =============================================================================
+# Repeat DL location
+# =============================================================================
+"""
+Here we qualify the ability of the DL to reach precisely and accurately a position given
+a relative move.
+"""
+print('\n*** Repeatedly Setting DL to NULL ***')
 
-# targeted_pos = null_pos[0] # null_scans_pos[0][np.argmin(null_scans[0])]
+targeted_pos = null_pos[0] # null_scans_pos[0][np.argmin(null_scans[0])]
 
-# scans_forth = null_scans[::2]
-# scans_forth_pos = null_scans_pos[::2]
-# scans_back = null_scans[1::2]
-# scans_back_pos = null_scans_pos[1::2]
+scans_forth = null_scans[::2]
+scans_forth_pos = null_scans_pos[::2]
+scans_back = null_scans[1::2]
+scans_back_pos = null_scans_pos[1::2]
 
-# repeat_null_flx = []
-# repeat_null_pos = []
-# repeat_null_pos2 = []
-# repeat_reached_pos = []
-# n_repeat = 10
+repeat_null_flx = []
+repeat_null_pos = []
+repeat_null_pos2 = []
+repeat_reached_pos = []
+n_repeat = 10
 
-# fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10,5))
-# ax1.grid()
-# ax2.grid()
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10,5))
+ax1.grid()
+ax2.grid()
 
-# for k in range(n_repeat):
-#     print('Reaching null', k+1, '/', n_repeat)
-#     current_pos = read_current_pos(opcua_motor)
-#     print('MSG - Current position:', current_pos)
-#     print('MSG - Now moving to null position :', targeted_pos)
-#     cmd_null = (targeted_pos - current_pos)/1000
-#     print('Sending command', cmd_null)
-#     move_rel_dl(cmd_null, speed, opcua_motor)
+for k in range(n_repeat):
+    print('Reaching null', k+1, '/', n_repeat)
+    current_pos = read_current_pos(opcua_motor)
+    print('MSG - Current position:', current_pos)
+    print('MSG - Now moving to null position :', targeted_pos)
+    cmd_null = (targeted_pos - current_pos)/1000
+    print('Sending command', cmd_null)
+    move_rel_dl(cmd_null, speed, opcua_motor)
     
-#     # Save the last move to check how precise the null is reached
-#     time.sleep(wait_time)
-#     start, end = kappa_matrix.define_time2(grab_range)
-#     to_null_pos = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)
-#     to_null_flx = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag)
-#     to_null_pos2 = synchronize_ts(to_null_pos, to_null_flx)
-#     to_null_pos = to_null_pos[:,1]
-#     to_null_flx = to_null_flx[:,1]
-#     to_null_pos2 = to_null_pos2[:,1]
+    # Save the last move to check how precise the null is reached
+    time.sleep(wait_time)
+    start, end = kappa_matrix.define_time2(grab_range)
+    to_null_pos = kappa_matrix.get_field2(dl_name, start, end, return_avg_ts)
+    to_null_flx = kappa_matrix.get_field2(fields_of_interest[2], start, end, return_avg_ts, lag)
+    to_null_pos2 = interpolate_ts(to_null_pos, to_null_flx)
+    to_null_pos = to_null_pos[:,1]
+    to_null_flx = to_null_flx[:,1]
+    to_null_pos2 = to_null_pos2[:,1]
 
-#     repeat_null_pos.append(to_null_pos)
-#     repeat_null_flx.append(to_null_flx)
-#     repeat_null_pos2.append(to_null_pos2)
-#     reached_pos = read_current_pos(opcua_motor)
-#     print('MSG - Reached position', reached_pos)
-#     repeat_reached_pos.append(reached_pos)
-#     print('MSG - Gap position', read_current_pos(opcua_motor) - null_pos[0])
+    repeat_null_pos.append(to_null_pos)
+    repeat_null_flx.append(to_null_flx)
+    repeat_null_pos2.append(to_null_pos2)
+    reached_pos = read_current_pos(opcua_motor)
+    print('MSG - Reached position', reached_pos)
+    repeat_reached_pos.append(reached_pos)
+    print('MSG - Gap position', read_current_pos(opcua_motor) - null_pos[0])
 
-#     t_scale = np.linspace(-grab_range, 0., len(to_null_flx))
-#     ax1.plot(t_scale, to_null_flx)
-#     ax1.set_xlabel('Time (s)')
-#     ax1.set_ylabel('Flux (count)')
-#     ax2.plot(to_null_pos2, to_null_flx)
-#     ax2.set_xlabel('DL pos (um)')
-#     ax2.set_ylabel('Flux (count)')
-#     fig.suptitle('Reached null position')
+    t_scale = np.linspace(-grab_range, 0., len(to_null_flx))
+    ax1.plot(t_scale, to_null_flx)
+    ax1.set_xlabel('Time (s)')
+    ax1.set_ylabel('Flux (count)')
+    ax2.plot(to_null_pos2, to_null_flx)
+    ax2.set_xlabel('DL pos (um)')
+    ax2.set_ylabel('Flux (count)')
+    fig.suptitle('Reached null position')
     
-#     # Go back to starting position when closed
-#     print('MSG - Moving back to initial position')
-#     move_abs_dl(dl_start, speed, opcua_motor)
-#     time.sleep(1.) # the DL overshoot, let it time to reach the targeted position
-#     print(' ')
+    # Go back to starting position when closed
+    print('MSG - Moving back to initial position')
+    move_abs_dl(dl_start, speed, opcua_motor)
+    time.sleep(1.) # the DL overshoot, let it time to reach the targeted position
+    print(' ')
 
-# save_path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/cophasing/'
-# name_file = 'null_repeat_'+dl_name+'_speed_%s'%(speed)
-# db = {'repeat_null_flx':repeat_null_flx, 'repeat_null_pos':repeat_null_pos,\
-#       'gd_params':gd_params,\
-#         'scans_forth_pos':scans_forth_pos, 'scans_forth':scans_forth, \
-#       'scans_back_pos':scans_back_pos, 'scans_back':scans_back,\
-#         'targeted_pos':targeted_pos, 'repeat_reached_pos':repeat_reached_pos,
-#         'repeat_null_pos2':repeat_null_pos2}
-# save_data(db, save_path, name_file)
+save_path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/cophasing/'
+name_file = 'null_repeat_'+dl_name+'_speed_%s'%(speed)
+db = {'repeat_null_flx':repeat_null_flx, 'repeat_null_pos':repeat_null_pos,\
+      'gd_params':gd_params,\
+        'scans_forth_pos':scans_forth_pos, 'scans_forth':scans_forth, \
+      'scans_back_pos':scans_back_pos, 'scans_back':scans_back,\
+        'targeted_pos':targeted_pos, 'repeat_reached_pos':repeat_reached_pos,
+        'repeat_null_pos2':repeat_null_pos2}
+save_data(db, save_path, name_file)
 
-# print('TODO - Close the plot(s) to continue')
-# plt.ioff()
-# plt.show()
+print('TODO - Close the plot(s) to continue')
+plt.ioff()
+plt.show()
 
 # # =============================================================================
 # # Intra-fringe scan (need global scan to work)
@@ -1148,3 +1115,114 @@ plt.show()
 # plt.show()
 # print('MSG - Moving back to initial position')
 # move_abs_dl(dl_start, 0.05, opcua_motor)
+
+# =============================================================================
+# Global scan with stop at every null
+# =============================================================================
+"""
+Here we check the ability of the DL to perform global scan, find the null and reach it at every pass.
+Given the backlash, reaching a position is always made from the same direction.
+
+Two methods are tested:
+    - single pass then reach the null
+    - several pass and reach the average null
+    
+Null position can be defined as:
+    - the minimum value of the flux during the scan
+    - minimum value given a fit of the envelope then a fit of the fringes
+It appears that none of these techniques accurately find the null, it will
+mostly lock on the bright fringe, sometimes on the null and sometimes on a partial fringe.
+The reason is not clear but it is the case for all the tests led with this script.
+"""
+
+# # Wait for the other delay lines to reach its position
+# wait_time = 3. # in second
+# print('Wait for the other delay lines to reach its position (%s sec)'%(wait_time))
+# time.sleep(wait_time)
+
+speed2 = speed
+
+# Set DL to initial position
+print('MSG - Move DL to initial position:', )
+move_abs_dl(dl_start, speed, opcua_motor)
+
+null_scans = []
+null_scans_pos = []
+null_scans_best_pos = []
+gd_params = []
+
+dl_bounds = [dl_end, dl_start]
+dl_bounds2 = [dl_start, dl_end]
+
+
+for it in range(n_pass):
+    print('MSG - Pass', it+1, '/', n_pass)
+    best_null_pos, flx_coh, dl_pos, params = do_scans(dl_name, dl_bounds[it%2], speed, opcua_motor, fields_of_interest, delay, 
+                 return_avg_ts, lag, it, n_pass, wait_db, dl_start, dl_end, wav)
+    
+    null_scans_best_pos.append(best_null_pos)
+    gd_params.append(params)
+    null_scans.append(flx_coh)
+    null_scans_pos.append(dl_pos)
+
+    print('MSG - Moving to the best null position: going back to starting point of scan')
+    move_abs_dl(dl_bounds2[it%2], speed, opcua_motor)
+    print('MSG - Moving to the best null position: going to the best position')
+    move_abs_dl(best_null_pos/1000., speed, opcua_motor)
+    
+    to_null_pos, to_null_flx, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag)
+    t_scale = to_null_flx[:,0] - to_null_flx[:,0].max()
+    to_null_flx = to_null_flx[:,1]
+
+    figx, (axe1, axe2) = plt.subplots(2, 1, figsize=(8,5)) # Display scan forth
+    axe1.grid()
+    axe1.set_xlabel('Time (s)')
+    axe1.set_ylabel('Flux (count)')
+    axe2.grid()
+    axe2.set_xlabel('Time (s)')
+    axe2.set_ylabel('Flux (count)')
+    
+    if it % 2 == 0:
+        axe1.plot(t_scale/1e6, to_null_flx)
+        axe1.set_title('%s - FORWARD Reached null position: %.5f\nTargeted position: %.5f'%(it, current_null_pos, best_null_pos))
+    else:
+        axe2.plot(t_scale/1e6, to_null_flx)
+        axe2.set_title('%s - BACKWARD Reached null position: %.5f\nTargeted position: %.5f'%(it, current_null_pos, best_null_pos))
+    
+    figx.tight_layout()
+
+    print('MSG - Moving to the other side')
+    move_abs_dl(dl_bounds[it%2], speed, opcua_motor)
+    print(' ')
+
+print('MSG - End of pass')
+# plt.ioff()
+# plt.show()
+
+# Show results of the scans, individual scan can have different numbers of points
+scans_forth = null_scans[::2]
+scans_forth_pos = null_scans_pos[::2]
+scans_back = null_scans[1::2]
+scans_back_pos = null_scans_pos[1::2]
+
+"""
+This plot shows how repeatable a scan is
+"""
+fig3, (ax31, ax32) = plt.subplots(2, 1, figsize=(8,5)) # Display scan forth
+ax31.set_title('Forward')
+[ax31.plot(scans_forth_pos[i], scans_forth[i]) for i in range(len(scans_forth))]
+ax31.grid()
+ax31.set_xlabel('DL pos (um)')
+ax31.set_ylabel('Flux (count)')
+ax31.legend(loc='best')
+ax32.set_title('Backward')
+[ax32.plot(scans_back_pos[i], scans_back[i]) for i in range(len(scans_back))]
+ax32.grid()
+ax32.set_xlabel('DL pos (um)')
+ax32.set_ylabel('Flux (count)')
+ax32.legend(loc='best')
+fig3.tight_layout()
+
+print('TODO - Close the plot(s) to continue')
+# plt.ioff()
+# plt.show()
