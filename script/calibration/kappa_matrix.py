@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from numpy.polynomial import Polynomial
 
+redis_url = 'redis://10.33.178.176:6379'
 # Get epoch
 epoch = datetime.utcfromtimestamp(0)
 
@@ -41,7 +42,7 @@ def get_field(field1, start, end):
     
     
     # Read data
-    r = redis.from_url('redis://10.33.178.176:6379')
+    r = redis.from_url(redis_url)
 
     # Extract data
     ts = r.ts()
@@ -72,7 +73,7 @@ def get_position(DL,field, start,end): #return podition of Delay line 'DL' and t
 
     
     # Read data
-    r = redis.from_url('redis://10.33.178.176:6379')
+    r = redis.from_url(redis_url)
 
     # Extract data
     ts = r.ts()
@@ -854,11 +855,11 @@ import time
 from datetime import datetime, timedelta
 import nott_control
 
-def get_field2(field, start, end, return_avg, lag=0, db_address='redis://10.33.178.176:6379'):
+def get_field2(field, start, end, return_avg, lag=0, db_address='redis://10.33.179.167:6379'):
     """
     Get the data in the database of the required `field` in a time range limited by `start` and `end`.
-    The returned object is a 2D-array which rows are the datapoints, the first column is the timestamp
-    and the 2nd column is the value of `field`.
+    The returned object is a 2D-array which rows (1st axis) are the datapoints, the first column is the timestamp
+    (in milliseconds) and the 2nd column is the value of `field`.
 
     Parameters
     ----------
@@ -873,7 +874,7 @@ def get_field2(field, start, end, return_avg, lag=0, db_address='redis://10.33.1
     lag: float
         Lag to add to the timeline, in millisecond. The default is 0.
     db_address : str, optional
-        Address of the database. The default is 'redis://10.33.178.176:6379'.
+        Address of the database. The default is 'redis://10.33.179.167:6379'.
 
     Returns
     -------
@@ -1023,9 +1024,9 @@ def define_time2(delay):
     Returns
     -------
     start: int
-        Rounded timestamp of the beginning of the timeserie to grab
+        Rounded timestamp of the beginning of the timeserie to grab, in milliseconds
     end: int
-        Rounded timestamp of the end of the timeserie to grab
+        Rounded timestamp of the end of the timeserie to grab, in milliseconds
     """
     end = time.time()
     start = end - delay
