@@ -4,6 +4,7 @@ from opcua import OPCUAConnection
 from configparser import ConfigParser
 from scifygui import MainWindow
 import os
+import logging
 
 def main():
     #Change the running directory to this directory
@@ -14,6 +15,9 @@ def main():
     config = ConfigParser()
     config.read('config.ini')
     url =  config['DEFAULT']['opcuaaddress']
+
+    logger = logging.getLogger("asyncua")
+    logger.setLevel(logging.WARNING)
 
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
