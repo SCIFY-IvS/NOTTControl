@@ -93,7 +93,6 @@ def move_abs_dl(pos, speed, opcua_motor, pos_offset):
     method = parent.get_child("4:RPC_MoveAbs")
 
     curr_pos = read_current_pos(opcua_motor)
-    curr_pos /= 1000 # in mm
 
     if pos - curr_pos > 0:
         pos = pos + pos_offset # in mm
@@ -120,7 +119,7 @@ def move_abs_dl(pos, speed, opcua_motor, pos_offset):
 
 # Read current position
 def read_current_pos(opcua_motor):
-    """ Read current position """
+    """ Read current position. Return it in mm """
     
     # Initialize the OPC UA connection
     config = ConfigParser()
@@ -132,7 +131,6 @@ def read_current_pos(opcua_motor):
 
     # Read positoin
     target_pos = opcua_conn.read_node('ns=4;s=MAIN.'+opcua_motor+'.stat.lrPosActual')
-    target_pos = target_pos * 1000
     opcua_conn.disconnect()
 
     return target_pos

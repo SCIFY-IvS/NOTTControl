@@ -2,29 +2,17 @@ import sys
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
-import redis
 import time
 from datetime import datetime, timedelta
 from nott_control import shutter_close, shutter_open
 import numpy as np
-from nott_maintenance import startup, shutdown
-from nott_acquisition import cophase, get_darks, get_flats
-import os
-from scipy.interpolate import interp1d
-from nott_fringes import fringes, fringes_env, envelop_detector
-from scipy.optimize import curve_fit
-from nott_control import move_rel_dl, move_abs_dl, read_current_pos
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-from numpy.polynomial import Polynomial
+
 
 redis_url = 'redis://10.33.178.176:6379'
 
 # =============================================================================
 # TODO: measure visibility
 # =============================================================================
-import time
-from datetime import datetime, timedelta
 import nott_control
 from nott_database import define_time, get_field
 
