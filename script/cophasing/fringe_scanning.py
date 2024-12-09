@@ -170,7 +170,10 @@ def do_scans(dl_name, dl_end_pos, speed, opcua_motor, field_of_interest, delay,
     return pos_fit[idx_null], flx_coh, dl_pos, gdparams, fit_data
 
 def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, field_of_interest):
-    current_pos = read_current_pos(opcua_motor)
+    """
+    null_singlepass in um
+    """
+    current_pos = read_current_pos(opcua_motor) * 1000 # convert in um
     print('MSG - Current position:', current_pos)
     print('MSG - Now moving to null position :', null_singlepass)
     move_abs_dl(null_singlepass/1000, speed2, opcua_motor, pos_offset)
@@ -180,7 +183,7 @@ def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, re
     time.sleep(wait_db)
     to_null_pos = get_field(dl_name, start, end, return_avg_ts) # we only keep the position
     to_null_flx = get_field(field_of_interest, start, end, return_avg_ts, lag) # we keep both timestamp (in ms) and flux
-    current_null_pos = read_current_pos(opcua_motor)
+    current_null_pos = read_current_pos(opcua_motor) * 1000 # convert in um
     print('MSG - Reached position', current_null_pos)
     print('MSG - Gap position', current_null_pos - null_singlepass)
     
@@ -208,7 +211,7 @@ speed0 = speed
 wait_time = 0.08 / speed * 2 # Time in sec to scan X times the coherent envelope
 grab_range = 0.08 / speed * 3 # Time in sec to scan X times the coherent envelope
 
-pos_offset = 0.24 / 1000.
+pos_offset = 0.24 / 1000. # in mm
 
 if dl_id == 4:
     opcua_motor = 'nott_ics.Delay_Lines.NDL4'
@@ -617,10 +620,10 @@ lag = 0.
 
 # for k in range(n_repeat):
 #     print('Reaching null', k+1, '/', n_repeat)
-#     current_pos = read_current_pos(opcua_motor)
+#     current_pos = read_current_pos(opcua_motor) * 1000 # convert in um
 #     print('MSG - Current position:', current_pos)
 #     print('MSG - Now moving to null position :', targeted_pos)
-#     cmd_null = (targeted_pos - current_pos)/1000
+#     cmd_null = (targeted_pos / 1000 - current_pos)
 #     print('Sending command', cmd_null)
 #     move_rel_dl(cmd_null, speed, opcua_motor)
     
@@ -637,10 +640,10 @@ lag = 0.
 #     repeat_null_pos.append(to_null_pos)
 #     repeat_null_flx.append(to_null_flx)
 #     repeat_null_pos2.append(to_null_pos2)
-#     reached_pos = read_current_pos(opcua_motor)
+#     reached_pos = read_current_pos(opcua_motor) * 1000 # convert in um
 #     print('MSG - Reached position', reached_pos)
 #     repeat_reached_pos.append(reached_pos)
-#     print('MSG - Gap position', read_current_pos(opcua_motor) - null_scans_best_pos[0])
+#     print('MSG - Gap position', reached_pos - null_scans_best_pos[0])
 
 #     t_scale = np.linspace(-grab_range, 0., len(to_null_flx))
 #     ax1.plot(t_scale, to_null_flx)
@@ -689,7 +692,7 @@ lag = 0.
 # print('MSG - Global scan - The null position is:', null_scans_best_pos[0])
 # # targeted_pos = null_scans_pos[0][np.argmin(null_scans[0])] # Use the minimum value of the scan
 # targeted_pos = null_scans_best_pos[0] # Fitted value
-# # current_pos = read_current_pos(opcua_motor)
+# # current_pos = read_current_pos(opcua_motor) * 1000 # in um
 # # print('MSG - Current position:', current_pos)
 # # print('MSG - Now moving to null position :', targeted_pos)
 # # move_abs_dl(targeted_pos/1000, speed, opcua_motor)
@@ -698,7 +701,7 @@ lag = 0.
 # nb_pass = 5 # Even number for back and forth
 # wav = 3.8 # Wavelength in um
 # period = wav / 2 # The DL position is half the OPD
-# current_pos = read_current_pos(opcua_motor)
+# current_pos = read_current_pos(opcua_motor) * 1000
 # intrafringe_start = targeted_pos - period * nb_fringes
 # intrafringe_end = targeted_pos + period * nb_fringes
 # print('MSG - Move to start position:', intrafringe_start)
@@ -857,7 +860,7 @@ lag = 0.
 
 #     repeat_null_pos.append(to_null_pos)
 #     repeat_null_flx.append(to_null_flx)
-#     reached_pos = read_current_pos(opcua_motor)
+#     reached_pos = read_current_pos(opcua_motor) * 1000 # in um
 #     print('MSG - Reached position', reached_pos)
 #     repeat_reached_pos.append(reached_pos)
 
@@ -905,7 +908,7 @@ lag = 0.
 # print('MSG - Global scan - The null position is:', null_scans_best_pos[0])
 # # targeted_pos = null_scans_pos[0][np.argmin(null_scans[0])] # Use the minimum value of the scan
 # targeted_pos = null_scans_best_pos[0] # Fitted value
-# # current_pos = read_current_pos(opcua_motor)
+# # current_pos = read_current_pos(opcua_motor) * 1000 # in um
 # # print('MSG - Current position:', current_pos)
 # # print('MSG - Now moving to null position :', targeted_pos)
 # # move_abs_dl(targeted_pos/1000, speed, opcua_motor)
@@ -914,7 +917,7 @@ lag = 0.
 # nb_pass = 10 # Even number for back and forth
 # wav = 3.8 # Wavelength in um
 # period = wav / 2 # The DL position is half the OPD
-# current_pos = read_current_pos(opcua_motor)
+# current_pos = read_current_pos(opcua_motor) * 1000 # in um
 # intrafringe_start = targeted_pos - period * nb_fringes - 5
 # intrafringe_end = targeted_pos + period * nb_fringes
 # print('MSG - Move to start position:', intrafringe_start)
@@ -1054,7 +1057,7 @@ lag = 0.
 #     to_null_pos, to_null_flx, to_null_flx2, bck = grab_flux(grab_range, dl_name)
 #     repeat_null_pos.append(to_null_pos)
 #     repeat_null_flx.append(to_null_flx2)
-#     reached_pos = read_current_pos(opcua_motor)
+#     reached_pos = read_current_pos(opcua_motor) * 1000 # in um
 #     print('MSG - Reached position', reached_pos)
 #     repeat_reached_pos.append(reached_pos)
 #     repeat_bck.append(bck)
