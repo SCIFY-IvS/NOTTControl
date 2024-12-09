@@ -29,6 +29,7 @@ import numpy as np
 from nott_time import unix_time_ms
 from datetime import datetime, timedelta
 from scipy.interpolate import interp1d
+import time
 
 # #  Function to read field values from the REDIS database and corresponding delay line position for the last 'delay' ms
 # def get_field(field1, field2, field3, field4, delay, dl_name):
