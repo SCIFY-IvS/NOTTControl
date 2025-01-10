@@ -27,12 +27,17 @@ __status__ = "Production"
 import sys
 import time
 from configparser import ConfigParser
+import logging
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 from opcua import OPCUAConnection
 from components.motor import Motor
 from components.shutter import Shutter
+
+# Silent messages from opcua every time a command is sent
+logger = logging.getLogger("asyncua")
+logger.setLevel(logging.WARNING)
 
 #### DELAY LINES FUNCTIONS ####
 ###############################
@@ -48,7 +53,6 @@ def move_rel_dl(rel_pos, speed, opcua_motor):
 
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
-    
     # parent = opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_1')
     parent = opcua_conn.client.get_node('ns=4;s=MAIN.'+opcua_motor)
     method = parent.get_child("4:RPC_MoveRel")
@@ -69,8 +73,12 @@ def move_rel_dl(rel_pos, speed, opcua_motor):
     return 'done'
 
 # Move abs motor
-def move_abs_dl(pos, speed, opcua_motor):
-    """ Send an absolute position to a delay line """
+def move_abs_dl(pos, speed, opcua_motor, pos_offset):
+    """ 
+    Send an absolute position to a delay line 
+
+    pos_offset: in mm
+    """
 
     # initialize the OPC UA connection
     config = ConfigParser()
@@ -79,12 +87,21 @@ def move_abs_dl(pos, speed, opcua_motor):
 
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
-    
+
     # parent = opcua_conn.client.get_node('ns=4;s=MAIN.DL_Servo_'+dl_id)
     parent = opcua_conn.client.get_node('ns=4;s=MAIN.'+opcua_motor)
     method = parent.get_child("4:RPC_MoveAbs")
+
+    curr_pos = read_current_pos(opcua_motor)
+
+    if pos - curr_pos > 0:
+        pos = pos + pos_offset # in mm
+    else:
+        pos = pos - pos_offset # in mm
+
     arguments = [pos, speed]
     parent.call_method(method, *arguments)
+
     #dl = Motor(opcua_conn, 'ns=4;s=MAIN.Delay_Lines.NDL'+dl_id, 'DL_'+dl_id)
     #dl.command_move_absolute(pos, speed)
     
@@ -102,7 +119,7 @@ def move_abs_dl(pos, speed, opcua_motor):
 
 # Read current position
 def read_current_pos(opcua_motor):
-    """ Read current position """
+    """ Read current position. Return it in mm """
     
     # Initialize the OPC UA connection
     config = ConfigParser()
@@ -114,7 +131,6 @@ def read_current_pos(opcua_motor):
 
     # Read positoin
     target_pos = opcua_conn.read_node('ns=4;s=MAIN.'+opcua_motor+'.stat.lrPosActual')
-    target_pos = target_pos * 1000
     opcua_conn.disconnect()
 
     return target_pos
@@ -137,15 +153,6 @@ def shutter_close(shutter_id):
     shutter = Shutter(opcua_conn, 'ns=4;s=MAIN.nott_ics.Shutters.NSH'+shutter_id, 'Shutter '+shutter_id)
     shutter.close()
 
-    #the following commands are available:
-    #shutter.reset()
-    #shutter.init()
-    #shutter.enable()
-    #shutter.disable()
-    #shutter.stop()
-    #shutter.open()
-    #shutter.close()
-    
     # Disconnect
     opcua_conn.disconnect()
     return 'done'
@@ -162,15 +169,6 @@ def shutter_open(shutter_id):
     opcua_conn.connect()
     shutter = Shutter(opcua_conn, 'ns=4;s=MAIN.nott_ics.Shutters.NSH'+shutter_id, 'Shutter '+shutter_id)
     shutter.open()
-
-    #the following commands are available:
-    #shutter.reset()
-    #shutter.init()
-    #shutter.enable()
-    #shutter.disable()
-    #shutter.stop()
-    #shutter.open()
-    #shutter.close()
     
     # Disconnect
     opcua_conn.disconnect()
@@ -182,4 +180,15 @@ def all_shutters_close(n_aper):
         
 def all_shutters_open(n_aper):
     for i in range(n_aper):
-        shutter_open(str(i+1))  
+        shutter_open(str(i+1))
+
+# if __name__ == '__main__':
+#     opcua_motor = 'nott_ics.Delay_Lines.NDL4'
+#     speed = 0.02
+#     pos = 6.
+#     pos_offset = 0.24 / 1000.
+#     rel_pos = 0.5
+#     move_abs_dl(pos, speed, opcua_motor, pos_offset)
+#     # move_rel_dl(rel_pos, speed, opcua_motor)
+
+    
