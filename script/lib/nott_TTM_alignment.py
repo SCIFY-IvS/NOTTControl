@@ -21,8 +21,9 @@ sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 from opcua import OPCUAConnection
 from components.motor import Motor
 
-# Function for retrieving ROI data from REDIS
-from nott_database import get_data
+# Functions for retrieving ROI data from REDIS
+from nott_database import define_time
+from nott_database import get_field
 
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
@@ -938,13 +939,15 @@ def LocalizationSpiral(sky,step,config):
     else:
         d = 20*10**(-3) #(mm)
         
+    # REDIS field name of relevant ROI
+    names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
+    fieldname = names[config]
+        
     # Initial position noise measurement
-    noise,_,_,_ = get_data("roi9_avg","roi9_avg","roi9_avg","roi9_avg",100)
-    # Initial position photometric output measurements
-    photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
-    photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
-    # Selecting photometric output corresponding to the specified configuration "config"
-    photoconfig = photo_arr[config]
+    t_start,t_stop = define_time(0.100) # 100 ms back in time
+    noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the mean roi9 value
+    # Initial position photometric output measurement
+    photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
     
     if (photoconfig > 5*noise):
         raise Exception("Localization spiral not started. Initial configuration is already in a state of injection (photometric output > 5*noise).")
@@ -993,12 +996,10 @@ def LocalizationSpiral(sky,step,config):
             # REDIS writing time
             time.sleep(0.110)
             # New position noise measurement
-            noise,_,_,_ = get_data("roi9_avg","roi9_avg","roi9_avg","roi9_avg",100)
+            t_start,t_stop = define_time(0.100) # 100 ms back in time
+            noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the mean roi9 value
             # New position photometric output measurements
-            photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
-            photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
-            # Selecting photometric output corresponding to the specified configuration "config"
-            photoconfig = photo_arr[config]
+            photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
             
             if (photoconfig > 5*noise):
                 print("A state of injection (photo > 5*noise) has been reached.")
@@ -1065,11 +1066,13 @@ def OptimizationSpiral(sky,step,config):
     # TTM configs 
     TTM = []
       
-    # Initial position photometric output measurements
-    photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
-    photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
-    # Selecting photometric output corresponding to the specified configuration "config"
-    photoconfig = photo_arr[config]
+    # REDIS field name of relevant ROI
+    names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
+    fieldname = names[config]
+        
+    t_start,t_stop = define_time(0.100) # 100 ms back in time
+    # Initial position photometric output measurement
+    photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
     # Adding to the stack of exposures
     exp.append(photoconfig)
     
@@ -1124,10 +1127,8 @@ def OptimizationSpiral(sky,step,config):
             time.sleep(110)
             # Storing camera value and TTM configuration
             # 1) Camera value
-            photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
-            photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
-            # Selecting photometric output corresponding to the specified configuration "config"
-            photoconfig = photo_arr[config]
+            t_start,t_stop = define_time(0.100) # 100 ms back in time
+            photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
             # Adding to the stack of exposures
             exp.append(photoconfig)
             # 2) TTM configuration
