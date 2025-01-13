@@ -14,6 +14,7 @@ import sys
 import time
 from configparser import ConfigParser
 import logging
+import redis
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
@@ -320,18 +321,13 @@ def FrameworkNumericSky(dTTM1X,dTTM1Y,D,lam,CS=True):
     Then, the shifts (X,Y,x,y) are determined as a function of the remaining angular offsets (dTTM2X,dTTM2Y).
     Based on parameter CS, a choice is made : if True, (dTTM2X,dTTM2Y) are determined such that (X,Y)=(0,0).
                                               if False, (dTTM2X,dTTM2Y) are determined such that (x,y)=(0,0).
-                                              After analysis of the framework equations, no non-trivial combination of (dTTM2X,dTTM2Y) seems to exist that guarantees both.
+                                              No non-trivial combination of (dTTM2X,dTTM2Y) exists that guarantees both.
                                               
     Context
     -------
     The function is relevant in the context of on-sky scanning. There, TTM1 takes the role of the scanner; a TTM1 angular offset changes the on-sky angle of the picked up FOV.
     A desired on-sky angular offset should then be translated to a necessary TTM1 angular offset, which is to be imposed to the system.
     Thereafter, the TTM2 angular offsets should be calculated that make it such that the scanning has no effect on alignment in a user-specified plane (CS/IM).
-    
-    Remarks
-    -------
-    In preparation : Would be interesting to also implement a routine that can determine (dTTM2X,dTTM2Y) such that the combination of CS & IM shifts is as small as possible, 
-                     neither being necessarily forced to zero.
     
     Parameters
     ----------
@@ -491,14 +487,8 @@ def GetActuatorPos(config):
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
     
-    if (config==0):
-        name = 'NTPA'
-    if (config==1):
-        name = 'NTPB'
-    if (config==2):
-        name = 'NTTA'
-    if (config==3):
-        name = 'NTTB'
+    names = ['NTPA','NTPB','NTTA','NTTB']
+    name = names[config]
         
     pos1 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1.stat.lrPosActual')
     pos2 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2.stat.lrPosActual')
@@ -767,14 +757,8 @@ def MoveAbsTTMAct(config,pos,speed,pos_offset):
     opcua_conn.connect()
     
     # Setting up actuators of the configuration
-    if (config==0):
-        name = 'NTPA'
-    if (config==1):
-        name = 'NTPB'
-    if (config==2):
-        name = 'NTTA'
-    if (config==3):
-        name = 'NTTB'
+    names = ['NTPA','NTPB','NTTA','NTTB']
+    name = names[config]
     
     act1 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1', name+'1')
     act2 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2', name+'2')
@@ -939,13 +923,13 @@ def LocalizationSpiral(sky,step,config):
     else:
         d = 20*10**(-3) #(mm)
         
-    # REDIS field name of relevant ROI
+    # REDIS field names of photometric outputs' ROIs
     names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
     fieldname = names[config]
         
     # Initial position noise measurement
     t_start,t_stop = define_time(0.100) # 100 ms back in time
-    noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the mean roi9 value
+    noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
     # Initial position photometric output measurement
     photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
     
