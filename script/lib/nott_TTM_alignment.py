@@ -14,7 +14,10 @@ import sys
 import time
 from configparser import ConfigParser
 import logging
+<<<<<<< HEAD
 import redis
+=======
+>>>>>>> main
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
@@ -22,9 +25,14 @@ sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 from opcua import OPCUAConnection
 from components.motor import Motor
 
+<<<<<<< HEAD
 # Functions for retrieving ROI data from REDIS
 from nott_database import define_time
 from nott_database import get_field
+=======
+# Function for retrieving ROI data from REDIS
+from nott_database import get_data
+>>>>>>> main
 
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
@@ -321,7 +329,11 @@ def FrameworkNumericSky(dTTM1X,dTTM1Y,D,lam,CS=True):
     Then, the shifts (X,Y,x,y) are determined as a function of the remaining angular offsets (dTTM2X,dTTM2Y).
     Based on parameter CS, a choice is made : if True, (dTTM2X,dTTM2Y) are determined such that (X,Y)=(0,0).
                                               if False, (dTTM2X,dTTM2Y) are determined such that (x,y)=(0,0).
+<<<<<<< HEAD
                                               No non-trivial combination of (dTTM2X,dTTM2Y) exists that guarantees both.
+=======
+                                              After analysis of the framework equations, no non-trivial combination of (dTTM2X,dTTM2Y) seems to exist that guarantees both.
+>>>>>>> main
                                               
     Context
     -------
@@ -329,6 +341,14 @@ def FrameworkNumericSky(dTTM1X,dTTM1Y,D,lam,CS=True):
     A desired on-sky angular offset should then be translated to a necessary TTM1 angular offset, which is to be imposed to the system.
     Thereafter, the TTM2 angular offsets should be calculated that make it such that the scanning has no effect on alignment in a user-specified plane (CS/IM).
     
+<<<<<<< HEAD
+=======
+    Remarks
+    -------
+    In preparation : Would be interesting to also implement a routine that can determine (dTTM2X,dTTM2Y) such that the combination of CS & IM shifts is as small as possible, 
+                     neither being necessarily forced to zero.
+    
+>>>>>>> main
     Parameters
     ----------
     dTTM1X,dTTM1Y : two float values
@@ -487,8 +507,19 @@ def GetActuatorPos(config):
     opcua_conn = OPCUAConnection(url)
     opcua_conn.connect()
     
+<<<<<<< HEAD
     names = ['NTPA','NTPB','NTTA','NTTB']
     name = names[config]
+=======
+    if (config==0):
+        name = 'NTPA'
+    if (config==1):
+        name = 'NTPB'
+    if (config==2):
+        name = 'NTTA'
+    if (config==3):
+        name = 'NTTB'
+>>>>>>> main
         
     pos1 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1.stat.lrPosActual')
     pos2 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2.stat.lrPosActual')
@@ -757,8 +788,19 @@ def MoveAbsTTMAct(config,pos,speed,pos_offset):
     opcua_conn.connect()
     
     # Setting up actuators of the configuration
+<<<<<<< HEAD
     names = ['NTPA','NTPB','NTTA','NTTB']
     name = names[config]
+=======
+    if (config==0):
+        name = 'NTPA'
+    if (config==1):
+        name = 'NTPB'
+    if (config==2):
+        name = 'NTTA'
+    if (config==3):
+        name = 'NTTB'
+>>>>>>> main
     
     act1 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1', name+'1')
     act2 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2', name+'2')
@@ -923,6 +965,7 @@ def LocalizationSpiral(sky,step,config):
     else:
         d = 20*10**(-3) #(mm)
         
+<<<<<<< HEAD
     # REDIS field names of photometric outputs' ROIs
     names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
     fieldname = names[config]
@@ -932,6 +975,15 @@ def LocalizationSpiral(sky,step,config):
     noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
     # Initial position photometric output measurement
     photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+=======
+    # Initial position noise measurement
+    noise,_,_,_ = get_data("roi9_avg","roi9_avg","roi9_avg","roi9_avg",100)
+    # Initial position photometric output measurements
+    photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
+    photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
+    # Selecting photometric output corresponding to the specified configuration "config"
+    photoconfig = photo_arr[config]
+>>>>>>> main
     
     if (photoconfig > 5*noise):
         raise Exception("Localization spiral not started. Initial configuration is already in a state of injection (photometric output > 5*noise).")
@@ -980,10 +1032,19 @@ def LocalizationSpiral(sky,step,config):
             # REDIS writing time
             time.sleep(0.110)
             # New position noise measurement
+<<<<<<< HEAD
             t_start,t_stop = define_time(0.100) # 100 ms back in time
             noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the mean roi9 value
             # New position photometric output measurements
             photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+=======
+            noise,_,_,_ = get_data("roi9_avg","roi9_avg","roi9_avg","roi9_avg",100)
+            # New position photometric output measurements
+            photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
+            photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
+            # Selecting photometric output corresponding to the specified configuration "config"
+            photoconfig = photo_arr[config]
+>>>>>>> main
             
             if (photoconfig > 5*noise):
                 print("A state of injection (photo > 5*noise) has been reached.")
@@ -1050,6 +1111,7 @@ def OptimizationSpiral(sky,step,config):
     # TTM configs 
     TTM = []
       
+<<<<<<< HEAD
     # REDIS field name of relevant ROI
     names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
     fieldname = names[config]
@@ -1057,6 +1119,13 @@ def OptimizationSpiral(sky,step,config):
     t_start,t_stop = define_time(0.100) # 100 ms back in time
     # Initial position photometric output measurement
     photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+=======
+    # Initial position photometric output measurements
+    photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
+    photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
+    # Selecting photometric output corresponding to the specified configuration "config"
+    photoconfig = photo_arr[config]
+>>>>>>> main
     # Adding to the stack of exposures
     exp.append(photoconfig)
     
@@ -1111,8 +1180,15 @@ def OptimizationSpiral(sky,step,config):
             time.sleep(110)
             # Storing camera value and TTM configuration
             # 1) Camera value
+<<<<<<< HEAD
             t_start,t_stop = define_time(0.100) # 100 ms back in time
             photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+=======
+            photo1,photo2,photo3,photo4 = get_data("roi1_avg","roi2_avg","roi7_avg","roi8_avg",100) # 100 ms
+            photo_arr = np.array([photo1,photo2,photo3,photo4],dtype=np.float64)
+            # Selecting photometric output corresponding to the specified configuration "config"
+            photoconfig = photo_arr[config]
+>>>>>>> main
             # Adding to the stack of exposures
             exp.append(photoconfig)
             # 2) TTM configuration
