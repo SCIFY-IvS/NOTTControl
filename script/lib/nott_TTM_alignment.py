@@ -8,7 +8,7 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 """
 
 # Imports
-import sympy
+from sympy import *
 import numpy as np
 import sys
 import time
