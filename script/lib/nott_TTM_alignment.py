@@ -231,7 +231,7 @@ class nott_TTM_alignment:
         
         # Copy of symbolic framework
         Mcopy = self.M.copy()
-        
+        bcopy = self.b.copy()
         # Substituting parameter values into the symbolic matrix
         subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)]
         Mcopy = Mcopy.subs(subspar)
@@ -240,7 +240,7 @@ class nott_TTM_alignment:
         Minv = Mcopy.inv()
         
         # Multiplying by symbolic shifts 
-        frame = Minv*b
+        frame = Minv*bcopy
         
         # Parameters
         params = (X,Y,x,y)
@@ -448,6 +448,9 @@ class nott_TTM_alignment:
             An array of Zemax-simulated distances (D1,...,D8) corresponding to the grid point closest to TTMangles
 
         """
+        
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
     
         a = np.argmin(np.abs(TTM1Ygrid[config] - TTMangles[1]))
         b = np.argmin(np.abs(TTM2Ygrid[config] - TTMangles[3]))
@@ -476,6 +479,9 @@ class nott_TTM_alignment:
             Current actuator positions for the specified configuration (=beam)
 
         """
+    
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
     
         # OPC UA connection
         config = ConfigParser()
@@ -646,6 +652,9 @@ class nott_TTM_alignment:
 
         """
     
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+    
         Valid = True
         i = np.array([0,0,0,0])
         
@@ -746,6 +755,10 @@ class nott_TTM_alignment:
         None.
 
         """
+        
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+        
         # OPC UA connection
         config = ConfigParser()
         config.read('../../config.ini')
@@ -800,6 +813,9 @@ class nott_TTM_alignment:
         
     def cam_read_test(self,config):
     
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")    
+    
         # REDIS field names of photometric outputs' ROIs
         names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
         fieldname = names[config]
@@ -848,6 +864,9 @@ class nott_TTM_alignment:
         None.
 
         """
+        
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
     
         # Register current actuator displacements
         act_curr = self._get_actuator_pos(config)
@@ -932,6 +951,10 @@ class nott_TTM_alignment:
         None.
         
         """
+        
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+        
         if sky : 
             d = step
         else:
@@ -1054,6 +1077,10 @@ class nott_TTM_alignment:
         None.
 
         """
+        
+        if (config < 0 or config > 3):
+            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+        
         if sky : 
             d = step
         else:
