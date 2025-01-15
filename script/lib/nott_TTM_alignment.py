@@ -484,9 +484,9 @@ class nott_TTM_alignment:
             raise Exception("Please enter a valid configuration number (0,1,2,3)")
     
         # OPC UA connection
-        config = ConfigParser()
-        config.read('../../config.ini')
-        url =  config['DEFAULT']['opcuaaddress']
+        configpars = ConfigParser()
+        configpars.read('../../config.ini')
+        url =  configpars['DEFAULT']['opcuaaddress']
         
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
@@ -673,7 +673,7 @@ class nott_TTM_alignment:
             valid1 = (TTM2Y >= -TTM1Y-587*10**(-6) and TTM2Y <= -TTM1Y+508*10**(-6))
         if (config == 2):
             valid1 = (TTM2Y >= -TTM1Y-243*10**(-6) and TTM2Y <= -TTM1Y+655*10**(-6))
-        if (config == 3):
+        else:
             valid1 = (TTM2Y >= -TTM1Y-507*10**(-6) and TTM2Y <= -TTM1Y+443*10**(-6))
       
         if not valid1:
@@ -760,9 +760,9 @@ class nott_TTM_alignment:
             raise Exception("Please enter a valid configuration number (0,1,2,3)")
         
         # OPC UA connection
-        config = ConfigParser()
-        config.read('../../config.ini')
-        url =  config['DEFAULT']['opcuaaddress']
+        configpars = ConfigParser()
+        configpars.read('../../config.ini')
+        url =  configpars['DEFAULT']['opcuaaddress']
         
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
@@ -771,10 +771,10 @@ class nott_TTM_alignment:
         names = ['NTPA','NTPB','NTTA','NTTB']
         name = names[config]
         
-        act1 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1', name+'1')
-        act2 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2', name+'2')
-        act3 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'3', name+'3')
-        act4 = Motor(opc_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'4', name+'4')
+        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1', name+'1')
+        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2', name+'2')
+        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'3', name+'3')
+        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'4', name+'4')
         
         actuators = np.array([act1,act2,act3,act4])
         
