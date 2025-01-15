@@ -8,7 +8,7 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 """
 
 # Imports
-from sympy import *
+import sympy
 import numpy as np
 import sys
 import time
@@ -392,7 +392,7 @@ class nott_TTM_alignment:
         sinpar = D_rat * np.sin(sky_angles)
         
         if (np.abs(sinpar) > 1).any():
-            raise Exception("At least one of the specified on-sky angles is too large. Applying étendue conservation to convert to TTM angles would mean taking the arcsin of a value > 1.")
+            raise ValueError("At least one of the specified on-sky angles is too large. Applying étendue conservation to convert to TTM angles would mean taking the arcsin of a value > 1.")
             
         TTM_angles = np.arcsin(D_rat * np.sin(sky_angles))
             
@@ -431,7 +431,7 @@ class nott_TTM_alignment:
             
         Remarks
         -------
-        The grid is simulated for an approximate range of absolute angles of \pm 1000 microrad for TTM1 and \pm 500 microrad for TTM2. 
+        The grid is simulated for an approximate range of absolute angles of pm 1000 microrad for TTM1 and pm 500 microrad for TTM2. 
         As of now, no TTM angles beyond these values are supported.
             
         Parameters
@@ -450,7 +450,7 @@ class nott_TTM_alignment:
         """
         
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
         a = np.argmin(np.abs(TTM1Ygrid[config] - TTMangles[1]))
         b = np.argmin(np.abs(TTM2Ygrid[config] - TTMangles[3]))
@@ -481,7 +481,7 @@ class nott_TTM_alignment:
         """
     
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
         # OPC UA connection
         configpars = ConfigParser()
@@ -628,7 +628,7 @@ class nott_TTM_alignment:
             (1) The final configuration would displace the beam off the slicer.
             (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution.
             (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve
-            (4) The requested final TTM configuration is beyond the current range supported by Dgrid (\pm 1000 microrad for TTM1, \pm 500 microrad for TTM2).
+            (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).
         Only a configuration that is not invalid in one of the four above ways will be considered as valid.
 
         Parameters
@@ -653,7 +653,7 @@ class nott_TTM_alignment:
         """
     
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
         Valid = True
         i = np.array([0,0,0,0])
@@ -757,7 +757,7 @@ class nott_TTM_alignment:
         """
         
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
         # OPC UA connection
         configpars = ConfigParser()
@@ -814,7 +814,7 @@ class nott_TTM_alignment:
     def cam_read_test(self,config):
     
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")    
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")    
     
         # REDIS field names of photometric outputs' ROIs
         names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
@@ -866,7 +866,7 @@ class nott_TTM_alignment:
         """
         
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
         # Register current actuator displacements
         act_curr = self._get_actuator_pos(config)
@@ -904,11 +904,11 @@ class nott_TTM_alignment:
         # Before imposing the displacements to the actuators, the state validity is checked.
         valid,cond = self._valid_state(TTM_final,act_disp,act_curr,config)
         if not valid:
-            raise Exception("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+cond+
+            raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+cond+
                             "Conditions : (1) The final configuration would displace the beam off the slicer."+
                             "(2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
                             "(3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
-                            "(4) The requested final TTM configuration is beyond the current range supported by Dgrid (\pm 1000 microrad for TTM1, \pm 500 microrad for TTM2).")
+                            "(4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
     
         # Only push actuator motion if it would yield a valid state
         if valid:
@@ -953,7 +953,7 @@ class nott_TTM_alignment:
         """
         
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
         if sky : 
             d = step
@@ -1040,7 +1040,7 @@ class nott_TTM_alignment:
             
             # Implementing boundary stop condition for on-sky spiralling
             if (sky and Nsteps >= Nsteps_skyb):
-                raise Exception("The on-sky spiral scanning algorithm timed out. Consider repointing closer to source.")
+                raise TimeoutError("The on-sky spiral scanning algorithm timed out. Consider repointing closer to source.")
             
         return
 
@@ -1079,7 +1079,7 @@ class nott_TTM_alignment:
         """
         
         if (config < 0 or config > 3):
-            raise Exception("Please enter a valid configuration number (0,1,2,3)")
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
         if sky : 
             d = step
@@ -1087,7 +1087,7 @@ class nott_TTM_alignment:
             d = 5*10**(-3) #(mm)
                 
         # Exposures
-        exp = []
+        exps = []
         # TTM configs 
         TTM = []
       
@@ -1099,7 +1099,7 @@ class nott_TTM_alignment:
         # Initial position photometric output measurement
         photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
         # Adding to the stack of exposures
-        exp.append(photoconfig)
+        exps.append(photoconfig)
     
         # Storing initial TTM configuration
         act_curr = self._get_actuator_pos(config)
@@ -1155,7 +1155,7 @@ class nott_TTM_alignment:
                 t_start,t_stop = define_time(0.100) # 100 ms back in time
                 photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
                 # Adding to the stack of exposures
-                exp.append(photoconfig)
+                exps.append(photoconfig)
                 # 2) TTM configuration
                 act_curr = self._get_actuator_pos(config)
                 TTM_curr = self._actuator_position_to_ttm_angle(act_curr)
@@ -1178,12 +1178,12 @@ class nott_TTM_alignment:
                 Nsteps += 1
         
         # Calculating the brightness-weighted configuration
-        exp_total = np.sum(exp)
+        exp_total = np.sum(exps)
     
         # Brightness-weighting
         TTM_final = np.array([0,0,0,0],dtype=np.float64)
-        for i in range(0, len(exp)):
-            TTM_final += (exp[i] / exp_total)*TTM[i]
+        for i in range(0, len(exps)):
+            TTM_final += (exps[i] / exp_total)*TTM[i]
         
         # Bringing the bench to the brightness-weighted final position
         TTM_start = TTM[-1] # current configuration
