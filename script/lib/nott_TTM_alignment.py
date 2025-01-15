@@ -39,7 +39,7 @@ TTM1Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/
 TTM2Xgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2X.npy")
 TTM2Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2Y.npy")
 
-class nott_TTM_alignment:
+class alignment:
     
     def __init__(self):
         """
@@ -593,7 +593,7 @@ class nott_TTM_alignment:
         xdiff = pos[1]-pos[0]
     
         TTM1X = np.arctan(xsum/d1_ca)
-        TTM1Y = np.arctan(xdiff/2*d1_ca)
+        TTM1Y = np.arctan(xdiff/(2*d1_ca))
         TTM2X = np.arctan(pos[3]/d2_ca)
         TTM2Y = np.arctan(pos[2]/d2_ca)
         
