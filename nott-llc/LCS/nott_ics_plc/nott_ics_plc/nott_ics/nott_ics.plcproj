@@ -124,6 +124,14 @@
     <Folder Include="VISUs\Templates" />
   </ItemGroup>
   <ItemGroup>
+    <PlaceholderReference Include="ESO LDC Comm Common Library">
+      <DefaultResolution>ESO LDC Comm Common Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Comm_Common_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Common Library">
+      <DefaultResolution>ESO LDC Common Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Common_Library</Namespace>
+    </PlaceholderReference>
     <PlaceholderReference Include="ESO LDC Motor Library">
       <DefaultResolution>ESO LDC Motor Library, * (ESO)</DefaultResolution>
       <Namespace>ESO_LDC_Motor_Library</Namespace>
