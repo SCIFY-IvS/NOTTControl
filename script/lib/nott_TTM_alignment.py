@@ -180,7 +180,7 @@ class alignment:
         Description
         -----------
         The function numerically evaluates the symbolic framework by input positional shifts (X,Y,x,y),
-        thus returning (TTM1X,TTM1Y,TTM2X,TTM2Y) angular offsets necessary to achieve the input shifts.
+        thus returning (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) angular offsets necessary to achieve the input shifts.
         
         Context
         -------
@@ -490,14 +490,11 @@ class alignment:
         
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
-        
-        names = ['NTPA','NTPB','NTTA','NTTB']
-        name = names[config]
             
-        pos1 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1.stat.lrPosActual')
-        pos2 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2.stat.lrPosActual')
-        pos3 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'3.stat.lrPosActual')
-        pos4 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.'+name+'4.stat.lrPosActual')
+        pos1 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1)+'.stat.lrPosActual')
+        pos2 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1)+'.stat.lrPosActual')
+        pos3 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1)+'.stat.lrPosActual')
+        pos4 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1)+'.stat.lrPosActual')
         
         pos = np.array([pos1,pos2,pos3,pos4],dtype=np.float64)
         
@@ -767,16 +764,15 @@ class alignment:
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
         
-        # Setting up actuators of the configuration
-        names = ['NTPA','NTPB','NTTA','NTTB']
-        name = names[config]
-        
-        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'1', name+'1')
-        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'2', name+'2')
-        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'3', name+'3')
-        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+'4', name+'4')
+        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1),'NTTA'+str(config+1))
+        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1),'NTPA'+str(config+1))
+        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1),'NTTB'+str(config+1))
+        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1),'NTPB'+str(config+1))
         
         actuators = np.array([act1,act2,act3,act4])
+        
+        # Actuator names 
+        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
         # Incorporating overshoot offsets into final positions
         curr_pos = self._get_actuator_pos(config)
@@ -804,7 +800,7 @@ class alignment:
             on_destination = False
             while not on_destination:
                 time.sleep(0.01)
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+name+str(i+1)+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+name+str(i+1)+'.stat.sState'])
+                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                 on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
             
         # Disconnect
