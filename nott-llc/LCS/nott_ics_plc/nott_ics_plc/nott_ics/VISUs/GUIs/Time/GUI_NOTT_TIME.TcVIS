@@ -456,7 +456,7 @@
                           </o>
                           <o>
                             <v n="Flags">2L</v>
-                            <v n="BasicTypeNodeValue">"MAIN.nott_ics.NottTime"</v>
+                            <v n="BasicTypeNodeValue">"INFRATEC_TRIGERS.NottTime"</v>
                             <v n="BasicTypeNodeAcceptsExpression">true</v>
                             <n n="BasicTypeNodeFastAccess" />
                             <a n="BasicTypeNodeEnumValues" et="String" />
@@ -520,7 +520,7 @@
                     </o>
                     <o>
                       <v n="Id">2476463590L</v>
-                      <v n="Value">"MAIN.nott_ics.NottTime"</v>
+                      <v n="Value">"INFRATEC_TRIGERS.NottTime"</v>
                     </o>
                   </l>
                 </o>
