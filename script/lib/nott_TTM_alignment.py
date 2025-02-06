@@ -554,7 +554,7 @@ class alignment:
         
         # TTM2 : Decoupled actuator motion
         dx3 = d2_ca * (TTMshifts[3]/(np.cos(TTMangles[3])**2))
-        dx4 = d2_ca * (TTMshifts[2]/(np.cos(TTMangles[2])**2))
+        dx4 = -d2_ca * (TTMshifts[2]/(np.cos(TTMangles[2])**2))
         
         displacements = np.array([dx1,dx2,dx3,dx4],dtype=np.float64)
         
@@ -591,7 +591,7 @@ class alignment:
     
         TTM1X = np.arctan(xsum/d1_ca)
         TTM1Y = np.arctan(xdiff/(2*d1_ca))
-        TTM2X = np.arctan(pos[3]/d2_ca)
+        TTM2X = np.arctan(-pos[3]/d2_ca)
         TTM2Y = np.arctan(pos[2]/d2_ca)
         
         TTMangles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
