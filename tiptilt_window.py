@@ -26,18 +26,53 @@ class TipTiltWindow(QWidget):
         self.opcua_conn = OPCUAConnection(url)
         self.opcua_conn.connect()
 
-        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.tiptilt_1", 'tiptilt_1')
+        self._motor_ntpa1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA1", "NTPA1")
+        self._motor_ntta1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA1", "NTTA1")
+        self._motor_ntpa2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA2", "NTPA2")
+        self._motor_ntta2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA2", "NTTA2")
+        self._motor_ntpa3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA3", "NTPA3")
+        self._motor_ntta3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA3", "NTTA3")
+        self._motor_ntpa4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA4", "NTPA4")
+        self._motor_ntta4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA4", "NTTA4")
+
+        self._motor_ntpb1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB1", "NTPB1")
+        self._motor_nttb1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB1", "NTTB1")
+        self._motor_ntpb2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB2", "NTPB2")
+        self._motor_nttb2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB2", "NTTB2")
+        self._motor_ntpb3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB3", "NTPB3")
+        self._motor_nttb3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB3", "NTTB3")
+        self._motor_ntpb4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB4", "NTPB4")
+        self._motor_nttb4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB4", "NTTB4")
 
         self.redis_client = redis_client
 
         self.ui = loadUi('tiptilt_window.ui', self)
 
+        self.ui.motor_widget_NTPA1.setup(self.opcua_conn, self.redis_client, self._motor_ntpa1)
+        self.ui.motor_widget_NTTA1.setup(self.opcua_conn, self.redis_client, self._motor_ntta1)
+        self.ui.motor_widget_NTPA2.setup(self.opcua_conn, self.redis_client, self._motor_ntpa2)
+        self.ui.motor_widget_NTTA2.setup(self.opcua_conn, self.redis_client, self._motor_ntta2)
+        self.ui.motor_widget_NTPA3.setup(self.opcua_conn, self.redis_client, self._motor_ntpa3)
+        self.ui.motor_widget_NTTA3.setup(self.opcua_conn, self.redis_client, self._motor_ntta3)
+        self.ui.motor_widget_NTPA4.setup(self.opcua_conn, self.redis_client, self._motor_ntpa4)
+        self.ui.motor_widget_NTTA4.setup(self.opcua_conn, self.redis_client, self._motor_ntta4)
 
-        self.ui.motor_widget_1.setup(self.opcua_conn, self.redis_client, self._motor1)
+        self.ui.motor_widget_NTPB1.setup(self.opcua_conn, self.redis_client, self._motor_ntpb1)
+        self.ui.motor_widget_NTTB1.setup(self.opcua_conn, self.redis_client, self._motor_nttb1)
+        self.ui.motor_widget_NTPB2.setup(self.opcua_conn, self.redis_client, self._motor_ntpb2)
+        self.ui.motor_widget_NTTB2.setup(self.opcua_conn, self.redis_client, self._motor_nttb2)
+        self.ui.motor_widget_NTPB3.setup(self.opcua_conn, self.redis_client, self._motor_ntpb3)
+        self.ui.motor_widget_NTTB3.setup(self.opcua_conn, self.redis_client, self._motor_nttb3)
+        self.ui.motor_widget_NTPB4.setup(self.opcua_conn, self.redis_client, self._motor_ntpb4)
+        self.ui.motor_widget_NTTB4.setup(self.opcua_conn, self.redis_client, self._motor_nttb4)
+
+        self._motor_widget_list = {self.ui.motor_widget_NTPA1, self.ui.motor_widget_NTTA1, self.ui.motor_widget_NTPA2, self.ui.motor_widget_NTTA2,
+                                   self.ui.motor_widget_NTPA3, self.ui.motor_widget_NTTA3, self.ui.motor_widget_NTPA4, self.ui.motor_widget_NTTA4,
+                                   self.ui.motor_widget_NTPB1, self.ui.motor_widget_NTTB1, self.ui.motor_widget_NTPB2, self.ui.motor_widget_NTTB2,
+                                   self.ui.motor_widget_NTPB3, self.ui.motor_widget_NTTB3, self.ui.motor_widget_NTPB4, self.ui.motor_widget_NTTB4}
 
         self._activeCommand = None
 
-        self.timestamp = None
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
         self.t_pos.start(10)
@@ -52,38 +87,11 @@ class TipTiltWindow(QWidget):
         self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
-    
-    def startCameraRecording(self):
-        self.parent.camera_window.start_recording()
-    
-    def stopCameraRecording(self):
-        self.parent.camera_window.stop_recording()
-
-    def executeCommand(self, cmd):
-        cmd.execute()
-
-        if self._activeCommand is not None:
-            raise Exception('Already an active command!')
-        
-        self._activeCommand = cmd
-        self.ui.dl_command_status.setText(f'Executing command \'{self._activeCommand.text()}\' ...')
-
-        self.ui.pb_homing.setEnabled(False)
-        self.ui.pb_move_rel.setEnabled(False)
-        self.ui.pb_move_abs.setEnabled(False)
-        self.ui.pb_scan.setEnabled(False)
-    
-    def clearActiveCommand(self):
-        self._activeCommand = None
-        self.ui.dl_command_status.setText('Not executing command')
-
-        self.ui.pb_homing.setEnabled(True)
-        self.ui.pb_move_rel.setEnabled(True)
-        self.ui.pb_move_abs.setEnabled(True)
-        self.ui.pb_scan.setEnabled(True)
 
     def refresh_status(self):
-        self.ui.motor_widget_1.refresh_status()
+        for motor_widget in self._motor_widget_list:
+            motor_widget.refresh_status()
     
     def load_positions(self):
-        self.ui.motor_widget_1.load_position()
+        for motor_widget in self._motor_widget_list:
+            motor_widget.load_position()
