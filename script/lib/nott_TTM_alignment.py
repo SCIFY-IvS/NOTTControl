@@ -836,19 +836,21 @@ class alignment:
     
     def act_response_test_single(self,act_displacement,speed,config=1):
         # Function to probe the actuator response (x,t) for given speed and displacement
-    
+        
         # STEP 1 : Reset actuator position if begin/end is reached (depending on the direction) and neutralize backlash
         # Current position (index 3 for NTPB)
         curr_pos = self._get_actuator_pos(config)[3]
-        
+        pos_backlash = curr_pos
         # Actuator travel range [0,6] mm
         act_range = 6 
         # Imposed displacement
         disp = act_displacement
         # Exceeding upper limit of range?
+        valid_end = True
         if disp > 0:
             valid_end = (act_range - curr_pos >= disp)
         # Exceeding lower limit of range?
+        valid_start = True
         else:
             valid_start = (curr_pos >= disp)
         
@@ -927,7 +929,7 @@ class alignment:
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             for j in range(0, len(speeds)):
-                matrix[:][j][k] = self.act_response_test_single(act_displacements[i],speeds[j])
+                matrix[:][i][j] = self.act_response_test_single(act_displacements[i],speeds[j])
                 
         return matrix
 
