@@ -845,12 +845,12 @@ class alignment:
         act_range = 6 
         # Imposed displacement
         disp = act_displacement
-        # Exceeding upper limit of range?
         valid_end = True
+        valid_start = True
+        # Exceeding upper limit of range?
         if disp > 0:
             valid_end = (act_range - curr_pos >= disp)
         # Exceeding lower limit of range?
-        valid_start = True
         else:
             valid_start = (curr_pos >= disp)
         
