@@ -25,6 +25,8 @@ from components.motor import Motor
 # Functions for retrieving data from REDIS
 from nott_database import define_time
 from nott_database import get_field
+# Function for moving
+from nott_control import move_abs
 
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
@@ -755,18 +757,18 @@ class alignment:
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
         # Retrieving OPCUA url from config.ini
-        configpars = ConfigParser()
-        configpars.read('../../config.ini')
-        url =  configpars['DEFAULT']['opcuaaddress']
+        #configpars = ConfigParser()
+        #configpars.read('../../config.ini')
+        #url =  configpars['DEFAULT']['opcuaaddress']
         # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
+        #opcua_conn = OPCUAConnection(url)
+        #opcua_conn.connect()
         # Actuator motor objects
-        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1),'NTTA'+str(config+1))
-        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1),'NTPA'+str(config+1))
-        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1),'NTTB'+str(config+1))
-        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1),'NTPB'+str(config+1))
-        actuators = np.array([act1,act2,act3,act4])
+        #act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1),'NTTA'+str(config+1))
+        #act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1),'NTPA'+str(config+1))
+        #act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1),'NTTB'+str(config+1))
+        #act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1),'NTPB'+str(config+1))
+        #actuators = np.array([act1,act2,act3,act4])
         
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
@@ -788,27 +790,28 @@ class alignment:
                 # Performing the movement
                 #-------------------------#
                 # Preparing actuator (sleep times TBD)
-                actuators[i].reset()
-                time.sleep(0.100)
-                actuators[i].init()
-                time.sleep(0.050)
-                actuators[i].enable()
-                time.sleep(0.050)
+                #actuators[i].reset()
+                #time.sleep(0.100)
+                #actuators[i].init()
+                #time.sleep(0.050)
+                #actuators[i].enable()
+                #time.sleep(0.050)
             
                 # Executing move
-                actuators[i].command_move_absolute(pos[i],speed[i])
+                move_abs(pos[i],speed[i],act_names[i])
+                #actuators[i].command_move_absolute(pos[i],speed[i])
             
                 # Wait for the actuator to be ready
-                on_destination = False
-                while not on_destination:
-                    time.sleep(0.01)
-                    status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                    on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+                #on_destination = False
+                #while not on_destination:
+                #    time.sleep(0.01)
+                #    status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
+                #    on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 
                 print("Moving actuator "+act_names[i]+" from "+str(curr_pos[i])+" to "+str(pos_copy[i])+" at speed "+str(speed)+" mm/s took "+str(time.time()-start_time)+" seconds")
             
         # Close OPCUA connection
-        opcua_conn.disconnect()
+        #opcua_conn.disconnect()
         return
         
     def cam_read_test(self,config):
@@ -838,38 +841,39 @@ class alignment:
 
         start_time = time.time()
         # Retrieving OPCUA url from config.ini
-        configpars = ConfigParser()
-        configpars.read('../../config.ini')
-        url =  configpars['DEFAULT']['opcuaaddress']
+        #configpars = ConfigParser()
+        #configpars.read('../../config.ini')
+        #url =  configpars['DEFAULT']['opcuaaddress']
         # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
+        #opcua_conn = OPCUAConnection(url)
+        #opcua_conn.connect()
         # Actuator motor object (NTPB2)
-        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
+        #act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
         
         # Performing the movement
         #-------------------------#
         # Preparing actuator (sleep times TBD)
-        act.reset()
-        time.sleep(0.100)
-        act.init()
-        time.sleep(0.050)
-        act.enable()
-        time.sleep(0.050)
+        #act.reset()
+        #time.sleep(0.100)
+        #act.init()
+        #time.sleep(0.050)
+        #act.enable()
+        #time.sleep(0.050)
             
         # Current position
         curr_pos = self._get_actuator_pos(config)[3]
         # Imposed position
         imposed_pos = pos
         # Executing move
-        act.command_move_absolute(imposed_pos,speed)
+        move_abs(imposed_pos,speed,'nott_ics.TipTilt.NTPB2')
+        #act.command_move_absolute(imposed_pos,speed)
             
         # Wait for the actuator to be ready
-        on_destination = False
-        while not on_destination:
-            time.sleep(0.01)
-            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
-            on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+        #on_destination = False
+        #while not on_destination:
+        #    time.sleep(0.01)
+        #    status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
+        #    on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 
         # Time spent
         spent_time = time.time()-start_time
@@ -879,7 +883,7 @@ class alignment:
         print("Actual actuator position reached :"+str(final_pos)+" mm")
             
         # Close OPCUA connection
-        opcua_conn.disconnect()
+        #opcua_conn.disconnect()
         
         return spent_time,imposed_pos,final_pos
     
