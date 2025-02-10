@@ -834,6 +834,55 @@ class alignment:
     # All functions below serve purpose in the context of actuator performance characterization
     # Characterization is done with actuator NTPB2 (nr. 4 of config 1)
     
+    def _move_abs_ttm_act_single(self,pos,speed,config=1):
+
+        start_time = time.time()
+        # Retrieving OPCUA url from config.ini
+        configpars = ConfigParser()
+        configpars.read('../../config.ini')
+        url =  configpars['DEFAULT']['opcuaaddress']
+        # Opening OPCUA connection
+        opcua_conn = OPCUAConnection(url)
+        opcua_conn.connect()
+        # Actuator motor object (NTPB2)
+        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
+        
+        # Performing the movement
+        #-------------------------#
+        # Preparing actuator (sleep times TBD)
+        act.reset()
+        time.sleep(0.100)
+        act.init()
+        time.sleep(0.050)
+        act.enable()
+        time.sleep(0.050)
+            
+        # Current position
+        curr_pos = self._get_actuator_pos(config)[3]
+        # Imposed position
+        imposed_pos = pos
+        # Executing move
+        act.command_move_absolute(imposed_pos,speed)
+            
+        # Wait for the actuator to be ready
+        on_destination = False
+        while not on_destination:
+            time.sleep(0.01)
+            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
+            on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+                
+        # Time spent
+        spent_time = time.time()-start_time
+        # ACTUAL Position achieved
+        final_pos = self._get_actuator_pos(config)[3]
+        print("Moving actuator NTPB2 from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
+        print("Actual actuator position reached :"+str(final_pos)+" mm")
+            
+        # Close OPCUA connection
+        opcua_conn.disconnect()
+        
+        return spent_time,imposed_pos,final_pos
+    
     def act_response_test_single(self,act_displacement,speed,config=1):
         # Function to probe the actuator response (x,t) for given speed and displacement
         
@@ -868,56 +917,16 @@ class alignment:
         # Impose the reset (motions need not be accurate here ==> fast speed)
         if not valid_start or not valid_end:
             # Resetting actuator
-            self._move_abs_ttm_act(config,curr_pos,3.5,[0,0,0,0])
+            _,_,_ = self._move_abs_ttm_act_single(curr_pos,3.5,np.array([0,0,0,0],dtype=np.float64))
             # Neutralizing backlash
-            self._move_abs_ttm_act(config,pos_backlash,3.5,[0,0,0,0])
+            _,_,_ = self._move_abs_ttm_act_single(pos_backlash,3.5,np.array([0,0,0,0],dtype=np.float64))
             print("Actuator range reset, backlash neutralized")
-            
-        # STEP 2 : Imposing desired actuator motion
-        start_time = time.time()
-        # Retrieving OPCUA url from config.ini
-        configpars = ConfigParser()
-        configpars.read('../../config.ini')
-        url =  configpars['DEFAULT']['opcuaaddress']
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
-        # Actuator motor object (NTPB2)
-        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
-        
-        # Performing the movement
-        #-------------------------#
-        # Preparing actuator (sleep times TBD)
-        act.reset()
-        time.sleep(0.100)
-        act.init()
-        time.sleep(0.050)
-        act.enable()
-        time.sleep(0.050)
-            
-        # Current position
+          
+        # STEP 2: Imposing the desired actuator displacement
         curr_pos = self._get_actuator_pos(config)[3]
-        # Imposed position
-        imposed_pos = curr_pos+act_displacement
-        # Executing move
-        act.command_move_absolute(imposed_pos,speed)
-            
-        # Wait for the actuator to be ready
-        on_destination = False
-        while not on_destination:
-            time.sleep(0.01)
-            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
-            on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-                
-        # Time spent
-        spent_time = time.time()-start_time
-        # ACTUAL Position achieved
-        final_pos = self._get_actuator_pos(config)[3]
-        print("Moving actuator NTPB2 from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
-        print("Actual actuator position reached :"+str(final_pos)+" mm")
-            
-        # Close OPCUA connection
-        opcua_conn.disconnect()
+        imposed_pos_d = curr_pos + act_displacement
+        spent_time,imposed_pos,final_pos = self._move_abs_ttm_act_single(imposed_pos_d,speed)
+        
         return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64)
 
     def act_response_test_multi(self,act_displacements,speeds,config=1):
