@@ -30,6 +30,7 @@ from nott_time import unix_time_ms
 from datetime import datetime, timedelta
 from scipy.interpolate import interp1d
 import time
+from configparser import ConfigParser
 
 # #  Function to read field values from the REDIS database and corresponding delay line position for the last 'delay' ms
 # def get_field(field1, field2, field3, field4, delay, dl_name):
@@ -138,7 +139,7 @@ import time
 
 #     return dl_pos, flx_coh, data_at_null[2], bck
 
-def get_field(field, start, end, return_avg, lag=0, db_address='redis://10.33.179.167:6379'):
+def get_field(field, start, end, return_avg, lag=0):
     """
     Get the data in the database of the required `field` in a time range limited by `start` and `end`.
     The returned object is a 2D-array which rows (1st axis) are the datapoints, the first column is the timestamp
@@ -156,8 +157,6 @@ def get_field(field, start, end, return_avg, lag=0, db_address='redis://10.33.17
         Return the average value on the number of points.
     lag: float
         Lag to add to the timeline, in millisecond. The default is 0.
-    db_address : str, optional
-        Address of the database. The default is 'redis://10.33.179.167:6379'.
 
     Returns
     -------
@@ -165,6 +164,12 @@ def get_field(field, start, end, return_avg, lag=0, db_address='redis://10.33.17
         Output of the required field from the database.
 
     """
+    
+    # REDIS database url (read from config.ini)
+    configpars = ConfigParser()
+    configpars.read('../../config.ini')
+    db_address =  configpars['DEFAULT']['databaseurl']  
+    
     # Read data
     r = redis.from_url(db_address)
 
