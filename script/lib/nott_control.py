@@ -73,11 +73,9 @@ def move_rel_dl(rel_pos, speed, opcua_motor):
     return 'done'
 
 # Move abs motor
-def move_abs_dl(pos, speed, opcua_motor, pos_offset):
+def move_abs(pos, speed, opcua_motor):
     """ 
-    Send an absolute position to a delay line 
-
-    pos_offset: in mm
+    Send an absolute position to a motor 
     """
 
     # initialize the OPC UA connection
@@ -93,11 +91,6 @@ def move_abs_dl(pos, speed, opcua_motor, pos_offset):
     method = parent.get_child("4:RPC_MoveAbs")
 
     curr_pos = read_current_pos(opcua_motor)
-
-    if pos - curr_pos > 0:
-        pos = pos + pos_offset # in mm
-    else:
-        pos = pos - pos_offset # in mm
 
     arguments = [pos, speed]
     parent.call_method(method, *arguments)
