@@ -913,15 +913,11 @@ class alignment:
         else:
             valid_start = (curr_pos >= -act_displacement)
         
-        # Direction to be moved in
-        dir = 1
         if not valid_end:
             # Reset to start position
             curr_pos = 0.1
             # Neutralize backlash by imposing 2 micron shift (=10xresolution)
             pos_backlash = curr_pos+2*10**(-3)
-            # Should move back
-            dir = -1
         if not valid_start:
             # Reset to end position
             curr_pos = act_range-0.1
@@ -931,9 +927,9 @@ class alignment:
         # Impose the reset (motions need not be accurate here ==> fast speed)
         if not valid_start or not valid_end:
             # Resetting actuator
-            _,_,_ = self._move_abs_ttm_act_single(curr_pos,dir*0.5)
+            _,_,_ = self._move_abs_ttm_act_single(curr_pos,0.5)
             # Neutralizing backlash
-            _,_,_ = self._move_abs_ttm_act_single(pos_backlash,dir*0.5)
+            _,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.5)
             print("Actuator range reset, backlash neutralized")
           
         # STEP 2: Imposing the desired actuator displacement
