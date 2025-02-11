@@ -170,10 +170,12 @@ class alignment:
         eqns = [M12X[0]-X,M12Y[0]-Y,M15X[0]-x,M15Y[0]-y]
         
         Mloc, bloc = linear_eq_to_matrix(eqns, [a1Y,a1X,a2Y,a2X])
+        _, cloc = linear_eq_to_matrix(eqns, [X,Y,x,y])
         
         # Defining framework 
         self.M = Mloc.copy()
         self.b = bloc.copy()
+        self.c = cloc.copy()
         
     def _framework_numeric_int(self,shifts,D,lam):
         """
@@ -255,6 +257,52 @@ class alignment:
         TTMoffsetsflip = np.array([TTMoffsets[1],TTMoffsets[0],TTMoffsets[3],TTMoffsets[2]],dtype=np.float64)
         
         return TTMoffsetsflip
+    
+    def _framework_numeric_int_reverse(self,ttm_shifts,D,lam):
+        
+        # Symbols
+        X,x,Y,y = symbols("X x Y y")
+        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
+        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
+        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
+        
+        #------------------------#
+        # Zemax parameter values #
+        #------------------------#
+        
+        # Slicer quantities (mm) (Zemax)
+        Rsli = 96.644
+        fsli = -Rsli / 2
+        # OAP focal lengths (mm) (Garreau et al. 2024)
+        fOAP1 = 629.2 
+        fOAP2 = 262.17
+        # Lens thicknesses (mm) (Zemax)
+        dinj = 10 
+        dcryo = 4
+        # Lens refractive indices in wavelength channels (Literature)
+        niarr = [2.4189, 2.4176, 2.4168] 
+        ncarr = [1.4140, 1.4115, 1.4096]
+        # Injection lens curvature radius (front surface)
+        Rinj = 28.195
+        # Optical power front injection lens surface (1/mm)
+        Parr = (niarr - np.ones(3)) / Rinj
+        
+        # Copy of symbolic framework
+        Mcopy = self.M.copy()
+        ccopy = self.c.copy()
+        # Substituting parameter values into the symbolic matrix
+        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)]
+        Mcopy = Mcopy.subs(subspar)
+        # Multiplying by symbolic angular offsets
+        frame = Mcopy*ccopy
+        # Parameters
+        params = (a1Y,a1X,a2Y,a2X)
+        # Lambdify
+        f = lambdify(params,frame.T.tolist()[0], modules="numpy")
+        # Shifts
+        shifts = f(ttm_shifts[1],ttm_shifts[0],ttm_shifts[3],ttm_shifts[2])
+        
+        return np.array(shifts,dtype=np.float64)
     
     def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam,CS=True):
         """
@@ -558,6 +606,25 @@ class alignment:
         displacements = np.array([dx1,dx2,dx3,dx4],dtype=np.float64)
         
         return displacements
+
+    def _actuator_displacement_to_ttm_shift(self,act_pos,act_disp):
+        
+        # Center-to-actuator distances
+        d1_ca = 2.5*25.4 
+        d2_ca = 1.375*25.4
+        
+        # Retrieving current TTM angles
+        ttm_curr = self._actuator_position_to_ttm_angle(act_pos)
+        # Calculating TTM shifts
+        ttm_shifts = np.array([0,0,0,0],dtype=np.float64)
+        dx_common = (act_disp[0]+act_disp[1])/2
+        x_diff = act_disp[1]-act_disp[0]
+        ttm_shifts[0] = (dx_common/d1_ca)*np.cos(ttm_curr[0])**2
+        ttm_shifts[1] = (x_diff/(2*d1_ca))*np.cos(ttm_curr[1])**2
+        ttm_shifts[2] = (-act_disp[3]/d2_ca)*np.cos(ttm_curr[2])**2
+        ttm_shifts[3] = (act_disp[2]/d2_ca)*np.cos(ttm_curr[3])**2
+        
+        return ttm_shifts
 
     def _actuator_position_to_ttm_angle(self,pos):
         """
@@ -941,9 +1008,9 @@ class alignment:
         # Impose the reset (motions need not be accurate here ==> fast speed)
         if not valid_start or not valid_end:
             # Resetting actuator
-            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.01)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,1)
             # Neutralizing backlash
-            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.01)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.001)
             print("Actuator range reset, backlash neutralized")
           
         # STEP 2: Imposing the desired actuator displacement
@@ -957,7 +1024,7 @@ class alignment:
         # Function to probe the actuator response for a range of displacements and speeds
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
         
-        # Matrix containing time spent moving actuators, imposed final position and achieved final position for all displacement x speed combinations
+        # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
         matrix_acc = np.zeros((3,len(act_displacements),len(speeds)))
         # Matrix containing time and position series of the movement
         matrix_series = np.zeros((2,len(act_displacements),len(speeds)))
@@ -965,10 +1032,29 @@ class alignment:
         for i in range(0, len(act_displacements)):
             for j in range(0, len(speeds)):
                 acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j])
-                matrix_acc[:][i][j] = acc_arr
+                matrix_acc[0][i][j] = acc_arr[0]
+                matrix_acc[1][i][j] = acc_arr[2]-acc_arr[1]
                 matrix_series[0][i][j] = time_arr
                 matrix_series[1][i][j] = pos_arr
                 
+                # Calculating ttm shift accuracy from actuator displacement accuracy
+                act_acc = acc_arr[2]-acc_arr[1]
+                curr_pos = self._get_actuator_pos(config)
+                act_disp = np.array([0,0,0,act_acc],dtype=np.float64)
+                
+                # Finding TTM shifts from actuator displacement
+                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp)
+                # Finding TTM angles from actuator positions
+                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos)
+                
+                # Finding distance value
+                Darr = self._snap_grid(curr_ttm,config)
+                
+                # Evaluating framework to get image plane shift accuracies
+                shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
+                
+                matrix_acc[2][i][j] = [shifts[2],shifts[3]]
+ 
         return matrix_acc,matrix_series
 
     ###################
