@@ -607,7 +607,7 @@ class alignment:
         # Retrieving current TTM angles
         ttm_curr = self._actuator_position_to_ttm_angle(act_pos)
         # Calculating TTM shifts
-        ttm_shifts = np.array([0,0,0,0],dtype=np.float64)
+        ttm_shifts = [0,0,0,0]
         dx_common = (act_disp[0]+act_disp[1])/2
         x_diff = act_disp[1]-act_disp[0]
         ttm_shifts[0] = (dx_common/d1_ca)*np.cos(ttm_curr[0])**2
@@ -615,7 +615,7 @@ class alignment:
         ttm_shifts[2] = (-act_disp[3]/d2_ca)*np.cos(ttm_curr[2])**2
         ttm_shifts[3] = (act_disp[2]/d2_ca)*np.cos(ttm_curr[3])**2
         
-        return ttm_shifts
+        return np.array(ttm_shifts,dtype=np.float64)
 
     def _actuator_position_to_ttm_angle(self,pos):
         """
@@ -999,7 +999,7 @@ class alignment:
         # Impose the reset (motions need not be accurate here ==> fast speed)
         if not valid_start or not valid_end:
             # Resetting actuator
-            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,1)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.2)
             # Neutralizing backlash
             _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.001)
             print("Actuator range reset, backlash neutralized")
@@ -1011,16 +1011,18 @@ class alignment:
         
         return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
 
-    def act_response_test_multi(self,act_displacements,speeds,config=1):
+    def act_response_test_multi(self,act_displacements,len_speeds,config=1):
         # Function to probe the actuator response for a range of displacements and speeds
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
         
         # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
-        matrix_acc = np.zeros((3,len(act_displacements),len(speeds)))
+        matrix_acc = np.zeros((3,len(act_displacements),len_speeds)
         # Matrix containing time and position series of the movement
-        matrix_series = np.zeros((2,len(act_displacements),len(speeds)))
+        matrix_series = np.zeros((2,len(act_displacements),len_speeds))
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
+            disp = act_displacements[i] #mm
+            speeds = np.linspace(disp/100,disp/2,len_speeds) #mm/s
             for j in range(0, len(speeds)):
                 acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j])
                 matrix_acc[0][i][j] = acc_arr[0]
@@ -1044,8 +1046,8 @@ class alignment:
                 # Evaluating framework to get image plane shift accuracies
                 shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
                 
-                matrix_acc[2][i][j] = [shifts[2],shifts[3]]
- 
+                matrix_acc[2][i][j] = shifts
+            print(i)
         return matrix_acc,matrix_series
 
     ###################
