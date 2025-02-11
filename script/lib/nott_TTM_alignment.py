@@ -1016,7 +1016,7 @@ class alignment:
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
         
         # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
-        matrix_acc = np.zeros((3,len(act_displacements),len_speeds))
+        matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
         # Lists containing time and position series of the movement
         times = []
         positions = []
@@ -1047,7 +1047,7 @@ class alignment:
                 # Evaluating framework to get image plane shift accuracies
                 shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
                 
-                matrix_acc[2][i][j] = shifts
+                matrix_acc[2:6][i][j] = shifts
             print(i)
         return matrix_acc,times,positions
 
