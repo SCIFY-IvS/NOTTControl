@@ -878,7 +878,7 @@ class alignment:
             
         # Expected time
         disp = pos - curr_pos
-        time_exp = int(disp / speed)
+        time_exp = int(np.abs(disp / speed))
         
         # Wait for the actuator to be ready
         on_destination = False
