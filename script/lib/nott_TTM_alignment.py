@@ -969,7 +969,7 @@ class alignment:
                 matrix_series[0][i][j] = time_arr
                 matrix_series[1][i][j] = pos_arr
                 
-        return matrix,matrix_series
+        return matrix_acc,matrix_series
 
     ###################
     # Individual Step #
