@@ -762,11 +762,11 @@ class alignment:
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
         # Actuator motor objects
-        #act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1),'NTTA'+str(config+1))
-        #act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1),'NTPA'+str(config+1))
-        #act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1),'NTTB'+str(config+1))
-        #act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1),'NTPB'+str(config+1))
-        #actuators = np.array([act1,act2,act3,act4])
+        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1),'NTTA'+str(config+1))
+        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1),'NTPA'+str(config+1))
+        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1),'NTTB'+str(config+1))
+        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1),'NTPB'+str(config+1))
+        actuators = np.array([act1,act2,act3,act4])
         
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
@@ -792,8 +792,8 @@ class alignment:
                 #time.sleep(0.100)
                 #actuators[i].init()
                 #time.sleep(0.050)
-                #actuators[i].enable()
-                #time.sleep(0.050)
+                actuators[i].enable()
+                time.sleep(0.050)
             
                 # Executing move
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
@@ -849,7 +849,7 @@ class alignment:
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
         # Actuator motor object (NTPB2)
-        #act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
+        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
         
         # Performing the movement
         #-------------------------#
@@ -858,8 +858,8 @@ class alignment:
         #time.sleep(0.100)
         #act.init()
         #time.sleep(0.050)
-        #act.enable()
-        #time.sleep(0.050)
+        act.enable()
+        time.sleep(0.050)
             
         # Current position
         curr_pos = self._get_actuator_pos(config)[3]
@@ -875,17 +875,20 @@ class alignment:
         # Wait for the actuator to be ready
         on_destination = False
         while not on_destination:
-            time.sleep(0.01)
+            time.sleep(5)
             status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
+            print("Status:", status, "|| State:", state)
             on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+            print("NTPB2 pos: ", str(self._get_actuator_pos(config)[3])+" mm")
                 
         # Time spent
         spent_time = time.time()-start_time
         # ACTUAL Position achieved
         final_pos = self._get_actuator_pos(config)[3]
+        print("----------------------------------------------------------------------------------------------------------------------------")
         print("Moving actuator NTPB2 from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
         print("Actual actuator position reached :"+str(final_pos)+" mm")
-            
+        print("----------------------------------------------------------------------------------------------------------------------------")   
         # Close OPCUA connection
         opcua_conn.disconnect()
         
@@ -908,7 +911,7 @@ class alignment:
             valid_end = (act_range - curr_pos >= act_displacement)
         # Exceeding lower limit of range?
         else:
-            valid_start = (curr_pos >= act_displacement)
+            valid_start = (curr_pos >= -act_displacement)
         
         if not valid_end:
             # Reset to start position
