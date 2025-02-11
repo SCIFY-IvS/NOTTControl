@@ -851,6 +851,10 @@ class alignment:
         # Actuator motor object (NTPB2)
         act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
         
+        # List of time stamps
+        time_arr = []
+        # List of positions
+        pos_arr = []
         # Performing the movement
         #-------------------------#
         # Preparing actuator (sleep times TBD)
@@ -872,17 +876,27 @@ class alignment:
         parent.call_method(method, *arguments)
         #act.command_move_absolute(imposed_pos,speed)
             
+        # Expected time
+        disp = pos - curr_pos
+        time_exp = int(disp / speed)
+        
         # Wait for the actuator to be ready
         on_destination = False
         while not on_destination:
-            time.sleep(5)
+            # Printing status, state and saving position & time every 1% of the total path
+            time.sleep(0.01*time_exp)
             status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
             print("Status:", status, "|| State:", state)
             on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
             print("NTPB2 pos: ", str(self._get_actuator_pos(config)[3])+" mm")
+            # Save current time
+            time_arr.append(time.time())
+            # Save current position
+            pos_arr.append(self._get_actuator_pos(config)[3])
                 
         # Time spent
-        spent_time = time.time()-start_time
+        end_time = time.time()
+        spent_time = end_time-start_time
         # ACTUAL Position achieved
         final_pos = self._get_actuator_pos(config)[3]
         print("----------------------------------------------------------------------------------------------------------------------------")
@@ -892,7 +906,7 @@ class alignment:
         # Close OPCUA connection
         opcua_conn.disconnect()
         
-        return spent_time,imposed_pos,final_pos
+        return spent_time,imposed_pos,final_pos,time_arr,pos_arr
     
     def act_response_test_single(self,act_displacement,speed,config=1):
         # Function to probe the actuator response (x,t) for given speed and displacement
@@ -927,30 +941,35 @@ class alignment:
         # Impose the reset (motions need not be accurate here ==> fast speed)
         if not valid_start or not valid_end:
             # Resetting actuator
-            _,_,_ = self._move_abs_ttm_act_single(curr_pos,0.5)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.01)
             # Neutralizing backlash
-            _,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.5)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.01)
             print("Actuator range reset, backlash neutralized")
           
         # STEP 2: Imposing the desired actuator displacement
         curr_pos = self._get_actuator_pos(config)[3]
         imposed_pos_d = curr_pos + act_displacement
-        spent_time,imposed_pos,final_pos = self._move_abs_ttm_act_single(imposed_pos_d,speed)
+        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed)
         
-        return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64)
+        return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
 
     def act_response_test_multi(self,act_displacements,speeds,config=1):
         # Function to probe the actuator response for a range of displacements and speeds
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
         
         # Matrix containing time spent moving actuators, imposed final position and achieved final position for all displacement x speed combinations
-        matrix = np.zeros((3,len(act_displacements),len(speeds)))
+        matrix_acc = np.zeros((3,len(act_displacements),len(speeds)))
+        # Matrix containing time and position series of the movement
+        matrix_series = np.zeros((2,len(act_displacements),len(speeds)))
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             for j in range(0, len(speeds)):
-                matrix[:][i][j] = self.act_response_test_single(act_displacements[i],speeds[j])
+                acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j])
+                matrix_acc[:][i][j] = acc_arr
+                matrix_series[0][i][j] = time_arr
+                matrix_series[1][i][j] = pos_arr
                 
-        return matrix
+        return matrix,matrix_series
 
     ###################
     # Individual Step #
