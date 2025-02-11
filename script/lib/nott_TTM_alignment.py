@@ -292,8 +292,7 @@ class alignment:
         Ncopy = self.N.copy()
         # Substituting parameter values into the symbolic matrix
         subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_shifts[0]),(a1Y,ttm_shifts[1]),(a2X,ttm_shifts[2]),(a2Y,ttm_shifts[3])]
-        shifts = Ncopy.subs(subspar)
-        
+        shifts = np.array([Ncopy[0].subs(subspar),Ncopy[1].subs(subspar),Ncopy[2].subs(subspar),Ncopy[3].subs(subspar)],dtype=np.float64)
         return shifts
     
     def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam,CS=True):
