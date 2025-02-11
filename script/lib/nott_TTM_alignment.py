@@ -170,12 +170,13 @@ class alignment:
         eqns = [M12X[0]-X,M12Y[0]-Y,M15X[0]-x,M15Y[0]-y]
         
         Mloc, bloc = linear_eq_to_matrix(eqns, [a1Y,a1X,a2Y,a2X])
-        _, cloc = linear_eq_to_matrix(eqns, [X,Y,x,y])
+        
+        eqns_ = [M12X[0],M12Y[0],M15X[0],M15Y[0]]
         
         # Defining framework 
         self.M = Mloc.copy()
         self.b = bloc.copy()
-        self.c = cloc.copy()
+        self.N = eqns_.copy()
         
     def _framework_numeric_int(self,shifts,D,lam):
         """
@@ -288,21 +289,12 @@ class alignment:
         Parr = (niarr - np.ones(3)) / Rinj
         
         # Copy of symbolic framework
-        Mcopy = self.M.copy()
-        ccopy = self.c.copy()
+        Ncopy = self.N.copy()
         # Substituting parameter values into the symbolic matrix
-        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)]
-        Mcopy = Mcopy.subs(subspar)
-        # Multiplying by symbolic angular offsets
-        frame = Mcopy*ccopy
-        # Parameters
-        params = (a1Y,a1X,a2Y,a2X)
-        # Lambdify
-        f = lambdify(params,frame.T.tolist()[0], modules="numpy")
-        # Shifts
-        shifts = f(ttm_shifts[1],ttm_shifts[0],ttm_shifts[3],ttm_shifts[2])
+        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_shifts[0]),(a1Y,ttm_shifts[1]),(a2X,ttm_shifts[2]),(a2Y,ttm_shifts[3])]
+        shifts = Ncopy.subs(subspar)
         
-        return np.array(shifts,dtype=np.float64)
+        return shifts
     
     def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam,CS=True):
         """
