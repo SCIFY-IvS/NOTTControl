@@ -1016,9 +1016,10 @@ class alignment:
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
         
         # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
-        matrix_acc = np.zeros((3,len(act_displacements),len_speeds)
-        # Matrix containing time and position series of the movement
-        matrix_series = np.zeros((2,len(act_displacements),len_speeds))
+        matrix_acc = np.zeros((3,len(act_displacements),len_speeds))
+        # Lists containing time and position series of the movement
+        times = []
+        positions = []
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             disp = act_displacements[i] #mm
@@ -1027,8 +1028,8 @@ class alignment:
                 acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j])
                 matrix_acc[0][i][j] = acc_arr[0]
                 matrix_acc[1][i][j] = acc_arr[2]-acc_arr[1]
-                matrix_series[0][i][j] = time_arr
-                matrix_series[1][i][j] = pos_arr
+                times.append(time_arr)
+                positions.append(pos_arr)
                 
                 # Calculating ttm shift accuracy from actuator displacement accuracy
                 act_acc = acc_arr[2]-acc_arr[1]
@@ -1048,7 +1049,7 @@ class alignment:
                 
                 matrix_acc[2][i][j] = shifts
             print(i)
-        return matrix_acc,matrix_series
+        return matrix_acc,times,positions
 
     ###################
     # Individual Step #
