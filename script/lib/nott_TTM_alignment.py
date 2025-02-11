@@ -1047,7 +1047,7 @@ class alignment:
                 # Evaluating framework to get image plane shift accuracies
                 shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
                 
-                matrix_acc[2:6][i][j] = shifts
+                matrix_acc[2:6,i,j] = shifts
             print(i)
         return matrix_acc,times,positions
 
