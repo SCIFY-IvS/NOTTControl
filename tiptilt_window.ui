@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1583</width>
-    <height>712</height>
+    <width>1712</width>
+    <height>1049</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -146,25 +146,6 @@ font: 700 14pt &quot;Segoe UI&quot;;color: rgb(71, 185, 200);</string>
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLabel" name="dl_dl1_label_opcua_status">
-   <property name="geometry">
-    <rect>
-     <x>780</x>
-     <y>70</y>
-     <width>141</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">font: 12pt &quot;Segoe UI&quot;;</string>
-   </property>
-   <property name="text">
-    <string>Time</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_error">
    <property name="geometry">
     <rect>
@@ -183,15 +164,188 @@ border-color: rgb(0, 0, 0);</string>
     <string/>
    </property>
   </widget>
-  <widget class="MotorWidget" name="motor_widget_1" native="true">
+  <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
      <x>280</x>
-     <y>120</y>
-     <width>580</width>
-     <height>530</height>
+     <y>100</y>
+     <width>1421</width>
+     <height>921</height>
     </rect>
    </property>
+   <property name="currentIndex">
+    <number>0</number>
+   </property>
+   <widget class="QWidget" name="tab_A">
+    <attribute name="title">
+     <string>A</string>
+    </attribute>
+    <widget class="MotorWidget" name="motor_widget_NTTA3" native="true">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPA3" native="true">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPA4" native="true">
+     <property name="geometry">
+      <rect>
+       <x>710</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTA1" native="true">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTA4" native="true">
+     <property name="geometry">
+      <rect>
+       <x>1060</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTA2" native="true">
+     <property name="geometry">
+      <rect>
+       <x>1060</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPA2" native="true">
+     <property name="geometry">
+      <rect>
+       <x>710</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPA1" native="true">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="tab_B">
+    <attribute name="title">
+     <string>B</string>
+    </attribute>
+    <widget class="MotorWidget" name="motor_widget_NTPB3" native="true">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPB4" native="true">
+     <property name="geometry">
+      <rect>
+       <x>710</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTB1" native="true">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTB3" native="true">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTB4" native="true">
+     <property name="geometry">
+      <rect>
+       <x>1060</x>
+       <y>470</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTTB2" native="true">
+     <property name="geometry">
+      <rect>
+       <x>1060</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPB2" native="true">
+     <property name="geometry">
+      <rect>
+       <x>710</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="MotorWidget" name="motor_widget_NTPB1" native="true">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>0</y>
+       <width>343</width>
+       <height>396</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
   </widget>
  </widget>
  <customwidgets>

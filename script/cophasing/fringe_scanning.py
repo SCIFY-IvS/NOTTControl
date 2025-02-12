@@ -31,76 +31,8 @@ def interpolate_ts(arr1, arr2):
 
     return interp_arr
 
-def sync_devices(delay, margin, wait_db, shutter_id, shutter_name, flux_id, n_aper):
-    lag = None
-    for k in range(10):
-        print('Measure lag - attempt %s / 10'%(k+1))
-        nott_control.all_shutters_close(n_aper)
-        time.sleep(delay)
-        tsp = time.time() * 1000
-        nott_control.shutter_open(shutter_id)
-        time.sleep(delay)
-        nott_control.shutter_close(shutter_id)
-
-        duration = delay + margin + wait_db
-        time.sleep(wait_db)
-        start, end = define_time(duration)
-        time.sleep(wait_db)
-
-        flux = get_field(flux_id, start, end, False)
-        shutter = get_field(shutter_name, start, end, False)
-        rescaled_shutter = shutter[:,1]/shutter[:,1].max() * (flux[:,1].max()-flux[:,1].min()) + flux[:,1].min()
-
-        figsz = 15
-        labelsz = 16
-        ticksz = labelsz*0.875
-        plt.figure(figsize=(figsz, figsz/1.6))
-        plt.plot((shutter[:,0] - tsp), rescaled_shutter, '.', label='Shutter status')
-        plt.plot((flux[:,0] - tsp), flux[:,1], '.', label='Flux')
-        plt.grid()
-        plt.xlabel('Elapsed time (ms)', size=labelsz)
-        plt.ylabel('Output value', size=labelsz)
-        plt.legend(loc='best', fontsize=labelsz)
-        plt.xticks(size=ticksz)
-        plt.yticks(size=ticksz)
-        plt.tight_layout()
-
-        print('Measure the delay between shutter status and flux then close the figure')
-        plt.ioff()
-        plt.show()
-
-        lag = input('Enter the lag in millisecond, to add to the camera:\n')
-        lag = float(lag)
-
-        print('Control the value. Close the plot to continue')
-        flux = get_field(flux_id, start, end, False)
-        shutter = get_field(shutter_name, start, end, False, lag)
-        rescaled_shutter = shutter[:,1]/shutter[:,1].max() * (flux[:,1].max()-flux[:,1].min()) + flux[:,1].min()
-        plt.figure(figsize=(figsz, figsz/1.6))
-        plt.plot((shutter[:,0] - tsp), rescaled_shutter, '.', label='Shutter status')
-        plt.plot((flux[:,0] - tsp), flux[:,1], '.', label='Flux')
-        plt.grid()
-        plt.xlabel('Elapsed time (ms)', size=labelsz)
-        plt.ylabel('Output value', size=labelsz)
-        plt.legend(loc='best', fontsize=labelsz)
-        plt.xticks(size=ticksz)
-        plt.yticks(size=ticksz)
-        plt.title('Redis data', size=labelsz*1.05)
-        plt.tight_layout()
-        plt.ioff()
-        plt.show()
-
-        answer = input('Is the lag correct? (y/n)\n')
-        if answer.lower() == 'y':
-            break
-        else:
-            pass
-
-    nott_control.all_shutters_open(n_aper)
-    return lag
-
 def do_scans(dl_name, dl_end_pos, speed, opcua_motor, field_of_interest, delay, 
-             return_avg_ts, lag, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts):
+             return_avg_ts, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts):
 
     move_abs_dl(dl_end_pos, speed, opcua_motor, pos_offset)
 
@@ -109,7 +41,7 @@ def do_scans(dl_name, dl_end_pos, speed, opcua_motor, field_of_interest, delay,
     start, end = define_time(delay)
     time.sleep(wait_db)
     data_IA = get_field(field_of_interest, start, end, return_avg_ts) # Output of the first stage coupler
-    dl_pos0 = get_field(dl_name, start, end, return_avg_ts, lag)
+    dl_pos0 = get_field(dl_name, start, end, return_avg_ts)
 
     if revert_ts:
         data_IA = data_IA[::-1]
@@ -169,7 +101,7 @@ def do_scans(dl_name, dl_end_pos, speed, opcua_motor, field_of_interest, delay,
     fit_data = [pos_env, flx_env, pos_fit, flx_fit]
     return pos_fit[idx_null], flx_coh, dl_pos, gdparams, fit_data
 
-def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, field_of_interest):
+def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset, field_of_interest):
     """
     null_singlepass in um
     """
@@ -182,7 +114,7 @@ def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, re
     start, end = define_time(grab_range)
     time.sleep(wait_db)
     to_null_pos = get_field(dl_name, start, end, return_avg_ts) # we only keep the position
-    to_null_flx = get_field(field_of_interest, start, end, return_avg_ts, lag) # we keep both timestamp (in ms) and flux
+    to_null_flx = get_field(field_of_interest, start, end, return_avg_ts) # we keep both timestamp (in ms) and flux
     current_null_pos = read_current_pos(opcua_motor) * 1000 # convert in um
     print('MSG - Reached position', current_null_pos)
     print('MSG - Gap position', current_null_pos - null_singlepass)
@@ -275,17 +207,6 @@ wait_db = 0.1
 n_aper = 4
 ymargin = 1.
 
-# =============================================================================
-# Measure lag
-# =============================================================================
-"""
-There is a lag between the timestamps of the opto-mechanics and the camera.
-We visually correct for it before performing the test.
-"""
-# lag = sync_devices(2., 0.5, wait_db, shutter_id, shutter_name, fields_of_interest[2], n_aper)
-# input('Put the filter back on the source. Then enter anything to continue\n')
-lag = 0.
-
 # # =============================================================================
 # # Global scan
 # # =============================================================================
@@ -330,7 +251,7 @@ lag = 0.
 #         revert_ts = True
 
 #     best_null_pos, flx_coh, dl_pos, params, fit_data = do_scans(dl_name, dl_bounds[it%2], speed, opcua_motor, fields_of_interest[2], delay, 
-#                   return_avg_ts, lag, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
+#                   return_avg_ts, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
     
 #     pos_env, flx_env, pos_fit, flx_fit = fit_data
 #     null_scans_best_pos.append(best_null_pos)
@@ -445,7 +366,7 @@ lag = 0.
 # print('\n*** Set DL to NULL in FORWARD direction***')
 # speed2 = speed
 # null_singlepass = null_scans_best_pos[0]
-# fwd_to_null_pos, fwd_to_null_flx0, fwd_current_null_pos = set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, fields_of_interest[2])
+# fwd_to_null_pos, fwd_to_null_flx0, fwd_current_null_pos = set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset, fields_of_interest[2])
 
 # plt.figure()
 # t_scale = fwd_to_null_flx0[:,0] - fwd_to_null_flx0[:,0].max()
@@ -471,7 +392,7 @@ lag = 0.
 # print('\n*** Set DL to NULL in BACKWARD direction***')
 # # speed2 = speed
 # null_singlepass = null_scans_best_pos[1]
-# bcw_to_null_pos, bcw_to_null_flx0, bcw_current_null_pos = set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, fields_of_interest[2])
+# bcw_to_null_pos, bcw_to_null_flx0, bcw_current_null_pos = set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset, fields_of_interest[2])
 
 # plt.figure()
 # t_scale = bcw_to_null_flx0[:,0] - bcw_to_null_flx0[:,0].max()
@@ -506,7 +427,7 @@ lag = 0.
 # print('MSG - Mean, std, median, mini, maxi of forward null depth')
 # print(fwd_avg_null_pos, np.std(null_scans_best_pos[0]), np.median(null_scans_best_pos[0]), np.min(null_scans_best_pos[0]), np.max(null_scans_best_pos[0]))
 
-# fwd_to_null_pos_avg, fwd_to_null_flx_avg0, fwd_current_null_pos_avg = set_dl_to_null(fwd_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset*0, fields_of_interest[2])
+# fwd_to_null_pos_avg, fwd_to_null_flx_avg0, fwd_current_null_pos_avg = set_dl_to_null(fwd_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset*0, fields_of_interest[2])
 
 # plt.figure(figsize=(10, 5))
 # t_scale = fwd_to_null_flx0[:,0] - fwd_to_null_flx0[:,0].max()
@@ -542,7 +463,7 @@ lag = 0.
 # print('\n*** Set DL to average BACKWARD NULL position ***')
 # null_singlepass = null_scans_best_pos[1,0]
 # bcw_avg_null_pos = np.median(null_scans_best_pos[1,:])
-# bcw_to_null_pos_avg, bcw_to_null_flx_avg0, bcw_current_null_pos_avg = set_dl_to_null(bcw_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset*0, fields_of_interest[2])
+# bcw_to_null_pos_avg, bcw_to_null_flx_avg0, bcw_current_null_pos_avg = set_dl_to_null(bcw_avg_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset*0, fields_of_interest[2])
 
 # plt.figure(figsize=(10, 5))
 # t_scale = bcw_to_null_flx0[:,0] - bcw_to_null_flx0[:,0].max()
@@ -631,7 +552,7 @@ lag = 0.
 #     time.sleep(wait_time)
 #     start, end = define_time(grab_range)
 #     to_null_pos = get_field(dl_name, start, end, return_avg_ts)
-#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)
+#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)
 #     to_null_pos2 = interpolate_ts(to_null_pos, to_null_flx)
 #     to_null_pos = to_null_pos[:,1]
 #     to_null_flx = to_null_flx[:,1]
@@ -730,7 +651,7 @@ lag = 0.
 #     time.sleep(wait_db)
 #     start, end = define_time(delay)
 #     time.sleep(wait_db)
-#     intrafringe_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)    
+#     intrafringe_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)    
 #     intrafringe_pos = get_field(dl_name, start, end, return_avg_ts)
 #     intrafringe_flx = intrafringe_flx[:,1]
 #     intrafringe_pos = intrafringe_pos[:,1]
@@ -745,7 +666,7 @@ lag = 0.
 #     intrafringe_flx2 = intrafringe_flx - np.poly1d(popt)(intrafringe_pos)
 
 #     to_null_pos = get_field(dl_name, start, end, return_avg_ts)
-#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)
+#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)
 #     to_null_pos = to_null_pos[:,1]
 #     to_null_flx = to_null_flx[:,1]
 
@@ -839,7 +760,7 @@ lag = 0.
 #     time.sleep(wait_db)
 #     start, end = define_time(delay)
 #     time.sleep(wait_db)
-#     intrafringe_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)    
+#     intrafringe_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)    
 #     intrafringe_pos = get_field(dl_name, start, end, return_avg_ts)
 #     intrafringe_flx = intrafringe_flx[:,1]
 #     intrafringe_pos = intrafringe_pos[:,1]
@@ -854,7 +775,7 @@ lag = 0.
 #     intrafringe_flx2 = intrafringe_flx - np.poly1d(popt)(intrafringe_pos)
 
 #     to_null_pos = get_field(dl_name, start, end, return_avg_ts)
-#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)
+#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)
 #     to_null_pos = to_null_pos[:,1]
 #     to_null_flx = to_null_flx[:,1]
 
@@ -946,7 +867,7 @@ lag = 0.
 #     time.sleep(wait_db)
 #     start, end = define_time(delay)
 #     time.sleep(wait_db)
-#     intrafringe_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)    
+#     intrafringe_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)    
 #     intrafringe_pos = get_field(dl_name, start, end, return_avg_ts)
 #     intrafringe_flx = intrafringe_flx[:,1]
 #     intrafringe_pos = intrafringe_pos[:,1]
@@ -961,7 +882,7 @@ lag = 0.
 #     intrafringe_flx2 = intrafringe_flx - np.poly1d(popt)(intrafringe_pos)
 
 #     to_null_pos = get_field(dl_name, start, end, return_avg_ts)
-#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts, lag)
+#     to_null_flx = get_field(fields_of_interest[2], start, end, return_avg_ts)
 #     to_null_pos = to_null_pos[:,1]
 #     to_null_flx = to_null_flx[:,1]
 
@@ -1098,7 +1019,6 @@ lag = 0.
 # """
 # plt.ion()
 # speed2 = speed
-# # lag = 1000.
 # n_pass = 10
 
 # # Set DL to initial position
@@ -1130,7 +1050,7 @@ lag = 0.
 #         revert_ts = True
 
 #     best_null_pos, flx_coh, dl_pos, params, fit_data = do_scans(dl_name, dl_bounds[it%2], speed, opcua_motor, fields_of_interest[2], delay, 
-#                  return_avg_ts, lag, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
+#                  return_avg_ts, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
 #     pos_env, flx_env, pos_fit, flx_fit = fit_data
 
 #     null_scans_best_pos.append(best_null_pos)
@@ -1207,7 +1127,7 @@ lag = 0.
 #     print('MSG - Moving to the best null position: going back to starting point of scan')
 #     move_abs_dl(dl_bounds2[it%2], speed, opcua_motor, pos_offset)
     
-#     to_null_pos, to_null_flx0, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, fields_of_interest[2])
+#     to_null_pos, to_null_flx0, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset, fields_of_interest[2])
 #     t_scale = to_null_flx0[:,0] - to_null_flx0[:,0].max()
 #     to_null_flx = to_null_flx0[:,1]
 
@@ -1300,7 +1220,6 @@ lag = 0.
 # """
 # plt.ion()
 # speed2 = speed
-# # lag = 1000.
 # n_pass = 5
 # revert_ts = False
 
@@ -1334,7 +1253,7 @@ lag = 0.
 #         move_abs_dl(dl_bounds2[0], speed, opcua_motor, pos_offset)
 #         print('MSG - Start scan')
 #         best_null_pos, flx_coh, dl_pos, params, fit_data = do_scans(dl_name, dl_bounds[0], speed, opcua_motor, fields_of_interest[2], delay, 
-#                     return_avg_ts, lag, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
+#                     return_avg_ts, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
 #         pos_env, flx_env, pos_fit, flx_fit = fit_data
 
 #         null_scans_best_pos.append(best_null_pos)
@@ -1388,7 +1307,7 @@ lag = 0.
 #         move_abs_dl(dl_bounds2[0], speed, opcua_motor, pos_offset)
 
 #         print('MSG - Moving to the best null position: going to null')
-#         to_null_pos, to_null_flx0, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, fields_of_interest[2])
+#         to_null_pos, to_null_flx0, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset, fields_of_interest[2])
 #         t_scale = to_null_flx0[:,0] - to_null_flx0[:,0].max()
 #         to_null_flx = to_null_flx0[:,1]
 
@@ -1489,7 +1408,6 @@ Once the null detected, we go for it.
 """
 plt.ion()
 speed2 = speed
-# lag = 1000.
 n_pass = 10
 
 # Set DL to initial position
@@ -1520,7 +1438,7 @@ for it in range(n_pass):
         revert_ts = True
 
     best_null_pos, flx_coh, dl_pos, params, fit_data = do_scans(dl_name, dl_bounds[it%2], speed, opcua_motor, fields_of_interest[2], delay, 
-                 return_avg_ts, lag, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
+                 return_avg_ts, wait_db, dl_start, dl_end, wav, pos_offset, revert_ts)
     pos_env, flx_env, pos_fit, flx_fit = fit_data
 
     null_scans_best_pos.append(best_null_pos)
@@ -1596,7 +1514,7 @@ for it in range(n_pass):
     plt.draw()
 
     
-    to_null_pos, to_null_flx0, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, lag, pos_offset, fields_of_interest[2])
+    to_null_pos, to_null_flx0, current_null_pos = set_dl_to_null(best_null_pos, opcua_motor, speed2, grab_range, dl_name, return_avg_ts, pos_offset, fields_of_interest[2])
     t_scale = to_null_flx0[:,0] - to_null_flx0[:,0].max()
     to_null_flx = to_null_flx0[:,1]
 
