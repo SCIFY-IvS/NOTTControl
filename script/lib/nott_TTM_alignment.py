@@ -894,9 +894,9 @@ class alignment:
         return
     
     # All functions below serve purpose in the context of actuator performance characterization
-    # Characterization is done with actuator NTPB2 (nr. 4 of config 1)
+    # Characterization is done with actuator act_name (nr. 4 of config 1)
     
-    def _move_abs_ttm_act_single(self,pos,speed,config=1):
+    def _move_abs_ttm_act_single(self,pos,speed,act_name,config=1):        
 
         start_time = time.time()
         # Retrieving OPCUA url from config.ini
@@ -906,8 +906,8 @@ class alignment:
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
-        # Actuator motor object (NTPB2)
-        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2','NTPB2')
+        # Actuator motor object 
+        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name,act_name)
         
         # List of time stamps
         time_arr = []
@@ -928,7 +928,7 @@ class alignment:
         # Imposed position
         imposed_pos = pos
         # Executing move
-        parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.NTPB2')
+        parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_name)
         method = parent.get_child("4:RPC_MoveAbs")
         arguments = [pos, speed]
         parent.call_method(method, *arguments)
@@ -943,10 +943,10 @@ class alignment:
         while not on_destination:
             # Printing status, state and saving position & time every 1% of the total path
             time.sleep(0.01*time_exp)
-            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB2.stat.sState'])
+            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sState'])
             print("Status:", status, "|| State:", state)
             on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-            print("NTPB2 pos: ", str(self._get_actuator_pos(config)[3])+" mm")
+            print(act_name+" pos: ", str(self._get_actuator_pos(config)[3])+" mm")
             # Save current time
             time_arr.append(time.time())
             # Save current position
@@ -958,7 +958,7 @@ class alignment:
         # ACTUAL Position achieved
         final_pos = self._get_actuator_pos(config)[3]
         print("----------------------------------------------------------------------------------------------------------------------------")
-        print("Moving actuator NTPB2 from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
+        print("Moving actuator"+act_name+"from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
         print("Actual actuator position reached :"+str(final_pos)+" mm")
         print("----------------------------------------------------------------------------------------------------------------------------")   
         # Close OPCUA connection
@@ -966,7 +966,7 @@ class alignment:
         
         return spent_time,imposed_pos,final_pos,time_arr,pos_arr
     
-    def act_response_test_single(self,act_displacement,speed,config=1):
+    def act_response_test_single(self,act_displacement,speed,act_name,config=1):
         # Function to probe the actuator response (x,t) for given speed and displacement
         
         # STEP 1 : Reset actuator position if begin/end is reached (depending on the direction) and neutralize backlash
@@ -999,15 +999,15 @@ class alignment:
         # Impose the reset (motions need not be accurate here ==> fast speed)
         if not valid_start or not valid_end:
             # Resetting actuator
-            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.2)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.2,act_name)
             # Neutralizing backlash
-            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.001)
+            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.001,act_name)
             print("Actuator range reset, backlash neutralized")
           
         # STEP 2: Imposing the desired actuator displacement
         curr_pos = self._get_actuator_pos(config)[3]
         imposed_pos_d = curr_pos + act_displacement
-        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed)
+        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed,act_name)
         
         return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
 
@@ -1023,7 +1023,7 @@ class alignment:
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             disp = act_displacements[i] #mm
-            speeds = np.linspace(disp/100,disp/2,len_speeds) #mm/s
+            speeds = np.logspace(0.005/100,0.030,len_speeds) #mm/s
             for j in range(0, len(speeds)):
                 acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j])
                 matrix_acc[0][i][j] = acc_arr[0]
