@@ -39,6 +39,10 @@ TTM1Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/
 TTM2Xgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2X.npy")
 TTM2Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2Y.npy")
 
+# On-bench simulated accuracy grid (achieved-imposed) for positive/negative displacements
+accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Pos.npy")
+accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg.npy")
+
 class alignment:
     
     def __init__(self):
@@ -68,16 +72,17 @@ class alignment:
                 transverse X and Y dimensions. The result are four equations, each linking
                 one of (X,Y,x,y) to the relevant angular offsets (TTM Y for X/x-direction shifts & vice versa).
             (4) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
-            (5) Defines matrix M and vector of symbolic shifts b.
+            (5) Defines matrix M and vector of symbolic shifts b. Defines vector N, which comprises the symbolic expressions for CS/IM shifts as a function of TTM angles in non-matrix form.
                    
         Remarks
         -------
         Strongly encouraged to call this function only once, as it embodies quite some runtime.
-        The function should initialize global variables M and b, which are then used in all other functions.
+        The function should initialize global variables M, N and b, which are then used in all other functions.
                    
         Defines
         -------
         M : (4,4) matrix of symbolic Sympy expressions
+        N : (1,4) matrix of symbolic Sympy expressions
         b : (4,1) matrix of symbolic Sympy expressions
                    
         """
@@ -259,8 +264,29 @@ class alignment:
         
         return TTMoffsetsflip
     
-    def _framework_numeric_int_reverse(self,ttm_shifts,D,lam):
-        
+    def _framework_numeric_int_reverse(self,ttm_offsets,D,lam):
+        """
+        Description
+        -----------
+        The function numerically evaluates the symbolic framework by input TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y),
+        returning the positional shifts (X,Y,x,y) that the offsets induce.
+
+        Parameters
+        ----------
+        ttm_offsets : (1,4) numpy array of floats (rad)
+            User-desired TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y)
+        D : (1,8) numpy array of floats (mm)
+            Eight inter-component distance values (D1,...,D8) traveled by the reference beam 
+        lam : single integer
+            NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron)
+        Do note : Distance grid Dgrid is simulated for the central wavelength in Zemax.
+
+        Returns
+        -------
+        shifts : (1,4) numpy array of floats (mm)
+            Induced positional shifts in CS/IM planes (X,Y,x,y).
+
+        """
         # Symbols
         X,x,Y,y = symbols("X x Y y")
         a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
@@ -291,7 +317,7 @@ class alignment:
         # Copy of symbolic framework
         Ncopy = self.N.copy()
         # Substituting parameter values into the symbolic matrix
-        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_shifts[0]),(a1Y,ttm_shifts[1]),(a2X,ttm_shifts[2]),(a2Y,ttm_shifts[3])]
+        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_offsets[0]),(a1Y,ttm_offsets[1]),(a2X,ttm_offsets[2]),(a2Y,ttm_offsets[3])]
         shifts = np.array([Ncopy[0].subs(subspar),Ncopy[1].subs(subspar),Ncopy[2].subs(subspar),Ncopy[3].subs(subspar)],dtype=np.float64)
         return shifts
     
@@ -452,7 +478,7 @@ class alignment:
         
         return sky_angles
             
-    def _snap_grid(self,TTMangles,config):
+    def _snap_distance_grid(self,TTMangles,config):
         """
         Description
         -----------
@@ -499,6 +525,57 @@ class alignment:
         D_snap = Dgrid[config,:,a,b,c,d]
   
         return D_snap
+
+    def _snap_accuracy_grid(self,speed,disp):
+        """
+        Description
+        -----------
+        For given actuators speed and displacements, linear interpolation of the closest four accuracy grid points is performed to 
+        return an accuracy value for each of the four actuators.
+        Parameters
+        ----------
+        speed : (1,4) numpy array of floats (mm/s)
+            The speeds by which the actuators are to be moved.
+        disp : (1,4) numpy array of floats (mm) 
+            The displacements by which the actuators are to be moved.
+
+        Returns
+        -------
+        a_snap : (1,4) numpy array of floats (mm)
+            Accuracy value for each actuator, obtained by linear interpolation.
+
+        """
+        # Container array for accuracies
+        a_snap = np.zeros(len(speed))
+        # Looping over all four actuators 
+        for i in range(0, len(speed)):
+            # Sign of displacement
+            sign = np.sign(disp[i])
+            # Simulation ranges of grid
+            disp_range = sign*np.linspace(0.005,0.030,11)
+            speed_range = np.logspace(0.005/100,0.030,11)
+            # Determining closest neighbouring grid points
+            disp_diff = np.abs(disp_range - disp[i])
+            speed_diff = np.abs(speed_range - speed[i])
+            i1,i2 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:2]
+            j1,j2 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:2]
+            # Weights
+            v1,v2 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
+            w1,w2 = [speed_diff[j1],speed_diff[j2]]/(speed_diff[j1]+speed_diff[j2])
+            if sign > 0:
+                # Accuracy interpolation
+                a_disp = v1*accurgrid_pos[i1,j1]+v2*accurgrid_pos[i2,j1]
+                a_speed = w1*accurgrid_pos[i1,j1]+w2*accurgrid_pos[i1,j2]
+                # Average
+                a_snap[i] = (a_disp+a_speed)/2
+            if sign < 0:
+                # Accuracy interpolation
+                a_disp = v1*accurgrid_neg[i1,j1]+v2*accurgrid_neg[i2,j1]
+                a_speed = w1*accurgrid_neg[i1,j1]+w2*accurgrid_neg[i1,j2]
+                # Average
+                a_snap[i] = (a_disp+a_speed)/2
+        
+        return a_snap
 
     def _get_actuator_pos(self,config):
         """
@@ -599,7 +676,25 @@ class alignment:
         return displacements
 
     def _actuator_displacement_to_ttm_shift(self,act_pos,act_disp):
-        
+        """
+        Description
+        -----------
+        Function that relates actuator displacements to the TTM offsets they induce away from the
+        current TTM angles.
+
+        Parameters
+        ----------
+        act_pos : (1,4) numpy array of floats (mm)
+            Absolute actuator positions.
+        act_disp : (1,4) numpy array of floats (mm)
+            Actuator displacements.
+
+        Returns
+        -------
+        ttm_shifts_arr : (1,4) numpy array of floats (rad)
+            Induced TTM angular offsets 
+
+        """
         # Center-to-actuator distances
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
@@ -607,7 +702,7 @@ class alignment:
         # Retrieving current TTM angles
         ttm_curr = self._actuator_position_to_ttm_angle(act_pos)
         # Calculating TTM shifts
-        ttm_shifts = [0,0,0,0]
+        ttm_shifts = np.zeros(4)
         dx_common = (act_disp[0]+act_disp[1])/2
         x_diff = act_disp[1]-act_disp[0]
         ttm_shifts[0] = (dx_common/d1_ca)*np.cos(ttm_curr[0])**2
@@ -615,7 +710,9 @@ class alignment:
         ttm_shifts[2] = (-act_disp[3]/d2_ca)*np.cos(ttm_curr[2])**2
         ttm_shifts[3] = (act_disp[2]/d2_ca)*np.cos(ttm_curr[3])**2
         
-        return np.array(ttm_shifts,dtype=np.float64)
+        ttm_shifts_arr = np.array(ttm_shifts,dtype=np.float64)
+        
+        return ttm_shifts_arr
 
     def _actuator_position_to_ttm_angle(self,pos):
         """
@@ -654,23 +751,37 @@ class alignment:
         
         return TTMangles
     
-    def _actoffset(self):
+    def _actoffset(self,act_speed,act_disp):
         """
         Description
         -----------
-        The function returns the offset that occurs upon actuator displacement.
+        The function returns the offsets that occur upon actuator displacement, obtained from empirical analysis.
         
-        Params
-        ------
-        To be completed. Depends on the on-bench actuator characterization.
-        
+        Parameters
+        ----------
+        act_speed : (1,4) numpy array of floats (mm/s)
+            Speeds by which the actuators are to be moved.
+        act_disp : (1,4) numpy array of floats (mm)
+            Displacements by which the actuators are to be moved.
+            
         Returns
         -------
-        To be completed. Will return a positional shift that quantifies the degree of offset upon actuator displacement.
-        This shift will then serve as input for the actuator movements, in order to counter-act the offset.
+        accur_snap : (1,4) numpy array of floats (mm)
+            Accuracies (positional offsets) for the four actuators, retrieved from the empirical accuracy grid.
         
         """
-        return np.array([0,0,0,0],dtype=np.float64)
+        
+        bool_speed = (act_speed < 0.005/100 or act_speed > 0.030)
+        bool_disp = (act_disp < 0.005 or act_disp > 0.030)
+        if (bool_speed.any()):
+            raise ValueError("One/multiple speed values are invalid. The supported range spans [0.05,30] um/s.")
+        if (bool_disp.any()):
+            raise ValueError("One/multiple displacement values are invalid. The supported range spans [5,30] um.")
+        
+        # Snap accuracies
+        accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
+        
+        return accur_snap
 
     def _valid_state(self,TTMangles_final,act_displacements,act_pos,config):
         """
@@ -779,11 +890,11 @@ class alignment:
     
         return Valid,i
 
-    def _move_abs_ttm_act(self,config,pos,speed,pos_offset):
+    def _move_abs_ttm_act(self,config,pos,speeds,pos_offset):
         """
         Description
         -----------
-        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam) to given positions "pos", at speeds "speed", taking into account offsets "pos_offset".
+        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam) to given positions "pos", at speeds "speeds", taking into account offsets "pos_offset".
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
@@ -797,7 +908,7 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)       
         pos : (1,4) numpy array of float values (mm)
             Positions to which the actuators should be moved.
-        speed : (1,4) numpy array of float values (mm/s)
+        speeds : (1,4) numpy array of float values (mm/s)
             Speeds by which the actuators should move.
         pos_offset : (1,4) numpy array of float values (mm)
             offsets to be accounted for when moving.
@@ -839,9 +950,9 @@ class alignment:
             if (pos[i] != curr_pos[i]):
                 # Incorporating offsets
                 if pos[i] - curr_pos[i] > 0:
-                    pos[i] += pos_offset[i] # in mm
-                else:
                     pos[i] -= pos_offset[i] # in mm
+                else:
+                    pos[i] += pos_offset[i] # in mm
       
                 # Performing the movement
                 #-------------------------#
@@ -856,9 +967,8 @@ class alignment:
                 # Executing move
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
                 method = parent.get_child("4:RPC_MoveAbs")
-                arguments = [pos, speed]
+                arguments = [pos[i], speeds[i]]
                 parent.call_method(method, *arguments)
-                #actuators[i].command_move_absolute(pos[i],speed[i])
             
                 # Wait for the actuator to be ready
                 on_destination = False
@@ -872,190 +982,12 @@ class alignment:
         # Close OPCUA connection
         opcua_conn.disconnect()
         return
-        
-    def cam_read_test(self,config):
-    # Function to test the readout of the camera ROIs from the REDIS database
-        
-        if (config < 0 or config > 3):
-            raise ValueError("Please enter a valid configuration number (0,1,2,3)")    
-    
-        # REDIS field names of photometric outputs' ROIs
-        names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
-        fieldname = names[config]
-        # Readout 100 ms back in time
-        t_start,t_stop = define_time(0.100) 
-        # Current position noise measurement
-        noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
-        # Current position photometric output measurement
-        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
-        # Print out values
-        print("Current noise average : ", noise)
-        print("Demanded photometric output average : ", photoconfig)
-        return
-    
-    # All functions below serve purpose in the context of actuator performance characterization
-    # Characterization is done with actuator act_name (nr. 4 of config 1)
-    
-    def _move_abs_ttm_act_single(self,pos,speed,act_name,config=1):        
-
-        start_time = time.time()
-        # Retrieving OPCUA url from config.ini
-        configpars = ConfigParser()
-        configpars.read('../../config.ini')
-        url =  configpars['DEFAULT']['opcuaaddress']
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
-        # Actuator motor object 
-        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name,act_name)
-        
-        # List of time stamps
-        time_arr = []
-        # List of positions
-        pos_arr = []
-        # Performing the movement
-        #-------------------------#
-        # Preparing actuator (sleep times TBD)
-        #act.reset()
-        #time.sleep(0.100)
-        #act.init()
-        #time.sleep(0.050)
-        act.enable()
-        time.sleep(0.050)
-            
-        # Current position
-        curr_pos = self._get_actuator_pos(config)[3]
-        # Imposed position
-        imposed_pos = pos
-        # Executing move
-        parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_name)
-        method = parent.get_child("4:RPC_MoveAbs")
-        arguments = [pos, speed]
-        parent.call_method(method, *arguments)
-        #act.command_move_absolute(imposed_pos,speed)
-            
-        # Expected time
-        disp = pos - curr_pos
-        time_exp = int(np.abs(disp / speed))
-        
-        # Wait for the actuator to be ready
-        on_destination = False
-        while not on_destination:
-            # Printing status, state and saving position & time every 1% of the total path
-            time.sleep(0.01*time_exp)
-            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sState'])
-            print("Status:", status, "|| State:", state)
-            on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-            print(act_name+" pos: ", str(self._get_actuator_pos(config)[3])+" mm")
-            # Save current time
-            time_arr.append(time.time())
-            # Save current position
-            pos_arr.append(self._get_actuator_pos(config)[3])
-                
-        # Time spent
-        end_time = time.time()
-        spent_time = end_time-start_time
-        # ACTUAL Position achieved
-        final_pos = self._get_actuator_pos(config)[3]
-        print("----------------------------------------------------------------------------------------------------------------------------")
-        print("Moving actuator"+act_name+"from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
-        print("Actual actuator position reached :"+str(final_pos)+" mm")
-        print("----------------------------------------------------------------------------------------------------------------------------")   
-        # Close OPCUA connection
-        opcua_conn.disconnect()
-        
-        return spent_time,imposed_pos,final_pos,time_arr,pos_arr
-    
-    def act_response_test_single(self,act_displacement,speed,act_name,config=1):
-        # Function to probe the actuator response (x,t) for given speed and displacement
-        
-        # STEP 1 : Reset actuator position if begin/end is reached (depending on the direction) and neutralize backlash
-        # Current position (index 3 for NTPB)
-        curr_pos = self._get_actuator_pos(config)[3]
-        pos_backlash = curr_pos
-        # Actuator travel range [0,6] mm
-        act_range = 6 
-        # Validity booleans
-        valid_end = True
-        valid_start = True
-        # Exceeding upper limit of range?
-        if act_displacement > 0:
-            valid_end = (act_range - curr_pos >= act_displacement)
-        # Exceeding lower limit of range?
-        else:
-            valid_start = (curr_pos >= -act_displacement)
-        
-        if not valid_end:
-            # Reset to start position
-            curr_pos = 0.1
-            # Neutralize backlash by imposing 2 micron shift (=10xresolution)
-            pos_backlash = curr_pos+2*10**(-3)
-        if not valid_start:
-            # Reset to end position
-            curr_pos = act_range-0.1
-            # Neutralize backlash by imposing 2 micron shift (=10xresolution)
-            pos_backlash = curr_pos-2*10**(-3)
-            
-        # Impose the reset (motions need not be accurate here ==> fast speed)
-        if not valid_start or not valid_end:
-            # Resetting actuator
-            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.2,act_name)
-            # Neutralizing backlash
-            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.001,act_name)
-            print("Actuator range reset, backlash neutralized")
-          
-        # STEP 2: Imposing the desired actuator displacement
-        curr_pos = self._get_actuator_pos(config)[3]
-        imposed_pos_d = curr_pos + act_displacement
-        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed,act_name)
-        
-        return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
-
-    def act_response_test_multi(self,act_displacements,len_speeds,config=1):
-        # Function to probe the actuator response for a range of displacements and speeds
-        # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
-        
-        # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
-        matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
-        # Lists containing time and position series of the movement
-        times = []
-        positions = []
-        # Carrying out the test for each combination
-        for i in range(0, len(act_displacements)):
-            disp = act_displacements[i] #mm
-            speeds = np.logspace(0.005/100,0.030,len_speeds) #mm/s #logspace
-            for j in range(0, len(speeds)):
-                acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j])
-                matrix_acc[0][i][j] = acc_arr[0]
-                matrix_acc[1][i][j] = acc_arr[2]-acc_arr[1]
-                times.append(time_arr)
-                positions.append(pos_arr)
-                
-                # Calculating ttm shift accuracy from actuator displacement accuracy
-                act_acc = acc_arr[2]-acc_arr[1]
-                curr_pos = self._get_actuator_pos(config)
-                act_disp = np.array([0,0,0,act_acc],dtype=np.float64)
-                
-                # Finding TTM shifts from actuator displacement
-                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp)
-                # Finding TTM angles from actuator positions
-                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos)
-                
-                # Finding distance value
-                Darr = self._snap_grid(curr_ttm,config)
-                
-                # Evaluating framework to get image plane shift accuracies
-                shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
-                
-                matrix_acc[2:6,i,j] = shifts
-            print(i)
-        return matrix_acc,times,positions
 
     ###################
     # Individual Step #
     ###################
 
-    def individual_step(self,sky,steps,config):
+    def individual_step(self,sky,steps,speeds,config):
         """
         Description
         -----------
@@ -1076,6 +1008,8 @@ class alignment:
         steps : (1,4) numpy array of float values
             sky == 0 : steps = (dX,dY,dx,dy)
             sky != 0 : steps = (dskyX,dskyY,0,0)
+        speeds : (1,4) numpy array of float values
+            Speeds by which the actuators (1,2,3,4) will move (mm/s)
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
@@ -1096,7 +1030,7 @@ class alignment:
         TTM_curr = self._actuator_position_to_ttm_angle(act_curr)
         
         # Couple the configuration to the nearest grid point & retrieve the Zemax-simulated distances
-        D_arr = self._snap_grid(TTM_curr, config)
+        D_arr = self._snap_distance_grid(TTM_curr, config)
         
         # Numerically evaluate framework
         if (sky != 0):
@@ -1133,9 +1067,8 @@ class alignment:
     
         # Only push actuator motion if it would yield a valid state
         if valid:
-            speed = np.array([0.1,0.1,0.1,0.1],dtype=np.float64) # TBD
-            pos_offset = self._actoffset() # TBD
-            self._move_abs_ttm_act(config,act_final,speed,pos_offset)
+            pos_offset = self._actoffset(speeds,act_disp) 
+            self._move_abs_ttm_act(config,act_final,speeds,pos_offset)
             print("Step performed")
         
         return
@@ -1144,7 +1077,7 @@ class alignment:
     # Scanning #
     ############    
 
-    def localization_spiral(self,sky,step,config):
+    def localization_spiral(self,sky,step,speed,config):
         """
         Description
         -----------
@@ -1163,6 +1096,9 @@ class alignment:
             If sky == True : on-sky angular step (radian) 
                             Note : It is recommended to take the apparent on-sky angular radius of the source as step.
             If sky == False : dummy parameter, 20 micron (waveguide dimension) is taken by default.
+        speed : single float value
+            Actuator speed by which a spiral step should occur
+            Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
@@ -1175,6 +1111,9 @@ class alignment:
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
+        
+        if (speed > 2.32*10**(-3) or speed <= 0):
+            raise ValueError("Given actuator speed is beyond the accepted range (0,2.32] um/s")
         
         if sky : 
             d = step
@@ -1234,7 +1173,8 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                self.individual_step(sky,moves[move],config)
+                speeds = np.array(np.ones(4)*speed, dtype=np.float64)
+                self.individual_step(sky,moves[move],speeds,config)
                 # REDIS writing time
                 time.sleep(0.110)
                 # New position noise measurement
@@ -1265,7 +1205,7 @@ class alignment:
             
         return
 
-    def optimization_spiral(self,sky,step,config):
+    def optimization_spiral(self,sky,step,speed,config):
         """
         Description
         -----------
@@ -1283,6 +1223,9 @@ class alignment:
             The dimension by which the spiral should make its steps.
             If sky == True : on-sky angular step (radian) 
             If sky == False : dummy parameter, 5 micron is taken by default.
+        speed : single float value
+            Actuator speed by which a spiral step should occur
+            Note: Parameter to be removed once optimal speed is obtained.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
@@ -1301,6 +1244,9 @@ class alignment:
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
+        
+        if (speed > 1.22*10**(-3) or speed <= 0):
+            raise ValueError("Given actuator speed is beyond the accepted range (0,1.22] um/s")
         
         if sky : 
             d = step
@@ -1368,7 +1314,8 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                self.individual_step(sky,moves[move],config)
+                speeds = np.array(np.ones(4)*speed, dtype=np.float64)
+                self.individual_step(sky,moves[move],speeds,config)
                 # REDIS writing time
                 time.sleep(0.110)
                 # Storing camera value and TTM configuration
@@ -1422,13 +1369,246 @@ class alignment:
             
         return
     
+    ##########################################
+    # Performance characterization / Testing #
+    ##########################################
+    
+    def cam_read_test(self,config):
+    # Function to test the readout of the camera ROIs from the REDIS database
         
+        if (config < 0 or config > 3):
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")    
     
+        # REDIS field names of photometric outputs' ROIs
+        names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
+        fieldname = names[config]
+        # Readout 100 ms back in time
+        t_start,t_stop = define_time(0.100) 
+        # Current position noise measurement
+        noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
+        # Current position photometric output measurement
+        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+        # Print out values
+        print("Current noise (ROI9) average : ", noise)
+        print("Demanded photometric output average : ", photoconfig)
+        return
     
+    # All functions below serve purpose in the context of actuator performance characterization
+    # Characterization is done with actuator act_name
     
+    def _move_abs_ttm_act_single(self,pos,speed,act_name,offset,config=1):        
+
+        start_time = time.time()
+        # Retrieving OPCUA url from config.ini
+        configpars = ConfigParser()
+        configpars.read('../../config.ini')
+        url =  configpars['DEFAULT']['opcuaaddress']
+        # Opening OPCUA connection
+        opcua_conn = OPCUAConnection(url)
+        opcua_conn.connect()
+        # Actuator names 
+        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        # Index of act_name
+        act_index = np.argwhere(act_names == act_name)
+        # Actuator motor object 
+        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name,act_name)
+        
+        # List of time stamps
+        time_arr = []
+        # List of positions
+        pos_arr = []
+        # Performing the movement
+        #-------------------------#
+        # Preparing actuator (sleep times TBD)
+        #act.reset()
+        #time.sleep(0.100)
+        #act.init()
+        #time.sleep(0.050)
+        act.enable()
+        time.sleep(0.050)
+            
+        # Current position
+        curr_pos = self._get_actuator_pos(config)[act_index]
+        # Imposed position
+        imposed_pos = pos
+        # Imposed displacement
+        imposed_disp = imposed_pos - curr_pos
+        # Arrays
+        imposed_disp_arr = np.zeros(4)
+        imposed_speed_arr = np.zeros(4)
+        imposed_disp_arr[act_index] = imposed_disp
+        imposed_speed_arr[act_index] = speed
+        # Accounting offset
+        pos_offset = self._actoffset(imposed_speed_arr,imposed_disp_arr)[act_index]
+        if offset:
+            if imposed_disp > 0:
+                pos -= pos_offset # in mm
+            else:
+                pos += pos_offset # in mm
+        # Executing move
+        parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_name)
+        method = parent.get_child("4:RPC_MoveAbs")
+        arguments = [pos, speed]
+        parent.call_method(method, *arguments)
+        #act.command_move_absolute(imposed_pos,speed)
+        
+        # Wait for the actuator to be ready
+        on_destination = False
+        while not on_destination:
+            # Printing status, state and saving position & time every 10 ms (=2xREDIS sampling)
+            time.sleep(0.01)
+            status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sState'])
+            #print("Status:", status, "|| State:", state)
+            on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+            #print(act_name+" pos: ", str(self._get_actuator_pos(config)[3])+" mm")
+            # Save current time
+            time_arr.append(time.time())
+            # Save current position
+            pos_arr.append(self._get_actuator_pos(config)[3])
+                
+        # Time spent
+        end_time = time.time()
+        spent_time = end_time-start_time
+        # ACTUAL Position achieved
+        final_pos = self._get_actuator_pos(config)[3]
+        print("----------------------------------------------------------------------------------------------------------------------------")
+        print("Moving actuator "+act_name+" from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
+        print("Actual actuator position reached :"+str(final_pos)+" mm")
+        print("----------------------------------------------------------------------------------------------------------------------------")   
+        # Close OPCUA connection
+        opcua_conn.disconnect()
+        
+        return spent_time,imposed_pos,final_pos,time_arr,pos_arr
     
+    def act_response_test_single(self,act_displacement,speed,act_name,config=1):
+        # Function to probe the actuator response (x,t) for given speed and displacement
+        
+        # STEP 1 : Reset actuator position if begin/end is reached (depending on the direction) and neutralize backlash
+        # Current position (index 3 for NTPB)
+        curr_pos = self._get_actuator_pos(config)[3]
+        pos_backlash = curr_pos
+        # Actuator travel range [0,6] mm
+        act_range = 6 
+        # Validity booleans
+        valid_end = True
+        valid_start = True
+        # Exceeding upper limit of range?
+        if act_displacement > 0:
+            valid_end = (act_range - curr_pos >= act_displacement)
+        # Exceeding lower limit of range?
+        else:
+            valid_start = (curr_pos >= -act_displacement)
+        
+        if not valid_end:
+            # Reset to start position
+            curr_pos = 0.1
+            # Neutralize backlash by imposing 2 micron shift (=10xresolution)
+            pos_backlash = curr_pos+2*10**(-3)
+        if not valid_start:
+            # Reset to end position
+            curr_pos = act_range-0.1
+            # Neutralize backlash by imposing 2 micron shift (=10xresolution)
+            pos_backlash = curr_pos-2*10**(-3)
+            
+        # Impose the reset (motions need not be accurate here ==> fast speed)
+        if not valid_start or not valid_end:
+            # Resetting actuator
+            _,_,_,_,_ = self._move_abs_ttm_act_single(curr_pos,0.2,act_name,False)
+            # Neutralizing backlash
+            _,_,_,_,_ = self._move_abs_ttm_act_single(pos_backlash,0.001,act_name,False)
+            print("Actuator range reset, backlash neutralized")
+          
+        # STEP 2: Imposing the desired actuator displacement
+        curr_pos = self._get_actuator_pos(config)[3]
+        imposed_pos_d = curr_pos + act_displacement
+        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed,act_name,True)
+        
+        return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
+
+    def act_response_test_multi(self,act_displacements,len_speeds,act_name,config=1):
+        # Function to probe the actuator response for a range of displacements and speeds
+        # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
+        
+        # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
+        matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
+        # Lists containing time and position series of the movement
+        times = []
+        positions = []
+        # Carrying out the test for each combination
+        for i in range(0, len(act_displacements)):
+            disp = act_displacements[i] #mm
+            speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
+            for j in range(0, len(speeds)):
+                acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j],act_name)
+                matrix_acc[0][i][j] = acc_arr[0]
+                matrix_acc[1][i][j] = acc_arr[2]-acc_arr[1]
+                times.append(time_arr)
+                positions.append(pos_arr)
+                
+                # Calculating ttm shift accuracy from actuator displacement accuracy
+                act_acc = acc_arr[2]-acc_arr[1]
+                curr_pos = self._get_actuator_pos(config)
+                act_disp = np.array([0,0,0,act_acc],dtype=np.float64)
+                
+                # Finding TTM shifts from actuator displacement
+                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp)
+                # Finding TTM angles from actuator positions
+                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos)
+                
+                # Finding distance value
+                Darr = self._snap_distance_grid(curr_ttm,config)
+                
+                # Evaluating framework to get image plane shift accuracies
+                shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
+                
+                matrix_acc[2:6,i,j] = shifts
+            print(i)
+        return matrix_acc,times,positions
     
-    
+    def act_backlash_test_multi(self,act_displacements,len_speeds,act_name,config=1):
+        # Function to probe the backlash, remaining after incorporation of the empirical actuator offsets, for a range of displacements and speeds.
+        # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
+        # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
+        
+        # Bring actuator to middle of range
+        _,_,_,_,_ = self._move_abs_ttm_act_single(3,0.2,act_name,True)
+        # Matrix containing time spent moving actuators, backlash (final pos - initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
+        matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
+        # Carrying out the test for each combination
+        for i in range(0, len(act_displacements)):
+            disp = act_displacements[i] # mm
+            speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
+            for j in range(0, len(speeds)):
+                # Current position
+                init_pos = self._get_actuator_pos(config)
+                # Step 1
+                arr1,_,_ = self.act_response_test_single(act_displacements[i],speeds[j],act_name)
+                # Step 2
+                arr2,_,_ = self.act_response_test_single(-act_displacements[i],speeds[j],act_name)
+                # Final achieved position
+                final_pos = arr2[2]
+                # Backlash
+                back = final_pos - init_pos
+                # Total time spent moving actuators
+                time_spent = arr1[0]+arr2[0]
+                # Storing in matrix
+                matrix_acc[0][i][j] = time_spent
+                matrix_acc[1][i][j] = back
+                # Calculating ttm shift from actuator backlash
+                curr_pos = self._get_actuator_pos(config)
+                act_disp = np.array([0,0,0,back],dtype=np.float64)
+                # Finding TTM shifts from actuator displacement
+                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp)
+                # Finding TTM angles from actuator positions
+                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos)
+                # Finding distance value
+                Darr = self._snap_distance_grid(curr_ttm,config)
+                # Evaluating framework to get image plane shift accuracies
+                shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
+                # Storing in matrix
+                matrix_acc[2:6,i,j] = shifts
+            print(i)
+        return matrix_acc
     
     
 
