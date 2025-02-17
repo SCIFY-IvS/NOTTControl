@@ -772,9 +772,11 @@ class alignment:
             Accuracies (positional offsets) for the four actuators, retrieved from the empirical accuracy grid.
         
         """
-        
-        bool_speed = np.logical_and(act_speed < 0.005/100,act_speed > 0).any() or act_speed > 0.030).any()
-        bool_disp = np.logical_and(act_disp < 0.005, act_disp > 0).any() or act_disp > 0.030).any()
+        low_speed = np.array([0.005/100],dtype=np.float64)[0]
+        low_disp = np.array([0.005],dtype=np.float64)[0]
+        up = np.array([0.030],dtype=np.float64)[0]
+        bool_speed = np.logical_and(act_speed-low_speed < -10**(-7),act_speed != 0).any() or (act_speed-up > 10**(-7)).any()
+        bool_disp = np.logical_and(np.abs(act_disp)-low_disp < -10**(-7), act_disp != 0).any() or (np.abs(act_disp)-up > 10**(-7)).any()
         if (bool_speed):
             raise ValueError("One/multiple speed values are invalid. The supported range spans [0.05,30] um/s.")
         if (bool_disp):
@@ -1440,9 +1442,12 @@ class alignment:
         imposed_speed_arr = np.zeros(4)
         imposed_disp_arr[act_index] = imposed_disp
         imposed_speed_arr[act_index] = speed
+        imposed_disp_arr = np.array(imposed_disp_arr, dtype=np.float64)
+        imposed_speed_arr = np.array(imposed_speed_arr, dtype=np.float64)
         # Accounting offset
-        pos_offset = self._actoffset(imposed_speed_arr,imposed_disp_arr)[act_index]
         if offset:
+            pos_offset = self._actoffset(imposed_speed_arr,imposed_disp_arr)[act_index]
+            print("Offset from accuracy grid:", pos_offset, " mm")
             if imposed_disp > 0:
                 pos -= pos_offset # in mm
             else:
