@@ -44,7 +44,7 @@ accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTCont
 accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg.npy")
 
 class alignment:
-    
+    '''
     def __init__(self):
         """
         Terminology
@@ -182,7 +182,7 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
-        
+    '''    
     def _framework_numeric_int(self,shifts,D,lam):
         """
         Description
@@ -773,8 +773,8 @@ class alignment:
         
         """
         
-        bool_speed = (act_speed < 0.005/100 or act_speed > 0.030).any()
-        bool_disp = (act_disp < 0.005 or act_disp > 0.030).any()
+        bool_speed = np.logical_and(act_speed < 0.005/100,act_speed > 0).any() or act_speed > 0.030).any()
+        bool_disp = np.logical_and(act_disp < 0.005, act_disp > 0).any() or act_disp > 0.030).any()
         if (bool_speed):
             raise ValueError("One/multiple speed values are invalid. The supported range spans [0.05,30] um/s.")
         if (bool_disp):
