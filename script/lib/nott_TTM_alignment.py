@@ -550,10 +550,12 @@ class alignment:
         # Looping over all four actuators 
         for i in range(0, len(speed)):
             # Sign of displacement
-            sign = np.sign(disp[i])
+            sign=1
+            if disp[i] != 0:
+                sign = np.sign(disp[i])
             # Simulation ranges of grid
             disp_range = sign*np.linspace(0.005,0.030,11)
-            speed_range = np.logspace(0.005/100,0.030,11)
+            speed_range = np.geomspace(0.005/100,0.030,11)
             # Determining closest neighbouring grid points
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
@@ -771,11 +773,11 @@ class alignment:
         
         """
         
-        bool_speed = (act_speed < 0.005/100 or act_speed > 0.030)
-        bool_disp = (act_disp < 0.005 or act_disp > 0.030)
-        if (bool_speed.any()):
+        bool_speed = (act_speed < 0.005/100 or act_speed > 0.030).any()
+        bool_disp = (act_disp < 0.005 or act_disp > 0.030).any()
+        if (bool_speed):
             raise ValueError("One/multiple speed values are invalid. The supported range spans [0.05,30] um/s.")
-        if (bool_disp.any()):
+        if (bool_disp):
             raise ValueError("One/multiple displacement values are invalid. The supported range spans [5,30] um.")
         
         # Snap accuracies
@@ -977,7 +979,7 @@ class alignment:
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 
-                print("Moving actuator "+act_names[i]+" from "+str(curr_pos[i])+" to "+str(pos_copy[i])+" at speed "+str(speed)+" mm/s took "+str(time.time()-start_time)+" seconds")
+                print("Moving actuator "+act_names[i]+" from "+str(curr_pos[i])+" to "+str(pos_copy[i])+" at speed "+str(speeds[i])+" mm/s took "+str(time.time()-start_time)+" seconds")
             
         # Close OPCUA connection
         opcua_conn.disconnect()
