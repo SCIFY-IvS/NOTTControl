@@ -1413,7 +1413,10 @@ class alignment:
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         # Index of act_name
-        act_index = np.argwhere(act_names == act_name)
+        act_index = 0
+        for i in range(0, 4):
+            if act_names[i] == act_name:
+                act_index = i
         # Actuator motor object 
         act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name,act_name)
         
@@ -1487,7 +1490,7 @@ class alignment:
         
         return spent_time,imposed_pos,final_pos,time_arr,pos_arr
     
-    def act_response_test_single(self,act_displacement,speed,act_name,config=1):
+    def act_response_test_single(self,act_displacement,speed,act_name,offset,config=1):
         # Function to probe the actuator response (x,t) for given speed and displacement
         
         # STEP 1 : Reset actuator position if begin/end is reached (depending on the direction) and neutralize backlash
@@ -1528,7 +1531,7 @@ class alignment:
         # STEP 2: Imposing the desired actuator displacement
         curr_pos = self._get_actuator_pos(config)[3]
         imposed_pos_d = curr_pos + act_displacement
-        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed,act_name,True)
+        spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed,act_name,offset)
         
         return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
 
@@ -1577,8 +1580,18 @@ class alignment:
         # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
         # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
         
+        # Actuator names 
+        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        # Index of act_name
+        act_index = 0
+        for i in range(0, 4):
+            if act_names[i] == act_name:
+                act_index = i
+        
         # Bring actuator to middle of range
-        _,_,_,_,_ = self._move_abs_ttm_act_single(3,0.2,act_name,True)
+        init_pos = self._get_actuator_pos(config)[act_index]
+        init_disp = 3 - init_pos
+        _ = self.act_response_test_single(init_disp,0.1,act_name,False)
         # Matrix containing time spent moving actuators, backlash (final pos - initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
         matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
         # Carrying out the test for each combination
@@ -1587,7 +1600,7 @@ class alignment:
             speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
                 # Current position
-                init_pos = self._get_actuator_pos(config)
+                init_pos = self._get_actuator_pos(config)[act_index]
                 # Step 1
                 arr1,_,_ = self.act_response_test_single(act_displacements[i],speeds[j],act_name)
                 # Step 2
