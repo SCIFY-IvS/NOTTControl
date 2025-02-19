@@ -742,11 +742,11 @@ class alignment:
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
         
-        xsum = np.tan(ttm[0])*d1_ca
-        xdiff = np.tan(ttm[1])*2*d1_ca
+        xsum = 2*np.tan(ttm[0])*d1_ca
+        xdiff = 2*np.tan(ttm[1])*2*d1_ca
         
-        x1 = (2*xsum-xdiff)/2
-        x2 = (2*xsum+xdiff)/2
+        x1 = (xsum-xdiff)/2
+        x2 = (xsum+xdiff)/2
         x3 = np.tan(ttm[3])*d2_ca
         x4 = -np.tan(ttm[2])*d2_ca
         pos = np.array([x1,x2,x3,x4],dtype=np.float64)
@@ -1683,7 +1683,7 @@ class alignment:
         # Step 1 : Broad movement, no accuracy accounted for
         
         # Speeds
-        speeds = np.array([10*10**(-3),10*10**(-3),10*10**(-3),10*10**(-3)],dtype=np.float64) #mm/s
+        speeds = np.array([100*10**(-3),100*10**(-3),100*10**(-3),100*10**(-3)],dtype=np.float64) #mm/s
         # Zero offsets
         pos_offset = np.array([0,0,0,0],dtype=np.float64)
         # Imposing shifts
