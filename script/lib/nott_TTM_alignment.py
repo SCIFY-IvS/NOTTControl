@@ -716,42 +716,6 @@ class alignment:
         
         return ttm_shifts_arr
 
-    def _ttm_angle_to_actuator_position(self,ttm):
-        """
-        Description
-        -----------
-        The function links given ttm angles to the actuator positions they correspond to.
-
-        Parameters
-        ----------
-        ttm : (1,4) numpy array of floats (rad)
-            The absolute TTM angles (TTM1X,TTM1Y,TTM2X,TTM2Y)
-
-        Constants 
-        ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
-
-        Returns
-        -------
-        pos: (1,4) array of floats (mm)
-            The actuator (x1,x2,x3,x4) positions
-
-        """
-        # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
-        
-        xsum = 2*np.tan(ttm[0])*d1_ca
-        xdiff = 2*np.tan(ttm[1])*2*d1_ca
-        
-        x1 = (xsum-xdiff)/2
-        x2 = (xsum+xdiff)/2
-        x3 = np.tan(ttm[3])*d2_ca
-        x4 = -np.tan(ttm[2])*d2_ca
-        pos = np.array([x1,x2,x3,x4],dtype=np.float64)
-        return pos
-
     def _actuator_position_to_ttm_angle(self,pos):
         """
         Description
@@ -1674,41 +1638,3 @@ class alignment:
             print(i)
         return matrix_acc
     
-    def optimal_coupling(self,config=1):
-        # Bring configuration 1 to its optimal coupling configuration
-        ttm_optim = np.array([-1.705*10**(-4),12*10**(-3),2.247*10**(-3),20*10**(-3)],dtype=np.float64) # rad
-        # Finding corresponding actuator positions
-        act_optim = self._ttm_angle_to_actuator_position(ttm_optim)
-        
-        # Step 1 : Broad movement, no accuracy accounted for
-        
-        # Speeds
-        speeds = np.array([100*10**(-3),100*10**(-3),100*10**(-3),100*10**(-3)],dtype=np.float64) #mm/s
-        # Zero offsets
-        pos_offset = np.array([0,0,0,0],dtype=np.float64)
-        # Imposing shifts
-        self._move_abs_ttm_act(config,act_optim,speeds,pos_offset)
-        
-        # Step 2 : Refinement with accuracies
-        
-        # Necessary actuator shifts
-        curr_pos = self._get_actuator_pos(config)
-        act_disp = act_optim - curr_pos
-        # Speeds
-        speeds = np.array([1*10**(-3),1*10**(-3),1*10**(-3),1*10**(-3)],dtype=np.float64) #mm/s
-        # Accuracy grid offsets
-        pos_offset = self._actoffset(speeds,act_disp) 
-        # Imposing shifts
-        self._move_abs_ttm_act(config,act_optim,speeds,pos_offset)
-        return
-    
-    
-
-
-
-
-
-
-
-
-
