@@ -1676,9 +1676,9 @@ class alignment:
     
     def optimal_coupling(self,config=1):
         # Bring configuration 1 to its optimal coupling configuration
-        ttm_optim = np.array([-1.705*10**(-4),12*10**(-3),2.247*10**(-3),20*10**(-3))],dtype=np.float64) # rad
+        ttm_optim = np.array([-1.705*10**(-4),12*10**(-3),2.247*10**(-3),20*10**(-3)],dtype=np.float64) # rad
         # Finding corresponding actuator positions
-        act_optim = self._ttm_angle_to_actuator_position(self,ttm_optim)
+        act_optim = self._ttm_angle_to_actuator_position(ttm_optim)
         # Necessary actuator shifts
         curr_pos = self._get_actuator_pos(config)
         act_disp = act_optim - curr_pos
@@ -1687,7 +1687,7 @@ class alignment:
         # Accuracy grid offsets
         pos_offset = self._actoffset(speeds,act_disp) 
         # Imposing shifts
-        self._move_abs_ttm_act(self,config,pos,speeds,pos_offset)
+        self._move_abs_ttm_act(config,act_optim,speeds,pos_offset)
         return
     
     
