@@ -716,6 +716,42 @@ class alignment:
         
         return ttm_shifts_arr
 
+    def _ttm_angle_to_actuator_position(self,ttm):
+        """
+        Description
+        -----------
+        The function links given ttm angles to the actuator positions they correspond to.
+
+        Parameters
+        ----------
+        ttm : (1,4) numpy array of floats (rad)
+            The absolute TTM angles (TTM1X,TTM1Y,TTM2X,TTM2Y)
+
+        Constants 
+        ---------
+        d1_ca : TTM1 center-to-actuator distance (mm)
+        d2_ca : TTM2 center-to-actuator distance (mm)
+
+        Returns
+        -------
+        pos: (1,4) array of floats (mm)
+            The actuator (x1,x2,x3,x4) positions
+
+        """
+        # Center-to-actuator distances
+        d1_ca = 2.5*25.4 
+        d2_ca = 1.375*25.4
+        
+        xsum = np.tan(ttm[0])*d1_ca
+        xdiff = np.tan(ttm[1])*2*d1_ca
+        
+        x1 = (2*xsum-xdiff)/2
+        x2 = (2*xsum+xdiff)/2
+        x3 = np.tan(ttm[3])*d2_ca
+        x4 = -np.tan(ttm[2])*d2_ca
+        pos = np.array([x1,x2,x3,x4],dtype=np.float64)
+        return pos
+
     def _actuator_position_to_ttm_angle(self,pos):
         """
         Description
@@ -953,11 +989,8 @@ class alignment:
             # Only continue for actuators upon which displacement is imposed
             if (pos[i] != curr_pos[i]):
                 # Incorporating offsets
-                if pos[i] - curr_pos[i] > 0:
-                    pos[i] -= pos_offset[i] # in mm
-                else:
-                    pos[i] += pos_offset[i] # in mm
-      
+                pos[i] -= pos_offset[i] # in mm
+
                 # Performing the movement
                 #-------------------------#
                 # Preparing actuator (sleep times TBD)
@@ -1451,10 +1484,8 @@ class alignment:
         if offset:
             pos_offset = self._actoffset(imposed_speed_arr,imposed_disp_arr)[act_index]
             print("Offset from accuracy grid:", pos_offset, " mm")
-            if imposed_disp > 0:
-                pos -= pos_offset # in mm
-            else:
-                pos += pos_offset # in mm
+            pos -= pos_offset # in mm
+
         # Executing move
         parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_name)
         method = parent.get_child("4:RPC_MoveAbs")
@@ -1535,9 +1566,22 @@ class alignment:
         
         return np.array([spent_time,imposed_pos,final_pos],dtype=np.float64),time_arr,pos_arr
 
-    def act_response_test_multi(self,act_displacements,len_speeds,act_name,config=1):
+    def act_response_test_multi(self,act_displacements,len_speeds,act_name,offset,config=1):
         # Function to probe the actuator response for a range of displacements and speeds
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
+        
+        # Actuator names 
+        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        # Index of act_name
+        act_index = 0
+        for i in range(0, 4):
+            if act_names[i] == act_name:
+                act_index = i
+        
+        # Bring actuator to middle of range
+        init_pos = self._get_actuator_pos(config)[act_index]
+        init_disp = 3 - init_pos
+        _ = self.act_response_test_single(init_disp,0.1,act_name,False)
         
         # Matrix containing time spent moving actuators, actuator accuracy (achieved-imposed) and image shift accuracy (achieved-imposed) for all displacement x speed combinations
         matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
@@ -1549,7 +1593,7 @@ class alignment:
             disp = act_displacements[i] #mm
             speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
-                acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j],act_name)
+                acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j],act_name,offset)
                 matrix_acc[0][i][j] = acc_arr[0]
                 matrix_acc[1][i][j] = acc_arr[2]-acc_arr[1]
                 times.append(time_arr)
@@ -1602,9 +1646,9 @@ class alignment:
                 # Current position
                 init_pos = self._get_actuator_pos(config)[act_index]
                 # Step 1
-                arr1,_,_ = self.act_response_test_single(act_displacements[i],speeds[j],act_name)
+                arr1,_,_ = self.act_response_test_single(act_displacements[i],speeds[j],act_name,True)
                 # Step 2
-                arr2,_,_ = self.act_response_test_single(-act_displacements[i],speeds[j],act_name)
+                arr2,_,_ = self.act_response_test_single(-act_displacements[i],speeds[j],act_name,True)
                 # Final achieved position
                 final_pos = arr2[2]
                 # Backlash
@@ -1629,6 +1673,22 @@ class alignment:
                 matrix_acc[2:6,i,j] = shifts
             print(i)
         return matrix_acc
+    
+    def optimal_coupling(self,config=1):
+        # Bring configuration 1 to its optimal coupling configuration
+        ttm_optim = np.array([-1.705*10**(-4),12*10**(-3),2.247*10**(-3),20*10**(-3))],dtype=np.float64) # rad
+        # Finding corresponding actuator positions
+        act_optim = self._ttm_angle_to_actuator_position(self,ttm_optim)
+        # Necessary actuator shifts
+        curr_pos = self._get_actuator_pos(config)
+        act_disp = act_optim - curr_pos
+        # Speeds
+        speeds = np.array([1*10**(-3),1*10**(-3),1*10**(-3),1*10**(-3)],dtype=np.float64) #mm/s
+        # Accuracy grid offsets
+        pos_offset = self._actoffset(speeds,act_disp) 
+        # Imposing shifts
+        self._move_abs_ttm_act(self,config,pos,speeds,pos_offset)
+        return
     
     
 
