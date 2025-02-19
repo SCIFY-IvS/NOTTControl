@@ -44,7 +44,7 @@ accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTCont
 accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg.npy")
 
 class alignment:
-    '''
+    
     def __init__(self):
         """
         Terminology
@@ -182,7 +182,7 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
-    '''    
+       
     def _framework_numeric_int(self,shifts,D,lam):
         """
         Description
@@ -1679,6 +1679,18 @@ class alignment:
         ttm_optim = np.array([-1.705*10**(-4),12*10**(-3),2.247*10**(-3),20*10**(-3)],dtype=np.float64) # rad
         # Finding corresponding actuator positions
         act_optim = self._ttm_angle_to_actuator_position(ttm_optim)
+        
+        # Step 1 : Broad movement, no accuracy accounted for
+        
+        # Speeds
+        speeds = np.array([10*10**(-3),10*10**(-3),10*10**(-3),10*10**(-3)],dtype=np.float64) #mm/s
+        # Zero offsets
+        pos_offset = np.array([0,0,0,0],dtype=np.float64)
+        # Imposing shifts
+        self._move_abs_ttm_act(config,act_optim,speeds,pos_offset)
+        
+        # Step 2 : Refinement with accuracies
+        
         # Necessary actuator shifts
         curr_pos = self._get_actuator_pos(config)
         act_disp = act_optim - curr_pos
