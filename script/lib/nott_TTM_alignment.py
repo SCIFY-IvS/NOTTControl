@@ -86,6 +86,7 @@ class alignment:
         b : (4,1) matrix of symbolic Sympy expressions
                    
         """
+        print("Defining symbolic framework...")
         #-------------#
         # (1) Symbols #
         #-------------#
@@ -182,7 +183,39 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
-       
+        
+        
+        # Preparing actuators for use (only config 1 installed for now)
+        print("Preparing actuators")
+        # Retrieving OPCUA url from config.ini
+        configpars = ConfigParser()
+        configpars.read('../../config.ini')
+        url =  configpars['DEFAULT']['opcuaaddress']
+        # Opening OPCUA connection
+        opcua_conn = OPCUAConnection(url)
+        opcua_conn.connect()
+        # Actuator motor objects
+        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(2),'NTTA'+str(2))
+        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(2),'NTPA'+str(2))
+        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(2),'NTTB'+str(2))
+        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(2),'NTPB'+str(2))
+        actuators = np.array([act1,act2,act3,act4])
+        # Actuator names
+        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        for i in range(0,4):
+            actuators[i].reset()
+            time.sleep(1)
+            actuators[i].init()
+            # Wait for the actuator to be ready
+            ready = False
+            while not ready:
+                time.sleep(0.01)
+                status = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus'])
+                on_destination = (status == 'OK')
+        
+        # Closing OPCUA connection
+        opcua_conn.disconnect()
+        
     def _framework_numeric_int(self,shifts,D,lam):
         """
         Description
