@@ -201,7 +201,7 @@ class alignment:
         act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(2),'NTPB'+str(2))
         actuators = np.array([act1,act2,act3,act4])
         # Actuator names
-        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        act_names = ['NTTA'+str(2),'NTPA'+str(2),'NTTB'+str(2),'NTPB'+str(2)]
         for i in range(0,4):
             actuators[i].reset()
             time.sleep(1)
@@ -210,8 +210,8 @@ class alignment:
             ready = False
             while not ready:
                 time.sleep(0.01)
-                status = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus'])
-                on_destination = (status == 'OK')
+                substatus = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sSubstate'])
+                ready = (substatus[0] == 'READY')
         
         # Closing OPCUA connection
         opcua_conn.disconnect()
@@ -692,25 +692,25 @@ class alignment:
         # Center-to-actuator distances
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
+        # Zemax optimal coupling angles 
+        TTMangles_optim = np.array([4.7*10**(-6),-98*10**(-6),4.9*10**(-6),30*10**(-6)],dtype=np.float64)
         # TTM1 : Coupled actuator motion
         # 1) Both actuators need to be displaced by an equal amount to induce a TTM1X angle.
-        dx_common = d1_ca * (TTMshifts[0]/np.cos(TTMangles[0])**2)
-        # 2) The actuators need to be displaced by a different amount to induce a TTM1Y angle.
-        #    x_diff = dx2 - dx1
-        x_diff = 2*d1_ca * (TTMshifts[1]/np.cos(TTMangles[1])**2)
+        dx_common = d1_ca * (TTMshifts[0]/np.cos(TTMangles_optim[0]-TTMangles[0])**2)
+        dx_diff = d1_ca * np.cos(TTMangles[1]-TTMangles_optim[1])*TTMshifts[1]
         # Necessary actuator displacements
         dx1 = dx_common - x_diff/2
         dx2 = dx_common + x_diff/2
         
         # TTM2 : Decoupled actuator motion
-        dx3 = d2_ca * (TTMshifts[3]/(np.cos(TTMangles[3])**2))
-        dx4 = -d2_ca * (TTMshifts[2]/(np.cos(TTMangles[2])**2))
+        dx3 = d2_ca * (TTMshifts[3]*(np.cos(TTMangles[3]-TTMangles_optim[3])))
+        dx4 = -d2_ca * (TTMshifts[2]/(np.cos(TTMangles[2]-TTMangles_optim[2])**2))
         
         displacements = np.array([dx1,dx2,dx3,dx4],dtype=np.float64)
         
         return displacements
 
-    def _actuator_displacement_to_ttm_shift(self,act_pos,act_disp):
+    def _actuator_displacement_to_ttm_shift(self,act_pos,act_disp,config):
         """
         Description
         -----------
@@ -733,23 +733,24 @@ class alignment:
         # Center-to-actuator distances
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
-        
+        # Zemax optimal coupling angles 
+        TTMangles_optim = np.array([4.7*10**(-6),-98*10**(-6),4.9*10**(-6),30*10**(-6)],dtype=np.float64)
         # Retrieving current TTM angles
-        ttm_curr = self._actuator_position_to_ttm_angle(act_pos)
+        ttm_curr = self._actuator_position_to_ttm_angle(act_pos,config)
         # Calculating TTM shifts
         ttm_shifts = np.zeros(4)
         dx_common = (act_disp[0]+act_disp[1])/2
-        x_diff = act_disp[1]-act_disp[0]
-        ttm_shifts[0] = (dx_common/d1_ca)*np.cos(ttm_curr[0])**2
-        ttm_shifts[1] = (x_diff/(2*d1_ca))*np.cos(ttm_curr[1])**2
-        ttm_shifts[2] = (-act_disp[3]/d2_ca)*np.cos(ttm_curr[2])**2
-        ttm_shifts[3] = (act_disp[2]/d2_ca)*np.cos(ttm_curr[3])**2
+
+        ttm_shifts[0] = (dx_common/d1_ca)*np.cos(TTMangles_optim[0]-ttm_curr[0])**2
+        ttm_shifts[1] = (act_disp[1]/(d1_ca))/np.cos(ttm_curr[1]-TTMangles_optim[1])
+        ttm_shifts[2] = (-act_disp[3]/d2_ca)*np.cos(ttm_curr[2]-TTMangles_optim[2])**2
+        ttm_shifts[3] = (act_disp[2]/d2_ca)/np.cos(ttm_curr[3]-TTMangles_optim[3])
         
         ttm_shifts_arr = np.array(ttm_shifts,dtype=np.float64)
         
         return ttm_shifts_arr
 
-    def _actuator_position_to_ttm_angle(self,pos):
+    def _actuator_position_to_ttm_angle(self,pos,config):
         """
         Description
         -----------
@@ -774,14 +775,27 @@ class alignment:
         # Center-to-actuator distances
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
+        # Zemax optimal coupling angles 
+        TTMangles_optim = np.array([4.7*10**(-6),-98*10**(-6),4.9*10**(-6),30*10**(-6)],dtype=np.float64)
+        # Actuator positions in a state of alignment (TBC for configs other than two) 
+        act_pos_align = np.array([0,0,0,0],
+                                 [5.17,5.44,3.40,3.920],
+                                 [0,0,0,0],
+                                 [0,0,0,0],dtype=np.float64)
+        act_config = act_pos_align[config]
     
-        xsum = (pos[1]+pos[0])/2
-        xdiff = pos[1]-pos[0]
-    
-        TTM1X = np.arctan(xsum/d1_ca)
-        TTM1Y = np.arctan(xdiff/(2*d1_ca))
-        TTM2X = np.arctan(-pos[3]/d2_ca)
-        TTM2Y = np.arctan(pos[2]/d2_ca)
+        # TTM1X
+        xsum_align = act_config[0]+act_config[1]
+        xsum_input = (pos[0]+pos[1])
+        tang = (xsum_align-xsum_input)/(2*d1_ca)
+        TTM1X = TTMangles_optim[0] - np.arctan(tang)
+        # TTM2X
+        TTM2X = TTMangles_optim[2]+np.arctan((act_config[3]-pos[3])/d2_ca)
+        # TTM1Y
+        TTM1Y = np.arcsin((pos[1]-act_config[1])/d1_ca)+TTMangles_optim[1]
+        # TTM2Y
+        TTM2Y = np.arcsin((pos[2]-act_config[2])/d2_ca)+TTMangles_optim[3]
+        
         TTMangles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
         
         return TTMangles
@@ -1061,7 +1075,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)
         
         # Translate to current TTM angular configuration
-        TTM_curr = self._actuator_position_to_ttm_angle(act_curr)
+        TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
         
         # Couple the configuration to the nearest grid point & retrieve the Zemax-simulated distances
         D_arr = self._snap_distance_grid(TTM_curr, config)
@@ -1304,7 +1318,7 @@ class alignment:
     
         # Storing initial TTM configuration
         act_curr = self._get_actuator_pos(config)
-        TTM_curr = self._actuator_position_to_ttm_angle(act_curr)
+        TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
         TTM.append(TTM_curr)
     
         #                          STOP
@@ -1360,7 +1374,7 @@ class alignment:
                 exps.append(photoconfig)
                 # 2) TTM configuration
                 act_curr = self._get_actuator_pos(config)
-                TTM_curr = self._actuator_position_to_ttm_angle(act_curr)
+                TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
                 TTM.append(TTM_curr)
         
             # Setting up next move
@@ -1602,9 +1616,9 @@ class alignment:
                 act_disp = np.array([0,0,0,act_acc],dtype=np.float64)
                 
                 # Finding TTM shifts from actuator displacement
-                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp)
+                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp,config)
                 # Finding TTM angles from actuator positions
-                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos)
+                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos,config)
                 
                 # Finding distance value
                 Darr = self._snap_distance_grid(curr_ttm,config)
@@ -1659,9 +1673,9 @@ class alignment:
                 curr_pos = self._get_actuator_pos(config)
                 act_disp = np.array([0,0,0,back],dtype=np.float64)
                 # Finding TTM shifts from actuator displacement
-                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp)
+                ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp,config)
                 # Finding TTM angles from actuator positions
-                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos)
+                curr_ttm = self._actuator_position_to_ttm_angle(curr_pos,config)
                 # Finding distance value
                 Darr = self._snap_distance_grid(curr_ttm,config)
                 # Evaluating framework to get image plane shift accuracies
