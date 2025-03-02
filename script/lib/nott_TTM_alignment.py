@@ -2,10 +2,14 @@
 """
 Created on Thu Dec 12 11:51:16 2024
 
-Collection of functions created to facilitate NOTT alignment through mirror tip/tilt.
+Collection of functions created to facilitate NOTT alignment through mirror tip/tilt motion.
 
 @author: Thomas Mattheussen
 """
+
+# TO DO: 
+# - Generalize class initialisation to prepare the actuators for each config (once more actuators are installed)
+# - Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed)
 
 # Imports
 from sympy import *
@@ -46,7 +50,7 @@ accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTCont
 class alignment:
     
     def __init__(self):
-        """
+        """    
         Terminology
         ----------
         X = Shift in the x-direction, in the pupil plane (cold stop)
@@ -72,15 +76,14 @@ class alignment:
                 transverse X and Y dimensions. The result are four equations, each linking
                 one of (X,Y,x,y) to the relevant angular offsets (TTM Y for X/x-direction shifts & vice versa).
             (4) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
-            (5) Defines matrix M and vector of symbolic shifts b. Defines vector N, which comprises the symbolic expressions for CS/IM shifts as a function of TTM angles in non-matrix form.
-                   
-        Remarks
-        -------
-        Strongly encouraged to call this function only once, as it embodies quite some runtime.
-        The function should initialize global variables M, N and b, which are then used in all other functions.
+            (5) Defines matrix M and vector of symbolic shifts b. 
+                Defines vector N, which comprises the symbolic expressions for CS/IM shifts as a function of TTM angles in non-matrix form.
+                N = M*b
+            (6) Prepares all actuators for use
                    
         Defines
         -------
+        The function initializes global variables M, N and b, which are then used in all other functions.
         M : (4,4) matrix of symbolic Sympy expressions
         N : (1,4) matrix of symbolic Sympy expressions
         b : (4,1) matrix of symbolic Sympy expressions
@@ -184,8 +187,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
-        
-        # Preparing actuators for use (only config 1 installed for now)
+        # Preparing actuators for use, only config 1 installed as of now.
         print("Preparing actuators")
         # Retrieving OPCUA url from config.ini
         configpars = ConfigParser()
@@ -194,14 +196,15 @@ class alignment:
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
-        # Actuator motor objects
-        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(2),'NTTA'+str(2))
-        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(2),'NTPA'+str(2))
-        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(2),'NTTB'+str(2))
-        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(2),'NTPB'+str(2))
-        actuators = np.array([act1,act2,act3,act4])
         # Actuator names
         act_names = ['NTTA'+str(2),'NTPA'+str(2),'NTTB'+str(2),'NTPB'+str(2)]
+        # Actuator motor objects
+        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[0],act_names[0])
+        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[1],act_names[1])
+        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[2],act_names[2])
+        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[3],act_names[3])
+        actuators = np.array([act1,act2,act3,act4])
+        # Resetting and initializing each actuator
         for i in range(0,4):
             actuators[i].reset()
             time.sleep(1)
@@ -216,12 +219,12 @@ class alignment:
         # Closing OPCUA connection
         opcua_conn.disconnect()
         
-    def _framework_numeric_int(self,shifts,D,lam):
+    def _framework_numeric_int(self,shifts,D,lam=1):
         """
         Description
         -----------
         The function numerically evaluates the symbolic framework by input positional shifts (X,Y,x,y),
-        thus returning (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) angular offsets necessary to achieve the input shifts.
+        thus returning thereto necessary angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y).
         
         Context
         -------
@@ -239,7 +242,7 @@ class alignment:
             
         Returns
         -------
-        TTMoffsets : (1,4) numpy array of floats (radian)
+        ttm_offsets_flip : (1,4) numpy array of floats (radian)
         The angular TTM offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) necessary to achieve the input shifts 
             
         """
@@ -290,14 +293,14 @@ class alignment:
         f = lambdify(params,frame.T.tolist()[0], modules="numpy")
         
         # Numeric evaluation
-        TTMoffsets = f(shifts[0],shifts[1],shifts[2],shifts[3])
+        ttm_offsets = f(shifts[0],shifts[1],shifts[2],shifts[3])
         
         # Flipping X and Y angles to comply with function output
-        TTMoffsetsflip = np.array([TTMoffsets[1],TTMoffsets[0],TTMoffsets[3],TTMoffsets[2]],dtype=np.float64)
+        ttm_offsets_flip = np.array([ttm_offsets[1],ttm_offsets[0],ttm_offsets[3],ttm_offsets[2]],dtype=np.float64)
         
-        return TTMoffsetsflip
+        return ttm_offsets_flip
     
-    def _framework_numeric_int_reverse(self,ttm_offsets,D,lam):
+    def _framework_numeric_int_reverse(self,ttm_offsets,D,lam=1):
         """
         Description
         -----------
@@ -354,7 +357,7 @@ class alignment:
         shifts = np.array([Ncopy[0].subs(subspar),Ncopy[1].subs(subspar),Ncopy[2].subs(subspar),Ncopy[3].subs(subspar)],dtype=np.float64)
         return shifts
     
-    def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam,CS=True):
+    def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam=1,CS=True):
         """
         Description
         -----------
@@ -378,13 +381,14 @@ class alignment:
             Eight inter-component distance values (D1,...,D8) traveled by the reference beam (mm)
         lam : single integer
             NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron)
+        Do note : Distance grid Dgrid is simulated for the central wavelength in Zemax.
         CS : boolean
             True (default) if the user wants a sky shift to keep the cold stop position unchanged.
             False if the user wants a sky shift to keep the image plane position unchanged.
             
         Returns
         -------
-        TTMoffsets : (1,4) numpy array of floats
+        ttm_offsets : (1,4) numpy array of floats
             Array of angular TTM offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y), containing : 
             The angular TTM offsets (dTTM2X,dTTM2Y) that keep either the CS or IM position unchanged for induced offsets (dTTM1X,dTTM1Y)
         shifts : (1,4) numpy array of floats
@@ -441,20 +445,20 @@ class alignment:
             x = sol[2].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
             y = sol[3].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
                             
-            TTMoffsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
+            ttm_offsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
             shifts = np.array([0,0,x,y],dtype=np.float64)
             
-            return TTMoffsets,shifts
+            return ttm_offsets,shifts
         else:
             dTTM2X = list(solveset(sol[3],a2X).args)[0]
             dTTM2Y = list(solveset(sol[2],a2Y).args)[0]
             X = sol[0].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
             Y = sol[1].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
                             
-            TTMoffsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
+            ttm_offsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
             shifts = np.array([X,Y,0,0],dtype=np.float64)
             
-            return TTMoffsets,shifts
+            return ttm_offsets,shifts
         
     #######################
     # Auxiliary Functions #
@@ -479,7 +483,7 @@ class alignment:
             
         Returns
         -------
-        TTM_angles : (1,4) numpy array of floats (radian)
+        ttm_angles : (1,4) numpy array of floats (radian)
             An array of TTM angular offsets
 
         """
@@ -492,11 +496,11 @@ class alignment:
         if (np.abs(sinpar) > 1).any():
             raise ValueError("At least one of the specified on-sky angles is too large. Applying étendue conservation to convert to TTM angles would mean taking the arcsin of a value > 1.")
             
-        TTM_angles = np.arcsin(D_rat * np.sin(sky_angles))
+        ttm_angles = np.arcsin(D_rat * np.sin(sky_angles))
             
-        return TTM_angles
+        return ttm_angles
         
-    def _ttm_to_sky(self,TTM_angles):
+    def _ttm_to_sky(self,ttm_angles):
         """    
         Description 
         ----------
@@ -507,11 +511,11 @@ class alignment:
         Dexit = 12 * 10**(-3)
         
         D_rat = Dexit/Dentr
-        sky_angles = np.arcsin(D_rat * np.sin(TTM_angles))
+        sky_angles = np.arcsin(D_rat * np.sin(ttm_angles))
         
         return sky_angles
             
-    def _snap_distance_grid(self,TTMangles,config):
+    def _snap_distance_grid(self,ttm_angles,config):
         """
         Description
         -----------
@@ -534,7 +538,7 @@ class alignment:
             
         Parameters
         ----------
-        TTMangles : (1,4) numpy array of floats
+        ttm_angles : (1,4) numpy array of floats
             TTM angles (TTM1X,TTM1Y,TTM2X,TTM2Y)
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
@@ -543,17 +547,17 @@ class alignment:
         Returns
         -------
         D_snap : (1,8) numpy array of float values (mm)
-            An array of Zemax-simulated distances (D1,...,D8) corresponding to the grid point closest to TTMangles
+            An array of Zemax-simulated distances (D1,...,D8) corresponding to the grid point closest to ttm_angles
 
         """
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
-        a = np.argmin(np.abs(TTM1Ygrid[config] - TTMangles[1]))
-        b = np.argmin(np.abs(TTM2Ygrid[config] - TTMangles[3]))
-        c = np.argmin(np.abs(TTM1Xgrid[config] - TTMangles[0]))
-        d = np.argmin(np.abs(TTM2Xgrid[config] - TTMangles[2]))
+        a = np.argmin(np.abs(TTM1Ygrid[config] - ttm_angles[1]))
+        b = np.argmin(np.abs(TTM2Ygrid[config] - ttm_angles[3]))
+        c = np.argmin(np.abs(TTM1Xgrid[config] - ttm_angles[0]))
+        d = np.argmin(np.abs(TTM2Xgrid[config] - ttm_angles[2]))
         
         D_snap = Dgrid[config,:,a,b,c,d]
   
@@ -563,7 +567,7 @@ class alignment:
         """
         Description
         -----------
-        For given actuators speed and displacements, linear interpolation of the closest four accuracy grid points is performed to 
+        For given actuators speeds and displacements, linear interpolation of the closest four accuracy grid points is performed to 
         return an accuracy value for each of the four actuators.
         Parameters
         ----------
@@ -652,8 +656,103 @@ class alignment:
         
         return pos
     
+    def _actuator_position_to_ttm_angle(self,pos,config):
+        """
+        Description
+        -----------
+        The function links given actuator positions to the TTM angles they induce.
+        
+        Parameters
+        ----------
+        pos : (1,4) numpy array of floats (mm)
+            The actuator (x1,x2,x3,x4) positions.
+            
+        Constants 
+        ---------
+        d1_ca : TTM1 center-to-actuator distance (mm)
+        d2_ca : TTM2 center-to-actuator distance (mm)
 
-    def _ttm_shift_to_actuator_displacement(self,TTMangles,TTMshifts):
+        Returns
+        -------
+        ttm_angles : (1,4) array of floats (radian)
+            The TTM (TTM1X,TTM1Y,TTM2X,TTM2Y) angles.
+
+        """
+        # Center-to-actuator distances
+        d1_ca = 2.5*25.4 
+        d2_ca = 1.375*25.4
+        # Zemax optimal coupling angles (rad)
+        ttm_angles_optim = np.array([0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141],dtype=np.float64)*10**(-6)
+        ttm_config = ttm_angles_optim[config]
+        # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.920],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_config = act_pos_align[config]
+    
+        # TTM1X
+        xsum_align = act_config[0]+act_config[1]
+        xsum_input = pos[0]+pos[1]
+        TTM1X = ttm_config[0] - np.arctan((xsum_align-xsum_input)/(2*d1_ca))
+        # TTM1Y
+        xdiff_align = act_config[1]-act_config[0]
+        xdiff_input = pos[1]-pos[0]
+        TTM1Y = +ttm_config[1] + np.arctan((xdiff_input-xdiff_align)/(2*d1_ca))
+        # TTM2X
+        TTM2X = ttm_config[2] - np.arctan((pos[3]-act_config[3])/d2_ca)
+        # TTM2Y
+        TTM2Y = +ttm_config[3] + np.arctan((pos[2]-act_config[2])/d2_ca)
+        
+        ttm_angles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
+        
+        return ttm_angles
+    
+    def _ttm_angle_to_actuator_position(self,ttm_angles,config):
+        """
+        Description
+        -----------
+        The function links given TTM angles to the actuator positions that induce them.
+        
+        Parameters
+        ----------
+        ttm_angles : (1,4) array of floats (radian)
+            The TTM (TTM1X,TTM1Y,TTM2X,TTM2Y) angles.
+            
+        Constants 
+        ---------
+        d1_ca : TTM1 center-to-actuator distance (mm)
+        d2_ca : TTM2 center-to-actuator distance (mm)
+
+        Returns
+        -------
+        pos : (1,4) numpy array of floats (mm)
+            The actuator (x1,x2,x3,x4) positions.
+        """
+        # Center-to-actuator distances
+        d1_ca = 2.5*25.4 
+        d2_ca = 1.375*25.4
+        # Zemax optimal coupling angles (rad)
+        ttm_angles_optim = np.array([0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141],dtype=np.float64)*10**(-6)
+        ttm_config = ttm_angles_optim[config]
+        # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.920],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_config = act_pos_align[config]
+    
+        # TTM1
+        xsum_align = (act_config[0]+act_config[1])/2
+        xdiff_align = (act_config[1]-act_config[0])/2
+        xsum = xsum_align - d1_ca*np.tan(ttm_config[0]-ttm_angles[0])
+        xdiff = xdiff_align - d1_ca*np.tan(ttm_config[1]-ttm_angles[1])
+        x1 = xsum-xdiff
+        x2 = xsum+xdiff
+        
+        # TTM2 
+        x3 = act_config[2] - d2_ca*np.tan(ttm_config[3]-ttm_angles[3])
+        x4 = act_config[3] + d2_ca*np.tan(ttm_config[2]-ttm_angles[2])
+        
+        pos = np.array([x1,x2,x3,x4],dtype=np.float64)
+        
+        return pos
+
+    def _ttm_shift_to_actuator_displacement(self,ttm_angles,ttm_shifts,config):
         """
         Description
         -----------
@@ -662,9 +761,9 @@ class alignment:
         
         Parameters
         ----------
-        TTMangles : (1,4) numpy array of float values (radian)
+        ttm_angles : (1,4) numpy array of float values (radian)
             Initial (TTM1X,TTM1Y,TTM2X,TTM2Y) angular configuration.
-        TTMshifts : (1,4) numpy array of float values (radian)
+        ttm_shifts : (1,4) numpy array of float values (radian)
             Angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) away from the initial configuration.
         
         Constants 
@@ -689,24 +788,15 @@ class alignment:
             Sign convention : A positive displacement is away from the actuator
     
         """
-        # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
-        # Zemax optimal coupling angles 
-        TTMangles_optim = np.array([4.7*10**(-6),-98*10**(-6),4.9*10**(-6),30*10**(-6)],dtype=np.float64)
-        # TTM1 : Coupled actuator motion
-        # 1) Both actuators need to be displaced by an equal amount to induce a TTM1X angle.
-        dx_common = d1_ca * (TTMshifts[0]/np.cos(TTMangles_optim[0]-TTMangles[0])**2)
-        dx_diff = d1_ca * np.cos(TTMangles[1]-TTMangles_optim[1])*TTMshifts[1]
-        # Necessary actuator displacements
-        dx1 = dx_common - x_diff/2
-        dx2 = dx_common + x_diff/2
+        # Final ttm angles
+        ttm_final = ttm_angles + ttm_shifts
         
-        # TTM2 : Decoupled actuator motion
-        dx3 = d2_ca * (TTMshifts[3]*(np.cos(TTMangles[3]-TTMangles_optim[3])))
-        dx4 = -d2_ca * (TTMshifts[2]/(np.cos(TTMangles[2]-TTMangles_optim[2])**2))
+        # Initial actuator positions
+        act_init = self._ttm_angle_to_actuator_position(self,ttm_angles,config)
+        # Final actuator positions
+        act_final = self._ttm_angle_to_actuator_position(self,ttm_final,config)
         
-        displacements = np.array([dx1,dx2,dx3,dx4],dtype=np.float64)
+        displacements = np.array(act_final-act_init,dtype=np.float64)
         
         return displacements
 
@@ -726,79 +816,21 @@ class alignment:
 
         Returns
         -------
-        ttm_shifts_arr : (1,4) numpy array of floats (rad)
+        ttm_shifts : (1,4) numpy array of floats (rad)
             Induced TTM angular offsets 
 
         """
-        # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
-        # Zemax optimal coupling angles 
-        TTMangles_optim = np.array([4.7*10**(-6),-98*10**(-6),4.9*10**(-6),30*10**(-6)],dtype=np.float64)
-        # Retrieving current TTM angles
-        ttm_curr = self._actuator_position_to_ttm_angle(act_pos,config)
-        # Calculating TTM shifts
-        ttm_shifts = np.zeros(4)
-        dx_common = (act_disp[0]+act_disp[1])/2
-
-        ttm_shifts[0] = (dx_common/d1_ca)*np.cos(TTMangles_optim[0]-ttm_curr[0])**2
-        ttm_shifts[1] = (act_disp[1]/(d1_ca))/np.cos(ttm_curr[1]-TTMangles_optim[1])
-        ttm_shifts[2] = (-act_disp[3]/d2_ca)*np.cos(ttm_curr[2]-TTMangles_optim[2])**2
-        ttm_shifts[3] = (act_disp[2]/d2_ca)/np.cos(ttm_curr[3]-TTMangles_optim[3])
+        # Final actuator positions
+        act_final = act_pos + act_disp
         
-        ttm_shifts_arr = np.array(ttm_shifts,dtype=np.float64)
+        # Initial TTM angles
+        ttm_init = self._actuator_position_to_ttm_angle(act_pos,config)
+        # Final TTM angles
+        ttm_final = self._actuator_position_to_ttm_angle(act_final,config)
         
-        return ttm_shifts_arr
-
-    def _actuator_position_to_ttm_angle(self,pos,config):
-        """
-        Description
-        -----------
-        The function links given actuator positions to the TTM angles they induce.
+        ttm_shifts = np.array(ttm_final-ttm_init,dtype=np.float64)
         
-        Parameters
-        ----------
-        pos : (1,4) numpy array of floats (mm)
-            The actuator (x1,x2,x3,x4) positions.
-            
-        Constants 
-        ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
-
-        Returns
-        -------
-        TTMangles : (1,4) array of floats (radian)
-            The TTM (TTM1X,TTM1Y,TTM2X,TTM2Y) angles.
-
-        """
-        # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
-        # Zemax optimal coupling angles 
-        TTMangles_optim = np.array([4.7*10**(-6),-98*10**(-6),4.9*10**(-6),30*10**(-6)],dtype=np.float64)
-        # Actuator positions in a state of alignment (TBC for configs other than two) 
-        act_pos_align = np.array([0,0,0,0],
-                                 [5.17,5.44,3.40,3.920],
-                                 [0,0,0,0],
-                                 [0,0,0,0],dtype=np.float64)
-        act_config = act_pos_align[config]
-    
-        # TTM1X
-        xsum_align = act_config[0]+act_config[1]
-        xsum_input = (pos[0]+pos[1])
-        tang = (xsum_align-xsum_input)/(2*d1_ca)
-        TTM1X = TTMangles_optim[0] - np.arctan(tang)
-        # TTM2X
-        TTM2X = TTMangles_optim[2]+np.arctan((act_config[3]-pos[3])/d2_ca)
-        # TTM1Y
-        TTM1Y = np.arcsin((pos[1]-act_config[1])/d1_ca)+TTMangles_optim[1]
-        # TTM2Y
-        TTM2Y = np.arcsin((pos[2]-act_config[2])/d2_ca)+TTMangles_optim[3]
-        
-        TTMangles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
-        
-        return TTMangles
+        return ttm_shifts
     
     def _actoffset(self,act_speed,act_disp):
         """
@@ -822,19 +854,17 @@ class alignment:
         low_speed = np.array([0.005/100],dtype=np.float64)[0]
         low_disp = np.array([0.005],dtype=np.float64)[0]
         up = np.array([0.030],dtype=np.float64)[0]
-        bool_speed = np.logical_and(act_speed-low_speed < -10**(-7),act_speed != 0).any() or (act_speed-up > 10**(-7)).any()
-        bool_disp = np.logical_and(np.abs(act_disp)-low_disp < -10**(-7), act_disp != 0).any() or (np.abs(act_disp)-up > 10**(-7)).any()
-        if (bool_speed):
-            raise ValueError("One/multiple speed values are invalid. The supported range spans [0.05,30] um/s.")
-        if (bool_disp):
-            raise ValueError("One/multiple displacement values are invalid. The supported range spans [5,30] um.")
+        bool_speed = np.logical_and(act_speed < low_speed,act_speed != 0).any() or (act_speed > up).any()
+        bool_disp = np.logical_and(np.abs(act_disp) < low_disp,act_disp != 0).any() or (np.abs(act_disp) > up).any()
+        if (bool_speed or bool_disp):
+            raise ValueError("One/multiple speed/displacement values are invalid. The supported speed range spans [0.05,30] um/s, the supported displacement range spans [5,30] um.")
         
         # Snap accuracies
         accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
         
         return accur_snap
 
-    def _valid_state(self,TTMangles_final,act_displacements,act_pos,config):
+    def _valid_state(self,ttm_angles_final,act_displacements,act_pos,config):
         """
         Description
         -----------
@@ -848,7 +878,7 @@ class alignment:
 
         Parameters
         ----------
-        TTMangles_final : (1,4) numpy array of float values (radian)
+        ttm_angles_final : (1,4) numpy array of float values (radian)
             Final configuration of (TTM1X,TTM1Y,TTM2X,TTM2Y) angles
         act_displacements : (1,4) numpy array of float values (mm)
             Actuator displacements (dx1,dx2,dx3,dx4) necessary to go from TTM_init to TTM_final
@@ -877,8 +907,8 @@ class alignment:
         # Criterion (1) #
         #---------------#
         
-        TTM1Y = TTMangles_final[1]
-        TTM2Y = TTMangles_final[3]
+        TTM1Y = ttm_angles_final[1]
+        TTM2Y = ttm_angles_final[3]
         
         # The boundaries in (TTM1Y,TTM2Y) space for this criterion were derived in Zemax. 
         # A conservative safe margin of 50 microrad is implemented.
@@ -903,9 +933,10 @@ class alignment:
         act_res = 0.2 * 10**(-3) 
         
         crit2 = (act_displacements - act_res < 0)
-        if crit2.any():
-            i[1] = 1
-            Valid = False
+        for j in range(0, 4):
+            if np.logical_and(crit2[j],act_displacements[j] != 0):
+                i[1] = 1
+                Valid = False
 
         
         #---------------#
@@ -915,12 +946,12 @@ class alignment:
         # Actuator travel range (mm)
         act_range = 6 
     
-        for i in range(0, 4):
-            disp = act_displacements[i]
+        for j in range(0, 4):
+            disp = act_displacements[j]
             if disp > 0:
-                valid3 = (act_range - act_pos[i] >= disp)
+                valid3 = (act_range - act_pos[j] >= disp)
             else:
-                valid3 = (act_pos[i] >= disp)
+                valid3 = (act_pos[j] >= disp)
     
             if not valid3:
                 i[2] = 1
@@ -929,10 +960,15 @@ class alignment:
         #---------------#
         # Criterion (4) #
         #---------------#
+        
+        # Zemax optimal coupling angles 
+        ttm_angles_optim = np.array([0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141],dtype=np.float64)*10**(-6)
+        ttm_config = ttm_angles_optim[config]
+        
         valid4 = True
-        if (TTMangles_final[0] > 1000*10**(-6) or TTMangles_final[1] > 1000*10**(-6)):
+        if (np.abs(ttm_angles_final[0]-ttm_config[0]) > 1000*10**(-6) or np.abs(ttm_angles_final[1]-ttm_config[1]) > 1000*10**(-6)):
             valid4= False
-        if (TTMangles_final[2] > 500*10**(-6) or TTMangles_final[3] > 500*10**(-6)):
+        if (np.abs(ttm_angles_final[2]-ttm_config[2]) > 500*10**(-6) or np.abs(ttm_angles_final[3]-ttm_config[3]) > 500*10**(-6)):
             valid4= False
         
         if not valid4:
@@ -941,7 +977,7 @@ class alignment:
     
         return Valid,i
 
-    def _move_abs_ttm_act(self,config,pos,speeds,pos_offset):
+    def _move_abs_ttm_act(self,init_pos,pos,speeds,pos_offset,config):
         """
         Description
         -----------
@@ -957,6 +993,8 @@ class alignment:
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)       
+        init_pos : (1,4) numpy array of float values (mm)
+            Positions from which the actuators should be moved.
         pos : (1,4) numpy array of float values (mm)
             Positions to which the actuators should be moved.
         speeds : (1,4) numpy array of float values (mm/s)
@@ -992,7 +1030,7 @@ class alignment:
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
         # Current positions
-        curr_pos = self._get_actuator_pos(config)
+        curr_pos = init_pos
         # Looping over all four actuators
         for i in range(0,4):
             start_time = time.time()
@@ -1004,11 +1042,6 @@ class alignment:
 
                 # Performing the movement
                 #-------------------------#
-                # Preparing actuator (sleep times TBD)
-                #actuators[i].reset()
-                #time.sleep(0.100)
-                #actuators[i].init()
-                #time.sleep(0.050)
                 actuators[i].enable()
                 time.sleep(0.050)
             
@@ -1085,18 +1118,15 @@ class alignment:
             TTM_angles = self._sky_to_ttm(np.array([steps[0],steps[1],0,0],dtype=np.float64))
             dTTM1X = TTM_angles[0]
             dTTM1Y = TTM_angles[1]
-            if (sky == 1):
-                TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,True) 
-                print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = " + shifts_par)
-            else:
-                TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,False) 
-                print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = " + shifts_par)
+            CSbool = (sky==1)
+            TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
+            print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",shifts_par)
         else:
             TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
-            print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = " + steps)
+            print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",steps)
         
         # Calculating the necessary actuator displacements
-        act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets)
+        act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
     
         # Final actuator positions
         act_final = act_curr + act_disp
@@ -1107,7 +1137,7 @@ class alignment:
         # Before imposing the displacements to the actuators, the state validity is checked.
         valid,cond = self._valid_state(TTM_final,act_disp,act_curr,config)
         if not valid:
-            raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+cond+
+            raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "Conditions : (1) The final configuration would displace the beam off the slicer."+
                             "(2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
                             "(3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
@@ -1116,7 +1146,7 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
-            self._move_abs_ttm_act(config,act_final,speeds,pos_offset)
+            self._move_abs_ttm_act(act_curr,act_final,speeds,pos_offset,config)
             print("Step performed")
         
         return
@@ -1161,7 +1191,7 @@ class alignment:
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
         if (speed > 2.32*10**(-3) or speed <= 0):
-            raise ValueError("Given actuator speed is beyond the accepted range (0,2.32] um/s")
+            raise ValueError("Given actuator speed is beyond the accepted range (0,30] um/s")
         
         if sky : 
             d = step
@@ -1405,15 +1435,15 @@ class alignment:
         TTM_start = TTM[-1] # current configuration
         TTM_shifts = TTM_final - TTM_start
         
-        act_disp = self._ttm_shift_to_actuator_displacement(TTM_start,TTM_shifts)
+        act_disp = self._ttm_shift_to_actuator_displacement(TTM_start,TTM_shifts,config)
         act_curr = self._get_actuator_pos(config)
         act_final = act_curr + act_disp
         
-        speed = np.array([0.1,0.1,0.1,0.1],dtype=np.float64) #TBD
-        pos_offset = np.array([0,0,0,0],dtype=np.float64) #TBD
+        speeds = np.array([0.01,0.01,0.01,0.01],dtype=np.float64) #TBD
+        pos_offset = self._actoffset(speeds,act_disp) 
         
         # Carrying out the motion
-        self._move_abs_ttm_act(config,act_final,speed,pos_offset)
+        self._move_abs_ttm_act(act_curr,act_final,speed,pos_offset,config)
             
         return
     
