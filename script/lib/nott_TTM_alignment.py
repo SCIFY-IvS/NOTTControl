@@ -682,10 +682,10 @@ class alignment:
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
         # Zemax optimal coupling angles (rad)
-        ttm_angles_optim = np.array([[0.10,32,-0.11,-41]*10**(-6),[4.7,-98,4.9,30]*10**(-6),[-2.9,134,-3.1,-107]*10**(-6),[3.7,115,3.3,-141]*10**(-6)],dtype=np.float64)
+        ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.845]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)*10**(-6)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -730,10 +730,10 @@ class alignment:
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
         # Zemax optimal coupling angles (rad)
-        ttm_angles_optim = np.array([[0.10,32,-0.11,-41]*10**(-6),[4.7,-98,4.9,30]*10**(-6),[-2.9,134,-3.1,-107]*10**(-6),[3.7,115,3.3,-141]*10**(-6)],dtype=np.float64)*10**(-6)
+        ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.845]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)*10**(-6)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -1058,7 +1058,8 @@ class alignment:
                     time.sleep(0.01)
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-                print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(final_pos[i]))
+                ach_pos = self._get_actuator_pos(config)[i]
+                print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
             
         # Close OPCUA connection
         opcua_conn.disconnect()
