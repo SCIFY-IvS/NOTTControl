@@ -685,7 +685,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)*10**(-6)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -733,7 +733,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)*10**(-6)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -852,7 +852,7 @@ class alignment:
         
         """
         low_speed = np.array([0.005/100],dtype=np.float64)[0]
-        low_disp = np.array([0.005],dtype=np.float64)[0]
+        low_disp = 0 #np.array([0.001],dtype=np.float64)[0]
         up = np.array([0.030],dtype=np.float64)[0]
         bool_speed = np.logical_and(act_speed < low_speed,act_speed != 0).any() or (act_speed > up).any()
         bool_disp = np.logical_and(np.abs(act_disp) < low_disp,act_disp != 0).any() or (np.abs(act_disp) > up).any()
@@ -1155,7 +1155,7 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
-            self._move_abs_ttm_act(act_curr,act_final,speeds,pos_offset,config)
+            self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             print("Step performed")
         
         return
@@ -1452,7 +1452,7 @@ class alignment:
         pos_offset = self._actoffset(speeds,act_disp) 
         
         # Carrying out the motion
-        self._move_abs_ttm_act(act_curr,act_final,speed,pos_offset,config)
+        self._move_abs_ttm_act(act_curr,act_disp,speed,pos_offset,config)
             
         return
     
