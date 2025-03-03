@@ -900,6 +900,10 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
+        # Zemax optimal coupling angles 
+        ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
+        ttm_config = ttm_angles_optim[config]
+    
         Valid = True
         i = np.array([0,0,0,0])
         
@@ -907,19 +911,27 @@ class alignment:
         # Criterion (1) #
         #---------------#
         
+        TTM1X = ttm_angles_final[0]
         TTM1Y = ttm_angles_final[1]
+        TTM2X = ttm_angles_final[2]
         TTM2Y = ttm_angles_final[3]
+        # Shifts away from optimal coupling
+        TTM1X_shift = TTM1X-ttm_config[0]
+        TTM1Y_shift = TTM1Y-ttm_config[1]
+        TTM2X_shift = TTM2X-ttm_config[2]
+        TTM2Y_shift = TTM2Y-ttm_config[3]
         
-        # The boundaries in (TTM1Y,TTM2Y) space for this criterion were derived in Zemax. 
+        # The boundaries in (TTM1Y_shift,TTM2Y_shift) space for this criterion were derived in Zemax. 
         # A conservative safe margin of 50 microrad is implemented.
+        
         if (config == 0):
-            valid1 = (TTM2Y >= -TTM1Y-459*10**(-6) and TTM2Y <= -TTM1Y+541*10**(-6))
+            valid1 = (TTM2Y_shift >= -TTM1Y_shift-459*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+541*10**(-6))
         if (config == 1):
-            valid1 = (TTM2Y >= -TTM1Y-587*10**(-6) and TTM2Y <= -TTM1Y+508*10**(-6))
+            valid1 = (TTM2Y_shift >= -TTM1Y_shift-587*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+508*10**(-6))
         if (config == 2):
-            valid1 = (TTM2Y >= -TTM1Y-243*10**(-6) and TTM2Y <= -TTM1Y+655*10**(-6))
+            valid1 = (TTM2Y_shift >= -TTM1Y_shift-243*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+655*10**(-6))
         else:
-            valid1 = (TTM2Y >= -TTM1Y-507*10**(-6) and TTM2Y <= -TTM1Y+443*10**(-6))
+            valid1 = (TTM2Y_shift >= -TTM1Y_shift-507*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+443*10**(-6))
       
         if not valid1:
             i[0] = 1
@@ -932,7 +944,7 @@ class alignment:
         # Actuator resolution (mm)
         act_res = 0.2 * 10**(-3) 
         
-        crit2 = (act_displacements - act_res < 0)
+        crit2 = (np.abs(act_displacements) - act_res < 0)
         for j in range(0, 4):
             if np.logical_and(crit2[j],act_displacements[j] != 0):
                 i[1] = 1
@@ -961,14 +973,10 @@ class alignment:
         # Criterion (4) #
         #---------------#
         
-        # Zemax optimal coupling angles 
-        ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
-        ttm_config = ttm_angles_optim[config]
-        
         valid4 = True
-        if (np.abs(ttm_angles_final[0]-ttm_config[0]) > 1000*10**(-6) or np.abs(ttm_angles_final[1]-ttm_config[1]) > 1000*10**(-6)):
+        if (np.abs(TTM1X_shift) > 1000*10**(-6) or np.abs(TTM1Y_shift) > 1000*10**(-6)):
             valid4= False
-        if (np.abs(ttm_angles_final[2]-ttm_config[2]) > 500*10**(-6) or np.abs(ttm_angles_final[3]-ttm_config[3]) > 500*10**(-6)):
+        if (np.abs(TTM2X_shift) > 500*10**(-6) or np.abs(TTM2Y_shift) > 500*10**(-6)):
             valid4= False
         
         if not valid4:
@@ -1139,7 +1147,7 @@ class alignment:
         valid,cond = self._valid_state(TTM_final,act_disp,act_curr,config)
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
-                            "\n Conditions : (1) The final configuration would displace the beam off the slicer."+
+                            "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
                             "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
                             "\n (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
                             "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
