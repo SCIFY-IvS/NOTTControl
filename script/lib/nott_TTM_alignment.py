@@ -186,7 +186,7 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
-        
+        '''
         # Preparing actuators for use, only config 1 installed as of now.
         print("Preparing actuators")
         # Retrieving OPCUA url from config.ini
@@ -218,7 +218,7 @@ class alignment:
         
         # Closing OPCUA connection
         opcua_conn.disconnect()
-        
+        '''
     def _framework_numeric_int(self,shifts,D,lam=1):
         """
         Description
@@ -685,7 +685,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41]*10**(-6),[4.7,-98,4.9,30]*10**(-6),[-2.9,134,-3.1,-107]*10**(-6),[3.7,115,3.3,-141]*10**(-6)],dtype=np.float64)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.920]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.845]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -733,7 +733,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41]*10**(-6),[4.7,-98,4.9,30]*10**(-6),[-2.9,134,-3.1,-107]*10**(-6),[3.7,115,3.3,-141]*10**(-6)],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.920]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.845]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -977,11 +977,11 @@ class alignment:
     
         return Valid,i
 
-    def _move_abs_ttm_act(self,init_pos,pos,speeds,pos_offset,config):
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config):
         """
         Description
         -----------
-        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam) to given positions "pos", at speeds "speeds", taking into account offsets "pos_offset".
+        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam) by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
@@ -995,8 +995,8 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)       
         init_pos : (1,4) numpy array of float values (mm)
             Positions from which the actuators should be moved.
-        pos : (1,4) numpy array of float values (mm)
-            Positions to which the actuators should be moved.
+        disp : (1,4) numpy array of float values (mm)
+            Displacements by which the actuators should be moved.
         speeds : (1,4) numpy array of float values (mm/s)
             Speeds by which the actuators should move.
         pos_offset : (1,4) numpy array of float values (mm)
@@ -1029,16 +1029,17 @@ class alignment:
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
-        # Current positions
-        curr_pos = init_pos
+        # Desired final positions
+        final_pos = init_pos + disp
+        
         # Looping over all four actuators
         for i in range(0,4):
             start_time = time.time()
-            pos_copy = pos.copy()
+
             # Only continue for actuators upon which displacement is imposed
-            if (pos[i] != curr_pos[i]):
+            if (final_pos[i] != init_pos[i]):
                 # Incorporating offsets
-                pos[i] -= pos_offset[i] # in mm
+                final_pos[i] -= pos_offset[i] # in mm
 
                 # Performing the movement
                 #-------------------------#
@@ -1048,7 +1049,7 @@ class alignment:
                 # Executing move
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
                 method = parent.get_child("4:RPC_MoveAbs")
-                arguments = [pos[i], speeds[i]]
+                arguments = [final_pos[i], speeds[i]]
                 parent.call_method(method, *arguments)
             
                 # Wait for the actuator to be ready
@@ -1057,8 +1058,7 @@ class alignment:
                     time.sleep(0.01)
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-                
-                print("Moving actuator "+act_names[i]+" from "+str(curr_pos[i])+" to "+str(pos_copy[i])+" at speed "+str(speeds[i])+" mm/s took "+str(time.time()-start_time)+" seconds")
+                print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(final_pos[i]))
             
         # Close OPCUA connection
         opcua_conn.disconnect()
