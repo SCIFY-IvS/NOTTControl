@@ -1139,10 +1139,10 @@ class alignment:
         valid,cond = self._valid_state(TTM_final,act_disp,act_curr,config)
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
-                            "Conditions : (1) The final configuration would displace the beam off the slicer."+
-                            "(2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
-                            "(3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
-                            "(4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
+                            "\n Conditions : (1) The final configuration would displace the beam off the slicer."+
+                            "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
+                            "\n (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
+                            "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
     
         # Only push actuator motion if it would yield a valid state
         if valid:
