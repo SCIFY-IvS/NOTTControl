@@ -691,15 +691,15 @@ class alignment:
         # TTM1X
         xsum_align = act_config[0]+act_config[1]
         xsum_input = pos[0]+pos[1]
-        TTM1X = ttm_config[0] - np.arctan((xsum_align-xsum_input)/(2*d1_ca))
+        TTM1X = ttm_config[0] - np.arcsin((xsum_align-xsum_input)/(2*d1_ca))
         # TTM1Y
         xdiff_align = act_config[1]-act_config[0]
         xdiff_input = pos[1]-pos[0]
-        TTM1Y = +ttm_config[1] + np.arctan((xdiff_input-xdiff_align)/(2*d1_ca))
+        TTM1Y = +ttm_config[1] + np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca))
         # TTM2X
-        TTM2X = ttm_config[2] - np.arctan((pos[3]-act_config[3])/d2_ca)
+        TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_ca)
         # TTM2Y
-        TTM2Y = +ttm_config[3] + np.arctan((pos[2]-act_config[2])/d2_ca)
+        TTM2Y = +ttm_config[3] + np.arcsin((pos[2]-act_config[2])/d2_ca)
         
         ttm_angles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
         
@@ -739,14 +739,14 @@ class alignment:
         # TTM1
         xsum_align = (act_config[0]+act_config[1])/2
         xdiff_align = (act_config[1]-act_config[0])/2
-        xsum = xsum_align - d1_ca*np.tan(ttm_config[0]-ttm_angles[0])
-        xdiff = xdiff_align - d1_ca*np.tan(ttm_config[1]-ttm_angles[1])
+        xsum = xsum_align - d1_ca*np.sin(ttm_config[0]-ttm_angles[0])
+        xdiff = xdiff_align - d1_ca*np.sin(ttm_config[1]-ttm_angles[1])
         x1 = xsum-xdiff
         x2 = xsum+xdiff
         
         # TTM2 
-        x3 = act_config[2] - d2_ca*np.tan(ttm_config[3]-ttm_angles[3])
-        x4 = act_config[3] + d2_ca*np.tan(ttm_config[2]-ttm_angles[2])
+        x3 = act_config[2] - d2_ca*np.sin(ttm_config[3]-ttm_angles[3])
+        x4 = act_config[3] + d2_ca*np.sin(ttm_config[2]-ttm_angles[2])
         
         pos = np.array([x1,x2,x3,x4],dtype=np.float64)
         
