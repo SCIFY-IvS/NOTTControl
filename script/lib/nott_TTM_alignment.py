@@ -682,10 +682,10 @@ class alignment:
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
         # Zemax optimal coupling angles (rad)
-        ttm_angles_optim = np.array([0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141],dtype=np.float64)*10**(-6)
+        ttm_angles_optim = np.array([[0.10,32,-0.11,-41]*10**(-6),[4.7,-98,4.9,30]*10**(-6),[-2.9,134,-3.1,-107]*10**(-6),[3.7,115,3.3,-141]*10**(-6)],dtype=np.float64)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.920],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.920]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -730,10 +730,10 @@ class alignment:
         d1_ca = 2.5*25.4 
         d2_ca = 1.375*25.4
         # Zemax optimal coupling angles (rad)
-        ttm_angles_optim = np.array([0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141],dtype=np.float64)*10**(-6)
+        ttm_angles_optim = np.array([[0.10,32,-0.11,-41]*10**(-6),[4.7,-98,4.9,30]*10**(-6),[-2.9,134,-3.1,-107]*10**(-6),[3.7,115,3.3,-141]*10**(-6)],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.920],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0]*10**(-6),[5.17,5.44,3.40,3.920]*10**(-6),[0,0,0,0]*10**(-6),[0,0,0,0]*10**(-6)],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -792,9 +792,9 @@ class alignment:
         ttm_final = ttm_angles + ttm_shifts
         
         # Initial actuator positions
-        act_init = self._ttm_angle_to_actuator_position(self,ttm_angles,config)
+        act_init = self._ttm_angle_to_actuator_position(ttm_angles,config)
         # Final actuator positions
-        act_final = self._ttm_angle_to_actuator_position(self,ttm_final,config)
+        act_final = self._ttm_angle_to_actuator_position(ttm_final,config)
         
         displacements = np.array(act_final-act_init,dtype=np.float64)
         
@@ -962,7 +962,7 @@ class alignment:
         #---------------#
         
         # Zemax optimal coupling angles 
-        ttm_angles_optim = np.array([0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141],dtype=np.float64)*10**(-6)
+        ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         
         valid4 = True
