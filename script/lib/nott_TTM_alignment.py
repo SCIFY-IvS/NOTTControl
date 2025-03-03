@@ -872,8 +872,8 @@ class alignment:
         A final configuration can be invalid in four ways:
             (1) The final configuration would displace the beam off the slicer.
             (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution.
-            (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve
             --> In this case, the invalid displacements are not carried out, the others are.
+            (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve
             (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).
         Only a configuration that is not invalid in one of the four above ways will be considered as valid.
 
@@ -909,6 +909,8 @@ class alignment:
     
         Valid = True
         i = np.array([0,0,0,0])
+        
+        disp = act_displacements.copy()
         
         #---------------#
         # Criterion (1) #
@@ -951,7 +953,7 @@ class alignment:
         for j in range(0, 4):
             if np.logical_and(crit2[j],act_displacements[j] != 0):
                 i[1] = 1
-                Valid = False
+                disp[j] = 0
 
         
         #---------------#
@@ -970,7 +972,7 @@ class alignment:
     
             if not valid3:
                 i[2] = 1
-                act_displacements[j] = 0
+                Valid = valid3
     
         #---------------#
         # Criterion (4) #
@@ -986,7 +988,7 @@ class alignment:
             i[3] = 1
             Valid = valid4
     
-        return Valid,i,act_displacements
+        return Valid,i,disp
 
     def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config):
         """
@@ -1139,9 +1141,6 @@ class alignment:
         
         # Calculating the necessary actuator displacements
         act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
-    
-        # Final actuator positions
-        act_final = act_curr + act_disp
     
         # Final TTM configuration
         TTM_final = TTM_curr + TTM_offsets
