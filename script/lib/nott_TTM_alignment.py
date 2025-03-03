@@ -873,6 +873,7 @@ class alignment:
             (1) The final configuration would displace the beam off the slicer.
             (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution.
             (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve
+            --> In this case, the invalid displacements are not carried out, the others are.
             (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).
         Only a configuration that is not invalid in one of the four above ways will be considered as valid.
 
@@ -894,6 +895,8 @@ class alignment:
                 Boolean True = valid , Boolean False = invalid
         i : a (1,4) numpy array of integers
             Indicates what conditions are violated by the configuration.
+        disp : (1,4) numpy array of floats
+            New displacements (replaced by zero where condition three is invalid)
 
         """
     
@@ -967,7 +970,7 @@ class alignment:
     
             if not valid3:
                 i[2] = 1
-                Valid = valid3
+                act_displacements[j] = 0
     
         #---------------#
         # Criterion (4) #
@@ -983,7 +986,7 @@ class alignment:
             i[3] = 1
             Valid = valid4
     
-        return Valid,i
+        return Valid,i,act_displacements
 
     def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config):
         """
@@ -1144,7 +1147,7 @@ class alignment:
         TTM_final = TTM_curr + TTM_offsets
     
         # Before imposing the displacements to the actuators, the state validity is checked.
-        valid,cond = self._valid_state(TTM_final,act_disp,act_curr,config)
+        valid,cond,act_disp = self._valid_state(TTM_final,act_disp,act_curr,config)
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
