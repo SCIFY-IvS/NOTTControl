@@ -685,7 +685,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.41,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -733,7 +733,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.40,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.41,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -852,19 +852,17 @@ class alignment:
         
         """
         low_speed = np.array([0.005/100],dtype=np.float64)[0]
-        low_disp = 0 #np.array([0.001],dtype=np.float64)[0]
         up = np.array([0.030],dtype=np.float64)[0]
         bool_speed = np.logical_and(act_speed < low_speed,act_speed != 0).any() or (act_speed > up).any()
-        bool_disp = np.logical_and(np.abs(act_disp) < low_disp,act_disp != 0).any() or (np.abs(act_disp) > up).any()
-        if (bool_speed or bool_disp):
-            raise ValueError("One/multiple speed/displacement values are invalid. The supported speed range spans [0.05,30] um/s, the supported displacement range spans [5,30] um.")
+        if (bool_speed):
+            raise ValueError("One/multiple speed value(s) are invalid. The supported speed range spans [0.05,30] um/s.")
         
         # Snap accuracies
         accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
         
         return accur_snap
 
-    def _valid_state(self,ttm_angles_final,act_displacements,act_pos,config):
+    def _valid_state(self,bool_slicer,ttm_angles_final,act_displacements,act_pos,config):
         """
         Description
         -----------
@@ -879,6 +877,8 @@ class alignment:
 
         Parameters
         ----------
+        bool_slicer : single Boolean
+            see individual_step
         ttm_angles_final : (1,4) numpy array of float values (radian)
             Final configuration of (TTM1X,TTM1Y,TTM2X,TTM2Y) angles
         act_displacements : (1,4) numpy array of float values (mm)
@@ -895,7 +895,7 @@ class alignment:
                 Boolean True = valid , Boolean False = invalid
         i : a (1,4) numpy array of integers
             Indicates what conditions are violated by the configuration.
-        disp : (1,4) numpy array of floats
+        disp_copy : (1,4) numpy array of floats
             New displacements (replaced by zero where condition three is invalid)
 
         """
@@ -910,7 +910,7 @@ class alignment:
         Valid = True
         i = np.array([0,0,0,0])
         
-        disp = act_displacements.copy()
+        disp_copy = act_displacements.copy()
         
         #---------------#
         # Criterion (1) #
@@ -938,7 +938,7 @@ class alignment:
         else:
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-507*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+443*10**(-6))
       
-        if not valid1:
+        if not valid1 and not bool_slicer:
             i[0] = 1
             Valid = valid1
       
@@ -953,7 +953,7 @@ class alignment:
         for j in range(0, 4):
             if np.logical_and(crit2[j],act_displacements[j] != 0):
                 i[1] = 1
-                disp[j] = 0
+                disp_copy[j] = 0
 
         
         #---------------#
@@ -988,7 +988,7 @@ class alignment:
             i[3] = 1
             Valid = valid4
     
-        return Valid,i,disp
+        return Valid,i,disp_copy
 
     def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config):
         """
@@ -1082,7 +1082,7 @@ class alignment:
     # Individual Step #
     ###################
 
-    def individual_step(self,sky,steps,speeds,config):
+    def individual_step(self,bool_slicer,sky,steps,speeds,config):
         """
         Description
         -----------
@@ -1096,6 +1096,9 @@ class alignment:
 
         Parameters
         ----------
+        bool_slicer : single boolean
+            True : individual_step is called by a method that displaces the beam off the slicer (localization spiral)
+            False : individual_step is called by a method that should not displace the beam off the slicer (optimization)
         sky : single integer
             sky == 0 : User specifies desired (dX,dY,dx,dy) shifts in the CS(X,Y) and IM(x,y) plane
             sky == 1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the CS position fixed.
@@ -1146,7 +1149,7 @@ class alignment:
         TTM_final = TTM_curr + TTM_offsets
     
         # Before imposing the displacements to the actuators, the state validity is checked.
-        valid,cond,act_disp = self._valid_state(TTM_final,act_disp,act_curr,config)
+        valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
@@ -1197,6 +1200,11 @@ class alignment:
         None.
         
         """
+        
+        if sky:
+            sky = 1
+        else:
+            sky = 0
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
@@ -1263,7 +1271,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array(np.ones(4)*speed, dtype=np.float64)
-                self.individual_step(sky,moves[move],speeds,config)
+                self.individual_step(True,sky,moves[move],speeds,config)
                 # REDIS writing time
                 time.sleep(0.110)
                 # New position noise measurement
@@ -1404,7 +1412,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array(np.ones(4)*speed, dtype=np.float64)
-                self.individual_step(sky,moves[move],speeds,config)
+                self.individual_step(False,sky,moves[move],speeds,config)
                 # REDIS writing time
                 time.sleep(0.110)
                 # Storing camera value and TTM configuration
