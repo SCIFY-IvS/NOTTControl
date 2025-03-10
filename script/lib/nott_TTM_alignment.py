@@ -1210,8 +1210,7 @@ class alignment:
         # Gathering five background exposures
         for j in range(0, N):
             time_now = time.time()
-            dt = time_now-t
-            t_start,t_stop = define_time(dt)
+            t_start,t_stop = t,time_now
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
         # Taking the mean
         noise = np.mean(exps)
@@ -1228,7 +1227,7 @@ class alignment:
         Parameters
         ----------
         t : single float
-            Starting time of timeframe
+            Timeframe span
         N : single integer
             Amount of exposures
         config : single integer
@@ -1251,8 +1250,7 @@ class alignment:
         # Gathering five photometric exposures
         for j in range(0, N):
             time_now = time.time()
-            dt = time_now-t
-            t_start,t_stop = define_time(dt)
+            t_start,t_stop = t,time_now
             exps.append(get_field(fieldname,t_start,t_stop,True)[1])
         # Taking the mean
         photo = np.mean(exps)
@@ -1367,10 +1365,10 @@ class alignment:
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 start_time = self.individual_step(True,sky,moves[move],speeds,config)
                 # New position noise measurement
-                time.sleep(t)
-                noise = self._get_noise(N,start_time)
+                time.sleep(0.110+t) # REDIS writing time
+                noise = self._get_noise(N,start_time+0.110)
                 # New position photometric output measurement (noise subtracted)
-                photoconfig = self._get_photo(N,start_time,config)-noise
+                photoconfig = self._get_photo(N,start_time+0.110,config)-noise
                 print("Current photometric output : ", photoconfig)
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
@@ -1511,8 +1509,8 @@ class alignment:
                 start_time = self.individual_step(False,sky,moves[move],speeds,config)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
-                time.sleep(t)
-                photoconfig = self._get_photo(N,start_time,config)
+                time.sleep(0.110+t)
+                photoconfig = self._get_photo(N,start_time+0.110,config)
                 # Adding to the stack of exposures
                 exps.append(photoconfig)
                 # 2) TTM configuration
