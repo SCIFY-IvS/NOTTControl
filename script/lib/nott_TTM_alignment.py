@@ -1213,7 +1213,6 @@ class alignment:
             dt = time_now-t
             t_start,t_stop = define_time(dt)
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
-            time.sleep(dt)
         # Taking the mean
         noise = np.mean(exps)
         
@@ -1255,7 +1254,6 @@ class alignment:
             dt = time_now-t
             t_start,t_stop = define_time(dt)
             exps.append(get_field(fieldname,t_start,t_stop,True)[1])
-            time.sleep(dt)
         # Taking the mean
         photo = np.mean(exps)
         
@@ -1312,7 +1310,7 @@ class alignment:
             d = 20*10**(-3) #(mm)
         
         # One measurement should consist of N exposures
-        N = 3
+        N = 1
         # Time to be slept for between finishing actuator movements and reading out ROIs
         t = 0.300
         
@@ -1447,7 +1445,7 @@ class alignment:
             d = 5*10**(-3) #(mm)
           
         # One measurement should consist of N exposures
-        N = 3
+        N = 1
         # Time to be slept for between finishing actuator movements and reading out ROIs
         t = 0.300
         
