@@ -986,7 +986,7 @@ class alignment:
         if (np.abs(TTM2X_shift) > 500*10**(-6) or np.abs(TTM2Y_shift) > 500*10**(-6)):
             valid4= False
         
-        if not (valid4 and not bool_slicer):
+        if (not valid4 and not bool_slicer):
             i[3] = 1
             Valid = valid4
     
@@ -1171,6 +1171,40 @@ class alignment:
     # Scanning #
     ############    
 
+    def _get_background(self,time,N):
+        '''
+        Description
+        -----------
+        Function returns the average background value (=ROI9), derived from "N" exposures of duration "time" each.
+        Parameters
+        ----------
+        time : single float
+            Timespan over which to take each background exposure
+        N : single integer
+            Amount of exposures
+
+        Returns
+        -------
+        back : single float
+            Background average value
+
+        '''
+        # Background measurements
+        exps = []
+        # Closing
+        all_shutters_close(4)
+        # Gathering five background exposures
+        for j in range(0, N):
+            t_start,t_stop = define_time(time)
+            exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
+            time.sleep(time)
+        # Taking the mean
+        back = np.mean(exps)
+        # Reopening
+        all_shutters_open(4)
+        
+        return back
+
     def localization_spiral(self,sky,step,speed,config):
         """
         Description
@@ -1223,28 +1257,17 @@ class alignment:
         names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
         fieldname = names[config]
         
-        # Background measurements
-        exps = []
-        # Closing
-        all_shutters_close(4)
-        # Gathering five background exposures
-        for j in range(0, 5):
-            t_start,t_stop = define_time(0.100)
-            exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
-            time.sleep(0.100)
-        # Taking the mean
-        back = np.mean(exps)
-        # Reopening
-        all_shutters_open(4)
+        # Background
+        back = self._get_background(5,0.100)
         
         # Initial position noise measurement (background subtracted)
-        t_start,t_stop = define_time(0.100) # 100 ms back in time
-        noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the temporal mean of spatial mean roi9_avg
+        #t_start,t_stop = define_time(0.100) # 100 ms back in time
+        #noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the temporal mean of spatial mean roi9_avg
         # Initial position photometric output measurement (background subtracted)
         photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
     
-        if (photoconfig > 5*noise):
-            raise Exception("Localization spiral not started. Initial configuration is already in a state of injection (photometric output > 5*noise).")
+        if (photoconfig > 10):
+            raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
                            
         #           x---x---x---x
         #           |           |
@@ -1291,13 +1314,15 @@ class alignment:
                 # REDIS writing time
                 time.sleep(0.110)
                 # New position noise measurement
-                t_start,t_stop = define_time(0.100) # 100 ms back in time
-                noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the mean roi9 value
+                #t_start,t_stop = define_time(0.100) # 100 ms back in time
+                #noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the mean roi9 value
+                # Background
+                back = self._get_background(5,0.100)
                 # New position photometric output measurements
                 photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
                 
-                if (photoconfig > 5*noise):
-                    print("A state of injection (photo > 5*noise) has been reached.")
+                if (photoconfig > 10):
+                    print("A state of injection has been reached.")
                     return
                 
             # Setting up next move
@@ -1516,9 +1541,9 @@ class alignment:
         all_shutters_close(4)
         # Gathering five background exposures
         for j in range(0, 5):
-            t_start,t_stop = define_time(0.100)
+            t_start,t_stop = define_time(0.500)
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
-            time.sleep(0.100)
+            time.sleep(0.500)
         # Taking the mean
         back = np.mean(exps)
         # Reopening
@@ -1531,7 +1556,7 @@ class alignment:
         # Current position photometric output measurement
         photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
         # Print out values
-        print("Five-exposure averaged background : ", back)
+        print("Five-exposure (5x0.500s) averaged background : ", back)
         print("Current noise (ROI9) average : ", noise)
         print("Current noise (ROI9) average (background subtracted) : ", noise-back)
         print("Demanded photometric output average : ", photoconfig)
