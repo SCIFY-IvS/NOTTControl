@@ -1029,7 +1029,8 @@ class alignment:
 
         Returns
         -------
-        None.
+        end_time : single float value
+            Time at which the movements finished.
 
         """
         
@@ -1056,9 +1057,11 @@ class alignment:
         # Desired final positions
         final_pos = init_pos + disp
         
+        # Start times
+        start_times = np.array([0,0,0,0],dtype=np.float64)
+        
         # Looping over all four actuators
         for i in range(0,4):
-            start_time = time.time()
 
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
@@ -1075,6 +1078,7 @@ class alignment:
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
                 method = parent.get_child("4:RPC_MoveAbs")
                 arguments = [final_pos_off[i], speeds[i]]
+                start_times[i] = time.time()
                 parent.call_method(method, *arguments)
             
                 # Wait for the actuator to be ready
@@ -1085,10 +1089,10 @@ class alignment:
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
-            
+        end_time = time.time()   
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return
+        return end_time
 
     ###################
     # Individual Step #
@@ -1126,7 +1130,8 @@ class alignment:
 
         Returns
         -------
-        None.
+        end_time : single float
+            Time at which the individual step finished.
 
         """
         
@@ -1172,10 +1177,10 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
-            self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
+            end_time = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             print("Step performed")
         
-        return
+        return end_time
    
     ############
     # Scanning #
@@ -1191,7 +1196,7 @@ class alignment:
         Parameters
         ----------
         t : single float
-            Timespan over which to take each noise exposure
+            Starting time of timeframe
         N : single integer
             Amount of exposures
 
@@ -1207,9 +1212,11 @@ class alignment:
         all_shutters_open(4)
         # Gathering five background exposures
         for j in range(0, N):
-            t_start,t_stop = define_time(t)
+            time_now = time.time()
+            dt = time_now-t
+            t_start,t_stop = define_time(dt)
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
-            time.sleep(t)
+            time.sleep(dt)
         # Taking the mean
         noise = np.mean(exps)
         
@@ -1225,7 +1232,7 @@ class alignment:
         Parameters
         ----------
         t : single float
-            Timespan over which to take each background exposure
+            Starting time of timeframe
         N : single integer
             Amount of exposures
         config : single integer
@@ -1247,9 +1254,11 @@ class alignment:
         all_shutters_open(4)
         # Gathering five photometric exposures
         for j in range(0, N):
-            t_start,t_stop = define_time(t)
+            time_now = time.time()
+            dt = time_now-t
+            t_start,t_stop = define_time(dt)
             exps.append(get_field(fieldname,t_start,t_stop,True)[1])
-            time.sleep(t)
+            time.sleep(dt)
         # Taking the mean
         photo = np.mean(exps)
         
@@ -1307,13 +1316,13 @@ class alignment:
         
         # One measurement should consist of N exposures
         N = 3
-        # One exposure should span a timeframe of t seconds
-        t = 0.1
         
+        # Start time for initial exposure
+        t_start = time.time()-0.100
         # Initial position noise measurement
-        noise = self._get_noise(N,t)
+        noise = self._get_noise(N,t_start)
         # Initial position photometric output measurement (noise subtracted)
-        photoconfig = self._get_photo(N,t,config)-noise
+        photoconfig = self._get_photo(N,t_start,config)-noise
     
         if (photoconfig > 10):
             raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
@@ -1359,13 +1368,11 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                self.individual_step(True,sky,moves[move],speeds,config)
-                # REDIS writing time
-                time.sleep(0.110)
+                start_time = self.individual_step(True,sky,moves[move],speeds,config)
                 # New position noise measurement
-                noise = self._get_noise(N,t)
+                noise = self._get_noise(N,start_time)
                 # New position photometric output measurement (noise subtracted)
-                photoconfig = self._get_photo(N,t,config)-noise
+                photoconfig = self._get_photo(N,start_time,config)-noise
                 print("Current photometric output : ", photoconfig)
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
@@ -1441,16 +1448,16 @@ class alignment:
           
         # One measurement should consist of N exposures
         N = 3
-        # One exposure should span a timeframe of t seconds
-        t = 0.100
           
         # Exposures
         exps = []
         # TTM configs 
         TTM = []
         
+        # Start time for initial exposure
+        t_start = time.time()-0.100
         # Initial position photometric output measurement
-        photoconfig = self._get_photo(N,t,config)
+        photoconfig = self._get_photo(N,t_start,config)
         # Adding to the stack of exposures
         exps.append(photoconfig)
     
@@ -1501,9 +1508,9 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                self.individual_step(False,sky,moves[move],speeds,config)
+                start_time = self.individual_step(False,sky,moves[move],speeds,config)
                 # REDIS writing time
-                time.sleep(0.110)
+                time.sleep(t)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
                 photoconfig = self._get_photo(N,t,config)
@@ -1549,7 +1556,7 @@ class alignment:
         pos_offset = self._actoffset(speeds,act_disp) 
         
         # Carrying out the motion
-        self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
+        _ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             
         return
     
