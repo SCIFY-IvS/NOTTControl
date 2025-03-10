@@ -1068,7 +1068,8 @@ class alignment:
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
                 # Incorporating offsets
-                final_pos[i] -= pos_offset[i] # in mm
+                final_pos_off = final_pos.copy()
+                final_pos_off[i] -= pos_offset[i] # in mm
 
                 # Performing the movement
                 #-------------------------#
@@ -1078,7 +1079,7 @@ class alignment:
                 # Executing move
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
                 method = parent.get_child("4:RPC_MoveAbs")
-                arguments = [final_pos[i], speeds[i]]
+                arguments = [final_pos_off[i], speeds[i]]
                 parent.call_method(method, *arguments)
             
                 # Wait for the actuator to be ready
