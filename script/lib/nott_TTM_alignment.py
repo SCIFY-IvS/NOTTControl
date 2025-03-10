@@ -1205,7 +1205,7 @@ class alignment:
         
         return noise
 
-    def _get_background(self,N,t):
+    def _get_photo(self,N,t,config):
         '''
         Description
         -----------
@@ -1218,6 +1218,8 @@ class alignment:
             Timespan over which to take each background exposure
         N : single integer
             Amount of exposures
+        config : single integer
+            Configuration parameter
 
         Returns
         -------
@@ -1225,21 +1227,23 @@ class alignment:
             Background average value
 
         '''
+        # REDIS field names of photometric outputs' ROIs
+        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
+        fieldname = names[config]
+        
         # Background measurements
         exps = []
-        # Closing
-        all_shutters_close(4)
-        # Gathering five background exposures
+        # Opening
+        all_shutters_open(4)
+        # Gathering five photometric exposures
         for j in range(0, N):
             t_start,t_stop = define_time(t)
-            exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
+            exps.append(get_field(fieldname,t_start,t_stop,True)[1])
             time.sleep(t)
         # Taking the mean
-        back = np.mean(exps)
-        # Reopening
-        all_shutters_open(4)
+        photo = np.mean(exps)
         
-        return back
+        return photo
 
     def localization_spiral(self,sky,step,speed,config):
         """
@@ -1289,15 +1293,11 @@ class alignment:
         else:
             d = 20*10**(-3) #(mm)
         
-        # REDIS field names of photometric outputs' ROIs
-        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
-        fieldname = names[config]
         
         # Initial position noise measurement
         noise = self._get_noise(5,0.100)
         # Initial position photometric output measurement (noise subtracted)
-        t_start,t_stop = define_time(0.100) # 100 ms back in time
-        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-noise
+        photoconfig = self._get_photo(5,0.100)-noise
     
         if (photoconfig > 10):
             raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
@@ -1349,8 +1349,7 @@ class alignment:
                 # New position noise measurement
                 noise = self._get_noise(5,0.100)
                 # New position photometric output measurement (noise subtracted)
-                t_start,t_stop = define_time(0.100) # 100 ms back in time
-                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-noise
+                photoconfig = self._get_photo(5,0.100)-noise
                 
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
