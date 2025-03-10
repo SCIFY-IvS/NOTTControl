@@ -1293,11 +1293,15 @@ class alignment:
         else:
             d = 20*10**(-3) #(mm)
         
+        # One measurement should consist of N exposures
+        N = 5
+        # One exposure should span a timeframe of t seconds
+        t = 0.100
         
         # Initial position noise measurement
-        noise = self._get_noise(5,0.100)
+        noise = self._get_noise(N,t)
         # Initial position photometric output measurement (noise subtracted)
-        photoconfig = self._get_photo(5,0.100)-noise
+        photoconfig = self._get_photo(N,t,config)-noise
     
         if (photoconfig > 10):
             raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
@@ -1347,9 +1351,9 @@ class alignment:
                 # REDIS writing time
                 time.sleep(0.110)
                 # New position noise measurement
-                noise = self._get_noise(5,0.100)
+                noise = self._get_noise(N,t)
                 # New position photometric output measurement (noise subtracted)
-                photoconfig = self._get_photo(5,0.100)-noise
+                photoconfig = self._get_photo(N,t,config)-noise
                 
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
@@ -1420,33 +1424,19 @@ class alignment:
             d = step
         else:
             d = 5*10**(-3) #(mm)
-                
+          
+        # One measurement should consist of N exposures
+        N = 5
+        # One exposure should span a timeframe of t seconds
+        t = 0.100
+          
         # Exposures
         exps = []
         # TTM configs 
         TTM = []
-      
-        # REDIS field name of relevant ROI
-        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
-        fieldname = names[config]
-          
-        # Background measurements
-        exps_back = []
-        # Closing
-        all_shutters_close(4)
-        # Gathering five background exposures
-        for j in range(0, 5):
-            t_start,t_stop = define_time(0.100)
-            exps_back.append(get_field("roi9_avg",t_start,t_stop,True)[1])
-            time.sleep(0.100)
-        # Taking the mean
-        back = np.mean(exps_back)
-        # Reopening
-        all_shutters_open(4)
         
-        t_start,t_stop = define_time(0.100) # 100 ms back in time
         # Initial position photometric output measurement
-        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
+        photoconfig = self._get_photo(N,t,config)
         # Adding to the stack of exposures
         exps.append(photoconfig)
     
@@ -1502,8 +1492,7 @@ class alignment:
                 time.sleep(0.110)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
-                t_start,t_stop = define_time(0.100) # 100 ms back in time
-                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
+                photoconfig = self._get_photo(N,t,config)
                 # Adding to the stack of exposures
                 exps.append(photoconfig)
                 # 2) TTM configuration
