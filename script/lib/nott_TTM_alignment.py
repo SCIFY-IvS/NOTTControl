@@ -1313,7 +1313,7 @@ class alignment:
         # One measurement should consist of N exposures
         N = 5
         # One exposure should span a timeframe of t seconds
-        t = 0.100
+        t = 0.010
         
         # Initial position noise measurement
         noise = self._get_noise(N,t)
@@ -1363,7 +1363,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/5,speed/5], dtype=np.float64)
+                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 self.individual_step(True,sky,moves[move],speeds,config)
                 # REDIS writing time
                 time.sleep(0.110)
@@ -1447,7 +1447,7 @@ class alignment:
         # One measurement should consist of N exposures
         N = 5
         # One exposure should span a timeframe of t seconds
-        t = 0.100
+        t = 0.01
           
         # Exposures
         exps = []
@@ -1505,7 +1505,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/5,speed/5], dtype=np.float64)
+                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 self.individual_step(False,sky,moves[move],speeds,config)
                 # REDIS writing time
                 time.sleep(0.110)
