@@ -595,16 +595,17 @@ class alignment:
             # Simulation ranges of grid
             disp_range = sign*np.linspace(0.005,0.030,11)
             speed_range = np.geomspace(0.005/100,0.030,11)
-            # Determining closest neighbouring grid points
+            # Determining indices (i1,j1) of closest neighbouring grid point
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
             i1 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:1]
-            if disp > disp_range[i1]:
+            j1 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:1]
+            # Determining indices (i2,j2) of second closest neighbouring grid point
+            if disp[i] > disp_range[i1]:
                 i2 = i1+1
             else:
                 i2 = i1-1
-            j1 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:1]
-            if speed > speed_range[j1]:
+            if speed[i] > speed_range[j1]:
                 j2 = j1+1
             else:
                 j2 = j1-1
