@@ -598,8 +598,8 @@ class alignment:
             # Determining indices (i1,j1) of closest neighbouring grid point
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
-            i1 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:1]
-            j1 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:1]
+            i1 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:1][0]
+            j1 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:1][0]
             # Determining indices (i2,j2) of second closest neighbouring grid point
             if disp[i] > disp_range[i1]:
                 i2 = i1+1
