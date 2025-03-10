@@ -29,6 +29,8 @@ from components.motor import Motor
 # Functions for retrieving data from REDIS
 from nott_database import define_time
 from nott_database import get_field
+from nott_control import all_shutters_close
+from nott_control import all_shutters_open
 
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
@@ -685,7 +687,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.41,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.398,3.855],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -733,7 +735,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.41,3.845],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.398,3.855],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -984,7 +986,7 @@ class alignment:
         if (np.abs(TTM2X_shift) > 500*10**(-6) or np.abs(TTM2Y_shift) > 500*10**(-6)):
             valid4= False
         
-        if not valid4:
+        if not (valid4 and not bool_slicer):
             i[3] = 1
             Valid = valid4
     
@@ -1209,7 +1211,7 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
-        if (speed > 2.32*10**(-3) or speed <= 0):
+        if (speed > 30*10**(-3) or speed <= 0):
             raise ValueError("Given actuator speed is beyond the accepted range (0,30] um/s")
         
         if sky : 
@@ -1218,14 +1220,28 @@ class alignment:
             d = 20*10**(-3) #(mm)
         
         # REDIS field names of photometric outputs' ROIs
-        names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
+        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
         fieldname = names[config]
         
-        # Initial position noise measurement
+        # Background measurements
+        exps = []
+        # Closing
+        all_shutters_close(4)
+        # Gathering five background exposures
+        for j in range(0, 5):
+            t_start,t_stop = define_time(0.100)
+            exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
+            time.sleep(0.100)
+        # Taking the mean
+        back = np.mean(exps)
+        # Reopening
+        all_shutters_open(4)
+        
+        # Initial position noise measurement (background subtracted)
         t_start,t_stop = define_time(0.100) # 100 ms back in time
-        noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
-        # Initial position photometric output measurement
-        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+        noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the temporal mean of spatial mean roi9_avg
+        # Initial position photometric output measurement (background subtracted)
+        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
     
         if (photoconfig > 5*noise):
             raise Exception("Localization spiral not started. Initial configuration is already in a state of injection (photometric output > 5*noise).")
@@ -1276,9 +1292,9 @@ class alignment:
                 time.sleep(0.110)
                 # New position noise measurement
                 t_start,t_stop = define_time(0.100) # 100 ms back in time
-                noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the mean roi9 value
+                noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the mean roi9 value
                 # New position photometric output measurements
-                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
                 
                 if (photoconfig > 5*noise):
                     print("A state of injection (photo > 5*noise) has been reached.")
@@ -1356,12 +1372,26 @@ class alignment:
         TTM = []
       
         # REDIS field name of relevant ROI
-        names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
+        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
         fieldname = names[config]
-            
+          
+        # Background measurements
+        exps_back = []
+        # Closing
+        all_shutters_close(4)
+        # Gathering five background exposures
+        for j in range(0, 5):
+            t_start,t_stop = define_time(0.100)
+            exps_back.append(get_field("roi9_avg",t_start,t_stop,True)[1])
+            time.sleep(0.100)
+        # Taking the mean
+        back = np.mean(exps_back)
+        # Reopening
+        all_shutters_open(4)
+        
         t_start,t_stop = define_time(0.100) # 100 ms back in time
         # Initial position photometric output measurement
-        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
         # Adding to the stack of exposures
         exps.append(photoconfig)
     
@@ -1418,7 +1448,7 @@ class alignment:
                 # Storing camera value and TTM configuration
                 # 1) Camera value
                 t_start,t_stop = define_time(0.100) # 100 ms back in time
-                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
+                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
                 # Adding to the stack of exposures
                 exps.append(photoconfig)
                 # 2) TTM configuration
@@ -1477,8 +1507,23 @@ class alignment:
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")    
     
         # REDIS field names of photometric outputs' ROIs
-        names = ["roi1_avg","roi2_avg","roi7_avg","roi8_avg"]
+        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
         fieldname = names[config]
+        
+        # Background measurements
+        exps = []
+        # Closing
+        all_shutters_close(4)
+        # Gathering five background exposures
+        for j in range(0, 5):
+            t_start,t_stop = define_time(0.100)
+            exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
+            time.sleep(0.100)
+        # Taking the mean
+        back = np.mean(exps)
+        # Reopening
+        all_shutters_open(4)
+        
         # Readout 100 ms back in time
         t_start,t_stop = define_time(0.100) 
         # Current position noise measurement
@@ -1486,8 +1531,11 @@ class alignment:
         # Current position photometric output measurement
         photoconfig = get_field(fieldname,t_start,t_stop,True)[1]
         # Print out values
+        print("Five-exposure averaged background : ", back)
         print("Current noise (ROI9) average : ", noise)
+        print("Current noise (ROI9) average (background subtracted) : ", noise-back)
         print("Demanded photometric output average : ", photoconfig)
+        print("Demanded photometric output average (background subtracted) : ", photoconfig-back)
         return
     
     # All functions below serve purpose in the context of actuator performance characterization
