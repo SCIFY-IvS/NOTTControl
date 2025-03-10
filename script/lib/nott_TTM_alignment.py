@@ -598,8 +598,21 @@ class alignment:
             # Determining closest neighbouring grid points
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
-            i1,i2 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:2]
-            j1,j2 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:2]
+            i1 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:1]
+            if disp > disp_range[i1]:
+                i2 = i1+1
+            else:
+                i2 = i1-1
+            j1 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:1]
+            if speed > speed_range[j1]:
+                j2 = j1+1
+            else:
+                j2 = j1-1
+            # Taking boundary cases into account
+            if (i1 == 0 or i1 == 10):
+                i2 = i1
+            if (j2 == 0 or j2 == 10):
+                j2 = j1
             # Weights
             v1,v2 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
             w1,w2 = [speed_diff[j1],speed_diff[j2]]/(speed_diff[j1]+speed_diff[j2])
@@ -1139,10 +1152,10 @@ class alignment:
             dTTM1Y = TTM_angles[1]
             CSbool = (sky==1)
             TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
-            print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",shifts_par)
+            print("This step leads to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",shifts_par)
         else:
             TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
-            print("This step would lead to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",steps)
+            print("This step leads to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",steps)
         
         # Calculating the necessary actuator displacements
         act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
@@ -1276,7 +1289,9 @@ class alignment:
         None.
         
         """
-        
+        print("----------------------------------")
+        print("Spiraling for localization...")
+        print("----------------------------------")
         if sky:
             sky = 1
         else:
@@ -1354,7 +1369,7 @@ class alignment:
                 noise = self._get_noise(N,t)
                 # New position photometric output measurement (noise subtracted)
                 photoconfig = self._get_photo(N,t,config)-noise
-                
+                print("Current photometric output : ", photoconfig)
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
                     return
@@ -1413,7 +1428,9 @@ class alignment:
         None.
 
         """
-        
+        print("----------------------------------")
+        print("Spiraling for optimization...")
+        print("----------------------------------")
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
@@ -1530,13 +1547,12 @@ class alignment:
         
         act_disp = self._ttm_shift_to_actuator_displacement(TTM_start,TTM_shifts,config)
         act_curr = self._get_actuator_pos(config)
-        act_final = act_curr + act_disp
         
-        speeds = np.array([0.01,0.01,0.01,0.01],dtype=np.float64) #TBD
+        speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         
         # Carrying out the motion
-        self._move_abs_ttm_act(act_curr,act_disp,speed,pos_offset,config)
+        self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             
         return
     
