@@ -1313,6 +1313,8 @@ class alignment:
         
         # One measurement should consist of N exposures
         N = 3
+        # Time to be slept for between finishing actuator movements and reading out ROIs
+        t = 0.300
         
         # Start time for initial exposure
         t_start = time.time()-0.100
@@ -1367,6 +1369,7 @@ class alignment:
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 start_time = self.individual_step(True,sky,moves[move],speeds,config)
                 # New position noise measurement
+                time.sleep(t)
                 noise = self._get_noise(N,start_time)
                 # New position photometric output measurement (noise subtracted)
                 photoconfig = self._get_photo(N,start_time,config)-noise
@@ -1445,7 +1448,9 @@ class alignment:
           
         # One measurement should consist of N exposures
         N = 3
-          
+        # Time to be slept for between finishing actuator movements and reading out ROIs
+        t = 0.300
+        
         # Exposures
         exps = []
         # TTM configs 
@@ -1508,6 +1513,7 @@ class alignment:
                 start_time = self.individual_step(False,sky,moves[move],speeds,config)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
+                time.sleep(t)
                 photoconfig = self._get_photo(N,start_time,config)
                 # Adding to the stack of exposures
                 exps.append(photoconfig)
