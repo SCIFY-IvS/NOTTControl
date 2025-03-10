@@ -1057,9 +1057,6 @@ class alignment:
         # Desired final positions
         final_pos = init_pos + disp
         
-        # Start times
-        start_times = np.array([0,0,0,0],dtype=np.float64)
-        
         # Looping over all four actuators
         for i in range(0,4):
 
@@ -1078,7 +1075,7 @@ class alignment:
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
                 method = parent.get_child("4:RPC_MoveAbs")
                 arguments = [final_pos_off[i], speeds[i]]
-                start_times[i] = time.time()
+                start_time = time.time()
                 parent.call_method(method, *arguments)
             
                 # Wait for the actuator to be ready
@@ -1509,11 +1506,9 @@ class alignment:
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 start_time = self.individual_step(False,sky,moves[move],speeds,config)
-                # REDIS writing time
-                time.sleep(t)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
-                photoconfig = self._get_photo(N,t,config)
+                photoconfig = self._get_photo(N,start_time,config)
                 # Adding to the stack of exposures
                 exps.append(photoconfig)
                 # 2) TTM configuration
