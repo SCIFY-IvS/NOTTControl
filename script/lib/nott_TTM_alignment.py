@@ -1171,14 +1171,50 @@ class alignment:
     # Scanning #
     ############    
 
-    def _get_background(self,time,N):
+    def _get_noise(self,N,t):
+        '''
+        Description
+        -----------
+        Function returns the average noise value (=ROI9), derived from "N" exposures of duration "time" each.
+        Shutters are not closed during this procedure.
+        
+        Parameters
+        ----------
+        t : single float
+            Timespan over which to take each noise exposure
+        N : single integer
+            Amount of exposures
+
+        Returns
+        -------
+        noise : single float
+            Noise average value
+
+        '''
+        # Background measurements
+        exps = []
+        # Opening
+        all_shutters_open(4)
+        # Gathering five background exposures
+        for j in range(0, N):
+            t_start,t_stop = define_time(t)
+            exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
+            time.sleep(t)
+        # Taking the mean
+        noise = np.mean(exps)
+        
+        return noise
+
+    def _get_background(self,N,t):
         '''
         Description
         -----------
         Function returns the average background value (=ROI9), derived from "N" exposures of duration "time" each.
+        Shutters are closed during this procedure.
+        
         Parameters
         ----------
-        time : single float
+        t : single float
             Timespan over which to take each background exposure
         N : single integer
             Amount of exposures
@@ -1195,9 +1231,9 @@ class alignment:
         all_shutters_close(4)
         # Gathering five background exposures
         for j in range(0, N):
-            t_start,t_stop = define_time(time)
+            t_start,t_stop = define_time(t)
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
-            time.sleep(time)
+            time.sleep(t)
         # Taking the mean
         back = np.mean(exps)
         # Reopening
@@ -1257,14 +1293,11 @@ class alignment:
         names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
         fieldname = names[config]
         
-        # Background
-        back = self._get_background(5,0.100)
-        
-        # Initial position noise measurement (background subtracted)
-        #t_start,t_stop = define_time(0.100) # 100 ms back in time
-        #noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the temporal mean of spatial mean roi9_avg
-        # Initial position photometric output measurement (background subtracted)
-        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
+        # Initial position noise measurement
+        noise = self._get_noise(5,0.100)
+        # Initial position photometric output measurement (noise subtracted)
+        t_start,t_stop = define_time(0.100) # 100 ms back in time
+        photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-noise
     
         if (photoconfig > 10):
             raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
@@ -1314,12 +1347,10 @@ class alignment:
                 # REDIS writing time
                 time.sleep(0.110)
                 # New position noise measurement
-                #t_start,t_stop = define_time(0.100) # 100 ms back in time
-                #noise = get_field("roi9_avg",t_start,t_stop,True)[1]-back # Index 1 to get the mean roi9 value
-                # Background
-                back = self._get_background(5,0.100)
-                # New position photometric output measurements
-                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-back
+                noise = self._get_noise(5,0.100)
+                # New position photometric output measurement (noise subtracted)
+                t_start,t_stop = define_time(0.100) # 100 ms back in time
+                photoconfig = get_field(fieldname,t_start,t_stop,True)[1]-noise
                 
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
