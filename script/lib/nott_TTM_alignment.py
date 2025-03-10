@@ -612,7 +612,7 @@ class alignment:
             # Taking boundary cases into account
             if (i1 == 0 or i1 == 10):
                 i2 = i1
-            if (j2 == 0 or j2 == 10):
+            if (j1 == 0 or j1 == 10):
                 j2 = j1
             # Weights
             v1,v2 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
@@ -867,11 +867,6 @@ class alignment:
             Accuracies (positional offsets) for the four actuators, retrieved from the empirical accuracy grid.
         
         """
-        low_speed = np.array([0.005/100],dtype=np.float64)[0]
-        up = np.array([0.030],dtype=np.float64)[0]
-        bool_speed = np.logical_and(act_speed < low_speed,act_speed != 0).any() or (act_speed > up).any()
-        if (bool_speed):
-            raise ValueError("One/multiple speed value(s) are invalid. The supported speed range spans [0.05,30] um/s.")
         
         # Snap accuracies
         accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
@@ -1311,9 +1306,9 @@ class alignment:
             d = 20*10**(-3) #(mm)
         
         # One measurement should consist of N exposures
-        N = 5
+        N = 3
         # One exposure should span a timeframe of t seconds
-        t = 0.010
+        t = 0.1
         
         # Initial position noise measurement
         noise = self._get_noise(N,t)
@@ -1445,9 +1440,9 @@ class alignment:
             d = 5*10**(-3) #(mm)
           
         # One measurement should consist of N exposures
-        N = 5
+        N = 3
         # One exposure should span a timeframe of t seconds
-        t = 0.01
+        t = 0.100
           
         # Exposures
         exps = []
