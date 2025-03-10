@@ -1086,7 +1086,7 @@ class alignment:
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
-        end_time = np.round(1000*time.time(),0) 
+        end_time = round(1000*time.time()) 
         # Close OPCUA connection
         opcua_conn.disconnect()
         return end_time
@@ -1209,7 +1209,7 @@ class alignment:
         all_shutters_open(4)
         # Gathering five background exposures
         for j in range(0, N):
-            time_now = np.round(1000*time.time(),0)
+            time_now = round(1000*time.time())
             t_start,t_stop = t,time_now
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
         # Taking the mean
@@ -1249,7 +1249,7 @@ class alignment:
         all_shutters_open(4)
         # Gathering five photometric exposures
         for j in range(0, N):
-            time_now = np.round(1000*time.time(),0)
+            time_now = round(1000*time.time())
             t_start,t_stop = t,time_now
             exps.append(get_field(fieldname,t_start,t_stop,True)[1])
         # Taking the mean
@@ -1313,7 +1313,7 @@ class alignment:
         t = 0.300
         
         # Start time for initial exposure
-        t_start = np.round(1000*time.time()-100,0)
+        t_start = round(1000*time.time()-100)
         # Initial position noise measurement
         noise = self._get_noise(N,t_start)
         # Initial position photometric output measurement (noise subtracted)
@@ -1363,7 +1363,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time = np.round(self.individual_step(True,sky,moves[move],speeds,config),0)
+                start_time = round(self.individual_step(True,sky,moves[move],speeds,config))
                 # New position noise measurement
                 time.sleep(0.110+t) # REDIS writing time
                 noise = self._get_noise(N,start_time+110)
@@ -1453,7 +1453,7 @@ class alignment:
         TTM = []
         
         # Start time for initial exposure
-        t_start = np.round(1000*time.time()-100,0)
+        t_start = round(1000*time.time()-100)
         # Initial position photometric output measurement
         photoconfig = self._get_photo(N,t_start,config)
         # Adding to the stack of exposures
@@ -1506,7 +1506,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time = np.round(self.individual_step(False,sky,moves[move],speeds,config),0)
+                start_time = round(self.individual_step(False,sky,moves[move],speeds,config))
                 # Storing camera value and TTM configuration
                 # 1) Camera value
                 time.sleep(0.110+t)
