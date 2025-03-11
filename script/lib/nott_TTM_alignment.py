@@ -1029,8 +1029,10 @@ class alignment:
 
         Returns
         -------
-        end_time : single integer value
+        t_end : single integer value
             Time at which the movements finished in ms.
+        t_spent : single integer value
+            Time spent for moving all four actuators in ms.
 
         """
         
@@ -1058,8 +1060,8 @@ class alignment:
         final_pos = init_pos + disp
         
         # Looping over all four actuators
+        t_init = time.time()
         for i in range(0,4):
-
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
                 # Incorporating offsets
@@ -1086,10 +1088,11 @@ class alignment:
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
-        end_time = round(1000*time.time()) 
+        t_end = round(1000*time.time()) 
+        t_spent = round(1000*(t_end-t_init))
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return end_time
+        return t_end,t_spent
 
     ###################
     # Individual Step #
@@ -1127,8 +1130,10 @@ class alignment:
 
         Returns
         -------
-        end_time : single float
+        t_end : single integer
             Time at which the individual step finished.
+        t_spent : single integer
+            Time spent for moving all four actuators in ms.
 
         """
         
@@ -1175,10 +1180,10 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
-            end_time = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
+            t_end,t_spent = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             print("Step performed")
         
-        return end_time
+        return t_end,t_spent
    
     ############
     # Scanning #
@@ -1314,8 +1319,6 @@ class alignment:
         
         # One measurement should consist of N exposures
         N = 1
-        # Timespan over which to average ROI values (ms)
-        dt = 300
         
         # Start time for initial exposure
         t_start = round(1000*time.time()-100)
@@ -1368,7 +1371,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time = self.individual_step(True,sky,moves[move],speeds,config)
+                start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
                 # New position noise measurement
                 noise = self._get_noise(N,start_time,dt)
                 # New position photometric output measurement (noise subtracted)
@@ -1448,8 +1451,6 @@ class alignment:
           
         # One measurement should consist of N exposures
         N = 1
-        # Timespan over which to average ROI values (ms)
-        dt = 300
         
         # Exposures
         exps = []
@@ -1510,7 +1511,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time = self.individual_step(False,sky,moves[move],speeds,config)
+                start_time,dt = self.individual_step(False,sky,moves[move],speeds,config)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
                 photoconfig = self._get_photo(N,start_time,dt,config)
