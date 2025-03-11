@@ -701,7 +701,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.398,3.855],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.1713055,5.3747405,3.4148105,3.875574],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -749,7 +749,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.17,5.44,3.398,3.855],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.1713055,5.3747405,3.4148105,3.875574],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -1226,7 +1226,7 @@ class alignment:
             exp_full = get_field("roi9_avg",t_start,t_stop,False,110) 
             exps.append(exp_av[1])
         # Taking the std
-        noise = exp_full.std(0)
+        noise = exp_full.std(0)[1]
         # Taking the mean 
         mean = np.mean(exps)
         
