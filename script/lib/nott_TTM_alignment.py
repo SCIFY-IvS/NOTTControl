@@ -1087,7 +1087,7 @@ class alignment:
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
-                print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
+                print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-start_time,2))+" seconds with an error "+ str(ach_pos-final_pos[i])+" mm.")
         t_end = round(1000*time.time()) 
         t_spent = round(t_end-t_start)
         # Close OPCUA connection
@@ -1156,10 +1156,10 @@ class alignment:
             dTTM1Y = TTM_angles[1]
             CSbool = (sky==1)
             TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
-            print("This step leads to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",shifts_par)
+            print("Step : (dX,dY,dx,dy) = ",shifts_par)
         else:
             TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
-            print("This step leads to CS(X,Y) and IM(x,y) shifts (dX,dY,dx,dy) = ",steps)
+            print("Step :  (dX,dY,dx,dy) = ",steps)
         
         # Calculating the necessary actuator displacements
         act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
