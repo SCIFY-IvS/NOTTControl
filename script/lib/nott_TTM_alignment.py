@@ -610,10 +610,15 @@ class alignment:
             else:
                 j2 = j1-1
             # Taking boundary cases into account
-            if (i1 == 0 or i1 == 10):
-                i2 = i1
-            if (j1 == 0 or j1 == 10):
-                j2 = j1
+            if (i1 == 0):
+                i2 = 1
+            if (j1 == 0):
+                j2 = 1
+            if (i1 == 10):
+                i2 = 9
+            if (j1 == 10):
+                j2 = 9
+    
             # Weights
             v2,v1 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
             w2,w1 = [speed_diff[j1],speed_diff[j2]]/(speed_diff[j1]+speed_diff[j2])
