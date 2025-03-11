@@ -1209,7 +1209,9 @@ class alignment:
         Returns
         -------
         noise : single float
-            Noise average value
+            Noise value (standard deviation of ROI9 output)
+        mean: single float
+            ROI9 mean output value
 
         '''
         # Background measurements
@@ -1221,10 +1223,12 @@ class alignment:
             t_start,t_stop = t,t+dt
             #time.sleep(0.110) # REDIS write time buffer
             exps.append(get_field("roi9_avg",t_start,t_stop,True,110)[1])
-        # Taking the mean
-        noise = np.mean(exps)
+        # Taking the std
+        noise = np.std(exps)
+        # Taking the mean 
+        mean = np.mean(exps)
         
-        return noise
+        return mean,noise
 
     def _get_photo(self,N,t,dt,config):
         '''
@@ -1268,7 +1272,7 @@ class alignment:
         
         return photo
 
-    def localization_spiral(self,sky,step,speed,config):
+    def localization_spiral(self,sky,step,speed,t_sync,config):
         """
         Description
         -----------
@@ -1290,6 +1294,8 @@ class alignment:
         speed : single float value
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
+        t_sync : single integer value
+            Synchronization offsets (in ms) between REDIS and Lab pc.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
@@ -1322,14 +1328,15 @@ class alignment:
         N = 1
         
         # Start time for initial exposure
-        t_start = round(1000*time.time()-100)
+        t_start = round(1000*time.time()-1000)
         # Initial position noise measurement
-        noise = self._get_noise(N,t_start,100)
-        # Initial position photometric output measurement (noise subtracted)
-        photoconfig = self._get_photo(N,t_start,100,config)-noise
+        mean,noise = self._get_noise(N,t_start,1000)
+        print("Initial noise level (ROI9) : ", noise)
+        # Initial position photometric output measurement 
+        photo_init = self._get_photo(N,t_start,1000,config)
     
-        if (photoconfig > 10):
-            raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
+        if (photo_init-mean > 20):
+            raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
                            
         #           x---x---x---x
         #           |           |
@@ -1376,16 +1383,18 @@ class alignment:
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
-                # New position noise measurement
+                # REDIS writing time sleep
                 time.sleep(0.110)
-                noise = self._get_noise(N,start_time,dt)
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
-                for i in range(0,10):
-                    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config)-noise
+                for i in range(0,10): # Taking synchronization time into account
+                    photoconfigs[i] = self._get_photo(N,round(start_times[i]+t_sync),dt_sub,config)-photo_init
+                # Signal-to-noise ratios
+                SNR = photoconfigs/noise
                 print("Current photometric outputs : ", photoconfigs)
-                if (photoconfigs > 10).any():
+                if (SNR > 5).any():
                     print("A state of injection has been reached.")
+                    print("Average SNR value : ", np.average(SNR))
                     return
                 
             # Setting up next move
@@ -1465,9 +1474,9 @@ class alignment:
         TTM = []
         
         # Start time for initial exposure
-        t_start = round(1000*time.time()-100)
+        t_start = round(1000*time.time()-500)
         # Initial position photometric output measurement
-        photoconfig = self._get_photo(N,t_start,100,config)
+        photoconfig = self._get_photo(N,t_start,500,config)
         # Adding to the stack of exposures
         exps.append(photoconfig)
     
