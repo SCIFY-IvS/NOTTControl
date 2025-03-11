@@ -1087,7 +1087,7 @@ class alignment:
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
-                print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-start_time,2))+" seconds with an error "+ str(ach_pos-final_pos[i])+" mm.")
+                print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-start_time,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         t_end = round(1000*time.time()) 
         t_spent = round(t_end-t_start)
         # Close OPCUA connection
@@ -1182,7 +1182,6 @@ class alignment:
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
             t_start,t_spent = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
-            print("Step performed")
         
         return t_start,t_spent
    
@@ -1476,11 +1475,13 @@ class alignment:
         TTM = []
         
         # Start time for initial exposure
-        t_start = round(1000*time.time()-500)
+        t_start = round(1000*time.time()-1000)
+        # Initial position noise measurement
+        mean,noise = self._get_noise(N,t_start,1000)
         # Initial position photometric output measurement
-        photoconfig = self._get_photo(N,t_start,500,config)
+        photo_init = self._get_photo(N,t_start,1000,config)
         # Adding to the stack of exposures
-        exps.append(photoconfig)
+        exps.append((photo_init-photo_init)/noise)
     
         # Storing initial TTM configuration
         act_curr = self._get_actuator_pos(config)
@@ -1534,7 +1535,7 @@ class alignment:
                 # 1) Camera value
                 photoconfig = self._get_photo(N,start_time,dt,config)
                 # Adding to the stack of exposures
-                exps.append(photoconfig)
+                exps.append((photoconfig-photo_init)/noise)
                 # 2) TTM configuration
                 act_curr = self._get_actuator_pos(config)
                 TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
@@ -1556,13 +1557,15 @@ class alignment:
             if (Nswitch % 2 == 0):
                 Nsteps += 1
         
+        # Converting to weights
+        weights = np.exp(exps)
         # Calculating the brightness-weighted configuration
-        exp_total = np.sum(exps)
+        weights_total = np.sum(weights)
     
         # Brightness-weighting
         TTM_final = np.array([0,0,0,0],dtype=np.float64)
-        for i in range(0, len(exps)):
-            TTM_final += (exps[i] / exp_total)*TTM[i]
+        for i in range(0, len(weights)):
+            TTM_final += (weights[i] / weights_total)*TTM[i]
         
         # Bringing the bench to the brightness-weighted final position
         TTM_start = TTM[-1] # current configuration
