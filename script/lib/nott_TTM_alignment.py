@@ -615,8 +615,8 @@ class alignment:
             if (j1 == 0 or j1 == 10):
                 j2 = j1
             # Weights
-            v1,v2 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
-            w1,w2 = [speed_diff[j1],speed_diff[j2]]/(speed_diff[j1]+speed_diff[j2])
+            v2,v1 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
+            w2,w1 = [speed_diff[j1],speed_diff[j2]]/(speed_diff[j1]+speed_diff[j2])
             if sign > 0:
                 # Accuracy interpolation
                 a_disp = v1*accurgrid_pos[i1,j1]+v2*accurgrid_pos[i2,j1]
@@ -1165,6 +1165,7 @@ class alignment:
         # Before imposing the displacements to the actuators, the state validity is checked.
         valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
         if not valid:
+            end_time = None
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
                             "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
@@ -1183,7 +1184,7 @@ class alignment:
     # Scanning #
     ############    
 
-    def _get_noise(self,N,t):
+    def _get_noise(self,N,t,dt):
         '''
         Description
         -----------
@@ -1193,7 +1194,9 @@ class alignment:
         Parameters
         ----------
         t : single integer
-            Start time of timeframe in ms
+            Start of timeframe in ms
+        dt : single integer
+            Duration of timeframe in ms
         N : single integer
             Amount of exposures
 
@@ -1209,15 +1212,15 @@ class alignment:
         all_shutters_open(4)
         # Gathering five background exposures
         for j in range(0, N):
-            time_now = round(1000*time.time())
-            t_start,t_stop = t,time_now
+            t_start,t_stop = t,t+dt
+            time.sleep(0.110) # REDIS write time buffer
             exps.append(get_field("roi9_avg",t_start,t_stop,True)[1])
         # Taking the mean
         noise = np.mean(exps)
         
         return noise
 
-    def _get_photo(self,N,t,config):
+    def _get_photo(self,N,t,dt,config):
         '''
         Description
         -----------
@@ -1228,6 +1231,8 @@ class alignment:
         ----------
         t : single integer
             Start of timeframe in ms
+        dt : single integer
+            Duration of timeframe in ms
         N : single integer
             Amount of exposures
         config : single integer
@@ -1249,8 +1254,8 @@ class alignment:
         all_shutters_open(4)
         # Gathering five photometric exposures
         for j in range(0, N):
-            time_now = round(1000*time.time())
-            t_start,t_stop = t,time_now
+            t_start,t_stop = t,t+dt
+            time.sleep(0.110) # REDIS Write time buffer
             exps.append(get_field(fieldname,t_start,t_stop,True)[1])
         # Taking the mean
         photo = np.mean(exps)
@@ -1309,15 +1314,15 @@ class alignment:
         
         # One measurement should consist of N exposures
         N = 1
-        # Time to be slept for between finishing actuator movements and reading out ROIs
-        t = 0.300
+        # Timespan over which to average ROI values (s)
+        dt = 0.300
         
         # Start time for initial exposure
         t_start = round(1000*time.time()-100)
         # Initial position noise measurement
-        noise = self._get_noise(N,t_start)
+        noise = self._get_noise(N,t_start,100)
         # Initial position photometric output measurement (noise subtracted)
-        photoconfig = self._get_photo(N,t_start,config)-noise
+        photoconfig = self._get_photo(N,t_start,100,config)-noise
     
         if (photoconfig > 10):
             raise Exception("Localization spiral not started. Initial configuration is already in a state of injection.")
@@ -1363,12 +1368,11 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time = round(self.individual_step(True,sky,moves[move],speeds,config))
+                start_time = self.individual_step(True,sky,moves[move],speeds,config)
                 # New position noise measurement
-                time.sleep(0.110+t) # REDIS writing time
-                noise = self._get_noise(N,start_time+110)
+                noise = self._get_noise(N,start_time,dt)
                 # New position photometric output measurement (noise subtracted)
-                photoconfig = self._get_photo(N,start_time+110,config)-noise
+                photoconfig = self._get_photo(N,start_time,dt,config)-noise
                 print("Current photometric output : ", photoconfig)
                 if (photoconfig > 10):
                     print("A state of injection has been reached.")
@@ -1444,8 +1448,8 @@ class alignment:
           
         # One measurement should consist of N exposures
         N = 1
-        # Time to be slept for between finishing actuator movements and reading out ROIs
-        t = 0.300
+        # Timespan over which to average ROI values
+        dt = 0.300
         
         # Exposures
         exps = []
@@ -1455,7 +1459,7 @@ class alignment:
         # Start time for initial exposure
         t_start = round(1000*time.time()-100)
         # Initial position photometric output measurement
-        photoconfig = self._get_photo(N,t_start,config)
+        photoconfig = self._get_photo(N,t_start,100,config)
         # Adding to the stack of exposures
         exps.append(photoconfig)
     
@@ -1506,11 +1510,10 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time = round(self.individual_step(False,sky,moves[move],speeds,config))
+                start_time = self.individual_step(False,sky,moves[move],speeds,config)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
-                time.sleep(0.110+t)
-                photoconfig = self._get_photo(N,start_time+110,config)
+                photoconfig = self._get_photo(N,start_time,dt,config)
                 # Adding to the stack of exposures
                 exps.append(photoconfig)
                 # 2) TTM configuration
