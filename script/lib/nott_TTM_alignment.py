@@ -1029,8 +1029,8 @@ class alignment:
 
         Returns
         -------
-        t_end : single integer value
-            Time at which the movements finished in ms.
+        t_start : single integer value
+            Time at which the movements started in ms.
         t_spent : single integer value
             Time spent for moving all four actuators in ms.
 
@@ -1060,7 +1060,7 @@ class alignment:
         final_pos = init_pos + disp
         
         # Looping over all four actuators
-        t_init = round(1000*time.time())
+        t_start = round(1000*time.time())
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
@@ -1089,10 +1089,10 @@ class alignment:
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
         t_end = round(1000*time.time()) 
-        t_spent = round(t_end-t_init)
+        t_spent = round(t_end-t_start)
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return t_end,t_spent
+        return t_start,t_spent
 
     ###################
     # Individual Step #
@@ -1130,8 +1130,8 @@ class alignment:
 
         Returns
         -------
-        t_end : single integer
-            Time at which the individual step finished.
+        t_start : single integer
+            Time at which the actuator motions commenced in ms.
         t_spent : single integer
             Time spent for moving all four actuators in ms.
 
@@ -1169,7 +1169,7 @@ class alignment:
     
         # Before imposing the displacements to the actuators, the state validity is checked.
         valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
-        t_end = None
+        t_start = None
         t_spent = None
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
@@ -1181,10 +1181,10 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
-            t_end,t_spent = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
+            t_start,t_spent = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             print("Step performed")
         
-        return t_end,t_spent
+        return t_start,t_spent
    
     ############
     # Scanning #
@@ -1375,15 +1375,16 @@ class alignment:
                 # Timeframe (start & span) : start actuator motion and duration
                 start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
                 # Dividing timeframe into ten subportions
-                start_times = np.linspace(start_time,start_time+dt,10)
+                start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
                 # New position noise measurement
+                time.sleep(0.110)
                 noise = self._get_noise(N,start_time,dt)
                 # New position photometric output measurements (noise subtracted)
-                photoconfigs = []
+                photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 for i in range(0,10):
                     photoconfigs[i] = self._get_photo(N,start_times[i],dt_sub,config)-noise
-                print("Current photometric output : ", photoconfig)
+                print("Current photometric outputs : ", photoconfigs)
                 if (photoconfigs > 10).any():
                     print("A state of injection has been reached.")
                     return
