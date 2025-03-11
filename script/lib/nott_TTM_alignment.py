@@ -1329,12 +1329,12 @@ class alignment:
         N = 1
         
         # Start time for initial exposure
-        t_start = round(1000*time.time()-1000)
+        t_start = round(1000*time.time()-200)
         # Initial position noise measurement
-        mean,noise = self._get_noise(N,t_start,1000)
+        mean,noise = self._get_noise(N,t_start,200)
         print("Initial noise level (ROI9) : ", noise)
         # Initial position photometric output measurement 
-        photo_init = self._get_photo(N,t_start,1000,config)
+        photo_init = self._get_photo(N,t_start,200,config)
     
         if (photo_init-mean > 20):
             raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
@@ -1395,7 +1395,7 @@ class alignment:
                 print("Current photometric outputs : ", photoconfigs)
                 if (SNR > 5).any():
                     print("A state of injection has been reached.")
-                    print("Average SNR value : ", np.average(SNR))
+                    print("Average SNR value : ", np.average(SNR[SNR>5]))
                     return
                 
             # Setting up next move
@@ -1473,22 +1473,22 @@ class alignment:
         
         # Exposures
         exps = []
-        # TTM configs 
-        TTM = []
+        # Actuator configs 
+        ACT = []
         
         # Start time for initial exposure
-        t_start = round(1000*time.time()-1000)
+        t_start = round(1000*time.time()-200)
         # Initial position noise measurement
-        mean,noise = self._get_noise(N,t_start,1000)
+        time.sleep(0.200)
+        _,noise = self._get_noise(N,t_start,200)
         # Initial position photometric output measurement
-        photo_init = self._get_photo(N,t_start,1000,config)
+        photo_init = self._get_photo(N,t_start,200,config)
         # Adding to the stack of exposures
         exps.append((photo_init-photo_init)/noise)
     
-        # Storing initial TTM configuration
+        # Storing initial actuator configuration
         act_curr = self._get_actuator_pos(config)
-        TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
-        TTM.append(TTM_curr)
+        ACT.append(act_curr)
     
         #                          STOP
         #                           x
@@ -1538,10 +1538,9 @@ class alignment:
                 photoconfig = self._get_photo(N,start_time+t_sync,dt,config)
                 # Adding to the stack of exposures
                 exps.append((photoconfig-photo_init)/noise)
-                # 2) TTM configuration
+                # 2) Actuator configuration
                 act_curr = self._get_actuator_pos(config)
-                TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
-                TTM.append(TTM_curr)
+                ACT.append(act_curr)
         
             # Setting up next move
             if move < 3:
@@ -1565,16 +1564,13 @@ class alignment:
         weights_total = np.sum(weights)
     
         # Brightness-weighting
-        TTM_final = np.array([0,0,0,0],dtype=np.float64)
+        ACT_final = np.array([0,0,0,0],dtype=np.float64)
         for i in range(0, len(weights)):
-            TTM_final += (weights[i] / weights_total)*TTM[i]
+            ACT_final += (weights[i] / weights_total)*ACT[i]
         
         # Bringing the bench to the brightness-weighted final position
-        TTM_start = TTM[-1] # current configuration
-        TTM_shifts = TTM_final - TTM_start
-        
-        act_disp = self._ttm_shift_to_actuator_displacement(TTM_start,TTM_shifts,config)
         act_curr = self._get_actuator_pos(config)
+        act_disp = ACT_final-act_curr
         
         speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
