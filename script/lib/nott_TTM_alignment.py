@@ -1060,7 +1060,7 @@ class alignment:
         final_pos = init_pos + disp
         
         # Looping over all four actuators
-        t_init = time.time()
+        t_init = round(1000*time.time())
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
@@ -1088,9 +1088,8 @@ class alignment:
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
-        t_now = time.time()
-        t_end = round(1000*t_now) 
-        t_spent = round(1000*(t_end-t_now))
+        t_end = round(1000*time.time()) 
+        t_spent = round(t_end-t_init)
         # Close OPCUA connection
         opcua_conn.disconnect()
         return t_end,t_spent
@@ -1220,7 +1219,7 @@ class alignment:
         # Gathering five background exposures
         for j in range(0, N):
             t_start,t_stop = t,t+dt
-            time.sleep(0.110) # REDIS write time buffer
+            #time.sleep(0.110) # REDIS write time buffer
             exps.append(get_field("roi9_avg",t_start,t_stop,True,110)[1])
         # Taking the mean
         noise = np.mean(exps)
@@ -1262,7 +1261,7 @@ class alignment:
         # Gathering five photometric exposures
         for j in range(0, N):
             t_start,t_stop = t,t+dt
-            time.sleep(0.110) # REDIS Write time buffer
+            #time.sleep(0.110) # REDIS Write time buffer
             exps.append(get_field(fieldname,t_start,t_stop,True,110)[1])
         # Taking the mean
         photo = np.mean(exps)
@@ -1373,13 +1372,19 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
+                # Timeframe (start & span) : start actuator motion and duration
                 start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
+                # Dividing timeframe into ten subportions
+                start_times = np.linspace(start_time,start_time+dt,10)
+                dt_sub = dt//10
                 # New position noise measurement
                 noise = self._get_noise(N,start_time,dt)
-                # New position photometric output measurement (noise subtracted)
-                photoconfig = self._get_photo(N,start_time,dt,config)-noise
+                # New position photometric output measurements (noise subtracted)
+                photoconfigs = []
+                for i in range(0,10):
+                    photoconfigs[i] = self._get_photo(N,start_times[i],dt_sub,config)-noise
                 print("Current photometric output : ", photoconfig)
-                if (photoconfig > 10):
+                if (photoconfigs > 10).any():
                     print("A state of injection has been reached.")
                     return
                 
