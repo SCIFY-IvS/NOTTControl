@@ -1370,10 +1370,13 @@ class alignment:
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
+                # Step start time
+                start_time = 1000*time.time()
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                # Timeframe (start & span) : start actuator motion and duration
-                start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
+                _,_ = self.individual_step(True,sky,moves[move],speeds,config)
+                # Passed time
+                dt = 1000*time.time()-start_time
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
@@ -1383,7 +1386,7 @@ class alignment:
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 for i in range(0,10):
-                    photoconfigs[i] = self._get_photo(N,start_times[i],dt_sub,config)-noise
+                    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config)-noise
                 print("Current photometric outputs : ", photoconfigs)
                 if (photoconfigs > 10).any():
                     print("A state of injection has been reached.")
@@ -1519,7 +1522,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time,dt = self.individual_step(False,sky,moves[move],speeds,config)
+                start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
                 photoconfig = self._get_photo(N,start_time,dt,config)
@@ -1563,7 +1566,7 @@ class alignment:
         
         speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
-        
+        print("Bringing to optimized position.")
         # Carrying out the motion
         _ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
             
