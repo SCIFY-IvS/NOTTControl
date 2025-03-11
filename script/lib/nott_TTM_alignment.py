@@ -1088,8 +1088,9 @@ class alignment:
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moving actuator "+act_names[i]+" from "+str(init_pos[i])+" to "+str(final_pos[i])+" at speed "+str(speeds[i])+" mm/s took "+str(np.round(time.time()-start_time,2))+" seconds and achieved position ", str(ach_pos))
-        t_end = round(1000*time.time()) 
-        t_spent = round(1000*(t_end-t_init))
+        t_now = time.time()
+        t_end = round(1000*t_now) 
+        t_spent = round(1000*(t_end-t_now))
         # Close OPCUA connection
         opcua_conn.disconnect()
         return t_end,t_spent
@@ -1169,7 +1170,8 @@ class alignment:
     
         # Before imposing the displacements to the actuators, the state validity is checked.
         valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
-        end_time = None
+        t_end = None
+        t_spent = None
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
@@ -1219,7 +1221,7 @@ class alignment:
         for j in range(0, N):
             t_start,t_stop = t,t+dt
             time.sleep(0.110) # REDIS write time buffer
-            exps.append(get_field("roi9_avg",t_start,t_stop,True,0.110)[1])
+            exps.append(get_field("roi9_avg",t_start,t_stop,True,110)[1])
         # Taking the mean
         noise = np.mean(exps)
         
@@ -1261,7 +1263,7 @@ class alignment:
         for j in range(0, N):
             t_start,t_stop = t,t+dt
             time.sleep(0.110) # REDIS Write time buffer
-            exps.append(get_field(fieldname,t_start,t_stop,True,0.110)[1])
+            exps.append(get_field(fieldname,t_start,t_stop,True,110)[1])
         # Taking the mean
         photo = np.mean(exps)
         
