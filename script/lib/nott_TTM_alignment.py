@@ -1370,13 +1370,9 @@ class alignment:
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
-                # Step start time
-                start_time = 1000*time.time()
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                _,_ = self.individual_step(True,sky,moves[move],speeds,config)
-                # Passed time
-                dt = 1000*time.time()-start_time
+                start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
@@ -1601,7 +1597,7 @@ class alignment:
         all_shutters_open(4)
         
         # Readout 100 ms back in time
-        t_start,t_stop = define_time(0.100) 
+        t_start,t_stop = define_time(0.500) 
         # Current position noise measurement
         noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
         # Current position photometric output measurement
