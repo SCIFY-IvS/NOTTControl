@@ -1221,7 +1221,7 @@ class alignment:
         # Gathering five background exposures
         for j in range(0, N):
             t_start,t_stop = t,t+dt
-            #time.sleep(0.110) # REDIS write time buffer
+            # Retrieving REDIS data (with writing time - 110 ms - delay)
             exp_av = get_field("roi9_avg",t_start,t_stop,True,110)
             exp_full = get_field("roi9_avg",t_start,t_stop,False,110) 
             exps.append(exp_av[1])
@@ -1267,7 +1267,7 @@ class alignment:
         # Gathering five photometric exposures
         for j in range(0, N):
             t_start,t_stop = t,t+dt
-            #time.sleep(0.110) # REDIS Write time buffer
+            # Retrieving REDIS data (with writing time - 110 ms - delay)
             exps.append(get_field(fieldname,t_start,t_stop,True,110)[1])
         # Taking the mean
         photo = np.mean(exps)
