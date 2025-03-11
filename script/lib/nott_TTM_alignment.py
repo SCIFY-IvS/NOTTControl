@@ -1224,7 +1224,7 @@ class alignment:
             #time.sleep(0.110) # REDIS write time buffer
             exps.append(get_field("roi9_avg",t_start,t_stop,True,110)[1])
         # Taking the std
-        noise = np.std(exps)
+        noise = get_field("roi9_avg",t_start,t_stop,False,110)[1].std(0)
         # Taking the mean 
         mean = np.mean(exps)
         
