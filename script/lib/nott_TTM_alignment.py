@@ -1416,7 +1416,7 @@ class alignment:
             
         return
 
-    def optimization_spiral(self,sky,step,speed,config):
+    def optimization_spiral(self,sky,step,speed,t_sync,config):
         """
         Description
         -----------
@@ -1437,6 +1437,8 @@ class alignment:
         speed : single float value
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once optimal speed is obtained.
+        t_sync : single integer value
+            Synchronization offsets (in ms) between REDIS and Lab pc.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
@@ -1533,7 +1535,7 @@ class alignment:
                 start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
                 # Storing camera value and TTM configuration
                 # 1) Camera value
-                photoconfig = self._get_photo(N,start_time,dt,config)
+                photoconfig = self._get_photo(N,start_time+t_sync,dt,config)
                 # Adding to the stack of exposures
                 exps.append((photoconfig-photo_init)/noise)
                 # 2) TTM configuration
