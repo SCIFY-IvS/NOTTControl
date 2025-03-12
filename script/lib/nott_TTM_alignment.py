@@ -707,7 +707,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two)  (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.1713055,5.3747405,3.4148105,3.875574],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.1613015,5.408199,3.409473,3.8637095],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -755,7 +755,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (TBC for configs other than two) (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.1713055,5.3747405,3.4148105,3.875574],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        act_pos_align = np.array([[0,0,0,0],[5.1613015,5.408199,3.409473,3.8637095],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
         act_config = act_pos_align[config]
     
         # TTM1
@@ -1102,6 +1102,7 @@ class alignment:
                 on_destination = False
                 while not on_destination:
                     t_i = round(1000*time.time())
+                    time.sleep(0.100)
                     # Record actuator positions and photometric output ROI value
                     if sample:
                         act.append(self._get_actuator_pos(config))
@@ -1715,7 +1716,7 @@ class alignment:
         # Wait for the actuator to be ready
         on_destination = False
         while not on_destination:
-            # Printing status, state and saving position & time every 10 ms (=2xREDIS sampling)
+            # Printing status, state and saving position & time every 10 ms (=REDIS sampling)
             time.sleep(0.01)
             status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sState'])
             #print("Status:", status, "|| State:", state)
