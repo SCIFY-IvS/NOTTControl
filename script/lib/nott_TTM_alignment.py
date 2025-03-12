@@ -1102,12 +1102,11 @@ class alignment:
                 on_destination = False
                 while not on_destination:
                     t_i = round(1000*time.time())
-                    time.sleep(0.150)
                     # Record actuator positions and photometric output ROI value
                     if sample:
                         act.append(self._get_actuator_pos(config))
                         dt = round(1000*time.time()-t_i)
-                        roi.append(self._get_photo(1,t_i-t_sync,dt,config))
+                        roi.append(self._get_photo(1,t_i,dt,config,t_sync))
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
@@ -1225,11 +1224,11 @@ class alignment:
     # Scanning #
     ############    
 
-    def _get_noise(self,N,t,dt):
+    def _get_noise(self,N,t,dt,t_sync=0):
         '''
         Description
         -----------
-        Function returns the average noise value (=ROI9), derived from "N" exposures of duration "time" each.
+        Function returns the average noise value (=ROI9), derived from "N" exposures of duration "t" each.
         Shutters are not closed during this procedure.
         
         Parameters
@@ -1256,9 +1255,9 @@ class alignment:
         # Gathering five background exposures
         for j in range(0, N):
             t_start,t_stop = t,t+dt
-            # Retrieving REDIS data (with writing time - 110 ms - delay)
-            exp_av = get_field("roi9_avg",t_start,t_stop,True,110)
-            exp_full = get_field("roi9_avg",t_start,t_stop,False,110) 
+            # Retrieving REDIS data 
+            exp_av = get_field("roi9_avg",t_start,t_stop,True,t_sync)
+            exp_full = get_field("roi9_avg",t_start,t_stop,False,t_sync) 
             exps.append(exp_av[1])
         # Taking the std
         noise = exp_full.std(0)[1]
@@ -1267,11 +1266,11 @@ class alignment:
         
         return mean,noise
 
-    def _get_photo(self,N,t,dt,config):
+    def _get_photo(self,N,t,dt,config,t_sync=0):
         '''
         Description
         -----------
-        Function returns the average background value (=ROI9), derived from "N" exposures of duration "time" each.
+        Function returns the average background value (=ROI9), derived from "N" exposures of duration "t" each.
         Shutters are closed during this procedure.
         
         Parameters
@@ -1302,8 +1301,8 @@ class alignment:
         # Gathering five photometric exposures
         for j in range(0, N):
             t_start,t_stop = t,t+dt
-            # Retrieving REDIS data (with writing time - 110 ms - delay)
-            exps.append(get_field(fieldname,t_start,t_stop,True,110)[1])
+            # Retrieving REDIS data
+            exps.append(get_field(fieldname,t_start,t_stop,True,t_sync)[1])
         # Taking the mean
         photo = np.mean(exps)
         
@@ -1367,10 +1366,10 @@ class alignment:
         # Start time for initial exposure
         t_start = round(1000*time.time()-200)
         # Initial position noise measurement
-        mean,noise = self._get_noise(N,t_start,200)
+        mean,noise = self._get_noise(N,t_start,200,t_sync)
         print("Initial noise level (ROI9) : ", noise)
         # Initial position photometric output measurement 
-        photo_init = self._get_photo(N,t_start,200,config)
+        photo_init = self._get_photo(N,t_start,200,config,t_sync)
     
         if (photo_init-mean > 20):
             raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
@@ -1420,12 +1419,12 @@ class alignment:
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
-                # REDIS writing time sleep
-                time.sleep(0.110)
+                # Sleep for synchronization time, such that the data has been written to REDIS
+                time.sleep(t_sync)
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
-                for i in range(0,10): # Taking synchronization time into account
-                    photoconfigs[i] = self._get_photo(N,round(start_times[i]-t_sync),dt_sub,config)-photo_init
+                for i in range(0,10): 
+                    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config,t_sync)-photo_init
                 # Signal-to-noise ratios
                 SNR = photoconfigs/noise
                 print("Current photometric outputs : ", photoconfigs)
@@ -1516,9 +1515,9 @@ class alignment:
         t_start = round(1000*time.time()-200)
         # Initial position noise measurement
         time.sleep(0.200)
-        _,noise = self._get_noise(N,t_start,200)
+        _,noise = self._get_noise(N,t_start,200,t_sync)
         # Initial position photometric output measurement
-        photo_init = self._get_photo(N,t_start,200,config)
+        photo_init = self._get_photo(N,t_start,200,config,t_sync)
         # Adding to the stack of exposures
         exps.append((photo_init-photo_init)/noise)
     
