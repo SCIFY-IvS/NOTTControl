@@ -1103,14 +1103,14 @@ class alignment:
                 while not on_destination:
                     t_i = round(1000*time.time())
                     time.sleep(0.150)
-                    # Check whether actuator has finished motion
-                    status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                    on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                     # Record actuator positions and photometric output ROI value
                     if sample:
                         act.append(self._get_actuator_pos(config))
                         dt = round(1000*time.time()-t_i)
                         roi.append(self._get_photo(1,t_i-t_sync,dt,config))
+                    # Check whether actuator has finished motion
+                    status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
+                    on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                     
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-start_time,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
@@ -1205,6 +1205,8 @@ class alignment:
         valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
         t_start = None
         t_spent = None
+        act = []
+        roi = []
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
