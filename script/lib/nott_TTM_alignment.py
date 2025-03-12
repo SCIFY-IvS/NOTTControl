@@ -1007,7 +1007,7 @@ class alignment:
     
         return Valid,i,disp_copy
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample,t_sync=0):
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,t_sync=0):
         """
         Description
         -----------
@@ -1101,7 +1101,7 @@ class alignment:
                 # Wait for the actuator to be ready
                 on_destination = False
                 while not on_destination:
-                    t_i = time.time()
+                    t_i = round(1000*time.time())
                     time.sleep(0.150)
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
@@ -1109,7 +1109,7 @@ class alignment:
                     # Record actuator positions and photometric output ROI value
                     if sample:
                         act.append(self._get_actuator_pos(config))
-                        dt = time.time()-t_i
+                        dt = round(1000*time.time()-t_i)
                         roi.append(self._get_photo(1,t_i-t_sync,dt,config))
                     
                 ach_pos = self._get_actuator_pos(config)[i]
