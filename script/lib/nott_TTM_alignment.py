@@ -14,6 +14,7 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 # Imports
 from sympy import *
 import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import time
 from configparser import ConfigParser
@@ -1006,7 +1007,7 @@ class alignment:
     
         return Valid,i,disp_copy
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config):
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample,t_sync=0):
         """
         Description
         -----------
@@ -1019,9 +1020,6 @@ class alignment:
     
         Parameters
         ----------
-        config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)       
         init_pos : (1,4) numpy array of float values (mm)
             Positions from which the actuators should be moved.
         disp : (1,4) numpy array of float values (mm)
@@ -1031,6 +1029,13 @@ class alignment:
         pos_offset : (1,4) numpy array of float values (mm)
             offsets to be accounted for when moving.
             To be characterized on-bench.
+        config : single integer
+            Configuration number (= VLTI input beam) (0,1,2,3)
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)     
+        sample : single boolean
+            Whether to sample ROI and Actuator Positions throughout the motion.
+        t_sync : single integer
+            Synchronization time lag between ROI readout and Actuator Position readout in ms.
 
         Returns
         -------
@@ -1038,6 +1043,10 @@ class alignment:
             Time at which the movements started in ms.
         t_spent : single integer value
             Time spent for moving all four actuators in ms.
+        act : matrix of floats
+            Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
+        roi : list of floats
+            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion.
 
         """
         
@@ -1064,6 +1073,10 @@ class alignment:
         # Desired final positions
         final_pos = init_pos + disp
         
+        # Sampled actuator positions and ROI values
+        act = []
+        roi = []
+        
         # Looping over all four actuators
         t_start = round(1000*time.time())
         for i in range(0,4):
@@ -1088,22 +1101,30 @@ class alignment:
                 # Wait for the actuator to be ready
                 on_destination = False
                 while not on_destination:
-                    time.sleep(0.01)
+                    t_i = time.time()
+                    time.sleep(0.150)
+                    # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+                    # Record actuator positions and photometric output ROI value
+                    if sample:
+                        act.append(self._get_actuator_pos(config))
+                        dt = time.time()-t_i
+                        roi.append(self._get_photo(1,t_i-t_sync,dt,config))
+                    
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-start_time,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         t_end = round(1000*time.time()) 
         t_spent = round(t_end-t_start)
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return t_start,t_spent
+        return t_start,t_spent,act,roi
 
     ###################
     # Individual Step #
     ###################
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config):
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,t_sync=0):
         """
         Description
         -----------
@@ -1132,6 +1153,10 @@ class alignment:
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
+        sample : single boolean
+            Whether to sample ROI and Actuator Positions throughout the motion.
+        t_sync : single integer
+            Synchronization time lag between ROI readout and Actuator Position readout in ms.
 
         Returns
         -------
@@ -1139,6 +1164,10 @@ class alignment:
             Time at which the actuator motions commenced in ms.
         t_spent : single integer
             Time spent for moving all four actuators in ms.
+        act : matrix of floats
+            Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
+        roi : list of floats
+            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion.
 
         """
         
@@ -1186,9 +1215,9 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         if valid:
             pos_offset = self._actoffset(speeds,act_disp) 
-            t_start,t_spent = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
+            t_start,t_spent,act,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,t_sync)
         
-        return t_start,t_spent
+        return t_start,t_spent,act,roi
    
     ############
     # Scanning #
@@ -1278,7 +1307,7 @@ class alignment:
         
         return photo
 
-    def localization_spiral(self,sky,step,speed,t_sync,config):
+    def localization_spiral(self,sky,step,speed,config,t_sync=0):
         """
         Description
         -----------
@@ -1300,11 +1329,11 @@ class alignment:
         speed : single float value
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
-        t_sync : single integer value
-            Synchronization offsets (in ms) between REDIS and Lab pc.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
+        t_sync : single integer value
+            Synchronization offsets (in ms) between REDIS and Lab pc.
 
         Returns
         -------
@@ -1385,7 +1414,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
+                start_time,dt,_,_ = self.individual_step(True,sky,moves[move],speeds,config,False,t_sync)
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
@@ -1394,7 +1423,7 @@ class alignment:
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 for i in range(0,10): # Taking synchronization time into account
-                    photoconfigs[i] = self._get_photo(N,round(start_times[i]+t_sync),dt_sub,config)-photo_init
+                    photoconfigs[i] = self._get_photo(N,round(start_times[i]-t_sync),dt_sub,config)-photo_init
                 # Signal-to-noise ratios
                 SNR = photoconfigs/noise
                 print("Current photometric outputs : ", photoconfigs)
@@ -1421,14 +1450,14 @@ class alignment:
             
         return
 
-    def optimization_spiral(self,sky,step,speed,t_sync,config):
+    def optimization_spiral(self,sky,step,speed,config,t_sync=0):
         """
         Description
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane).
         The spiral is stopped once it has covered an area that is two steps wide in each direction (up,down,left,right).
         For each point along the spiral, the corresponding TTM configuration and camera average is stored.
-        The brightness-weighted TTM configuration is calculated and pushed to the bench by inducing the necessary actuator motion.
+        The TTM configuration, throughout the spiral, that reached maximal injection is pushed to the bench.
         
         Parameters
         ----------
@@ -1442,11 +1471,11 @@ class alignment:
         speed : single float value
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once optimal speed is obtained.
-        t_sync : single integer value
-            Synchronization offsets (in ms) between REDIS and Lab pc.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
+        t_sync : single integer value
+            Synchronization offsets (in ms) between REDIS and Lab pc.
 
         Remarks
         -------
@@ -1537,15 +1566,14 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time,dt = self.individual_step(True,sky,moves[move],speeds,config)
+                _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,t_sync)
                 # Storing camera value and TTM configuration
-                # 1) Camera value
-                photoconfig = self._get_photo(N,start_time+t_sync,dt,config)
-                # Adding to the stack of exposures
-                exps.append((photoconfig-photo_init)/noise)
-                # 2) Actuator configuration
-                act_curr = self._get_actuator_pos(config)
-                ACT.append(act_curr)
+                # 1) Saving photometric readout values (SNR) sampled throughout step
+                for j in range(0, len(rois)):
+                    exps.append((rois[j]-photo_init)/noise)
+                # 2) Saving actuator configurations sampled throughout step
+                for j in range(0, len(acts)):
+                    ACT.append(acts[j])
         
             # Setting up next move
             if move < 3:
@@ -1562,26 +1590,19 @@ class alignment:
         
             if (Nswitch % 2 == 0):
                 Nsteps += 1
-        
-        # Converting to weights
-        weights = np.exp(exps)
-        # Calculating the brightness-weighted configuration
-        weights_total = np.sum(weights)
     
-        # Brightness-weighting
-        ACT_final = np.array([0,0,0,0],dtype=np.float64)
-        for i in range(0, len(weights)):
-            ACT_final += (weights[i] / weights_total)*ACT[i]
+        # Maximal injection configuration
+        ACT_final = ACT[np.argmax(exps)]
         
         # Bringing the bench to the brightness-weighted final position
         act_curr = self._get_actuator_pos(config)
         act_disp = ACT_final-act_curr
         
-        speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
+        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized position.")
         # Carrying out the motion
-        _ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config)
+        _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
             
         return
     
