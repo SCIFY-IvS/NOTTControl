@@ -1372,7 +1372,7 @@ class alignment:
         # Initial position photometric output measurement 
         photo_init = self._get_photo(N,t_start,200,config,t_sync)
     
-        if (photo_init-mean > 20):
+        if (photo_init-mean > 100*noise):
             raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
                            
         #           x---x---x---x
@@ -1421,7 +1421,7 @@ class alignment:
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
                 # Sleep for synchronization time, such that the data has been written to REDIS
-                time.sleep(t_sync)
+                time.sleep(np.abs(t_sync*10**(-3)))
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 for i in range(0,10): 
