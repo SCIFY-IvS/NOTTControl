@@ -8,7 +8,6 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 """
 
 # TO DO: 
-# - Generalize class initialisation to prepare the actuators for each config (once more actuators are installed)
 # - Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed)
 
 # Imports
@@ -60,11 +59,11 @@ class alignment:
         Y = Shift in the y-direction, in the pupil plane (cold stop)
         x = Shift in the x-direction, in the image plane (chip input)
         y = Shift in the y-direction, in the image plane (chip input)
-        (a1X,a2X) = TTM1 X and TTM2 X angular offsets respectively.
-        (a1Y,a2Y) = TTM1 Y and TTM2 Y angular offsets respectively.
+        (a1X,a2X) = TTM1 X and TTM2 X angular offsets.
+        (a1Y,a2Y) = TTM1 Y and TTM2 Y angular offsets.
         Note : A TTM X angle should be interpreted as an angle about the X-axis.
                Therefore, a TTM X angle induces a positional Y shift & vice versa.
-        (D1,...,D8) = Inter-component distances traveled by the beam throughout the system
+        (D1,...,D8) = Distances traveled by the beam throughout the system, between components.
         di,dc = Injection & cold stop lens thicknesses
         P1 = Injection lens front surface optical power
         R1,R2,Rsl = OAP1,OAP2,Slicer curvature radii
@@ -72,17 +71,16 @@ class alignment:
         Description
         ----------
         The function does the following:
-            (1) Define Sympy symbols
-            (2) Define general component transformations
+            (1) Define Sympy symbols.
+            (2) Define general component transformations.
             (3) Chain together the transformations, encountered by a beam as it 
                 travels through NOTT. This procedure is done independently for the
-                transverse X and Y dimensions. The result are four equations, each linking
+                transverse X and Y dimensions. The result is four equations, each linking
                 one of (X,Y,x,y) to the relevant angular offsets (TTM Y for X/x-direction shifts & vice versa).
-            (4) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
-            (5) Defines matrix M and vector of symbolic shifts b. 
-                Defines vector N, which comprises the symbolic expressions for CS/IM shifts as a function of TTM angles in non-matrix form.
-                N = M*b
-            (6) Prepares all actuators for use
+            (4) Define vector N globally, comprising the four symbolic equations.
+            (5) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
+            (6) Define matrix M and vector of symbolic shifts b globally. 
+            (7) Prepare all actuators for use.
                    
         Defines
         -------
@@ -190,7 +188,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         '''
-        # Preparing actuators for use, only config 1 installed as of now.
+        # Preparing actuators for use
         print("Preparing actuators")
         # Retrieving OPCUA url from config.ini
         configpars = ConfigParser()
@@ -199,25 +197,28 @@ class alignment:
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
-        # Actuator names
-        act_names = ['NTTA'+str(2),'NTPA'+str(2),'NTTB'+str(2),'NTPB'+str(2)]
-        # Actuator motor objects
-        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[0],act_names[0])
-        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[1],act_names[1])
-        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[2],act_names[2])
-        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[3],act_names[3])
-        actuators = np.array([act1,act2,act3,act4])
-        # Resetting and initializing each actuator
-        for i in range(0,4):
-            actuators[i].reset()
-            time.sleep(1)
-            actuators[i].init()
-            # Wait for the actuator to be ready
-            ready = False
-            while not ready:
-                time.sleep(0.01)
-                substatus = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sSubstate'])
-                ready = (substatus[0] == 'READY')
+        
+        # Looping over all configurations
+        for j in range(1, 5):
+            # Actuator names
+            act_names = ['NTTA'+str(j),'NTPA'+str(j),'NTTB'+str(j),'NTPB'+str(j)]
+            # Actuator motor objects
+            act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[0],act_names[0])
+            act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[1],act_names[1])
+            act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[2],act_names[2])
+            act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[3],act_names[3])
+            actuators = np.array([act1,act2,act3,act4])
+            # Resetting and initializing each actuator
+            for i in range(0,4):
+                actuators[i].reset()
+                time.sleep(1)
+                actuators[i].init()
+                # Wait for the actuator to be ready
+                ready = False
+                while not ready:
+                    time.sleep(0.01)
+                    substatus = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sSubstate'])
+                    ready = (substatus[0] == 'READY')
         
         # Closing OPCUA connection
         opcua_conn.disconnect()
@@ -227,7 +228,7 @@ class alignment:
         Description
         -----------
         The function numerically evaluates the symbolic framework by input positional shifts (X,Y,x,y),
-        thus returning thereto necessary angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y).
+        returning thereto necessary angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y).
         
         Context
         -------
@@ -236,9 +237,9 @@ class alignment:
         Parameters
         ----------
         shifts : (1,4) numpy array of floats (mm)
-            User-desired positional shifts (X,Y,x,y) in cold stop (X,Y) and image (x,y) plane 
+            User-desired positional shifts (X,Y,x,y) in cold stop (X,Y) and image (x,y) plane.
         D : (1,8) numpy array of floats (mm)
-            Eight inter-component distance values (D1,...,D8) traveled by the reference beam 
+            Eight distance values (D1,...,D8) traveled by the reference beam between components.
         lam : single integer
             NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron)
         Do note : Distance grid Dgrid is simulated for the central wavelength in Zemax.
@@ -313,11 +314,11 @@ class alignment:
         Parameters
         ----------
         ttm_offsets : (1,4) numpy array of floats (rad)
-            User-desired TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y)
+            User-desired TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y).
         D : (1,8) numpy array of floats (mm)
-            Eight inter-component distance values (D1,...,D8) traveled by the reference beam 
+            Eight distance values (D1,...,D8) traveled by the reference beam between components.
         lam : single integer
-            NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron)
+            NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron).
         Do note : Distance grid Dgrid is simulated for the central wavelength in Zemax.
 
         Returns
@@ -355,9 +356,11 @@ class alignment:
         
         # Copy of symbolic framework
         Ncopy = self.N.copy()
+        
         # Substituting parameter values into the symbolic matrix
         subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_offsets[0]),(a1Y,ttm_offsets[1]),(a2X,ttm_offsets[2]),(a2Y,ttm_offsets[3])]
         shifts = np.array([Ncopy[0].subs(subspar),Ncopy[1].subs(subspar),Ncopy[2].subs(subspar),Ncopy[3].subs(subspar)],dtype=np.float64)
+        
         return shifts
     
     def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam=1,CS=True):
@@ -366,8 +369,8 @@ class alignment:
         -----------
         The function numerically evaluates the symbolic framework expression by substituting the input dTTM1X & dTTM1Y angular offsets.
         Then, the shifts (X,Y,x,y) are determined as a function of the remaining angular offsets (dTTM2X,dTTM2Y).
-        Based on parameter CS, a choice is made : if True, (dTTM2X,dTTM2Y) are determined such that (X,Y)=(0,0).
-                                                  if False, (dTTM2X,dTTM2Y) are determined such that (x,y)=(0,0).
+        Based on parameter CS, a choice is made : if True, (dTTM2X,dTTM2Y) are determined such that (X,Y)=(0,0) - fixed pupil position.
+                                                  if False, (dTTM2X,dTTM2Y) are determined such that (x,y)=(0,0) - fixed image position.
                                                   No non-trivial combination of (dTTM2X,dTTM2Y) exists that guarantees both.
                                                   
         Context
@@ -380,10 +383,10 @@ class alignment:
         ----------
         dTTM1X,dTTM1Y : two float values
             User-desired TTM1 angular offsets, calculated from desired on-sky angles by étendue conservation.
-        D : (1,8) numpy array of floats
-            Eight inter-component distance values (D1,...,D8) traveled by the reference beam (mm)
+        D : (1,8) numpy array of floats (mm)
+            Eight distance values (D1,...,D8) traveled by the reference beam between components.
         lam : single integer
-            NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron)
+            NOTT wavelength channel number (0 = 3.5 micron ; 1 = 3.8 micron ; 2 = 4.0 micron).
         Do note : Distance grid Dgrid is simulated for the central wavelength in Zemax.
         CS : boolean
             True (default) if the user wants a sky shift to keep the cold stop position unchanged.
@@ -436,7 +439,6 @@ class alignment:
         frame = Mcopy.inv()
         
         # Evaluating
-        a2X,a2Y = symbols('a_2^X a_2^Y')
         c = Matrix([dTTM1Y,dTTM1X,a2Y,a2X])
         
         # Sol contains (X,Y,x,y) pupil and image plane positions as a function of TTM2X and TTM2Y offsets
@@ -545,7 +547,7 @@ class alignment:
             TTM angles (TTM1X,TTM1Y,TTM2X,TTM2Y)
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 - in Garreau et al. 2024 - for reference)
 
         Returns
         -------
@@ -572,6 +574,14 @@ class alignment:
         -----------
         For given actuators speeds and displacements, linear interpolation of the closest four accuracy grid points is performed to 
         return an accuracy value for each of the four actuators.
+        
+        Auxiliary
+        ---------
+        accurgrid_pos : (1,11,11) numpy matrix of float values (mm)
+            Simulated accuracies (achieved minus imposed position, obtained using NTPB2) for positive displacements.
+        accurgrid_neg : (1,11,11) numpy matrix of float values (mm)
+            Simulated accuracies (achieved minus imposed position, obtained using NTPB2) for negative displacements.
+        disp_range and speed_range indicate the displacements and speeds by which these auxiliary accuracy grids were simulated.
         Parameters
         ----------
         speed : (1,4) numpy array of floats (mm/s)
@@ -599,8 +609,8 @@ class alignment:
             # Determining indices (i1,j1) of closest neighbouring grid point
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
-            i1 = sorted(range(len(disp_diff)), key=lambda sub: disp_diff[sub])[:1][0]
-            j1 = sorted(range(len(speed_diff)), key=lambda sub: speed_diff[sub])[:1][0]
+            i1 = np.argmin(disp_diff)
+            j1 = np.argmin(speed_diff)
             # Determining indices (i2,j2) of second closest neighbouring grid point
             if disp[i] > disp_range[i1]:
                 i2 = i1+1
@@ -647,8 +657,8 @@ class alignment:
         Parameters
         ----------
         config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
 
         Returns
         -------
@@ -693,6 +703,13 @@ class alignment:
         ---------
         d1_ca : TTM1 center-to-actuator distance (mm)
         d2_ca : TTM2 center-to-actuator distance (mm)
+
+        Remarks
+        -------
+        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
+                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
+        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
+                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
 
         Returns
         -------
@@ -743,6 +760,13 @@ class alignment:
         d1_ca : TTM1 center-to-actuator distance (mm)
         d2_ca : TTM2 center-to-actuator distance (mm)
 
+        Remarks
+        -------
+        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
+                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
+        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
+                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
+
         Returns
         -------
         pos : (1,4) numpy array of floats (mm)
@@ -787,22 +811,11 @@ class alignment:
             Initial (TTM1X,TTM1Y,TTM2X,TTM2Y) angular configuration.
         ttm_shifts : (1,4) numpy array of float values (radian)
             Angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) away from the initial configuration.
-        
-        Constants 
-        ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
 
-        Remarks
-        -------
-        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
-                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
-        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
-                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
         Returns
         -------
         displacements : (1,4) numpy array of float values (mm)
-            The actuator displacements (x1,x2,x3,x4) necessary to achieve the demanded angular offsets.
+            The actuator displacements (dx1,dx2,dx3,dx4) necessary to achieve the demanded angular offsets.
             dx1 : Displacement of the TTM1 actuator that is closest to the bench edge
             dx2 : Displacement of the TTM1 actuator that is furthest from the bench edge
             dx3 : Displacement of the TTM2 actuator whose motion is in the X plane, thus inducing TTM2 Y angles.
@@ -832,14 +845,14 @@ class alignment:
         Parameters
         ----------
         act_pos : (1,4) numpy array of floats (mm)
-            Absolute actuator positions.
+            Absolute actuator positions (x1,x2,x3,x4).
         act_disp : (1,4) numpy array of floats (mm)
-            Actuator displacements.
+            Actuator displacements (dx1,dx2,dx3,dx4).
 
         Returns
         -------
         ttm_shifts : (1,4) numpy array of floats (rad)
-            Induced TTM angular offsets 
+            Induced TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y).
 
         """
         # Final actuator positions
@@ -888,7 +901,7 @@ class alignment:
             (1) The final configuration would displace the beam off the slicer.
             (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution.
             --> In this case, the invalid displacements are not carried out, the others are.
-            (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve
+            (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges (6 mm) can achieve
             (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).
         Only a configuration that is not invalid in one of the four above ways will be considered as valid.
 
@@ -897,23 +910,23 @@ class alignment:
         bool_slicer : single Boolean
             see individual_step
         ttm_angles_final : (1,4) numpy array of float values (radian)
-            Final configuration of (TTM1X,TTM1Y,TTM2X,TTM2Y) angles
+            Final configuration of (TTM1X,TTM1Y,TTM2X,TTM2Y) angles.
         act_displacements : (1,4) numpy array of float values (mm)
-            Actuator displacements (dx1,dx2,dx3,dx4) necessary to go from TTM_init to TTM_final
+            Actuator displacements (dx1,dx2,dx3,dx4).
         act_pos : (1,4) numpy array of float values (mm)
-            Current absolute actuator positions (x1,x2,x3,x4) for the TTMs corresponding to beam "config"
+            Current absolute actuator positions (x1,x2,x3,x4) for the TTMs corresponding to beam "config".
         config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
 
         Returns
         -------
         Valid : A Boolean value denoting whether the final configurations is valid.
-                Boolean True = valid , Boolean False = invalid
+                True = valid , False = invalid
         i : a (1,4) numpy array of integers
             Indicates what conditions are violated by the configuration.
         disp_copy : (1,4) numpy array of floats
-            New displacements (replaced by zero where condition three is invalid)
+            New displacements (a displacement is replaced by zero where condition three is invalid)
 
         """
     
@@ -1011,7 +1024,8 @@ class alignment:
         """
         Description
         -----------
-        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam) by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
+        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam), initially at positions "init_pos",
+        by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
@@ -1028,22 +1042,21 @@ class alignment:
             Speeds by which the actuators should move.
         pos_offset : (1,4) numpy array of float values (mm)
             offsets to be accounted for when moving.
-            To be characterized on-bench.
         config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference)     
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).     
         sample : single boolean
             Whether to sample ROI and Actuator Positions throughout the motion.
-        t_sync : single integer
-            Synchronization time lag between ROI readout and Actuator Position readout in ms.
+        t_sync : single integer (ms)
+            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time).
 
         Returns
         -------
-        t_start : single integer value
-            Time at which the movements started in ms.
-        t_spent : single integer value
-            Time spent for moving all four actuators in ms.
-        act : matrix of floats
+        t_start_loop : single integer value (ms)
+            Time at which the movements started.
+        t_spent_loop : single integer value (ms)
+            Time spent for moving all four actuators.
+        act : matrix of floats (mm)
             Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
         roi : list of floats
             List of ROI photometric output values, for the specified config, sampled throughout the actuator motion.
@@ -1078,7 +1091,7 @@ class alignment:
         roi = []
         
         # Looping over all four actuators
-        t_start = round(1000*time.time())
+        t_start_loop = round(1000*time.time())
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
@@ -1095,30 +1108,39 @@ class alignment:
                 parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
                 method = parent.get_child("4:RPC_MoveAbs")
                 arguments = [final_pos_off[i], speeds[i]]
-                start_time = time.time()
+                t_start_iter = time.time()
                 parent.call_method(method, *arguments)
             
                 # Wait for the actuator to be ready
                 on_destination = False
                 while not on_destination:
-                    t_i = round(1000*time.time())
-                    time.sleep(0.100)
                     # Record actuator positions and photometric output ROI value
                     if sample:
+                        # Start time
+                        t_start_sample = round(1000*time.time())
+                        # How much time should one sample span (s)?
+                        dt_sample = 0.100
+                        # Note : actuator motion keeps proceeding while this algorithm sleeps.
+                        time.sleep(dt_sample//2)
+                        # Register current actuator positions in the middle of the frame.
                         act.append(self._get_actuator_pos(config))
-                        dt = round(1000*time.time()-t_i)
-                        roi.append(self._get_photo(1,t_i,dt,config,t_sync))
+                        time.sleep(dt_sample//2)
+                        # Spent time
+                        dt = round(1000*time.time()-t_start_sample)
+                        # Readout photometric ROI average of sample timeframe.
+                        roi.append(self._get_photo(1,t_start_sample,dt,config,t_sync))
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                     
                 ach_pos = self._get_actuator_pos(config)[i]
-                print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-start_time,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
-        t_end = round(1000*time.time()) 
-        t_spent = round(t_end-t_start)
+                print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-t_start_iter,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+        
+        t_end_loop = round(1000*time.time()) 
+        t_spent_loop = round(t_end_loop-t_start_loop)
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return t_start,t_spent,act,roi
+        return t_start_loop,t_spent_loop,act,roi
 
     ###################
     # Individual Step #
@@ -1139,32 +1161,32 @@ class alignment:
         Parameters
         ----------
         bool_slicer : single boolean
-            True : individual_step is called by a method that displaces the beam off the slicer (localization spiral)
-            False : individual_step is called by a method that should not displace the beam off the slicer (optimization)
+            True : individual_step is called by a method that displaces the beam off the slicer (localization spiral).
+            False : individual_step is called by a method that should not displace the beam off the slicer (optimization spiral).
         sky : single integer
-            sky == 0 : User specifies desired (dX,dY,dx,dy) shifts in the CS(X,Y) and IM(x,y) plane
+            sky == 0 : User specifies desired (dX,dY,dx,dy) shifts in the CS(X,Y) and IM(x,y) plane.
             sky == 1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the CS position fixed.
             sky == -1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the IM position fixed. 
-        steps : (1,4) numpy array of float values
-            sky == 0 : steps = (dX,dY,dx,dy)
-            sky != 0 : steps = (dskyX,dskyY,0,0)
-        speeds : (1,4) numpy array of float values
-            Speeds by which the actuators (1,2,3,4) will move (mm/s)
+        steps : (1,4) numpy array of float values 
+            sky == 0 : steps = (dX,dY,dx,dy). (mm)
+            sky != 0 : steps = (dskyX,dskyY,0,0). (rad)
+        speeds : (1,4) numpy array of float values (mm/s)
+            Speeds by which the actuators (1,2,3,4) will move.
         config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         sample : single boolean
             Whether to sample ROI and Actuator Positions throughout the motion.
-        t_sync : single integer
-            Synchronization time lag between ROI readout and Actuator Position readout in ms.
+        t_sync : single integer (ms)
+            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time).
 
         Returns
         -------
-        t_start : single integer
-            Time at which the actuator motions commenced in ms.
-        t_spent : single integer
-            Time spent for moving all four actuators in ms.
-        act : matrix of floats
+        t_start : single integer (ms)
+            Time at which the actuator motions commenced.
+        t_spent : single integer (ms)
+            Time spent for moving all four actuators.
+        act : matrix of floats (mm)
             Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
         roi : list of floats
             List of ROI photometric output values, for the specified config, sampled throughout the actuator motion.
@@ -1203,10 +1225,6 @@ class alignment:
     
         # Before imposing the displacements to the actuators, the state validity is checked.
         valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
-        t_start = None
-        t_spent = None
-        act = []
-        roi = []
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
@@ -1215,9 +1233,8 @@ class alignment:
                             "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
     
         # Only push actuator motion if it would yield a valid state
-        if valid:
-            pos_offset = self._actoffset(speeds,act_disp) 
-            t_start,t_spent,act,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,t_sync)
+        pos_offset = self._actoffset(speeds,act_disp) 
+        t_start,t_spent,act,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,t_sync)
         
         return t_start,t_spent,act,roi
    
@@ -1234,12 +1251,12 @@ class alignment:
         
         Parameters
         ----------
-        t : single integer
-            Start of timeframe in ms
-        dt : single integer
-            Duration of timeframe in ms
+        t : single integer (ms)
+            Start of timeframe.
+        dt : single integer (ms)
+            Duration of timeframe.
         N : single integer
-            Amount of exposures
+            Amount of exposures.
 
         Returns
         -------
@@ -1276,14 +1293,14 @@ class alignment:
         
         Parameters
         ----------
-        t : single integer
-            Start of timeframe in ms
-        dt : single integer
-            Duration of timeframe in ms
+        t : single integer (ms)
+            Start of timeframe.
+        dt : single integer (ms)
+            Duration of timeframe.
         N : single integer
-            Amount of exposures
+            Amount of exposures.
         config : single integer
-            Configuration parameter
+            Configuration parameter.
 
         Returns
         -------
@@ -1314,7 +1331,7 @@ class alignment:
         Description
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane) to locate the internal beam / on-sky source.
-        Once a point in the spiral yields a camera average > 5 * Noise, the spiral is stopped.
+        Once a point in the spiral yields an improvement in the registered camera ROI average > 5 * Noise, the spiral is stopped.
         For on-sky spiralling, a time out is incorporated. Once the spiral arm reaches a dimension of 10*step, the spiralling procedure is quit.
         The purpose of this time out is to not allow for endless spiralling in an on-sky region that is nowhere near a source.
         
@@ -1332,10 +1349,10 @@ class alignment:
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
         config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
-        t_sync : single integer value
-            Synchronization offsets (in ms) between REDIS and Lab pc.
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
+        t_sync : single integer
+            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time) in ms.
 
         Returns
         -------
@@ -1364,17 +1381,40 @@ class alignment:
         # One measurement should consist of N exposures
         N = 1
         
+        # Exposure time for first exposure (ms)
+        dt_first = 200
         # Start time for initial exposure
-        t_start = round(1000*time.time()-200)
+        t_start = round(1000*time.time())
+        # Sleep
+        time.sleep(dt_first*10**(-3))
         # Initial position noise measurement
-        mean,noise = self._get_noise(N,t_start,200,t_sync)
+        mean,noise = self._get_noise(N,t_start,dt_first,t_sync)
         print("Initial noise level (ROI9) : ", noise)
         # Initial position photometric output measurement 
-        photo_init = self._get_photo(N,t_start,200,config,t_sync)
+        photo_init = self._get_photo(N,t_start,dt_first,config,t_sync)
+        print("Initial photometric output : ", photo_init)
+    
+        # Container for average SNR values (for spiraling plot)
+        dim = 11
+        SNR_av = np.zeros((dim,dim))
+        # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
+        indplot = np.array([dim//2,dim//2])
+        SNR_av[indplot[0]][indplot[1]] = 0
     
         if (photo_init-mean > 100*noise):
             raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
-                           
+        
+        # Plot
+        plt.ion()
+        fig, ax = plt.imshow(SNR_av)
+        # Remove tick labels
+        ax.axes.get_xaxis().set_ticks([])
+        ax.axes.get_yaxis().set_ticks([])
+        # Plotting SNR improvement values
+        ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][SNR_av[indplot[1]]],2),ha='center',va='center',fontsize=14)
+        # Title
+        fig.suptitle("Localization spiral", fontsize=24)
+                   
         #           x---x---x---x
         #           |           |
         #           x   x---x   x
@@ -1410,6 +1450,9 @@ class alignment:
         # Boundary stop condition for on-sky spiralling
         Nsteps_skyb = 10
         
+        # Plotting index change array
+        indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
+        
         while not stop:
         
             # Carrying out step(s)
@@ -1421,15 +1464,28 @@ class alignment:
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
                 # Sleep for synchronization time, such that the data has been written to REDIS
-                time.sleep(np.abs(t_sync*10**(-3)))
+                #time.sleep(np.abs(t_sync*10**(-3)))
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 for i in range(0,10): 
                     photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config,t_sync)-photo_init
                 # Signal-to-noise ratios
                 SNR = photoconfigs/noise
+                # Average SNR improvement of step
+                indplot += indplot_change[move]
+                SNR_av[indplot[0]][indplot[1]] = np.average(SNR)
+                
+                # Updating spiraling plot
+                fig.set_data(SNR_av)
+                # Update limits
+                fig.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
+                # Plotting SNR improvement values
+                ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][SNR_av[indplot[1]]],2),ha='center',va='center',fontsize=14)
+                plt.draw()
+                
                 print("Current photometric outputs : ", photoconfigs)
-                if (SNR > 5).any():
+                # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
+                if ((SNR > 5).sum() > 3):
                     print("A state of injection has been reached.")
                     print("Average SNR value : ", np.average(SNR[SNR>5]))
                     return
@@ -1458,26 +1514,26 @@ class alignment:
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane).
         The spiral is stopped once it has covered an area that is two steps wide in each direction (up,down,left,right).
-        For each point along the spiral, the corresponding TTM configuration and camera average is stored.
-        The TTM configuration, throughout the spiral, that reached maximal injection is pushed to the bench.
+        Along the spiral, corresponding actuator configurations and camera averages are retrieved via opcua and stored.
+        The actuator configuration, throughout the spiral, that reached maximal injection is pushed to the bench.
         
         Parameters
         ----------
         sky : single boolean
-            If True : spiral on-sky
-            If False : spiral in image plane
+            If True : spiral on-sky.
+            If False : spiral in image plane.
         step : single float value
             The dimension by which the spiral should make its steps.
             If sky == True : on-sky angular step (radian) 
             If sky == False : dummy parameter, 5 micron is taken by default.
         speed : single float value
-            Actuator speed by which a spiral step should occur
+            Actuator speed by which a spiral step should occur.
             Note: Parameter to be removed once optimal speed is obtained.
         config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3)
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference) 
-        t_sync : single integer value
-            Synchronization offsets (in ms) between REDIS and Lab pc.
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
+        t_sync : single integer
+            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time) in ms.
 
         Remarks
         -------
@@ -1512,13 +1568,16 @@ class alignment:
         # Actuator configs 
         ACT = []
         
+        # Exposure time for first exposure (ms)
+        dt_first = 200
         # Start time for initial exposure
-        t_start = round(1000*time.time()-200)
+        t_start = round(1000*time.time())
+        # Sleep
+        time.sleep(dt_first*10**(-3))
         # Initial position noise measurement
-        time.sleep(0.200)
-        _,noise = self._get_noise(N,t_start,200,t_sync)
+        _,noise = self._get_noise(N,t_start,dt_first,t_sync)
         # Initial position photometric output measurement
-        photo_init = self._get_photo(N,t_start,200,config,t_sync)
+        photo_init = self._get_photo(N,t_start,dt_first,config,t_sync)
         # Adding to the stack of exposures
         exps.append((photo_init-photo_init)/noise)
     
@@ -1723,9 +1782,9 @@ class alignment:
             on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
             #print(act_name+" pos: ", str(self._get_actuator_pos(config)[3])+" mm")
             # Save current time
-            time_arr.append(time.time())
+            #time_arr.append(time.time())
             # Save current position
-            pos_arr.append(self._get_actuator_pos(config)[3])
+            #pos_arr.append(self._get_actuator_pos(config)[3])
                 
         # Time spent
         end_time = time.time()
