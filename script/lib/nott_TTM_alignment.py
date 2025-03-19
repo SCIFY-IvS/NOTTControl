@@ -1115,19 +1115,20 @@ class alignment:
                 on_destination = False
                 while not on_destination:
                     # Record actuator positions and photometric output ROI value
+                    # Start time
+                    t_start_sample = round(1000*time.time())
+                    # How much time should one sample span (s)?
+                    dt_sample = 0.100
+                    # Note : actuator motion keeps proceeding while this algorithm sleeps.
+                    time.sleep(dt_sample/2)
+                    # Register current actuator positions in the middle of the frame.
                     if sample:
-                        # Start time
-                        t_start_sample = round(1000*time.time())
-                        # How much time should one sample span (s)?
-                        dt_sample = 0.100
-                        # Note : actuator motion keeps proceeding while this algorithm sleeps.
-                        time.sleep(dt_sample/2)
-                        # Register current actuator positions in the middle of the frame.
                         act.append(self._get_actuator_pos(config))
-                        time.sleep(dt_sample/2)
-                        # Spent time
-                        dt = round(1000*time.time()-t_start_sample)
-                        # Readout photometric ROI average of sample timeframe.
+                    time.sleep(dt_sample/2)
+                    # Spent time
+                    dt = round(1000*time.time()-t_start_sample)
+                    # Readout photometric ROI average of sample timeframe.
+                    if sample:
                         roi.append(self._get_photo(1,t_start_sample,dt,config,t_sync))
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
