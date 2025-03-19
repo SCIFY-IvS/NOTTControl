@@ -1382,7 +1382,7 @@ class alignment:
         # One measurement should consist of N exposures
         N = 1
         
-        # How much sub-exposures should have SNR > 5 for injection to be claimed?
+        # How much sub-exposures should have SNR > 5 for injection to be called?
         Ncrit = 1
         
         # Exposure time for first exposure (ms)
@@ -1420,6 +1420,22 @@ class alignment:
         # Title
         fig.suptitle("Localization spiral", fontsize=24)
         plt.show()
+        
+        def _update_plot(val):    
+            # Plotting index change array
+            indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
+            # Average SNR improvement of step
+            indplot += indplot_change[move]
+            SNR_av[indplot[0]][indplot[1]] = val
+            # Updating spiraling plot
+            img.set_data(SNR_av)
+            # Update limits
+            img.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
+            # Plotting SNR improvement values
+            ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
+            plt.draw()
+            plt.show()
+            return
                    
         #           x---x---x---x
         #           |           |
@@ -1456,9 +1472,6 @@ class alignment:
         # Boundary stop condition for on-sky spiralling
         Nsteps_skyb = 10
         
-        # Plotting index change array
-        indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
-        
         while not stop:
         
             # Carrying out step(s)
@@ -1483,34 +1496,12 @@ class alignment:
                 if ((SNR > 5).sum() > Ncrit):
                     print("A state of injection has been reached.")
                     print("Average SNR improvement value : ", np.average(SNR[SNR>5]))
-                    
-                    # Average SNR improvement of step
-                    indplot += indplot_change[move]
-                    SNR_av[indplot[0]][indplot[1]] = np.average(SNR[SNR>5])
-                
-                    # Updating spiraling plot
-                    img.set_data(SNR_av)
-                    # Update limits
-                    img.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
-                    # Plotting SNR improvement values
-                    ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
-                    plt.draw()
-                    plt.show()
-                    
+                    # Update plot
+                    self._update_plot(np.max(SNR))
                     return
                 
-                # Average SNR improvement of step
-                indplot += indplot_change[move]
-                SNR_av[indplot[0]][indplot[1]] = np.average(SNR)
-                
-                # Updating spiraling plot
-                img.set_data(SNR_av)
-                # Update limits
-                img.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
-                # Plotting SNR improvement values
-                ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
-                plt.draw()
-                plt.show()
+                # Update plot
+                self._update_plot(np.average(SNR))
                 
             # Setting up next move
             if move < 3:
@@ -1626,6 +1617,22 @@ class alignment:
         # Title
         fig.suptitle("Optimization spiral", fontsize=24)
         plt.show()
+        
+        def _update_plot(val):    
+            # Plotting index change array
+            indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
+            # Average SNR improvement of step
+            indplot += indplot_change[move]
+            SNR_max[indplot[0]][indplot[1]] = val
+            # Updating spiraling plot
+            img.set_data(SNR_max)
+            # Update limits
+            img.set_clim(vmin=SNR_max.min(), vmax=SNR_max.max())
+            # Plotting SNR improvement values
+            ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
+            plt.draw()
+            plt.show()
+            return
     
         #                          STOP
         #                           x
@@ -1680,19 +1687,8 @@ class alignment:
                 # 2) Saving actuator configurations sampled throughout step
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
-        
-                # Maximal SNR improvement (of 100 ms timeframes sampled throughout the step)
-                indplot += indplot_change[move]
-                SNR_max[indplot[0]][indplot[1]] = np.max((rois-photo_init)/noise)
-                
-                # Updating spiraling plot
-                img.set_data(SNR_max)
-                # Update limits
-                img.set_clim(vmin=SNR_max.min(), vmax=SNR_max.max())
-                # Plotting SNR improvement values
-                ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
-                plt.draw()
-                plt.show()
+                # Updating plot
+                self._update_plot(np.max((rois-photo_init)/noise))
         
             # Setting up next move
             if move < 3:
