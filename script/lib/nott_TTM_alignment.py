@@ -1407,7 +1407,8 @@ class alignment:
         
         # Plot
         plt.ion()
-        fig, ax = plt.imshow(SNR_av)
+        fig,ax = plt.subplots()
+        img = ax.imshow(SNR_av)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1484,9 +1485,9 @@ class alignment:
                     SNR_av[indplot[0]][indplot[1]] = np.average(SNR[SNR>5])
                 
                     # Updating spiraling plot
-                    fig.set_data(SNR_av)
+                    img.set_data(SNR_av)
                     # Update limits
-                    fig.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
+                    img.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
                     # Plotting SNR improvement values
                     ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                     plt.draw()
@@ -1498,9 +1499,9 @@ class alignment:
                 SNR_av[indplot[0]][indplot[1]] = np.average(SNR)
                 
                 # Updating spiraling plot
-                fig.set_data(SNR_av)
+                img.set_data(SNR_av)
                 # Update limits
-                fig.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
+                img.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
                 # Plotting SNR improvement values
                 ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                 plt.draw()
@@ -1609,7 +1610,8 @@ class alignment:
     
         # Plot
         plt.ion()
-        fig, ax = plt.imshow(SNR_max)
+        fig,ax = plt.subplots()
+        img = ax.imshow(SNR_av)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1677,9 +1679,9 @@ class alignment:
                 SNR_max[indplot[0]][indplot[1]] = np.max((rois-photo_init)/noise)
                 
                 # Updating spiraling plot
-                fig.set_data(SNR_max)
+                img.set_data(SNR_max)
                 # Update limits
-                fig.set_clim(vmin=SNR_max.min(), vmax=SNR_max.max())
+                img.set_clim(vmin=SNR_max.min(), vmax=SNR_max.max())
                 # Plotting SNR improvement values
                 ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                 plt.draw()
