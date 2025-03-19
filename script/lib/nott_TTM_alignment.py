@@ -1416,6 +1416,7 @@ class alignment:
         ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
         fig.suptitle("Localization spiral", fontsize=24)
+        fig.show()
                    
         #           x---x---x---x
         #           |           |
