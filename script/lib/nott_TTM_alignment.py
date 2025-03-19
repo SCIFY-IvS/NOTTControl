@@ -1111,12 +1111,14 @@ class alignment:
                 t_start_iter = time.time()
                 parent.call_method(method, *arguments)
             
+                # Start time
+                t_start_sample = round(1000*time.time())
+                # Camera-to-redis writing time
+                time.sleep(0.100)
                 # Wait for the actuator to be ready
                 on_destination = False
                 while not on_destination:
                     # Record actuator positions and photometric output ROI value
-                    # Start time
-                    t_start_sample = round(1000*time.time())
                     # How much time should one sample span (s)?
                     dt_sample = 0.100
                     # Note : actuator motion keeps proceeding while this algorithm sleeps.
@@ -1126,10 +1128,11 @@ class alignment:
                         act.append(self._get_actuator_pos(config))
                     time.sleep(dt_sample/2)
                     # Spent time
-                    dt = round(1000*time.time()-t_start_sample)
+                    dt = round(1000*time.time()-t_start_sample-100)
                     # Readout photometric ROI average of sample timeframe.
                     if sample:
                         roi.append(self._get_photo(1,t_start_sample,dt,config,t_sync))
+                        t_start_sample += dt
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
@@ -1713,7 +1716,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)
         act_disp = ACT_final-act_curr
         
-        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
+        speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized position.")
         # Carrying out the motion
