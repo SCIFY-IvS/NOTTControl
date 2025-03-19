@@ -197,7 +197,7 @@ class alignment:
         This function quantifies that delay. 
         Do note that the lab pc timestamps and redis timestamps agree.
         For example, if you ask for ROI values from "now" to "500 ms ago", the time series you receive will start at the right timestamp, i.e. "500 ms ago".
-        You will however only receive the first 250 ms of your requested range, the range does not span all the way to "now" due to the redis writing delay.
+        You will however only receive the first, say, 250 ms of your requested range, the range does not span all the way to "now" due to the redis writing delay.
         
         Defines
         -------
@@ -1155,26 +1155,24 @@ class alignment:
                 while not (on_destination and caught_up):
                     # Record actuator positions and photometric output ROI value
                     # How much time should one sample span (s)?
-                    dt_sample = 0.100
+                    dt_sample = 0.050
                     # Note : actuator motion keeps proceeding while this algorithm sleeps.
-                    time.sleep(dt_sample/2)
-                    # Register current actuator positions in the middle of the frame.
+                    time.sleep(dt_sample)
                     if sample:
                         act.append(self._get_actuator_pos(config))
-                    time.sleep(dt_sample/2)
                     # Spent time
                     dt = round(1000*time.time()-t_start_sample-self.delay-50)
                     # Readout photometric ROI average of sample timeframe.
                     if sample:
                         roi.append(self._get_photo(1,t_start_sample,dt,config,t_sync))
-                        t_start_sample += dt
+                        t_start_sample += round(1000*time.time()-t_start_sample-self.delay-50)
                     if not on_destination:
                         t_act_arrival = round(1000*time.time())
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                     # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
-                    # We have to make the sampling catchup before exiting the while loop
+                    # We have to make the sampling catchup (i.e. register the final samples of the actuator motion) before exiting the while loop
                     if on_destination and sample:
                         caught_up = (round(1000*time.time())-t_act_arrival > self.delay+50)
                     
@@ -1757,7 +1755,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)
         act_disp = ACT_final-act_curr
         
-        speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
+        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized position.")
         # Carrying out the motion
