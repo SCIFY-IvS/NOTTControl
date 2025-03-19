@@ -1121,10 +1121,10 @@ class alignment:
                         # How much time should one sample span (s)?
                         dt_sample = 0.100
                         # Note : actuator motion keeps proceeding while this algorithm sleeps.
-                        time.sleep(dt_sample//2)
+                        time.sleep(dt_sample/2)
                         # Register current actuator positions in the middle of the frame.
                         act.append(self._get_actuator_pos(config))
-                        time.sleep(dt_sample//2)
+                        time.sleep(dt_sample/2)
                         # Spent time
                         dt = round(1000*time.time()-t_start_sample)
                         # Readout photometric ROI average of sample timeframe.
@@ -1411,7 +1411,7 @@ class alignment:
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
         # Plotting SNR improvement values
-        ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][SNR_av[indplot[1]]],2),ha='center',va='center',fontsize=14)
+        ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
         fig.suptitle("Localization spiral", fontsize=24)
                    
@@ -1471,6 +1471,27 @@ class alignment:
                     photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config,t_sync)-photo_init
                 # Signal-to-noise ratios
                 SNR = photoconfigs/noise
+                
+                print("Current photometric outputs : ", photoconfigs)
+                # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
+                if ((SNR > 5).sum() > 3):
+                    print("A state of injection has been reached.")
+                    print("Average SNR value : ", np.average(SNR[SNR>5]))
+                    
+                    # Average SNR improvement of step
+                    indplot += indplot_change[move]
+                    SNR_av[indplot[0]][indplot[1]] = np.average(SNR[SNR>5])
+                
+                    # Updating spiraling plot
+                    fig.set_data(SNR_av)
+                    # Update limits
+                    fig.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
+                    # Plotting SNR improvement values
+                    ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
+                    plt.draw()
+                    
+                    return
+                
                 # Average SNR improvement of step
                 indplot += indplot_change[move]
                 SNR_av[indplot[0]][indplot[1]] = np.average(SNR)
@@ -1480,15 +1501,8 @@ class alignment:
                 # Update limits
                 fig.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
                 # Plotting SNR improvement values
-                ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][SNR_av[indplot[1]]],2),ha='center',va='center',fontsize=14)
+                ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                 plt.draw()
-                
-                print("Current photometric outputs : ", photoconfigs)
-                # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
-                if ((SNR > 5).sum() > 3):
-                    print("A state of injection has been reached.")
-                    print("Average SNR value : ", np.average(SNR[SNR>5]))
-                    return
                 
             # Setting up next move
             if move < 3:
@@ -1585,6 +1599,24 @@ class alignment:
         act_curr = self._get_actuator_pos(config)
         ACT.append(act_curr)
     
+        # Container for average SNR values (for spiraling plot)
+        dim = 7
+        SNR_max = np.zeros((dim,dim))
+        # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
+        indplot = np.array([dim//2,dim//2])
+        SNR_max[indplot[0]][indplot[1]] = 0
+    
+        # Plot
+        plt.ion()
+        fig, ax = plt.imshow(SNR_max)
+        # Remove tick labels
+        ax.axes.get_xaxis().set_ticks([])
+        ax.axes.get_yaxis().set_ticks([])
+        # Plotting SNR improvement values
+        ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
+        # Title
+        fig.suptitle("Optimization spiral", fontsize=24)
+    
         #                          STOP
         #                           x
         #                           |
@@ -1621,6 +1653,9 @@ class alignment:
         # How much consequent moves are being made in a direction at the moment?
         Nsteps = 1
     
+        # Plotting index change array
+        indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
+    
         while not stop:
         
             # Carrying out step(s)
@@ -1635,6 +1670,18 @@ class alignment:
                 # 2) Saving actuator configurations sampled throughout step
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
+        
+                # Maximal SNR improvement (of 100 ms timeframes sampled throughout the step)
+                indplot += indplot_change[move]
+                SNR_max[indplot[0]][indplot[1]] = np.max((rois-photo_init)/noise)
+                
+                # Updating spiraling plot
+                fig.set_data(SNR_max)
+                # Update limits
+                fig.set_clim(vmin=SNR_max.min(), vmax=SNR_max.max())
+                # Plotting SNR improvement values
+                ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
+                plt.draw()
         
             # Setting up next move
             if move < 3:
@@ -1695,7 +1742,7 @@ class alignment:
         # Reopening
         all_shutters_open(4)
         
-        # Readout 100 ms back in time
+        # Readout 500 ms back in time
         t_start,t_stop = define_time(0.500) 
         # Current position noise measurement
         noise = get_field("roi9_avg",t_start,t_stop,True)[1] # Index 1 to get the temporal mean of spatial mean roi9_avg
@@ -1780,7 +1827,7 @@ class alignment:
             status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sState'])
             #print("Status:", status, "|| State:", state)
             on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-            #print(act_name+" pos: ", str(self._get_actuator_pos(config)[3])+" mm")
+            #print(act_name+" pos: ", str(self._get_actuator_pos(config)[act_index])+" mm")
             # Save current time
             #time_arr.append(time.time())
             # Save current position
@@ -1790,7 +1837,7 @@ class alignment:
         end_time = time.time()
         spent_time = end_time-start_time
         # ACTUAL Position achieved
-        final_pos = self._get_actuator_pos(config)[3]
+        final_pos = self._get_actuator_pos(config)[act_index]
         print("----------------------------------------------------------------------------------------------------------------------------")
         print("Moving actuator "+act_name+" from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
         print("Actual actuator position reached :"+str(final_pos)+" mm")
@@ -1857,7 +1904,7 @@ class alignment:
             if act_names[i] == act_name:
                 act_index = i
         
-        # Bring actuator to middle of range
+        # Bring actuator to middle of range (x=3mm)
         init_pos = self._get_actuator_pos(config)[act_index]
         init_disp = 3 - init_pos
         _ = self.act_response_test_single(init_disp,0.1,act_name,False)
@@ -1872,14 +1919,14 @@ class alignment:
             disp = act_displacements[i] #mm
             speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
-                acc_arr,time_arr,pos_arr = self.act_response_test_single(act_displacements[i],speeds[j],act_name,offset)
+                acc_arr,time_arr,pos_arr = self.act_response_test_single(disp,speeds[j],act_name,offset)
                 matrix_acc[0][i][j] = acc_arr[0]
-                matrix_acc[1][i][j] = acc_arr[2]-acc_arr[1]
+                act_acc = acc_arr[2]-acc_arr[1]
+                matrix_acc[1][i][j] = act_acc
                 times.append(time_arr)
                 positions.append(pos_arr)
                 
                 # Calculating ttm shift accuracy from actuator displacement accuracy
-                act_acc = acc_arr[2]-acc_arr[1]
                 curr_pos = self._get_actuator_pos(config)
                 act_disp = np.array([0,0,0,act_acc],dtype=np.float64)
                 
@@ -1915,7 +1962,7 @@ class alignment:
         init_pos = self._get_actuator_pos(config)[act_index]
         init_disp = 3 - init_pos
         _ = self.act_response_test_single(init_disp,0.1,act_name,False)
-        # Matrix containing time spent moving actuators, backlash (final pos - initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
+        # Matrix containing time spent moving actuators, backlash (final pos-initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
         matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
@@ -1925,9 +1972,9 @@ class alignment:
                 # Current position
                 init_pos = self._get_actuator_pos(config)[act_index]
                 # Step 1
-                arr1,_,_ = self.act_response_test_single(act_displacements[i],speeds[j],act_name,True)
+                arr1,_,_ = self.act_response_test_single(disp,speeds[j],act_name,True)
                 # Step 2
-                arr2,_,_ = self.act_response_test_single(-act_displacements[i],speeds[j],act_name,True)
+                arr2,_,_ = self.act_response_test_single(-disp,speeds[j],act_name,True)
                 # Final achieved position
                 final_pos = arr2[2]
                 # Backlash
