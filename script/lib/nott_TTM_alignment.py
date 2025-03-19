@@ -1382,6 +1382,9 @@ class alignment:
         # One measurement should consist of N exposures
         N = 1
         
+        # How much sub-exposures should have SNR > 5 for injection to be claimed?
+        Ncrit = 1
+        
         # Exposure time for first exposure (ms)
         dt_first = 200
         # Start time for initial exposure
@@ -1416,7 +1419,7 @@ class alignment:
         ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
         fig.suptitle("Localization spiral", fontsize=24)
-        fig.show()
+        plt.show()
                    
         #           x---x---x---x
         #           |           |
@@ -1477,9 +1480,9 @@ class alignment:
                 
                 print("Current photometric outputs : ", photoconfigs)
                 # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
-                if ((SNR > 5).sum() > 3):
+                if ((SNR > 5).sum() > Ncrit):
                     print("A state of injection has been reached.")
-                    print("Average SNR value : ", np.average(SNR[SNR>5]))
+                    print("Average SNR improvement value : ", np.average(SNR[SNR>5]))
                     
                     # Average SNR improvement of step
                     indplot += indplot_change[move]
@@ -1492,6 +1495,7 @@ class alignment:
                     # Plotting SNR improvement values
                     ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                     plt.draw()
+                    plt.show()
                     
                     return
                 
@@ -1506,6 +1510,7 @@ class alignment:
                 # Plotting SNR improvement values
                 ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                 plt.draw()
+                plt.show()
                 
             # Setting up next move
             if move < 3:
@@ -1612,7 +1617,7 @@ class alignment:
         # Plot
         plt.ion()
         fig,ax = plt.subplots()
-        img = ax.imshow(SNR_av)
+        img = ax.imshow(SNR_max)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1620,6 +1625,7 @@ class alignment:
         ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
         fig.suptitle("Optimization spiral", fontsize=24)
+        plt.show()
     
         #                          STOP
         #                           x
@@ -1686,6 +1692,7 @@ class alignment:
                 # Plotting SNR improvement values
                 ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
                 plt.draw()
+                plt.show()
         
             # Setting up next move
             if move < 3:
