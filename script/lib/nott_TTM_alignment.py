@@ -88,6 +88,7 @@ class alignment:
         M : (4,4) matrix of symbolic Sympy expressions
         N : (1,4) matrix of symbolic Sympy expressions
         b : (4,1) matrix of symbolic Sympy expressions
+        delay : single integer quantifying the redis writing delay of the Infratec camera
                    
         """
         print("Defining symbolic framework...")
@@ -187,6 +188,32 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
+        
+        # Defining the delay time
+        '''
+        Description
+        -----------
+        There is a delay between the Infratec camera registering ROI outputs and sending them to the redis database.
+        This function quantifies that delay. 
+        Do note that the lab pc timestamps and redis timestamps agree.
+        For example, if you ask for ROI values from "now" to "500 ms ago", the time series you receive will start at the right timestamp, i.e. "500 ms ago".
+        You will however only receive the first 250 ms of your requested range, the range does not span all the way to "now" due to the redis writing delay.
+        
+        Defines
+        -------
+        t_delay : single integer, globally defined
+            Delay in ms.
+
+        '''
+        # Defining a python timeframe (1 second back in time)
+        t_start,t_stop = define_time(1)
+        # Retrieving the timestamps of redis data registered within this timeframe
+        t_redis = get_field("roi9_avg",t_start,t_stop,False)[:,0]
+        # Calculating the time delay (difference between requested end of timeframe and redis-registered end of timeframe)
+        t_delay = t_stop - t_redis[-1]
+        self.delay = t_delay
+        print("Registered redis writing delay (ms) : ", t_delay)
+        
         '''
         # Preparing actuators for use
         print("Preparing actuators")
@@ -1114,10 +1141,18 @@ class alignment:
                 # Start time
                 t_start_sample = round(1000*time.time())
                 # Camera-to-redis writing time
-                time.sleep(0.100)
+                time.sleep((self.delay+50)*10**(-3)) # 50 ms safety margin
+                # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
+                
                 # Wait for the actuator to be ready
                 on_destination = False
-                while not on_destination:
+                # Boolean checking whether the sampling has caught up with the camera-redis delay
+                if sample:
+                    caught_up = False
+                else:
+                    caught_up = True
+                    
+                while not (on_destination and caught_up):
                     # Record actuator positions and photometric output ROI value
                     # How much time should one sample span (s)?
                     dt_sample = 0.100
@@ -1128,14 +1163,20 @@ class alignment:
                         act.append(self._get_actuator_pos(config))
                     time.sleep(dt_sample/2)
                     # Spent time
-                    dt = round(1000*time.time()-t_start_sample-100)
+                    dt = round(1000*time.time()-t_start_sample-self.delay-50)
                     # Readout photometric ROI average of sample timeframe.
                     if sample:
                         roi.append(self._get_photo(1,t_start_sample,dt,config,t_sync))
                         t_start_sample += dt
+                    if not on_destination:
+                        t_act_arrival = round(1000*time.time())
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+                    # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
+                    # We have to make the sampling catchup before exiting the while loop
+                    if on_destination and sample:
+                        caught_up = (round(1000*time.time())-t_act_arrival > self.delay+50)
                     
                 ach_pos = self._get_actuator_pos(config)[i]
                 print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-t_start_iter,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
@@ -1393,7 +1434,7 @@ class alignment:
         # Start time for initial exposure
         t_start = round(1000*time.time())
         # Sleep
-        time.sleep(dt_first*10**(-3))
+        time.sleep((self.delay+50)*10**(-3))
         # Initial position noise measurement
         mean,noise = self._get_noise(N,t_start,dt_first,t_sync)
         print("Initial noise level (ROI9) : ", noise)
@@ -1485,8 +1526,8 @@ class alignment:
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
-                # Sleep for synchronization time, such that the data has been written to REDIS
-                #time.sleep(np.abs(t_sync*10**(-3)))
+                # Sleep for redis writing delay time
+                #time.sleep((self.delay+50)*10**(-3))
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 for i in range(0,10): 
@@ -1589,7 +1630,7 @@ class alignment:
         # Start time for initial exposure
         t_start = round(1000*time.time())
         # Sleep
-        time.sleep(dt_first*10**(-3))
+        time.sleep((self.delay+50)*10**(-3))
         # Initial position noise measurement
         _,noise = self._get_noise(N,t_start,dt_first,t_sync)
         # Initial position photometric output measurement
