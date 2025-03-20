@@ -1524,12 +1524,15 @@ class alignment:
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
-                # Sleep for redis writing delay time
-                #time.sleep((self.delay+50)*10**(-3))
                 # New position photometric output measurements (noise subtracted)
                 photoconfigs = np.array(np.zeros(10),dtype=np.float64)
+                # Keeping track of average
+                photo_av = 0
                 for i in range(0,10): 
                     photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config,t_sync)-photo_init
+                    photo_av += (photoconfigs[i] + photo_init)
+                # Replacing photo_init for next iteration
+                photo_init = photo_av / 10
                 # Signal-to-noise ratios
                 SNR = photoconfigs/noise
                 
@@ -1607,8 +1610,8 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
         
-        if (speed > 1.22*10**(-3) or speed <= 0):
-            raise ValueError("Given actuator speed is beyond the accepted range (0,1.22] um/s")
+        #if (speed > 1.22*10**(-3) or speed <= 0):
+        #    raise ValueError("Given actuator speed is beyond the accepted range (0,1.22] um/s")
         
         if sky : 
             d = step
