@@ -1240,7 +1240,7 @@ class alignment:
             #print("Step : (dX,dY,dx,dy) = ",shifts_par)
         else:
             TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
-            print("Step :  (dX,dY,dx,dy) = ",steps)
+            #print("Step :  (dX,dY,dx,dy) = ",steps)
         
         # Calculating the necessary actuator displacements
         act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
@@ -1539,12 +1539,9 @@ class alignment:
                 # 1) Saving photometric readout values (SNR) sampled throughout the step
                 for j in range(0, len(rois)):
                     exps.append((rois[j]-photo_init)/noise)
-                # Updating reference photometric output
-                #photo_init = np.average(rois)
                 # 2) Saving the actuator configurations sampled throughout the step
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
-                print("SNR values : ", exps)
                 
                 # Dividing timeframe into ten subportions
                 #start_times = np.linspace(start_time,start_time+9*dt/10,10)
@@ -1585,7 +1582,9 @@ class alignment:
                 
                 # Update plot
                 indplot = _update_plot(indplot,np.average(exps))
-                
+             
+            # Updating photometric output (increases with time)
+            photo_init = self._get_photo(N,round(1000*time.time()),1000,config)   
             # Setting up next move
             if move < 3:
                 move += 1
