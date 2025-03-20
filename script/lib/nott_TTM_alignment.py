@@ -1575,7 +1575,7 @@ class alignment:
         
                     speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
-                    print("Bringing to optimized position.")
+                    print("Bringing to optimized actuator position : ", np.max(exps), "SNR at ", act_curr+act_disp, " mm.")
                     # Carrying out the motion
                     _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,dt_sample)            
                     return
@@ -1587,7 +1587,7 @@ class alignment:
             t_start = round(1000*time.time())
             # Sleep
             time.sleep((t_delay)*10**(-3))
-            photo_init = self._get_photo(N,round(t_start,1000,config)   
+            photo_init = self._get_photo(N,t_start,1000,config) 
             # Setting up next move
             if move < 3:
                 move += 1
@@ -1799,7 +1799,7 @@ class alignment:
         
         speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
-        print("Bringing to optimized position.")
+        print("Bringing to optimized actuator position : ", np.max(exps), "SNR at ", act_curr+act_disp, " mm.")
         # Carrying out the motion
         _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,dt_sample)
             
