@@ -1146,10 +1146,10 @@ class alignment:
                     if sample:
                         roi.append(self._get_photo(1,t_start_sample,dt,config))
                         t_start_sample += round(1000*time.time()-t_start_sample-t_delay)
-                    if not on_destination:
-                        t_act_arrival = round(1000*time.time())
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
+                    if not on_destination:
+                        t_act_arrival = round(1000*time.time())
                     on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
                     # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
                     # We have to make the sampling catchup (i.e. register the final samples of the actuator motion) before exiting the while loop
@@ -1157,7 +1157,7 @@ class alignment:
                         caught_up = (round(1000*time.time())-t_act_arrival > t_delay)
                     
                 ach_pos = self._get_actuator_pos(config)[i]
-                print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-t_start_iter,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                #print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-t_start_iter,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
@@ -1237,7 +1237,7 @@ class alignment:
             dTTM1Y = TTM_angles[1]
             CSbool = (sky==1)
             TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
-            print("Step : (dX,dY,dx,dy) = ",shifts_par)
+            #print("Step : (dX,dY,dx,dy) = ",shifts_par)
         else:
             TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
             print("Step :  (dX,dY,dx,dy) = ",steps)
@@ -1544,7 +1544,8 @@ class alignment:
                 # 2) Saving the actuator configurations sampled throughout the step
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
-                    
+                print("SNR values : ", exps)
+                
                 # Dividing timeframe into ten subportions
                 #start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 #dt_sub = dt//10
