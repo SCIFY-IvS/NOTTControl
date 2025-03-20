@@ -1555,9 +1555,10 @@ class alignment:
                 #SNR = photoconfigs/noise
         
                 # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
-                if ((np.array(exps,dtype=np.float64)) > 5).sum() > Ncrit):
+                exps_arr = np.array(exps,dtype=np.float64)
+                if ((exps_arr > 5).sum() > Ncrit):
                     print("A state of injection has been reached.")
-                    print("Average SNR improvement value : ", np.average(exps[exps>5]))
+                    print("Average SNR improvement value : ", np.average(exps_arr[exps_arr>5]))
                     # Update plot
                     indplot = _update_plot(indplot,np.max(exps))
                     # Push bench to the configuration of optimal found injection.
