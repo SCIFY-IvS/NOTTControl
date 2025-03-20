@@ -25,6 +25,7 @@ import time
 from configparser import ConfigParser
 import logging
 import redis
+import random
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
@@ -1432,7 +1433,7 @@ class alignment:
         N = 1
         
         # How much samples of dt_sample should have a SNR improvement > 5 for injection to be called.
-        Ncrit = 1
+        Ncrit = 3
         
         # Delay time (+50ms safety margin)
         t_delay = self._get_delay()+50
@@ -2090,4 +2091,51 @@ class alignment:
                 matrix_acc[2:6,i,j] = shifts
             print(i)
         return matrix_acc
+    
+    def algorithm_test():
+        
+        def align(obj,config):
+            print("---------------------------------------------------------------------------")
+            print("Bring beam to state of injection")
+            print("---------------------------------------------------------------------------")
+            pos_arr = np.array([5.1613015,5.408199,3.409473,3.8637095],dtype=np.float64)
+            speed_arr = np.array([0.01,0.01,0.01/100,0.01/100],dtype=np.float64)
+            # Necessary Displacements for Alignment
+            curr_pos = obj._get_actuator_pos(config)
+            disp_arr = pos_arr-curr_pos
+            off = obj._actoffset(speed_arr,disp_arr)
+            obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config)
+            return
+        def kick_loc_opt(obj,config):
+            def rand_sign():
+                return 1 if random.random() < 0.5 else -1
+            dx=rand_sign()*random.uniform(20,50)*10**(-3)
+            dy=rand_sign()*random.uniform(20,50)*10**(-3)
+            print("Kicking the beam away from aligned state, by random \pm 50 um distances in image plane (dx,dy) = ", (dx,dy))
+            steps = np.array([0,0,dx,dy])
+            speed_arr = np.array([0.01,0.01,0.01/10,0.01/10],dtype=np.float64)
+            # Kick away
+            obj.individual_step(True,0,steps,speed_arr,1,False)
+            # Spiraling to return 
+            obj.localization_spiral(False,20,0.020,config,0.01)
+            obj.optimization_spiral(False,5,0.005,config,0.500)
+            obj.optimization_spiral(False,1,0.001,config,0.050)
+            return
+
+        # Configuration parameters
+        configpar = 1 # second beam
+        lamb = 1      # central wavelength
+        print("---------------------------------------------------------------------------")
+        print("Camera Readout")
+        print("---------------------------------------------------------------------------")
+        self.cam_read_test(configpar)
+        print("---------------------------------------------------------------------------")
+        print("Current Configuration")
+        print("---------------------------------------------------------------------------")
+        act_name='NTPB2'
+        curr_pos = self._get_actuator_pos(configpar)
+        print("Current actuator positions :", self._get_actuator_pos(configpar))
+        align(self,configpar)
+        kick_loc_opt(self,configpar)
+        
     
