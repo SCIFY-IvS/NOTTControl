@@ -1425,8 +1425,12 @@ class alignment:
         # One measurement should consist of N exposures
         N = 1
         
-        # How much sub-exposures should have SNR > 5 for injection to be called?
+        # How much samples of dt_sample should have a SNR improvement > 5 for injection to be called.
         Ncrit = 1
+        
+        # Exposures
+        exps = []
+        ACT = []
         
         # Delay time (+50ms safety margin)
         t_delay = self._get_delay()+50
@@ -1523,29 +1527,53 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time,dt,_,_ = self.individual_step(True,sky,moves[move],speeds,config,False,dt_sample,t_delay)
+                _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
+                
+                # Storing camera value and actuator configuration
+                # 1) Saving photometric readout values (SNR) sampled throughout the step
+                for j in range(0, len(rois)):
+                    exps.append((rois[j]-photo_init)/noise)
+                    # Updating reference photometric output
+                    photo_init = np.average(rois)
+                # 2) Saving the actuator configurations sampled throughout the step
+                for j in range(0, len(acts)):
+                    ACT.append(acts[j])
+                    
                 # Dividing timeframe into ten subportions
-                start_times = np.linspace(start_time,start_time+9*dt/10,10)
-                dt_sub = dt//10
+                #start_times = np.linspace(start_time,start_time+9*dt/10,10)
+                #dt_sub = dt//10
                 # New position photometric output measurements (noise subtracted)
-                photoconfigs = np.array(np.zeros(10),dtype=np.float64)
+                #photoconfigs = np.array(np.zeros(10),dtype=np.float64)
                 # Keeping track of average
-                photo_av = 0
-                for i in range(0,10): 
-                    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config)-photo_init
-                    photo_av += (photoconfigs[i] + photo_init)
+                #photo_av = 0
+                #for i in range(0,10): 
+                #    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config)-photo_init
+                #    photo_av += (photoconfigs[i] + photo_init)
                 # Replacing photo_init for next iteration
-                photo_init = photo_av / 10
+                #photo_init = photo_av / 10
                 # Signal-to-noise ratios
-                SNR = photoconfigs/noise
+                #SNR = photoconfigs/noise
                 
                 print("Current photometric outputs : ", photoconfigs)
                 # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
-                if ((SNR > 5).sum() > Ncrit):
+                if ((exps > 5).sum() > Ncrit):
                     print("A state of injection has been reached.")
                     print("Average SNR improvement value : ", np.average(SNR[SNR>5]))
                     # Update plot
                     indplot = _update_plot(indplot,np.max(SNR))
+                    # Push bench to the configuration of optimal found injection.
+                    # Maximal injection configuration
+                    ACT_final = ACT[np.argmax(exps)]
+            
+                    # Bringing the bench to the brightness-weighted final position
+                    act_curr = self._get_actuator_pos(config)
+                    act_disp = ACT_final-act_curr
+        
+                    speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
+                    pos_offset = self._actoffset(speeds,act_disp) 
+                    print("Bringing to optimized position.")
+                    # Carrying out the motion
+                    _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,dt_sample)            
                     return
                 
                 # Update plot
@@ -1719,10 +1747,7 @@ class alignment:
         Nswitch = 0
         # How much consequent moves are being made in a direction at the moment?
         Nsteps = 1
-    
-        # Plotting index change array
-        indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
-    
+
         while not stop:
         
             # Carrying out step(s)
@@ -1730,7 +1755,7 @@ class alignment:
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
-                # Storing camera value and TTM configuration
+                # Storing camera value and actuator configuration
                 # 1) Saving photometric readout values (SNR) sampled throughout step
                 for j in range(0, len(rois)):
                     exps.append((rois[j]-photo_init)/noise)
@@ -1763,7 +1788,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)
         act_disp = ACT_final-act_curr
         
-        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
+        speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized position.")
         # Carrying out the motion
