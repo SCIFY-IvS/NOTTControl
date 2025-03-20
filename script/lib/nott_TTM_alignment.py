@@ -1383,12 +1383,12 @@ class alignment:
         sky : single boolean
             If True : spiral by given dimension on-sky
             If False : spiral by given dimension in image plane
-        step : single float value
+        step : single float value (mm)
             The dimension by which the spiral should make its steps.
             If sky == True : on-sky angular step (radian) 
                             Note : It is recommended to take the apparent on-sky angular radius of the source as step.
             If sky == False : dummy parameter, 20 micron (waveguide dimension) is taken by default.
-        speed : single float value
+        speed : single float value (mm/s)
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
         config : single integer
@@ -1577,11 +1577,11 @@ class alignment:
         sky : single boolean
             If True : spiral on-sky.
             If False : spiral in image plane.
-        step : single float value
+        step : single float value (mm)
             The dimension by which the spiral should make its steps.
             If sky == True : on-sky angular step (radian) 
             If sky == False : dummy parameter, 5 micron is taken by default.
-        speed : single float value
+        speed : single float value (mm/s)
             Actuator speed by which a spiral step should occur.
             Note: Parameter to be removed once optimal speed is obtained.
         config : single integer
