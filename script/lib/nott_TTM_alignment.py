@@ -1021,7 +1021,7 @@ class alignment:
     
         return Valid,i,disp_copy
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0,t_delay=0):
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=10,t_delay=0):
         """
         Description
         -----------
@@ -1163,7 +1163,7 @@ class alignment:
     # Individual Step #
     ###################
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0,t_delay=0):
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=10,t_delay=0):
         """
         Description
         -----------
