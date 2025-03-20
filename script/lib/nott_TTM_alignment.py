@@ -1370,7 +1370,7 @@ class alignment:
         
         return photo
 
-    def localization_spiral(self,sky,step,speed,config,dt_sample=0):
+    def localization_spiral(self,sky,step,speed,config,dt_sample):
         """
         Description
         -----------
@@ -1554,13 +1554,13 @@ class alignment:
                 # Signal-to-noise ratios
                 #SNR = photoconfigs/noise
                 
-                print("Current photometric outputs : ", photoconfigs)
+                print("Current photometric outputs : ", exps)
                 # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
                 if ((exps > 5).sum() > Ncrit):
                     print("A state of injection has been reached.")
-                    print("Average SNR improvement value : ", np.average(SNR[SNR>5]))
+                    print("Average SNR improvement value : ", np.average(exps[exps>5]))
                     # Update plot
-                    indplot = _update_plot(indplot,np.max(SNR))
+                    indplot = _update_plot(indplot,np.max(exps))
                     # Push bench to the configuration of optimal found injection.
                     # Maximal injection configuration
                     ACT_final = ACT[np.argmax(exps)]
