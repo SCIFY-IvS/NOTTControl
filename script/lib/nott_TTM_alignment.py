@@ -1778,7 +1778,7 @@ class alignment:
                 move = 0
             
             # Stop condition
-            if (Nsteps == 5):
+            if (Nsteps == 3):
                 stop = True
             
             # Counting the amount of performed move type switches
