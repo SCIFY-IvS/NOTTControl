@@ -1553,10 +1553,9 @@ class alignment:
                 #photo_init = photo_av / 10
                 # Signal-to-noise ratios
                 #SNR = photoconfigs/noise
-                
-                print("Current photometric outputs : ", exps)
+        
                 # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
-                if ((exps > 5).sum() > Ncrit):
+                if ((np.array(exps,dtype=np.float64)) > 5).sum() > Ncrit):
                     print("A state of injection has been reached.")
                     print("Average SNR improvement value : ", np.average(exps[exps>5]))
                     # Update plot
@@ -1577,7 +1576,7 @@ class alignment:
                     return
                 
                 # Update plot
-                indplot = _update_plot(indplot,np.average(SNR))
+                indplot = _update_plot(indplot,np.average(exps))
                 
             # Setting up next move
             if move < 3:
