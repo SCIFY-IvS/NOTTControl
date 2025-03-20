@@ -1047,7 +1047,7 @@ class alignment:
     
         return Valid,i,disp_copy
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,t_sync=0):
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0):
         """
         Description
         -----------
@@ -1074,9 +1074,9 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).     
         sample : single boolean
             Whether to sample ROI and Actuator Positions throughout the motion.
-        t_sync : single integer (ms)
-            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time).
-
+        dt_sample : single float (s)
+            Amount of time a sample should span.
+            
         Returns
         -------
         t_start_loop : single integer value (ms)
@@ -1154,8 +1154,6 @@ class alignment:
                     
                 while not (on_destination and caught_up):
                     # Record actuator positions and photometric output ROI value
-                    # How much time should one sample span (s)?
-                    dt_sample = 0.050
                     # Note : actuator motion keeps proceeding while this algorithm sleeps.
                     time.sleep(dt_sample)
                     if sample:
@@ -1164,7 +1162,7 @@ class alignment:
                     dt = round(1000*time.time()-t_start_sample-self.delay-50)
                     # Readout photometric ROI average of sample timeframe.
                     if sample:
-                        roi.append(self._get_photo(1,t_start_sample,dt,config,t_sync))
+                        roi.append(self._get_photo(1,t_start_sample,dt,config))
                         t_start_sample += round(1000*time.time()-t_start_sample-self.delay-50)
                     if not on_destination:
                         t_act_arrival = round(1000*time.time())
@@ -1189,7 +1187,7 @@ class alignment:
     # Individual Step #
     ###################
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,t_sync=0):
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample):
         """
         Description
         -----------
@@ -1220,9 +1218,9 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         sample : single boolean
             Whether to sample ROI and Actuator Positions throughout the motion.
-        t_sync : single integer (ms)
-            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time).
-
+        dt_sample : single float (s)
+            Amount of time a sample should span.
+            
         Returns
         -------
         t_start : single integer (ms)
@@ -1277,7 +1275,7 @@ class alignment:
     
         # Only push actuator motion if it would yield a valid state
         pos_offset = self._actoffset(speeds,act_disp) 
-        t_start,t_spent,act,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,t_sync)
+        t_start,t_spent,act,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample)
         
         return t_start,t_spent,act,roi
    
@@ -1285,7 +1283,7 @@ class alignment:
     # Scanning #
     ############    
 
-    def _get_noise(self,N,t,dt,t_sync=0):
+    def _get_noise(self,N,t,dt):
         '''
         Description
         -----------
@@ -1317,8 +1315,8 @@ class alignment:
         for j in range(0, N):
             t_start,t_stop = t,t+dt
             # Retrieving REDIS data 
-            exp_av = get_field("roi9_avg",t_start,t_stop,True,t_sync)
-            exp_full = get_field("roi9_avg",t_start,t_stop,False,t_sync) 
+            exp_av = get_field("roi9_avg",t_start,t_stop,True)
+            exp_full = get_field("roi9_avg",t_start,t_stop,False) 
             exps.append(exp_av[1])
         # Taking the std
         noise = exp_full.std(0)[1]
@@ -1327,7 +1325,7 @@ class alignment:
         
         return mean,noise
 
-    def _get_photo(self,N,t,dt,config,t_sync=0):
+    def _get_photo(self,N,t,dt,config):
         '''
         Description
         -----------
@@ -1363,13 +1361,13 @@ class alignment:
         for j in range(0, N):
             t_start,t_stop = t,t+dt
             # Retrieving REDIS data
-            exps.append(get_field(fieldname,t_start,t_stop,True,t_sync)[1])
+            exps.append(get_field(fieldname,t_start,t_stop,True)[1])
         # Taking the mean
         photo = np.mean(exps)
         
         return photo
 
-    def localization_spiral(self,sky,step,speed,config,t_sync=0):
+    def localization_spiral(self,sky,step,speed,config,dt_sample=0):
         """
         Description
         -----------
@@ -1394,9 +1392,9 @@ class alignment:
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        t_sync : single integer
-            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time) in ms.
-
+        dt_sample : single float (s)
+            Amount of time a sample should span.
+            
         Returns
         -------
         None.
@@ -1434,10 +1432,10 @@ class alignment:
         # Sleep
         time.sleep((self.delay+50)*10**(-3))
         # Initial position noise measurement
-        mean,noise = self._get_noise(N,t_start,dt_first,t_sync)
+        mean,noise = self._get_noise(N,t_start,dt_first)
         print("Initial noise level (ROI9) : ", noise)
         # Initial position photometric output measurement 
-        photo_init = self._get_photo(N,t_start,dt_first,config,t_sync)
+        photo_init = self._get_photo(N,t_start,dt_first,config)
         print("Initial photometric output : ", photo_init)
     
         # Container for average SNR values (for spiraling plot)
@@ -1520,7 +1518,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                start_time,dt,_,_ = self.individual_step(True,sky,moves[move],speeds,config,False,t_sync)
+                start_time,dt,_,_ = self.individual_step(True,sky,moves[move],speeds,config,False,dt_sample)
                 # Dividing timeframe into ten subportions
                 start_times = np.linspace(start_time,start_time+9*dt/10,10)
                 dt_sub = dt//10
@@ -1529,7 +1527,7 @@ class alignment:
                 # Keeping track of average
                 photo_av = 0
                 for i in range(0,10): 
-                    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config,t_sync)-photo_init
+                    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config)-photo_init
                     photo_av += (photoconfigs[i] + photo_init)
                 # Replacing photo_init for next iteration
                 photo_init = photo_av / 10
@@ -1566,7 +1564,7 @@ class alignment:
             
         return
 
-    def optimization_spiral(self,sky,step,speed,config,t_sync=0):
+    def optimization_spiral(self,sky,step,speed,config,dt_sample):
         """
         Description
         -----------
@@ -1590,8 +1588,8 @@ class alignment:
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        t_sync : single integer
-            Synchronization time lag between ROI readout (redis server time) and actuator position readout (lab pc time) in ms.
+        dt_sample : single float (s)
+            Amount of time a sample should span.
 
         Remarks
         -------
@@ -1633,9 +1631,9 @@ class alignment:
         # Sleep
         time.sleep((self.delay+50)*10**(-3))
         # Initial position noise measurement
-        _,noise = self._get_noise(N,t_start,dt_first,t_sync)
+        _,noise = self._get_noise(N,t_start,dt_first)
         # Initial position photometric output measurement
-        photo_init = self._get_photo(N,t_start,dt_first,config,t_sync)
+        photo_init = self._get_photo(N,t_start,dt_first,config)
         # Adding to the stack of exposures
         exps.append((photo_init-photo_init)/noise)
     
@@ -1724,7 +1722,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
-                _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,t_sync)
+                _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample)
                 # Storing camera value and TTM configuration
                 # 1) Saving photometric readout values (SNR) sampled throughout step
                 for j in range(0, len(rois)):
@@ -1762,7 +1760,7 @@ class alignment:
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized position.")
         # Carrying out the motion
-        _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
+        _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,dt_sample)
             
         return
     
