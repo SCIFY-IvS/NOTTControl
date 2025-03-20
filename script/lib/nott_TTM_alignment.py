@@ -10,6 +10,12 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 # TO DO: 
 # - Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed)
 
+# Global variables (to be put into config file)
+
+# The photometric output should be more than fac_loc * noise (std) larger than the mean dark (roi9) level
+# for localization to be forbidden from starting.
+fac_loc = 100
+
 # Imports
 from sympy import *
 import numpy as np
@@ -1021,7 +1027,7 @@ class alignment:
     
         return Valid,i,disp_copy
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=10,t_delay=0):
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=0):
         """
         Description
         -----------
@@ -1117,7 +1123,7 @@ class alignment:
                 # Start time
                 t_start_sample = round(1000*time.time())
                 # Camera-to-redis writing time
-                time.sleep((t_delay)*10**(-3)) # 50 ms safety margin
+                time.sleep((t_delay)*10**(-3))
                 # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
                 
                 # Wait for the actuator to be ready
@@ -1163,7 +1169,7 @@ class alignment:
     # Individual Step #
     ###################
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=10,t_delay=0):
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0):
         """
         Description
         -----------
@@ -1428,14 +1434,10 @@ class alignment:
         # How much samples of dt_sample should have a SNR improvement > 5 for injection to be called.
         Ncrit = 1
         
-        # Exposures
-        exps = []
-        ACT = []
-        
         # Delay time (+50ms safety margin)
         t_delay = self._get_delay()+50
         # Exposure time for first exposure (ms)
-        dt_first = 200
+        dt_first = 1000
         # Start time for initial exposure
         t_start = round(1000*time.time())
         # Sleep
@@ -1454,7 +1456,7 @@ class alignment:
         indplot = np.array([dim//2,dim//2])
         SNR_av[indplot[0]][indplot[1]] = 0
     
-        if (photo_init-mean > 100*noise):
+        if (photo_init-mean > fac_loc*noise):
             raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
         
         # Plot
@@ -1529,12 +1531,16 @@ class alignment:
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64)
                 _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
                 
+                # Containers
+                exps = []
+                ACT = []
+                
                 # Storing camera value and actuator configuration
                 # 1) Saving photometric readout values (SNR) sampled throughout the step
                 for j in range(0, len(rois)):
                     exps.append((rois[j]-photo_init)/noise)
-                    # Updating reference photometric output
-                    photo_init = np.average(rois)
+                # Updating reference photometric output
+                #photo_init = np.average(rois)
                 # 2) Saving the actuator configurations sampled throughout the step
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
