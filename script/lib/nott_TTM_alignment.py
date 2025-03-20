@@ -1584,7 +1584,10 @@ class alignment:
                 indplot = _update_plot(indplot,np.average(exps))
              
             # Updating photometric output (increases with time)
-            photo_init = self._get_photo(N,round(1000*time.time()),1000,config)   
+            t_start = round(1000*time.time())
+            # Sleep
+            time.sleep((t_delay)*10**(-3))
+            photo_init = self._get_photo(N,round(t_start,1000,config)   
             # Setting up next move
             if move < 3:
                 move += 1
