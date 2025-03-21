@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from configparser import ConfigParser
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 
@@ -124,6 +125,11 @@ def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, re
 
 plt.ion()
 
+# Read config file
+config = configparser.ConfigParser()
+config.read('../cfg/config.cfg')
+
+
 P1='roi1_avg' # define all the ROI output
 P2='roi2_avg'
 I1='roi3_avg'
@@ -138,7 +144,7 @@ wav = 3.8 # in un
 
 # Loop over DL scanning iteration
 dl_id = 1#4
-speed = 0.02 #mm/s
+speed = config['cophasing']['dl_speed'] #mm/s
 speed0 = speed
 wait_time = 0.08 / speed * 2 # Time in sec to scan X times the coherent envelope
 grab_range = 0.08 / speed * 3 # Time in sec to scan X times the coherent envelope
