@@ -145,7 +145,7 @@ class InfratecInterface:
         if hirb.TIRBG_RetDef[res[0]]=='Success':
             return res[1]
         else:
-            raise Exception(hirb.TIRBG_RetDef[res])
+            raise Exception(hirb.TIRBG_RetDef[res[0]])
     
     def getparam_int32(self, number):
         res = self.irbgrab_object.getparam_int32(number)
