@@ -1338,7 +1338,7 @@ class alignment:
                 #--------#
                   
                 ach_pos = self._get_actuator_pos(config)[i]
-                #print("Moved actuator "+act_names[i]+"from"+str(init_pos[i])+ "to "+str(final_pos[i])+ "with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                #print("Moved actuator "+act_names[i]+"by a displacement"+str(disp*1000)+ "um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
@@ -1637,7 +1637,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
         
-                    speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
+                    speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -1862,7 +1862,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)
         # Necessary displacements
         act_disp = ACT_final-act_curr
-        speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
+        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
