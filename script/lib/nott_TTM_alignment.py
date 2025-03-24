@@ -39,9 +39,6 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 # I) Optimize efficiency based on previous two (decide on spiral steps&speeds) 
 # J) Write and run algorithm performance
 
-# Add the path to sys.path
-sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
-
 #---------#
 # Imports #
 #---------#
@@ -56,6 +53,9 @@ import sys
 import time
 from configparser import ConfigParser
 import logging
+
+# Add the path to sys.path
+sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 
 # OPCUA / redis
 import redis
