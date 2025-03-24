@@ -1338,7 +1338,7 @@ class alignment:
                 #--------#
                   
                 ach_pos = self._get_actuator_pos(config)[i]
-                #print("Moved actuator "+act_names[i]+" to "+str(final_pos[i])+" in " + str(np.round(time.time()-t_start_iter,2))+" seconds with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                #print("Moved actuator "+act_names[i]+"from"+str(init_pos[i])+ "to "+str(final_pos[i])+ "with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
