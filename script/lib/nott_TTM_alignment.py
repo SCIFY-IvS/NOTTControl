@@ -1010,7 +1010,7 @@ class alignment:
         # Background measurements
         exps = []
         # Opening
-        all_shutters_open(4)
+        #all_shutters_open(4)
         # Gathering five background exposures
         for j in range(0, N):
             if (j!=0):
@@ -1058,7 +1058,7 @@ class alignment:
         # Background measurements
         exps = []
         # Opening
-        all_shutters_open(4)
+        #all_shutters_open(4)
         # Gathering five photometric exposures
         for j in range(0, N):
             if (j!=0):
