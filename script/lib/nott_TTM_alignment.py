@@ -1320,10 +1320,10 @@ class alignment:
                         # Spent time
                         #dt = round(1000*time.time()-t_start_sample-t_delay) 
                         # Readout photometric ROI average of sample timeframe.
-                        roi.append(self._get_photo(Nexp,t_start_sample,dt_sample,config))
+                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
                         # Push sample start time forward for next sample.
                         #t_start_sample += round(1000*time.time()-t_start_sample-t_delay)
-                        t_start_sample = round(1000*(time.time()-t_delay))
+                        t_start_sample = round(1000*time.time()-t_delay)
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     if not on_destination:
