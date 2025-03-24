@@ -666,15 +666,15 @@ class alignment:
         """
         # Container array for accuracies
         a_snap = np.zeros(len(speed))
-        # Simulation ranges of grid
-        disp_range = sign*np.linspace(0.005,0.030,11)
-        speed_range = np.geomspace(0.005/100,0.030,11)
         # Looping over all four actuators 
         for i in range(0, len(speed)):
             # Sign of displacement
             sign=1
             if disp[i] != 0:
                 sign = np.sign(disp[i])
+            # Simulation ranges of grid
+            disp_range = sign*np.linspace(0.005,0.030,11)
+            speed_range = np.geomspace(0.005/100,0.030,11)
             # Determining indices (i1,j1) of closest neighbouring grid point
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
