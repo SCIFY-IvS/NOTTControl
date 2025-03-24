@@ -82,12 +82,13 @@ url =  configpars['DEFAULT']['opcuaaddress']
 # Global parameters
 configpars = ConfigParser()
 configpars.read('../../script/cfg/config.cfg')
-bool_UT = configpars['injection']['bool_UT']
-fac_loc = configpars['injection']['fac_loc']
-SNR_inj = configpars['injection']['SNR_inj']
-Ncrit = configpars['injection']['Ncrit']
-Nsteps_skyb = configpars['injection']['Nsteps_skyb']
-Nexp = configpars['injection']['Nexp']
+bool_UT = (configpars['injection']['bool_UT'] == "True")
+fac_loc = int(configpars['injection']['fac_loc'])
+SNR_inj = int(configpars['injection']['SNR_inj'])
+Ncrit = int(configpars['injection']['Ncrit'])
+Nsteps_skyb = int(configpars['injection']['Nsteps_skyb'])
+Nexp = int(configpars['injection']['Nexp'])
+print("Read configuration [bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp] : ",[bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp])
 
 #-----------------#
 # Auxiliary Grids #
@@ -1510,7 +1511,7 @@ class alignment:
     
         # Container for average SNR values (for spiraling plot)
         dim = 11
-        SNR_av = np.zeros((dim,dim))
+        SNR_av = -5*np.ones((dim,dim))
         # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
         indplot = np.array([dim//2,dim//2])
         SNR_av[indplot[0]][indplot[1]] = 0
@@ -1520,11 +1521,11 @@ class alignment:
         
         # Initializing Plot
         #plt.ion()
-        fig = plt.figure(figsize=(24,24))
+        fig = plt.figure(figsize=(18,18))
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_av)
         # Set limits
-        img.set_clim(vmin=-5, vmax=30)
+        img.set_clim(vmin=-1, vmax=5)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1757,9 +1758,11 @@ class alignment:
     
         # Initializing Plot
         #plt.ion()
-        fig = plt.figure()
+        fig = plt.figure(figsize=(18,18))
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_max)
+        # Set limits
+        img.set_clim(vmin=-10, vmax=30)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1782,8 +1785,6 @@ class alignment:
             SNR_max[indplotpar[0]][indplotpar[1]] = val
             # Updating spiraling plot
             img.set_data(SNR_max)
-            # Update limits
-            img.set_clim(vmin=SNR_max.min(), vmax=SNR_max.max())
             # Updating plot
             ax.text(indplotpar[1],indplotpar[0],np.round(SNR_max[indplotpar[0]][indplotpar[1]],2),ha='center',va='center',fontsize=14)
             fig.canvas.draw()
