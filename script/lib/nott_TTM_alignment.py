@@ -1520,9 +1520,11 @@ class alignment:
         
         # Initializing Plot
         #plt.ion()
-        fig = plt.figure()
+        fig = plt.figure(figsize=(24,24))
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_av)
+        # Set limits
+        img.set_clim(vmin=-5, vmax=30)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1544,8 +1546,6 @@ class alignment:
             SNR_av[indplotpar[0]][indplotpar[1]] = val
             # Updating spiraling plot
             img.set_data(SNR_av)
-            # Update limits
-            img.set_clim(vmin=SNR_av.min(), vmax=SNR_av.max())
             # Updating plot
             ax.text(indplotpar[1],indplotpar[0],np.round(SNR_av[indplotpar[0]][indplotpar[1]],2),ha='center',va='center',fontsize=14)
             fig.canvas.draw()
