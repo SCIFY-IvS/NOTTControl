@@ -1511,7 +1511,7 @@ class alignment:
     
         # Container for average SNR values (for spiraling plot)
         dim = 11
-        SNR_av = np.zeros((dim,dim))
+        SNR_av = -10*np.ones((dim,dim))
         # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
         indplot = np.array([dim//2,dim//2])
         SNR_av[indplot[0]][indplot[1]] = 0
@@ -1525,7 +1525,7 @@ class alignment:
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_av)
         # Set limits
-        img.set_clim(vmin=-1, vmax=5)
+        img.set_clim(vmin=-10, vmax=10)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
@@ -1751,7 +1751,7 @@ class alignment:
     
         # Container for average SNR values (for spiraling plot)
         dim = 7
-        SNR_max = np.zeros((dim,dim))
+        SNR_max = -10*np.ones((dim,dim))
         # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
         indplot = np.array([dim//2,dim//2])
         SNR_max[indplot[0]][indplot[1]] = 0
