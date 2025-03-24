@@ -245,6 +245,9 @@ class alignment:
         self.N = eqns_.copy()
         
         '''
+        # Opening all shutters
+        all_shutters_open(4)
+        
         # Preparing actuators for use
         print("Preparing actuators...")
         # Retrieving OPCUA url from config.ini
@@ -743,12 +746,10 @@ class alignment:
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
-        # Retrieving actuator positions via OPCUA  
-        pos1 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1)+'.stat.lrPosActual')
-        pos2 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1)+'.stat.lrPosActual')
-        pos3 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1)+'.stat.lrPosActual')
-        pos4 = opcua_conn.read_node('ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1)+'.stat.lrPosActual')
-        pos = np.array([pos1,pos2,pos3,pos4],dtype=np.float64)
+        # Retrieving actuator positions via OPCUA 
+        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        node_ids = ['ns=4;s=MAIN.nott_ics.TipTilt.'+name+'.stat.lrPosActual' for name in act_names]
+        pos = np.array(opcua_conn.read_nodes(node_ids),dtype=np.float64)
         # Closing OPCUA connection
         opcua_conn.disconnect()
         
@@ -974,13 +975,19 @@ class alignment:
             Delay.
 
         '''
-        # Defining a python timeframe (1 second back in time)
-        t_start,t_stop = define_time(1)
-        # Retrieving the timestamps of redis data registered within this timeframe
-        t_redis = get_field("roi9_avg",t_start,t_stop,False)[:,0]
-        # Calculating the time delay (difference between requested end of timeframe and redis-registered end of timeframe)
-        t_delay = t_stop - t_redis[-1]
-        #print("Registered redis writing delay (ms) : ", t_delay)
+        
+        delays = []
+        for i in range(0, 10):
+            # Defining a python timeframe (1 second back in time)
+            t_start,t_stop = define_time(1)
+            # Retrieving the timestamps of redis data registered within this timeframe
+            t_redis = get_field("roi9_avg",t_start,t_stop,False)[:,0]
+            # Calculating the time delay (difference between requested end of timeframe and redis-registered end of timeframe)
+            t_delay_iter = t_stop - t_redis[-1]
+            # Append to list
+            delays.append(t_delay_iter)
+        # Average
+        t_delay = np.average(delays)
         return t_delay
 
     def _get_noise(self,N,t,dt):
@@ -1009,8 +1016,6 @@ class alignment:
         '''
         # Background measurements
         exps = []
-        # Opening
-        #all_shutters_open(4)
         # Gathering five background exposures
         for j in range(0, N):
             if (j!=0):
@@ -1057,8 +1062,6 @@ class alignment:
         
         # Background measurements
         exps = []
-        # Opening
-        #all_shutters_open(4)
         # Gathering five photometric exposures
         for j in range(0, N):
             if (j!=0):
@@ -1205,7 +1208,8 @@ class alignment:
         -----------
         The function moves all actuators (1,2,3,4) in a configuration "config" (=beam), initially at positions "init_pos",
         by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
-        If "sample" is True, actuator positions and photometric ROI values are sampled during the motion, by timestep "dt_sample".
+        Actuator positions are sampled during the motion, by timestep "dt_sample", as well as the timestamps at which they were read out.
+        If "sample" is True, real-time photometric ROI values are also sampled.
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
@@ -1226,7 +1230,7 @@ class alignment:
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).     
         sample : single boolean
-            Whether to sample ROI and Actuator Positions throughout the motion.
+            Whether to sample actuator positions throughout the motion.
         dt_sample : single float (s)
             Amount of time a sample should span.
         t_delay : single float (ms) # TBC
@@ -1240,8 +1244,10 @@ class alignment:
             Time spent for moving all four actuators.
         act : matrix of floats (mm)
             Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
+        act_times : list of floats (ms)
+            Times at which the actuator positions were read out. Follow lab Windows machine time.
         roi : list of floats
-            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion.
+            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == true).
 
         """
         
@@ -1251,21 +1257,17 @@ class alignment:
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
-        # Actuator motor objects
-        act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTA'+str(config+1),'NTTA'+str(config+1))
-        act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPA'+str(config+1),'NTPA'+str(config+1))
-        act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTTB'+str(config+1),'NTTB'+str(config+1))
-        act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.NTPB'+str(config+1),'NTPB'+str(config+1))
-        actuators = np.array([act1,act2,act3,act4])
-        
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
+        # Actuator motor objects
+        actuators = np.array([Motor(opcua_conn,'ns=4;s=MAIN.nott_ics.TipTilt.'+name,name) for name in act_names])
         
         # Desired final positions
         final_pos = init_pos + disp
         
         # Sampled actuator positions and ROI values
         act = []
+        act_times = []
         roi = []
         
         # Looping over all four actuators
@@ -1279,8 +1281,6 @@ class alignment:
 
                 # Performing the movement
                 #-------------------------#
-                #actuators[i].enable()
-                #time.sleep(0.050)
             
                 # TBC START
                 #----------#
@@ -1292,26 +1292,31 @@ class alignment:
                 #t_start_iter = time.time()
                 parent.call_method(method, *arguments)
             
-                # Start time
-                t_start_sample = round(1000*time.time())
-                # Camera-to-redis writing time
-                time.sleep((t_delay)*10**(-3)) 
-                # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
-                
                 # Wait for the actuator to be ready
                 on_destination = False
-                # Boolean checking whether the sampling has caught up with the camera-redis delay
+            
+                # Define start of sample timeframe for which to read out ROI values from redis.
                 if sample:
+                    # Start time
+                    t_start_sample = round(1000*time.time())
+                    # Camera-to-redis writing time
+                    time.sleep((t_delay)*10**(-3)) 
+                    # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
+                    
+                    # Boolean checking whether the ROI sampling has caught up with the camera-redis delay
                     caught_up = False
                 else:
                     caught_up = True
                     
                 while not (on_destination and caught_up):
-                    # Sleep
-                    time.sleep(dt_sample)
+                    # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
+                    time.sleep(dt_sample/2)
+                    act.append(self._get_actuator_pos(config))
+                    act_times.append(round(1000*time.time()))
+                    time.sleep(dt_sample/2)
+                
                     if sample:
-                        # Register actuator position.
-                        act.append(self._get_actuator_pos(config))
+                        # Also register average ROI value over sample timeframe.
                         # Spent time
                         dt = round(1000*time.time()-t_start_sample-t_delay) 
                         # Readout photometric ROI average of sample timeframe.
@@ -1338,7 +1343,7 @@ class alignment:
         t_spent_loop = round(t_end_loop-t_start_loop)
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return t_start_loop,t_spent_loop,act,roi
+        return t_start_loop,t_spent_loop,act,act_times,roi
 
     #-----------------#
     # Individual Step #
@@ -1374,7 +1379,7 @@ class alignment:
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         sample : single boolean
-            Whether to sample ROI and Actuator Positions throughout the motion.
+            Whether to sample photometric ROI averages throughout the motion.
         dt_sample : single float (s)
             Amount of time a sample should span.
         t_delay : single float (ms) # TBC
@@ -1388,8 +1393,10 @@ class alignment:
             Time spent for moving all four actuators.
         act : matrix of floats (mm)
             Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
+        act_times : list of floats (ms)
+            Times at which the actuator positions were read out. Follow lab Windows machine time.
         roi : list of floats
-            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion.
+            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == True).
 
         """
         
@@ -1434,9 +1441,9 @@ class alignment:
     
         # Only push actuator motion if it would yield a valid state
         pos_offset = self._actoffset(speeds,act_disp) 
-        t_start,t_spent,act,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay) # TBC
+        t_start,t_spent,act,act_times,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay) # TBC
         
-        return t_start,t_spent,act,roi
+        return t_start,t_spent,act,act_times,roi
    
     #----------#
     # Scanning #
@@ -1497,16 +1504,16 @@ class alignment:
         # Delay time (+50ms safety margin)
         t_delay = self._get_delay()+50 # TBC
         # Exposure time for first exposure (ms)
-        dt_first = 1000
+        dt_exp_loc = 3000
         # Start time for initial exposure
         t_start = round(1000*time.time())
         # Sleep
-        time.sleep((t_delay)*10**(-3)) 
+        time.sleep((dt_exp_loc+t_delay)*10**(-3)) 
         # Initial position noise measurement
-        mean,noise = self._get_noise(Nexp,t_start,dt_first)
+        mean,noise = self._get_noise(Nexp,t_start,dt_exp_loc)
         print("Initial noise level (ROI9) : ", noise)
         # Initial position photometric output measurement 
-        photo_init = self._get_photo(Nexp,t_start,dt_first,config)
+        photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config)
         print("Initial photometric output : ", photo_init)
     
         # Container for average SNR values (for spiraling plot)
@@ -1520,7 +1527,6 @@ class alignment:
             raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
         
         # Initializing Plot
-        #plt.ion()
         fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_av)
@@ -1536,8 +1542,6 @@ class alignment:
         # Showing
         fig.canvas.draw()
         fig.canvas.flush_events()
-        #plt.show(block=False)
-        #plt.draw()
         
         def _update_plot(indplotpar,val):    
             # Changing the indices according to recent spiral step
@@ -1588,53 +1592,45 @@ class alignment:
         # How much consequent moves are being made in a direction at the moment?
         Nsteps = 1
         
+        # Containers for actuator positions and times
+        ACT = []
+        ACT_times = []
+        
         while not stop:
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
-                _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay) # TBC
+                _,_,acts,act_times,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay) # TBC
                 
-                # Containers
+                # Container for sampled ROI exposures
                 exps = []
-                ACT = []
                 
-                # Storing camera value and actuator configuration
+                # Storing camera values and actuator configurations
                 # 1) Saving photometric readout values (SNR) sampled throughout the step
                 for j in range(0, len(rois)):
                     exps.append((rois[j]-photo_init)/noise)
-                # 2) Saving the actuator configurations sampled throughout the step
+                # 2) Saving the actuator configurations and times sampled throughout the step
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
-                
-                # Dividing timeframe into ten subportions
-                #start_times = np.linspace(start_time,start_time+9*dt/10,10)
-                #dt_sub = dt//10
-                # New position photometric output measurements (noise subtracted)
-                #photoconfigs = np.array(np.zeros(10),dtype=np.float64)
-                # Keeping track of average
-                #photo_av = 0
-                #for i in range(0,10): 
-                #    photoconfigs[i] = self._get_photo(N,round(start_times[i]),dt_sub,config)-photo_init
-                #    photo_av += (photoconfigs[i] + photo_init)
-                # Replacing photo_init for next iteration
-                #photo_init = photo_av / 10
-                # Signal-to-noise ratios
-                #SNR = photoconfigs/noise
+                    ACT_times.append(act_times[j])
         
-                # Injection is reached if more than three independent sub-timeframes show a SNR improvement larger than 5 compared to photo_init
+                # Injection is reached if more than "Ncrit" independent sub-timeframes show a SNR improvement larger than "SNR_inj" compared to "photo_init"
                 exps_arr = np.array(exps,dtype=np.float64)
                 if ((exps_arr > SNR_inj).sum() > Ncrit):
                     print("A state of injection has been reached.")
-                    print("Average SNR improvement value : ", np.average(exps_arr[exps_arr>5]))
+                    print("Average SNR improvement value : ", np.average(exps_arr[exps_arr>SNR_inj]))
                     # Update plot
                     indplot = _update_plot(indplot,np.max(exps))
                     
-                    # Push bench to the configuration of optimal found injection.
-                    
-                    # Maximal injection configuration
-                    ACT_final = ACT[np.argmax(exps)]
+                    # Find optimal injection found along spiral (performed once more, post-movement, to eliminate possible time sync issues during sampling)
+                    # Re-reading the photometric outputs (timeframe of dt_sample around each actuator timestamp)
+                    SNR_samples = np.array([self._get_photo(Nexp,round(timestamp-(1000*dt_sample/2)),round(1000*dt_sample),config)-photo_init for timestamp in ACT_times] / noise,dtype=np.float64)
+                    # Finding optimal injection index
+                    i_max = np.argmax(SNR_samples)
+                    # Corresponding actuator positions
+                    ACT_final = ACT[i_max]
                     # Current configuration
                     act_curr = self._get_actuator_pos(config)
                     # Necessary displacements
@@ -1643,18 +1639,19 @@ class alignment:
                     speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
-                    # Carrying out the motion
-                    _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)            
+                    # Push bench to configuration of optimal found injection.
+                    _,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)            
                     return
                 
                 # Update plot
                 indplot = _update_plot(indplot,np.average(exps))
              
-            # Updating photometric output (increases with time)
+            # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
+            # Re-measure it with each time switch.
             t_start = round(1000*time.time())
             # Sleep
-            time.sleep((t_delay)*10**(-3)) # TBC
-            photo_init = self._get_photo(Nexp,t_start,1000,config) 
+            time.sleep((dt_exp_loc+t_delay)*10**(-3)) # TBC
+            photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
             # Setting up next move
             if move < 3:
                 move += 1
@@ -1725,29 +1722,26 @@ class alignment:
         else:
             d = 5*10**(-3) #(mm)
         
-        # Exposures
-        exps = []
-        # Actuator configs 
+        # Actuator configs and times
         ACT = []
+        ACT_times = []
         
         # Delay time (+50ms safety margin)
         t_delay = self._get_delay()+50 # TBC
         # Exposure time for first exposure (ms)
-        dt_first = 200
+        dt_exp_opt = 200
         # Start time for initial exposure
         t_start = round(1000*time.time())
         # Sleep
-        time.sleep((t_delay)*10**(-3))
+        time.sleep((dt_exp_opt+t_delay)*10**(-3))
         # Initial position noise measurement
-        _,noise = self._get_noise(Nexp,t_start,dt_first)
+        _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
         # Initial position photometric output measurement
-        photo_init = self._get_photo(Nexp,t_start,dt_first,config)
-        # Adding to the stack of exposures
-        exps.append((photo_init-photo_init)/noise)
-    
-        # Storing initial actuator configuration
+        photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
+        # Storing initial actuator configuration and timestamp.
         act_curr = self._get_actuator_pos(config)
         ACT.append(act_curr)
+        ACT_times.append(round(1000*time.time()))
     
         # Container for average SNR values (for spiraling plot)
         dim = 7
@@ -1757,7 +1751,6 @@ class alignment:
         SNR_max[indplot[0]][indplot[1]] = 0
     
         # Initializing Plot
-        #plt.ion()
         fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_max)
@@ -1773,8 +1766,6 @@ class alignment:
         # Showing
         fig.canvas.draw()
         fig.canvas.flush_events()
-        #plt.show(block=False)
-        #plt.draw()
     
         def _update_plot(indplotpar,val):
             
@@ -1835,14 +1826,11 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
-                _,_,acts,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
-                # Storing camera value and actuator configuration
-                # 1) Saving photometric readout values (SNR) sampled throughout step
-                for j in range(0, len(rois)):
-                    exps.append((rois[j]-photo_init)/noise)
-                # 2) Saving actuator configurations sampled throughout step
+                _,_,acts,act_times,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
+                # Saving actuator configurations and timestamps sampled throughout step.
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
+                    ACT_times.append(act_times[j])
                 # Updating plot
                 indplot = _update_plot(indplot, np.max((rois-photo_init)/noise))
         
@@ -1862,20 +1850,22 @@ class alignment:
             if (Nswitch % 2 == 0):
                 Nsteps += 1
     
-        # Push bench to the configuration of optimal found injection.
-    
-        # Maximal injection configuration
-        ACT_final = ACT[np.argmax(exps)]
+        # Find optimal injection found along spiral (performed once more, post-movement, to eliminate possible time sync issues during sampling)
+        # Re-reading the photometric outputs (timeframe of dt_sample around each actuator timestamp)
+        SNR_samples = np.array([self._get_photo(Nexp,round(timestamp-(1000*dt_sample/2)),round(1000*dt_sample),config)-photo_init for timestamp in ACT_times] / noise,dtype=np.float64)
+        # Finding optimal injection index
+        i_max = np.argmax(SNR_samples)
+        # Corresponding actuator positions
+        ACT_final = ACT[i_max]
         # Current configuration
         act_curr = self._get_actuator_pos(config)
         # Necessary displacements
         act_disp = ACT_final-act_curr
-        
         speeds = np.array([0.0005,0.0005,0.0005,0.0005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
-        print("Bringing to optimized actuator position : ", np.max(exps), "SNR improvement at ", act_curr+act_disp, " mm.")
-        # Carrying out the motion
-        _,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
+        print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
+        # Push bench to configuration of optimal found injection.
+        _,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
             
         return
     
