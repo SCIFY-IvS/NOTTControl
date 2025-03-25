@@ -33,7 +33,7 @@ class Motor():
     
     def getPositionAndSpeed(self):
         current_pos, current_speed, timestamp = self._opcua_conn.read_nodes([f"{self._prefix}.stat.lrPosActual", f"{self._prefix}.stat.lrVelActual", 
-                                                                             "ns=4;s=INFRATEC_TRIGERS.NottTime.stat.sSystemTime"])
+                                                                              "ns=4;s=INFRATEC_TRIGERS.sNTPExtTime"])
         return (current_pos, current_speed, timestamp)
     
     def getStatusInformation(self):
