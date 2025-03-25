@@ -1280,6 +1280,7 @@ class alignment:
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
+                time.sleep(0.200) # TBF
                 # Incorporating offsets
                 final_pos_off = final_pos.copy()
                 final_pos_off[i] -= pos_offset[i] # in mm
@@ -1345,7 +1346,7 @@ class alignment:
                 #--------#
                   
                 ach_pos = self._get_actuator_pos(config)[0][i]
-                #print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
@@ -1875,6 +1876,7 @@ class alignment:
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
+        time.sleep(1) # TBF
         _,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
             
         return
