@@ -737,6 +737,8 @@ class alignment:
         -------
         pos : (1,4) numpy array of float values (mm)
             Current actuator positions for the specified configuration (=beam)
+        time : single integer (ms)
+            Timestamp at which the actuator positions were read out.
 
         """
     
@@ -750,10 +752,11 @@ class alignment:
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         node_ids = ['ns=4;s=MAIN.nott_ics.TipTilt.'+name+'.stat.lrPosActual' for name in act_names]
         pos = np.array(opcua_conn.read_nodes(node_ids),dtype=np.float64)
+        time = round(1000*time.time())
         # Closing OPCUA connection
         opcua_conn.disconnect()
         
-        return pos
+        return [pos,time]
     
     def _actuator_position_to_ttm_angle(self,pos,config):
         """
@@ -1230,7 +1233,7 @@ class alignment:
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).     
         sample : single boolean
-            Whether to sample actuator positions throughout the motion.
+            Whether to sample photometric ROI values throughout the motion.
         dt_sample : single float (s)
             Amount of time a sample should span.
         t_delay : single float (ms) # TBC
@@ -1259,8 +1262,6 @@ class alignment:
         opcua_conn.connect()
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
-        # Actuator motor objects
-        actuators = np.array([Motor(opcua_conn,'ns=4;s=MAIN.nott_ics.TipTilt.'+name,name) for name in act_names])
         
         # Desired final positions
         final_pos = init_pos + disp
@@ -1311,8 +1312,9 @@ class alignment:
                 while not (on_destination and caught_up):
                     # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
                     time.sleep(dt_sample/2)
-                    act.append(self._get_actuator_pos(config))
-                    act_times.append(round(1000*time.time()))
+                    act_samp = self._get_actuator_pos(config)
+                    act.append(act_samp[0])
+                    act_times.append(act_samp[1])
                     time.sleep(dt_sample/2)
                 
                     if sample:
@@ -1320,10 +1322,11 @@ class alignment:
                         # Spent time
                         #dt = round(1000*time.time()-t_start_sample-t_delay) 
                         # Readout photometric ROI average of sample timeframe.
-                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
+                        #roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
+                        roi.append(self._get_photo(Nexp,round(act_samp[1]-(1000*dt_sample/2)),round(1000*dt_sample),config))
                         # Push sample start time forward for next sample.
                         #t_start_sample += round(1000*time.time()-t_start_sample-t_delay)
-                        t_start_sample = round(1000*time.time()-t_delay)
+                        #t_start_sample = round(1000*time.time()-t_delay)
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     if not on_destination:
@@ -1337,8 +1340,8 @@ class alignment:
                 # TBC END 
                 #--------#
                   
-                ach_pos = self._get_actuator_pos(config)[i]
-                #print("Moved actuator "+act_names[i]+"by a displacement"+str(disp*1000)+ "um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                ach_pos = self._get_actuator_pos(config)[0][i]
+                #print("Moved actuator "+act_names[i]+"by a displacement"+str(disp[i]*1000)+ "um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
@@ -1405,7 +1408,7 @@ class alignment:
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
         # Register current actuator displacements
-        act_curr = self._get_actuator_pos(config)
+        act_curr = self._get_actuator_pos(config)[0]
         
         # Translate to current TTM angular configuration
         TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
@@ -1630,13 +1633,14 @@ class alignment:
                     SNR_samples = np.array([self._get_photo(Nexp,round(timestamp-(1000*dt_sample/2)),round(1000*dt_sample),config)-photo_init for timestamp in ACT_times] / noise,dtype=np.float64)
                     # Finding optimal injection index
                     i_max = np.argmax(SNR_samples)
+                    #print("Index, SNR and actuator configuration of found injecting state :", i_max, SNR_samples[i_max], ACT[i_max])
                     # Corresponding actuator positions
                     ACT_final = ACT[i_max]
                     # Current configuration
-                    act_curr = self._get_actuator_pos(config)
+                    act_curr = self._get_actuator_pos(config)[0]
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
-        
+                    #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
                     speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
@@ -1740,7 +1744,7 @@ class alignment:
         # Initial position photometric output measurement
         photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
         # Storing initial actuator configuration and timestamp.
-        act_curr = self._get_actuator_pos(config)
+        act_curr = self._get_actuator_pos(config)[0]
         ACT.append(act_curr)
         ACT_times.append(round(1000*time.time()))
     
@@ -1859,7 +1863,7 @@ class alignment:
         # Corresponding actuator positions
         ACT_final = ACT[i_max]
         # Current configuration
-        act_curr = self._get_actuator_pos(config)
+        act_curr = self._get_actuator_pos(config)[0]
         # Necessary displacements
         act_disp = ACT_final-act_curr
         speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
@@ -1946,7 +1950,7 @@ class alignment:
         time.sleep(0.050)
             
         # Current position
-        curr_pos = self._get_actuator_pos(config)[act_index]
+        curr_pos = self._get_actuator_pos(config)[0][act_index]
         # Imposed position
         imposed_pos = pos
         # Imposed displacement
@@ -1979,17 +1983,17 @@ class alignment:
             status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name+'.stat.sState'])
             #print("Status:", status, "|| State:", state)
             on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-            #print(act_name+" pos: ", str(self._get_actuator_pos(config)[act_index])+" mm")
+            #print(act_name+" pos: ", str(self._get_actuator_pos(config)[0][act_index])+" mm")
             # Save current time
             #time_arr.append(time.time())
             # Save current position
-            #pos_arr.append(self._get_actuator_pos(config)[3])
+            #pos_arr.append(self._get_actuator_pos(config)[0][3])
                 
         # Time spent
         end_time = time.time()
         spent_time = end_time-start_time
         # ACTUAL Position achieved
-        final_pos = self._get_actuator_pos(config)[act_index]
+        final_pos = self._get_actuator_pos(config)[0][act_index]
         print("----------------------------------------------------------------------------------------------------------------------------")
         print("Moving actuator "+act_name+" from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
         print("Actual actuator position reached :"+str(final_pos)+" mm")
@@ -2004,7 +2008,7 @@ class alignment:
         
         # STEP 1 : Reset actuator position if begin/end is reached (depending on the direction) and neutralize backlash
         # Current position (index 3 for NTPB)
-        curr_pos = self._get_actuator_pos(config)[3]
+        curr_pos = self._get_actuator_pos(config)[0][3]
         pos_backlash = curr_pos
         # Actuator travel range [0,6] mm
         act_range = 6 
@@ -2038,7 +2042,7 @@ class alignment:
             print("Actuator range reset, backlash neutralized")
           
         # STEP 2: Imposing the desired actuator displacement
-        curr_pos = self._get_actuator_pos(config)[3]
+        curr_pos = self._get_actuator_pos(config)[0][3]
         imposed_pos_d = curr_pos + act_displacement
         spent_time,imposed_pos,final_pos,time_arr,pos_arr = self._move_abs_ttm_act_single(imposed_pos_d,speed,act_name,offset)
         
@@ -2057,7 +2061,7 @@ class alignment:
                 act_index = i
         
         # Bring actuator to middle of range (x=3mm)
-        init_pos = self._get_actuator_pos(config)[act_index]
+        init_pos = self._get_actuator_pos(config)[0][act_index]
         init_disp = 3 - init_pos
         _ = self.act_response_test_single(init_disp,0.1,act_name,False)
         
@@ -2079,7 +2083,7 @@ class alignment:
                 positions.append(pos_arr)
                 
                 # Calculating ttm shift accuracy from actuator displacement accuracy
-                curr_pos = self._get_actuator_pos(config)
+                curr_pos = self._get_actuator_pos(config)[0]
                 act_disp = np.array([0,0,0,act_acc],dtype=np.float64)
                 
                 # Finding TTM shifts from actuator displacement
@@ -2111,7 +2115,7 @@ class alignment:
                 act_index = i
         
         # Bring actuator to middle of range
-        init_pos = self._get_actuator_pos(config)[act_index]
+        init_pos = self._get_actuator_pos(config)[0][act_index]
         init_disp = 3 - init_pos
         _ = self.act_response_test_single(init_disp,0.1,act_name,False)
         # Matrix containing time spent moving actuators, backlash (final pos-initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
@@ -2122,7 +2126,7 @@ class alignment:
             speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
                 # Current position
-                init_pos = self._get_actuator_pos(config)[act_index]
+                init_pos = self._get_actuator_pos(config)[0][act_index]
                 # Step 1
                 arr1,_,_ = self.act_response_test_single(disp,speeds[j],act_name,True)
                 # Step 2
@@ -2137,7 +2141,7 @@ class alignment:
                 matrix_acc[0][i][j] = time_spent
                 matrix_acc[1][i][j] = back
                 # Calculating ttm shift from actuator backlash
-                curr_pos = self._get_actuator_pos(config)
+                curr_pos = self._get_actuator_pos(config)[0]
                 act_disp = np.array([0,0,0,back],dtype=np.float64)
                 # Finding TTM shifts from actuator displacement
                 ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_disp,config)
@@ -2161,7 +2165,7 @@ class alignment:
             pos_arr = np.array([5.1613015,5.408199,3.409473,3.8637095],dtype=np.float64)
             speed_arr = np.array([0.01,0.01,0.01/100,0.01/100],dtype=np.float64)
             # Necessary Displacements for Alignment
-            curr_pos = obj._get_actuator_pos(config)
+            curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
             off = obj._actoffset(speed_arr,disp_arr)
             obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config)
@@ -2177,7 +2181,7 @@ class alignment:
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False)
             # Spiraling to return 
-            obj.localization_spiral(False,20,0.020,config,0.01)
+            obj.localization_spiral(False,20,0.020,config,0.050)
             obj.optimization_spiral(False,5,0.005,config,0.500)
             obj.optimization_spiral(False,1,0.001,config,0.050)
             return
@@ -2193,8 +2197,8 @@ class alignment:
         print("Current Configuration")
         print("---------------------------------------------------------------------------")
         act_name='NTPB2'
-        curr_pos = self._get_actuator_pos(configpar)
-        print("Current actuator positions :", self._get_actuator_pos(configpar))
+        curr_pos = self._get_actuator_pos(configpar)[0]
+        print("Current actuator positions :", self._get_actuator_pos(configpar)[0])
         align(self,configpar)
         kick_loc_opt(self,configpar)
         
