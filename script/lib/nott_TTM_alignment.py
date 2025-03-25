@@ -1403,7 +1403,7 @@ class alignment:
                 # Actuator resolution (mm)
                 act_res = 0.2*10**(-3) 
                 
-                if (disp[i] > act_res and disp_off > act_res):
+                if (np.abs(disp[i]) > act_res and np.abs(disp_off) > act_res):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
