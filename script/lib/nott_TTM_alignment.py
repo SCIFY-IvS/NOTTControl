@@ -698,9 +698,9 @@ class alignment:
                 i2 = 1
             if (j1 == 0):
                 j2 = 1
-            if (i1 == 10):
+            if (i1 == len(disp_range)-1):
                 i2 = 9
-            if (j1 == 10):
+            if (j1 == len(disp_range)-1):
                 j2 = 9
     
             # Weights
@@ -719,8 +719,8 @@ class alignment:
                 # Average
                 a_snap[i] = (a_disp+a_speed)/2
         
-            # Boundary cases (not supported by grid)
-            if disp[i] < 0.005:
+            # TBC (accuracy grid to be expanded)
+            if disp[i] < 0.001:
                 a_snap[i] = 0
         
         return a_snap
@@ -1345,7 +1345,7 @@ class alignment:
                 #--------#
                   
                 ach_pos = self._get_actuator_pos(config)[0][i]
-                #print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ "um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                #print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
@@ -1645,7 +1645,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
+                    speeds = np.array(act_disp/20,dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -1870,7 +1870,8 @@ class alignment:
         act_curr = self._get_actuator_pos(config)[0]
         # Necessary displacements
         act_disp = ACT_final-act_curr
-        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
+        speeds = np.array(act_disp/20,dtype=np.float64)
+        #np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
