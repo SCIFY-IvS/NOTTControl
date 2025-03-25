@@ -719,6 +719,10 @@ class alignment:
                 # Average
                 a_snap[i] = (a_disp+a_speed)/2
         
+            # Boundary cases (not supported by grid)
+            if disp[i] < 0.005:
+                a_snap[i] = 0
+        
         return a_snap
 
     def _get_actuator_pos(self,config):
@@ -1341,7 +1345,7 @@ class alignment:
                 #--------#
                   
                 ach_pos = self._get_actuator_pos(config)[0][i]
-                #print("Moved actuator "+act_names[i]+"by a displacement"+str(disp[i]*1000)+ "um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                #print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ "um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
@@ -2163,7 +2167,7 @@ class alignment:
             print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
             pos_arr = np.array([5.1613015,5.408199,3.409473,3.8637095],dtype=np.float64)
-            speed_arr = np.array([0.001,0.001,0.001/10,0.001/10],dtype=np.float64)
+            speed_arr = np.array([0.01,0.01,0.01/10,0.01/10],dtype=np.float64)
             # Necessary Displacements for Alignment
             curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
