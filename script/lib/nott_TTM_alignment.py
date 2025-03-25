@@ -752,11 +752,11 @@ class alignment:
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         node_ids = ['ns=4;s=MAIN.nott_ics.TipTilt.'+name+'.stat.lrPosActual' for name in act_names]
         pos = np.array(opcua_conn.read_nodes(node_ids),dtype=np.float64)
-        time = round(1000*time.time())
+        timestamp = round(1000*time.time())
         # Closing OPCUA connection
         opcua_conn.disconnect()
         
-        return [pos,time]
+        return [pos,timestamp]
     
     def _actuator_position_to_ttm_angle(self,pos,config):
         """
@@ -1322,11 +1322,11 @@ class alignment:
                         # Spent time
                         #dt = round(1000*time.time()-t_start_sample-t_delay) 
                         # Readout photometric ROI average of sample timeframe.
-                        #roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
-                        roi.append(self._get_photo(Nexp,round(act_samp[1]-(1000*dt_sample/2)),round(1000*dt_sample),config))
+                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
+                        #roi.append(self._get_photo(Nexp,round(act_samp[1]-(1000*dt_sample/2)),round(1000*dt_sample),config))
                         # Push sample start time forward for next sample.
                         #t_start_sample += round(1000*time.time()-t_start_sample-t_delay)
-                        #t_start_sample = round(1000*time.time()-t_delay)
+                        t_start_sample = round(1000*time.time()-t_delay)
                     # Check whether actuator has finished motion
                     status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                     if not on_destination:
@@ -2160,7 +2160,7 @@ class alignment:
         
         def align(obj,config):
             print("---------------------------------------------------------------------------")
-            print("Bring beam to state of injection")
+            print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
             pos_arr = np.array([5.1613015,5.408199,3.409473,3.8637095],dtype=np.float64)
             speed_arr = np.array([0.01,0.01,0.01/100,0.01/100],dtype=np.float64)
