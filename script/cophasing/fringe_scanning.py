@@ -122,6 +122,9 @@ def set_dl_to_null(null_singlepass, opcua_motor, speed2, grab_range, dl_name, re
     
     return to_null_pos, to_null_flx, current_null_pos
 
+# Read config file
+config = ConfigParser()
+config.read('../cfg/config.cfg')
 
 plt.ion()
 
