@@ -1508,7 +1508,7 @@ class alignment:
         # Delay time (+50ms safety margin)
         t_delay = self._get_delay()+50 # TBC
         # Exposure time for first exposure (ms)
-        dt_exp_loc = 3000
+        dt_exp_loc = 1000
         # Start time for initial exposure
         t_start = round(1000*time.time())
         # Sleep
@@ -1650,13 +1650,13 @@ class alignment:
                 
                 # Update plot
                 indplot = _update_plot(indplot,np.average(exps))
-             
-            # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
-            # Re-measure it with each time switch.
-            t_start = round(1000*time.time())
-            # Sleep
-            time.sleep((dt_exp_loc+t_delay)*10**(-3)) # TBC
-            photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
+                # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
+                # Re-measure it with each step.
+                t_start = round(1000*time.time())
+                # Sleep
+                time.sleep((dt_exp_loc+t_delay)*10**(-3)) # TBC
+                photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
+                
             # Setting up next move
             if move < 3:
                 move += 1
@@ -2163,7 +2163,7 @@ class alignment:
             print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
             pos_arr = np.array([5.1613015,5.408199,3.409473,3.8637095],dtype=np.float64)
-            speed_arr = np.array([0.01,0.01,0.01/100,0.01/100],dtype=np.float64)
+            speed_arr = np.array([0.001,0.001,0.001/10,0.001/10],dtype=np.float64)
             # Necessary Displacements for Alignment
             curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
