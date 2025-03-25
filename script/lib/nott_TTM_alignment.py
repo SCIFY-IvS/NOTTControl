@@ -82,6 +82,7 @@ url =  configpars['DEFAULT']['opcuaaddress']
 # Global parameters
 configpars = ConfigParser()
 configpars.read('../../script/cfg/config.cfg')
+t_write = int(configpars['redis']['t_write'])
 bool_UT = (configpars['injection']['bool_UT'] == "True")
 fac_loc = int(configpars['injection']['fac_loc'])
 SNR_inj = int(configpars['injection']['SNR_inj'])
@@ -677,8 +678,8 @@ class alignment:
             if disp[i] != 0:
                 sign = np.sign(disp[i])
             # Simulation ranges of grid
-            disp_range = sign*np.linspace(0.005,0.030,11)
-            speed_range = np.geomspace(0.005/100,0.030,11)
+            disp_range = sign*np.linspace(0.005,0.030,11) # TBC
+            speed_range = np.geomspace(0.005/100,0.030,11) # TBC
             # Determining indices (i1,j1) of closest neighbouring grid point
             disp_diff = np.abs(disp_range - disp[i])
             speed_diff = np.abs(speed_range - speed[i])
@@ -699,9 +700,9 @@ class alignment:
             if (j1 == 0):
                 j2 = 1
             if (i1 == len(disp_range)-1):
-                i2 = 9
+                i2 = len(disp_range)-2
             if (j1 == len(disp_range)-1):
-                j2 = 9
+                j2 = len(disp_range)-2
     
             # Weights
             v2,v1 = [disp_diff[i1],disp_diff[i2]]/(disp_diff[i1]+disp_diff[i2])
@@ -718,10 +719,6 @@ class alignment:
                 a_speed = w1*accurgrid_neg[i1,j1]+w2*accurgrid_neg[i1,j2]
                 # Average
                 a_snap[i] = (a_disp+a_speed)/2
-        
-            # TBC (accuracy grid to be expanded)
-            if disp[i] < 0.001:
-                a_snap[i] = 0
         
         return a_snap
 
@@ -966,17 +963,26 @@ class alignment:
         
         return accur_snap
 
-    def _get_delay(self): # TBC
+    def _get_delay(self,N,average): 
         '''
         Description
         -----------
-        There is a delay between the Infratec camera registering ROI outputs and sending them to the redis database.
-        This function quantifies that delay. 
-        Do note that the lab pc timestamps and redis timestamps agree.
-        For example, if you ask for ROI values from "now" to "500 ms ago", the time series you receive will start at the right timestamp, i.e. "500 ms ago".
-        You will however only receive the first, say, 250 ms of your requested range, the range does not span all the way to "now" due to the redis writing delay.
+        The Infratec camera registers average ROI (region of interest) output values and writes them to redis with an associated timestamp, based on its internal clock.
+        There is a delay between the latest of such timestamps, registered in redis, and the Windows lab pc time.
+        This delay is believed to be twofold in nature:
+            1) The camera takes some time to write its ROI values to redis : on the order of 10 ms.
+            2) The internal Infratec camera drifts with time. It seems to tick slower than the Windows lab pc time.
+        This function quantifies the delay time, originating from a combination of 1) and 2).
         
-        Defines
+        Parameters
+        ----------
+        N : single integer
+            Amount of samples to perform.
+        average : single boolean
+            If True : return the average delay of N samples.
+            If False : return the maximum delay of N samples.
+    
+        Returns
         -------
         t_delay : single integer, globally defined (ms)
             Delay.
@@ -984,7 +990,7 @@ class alignment:
         '''
         
         delays = []
-        for i in range(0, 10):
+        for i in range(0, N):
             # Defining a python timeframe (1 second back in time)
             t_start,t_stop = define_time(1)
             # Retrieving the timestamps of redis data registered within this timeframe
@@ -993,8 +999,12 @@ class alignment:
             t_delay_iter = t_stop - t_redis[-1]
             # Append to list
             delays.append(t_delay_iter)
-        # Average
-        t_delay = np.average(delays)
+        if average:
+            # Average
+            t_delay = np.average(delays)
+        else:
+            # Maximum
+            t_delay = np.max(delays)
         return t_delay
 
     def _get_noise(self,N,t,dt):
@@ -1114,8 +1124,6 @@ class alignment:
                 True = valid , False = invalid
         i : a (1,4) numpy array of integers
             Indicates what conditions are violated by the configuration.
-        disp_copy : (1,4) numpy array of floats
-            New displacements (a displacement is replaced by zero where condition three is invalid)
 
         """
     
@@ -1128,8 +1136,6 @@ class alignment:
     
         Valid = True
         i = np.array([0,0,0,0])
-        
-        disp_copy = act_displacements.copy()
         
         #---------------#
         # Criterion (1) #
@@ -1172,7 +1178,9 @@ class alignment:
         for j in range(0, 4):
             if np.logical_and(crit2[j],act_displacements[j] != 0):
                 i[1] = 1
-                disp_copy[j] = 0
+                print("Warning : displacement below actuator resolution, actuator motion likely not carried out.")
+                #Valid = valid2
+                
 
         
         #---------------#
@@ -1207,9 +1215,9 @@ class alignment:
             i[3] = 1
             Valid = valid4
     
-        return Valid,i,disp_copy
+        return Valid,i
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=0): # TBC
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=0): 
         """
         Description
         -----------
@@ -1240,8 +1248,8 @@ class alignment:
             Whether to sample photometric ROI values throughout the motion.
         dt_sample : single float (s)
             Amount of time a sample should span.
-        t_delay : single float (ms) # TBC
-            Amount of time that the redis database lacks behind. See documentation of _get_delay.
+        t_delay : single float (ms) 
+            Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
             
         Returns
         -------
@@ -1255,6 +1263,8 @@ class alignment:
             Times at which the actuator positions were read out. Follow lab Windows machine time.
         roi : list of floats
             List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == true).
+        err : List of floats (mm)
+            Errors made upon actuator motions. Positive values indicate overshoot.
 
         """
         
@@ -1274,91 +1284,147 @@ class alignment:
         act = []
         act_times = []
         roi = []
+        err = []
+        
+        # Move functions
+        def move_single(double):
+            '''
+            Parameters
+            ----------
+            double : single boolean
+                True : this function is called in the context of a double actuator motion.
+                False : this function is not called in the context of a double actuator motion.
+
+            '''
+            
+            # Executing move
+            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
+            method = parent.get_child("4:RPC_MoveAbs")
+            arguments = [final_pos_off[i], speeds[i]]
+            #t_start_iter = time.time()
+            parent.call_method(method, *arguments)
+            
+            # Wait for the actuator to be ready
+            on_destination = False
+            
+            # Define start of sample timeframe for which to read out ROI values from redis.
+            if sample:
+                # Start time, incorporating delay time.
+                t_start_sample = round(1000*time.time()-t_delay)
+                # Camera-to-redis writing time
+                time.sleep((t_write)*10**(-3)) 
+                # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
+                    
+                # Boolean checking whether the ROI sampling has caught up with the camera-redis delay
+                caught_up = False
+            else:
+                caught_up = True
+              
+            # When false, this variable allows for correct sampling in the case of a double motion.
+            sample_double = True
+            while not (on_destination and caught_up):
+            
+                if double:
+                    act_pos = self._get_actuator_pos(config)[0]
+                    sample_double = (np.abs(act_pos[i]) < np.abs(final_pos[i]))
+                if sample_double:
+                    # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
+                    time.sleep(dt_sample/2)
+                    act_samp = self._get_actuator_pos(config)
+                    act.append(act_samp[0])
+                    act_times.append(act_samp[1]-t_delay)
+                    time.sleep(dt_sample/2)
+                
+                    if sample:
+                        # Readout photometric ROI average of sample timeframe.
+                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
+                        # Push sample start time forward for next sample.
+                        t_start_sample = round(1000*time.time()-t_write-t_delay)
+                # Check whether actuator has finished motion
+                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
+                if not on_destination:
+                    t_act_arrival = round(1000*time.time())
+                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+                # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
+                # We have to make the sampling catchup (i.e. register the final samples of the actuator motion) before exiting the while loop
+                if (on_destination and sample):
+                    caught_up = (round(1000*time.time())-t_act_arrival > t_write)
+                  
+            ach_pos = self._get_actuator_pos(config)[0][i]
+            err.append(ach_pos-final_pos[i])
+            print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
+            return
+        
+        def move_double():
+            
+            # 1) Move 1 : Deliberately overshooting and sampling until the desired position is reached.
+            move_single(True)
+            
+            # 1.5) Updating offset for the second move, which need be accurate.
+            
+            # Current actuator positions
+            act_curr_temp = self._get_actuator_pos(config)[0]
+            # Necessary displacements
+            act_disp_temp = final_pos - act_curr_temp
+            # Offsets from accuracy grid
+            pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
+            
+            # Update final_pos_off
+            final_pos_off[i] = final_pos[i] - pos_offset_temp[i]
+            
+            # 2) Move 2 : Returning to get to the desired position in accurate fashion. No sampling required
+            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
+            method = parent.get_child("4:RPC_MoveAbs")
+            arguments = [final_pos_off[i], speeds[i]]
+            parent.call_method(method, *arguments)
+            # Wait for the actuator to be ready
+            on_destination = False
+            while not on_destination:
+                time.sleep(0.01)
+                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
+                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+              
+            ach_pos = self._get_actuator_pos(config)[0][i]
+            err.append(ach_pos-final_pos[i])
+            print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
+            return
         
         # Looping over all four actuators
         t_start_loop = round(1000*time.time())
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (final_pos[i] != init_pos[i]):
-                time.sleep(0.200) # TBF
                 # Incorporating offsets
                 final_pos_off = final_pos.copy()
                 final_pos_off[i] -= pos_offset[i] # in mm
-
-                # Performing the movement
-                #-------------------------#
-            
-                # TBC START
-                #----------#
-            
-                # Executing move
-                parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-                method = parent.get_child("4:RPC_MoveAbs")
-                arguments = [final_pos_off[i], speeds[i]]
-                #t_start_iter = time.time()
-                parent.call_method(method, *arguments)
-            
-                # Wait for the actuator to be ready
-                on_destination = False
-            
-                # Define start of sample timeframe for which to read out ROI values from redis.
-                if sample:
-                    # Start time
-                    t_start_sample = round(1000*time.time())
-                    # Camera-to-redis writing time
-                    time.sleep((t_delay)*10**(-3)) 
-                    # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
-                    
-                    # Boolean checking whether the ROI sampling has caught up with the camera-redis delay
-                    caught_up = False
-                else:
-                    caught_up = True
-                    
-                while not (on_destination and caught_up):
-                    # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
-                    time.sleep(dt_sample/2)
-                    act_samp = self._get_actuator_pos(config)
-                    act.append(act_samp[0])
-                    act_times.append(act_samp[1])
-                    time.sleep(dt_sample/2)
+                # Actual displacement (offset incorporated)
+                disp_off = final_pos_off[i]-init_pos[i]
                 
-                    if sample:
-                        # Also register average ROI value over sample timeframe.
-                        # Spent time
-                        #dt = round(1000*time.time()-t_start_sample-t_delay) 
-                        # Readout photometric ROI average of sample timeframe.
-                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
-                        #roi.append(self._get_photo(Nexp,round(act_samp[1]-(1000*dt_sample/2)),round(1000*dt_sample),config))
-                        # Push sample start time forward for next sample.
-                        #t_start_sample += round(1000*time.time()-t_start_sample-t_delay)
-                        t_start_sample = round(1000*time.time()-t_delay)
-                    # Check whether actuator has finished motion
-                    status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                    if not on_destination:
-                        t_act_arrival = round(1000*time.time())
-                    on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-                    # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
-                    # We have to make the sampling catchup (i.e. register the final samples of the actuator motion) before exiting the while loop
-                    if (on_destination and sample):
-                        caught_up = (round(1000*time.time())-t_act_arrival > t_delay)
-                  
-                # TBC END 
-                #--------#
-                  
-                ach_pos = self._get_actuator_pos(config)[0][i]
-                print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um.")
+                # Actuator resolution (mm)
+                act_res = 0.2*10**(-3) 
+                
+                if (disp[i] > act_res and disp_off > act_res):
+                    # 1) Single motion suffices
+                    move_single(False)
+                else:
+                    # 2) Double motion necessary
+                    sign = np.sign(disp[i])
+                    # Deliberately overshooting
+                    speeds[i] = 0.005/100
+                    final_pos_off[i] = init_pos[i] + sign*0.005
+                    move_double()
         
         t_end_loop = round(1000*time.time()) 
         t_spent_loop = round(t_end_loop-t_start_loop)
         # Close OPCUA connection
         opcua_conn.disconnect()
-        return t_start_loop,t_spent_loop,act,act_times,roi
+        return t_start_loop,t_spent_loop,act,act_times,roi,err
 
     #-----------------#
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0): # TBC
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0): 
         """
         Description
         -----------
@@ -1391,8 +1457,8 @@ class alignment:
             Whether to sample photometric ROI averages throughout the motion.
         dt_sample : single float (s)
             Amount of time a sample should span.
-        t_delay : single float (ms) # TBC
-            Amount of time that the redis database lacks behind. See documentation of _get_delay.
+        t_delay : single float (ms) 
+            Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
             
         Returns
         -------
@@ -1406,6 +1472,8 @@ class alignment:
             Times at which the actuator positions were read out. Follow lab Windows machine time.
         roi : list of floats
             List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == True).
+        err : List of floats (mm)
+            Errors made upon actuator motions. Positive values indicate overshoot.
 
         """
         
@@ -1435,12 +1503,14 @@ class alignment:
         
         # Calculating the necessary actuator displacements
         act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
-    
+        # Offsets from accuracy grid
+        pos_offset = self._actoffset(speeds,act_disp) 
+        
         # Final TTM configuration
         TTM_final = TTM_curr + TTM_offsets
     
         # Before imposing the displacements to the actuators, the state validity is checked.
-        valid,cond,act_disp = self._valid_state(bool_slicer,TTM_final,act_disp,act_curr,config)
+        valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
@@ -1449,10 +1519,10 @@ class alignment:
                             "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
     
         # Only push actuator motion if it would yield a valid state
-        pos_offset = self._actoffset(speeds,act_disp) 
-        t_start,t_spent,act,act_times,roi = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay) # TBC
+        t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay) 
         
-        return t_start,t_spent,act,act_times,roi
+        
+        return t_start,t_spent,act,act_times,roi,err
    
     #----------#
     # Scanning #
@@ -1510,14 +1580,14 @@ class alignment:
         else:
             d = 20*10**(-3) #(mm)
         
-        # Delay time (+50ms safety margin)
-        t_delay = self._get_delay()+50 # TBC
+        # Delay time (total delay minus writing time)
+        t_delay = self._get_delay(100,True)-t_write 
         # Exposure time for first exposure (ms)
-        dt_exp_loc = 1000
+        dt_exp_loc = 200
         # Start time for initial exposure
-        t_start = round(1000*time.time())
+        t_start = round(1000*time.time()-t_delay)
         # Sleep
-        time.sleep((dt_exp_loc+t_delay)*10**(-3)) 
+        time.sleep((dt_exp_loc+t_write)*10**(-3)) 
         # Initial position noise measurement
         mean,noise = self._get_noise(Nexp,t_start,dt_exp_loc)
         print("Initial noise level (ROI9) : ", noise)
@@ -1611,7 +1681,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay) # TBC
+                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay) 
                 
                 # Container for sampled ROI exposures
                 exps = []
@@ -1650,16 +1720,16 @@ class alignment:
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
-                    _,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)            
+                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)            
                     return
                 
                 # Update plot
                 indplot = _update_plot(indplot,np.average(exps))
                 # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
                 # Re-measure it with each step.
-                t_start = round(1000*time.time())
+                t_start = round(1000*time.time()-t_delay)
                 # Sleep
-                time.sleep((dt_exp_loc+t_delay)*10**(-3)) # TBC
+                time.sleep((dt_exp_loc+t_write)*10**(-3)) # TBC
                 photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
                 
             # Setting up next move
@@ -1736,14 +1806,14 @@ class alignment:
         ACT = []
         ACT_times = []
         
-        # Delay time (+50ms safety margin)
-        t_delay = self._get_delay()+50 # TBC
+        # Delay time (total delay minus writing time)
+        t_delay = self._get_delay(100,True)-t_write
         # Exposure time for first exposure (ms)
         dt_exp_opt = 200
         # Start time for initial exposure
-        t_start = round(1000*time.time())
+        t_start = round(1000*time.time()-t_delay)
         # Sleep
-        time.sleep((dt_exp_opt+t_delay)*10**(-3))
+        time.sleep((dt_exp_opt+t_write)*10**(-3))
         # Initial position noise measurement
         _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
         # Initial position photometric output measurement
@@ -1751,7 +1821,7 @@ class alignment:
         # Storing initial actuator configuration and timestamp.
         act_curr = self._get_actuator_pos(config)[0]
         ACT.append(act_curr)
-        ACT_times.append(round(1000*time.time()))
+        ACT_times.append(round(1000*time.time()-t_delay))
     
         # Container for average SNR values (for spiraling plot)
         dim = 7
@@ -1836,7 +1906,7 @@ class alignment:
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
+                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
                 # Saving actuator configurations and timestamps sampled throughout step.
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
@@ -1876,8 +1946,7 @@ class alignment:
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
-        time.sleep(1) # TBF
-        _,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
+        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
             
         return
     
@@ -1948,7 +2017,7 @@ class alignment:
         pos_arr = []
         # Performing the movement
         #-------------------------#
-        # Preparing actuator (sleep times TBD)
+        # Preparing actuator
         #act.reset()
         #time.sleep(0.100)
         #act.init()
