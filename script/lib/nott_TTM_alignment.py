@@ -1760,7 +1760,7 @@ class alignment:
         ax = fig.add_subplot(111)
         img = ax.imshow(SNR_max)
         # Set limits
-        img.set_clim(vmin=-10, vmax=30)
+        img.set_clim(vmin=-50, vmax=50)
         # Remove tick labels
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
