@@ -1716,7 +1716,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array(act_disp/20,dtype=np.float64) #TBD
+                    speeds = np.array(act_disp/100,dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -1941,7 +1941,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)[0]
         # Necessary displacements
         act_disp = ACT_final-act_curr
-        speeds = np.array(act_disp/20,dtype=np.float64)
+        speeds = np.array(act_disp/100,dtype=np.float64)
         #np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
@@ -2253,7 +2253,7 @@ class alignment:
             dy=rand_sign()*random.uniform(20,50)*10**(-3)
             print("Kicking the beam away from aligned state, by random \pm 50 um distances in image plane (dx,dy) = ", (dx,dy))
             steps = np.array([0,0,dx,dy])
-            speed_arr = np.array([0.01,0.01,0.01/10,0.01/10],dtype=np.float64)
+            speed_arr = np.array([0.005,0.005,0.005/10,0.005/10],dtype=np.float64)
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False)
             # Spiraling to return 
