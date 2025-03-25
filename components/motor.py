@@ -2,16 +2,19 @@ from commands.move_abs_command import MoveAbsCommand
 from commands.move_rel_command import MoveRelCommand
 
 class Motor():
-    def __init__(self, opcua_conn, opcua_prefix: str, name: str):
+    def __init__(self, opcua_conn, opcua_prefix: str, name: str, speed: int):
         self._opcua_conn = opcua_conn
         self._prefix = opcua_prefix
         self.name = name
+        self._speed = speed
     
-    def command_move_absolute(self, pos, speed) -> MoveAbsCommand:
-        return MoveAbsCommand(self._opcua_conn, self._prefix, pos, speed)
+    def command_move_absolute(self, pos) -> MoveAbsCommand:
+        #Unit conversion as the PLC expects mm/s
+        return MoveAbsCommand(self._opcua_conn, self._prefix, pos, self._speed * 10**(-3))
     
-    def command_move_relative(self, rel_pos, speed) -> MoveRelCommand:
-        return MoveRelCommand(self._opcua_conn, self._prefix, rel_pos, speed)
+    def command_move_relative(self, rel_pos) -> MoveRelCommand:
+        #Unit conversion as the PLC expects mm/s
+        return MoveRelCommand(self._opcua_conn, self._prefix, rel_pos, self._speed * 10**(-3))
     
     def reset(self):
         return self._opcua_conn.execute_rpc(self._prefix, "4:RPC_Reset", [])
