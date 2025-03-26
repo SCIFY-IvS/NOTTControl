@@ -1356,8 +1356,8 @@ class alignment:
                     caught_up = (round(1000*time.time())-t_act_arrival > t_write)
                   
             ach_pos = self._get_actuator_pos(config)[0][i]
-            err.append(ach_pos-final_pos[i])
             if not double:
+                err.append(ach_pos-final_pos[i])
                 print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
             return
         
@@ -1399,14 +1399,14 @@ class alignment:
         t_start_loop = round(1000*time.time())
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
-            if (final_pos[i] != init_pos[i]):
+            if (disp[i] != 0):
                 # Incorporating offsets
                 final_pos_off = final_pos.copy()
                 final_pos_off[i] -= pos_offset[i] # in mm
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp[i]) > 0.005):
+                if (np.abs(disp_off[i]) > 0.005):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
@@ -2282,7 +2282,7 @@ class alignment:
             obj.individual_step(True,0,steps,speed_arr,1,False)
             # Spiraling to return 
             obj.localization_spiral(False,20,0.020,config,0.050)
-            obj.optimization_spiral(False,5,0.005,config,0.500)
+            obj.optimization_spiral(False,5,0.005,config,0.050)
             obj.optimization_spiral(False,1,0.001,config,0.050)
             return
 
