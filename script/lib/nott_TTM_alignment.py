@@ -2101,8 +2101,8 @@ class alignment:
         #time.sleep(0.100)
         #act.init()
         #time.sleep(0.050)
-        act.enable()
-        time.sleep(0.050)
+        #act.enable()
+        #time.sleep(0.050)
             
         # Current position
         curr_pos = self._get_actuator_pos(config)[0][act_index]
@@ -2228,7 +2228,7 @@ class alignment:
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             disp = act_displacements[i] #mm
-            speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
+            speeds = np.geomspace(0.0005/100,0.025,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
                 acc_arr,time_arr,pos_arr = self.act_response_test_single(disp,speeds[j],act_name,offset)
                 matrix_acc[0][i][j] = acc_arr[0]
