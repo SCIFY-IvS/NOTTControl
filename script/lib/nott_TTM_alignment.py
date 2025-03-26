@@ -1427,7 +1427,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0,err_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0,err_prev=np.zeros(4,dtype=np.float64),act_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1462,9 +1462,12 @@ class alignment:
             Amount of time a sample should span.
         t_delay : single float (ms) 
             Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
-        err_prev : list of float values (mm)
+        err_prev : numpy array of float values (mm)
             Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
-            
+        act_prev : numpy array of float values (mm)
+            Actuator motions made in a previous step. In the context of spiraling, it is often useful (efficiency-wise) to not explicitly recompute 
+            actuator motions that are similar to the previous step.    
+        
         Returns
         -------
         t_start : single integer (ms)
@@ -1488,44 +1491,57 @@ class alignment:
         # Register current actuator displacements
         act_curr = self._get_actuator_pos(config)[0]
         
-        # Translate to current TTM angular configuration
-        TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
+        # Is there a previous step given (i.e., is there an actuator displacement different than zero)?
+        prev = np.any(act_prev)
         
-        # Couple the configuration to the nearest grid point & retrieve the Zemax-simulated distances
-        D_arr = self._snap_distance_grid(TTM_curr, config)
+        # Only explicitly re-evaluate framework if no previous step is given.
+        if not prev:
         
-        # Numerically evaluate framework
-        if (sky != 0):
-            TTM_angles = self._sky_to_ttm(np.array([steps[0],steps[1],0,0],dtype=np.float64))
-            dTTM1X = TTM_angles[0]
-            dTTM1Y = TTM_angles[1]
-            CSbool = (sky==1)
-            TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
-            #print("Step : (dX,dY,dx,dy) = ",shifts_par)
+            # Translate to current TTM angular configuration
+            TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
+        
+            # Couple the configuration to the nearest grid point & retrieve the Zemax-simulated distances
+            D_arr = self._snap_distance_grid(TTM_curr, config)
+        
+            # Numerically evaluate framework
+            if (sky != 0):
+                TTM_angles = self._sky_to_ttm(np.array([steps[0],steps[1],0,0],dtype=np.float64))
+                dTTM1X = TTM_angles[0]
+                dTTM1Y = TTM_angles[1]
+                CSbool = (sky==1)
+                TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
+                #print("Step : (dX,dY,dx,dy) = ",shifts_par)
+            else:
+                TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
+                #print("Step :  (dX,dY,dx,dy) = ",steps)
+        
+            # Calculating the necessary actuator displacements
+            act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
+        
+            # Offsets from accuracy grid
+            pos_offset = self._actoffset(speeds,act_disp) 
+        
+            # Final TTM configuration
+            TTM_final = TTM_curr + TTM_offsets
+    
+            # Before imposing the displacements to the actuators, the state validity is checked.
+            valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
+            if not valid:
+                raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
+                                 "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
+                                 "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
+                                 "\n (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
+                                 "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
+    
         else:
-            TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
-            #print("Step :  (dX,dY,dx,dy) = ",steps)
-        
-        # Calculating the necessary actuator displacements
-        act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
-        # Offsets from accuracy grid
-        pos_offset = self._actoffset(speeds,act_disp) 
-        
-        # Final TTM configuration
-        TTM_final = TTM_curr + TTM_offsets
-    
-        # Before imposing the displacements to the actuators, the state validity is checked.
-        valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
-        if not valid:
-            raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
-                            "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
-                            "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
-                            "\n (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
-                            "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
-    
+            # Impose actuator motions of previous step.
+            act_disp = act_prev
+            # Offsets from accuracy grid
+            pos_offset = self._actoffset(speeds,act_disp) 
+            
+
         # Only push actuator motion if it would yield a valid state
         t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay,err_prev) 
-        
         
         return t_start,t_spent,act,act_times,roi,err
    
@@ -1619,7 +1635,7 @@ class alignment:
         # Set tick labels
         xticks = np.linspace(0,dim-1,dim)
         yticks = np.linspace(0,dim-1,dim)
-        labels = np.arange(-20*dim//2,20*dim//2,20)
+        labels = np.arange(-20*(dim//2),20*(dim//2),20)
         ax.axes.get_xaxis().set_ticks(xticks)
         ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
@@ -1688,13 +1704,15 @@ class alignment:
         while not stop:
         
             # Initializing err_prev
-            err_prev = np.zeros(4,dtype=np.float64)    
+            err_prev = np.zeros(4,dtype=np.float64)  
+            # Initializing act_prev
+            act_prev = np.zeros(4,dtype=np.float64)
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev) 
+                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
                 # Container for sampled ROI exposures
@@ -1730,7 +1748,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array(act_disp/100,dtype=np.float64) #TBD
+                    speeds = np.array(np.abs(act_disp/100),dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -1853,7 +1871,7 @@ class alignment:
         # Set tick labels
         xticks = np.linspace(0,dim-1,dim)
         yticks = np.linspace(0,dim-1,dim)
-        labels = np.arange(-1000*d*dim//2,1000*d*dim//2,1000*d)
+        labels = np.arange(-1000*d*(dim//2),1000*d*(dim//2),1000*d)
         ax.axes.get_xaxis().set_ticks(xticks)
         ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
@@ -1965,7 +1983,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)[0]
         # Necessary displacements
         act_disp = ACT_final-act_curr
-        speeds = np.array(act_disp/100,dtype=np.float64)
+        speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
         #np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
