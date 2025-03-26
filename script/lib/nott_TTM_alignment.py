@@ -1619,7 +1619,7 @@ class alignment:
         # Set tick labels
         xticks = np.linspace(0,dim-1,dim)
         yticks = np.linspace(0,dim-1,dim)
-        labels = np.arange(-20*dim/2,20*dim/2,20)
+        labels = np.arange(-20*dim//2,20*dim//2,20)
         ax.axes.get_xaxis().set_ticks(xticks)
         ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
@@ -1853,7 +1853,7 @@ class alignment:
         # Set tick labels
         xticks = np.linspace(0,dim-1,dim)
         yticks = np.linspace(0,dim-1,dim)
-        labels = np.arange(-1000*d*dim/2,1000*d*dim/2,1000*d)
+        labels = np.arange(-1000*d*dim//2,1000*d*dim//2,1000*d)
         ax.axes.get_xaxis().set_ticks(xticks)
         ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
