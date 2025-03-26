@@ -1286,7 +1286,7 @@ class alignment:
         act = []
         act_times = []
         roi = []
-        err = []
+        err = np.zeros(4,dtype=np.float64)
         
         # Move functions
         def move_single(double):
@@ -1357,7 +1357,7 @@ class alignment:
                   
             ach_pos = self._get_actuator_pos(config)[0][i]
             if not double:
-                err.append(ach_pos-final_pos[i])
+                err[i] = ach_pos-final_pos[i]
                 print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
             return
         
@@ -1391,7 +1391,7 @@ class alignment:
                 on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
               
             ach_pos = self._get_actuator_pos(config)[0][i]
-            err.append(ach_pos-final_pos[i])
+            err[i] = ach_pos-final_pos[i]
             print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
             return
         
@@ -1406,7 +1406,7 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp_off[i]) > 0.005):
+                if (np.abs(disp_off) > 0.005):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
@@ -1693,7 +1693,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
@@ -1927,7 +1927,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev)
                 # Saving error
                 err_prev = np.array(err,dtype=np.float64)
