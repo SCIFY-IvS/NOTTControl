@@ -1217,7 +1217,7 @@ class alignment:
     
         return Valid,i
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=0): 
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=0,err_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1250,6 +1250,8 @@ class alignment:
             Amount of time a sample should span.
         t_delay : single float (ms) 
             Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
+        err_prev : list of float values (mm)
+            Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
             
         Returns
         -------
@@ -1278,7 +1280,7 @@ class alignment:
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
         # Desired final positions
-        final_pos = init_pos + disp
+        final_pos = init_pos + (disp-err_prev)
         
         # Sampled actuator positions and ROI values
         act = []
@@ -1326,7 +1328,10 @@ class alignment:
             
                 if double:
                     act_pos = self._get_actuator_pos(config)[0]
-                    sample_double = (np.abs(act_pos[i]) < np.abs(final_pos[i]))
+                    if disp[i] > 0:
+                        sample_double = (act_pos[i] < final_pos[i])
+                    else:
+                        sample_double = (act_pos[i] > final_pos[i])
                 if sample_double:
                     # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
                     time.sleep(dt_sample/2)
@@ -1352,7 +1357,8 @@ class alignment:
                   
             ach_pos = self._get_actuator_pos(config)[0][i]
             err.append(ach_pos-final_pos[i])
-            print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
+            if not double:
+                print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
             return
         
         def move_double():
@@ -1400,10 +1406,7 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                # Actuator resolution (mm)
-                act_res = 0.2*10**(-3) 
-                
-                if (np.abs(disp[i]) > act_res and np.abs(disp_off) > act_res):
+                if (np.abs(disp[i]) > 0.005):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
@@ -1424,7 +1427,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0,err_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1459,6 +1462,8 @@ class alignment:
             Amount of time a sample should span.
         t_delay : single float (ms) 
             Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
+        err_prev : list of float values (mm)
+            Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
             
         Returns
         -------
@@ -1519,7 +1524,7 @@ class alignment:
                             "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
     
         # Only push actuator motion if it would yield a valid state
-        t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay) 
+        t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay,err_prev) 
         
         
         return t_start,t_spent,act,act_times,roi,err
@@ -1611,9 +1616,14 @@ class alignment:
         img = ax.imshow(SNR_av)
         # Set limits
         img.set_clim(vmin=-10, vmax=10)
-        # Remove tick labels
-        ax.axes.get_xaxis().set_ticks([])
-        ax.axes.get_yaxis().set_ticks([])
+        # Set tick labels
+        xticks = np.linspace(0,dim-1,dim)
+        yticks = np.linspace(0,dim-1,dim)
+        labels = np.arange(-20*dim/2,20*dim/2,20)
+        ax.axes.get_xaxis().set_ticks(xticks)
+        ax.axes.get_yaxis().set_ticks(yticks)
+        ax.set_xticklabels(labels)
+        ax.set_yticklabels(labels)
         # Plotting initial SNR improvement value (=0) as label
         ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
@@ -1677,12 +1687,16 @@ class alignment:
         
         while not stop:
         
+            # Initializing err_prev
+            err_prev = np.zeros(4,dtype=np.float64)    
+        
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay) 
-                
+                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev) 
+                # Saving errors for next step
+                err_prev = np.array(err,dtype=np.float64)
                 # Container for sampled ROI exposures
                 exps = []
                 
@@ -1836,9 +1850,14 @@ class alignment:
         img = ax.imshow(SNR_max)
         # Set limits
         img.set_clim(vmin=-50, vmax=50)
-        # Remove tick labels
-        ax.axes.get_xaxis().set_ticks([])
-        ax.axes.get_yaxis().set_ticks([])
+        # Set tick labels
+        xticks = np.linspace(0,dim-1,dim)
+        yticks = np.linspace(0,dim-1,dim)
+        labels = np.arange(-1000*d*dim/2,1000*d*dim/2,1000*d)
+        ax.axes.get_xaxis().set_ticks(xticks)
+        ax.axes.get_yaxis().set_ticks(yticks)
+        ax.set_xticklabels(labels)
+        ax.set_yticklabels(labels)
         # Plotting initial SNR improvement value (=0) as label
         ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
@@ -1902,11 +1921,16 @@ class alignment:
 
         while not stop:
         
+            # Initializing err_prev
+            err_prev = np.zeros(4,dtype=np.float64)     
+        
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay)
+                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev)
+                # Saving error
+                err_prev = np.array(err,dtype=np.float64)
                 # Saving actuator configurations and timestamps sampled throughout step.
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
