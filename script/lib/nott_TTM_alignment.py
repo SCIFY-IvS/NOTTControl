@@ -1006,6 +1006,31 @@ class alignment:
             # Maximum
             t_delay = np.max(delays)
         return t_delay
+    
+    def _get_time(self,t,t_delay):
+        """
+        Description
+        -----------
+        This function converts a given timestamp (Windows lab pc python time) to the timestamp that is to be queried in the
+        redis database (stamped by Infratec internal camera time).
+        
+        Parameters
+        ----------
+        t : single integer (ms)
+            Input time.
+        t_delay : single integer (ms)
+            Delay time.
+        
+        Returns
+        -------
+        t_conv : single integer (ms)
+            Converted time.
+
+        """
+        
+        t_conv = round(t - t_delay)
+        
+        return t_conv
 
     def _get_noise(self,N,t,dt):
         '''
@@ -1312,7 +1337,7 @@ class alignment:
             # Define start of sample timeframe for which to read out ROI values from redis.
             if sample:
                 # Start time, incorporating delay time.
-                t_start_sample = round(1000*time.time()-t_delay)
+                t_start_sample = self._get_time(1000*(time.time()),t_delay)
                 # Camera-to-redis writing time
                 time.sleep((t_write)*10**(-3)) 
                 # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
@@ -1337,14 +1362,14 @@ class alignment:
                     time.sleep(dt_sample/2)
                     act_samp = self._get_actuator_pos(config)
                     act.append(act_samp[0])
-                    act_times.append(act_samp[1]-t_delay)
+                    act_times.append(self._get_time(act_samp[1],t_delay))
                     time.sleep(dt_sample/2)
                 
                     if sample:
                         # Readout photometric ROI average of sample timeframe.
                         roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
                         # Push sample start time forward for next sample.
-                        t_start_sample = round(1000*time.time()-t_write-t_delay)
+                        t_start_sample = round(self._get_time(1000*time.time(),t_delay)-t_write)
                 # Check whether actuator has finished motion
                 status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
                 if not on_destination:
@@ -1372,6 +1397,8 @@ class alignment:
             act_curr_temp = self._get_actuator_pos(config)[0]
             # Necessary displacements
             act_disp_temp = final_pos - act_curr_temp
+            # Update speed
+            speeds[i] = 0.005/100
             # Offsets from accuracy grid
             pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
             
@@ -1413,8 +1440,9 @@ class alignment:
                     # 2) Double motion necessary
                     sign = np.sign(disp[i])
                     # Deliberately overshooting
-                    speeds[i] = 0.005/100
-                    final_pos_off[i] = init_pos[i] + sign*0.005
+                    step_over = 0.005
+                    speeds[i] = step_over
+                    final_pos_off[i] = init_pos[i] + sign*step_over
                     move_double()
         
         t_end_loop = round(1000*time.time()) 
@@ -1427,7 +1455,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0,err_prev=np.zeros(4,dtype=np.float64),act_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=0,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1464,7 +1492,7 @@ class alignment:
             Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
         err_prev : numpy array of float values (mm)
             Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
-        act_prev : numpy array of float values (mm)
+        act_disp_prev : numpy array of float values (mm)
             Actuator motions made in a previous step. In the context of spiraling, it is often useful (efficiency-wise) to not explicitly recompute 
             actuator motions that are similar to the previous step.    
         
@@ -1482,6 +1510,8 @@ class alignment:
             List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == True).
         err : List of floats (mm)
             Errors made upon actuator motions. Positive values indicate overshoot.
+        act_disp : numpy array of floats (mm)
+            Actuator displacements imposed by the step.
 
         """
         
@@ -1492,7 +1522,7 @@ class alignment:
         act_curr = self._get_actuator_pos(config)[0]
         
         # Is there a previous step given (i.e., is there an actuator displacement different than zero)?
-        prev = np.any(act_prev)
+        prev = np.any(act_disp_prev)
         
         # Only explicitly re-evaluate framework if no previous step is given.
         if not prev:
@@ -1535,7 +1565,7 @@ class alignment:
     
         else:
             # Impose actuator motions of previous step.
-            act_disp = act_prev
+            act_disp = act_disp_prev
             # Offsets from accuracy grid
             pos_offset = self._actoffset(speeds,act_disp) 
             
@@ -1543,7 +1573,7 @@ class alignment:
         # Only push actuator motion if it would yield a valid state
         t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay,err_prev) 
         
-        return t_start,t_spent,act,act_times,roi,err
+        return t_start,t_spent,act,act_times,roi,err,act_disp
    
     #----------#
     # Scanning #
@@ -1606,7 +1636,7 @@ class alignment:
         # Exposure time for first exposure (ms)
         dt_exp_loc = 200
         # Start time for initial exposure
-        t_start = round(1000*time.time()-t_delay)
+        t_start = self._get_time(1000*time.time(),t_delay)
         # Sleep
         time.sleep((dt_exp_loc+t_write)*10**(-3)) 
         # Initial position noise measurement
@@ -1635,7 +1665,7 @@ class alignment:
         # Set tick labels
         xticks = np.linspace(0,dim-1,dim)
         yticks = np.linspace(0,dim-1,dim)
-        labels = np.arange(-20*(dim//2),20*(dim//2),20)
+        labels = np.arange(-20*(dim//2),20*(dim//2+1),20)
         ax.axes.get_xaxis().set_ticks(xticks)
         ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
@@ -1705,16 +1735,19 @@ class alignment:
         
             # Initializing err_prev
             err_prev = np.zeros(4,dtype=np.float64)  
-            # Initializing act_prev
-            act_prev = np.zeros(4,dtype=np.float64)
+            # Initializing act_disp_prev
+            act_disp_prev = np.zeros(4,dtype=np.float64)
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_prev) 
+                _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
+                # Saving actuator steps for next step
+                act_disp_prev = act_disp
+                
                 # Container for sampled ROI exposures
                 exps = []
                 
@@ -1759,7 +1792,7 @@ class alignment:
                 indplot = _update_plot(indplot,np.average(exps))
                 # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
                 # Re-measure it with each step.
-                t_start = round(1000*time.time()-t_delay)
+                t_start = self._get_time(1000*(time.time()),t_delay)
                 # Sleep
                 time.sleep((dt_exp_loc+t_write)*10**(-3)) # TBC
                 photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
@@ -1843,7 +1876,7 @@ class alignment:
         # Exposure time for first exposure (ms)
         dt_exp_opt = 200
         # Start time for initial exposure
-        t_start = round(1000*time.time()-t_delay)
+        t_start = self._get_time(1000*time.time(),t_delay)
         # Sleep
         time.sleep((dt_exp_opt+t_write)*10**(-3))
         # Initial position noise measurement
@@ -1853,7 +1886,7 @@ class alignment:
         # Storing initial actuator configuration and timestamp.
         act_curr = self._get_actuator_pos(config)[0]
         ACT.append(act_curr)
-        ACT_times.append(round(1000*time.time()-t_delay))
+        ACT_times.append(self._get_time(1000*time.time(),t_delay))
     
         # Container for average SNR values (for spiraling plot)
         dim = 7
@@ -1871,7 +1904,7 @@ class alignment:
         # Set tick labels
         xticks = np.linspace(0,dim-1,dim)
         yticks = np.linspace(0,dim-1,dim)
-        labels = np.arange(-1000*d*(dim//2),1000*d*(dim//2),1000*d)
+        labels = np.arange(-1000*d*(dim//2),1000*d*(dim//2+1),1000*d)
         ax.axes.get_xaxis().set_ticks(xticks)
         ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
@@ -1941,14 +1974,18 @@ class alignment:
         
             # Initializing err_prev
             err_prev = np.zeros(4,dtype=np.float64)     
+            # Initializing act_disp_prev
+            act_disp_prev = np.zeros(4,dtype=np.float64)
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev)
-                # Saving error
+                _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev)
+                # Saving error for next step.
                 err_prev = np.array(err,dtype=np.float64)
+                # Saving actuator steps for next step.
+                act_disp_prev = act_disp
                 # Saving actuator configurations and timestamps sampled throughout step.
                 for j in range(0, len(acts)):
                     ACT.append(acts[j])
@@ -1983,8 +2020,8 @@ class alignment:
         act_curr = self._get_actuator_pos(config)[0]
         # Necessary displacements
         act_disp = ACT_final-act_curr
-        speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
-        #np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
+        #speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
+        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
