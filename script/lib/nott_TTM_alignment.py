@@ -1455,7 +1455,7 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp[i]) >= 0.0005): 
+                if (np.abs(disp_off) >= 0.0005):# TBD
                     # 1) Single motion suffices
                     move_single(False)
                 else:
@@ -2351,7 +2351,7 @@ class alignment:
             dy=rand_sign()*random.uniform(20,50)*10**(-3)
             print("Kicking the beam away from aligned state, by random \pm 50 um distances in image plane (dx,dy) = ", (dx,dy))
             steps = np.array([0,0,dx,dy])
-            speed_arr = np.array([0.005,0.005,0.005/10,0.005/10],dtype=np.float64)
+            speed_arr = np.array([0.001,0.001,0.005/10,0.005/10],dtype=np.float64)
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
