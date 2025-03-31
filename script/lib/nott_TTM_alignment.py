@@ -1261,7 +1261,7 @@ class alignment:
     
         return Valid,i
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=self._get_delay(100,True)-t_write,err_prev=np.zeros(4,dtype=np.float64)): 
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1477,7 +1477,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=self._get_delay(100,True)-t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1809,7 +1809,7 @@ class alignment:
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)            
+                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,self._get_delay(100,True)-t_write)            
                     return
                 
                 # Update plot
@@ -2051,7 +2051,7 @@ class alignment:
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
-        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False)
+        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,self._get_delay(100,True)-t_write)
             
         return
     
@@ -2342,7 +2342,7 @@ class alignment:
             curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
             off = obj._actoffset(speed_arr,disp_arr)
-            obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config)
+            obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,0.010,self._get_delay(100,True)-t_write)
             return
         def kick_loc_opt(obj,config):
             def rand_sign():
@@ -2353,7 +2353,7 @@ class alignment:
             steps = np.array([0,0,dx,dy])
             speed_arr = np.array([0.005,0.005,0.005/10,0.005/10],dtype=np.float64)
             # Kick away
-            obj.individual_step(True,0,steps,speed_arr,1,False)
+            obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
             obj.localization_spiral(False,20,0.020,config,0.050)
             obj.optimization_spiral(False,5,0.005,config,0.050)
