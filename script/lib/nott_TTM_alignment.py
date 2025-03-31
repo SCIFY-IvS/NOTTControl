@@ -2342,7 +2342,7 @@ class alignment:
             curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
             off = obj._actoffset(speed_arr,disp_arr)
-            obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,0.010,self._get_delay(100,True)-t_write)
+            obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
         def kick_loc_opt(obj,config):
             def rand_sign():
