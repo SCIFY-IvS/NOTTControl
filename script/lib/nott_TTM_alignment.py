@@ -643,9 +643,9 @@ class alignment:
     
         Auxiliary
         ---------
-        accurgrid_pos : (1,11,11) numpy matrix of float values (mm) # TBC
+        accurgrid_pos : (1,21,21) numpy matrix of float values (mm) 
             Simulated accuracies (achieved minus imposed position, obtained using NTPB2) for positive displacements.
-        accurgrid_neg : (1,11,11) numpy matrix of float values (mm)
+        accurgrid_neg : (1,21,21) numpy matrix of float values (mm)
             Simulated accuracies (achieved minus imposed position, obtained using NTPB2) for negative displacements.
         disp_range and speed_range indicate the displacements and speeds by which these auxiliary accuracy grids were simulated.
         
@@ -671,8 +671,8 @@ class alignment:
                 # Sign of displacement
                 sign = np.sign(disp[i])
                 # Simulation ranges of grid
-                disp_range = sign*np.linspace(0.005,0.030,11) # TBC
-                speed_range = np.geomspace(0.005/100,0.030,11) # TBC
+                disp_range = sign*np.geomspace(0.0005,0.025,21) 
+                speed_range = np.geomspace(0.0005/100,0.025,21) 
                 # Determining indices (i1,j1) of closest neighbouring grid point
                 disp_diff = np.abs(disp_range - disp[i])
                 speed_diff = np.abs(speed_range - speed[i])
@@ -1420,7 +1420,7 @@ class alignment:
             # Necessary displacements
             act_disp_temp = final_pos - act_curr_temp
             # Update speed
-            speeds[i] = 0.005/100 # TBD
+            speeds[i] = 0.0005 # TBD
             # Offsets from accuracy grid
             pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
             
@@ -1455,15 +1455,15 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp[i]) >= 0.0005): #TBD
+                if (np.abs(disp[i]) >= 0.0005): 
                     # 1) Single motion suffices
                     move_single(False)
                 else:
                     # 2) Double motion necessary
                     sign = np.sign(disp[i])
-                    # Deliberately overshooting
-                    step_over = 0.001 # TBD
-                    speeds[i] = step_over 
+                    # Deliberately overshooting by 2 um.
+                    step_over = 0.002 # TBD
+                    speeds[i] = 0.0005 # TBD 
                     final_pos_off[i] = init_pos[i] + sign*step_over
                     move_double()
         
@@ -2190,7 +2190,7 @@ class alignment:
         # Validity booleans
         valid_end = True
         valid_start = True
-        # Exceeding upper limit of range? TBD : Changed it to be confined to \pm 500 micron around aligned position.
+        # Exceeding upper limit of range?
         if act_displacement > 0:
             valid_end = (curr_pos+act_displacement <= align_pos+0.5)
         # Exceeding lower limit of range?
@@ -2246,7 +2246,7 @@ class alignment:
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             disp = act_displacements[i] #mm
-            speeds = np.geomspace(0.0005/100,0.025,len_speeds) #mm/s #logspace # TBD
+            speeds = np.geomspace(0.0005/100,0.025,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
                 acc_arr,time_arr,pos_arr = self.act_response_test_single(disp,speeds[j],act_name,act_index,offset,align_pos)
                 matrix_acc[0][i][j] = acc_arr[0]
