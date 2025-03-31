@@ -1420,7 +1420,7 @@ class alignment:
             # Necessary displacements
             act_disp_temp = final_pos - act_curr_temp
             # Update speed
-            speeds[i] = 0.0005 # TBD
+            speeds[i] = 0.0005/10 # TBD
             # Offsets from accuracy grid
             pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
             
@@ -1462,8 +1462,8 @@ class alignment:
                     # 2) Double motion necessary
                     sign = np.sign(disp[i])
                     # Deliberately overshooting by 2 um.
-                    step_over = 0.002 # TBD
-                    speeds[i] = 0.0005 # TBD 
+                    step_over = 0.0005 # TBD
+                    speeds[i] = 0.0005/10 # TBD 
                     final_pos_off[i] = init_pos[i] + sign*step_over
                     move_double()
         
