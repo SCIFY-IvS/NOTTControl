@@ -2337,10 +2337,10 @@ class alignment:
             print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
             pos_arr = np.array([5.1613015,5.408199,3.409473,3.8637095],dtype=np.float64)
-            speed_arr = np.array([0.01,0.01,0.01/10,0.01/10],dtype=np.float64)
             # Necessary Displacements for Alignment
             curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
+            speed_arr = disp_arr/10
             off = obj._actoffset(speed_arr,disp_arr)
             obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
