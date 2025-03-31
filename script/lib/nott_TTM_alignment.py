@@ -2275,18 +2275,16 @@ class alignment:
             print(i)
         return matrix_acc,times,positions
     
-    def act_backlash_test_multi(self,act_displacements,len_speeds,act_name,config=1):
+    def act_backlash_test_multi(self,act_displacements,len_speeds,act_name,act_index,config=1):
         # Function to probe the backlash, remaining after incorporation of the empirical actuator offsets, for a range of displacements and speeds.
         # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
         # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
         
-        # Actuator names 
-        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
-        # Index of act_name
-        act_index = 0
-        for i in range(0, 4):
-            if act_names[i] == act_name:
-                act_index = i
+        act_pos_align = [5.1613015,5.408199,3.409473,3.8637095]
+        if (act_index < 2):
+            align_pos = (act_pos_align[0]+act_pos_align[1])/2
+        else:
+            align_pos = (act_pos_align[2]+act_pos_align[3])/2
         
         # Bring actuator to middle of range
         init_pos = self._get_actuator_pos(config)[0][act_index]
