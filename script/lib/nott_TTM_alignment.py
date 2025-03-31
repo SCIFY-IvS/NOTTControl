@@ -690,7 +690,7 @@ class alignment:
                     else:
                         i2 = i1+1
                 # Left of closest grid point...
-                else if np.abs(disp[i]) < np.abs(disp_range[i1]):
+                elif np.abs(disp[i]) < np.abs(disp_range[i1]):
                     # ... and beyond the grid range:
                     if (i1 == 0):
                         i2 = i1
@@ -698,7 +698,7 @@ class alignment:
                     else:
                         i2 = i1-1
                 # On grid point
-                else if disp[i] == disp_range[i1]:
+                elif disp[i] == disp_range[i1]:
                     i2 = i1
                     
                 # 2) Speed
@@ -707,12 +707,12 @@ class alignment:
                         j2 = j1
                     else:
                         j2 = j1+1
-                else if speed[i] < speed_range[j1]:
+                elif speed[i] < speed_range[j1]:
                     if (j1 == 0):
                         j2 = j1
                     else:
                         j2 = j1-1
-                else if speed[i] == speed_range[j1]:
+                elif speed[i] == speed_range[j1]:
                     j2 = j1
     
                 # Weights 
