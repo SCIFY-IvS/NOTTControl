@@ -2340,7 +2340,7 @@ class alignment:
             # Necessary Displacements for Alignment
             curr_pos = obj._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
-            speed_arr = disp_arr/10
+            speed_arr = np.abs(disp_arr/10)
             off = obj._actoffset(speed_arr,disp_arr)
             obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
