@@ -1387,6 +1387,8 @@ class alignment:
                     time.sleep(dt_sample/2)
                 
                     if sample:
+                        # Safety sleep
+                        time.sleep(2*t_write*10**(-3))
                         # Readout photometric ROI average of sample timeframe.
                         roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
                         # Push sample start time forward for next sample.
