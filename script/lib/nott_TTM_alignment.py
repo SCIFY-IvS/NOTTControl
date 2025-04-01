@@ -1691,9 +1691,9 @@ class alignment:
         yticks = np.linspace(0,dim-1,dim)
         labels = np.arange(-20*(dim//2),20*(dim//2+1),20)
         ax.axes.get_xaxis().set_ticks(xticks)
-        ax.axes.get_yaxis().set_ticks(-yticks)
+        ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
-        ax.set_yticklabels(labels)
+        ax.set_yticklabels(-labels)
         # Plotting initial SNR improvement value (=0) as label
         ax.text(indplot[1],indplot[0],np.round(SNR_av[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
@@ -1932,9 +1932,9 @@ class alignment:
         yticks = np.linspace(0,dim-1,dim)
         labels = np.arange(-1000*d*(dim//2),1000*d*(dim//2+1),1000*d)
         ax.axes.get_xaxis().set_ticks(xticks)
-        ax.axes.get_yaxis().set_ticks(-yticks)
+        ax.axes.get_yaxis().set_ticks(yticks)
         ax.set_xticklabels(labels)
-        ax.set_yticklabels(labels)
+        ax.set_yticklabels(-labels)
         # Plotting initial SNR improvement value (=0) as label
         ax.text(indplot[1],indplot[0],np.round(SNR_max[indplot[0]][indplot[1]],2),ha='center',va='center',fontsize=14)
         # Title
