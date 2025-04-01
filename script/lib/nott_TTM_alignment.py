@@ -1541,10 +1541,6 @@ class alignment:
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-            
-        steps = step.copy()
-        steps[1] *= -1
-        steps[3] *= -1
     
         # Register current actuator displacements
         act_curr = self._get_actuator_pos(config)[0]
@@ -2113,9 +2109,6 @@ class alignment:
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
         
-        # Actuator motor object 
-        act = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_name,act_name)
-        
         # List of time stamps
         time_arr = []
         # List of positions
@@ -2398,7 +2391,7 @@ class alignment:
         act_name='NTPB2'
         curr_pos = self._get_actuator_pos(configpar)[0]
         print("Current actuator positions :", self._get_actuator_pos(configpar)[0])
-        align(self,configpar)
+        self.align(configpar)
         kick_loc_opt(self,configpar)
         
     
