@@ -1479,7 +1479,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,step,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1500,7 +1500,7 @@ class alignment:
             sky == 0 : User specifies desired (dX,dY,dx,dy) shifts in the CS(X,Y) and IM(x,y) plane.
             sky == 1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the CS position fixed.
             sky == -1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the IM position fixed. 
-        step : (1,4) numpy array of float values 
+        steps : (1,4) numpy array of float values 
             sky == 0 : steps = (dX,dY,dx,dy). (mm)
             sky != 0 : steps = (dskyX,dskyY,0,0). (rad)
         speeds : (1,4) numpy array of float values (mm/s)
@@ -1691,7 +1691,7 @@ class alignment:
         yticks = np.linspace(0,dim-1,dim)
         labels = np.arange(-20*(dim//2),20*(dim//2+1),20)
         ax.axes.get_xaxis().set_ticks(xticks)
-        ax.axes.get_yaxis().set_ticks(yticks)
+        ax.axes.get_yaxis().set_ticks(-yticks)
         ax.set_xticklabels(labels)
         ax.set_yticklabels(labels)
         # Plotting initial SNR improvement value (=0) as label
@@ -1704,7 +1704,7 @@ class alignment:
         
         def _update_plot(indplotpar,val):    
             # Changing the indices according to recent spiral step
-            indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
+            indplot_change = np.array([[-1,0],[0,-1],[+1,0],[0,1]])
             indplotpar += indplot_change[move]
             # Storing average SNR improvement in container
             SNR_av[indplotpar[0]][indplotpar[1]] = val
@@ -1932,7 +1932,7 @@ class alignment:
         yticks = np.linspace(0,dim-1,dim)
         labels = np.arange(-1000*d*(dim//2),1000*d*(dim//2+1),1000*d)
         ax.axes.get_xaxis().set_ticks(xticks)
-        ax.axes.get_yaxis().set_ticks(yticks)
+        ax.axes.get_yaxis().set_ticks(-yticks)
         ax.set_xticklabels(labels)
         ax.set_yticklabels(labels)
         # Plotting initial SNR improvement value (=0) as label
@@ -1946,7 +1946,7 @@ class alignment:
         def _update_plot(indplotpar,val):
             
             # Changing the indices according to recent spiral step
-            indplot_change = np.array([[+1,0],[0,-1],[-1,0],[0,1]])
+            indplot_change = np.array([[-1,0],[0,-1],[1,0],[0,1]])
             indplotpar += indplot_change[move]
             # Storing average SNR improvement in container
             SNR_max[indplotpar[0]][indplotpar[1]] = val
