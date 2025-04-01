@@ -1479,7 +1479,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,step,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1500,7 +1500,7 @@ class alignment:
             sky == 0 : User specifies desired (dX,dY,dx,dy) shifts in the CS(X,Y) and IM(x,y) plane.
             sky == 1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the CS position fixed.
             sky == -1 : User specifies on-sky angular shifts (dskyX,dskyY) and wishes for TTM1 to facilitate this on-sky shift while keeping the IM position fixed. 
-        steps : (1,4) numpy array of float values 
+        step : (1,4) numpy array of float values 
             sky == 0 : steps = (dX,dY,dx,dy). (mm)
             sky != 0 : steps = (dskyX,dskyY,0,0). (rad)
         speeds : (1,4) numpy array of float values (mm/s)
@@ -1541,7 +1541,8 @@ class alignment:
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-    
+            
+        steps = step.copy()
         steps[1] *= -1
         steps[3] *= -1
     
@@ -2176,7 +2177,7 @@ class alignment:
         final_pos = self._get_actuator_pos(config)[0][act_index]
         print("----------------------------------------------------------------------------------------------------------------------------")
         print("Moving actuator "+act_name+" from "+str(curr_pos)+" mm to "+str(imposed_pos)+" mm at speed "+str(speed)+" mm/s took "+str(spent_time)+" seconds")
-        print("Actual actuator position reached :"+str(final_pos)+" mm")
+        print("Actual actuator position reached :"+str(final_pos)+" mm by error" +str(1000*(imposed_pos-final_pos))+" um.")
         print("----------------------------------------------------------------------------------------------------------------------------")   
         # Close OPCUA connection
         opcua_conn.disconnect()
@@ -2291,16 +2292,16 @@ class alignment:
         else:
             align_pos = (act_pos_align[2]+act_pos_align[3])/2
         
-        # Bring actuator to middle of range
+        # Bring actuator to aligned position.
         init_pos = self._get_actuator_pos(config)[0][act_index]
-        init_disp = 3 - init_pos
+        init_disp = align_pos - init_pos
         _ = self.act_response_test_single(init_disp,0.1,act_name,False,act_index,align_pos)
         # Matrix containing time spent moving actuators, backlash (final pos-initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
         matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
         # Carrying out the test for each combination
         for i in range(0, len(act_displacements)):
             disp = act_displacements[i] # mm
-            speeds = np.geomspace(0.005/100,0.030,len_speeds) #mm/s #logspace
+            speeds = np.geomspace(0.0005/100,0.025,len_speeds) #mm/s #logspace
             for j in range(0, len(speeds)):
                 # Current position
                 init_pos = self._get_actuator_pos(config)[0][act_index]
@@ -2333,20 +2334,41 @@ class alignment:
             print(i)
         return matrix_acc
     
-    def algorithm_test(self):
+    def actuator_performance():
         
-        def align(obj,config):
+        act_name = "NTPB2"
+        grid_size = 21
+        
+        displacements_pos = np.geomspace(0.0005,0.025,grid_size)
+        displacements_neg = np.geomspace(-0.0005,-0.025,grid_size)
+        for i in range(0,5):
+            # Backlash grids
+            matrix_back = self.act_backlash_test_multi(displacements_pos,grid_size,act_name,3)
+            np.save("backpos"+str(i+1),matrix_back)
+            matrix_back = self.act_backlash_test_multi(displacements_neg,grid_size,act_name,3)
+            np.save("backneg"+str(i+1),matrix_back)
+            # Offset-accounted grids
+            matrix_acc,times,positions = self.act_response_test_multi(displacements_pos,grid_size,act_name,3,True)
+            np.save("offpos"+str(i+1),matrix_acc)
+            matrix_acc,times,positions = self.act_response_test_multi(displacements_neg,grid_size,act_name,3,True)
+            np.save("offneg"+str(i+1),matrix_acc)
+        return
+    
+    def align(self,config=1):
             print("---------------------------------------------------------------------------")
             print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
             pos_arr = np.array([5.219526,5.4300675,3.4311585,3.94609],dtype=np.float64)
             # Necessary Displacements for Alignment
-            curr_pos = obj._get_actuator_pos(config)[0]
+            curr_pos = self._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
             speed_arr = np.abs(disp_arr.copy()/10)
-            off = obj._actoffset(speed_arr,disp_arr)
-            obj._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
+            off = self._actoffset(speed_arr,disp_arr)
+            self._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
+    
+    def algorithm_test(self):
+        
         def kick_loc_opt(obj,config):
             def rand_sign():
                 return 1 if random.random() < 0.5 else -1
@@ -2358,9 +2380,9 @@ class alignment:
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
-            obj.localization_spiral(False,20,0.020,config,0.10)
-            obj.optimization_spiral(False,5,0.001,config,0.10)
-            obj.optimization_spiral(False,1,0.001,config,0.10)
+            obj.localization_spiral(False,20,0.010,config,0.050)
+            obj.optimization_spiral(False,5,0.005,config,0.030)
+            obj.optimization_spiral(False,1,0.001,config,0.030)
             return
 
         # Configuration parameters
