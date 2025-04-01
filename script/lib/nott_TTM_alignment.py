@@ -813,7 +813,8 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.200555,5.453644,3.4156645,3.934744],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        act_pos_align = np.array([[0,0,0,0],[5.1613015,5.408199,3.409473,3.8637095],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        #act_pos_align = np.array([[0,0,0,0],[5.200555,5.453644,3.4156645,3.934744],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -868,7 +869,8 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.200555,5.453644,3.4156645,3.934744],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        act_pos_align = np.array([[0,0,0,0],[5.1613015,5.408199,3.409473,3.8637095],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        #act_pos_align = np.array([[0,0,0,0],[5.200555,5.453644,3.4156645,3.934744],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
         act_config = act_pos_align[config]
     
         # TTM1
@@ -2226,8 +2228,9 @@ class alignment:
     def act_response_test_multi(self,act_displacements,len_speeds,act_name,act_index,offset,config=1):
         # Function to probe the actuator response for a range of displacements and speeds
         # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
-        
-        act_pos_align = [5.200555,5.453644,3.4156645,3.934744]
+
+        act_pos_align = [5.1613015,5.408199,3.409473,3.8637095]
+        #act_pos_align = [5.200555,5.453644,3.4156645,3.934744]
         if (act_index < 2):
             align_pos = (act_pos_align[0]+act_pos_align[1])/2
         else:
@@ -2280,7 +2283,8 @@ class alignment:
         # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
         # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
         
-        act_pos_align = [5.200555,5.453644,3.4156645,3.934744]
+        act_pos_align = [5.1613015,5.408199,3.409473,3.8637095]
+        #act_pos_align = [5.200555,5.453644,3.4156645,3.934744]
         if (act_index < 2):
             align_pos = (act_pos_align[0]+act_pos_align[1])/2
         else:
