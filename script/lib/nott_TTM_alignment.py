@@ -2502,7 +2502,7 @@ class alignment:
             else:
                 steps = np.array([0,0,xstep,ystep],dtype=np.float64)
             # Performing the step
-            _ = obj.individual_step(False,0,steps,speeds,1,False)
+            _ = self.individual_step(False,0,steps,speeds,1,False)
             # 3) Retrieve final position
             pos_final_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_final_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
@@ -2517,7 +2517,7 @@ class alignment:
             xshift_PUPIL = pos_final_PUPIL[0]-pos_init_PUPIL[0]
             yshift_PUPIL = pos_final_PUPIL[1]-pos_init_PUPIL[1]
             # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
-        return [xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL]*2.40*10**(-3) #mm
+            return [xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL]*2.40*10**(-3) #mm
         
         def rand_sign():
             return 1 if random.random() < 0.5 else -1
@@ -2538,7 +2538,7 @@ class alignment:
             while not valid:
                 try:
                     valid = True
-                    shifts = step(dx,dy,pupilpar)
+                    shifts = step(dx,dy)
                 # If individual_step throws exception (state not valid), stay in while loop.
                 except:
                     valid = False
