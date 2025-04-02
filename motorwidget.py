@@ -192,16 +192,15 @@ class MotorWidget(QWidget):
             pos = self.ui.lineEdit_pos.text()
             #Convert to mm
             pos = float(pos) / 1000
-            speed = 0.1
 
-            self.__move_abs_motor(pos, speed)
+            self.__move_abs_motor(pos)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
     
 
-    def __move_abs_motor(self, pos, speed):
+    def __move_abs_motor(self, pos):
         try:
-            cmd = self._motor.command_move_absolute(pos, speed)
+            cmd = self._motor.command_move_absolute(pos)
             self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
@@ -210,9 +209,8 @@ class MotorWidget(QWidget):
     def move_rel_motor(self, rel_pos):
         try:
             print("rel_pos = ",rel_pos)
-            speed = 0.05
 
-            cmd = self._motor.command_move_relative(rel_pos, speed)
+            cmd = self._motor.command_move_relative(rel_pos)
             self.executeCommand(cmd)
         except Exception as e:
             print(f"Error calling RPC method: {e}")
