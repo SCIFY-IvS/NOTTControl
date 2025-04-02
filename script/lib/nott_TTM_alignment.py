@@ -80,7 +80,10 @@ SNR_inj = int(configpars['injection']['SNR_inj'])
 Ncrit = int(configpars['injection']['Ncrit'])
 Nsteps_skyb = int(configpars['injection']['Nsteps_skyb'])
 Nexp = int(configpars['injection']['Nexp'])
-print("Read configuration [t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp] : ",[t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp])
+disp_double = float(configpars['injection']['disp_double'])
+step_double = float(configpars['injection']['step_double'])
+speed_double = float(configpars['injection']['speed_double'])
+print("Read configuration [t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
 #-----------------#
 # Auxiliary Grids #
@@ -1325,7 +1328,7 @@ class alignment:
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
         # Desired final positions
-        final_pos = init_pos + (disp-err_prev)
+        final_pos = init_pos + (disp)#-err_prev) #TBD
         
         # Sampled actuator positions and ROI values
         act = []
@@ -1415,21 +1418,38 @@ class alignment:
             # 1) Move 1 : Deliberately overshooting and sampling until the desired position is reached.
             move_single(True)
             
-            # 1.5) Updating offset for the second move, which need be accurate.
+            # 2) Move 2 : Neutralizing the backlash by moving a small amount (0.5 um) in the opposite direction.
+            # Current actuator positions
+            act_curr_temp = self._get_actuator_pos(config)[0]
+            disp_back = sign*0.0005
+            # Backlash-neutralized position
+            pos_back = act_curr_temp[i] + disp_back
+            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
+            method = parent.get_child("4:RPC_MoveAbs")
+            arguments = [pos_back, 0.0005]
+            parent.call_method(method, *arguments)
+            # Wait for the actuator to be ready
+            on_destination = False
+            while not on_destination:
+                time.sleep(0.01)
+                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
+                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+            
+            # 2.5) Updating offset for the second move, which need be accurate.
             
             # Current actuator positions
             act_curr_temp = self._get_actuator_pos(config)[0]
             # Necessary displacements
             act_disp_temp = final_pos - act_curr_temp
             # Update speed
-            speeds[i] = 0.0005/10 # TBD
+            speeds[i] = speed_double
             # Offsets from accuracy grid
             pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
             
             # Update final_pos_off
             final_pos_off[i] = final_pos[i] - pos_offset_temp[i]
             
-            # 2) Move 2 : Returning to get to the desired position in accurate fashion. No sampling required # TBD : Incorporate backlash?
+            # 3) Move 3 : Returning to get to the desired position in accurate fashion. No sampling required # TBD : Incorporate backlash?
             parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
             method = parent.get_child("4:RPC_MoveAbs")
             arguments = [final_pos_off[i], speeds[i]]
@@ -1457,15 +1477,15 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp_off) >= 0.0005):# TBD
+                if (np.abs(disp) >= disp_double):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
                     # 2) Double motion necessary
                     sign = np.sign(disp[i])
-                    # Deliberately overshooting by 2 um.
-                    step_over = 0.0005 # TBD
-                    speeds[i] = 0.0005/10 # TBD 
+                    # Deliberately overshooting
+                    step_over = step_double 
+                    speeds[i] = speed_double 
                     final_pos_off[i] = init_pos[i] + sign*step_over
                     move_double()
         
@@ -1765,7 +1785,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
@@ -1807,7 +1827,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array(np.abs(act_disp/100),dtype=np.float64) #TBD
+                    speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -2006,7 +2026,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/20,speed/20], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev)
                 # Saving error for next step.
                 err_prev = np.array(err,dtype=np.float64)
@@ -2049,7 +2069,7 @@ class alignment:
         # Necessary displacements
         act_disp = ACT_final-act_curr
         #speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
-        speeds = np.array([0.00005,0.00005,0.00005,0.00005],dtype=np.float64) #TBD
+        speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
@@ -2288,7 +2308,7 @@ class alignment:
         # Bring actuator to aligned position.
         init_pos = self._get_actuator_pos(config)[0][act_index]
         init_disp = align_pos - init_pos
-        _ = self.act_response_test_single(init_disp,0.1,act_name,False,act_index,align_pos)
+        _ = self.act_response_test_single(init_disp,0.01,act_name,act_index,False,align_pos)
         # Matrix containing time spent moving actuators, backlash (final pos-initial pos) and image shift accuracy (final-initial) for all displacement x speed combinations
         matrix_acc = np.zeros((6,len(act_displacements),len_speeds))
         # Carrying out the test for each combination
@@ -2327,7 +2347,7 @@ class alignment:
             print(i)
         return matrix_acc
     
-    def actuator_performance():
+    def actuator_performance(self):
         
         act_name = "NTPB2"
         grid_size = 21
@@ -2374,8 +2394,8 @@ class alignment:
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.050)
-            obj.optimization_spiral(False,5,0.005,config,0.030)
-            obj.optimization_spiral(False,1,0.001,config,0.030)
+            obj.optimization_spiral(False,5,0.0025,config,0.030)
+            obj.optimization_spiral(False,1,0.0005,config,0.030)
             return
 
         # Configuration parameters
