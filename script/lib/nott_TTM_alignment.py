@@ -1477,7 +1477,7 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp) >= disp_double):
+                if (np.abs(disp[i]) >= disp_double):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
@@ -2393,9 +2393,9 @@ class alignment:
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
-            obj.localization_spiral(False,20,0.010,config,0.050)
-            obj.optimization_spiral(False,5,0.0025,config,0.030)
-            obj.optimization_spiral(False,1,0.0005,config,0.030)
+            obj.localization_spiral(False,20,0.010,config,0.15)
+            obj.optimization_spiral(False,5,0.0025,config,0.15)
+            obj.optimization_spiral(False,1,0.0005,config,0.15)
             return
 
         # Configuration parameters
