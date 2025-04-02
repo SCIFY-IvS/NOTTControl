@@ -14,21 +14,14 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 # A) Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed).
 # --> TO BE COMPLETED, one all actuators are installed and spiraling algorithms are fully functional and performant.
 
-# B) Generalize sky-ttm angle relations to account for different AT aperture size. 
-# --> DONE, no change as Heimdallr brings all beams to 12 mm regardless of AT pupil diameter.
-
-# C) Add function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames.
+# B) Add function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames.
 # --> TO BE COMPLETED, got VLTI maps from M.A.M. and still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
 
-# D) Rerun actuator performance grids
-# --> The unability to recover optimal injection configurations is likely due to sub-par actuator (TTM2) resolution.
-# --> Rerun actuator grids, close to aligned positions, extending to smaller displacements (down to 0.5 um)
+# C) General efficiency of code & documentation where relevant (i.e. non-testing functions)
 
-# E) General efficiency of code & documentation where relevant (i.e. non-testing functions)
-
-# H) Write and run framework performance
-# I) Optimize efficiency based on previous two (decide on spiral steps&speeds) 
-# J) Write and run algorithm performance
+# D) Write and run framework performance
+# E) Optimize efficiency based on previous two (decide on spiral steps&speeds) 
+# F) Write and run algorithm performance
 
 #---------#
 # Imports #
