@@ -89,6 +89,9 @@ class MainWindow(QMainWindow):
         
         self.recording_lock = threading.Lock()
 
+        self.frame_rate_timer = QTimer()
+        self.frame_rate_timer.timeout.connect(self.calculate_frame_rates)
+
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
         self.calculating_roi = False
@@ -206,7 +209,19 @@ class MainWindow(QMainWindow):
             self.ui.button_record.setEnabled(True)
             self.ui.button_takebackground.setEnabled(True)
             self.nbCameraImages = 0
-            
+            self.frame_rate_timer.start(5000)
+    
+
+    def set_window(self):
+        if not self.config['CAMERA'].getboolean('windowing'):
+            return
+
+        self.interface.setparam_int32(294, self.config['CAMERA'].getint('window_w'))
+        self.interface.setparam_int32(295, self.config['CAMERA'].getint('window_h'))
+        self.interface.setparam_int32(292, self.config['CAMERA'].getint('window_x'))
+        self.interface.setparam_int32(293, self.config['CAMERA'].getint('window_y'))
+
+        self.set_brightness_auto()
             
     def disconnect_camera(self):
         if not self.connected:
@@ -219,6 +234,7 @@ class MainWindow(QMainWindow):
             self.ui.button_record.setEnabled(False)
             self.ui.button_takebackground.setEnabled(False)
             self.ui.checkBox_subtractbackground.setEnabled(False)
+            self.frame_rate_timer.stop()
 
     def record_clicked(self):
         if self.recording:
@@ -332,6 +348,7 @@ class MainWindow(QMainWindow):
         
     def update_image(self, img):
         if not self.imageInit:
+            self.set_window()
             self.initialize_image_display(img)
         else:
             if self.ui.checkBox_subtractbackground.isChecked():
