@@ -1477,7 +1477,7 @@ class alignment:
                 # Actual displacement (offset incorporated)
                 disp_off = final_pos_off[i]-init_pos[i]
                 
-                if (np.abs(disp) >= disp_double):
+                if (np.abs(disp[i]) >= disp_double):
                     # 1) Single motion suffices
                     move_single(False)
                 else:
