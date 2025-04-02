@@ -44,6 +44,13 @@ sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 # OPCUA / redis
 import redis
 from opcua import OPCUAConnection
+# Arena API (Visible cameras)
+import arena_api
+from arena_api.system import system
+# Scipy/Astropy (visible camera beam fitting)
+from astropy.modeling import models, fitting
+import scipy
+
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
 logger.setLevel(logging.WARNING)
@@ -2237,7 +2244,7 @@ class alignment:
 
     def act_response_test_multi(self,act_displacements,len_speeds,act_name,act_index,offset,config=1):
         # Function to probe the actuator response for a range of displacements and speeds
-        # !!! To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
+        # To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
 
         act_pos_align = [5.219526,5.4300675,3.4311585,3.94609]
         if (act_index < 2):
@@ -2359,6 +2366,204 @@ class alignment:
             matrix_acc,times,positions = self.act_response_test_multi(displacements_neg,grid_size,act_name,3,True)
             np.save("offneg"+str(i+1),matrix_acc)
         return
+    
+    def visible_camera_performance(self,N,pupilpar=False):
+        """
+        
+        Parameters
+        ----------
+        pupilpar : single boolean
+            True when you wish to study the performance of shifts imposed in the pupil plane.
+        N : single integer
+            How much iterations, i.e. random shifts, to go through.
+
+        """
+        # Selecting devices
+        tries = 0
+        tries_max = 6
+        sleep_time_secs = 10
+        while tries < tries_max:  # Wait for device for 60 seconds
+            devices = system.create_device()
+            if not devices:
+                print(
+                    f'Try {tries+1} of {tries_max}: waiting for {sleep_time_secs} '
+                    f'secs for a device to be connected!')
+                for sec_count in range(sleep_time_secs):
+                    time.sleep(1)
+                    print(f'{sec_count + 1 } seconds passed ',
+                          '.' * sec_count, end='\r')
+                tries += 1
+            else:
+                print(f'Created {len(devices)} device(s)\n')
+                break
+        else:
+            raise Exception(f'No device found! Please connect a device and run '
+                            f'the example again.')
+
+        device_IM = system.select_device(devices)
+        device_PUPIL = system.select_device(devices)
+        print(f'Device used for image plane:\n\t{device_IM}')
+        print(f'Device used for pupil plane:\n\t{device_PUPIL}')
+        
+        # Get stream nodemap to set features before streaming
+        stream_nodemap_IM = device_IM.tl_stream_nodemap
+        stream_nodemap_PUPIL = device_PUPIL.tl_stream_nodemap
+        
+        # Enable stream auto negotiate packet size
+        stream_nodemap_IM['StreamAutoNegotiatePacketSize'].value = True
+        stream_nodemap_PUPIL['StreamAutoNegotiatePacketSize'].value = True
+        # Enable stream packet resend
+        stream_nodemap_IM['StreamPacketResendEnable'].value = True
+        stream_nodemap_PUPIL['StreamPacketResendEnable'].value = True
+        
+        nodemap_IM = device_IM.nodemap
+        nodemap_PUPIL = device_PUPIL.nodemap
+
+        # Setting width, height, x/y offsets to limit the buffer size
+    
+        # Setting IMAGE plane nodemap config
+        nodemap_IM["Width"].value = 300
+        nodemap_IM["Height"].value = 300
+        nodemap_IM["OffsetX"].value = 1500
+        nodemap_IM["OffsetY"].value = 800
+        # Setting PUPIL plane nodemap config TBC
+        nodemap_PUPIL["Width"].value = 3072
+        nodemap_PUPIL["Height"].value = 2048
+        nodemap_PUPIL["OffsetX"].value = 0
+        nodemap_PUPIL["OffsetY"].value = 0
+        
+        # Setting exposure mode and exposure time (lowest possible for the green laser)
+        nodemap_IM["ExposureAuto"].value = "Off"
+        nodemap_IM["ExposureTime"].value = 27.216
+        nodemap_PUPIL["ExposureAuto"].value = "Off"
+        nodemap_PUPIL["ExposureTime"].value = 25000
+        
+        rfit_im = 10
+        rfit_pup = 2000
+
+        def retrieve_pos(devicepar,nodemappar,rfit):
+
+            with devicepar.start_stream():
+
+                # PREPARATION #
+                #-------------#
+                # Create buffer 
+                buffer = devicepar.get_buffer()
+                # Numpy matrix containing image data
+                nparray = np.array(buffer.data, dtype=np.uint8)
+                nparray = nparray.reshape(buffer.height, buffer.width)
+                # Width
+                w = nodemappar["Width"].value
+                h = nodemappar["Height"].value
+                # Data
+                x = np.linspace(1,w,w)
+                y = np.linspace(1,h,h)
+                x,y = np.meshgrid(x,y)
+                # Indices of maximum
+                i = np.argmax(nparray)//w
+                j = np.argmax(nparray)%w   
+                # FITTING #
+                #---------#
+                # Airy disk model
+                airy = models.AiryDisk2D(amplitude=np.max(nparray),x_0=j,y_0=i,radius=rfit,bounds={"amplitude":(0,1.5*np.max(nparray)),"x_0":(0,w),"y_0":(0,h),"radius":(0,2*rfit)})
+                # Performing least squares fitting procedure
+                fit_ent = fitting.LevMarLSQFitter(calc_uncertainties=True)
+                pix = fit_ent(airy,x,y,nparray)
+                xfit,yfit=pix.x_0.value,pix.y_0.value
+                # PLOTTING
+                plt.imshow(nparray)
+                plt.scatter(j,i, color="red",label="Max")
+                plt.scatter(xfit,yfit,color="blue",label="Fit")
+                plt.legend()
+                # Requeue to release buffer memory
+                devicepar.requeue_buffer(buffer)
+                
+            return [xfit,yfit]
+        
+        def step(xstep,ystep):
+            # xstep : mm
+            # ystep : mm
+            def deproject(pos,theta):
+                x = pos[0]
+                y = pos[1]
+                x_prim = x*np.cos(theta)-y*np.sin(theta)
+                y_prim = x*np.sin(theta)+y*np.cos(theta)
+                return [x_prim,y_prim]
+            # Deprojection angles (FROM BENCH XY AXES TO CAMERA X'Y' AXES!)
+            angle_IM = np.pi
+            angle_PUPIL = np.pi
+            # 1) Retrieve initial position
+            pos_init_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
+            pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
+            # 2) Perform an individual step by the given dimensions, in the plane specified.
+            speeds = np.array([0.01,0.01,0.001,0.001],dtype=np.float64) # mm/s TBC
+            if pupilpar:
+                steps = np.array([xstep,ystep,0,0],dtype=np.float64)
+            else:
+                steps = np.array([0,0,xstep,ystep],dtype=np.float64)
+            # Performing the step
+            _ = obj.individual_step(False,0,steps,speeds,1,False)
+            # 3) Retrieve final position
+            pos_final_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
+            pos_final_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
+            # Deproject the coordinates
+            pos_init_IM = deproject(pos_init_IM,angle_IM)
+            pos_init_PUPIL = deproject(pos_init_PUPIL,angle_PUPIL)
+            pos_final_IM = deproject(pos_final_IM,angle_IM)
+            pos_final_PUPIL = deproject(pos_final_PUPIL,angle_PUPIL)
+            # Calculating the shifts
+            xshift_IM = pos_final_IM[0]-pos_init_IM[0]
+            yshift_IM = pos_final_IM[1]-pos_init_IM[1]
+            xshift_PUPIL = pos_final_PUPIL[0]-pos_init_PUPIL[0]
+            yshift_PUPIL = pos_final_PUPIL[1]-pos_init_PUPIL[1]
+            # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
+        return [xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL]*2.40*10**(-3) #mm
+        
+        def rand_sign():
+            return 1 if random.random() < 0.5 else -1
+    
+        # Framework performance
+        # Step 1 : Align
+        self.align()
+        # Step 2 : Draw random shifts
+        if pupilpar: # TBC
+            dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
+            dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
+        else:
+            dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
+            dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
+        # Step 3 : Imposing the steps to the bench, note: only if the imposed state is valid (f.e. not off the slicer)
+        def step_validcheck():
+            valid = False
+            while not valid:
+                try:
+                    valid = True
+                    shifts = step(dx,dy,pupilpar)
+                # If individual_step throws exception (state not valid), stay in while loop.
+                except:
+                    valid = False
+            return shifts,dx,dy
+        
+        # Shifts data container
+        acc = np.zeros(N)
+        for i in range(0,N):
+            shifts_iter,dx,dy = step_validcheck()
+            if pupilpar:
+                x_err = dx-shifts_iter[2]
+                y_err = dy-shifts_iter[3]
+                acc[i] = np.array([x_err,y_err,dx,dy,shifts_iter[0],shifts_iter[1],pupilpar],dtype=np.float64)
+            else:
+                dx_err = dx-shifts_iter[0]
+                dy_err = dy-shifts_iter[1]
+                print("Iteration "+str(i)+" : "+str(1000*[dx_err,dy_err])+" um errors on imposed displacements "+str(1000*[dx,dy])+" um.")
+                acc[i] = np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],pupilpar],dtype=np.float64)
+        
+        
+        # Destroy the devices before returning
+        system.destroy_device(device=device_IM)
+        system.destroy_device(device=device_PUPIL)
+        
+        return acc
     
     def align(self,config=1):
             print("---------------------------------------------------------------------------")
