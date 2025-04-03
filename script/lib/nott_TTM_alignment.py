@@ -2428,10 +2428,10 @@ class alignment:
         # Setting width, height, x/y offsets to limit the buffer size
     
         # Setting IMAGE plane nodemap config
-        nodemap_IM["Width"].value = 300
-        nodemap_IM["Height"].value = 300
-        nodemap_IM["OffsetX"].value = 1500
-        nodemap_IM["OffsetY"].value = 800
+        nodemap_IM["Width"].value = 400
+        nodemap_IM["Height"].value = 400
+        nodemap_IM["OffsetX"].value = 1400
+        nodemap_IM["OffsetY"].value = 1150
         # Setting PUPIL plane nodemap config TBC
         nodemap_PUPIL["Width"].value = 3072
         nodemap_PUPIL["Height"].value = 2048
@@ -2446,7 +2446,7 @@ class alignment:
         
         # Gaussian PSF fitting radius estimates
         rfit_im = 10
-        rfit_pup = 2000
+        rfit_pup = 500
 
         def retrieve_pos(devicepar,nodemappar,rfit):
 
@@ -2526,7 +2526,7 @@ class alignment:
             xshift_PUPIL = pos_final_PUPIL[0]-pos_init_PUPIL[0]
             yshift_PUPIL = pos_final_PUPIL[1]-pos_init_PUPIL[1]
             # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
-            return [xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL]*2.40*10**(-3) #mm
+            return np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3) #mm
         
         def rand_sign():
             return 1 if random.random() < 0.5 else -1
