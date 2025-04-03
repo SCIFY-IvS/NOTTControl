@@ -2428,7 +2428,7 @@ class alignment:
         # Setting width, height, x/y offsets to limit the buffer size
     
         # Setting IMAGE plane nodemap config
-        nodemap_IM["Width"].value = 150
+        nodemap_IM["Width"].value = 148
         nodemap_IM["Height"].value = 150
         nodemap_IM["OffsetX"].value = 1500
         nodemap_IM["OffsetY"].value = 1250
@@ -2478,18 +2478,18 @@ class alignment:
                 pix = fit_ent(airy,x,y,nparray)
                 xfit,yfit=pix.x_0.value,pix.y_0.value
                 # PLOTTING
-                fig = plt.figure(figsize=(10,10))
-                ax = fig.add_subplot(111)
-                img = ax.imshow(nparray)
-                ax.scatter(j,i, color="red",label="Max")
-                ax.scatter(xfit,yfit,color="blue",label="Fit")
-                ax.legend()
-                fig.canvas.draw()
-                fig.canvas.flush_events()
-                fig.show()
+                #fig = plt.figure(figsize=(10,10))
+                #ax = fig.add_subplot(111)
+                #img = ax.imshow(nparray)
+                #ax.scatter(j,i, color="red",label="Max")
+                #ax.scatter(xfit,yfit,color="blue",label="Fit")
+                #ax.legend()
+                #fig.canvas.draw()
+                #fig.canvas.flush_events()
+                #fig.show()
                 # Requeue to release buffer memory
                 devicepar.requeue_buffer(buffer)
-                
+            print("Fitted position : ", xfit,yfit)
             return [xfit,yfit]
         
         def step(xstep,ystep):
@@ -2507,8 +2507,10 @@ class alignment:
             # 1) Retrieve initial position
             pos_init_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
-            # 2) Perform an individual step by the given dimensions, in the plane specified.
-            speeds = np.array([0.0001,0.0001,0.0005,0.0005],dtype=np.float64) # mm/s TBC
+            # 2) Perform an individual step by the given dimensions, in the plane specified; with random speed.
+            speed=rand_sign()*random.uniform(0.005,25)*10**(-3)
+            speeds = np.array([speed,speed,speed/10,speed/10],dtype=np.float64) # mm/s TBC
+            speeds[speeds<0.005*10**(-3)] = 0.005*10**(-3)
             if pupilpar:
                 steps = np.array([xstep,ystep,0,0],dtype=np.float64)
             else:
@@ -2529,7 +2531,7 @@ class alignment:
             xshift_PUPIL = pos_final_PUPIL[0]-pos_init_PUPIL[0]
             yshift_PUPIL = pos_final_PUPIL[1]-pos_init_PUPIL[1]
             # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
-            return np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3) #mm
+            return [np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3),speed] #mm(/s)
         
         def rand_sign():
             return 1 if random.random() < 0.5 else -1
@@ -2549,25 +2551,25 @@ class alignment:
                     dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
                     dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 try:
-                    shifts = step(dx,dy)
+                    shifts,speed = step(dx,dy)
                 # If individual_step throws exception (state not valid), stay in while loop.
                 except ValueError:
                     valid = False
-            return shifts,dx,dy
+            return shifts,dx,dy,speed
         
         # Shifts data container
         acc = []
         for i in range(0,N):
-            shifts_iter,dx,dy = step_validcheck()
+            shifts_iter,dx,dy,speed = step_validcheck()
             if pupilpar:
                 dx_err = dx-shifts_iter[2]
                 dy_err = dy-shifts_iter[3]
-                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],pupilpar],dtype=np.float64))
+                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],speed,pupilpar],dtype=np.float64))
             else:
                 dx_err = dx-shifts_iter[0]
                 dy_err = dy-shifts_iter[1]
                 print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
-                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],pupilpar],dtype=np.float64))
+                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar],dtype=np.float64))
         
         
         # Destroy the devices before returning
