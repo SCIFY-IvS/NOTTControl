@@ -2508,7 +2508,7 @@ class alignment:
             pos_init_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
             # 2) Perform an individual step by the given dimensions, in the plane specified.
-            speeds = np.array([0.005,0.005,0.001,0.001],dtype=np.float64) # mm/s TBC
+            speeds = np.array([0.0001,0.0001,0.0005,0.0005],dtype=np.float64) # mm/s TBC
             if pupilpar:
                 steps = np.array([xstep,ystep,0,0],dtype=np.float64)
             else:
