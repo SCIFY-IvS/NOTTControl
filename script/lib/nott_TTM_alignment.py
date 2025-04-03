@@ -2385,7 +2385,7 @@ class alignment:
         while tries < tries_max:  # Wait for device for 60 seconds
             # Only select the visible cameras (not the InfraTec):
             device_list = []
-            for device_info in system.device_infos():
+            for device_info in system.device_infos:
                 if device_info["model"] == "PHX064S-M":
                     device_list.append(device_info)
             # Connect to visible cameras
