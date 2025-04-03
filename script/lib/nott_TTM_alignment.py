@@ -2383,7 +2383,13 @@ class alignment:
         tries_max = 6
         sleep_time_secs = 10
         while tries < tries_max:  # Wait for device for 60 seconds
-            devices = system.create_device()
+            # Only select the visible cameras (not the InfraTec):
+            device_list = []
+            for device_info in system.device_infos():
+                if device_info["model"] == "PHX064S-M":
+                    device_list.append(device_info)
+            # Connect to visible cameras
+            devices = system.create_device(device_list)
             if not devices:
                 print(
                     f'Try {tries+1} of {tries_max}: waiting for {sleep_time_secs} '
@@ -2438,6 +2444,7 @@ class alignment:
         nodemap_PUPIL["ExposureAuto"].value = "Off"
         nodemap_PUPIL["ExposureTime"].value = 25000
         
+        # Gaussian PSF fitting radius estimates
         rfit_im = 10
         rfit_pup = 2000
 
