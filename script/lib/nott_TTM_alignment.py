@@ -2428,10 +2428,10 @@ class alignment:
         # Setting width, height, x/y offsets to limit the buffer size
     
         # Setting IMAGE plane nodemap config
-        nodemap_IM["Width"].value = 400
-        nodemap_IM["Height"].value = 400
-        nodemap_IM["OffsetX"].value = 1400
-        nodemap_IM["OffsetY"].value = 1150
+        nodemap_IM["Width"].value = 150
+        nodemap_IM["Height"].value = 150
+        nodemap_IM["OffsetX"].value = 1500
+        nodemap_IM["OffsetY"].value = 1250
         # Setting PUPIL plane nodemap config TBC
         nodemap_PUPIL["Width"].value = 3072
         nodemap_PUPIL["Height"].value = 2048
