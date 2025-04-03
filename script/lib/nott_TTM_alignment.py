@@ -2442,7 +2442,7 @@ class alignment:
         nodemap_IM["ExposureAuto"].value = "Off"
         nodemap_IM["ExposureTime"].value = 27.216
         nodemap_PUPIL["ExposureAuto"].value = "Off"
-        nodemap_PUPIL["ExposureTime"].value = 25000
+        nodemap_PUPIL["ExposureTime"].value = 25000.0
         
         # Gaussian PSF fitting radius estimates
         rfit_im = 10
@@ -2472,16 +2472,18 @@ class alignment:
                 # FITTING #
                 #---------#
                 # Airy disk model
-                airy = models.AiryDisk2D(amplitude=np.max(nparray),x_0=j,y_0=i,radius=rfit,bounds={"amplitude":(0,1.5*np.max(nparray)),"x_0":(0,w),"y_0":(0,h),"radius":(0,2*rfit)})
+                airy = models.AiryDisk2D(amplitude=np.max(nparray),x_0=j,y_0=i,radius=rfit,bounds={"amplitude":(0,1.5*np.max(nparray)),"x_0":(0,w),"y_0":(0,h),"radius":(0.1*rfit,2*rfit)})
                 # Performing least squares fitting procedure
                 fit_ent = fitting.LevMarLSQFitter(calc_uncertainties=True)
                 pix = fit_ent(airy,x,y,nparray)
                 xfit,yfit=pix.x_0.value,pix.y_0.value
                 # PLOTTING
-                plt.imshow(nparray)
-                plt.scatter(j,i, color="red",label="Max")
-                plt.scatter(xfit,yfit,color="blue",label="Fit")
-                plt.legend()
+                fig = plt.figure(figsize=(10,10))
+                ax = fig.add_subplot(111)
+                img = ax.imshow(nparray)
+                ax.scatter(j,i, color="red",label="Max")
+                ax.scatter(xfit,yfit,color="blue",label="Fit")
+                ax.legend()
                 # Requeue to release buffer memory
                 devicepar.requeue_buffer(buffer)
                 
@@ -2503,7 +2505,7 @@ class alignment:
             pos_init_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
             # 2) Perform an individual step by the given dimensions, in the plane specified.
-            speeds = np.array([0.01,0.01,0.001,0.001],dtype=np.float64) # mm/s TBC
+            speeds = np.array([0.005,0.005,0.001,0.001],dtype=np.float64) # mm/s TBC
             if pupilpar:
                 steps = np.array([xstep,ystep,0,0],dtype=np.float64)
             else:
@@ -2536,6 +2538,7 @@ class alignment:
         def step_validcheck():
             valid = False
             while not valid:
+                valid = True
                 if pupilpar: # TBC
                     dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
                     dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
@@ -2543,10 +2546,9 @@ class alignment:
                     dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
                     dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 try:
-                    valid = True
                     shifts = step(dx,dy)
                 # If individual_step throws exception (state not valid), stay in while loop.
-                except:
+                except ValueError:
                     valid = False
             return shifts,dx,dy
         
