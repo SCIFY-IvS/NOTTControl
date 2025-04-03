@@ -2484,6 +2484,9 @@ class alignment:
                 ax.scatter(j,i, color="red",label="Max")
                 ax.scatter(xfit,yfit,color="blue",label="Fit")
                 ax.legend()
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+                fig.show()
                 # Requeue to release buffer memory
                 devicepar.requeue_buffer(buffer)
                 
@@ -2553,24 +2556,25 @@ class alignment:
             return shifts,dx,dy
         
         # Shifts data container
-        acc = np.zeros(N)
+        acc = []
         for i in range(0,N):
             shifts_iter,dx,dy = step_validcheck()
             if pupilpar:
                 dx_err = dx-shifts_iter[2]
                 dy_err = dy-shifts_iter[3]
-                acc[i] = np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],pupilpar],dtype=np.float64)
+                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],pupilpar],dtype=np.float64))
             else:
                 dx_err = dx-shifts_iter[0]
                 dy_err = dy-shifts_iter[1]
-                print("Iteration "+str(i)+" : "+str(1000*[dx_err,dy_err])+" um errors on imposed displacements "+str(1000*[dx,dy])+" um.")
-                acc[i] = np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],pupilpar],dtype=np.float64)
+                print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
+                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],pupilpar],dtype=np.float64))
         
         
         # Destroy the devices before returning
         system.destroy_device(device=device_IM)
         system.destroy_device(device=device_PUPIL)
-        
+        # Saving result
+        np.save("Acc_frame", np.array(acc))
         return acc
     
     def align(self,config=1):
