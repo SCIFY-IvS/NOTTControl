@@ -2532,17 +2532,16 @@ class alignment:
         # Framework performance
         # Step 1 : Align
         self.align()
-        # Step 2 : Draw random shifts
-        if pupilpar: # TBC
-            dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
-            dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
-        else:
-            dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
-            dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
-        # Step 3 : Imposing the steps to the bench, note: only if the imposed state is valid (f.e. not off the slicer)
+        # Step 2 : Drawing random shifts and imposing the steps to the bench, note: only if the imposed state is valid (f.e. not off the slicer)
         def step_validcheck():
             valid = False
             while not valid:
+                if pupilpar: # TBC
+                    dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
+                    dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
+                else:
+                    dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
+                    dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 try:
                     valid = True
                     shifts = step(dx,dy)
@@ -2556,9 +2555,9 @@ class alignment:
         for i in range(0,N):
             shifts_iter,dx,dy = step_validcheck()
             if pupilpar:
-                x_err = dx-shifts_iter[2]
-                y_err = dy-shifts_iter[3]
-                acc[i] = np.array([x_err,y_err,dx,dy,shifts_iter[0],shifts_iter[1],pupilpar],dtype=np.float64)
+                dx_err = dx-shifts_iter[2]
+                dy_err = dy-shifts_iter[3]
+                acc[i] = np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],pupilpar],dtype=np.float64)
             else:
                 dx_err = dx-shifts_iter[0]
                 dy_err = dy-shifts_iter[1]
