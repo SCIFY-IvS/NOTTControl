@@ -239,6 +239,8 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
+        act_pos_align1 = [5.219587,5.449435,3.431372,3.874415]
+        
         '''
         # Opening all shutters
         all_shutters_open(4)
@@ -816,7 +818,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.219526,5.4300675,3.4311585,3.94609],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        act_pos_align = np.array([[0,0,0,0],act_pos_align1,[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -871,7 +873,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
-        act_pos_align = np.array([[0,0,0,0],[5.219526,5.4300675,3.4311585,3.94609],[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        act_pos_align = np.array([[0,0,0,0],act_pos_align1,[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
         act_config = act_pos_align[config]
     
         # TTM1
@@ -2246,7 +2248,7 @@ class alignment:
         # Function to probe the actuator response for a range of displacements and speeds
         # To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
 
-        act_pos_align = [5.219526,5.4300675,3.4311585,3.94609]
+        act_pos_align = act_pos_align1
         if (act_index < 2):
             align_pos = (act_pos_align[0]+act_pos_align[1])/2
         else:
@@ -2299,7 +2301,7 @@ class alignment:
         # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
         # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
         
-        act_pos_align = [5.219526,5.4300675,3.4311585,3.94609]
+        act_pos_align = act_pos_align1
         if (act_index < 2):
             align_pos = (act_pos_align[0]+act_pos_align[1])/2
         else:
@@ -2502,13 +2504,13 @@ class alignment:
                 y_prim = x*np.sin(theta)+y*np.cos(theta)
                 return [x_prim,y_prim]
             # Deprojection angles (FROM BENCH XY AXES TO CAMERA X'Y' AXES!)
-            angle_IM = np.pi
-            angle_PUPIL = np.pi
+            angle_IM = 0
+            angle_PUPIL = 0
             # 1) Retrieve initial position
             pos_init_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
             # 2) Perform an individual step by the given dimensions, in the plane specified; with random speed.
-            speed=rand_sign()*random.uniform(0.005,25)*10**(-3)
+            speed=random.uniform(0.005,25)*10**(-3)
             speeds = np.array([speed,speed,speed/10,speed/10],dtype=np.float64) # mm/s TBC
             speeds[speeds<0.005*10**(-3)] = 0.005*10**(-3)
             if pupilpar:
@@ -2562,12 +2564,12 @@ class alignment:
         for i in range(0,N):
             shifts_iter,dx,dy,speed = step_validcheck()
             if pupilpar:
-                dx_err = dx-shifts_iter[2]
-                dy_err = dy-shifts_iter[3]
+                dx_err = np.abs(dx)-np.abs(shifts_iter[2])
+                dy_err = np.abs(dy)-np.abs(shifts_iter[3])
                 acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],speed,pupilpar],dtype=np.float64))
             else:
-                dx_err = dx-shifts_iter[0]
-                dy_err = dy-shifts_iter[1]
+                dx_err = np.abs(dx)-np.abs(shifts_iter[0])
+                dy_err = np.abs(dy)-np.abs(shifts_iter[1])
                 print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
                 acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar],dtype=np.float64))
         
@@ -2583,7 +2585,7 @@ class alignment:
             print("---------------------------------------------------------------------------")
             print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
-            pos_arr = np.array([5.219526,5.4300675,3.4311585,3.94609],dtype=np.float64)
+            pos_arr = np.array(act_pos_align1,dtype=np.float64)
             # Necessary Displacements for Alignment
             curr_pos = self._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
