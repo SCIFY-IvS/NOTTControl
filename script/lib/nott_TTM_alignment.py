@@ -239,7 +239,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
-        act_pos_align1 = [5.219587,5.449435,3.431372,3.874415]
+        self.act_pos_align1 = [5.219587,5.449435,3.431372,3.874415]
         
         '''
         # Opening all shutters
@@ -818,7 +818,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
-        act_pos_align = np.array([[0,0,0,0],act_pos_align1,[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        act_pos_align = np.array([[0,0,0,0],self.act_pos_align1,[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
         act_config = act_pos_align[config]
     
         # TTM1X
@@ -873,7 +873,7 @@ class alignment:
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
-        act_pos_align = np.array([[0,0,0,0],act_pos_align1,[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
+        act_pos_align = np.array([[0,0,0,0],self.act_pos_align1,[0,0,0,0],[0,0,0,0]],dtype=np.float64) #TBC
         act_config = act_pos_align[config]
     
         # TTM1
@@ -2248,7 +2248,7 @@ class alignment:
         # Function to probe the actuator response for a range of displacements and speeds
         # To be used for displacements in ONE CONSISTENT DIRECTION (i.e. only positive / only negative displacements)
 
-        act_pos_align = act_pos_align1
+        act_pos_align = self.act_pos_align1
         if (act_index < 2):
             align_pos = (act_pos_align[0]+act_pos_align[1])/2
         else:
@@ -2301,7 +2301,7 @@ class alignment:
         # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
         # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
         
-        act_pos_align = act_pos_align1
+        act_pos_align = self.act_pos_align1
         if (act_index < 2):
             align_pos = (act_pos_align[0]+act_pos_align[1])/2
         else:
@@ -2585,7 +2585,7 @@ class alignment:
             print("---------------------------------------------------------------------------")
             print("Bring beam to visual aligned state.")
             print("---------------------------------------------------------------------------")
-            pos_arr = np.array(act_pos_align1,dtype=np.float64)
+            pos_arr = np.array(self.act_pos_align1,dtype=np.float64)
             # Necessary Displacements for Alignment
             curr_pos = self._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
