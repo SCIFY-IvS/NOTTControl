@@ -2076,7 +2076,7 @@ class alignment:
             
         return
     
-    def optimization_spiral_gradient(self,sky,step,speed,config,dt_sample):
+    def optimization_spiral_gradient(self,sky,step,speed,config,dt_sample,SNR_opt=5):
         """
         Description
         -----------
