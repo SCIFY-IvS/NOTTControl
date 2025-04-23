@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="F_SysTimeToString" Id="{d3adb578-3d6c-4cf8-93a2-495357faec0a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_SysTimeToString : STRING(23)
+VAR_INPUT
+	nSysTime : LINT;
+END_VAR
+VAR
+	nFileTime : T_FILETIME;
+	
+	fbGetSystemTime  : GETSYSTEMTIME;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[MEMCPY(ADR(nFileTime), ADR(nSysTime), SIZEOF(nFileTime));
+
+
+//F_SysTimeToString := DCTIME64_TO_STRING(FILETIME_TO_DCTIME64(nFileTime));
+
+
+fbGetSystemTime(timeLoDW=>nFileTime.dwLowDateTime, timeHiDW=>nFileTime.dwHighDateTime );
+F_SysTimeToString := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( nFileTime ) );]]></ST>
+    </Implementation>
+    <LineIds Name="F_SysTimeToString">
+      <LineId Id="12" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

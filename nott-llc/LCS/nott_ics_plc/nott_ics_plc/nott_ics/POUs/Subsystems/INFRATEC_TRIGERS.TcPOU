@@ -32,6 +32,11 @@ VAR
 	{attribute 'OPC.UA.DA':='1'}
 	sPLCTime            : STRING;
 	
+	// NTP External Time
+	
+	nNTPExternalTime AT %I*: LINT;
+	{attribute 'OPC.UA.DA':='1'}
+	sNTPExtTime:			STRING;
 	
 END_VAR
 ]]></Declaration>
@@ -58,6 +63,11 @@ Trig1_Sync_Info.lrActPos_DL4 := NOTT_GVL.gv_DL1_ActualPos;
 
 fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
 sPLCTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
+
+// NTP External Time
+
+sNTPExtTime := F_SysTimeToString(nNTPExternalTime);
+
 ]]></ST>
     </Implementation>
     <LineIds Name="INFRATEC_TRIGERS">
@@ -75,7 +85,12 @@ sPLCTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
       <LineId Id="35" Count="1" />
       <LineId Id="72" Count="2" />
       <LineId Id="110" Count="4" />
+      <LineId Id="150" Count="0" />
       <LineId Id="34" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="197" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

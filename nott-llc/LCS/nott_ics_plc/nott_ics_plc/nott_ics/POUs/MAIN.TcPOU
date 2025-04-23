@@ -10,11 +10,13 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
-nott_ics();]]></ST>
+nott_ics();
+]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
       <LineId Id="9" Count="0" />
       <LineId Id="2" Count="0" />
+      <LineId Id="22" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>
