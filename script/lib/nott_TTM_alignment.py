@@ -1866,7 +1866,7 @@ class alignment:
             if (sky and Nsteps >= Nsteps_skyb):
                 raise TimeoutError("The on-sky spiral scanning algorithm timed out. Consider repointing closer to source.")
          
-        plt.close()
+        plt.close(fig)
         return
 
     def optimization_spiral(self,sky,step,speed,config,dt_sample):
@@ -2073,7 +2073,7 @@ class alignment:
         # Push bench to configuration of optimal found injection.
         _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,self._get_delay(100,True)-t_write)
          
-        plt.close()
+        plt.close(fig)
         return
     
     def optimization_spiral_gradient(self,sky,step,speed,config,dt_sample,SNR_opt=5):
@@ -2313,7 +2313,7 @@ class alignment:
         # Push bench to configuration of optimal found injection.
         _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,self._get_delay(100,True)-t_write)     
         
-        plt.close()
+        plt.close(fig)
         return
     
     ##########################################
@@ -2845,9 +2845,10 @@ class alignment:
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.10)
-            obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.10,5)
-            obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.10,3)
-            obj.optimization_spiral_gradient(False,1*10**(-3),0.0011,config,0.10,1)
+            obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.05,8)
+            obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.05,4)
+            obj.optimization_spiral_gradient(False,1*10**(-3),0.0011,config,0.05,2)
+            obj.optimization_spiral_gradient(False,0.2*10**(-3),0.0003,config,0.05,1)
             return
 
         # Configuration parameters
