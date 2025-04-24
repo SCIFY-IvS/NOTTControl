@@ -240,7 +240,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
-        self.act_pos_align1 = [5.1967425,5.4522715,3.4327445,3.876672 ]
+        self.act_pos_align1 = [5.1934485,5.4557485,3.4304265,3.8805455]
         
         '''
         # Opening all shutters
