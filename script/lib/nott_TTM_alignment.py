@@ -2842,8 +2842,8 @@ class alignment:
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.10)
-            obj.optimization_spiral_gradient(False,5*10**(-3),0.0025,config,0.10)
-            obj.optimization_spiral_gradient(False,1*10**(-3),0.0005,config,0.10)
+            obj.optimization_spiral_gradient(False,5*10**(-3),0.0025,config,0.10,10)
+            obj.optimization_spiral_gradient(False,3*10**(-3),0.0005,config,0.10,5)
             return
 
         # Configuration parameters
