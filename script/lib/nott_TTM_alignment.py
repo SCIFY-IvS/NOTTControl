@@ -97,8 +97,8 @@ TTM1Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/
 TTM2Xgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2X.npy")
 TTM2Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2Y.npy")
 # On-bench simulated accuracy grid (achieved-imposed) for positive/negative displacements
-accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Pos.npy")
-accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg.npy")
+accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Pos_finetuned.npy")
+accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg_finetuned.npy")
 
 class alignment:
      
@@ -1829,7 +1829,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
+                    speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -2044,7 +2044,7 @@ class alignment:
             # Counting the amount of performed move type switches
             Nswitch += 1
         
-            if (Nswitch % 2 == 0 and not Nsteps == 2):
+            if (Nswitch % 2 == 0):
                 Nsteps += 1
     
         # Safety sleep
@@ -2061,7 +2061,7 @@ class alignment:
         # Necessary displacements
         act_disp = ACT_final-act_curr
         #speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
-        speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
+        speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
@@ -2264,7 +2264,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
+                    speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to actuator position above SNR improvement threshold : ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -2291,7 +2291,7 @@ class alignment:
             # Counting the amount of performed move type switches
             Nswitch += 1
         
-            if (Nswitch % 2 == 0 and not Nsteps == 2):
+            if (Nswitch % 2 == 0):
                 Nsteps += 1
             
         # If no sample above the SNR improvement threshold is found, return to initial state.
@@ -2300,7 +2300,7 @@ class alignment:
         # Necessary displacements
         act_disp = act_init-act_curr
         #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-        speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
+        speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("No sample above SNR improvement threshold found, returning to pre-spiral state : ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
