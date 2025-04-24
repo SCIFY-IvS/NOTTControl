@@ -2316,6 +2316,160 @@ class alignment:
         plt.close(fig)
         return
     
+    def optimization_cross(self,sky,d,speed,config,dt_sample):
+        """
+        Description
+        -----------
+        By cross-shaped motion, this function brings the beam centroid (in the image plane) towards the position of optimal injection.
+        
+        First, the direction of the waveguide with respect to the initial beam centroid is determined.
+        To do so, a cross of dimension "d" is traced. One step of "d" is made in each cartesian direction (up/down/left/right).
+        Along each step, samples of corresponding actuator configurations and camera averages are retrieved via opcua and stored.
+        The two cartesian directions that show an improvement in camera readout correspond to the direction of the waveguide.
+        The beam centroid is returned to its initial position afterwards.
+        
+        Second, steps are made (and samples are retrieved) in each of the two identified directions.
+        As long as the sampled camera readouts improve monotonously, the motion in the direction is continued.
+        Once a step has shown a maximum in sampled camera readouts, the motion along that direction is stopped and the beam is brought to the actuator configuration corresponding to this maximum.
+        
+        Parameters
+        ----------
+        sky : single boolean
+            If True : spiral on-sky.
+            If False : spiral in image plane.
+        d : single float value (mm)
+            The dimension by which the crosses should make their steps.
+            If sky == True : on-sky angular step (radian) 
+            If sky == False : dummy parameter, 5 micron is taken by default.
+        speed : single float value (mm/s)
+            Actuator speed by which a spiral step should occur.
+            Note: Parameter to be removed once optimal speed is obtained.
+        config : single integer
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
+        dt_sample : single float (s)
+            Amount of time a sample should span.
+
+        Remarks
+        -------
+        The function is expected to be called after the "localization_spiral" function has been called. It is thus expected that a first, broad-scope alignment has already been performed.
+        If sky == True : Before calling this function, it is expected that the TTMs have already been aligned such that the on-sky source is imaged onto the chip input.
+        If sky == False : Before calling this function, it is expected that the TTMs have already been aligned such that the internal VLTI beam is injected into the chip input.
+
+        Returns
+        -------
+        None.
+
+        """
+        print("----------------------------------")
+        print("Optimizing by cross-motion...")
+        print("----------------------------------")
+        if (config < 0 or config > 3):
+            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
+
+        # Delay time (total delay minus writing time)
+        t_delay = self._get_delay(100,True)-t_write
+
+        # Possible moves
+        if sky:
+            up=np.array([0,d,0,0],dtype=np.float64)
+            left=np.array([-d,0,0,0],dtype=np.float64)
+            down=np.array([0,-d,0,0],dtype=np.float64)
+            right=np.array([d,0,0,0],dtype=np.float64)
+            moves = np.array([up,left,down,right])
+        else:
+            up=np.array([0,0,0,d],dtype=np.float64)
+            left=np.array([0,0,-d,0],dtype=np.float64)
+            down=np.array([0,0,0,-d],dtype=np.float64)
+            right=np.array([0,0,d,0],dtype=np.float64)
+            moves = np.array([up,left,down,right])
+
+        #-----------------------------------------------#
+        # Step 1 : Determining the waveguide directions |
+        #-----------------------------------------------#
+        
+        # A) Storing characteristics of initial configuration
+        
+        # Exposure time for first exposure (ms)
+        dt_exp_opt = 200
+        # Start time for initial exposure
+        t_start = self._get_time(1000*time.time(),t_delay)
+        # Sleep
+        time.sleep((dt_exp_opt+t_write)*10**(-3))
+        # Initial position noise measurement
+        _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
+        # Initial position photometric output measurement
+        photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
+        # Initial actuator configuration
+        act_init = self._get_actuator_pos(config)[0]
+        
+        # B) Probing all four cartesian directions
+        
+        # Container for marking what cartesian directions yield SNR improvement
+        impr = np.ones(4,dtype=np.float64)
+    
+        for i in range(0,4):
+            # Step
+            speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
+            _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
+            
+            # Does the direction show a decrease in readout?
+            snr = (rois-photo_init)/noise
+            sample_size = len(snr)
+            # First-quarter average
+            start = snr[0:sample_size//4]
+            # Last quarter average
+            end = snr[3*(sample_size)//4:sample_size-1]
+            if end < start:
+                impr[i] = 0
+            
+            # Bring configuration back to initial one.
+            act_curr = self._get_actuator_pos(config)[0]
+            act_disp = act_init-act_curr
+            speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
+            pos_offset = self._actoffset(speeds,act_disp) 
+            _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,t_delay-t_write) 
+              
+        #-----------------------------------------------------------------------#
+        # Step 2 : Moving in each cartesian direction until out of improvement  |
+        #-----------------------------------------------------------------------#
+
+        for i in range(0,4):
+            # Only move in the directions that are towards the waveguide.
+            if impr[i] != 0:
+                stop = False
+                # Remeasure characteristics
+                dt_exp_opt = 200
+                t_start = self._get_time(1000*time.time(),t_delay)
+                time.sleep((dt_exp_opt+t_write)*10**(-3))
+                _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
+                photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
+                
+                while not stop:
+                    # Step
+                    speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
+                    _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
+                    # Take an roi average for each sliding window of size k.
+                    k = 10
+                    rois_slide = np.lib.stride_tricks.sliding_window_view(rois,k)
+                    rois_slide_av = numpy.mean(rois_slide,axis=1) 
+                    # If the maximum of this array is not at the end, stop
+                    i_max_av = np.argmax(rois_slide_av)
+                    if (i_max_av != len(rois_slide_av)-1):
+                        # Push maximum injecting configuration to bench
+                        i_max = np.argmax(rois[i_max_av:i_max_av+k])
+                        act_max = acts[i_max]
+
+                        act_curr = self._get_actuator_pos(config)[0]
+                        act_disp = act_max-act_curr
+                        speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
+                        pos_offset = self._actoffset(speeds,act_disp) 
+                        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,t_delay-t_write) 
+                        
+                        return
+                    
+        return
+    
     ##########################################
     # Performance characterization / Testing #
     ##########################################
@@ -2748,14 +2902,14 @@ class alignment:
             pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
             # 2) Perform an individual step by the given dimensions, in the plane specified; with random speed.
             speed=random.uniform(0.005,25)*10**(-3)
-            speeds = np.array([speed,speed,speed/10,speed/10],dtype=np.float64) # mm/s TBC
+            speeds = np.array([speed,speed,speed,speed],dtype=np.float64) # mm/s TBC
             speeds[speeds<0.005*10**(-3)] = 0.005*10**(-3)
             if pupilpar:
                 steps = np.array([xstep,ystep,0,0],dtype=np.float64)
             else:
                 steps = np.array([0,0,xstep,ystep],dtype=np.float64)
             # Performing the step
-            _ = self.individual_step(False,0,steps,speeds,1,False)
+            _,_,_,_,_,act_err,_ = self.individual_step(False,0,steps,speeds,1,False)
             # 3) Retrieve final position
             pos_final_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_final_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
@@ -2769,8 +2923,14 @@ class alignment:
             yshift_IM = pos_final_IM[1]-pos_init_IM[1]
             xshift_PUPIL = pos_final_PUPIL[0]-pos_init_PUPIL[0]
             yshift_PUPIL = pos_final_PUPIL[1]-pos_init_PUPIL[1]
+            # 4) Calculating the image x and y displacements, predicted by the framework from the actuator errors.
+            curr_pos = self._get_actuator_pos(1)[0]
+            ttm_acc = self._actuator_displacement_to_ttm_shift(curr_pos,act_err,1)
+            curr_ttm = self._actuator_position_to_ttm_angle(curr_pos,1)
+            Darr = self._snap_distance_grid(curr_ttm,1)
+            shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
             # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
-            return [np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3),speed] #mm(/s)
+            return [np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3),np.array([shifts[2],shifts[3],shifts[0],shifts[1]],dtype=np.float64),speed] #mm(/s)
         
         def rand_sign():
             return 1 if random.random() < 0.5 else -1
@@ -2790,16 +2950,16 @@ class alignment:
                     dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
                     dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 try:
-                    shifts,speed = step(dx,dy)
+                    shifts,err,speed = step(dx,dy)
                 # If individual_step throws exception (state not valid), stay in while loop.
                 except ValueError:
                     valid = False
-            return shifts,dx,dy,speed
+            return shifts,err,dx,dy,speed
         
         # Shifts data container
         acc = []
         for i in range(0,N):
-            shifts_iter,dx,dy,speed = step_validcheck()
+            shifts_iter,err_iter,dx,dy,speed = step_validcheck()
             if pupilpar:
                 dx_err = np.abs(dx)-np.abs(shifts_iter[2])
                 dy_err = np.abs(dy)-np.abs(shifts_iter[3])
@@ -2807,8 +2967,10 @@ class alignment:
             else:
                 dx_err = np.abs(dx)-np.abs(shifts_iter[0])
                 dy_err = np.abs(dy)-np.abs(shifts_iter[1])
+                dx_act_err = np.abs(dx+err_iter[0])-np.abs(shifts_iter[0])
+                dy_act_err = np.abs(dy+err_iter[1])-np.abs(shifts_iter[1])
                 print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
-                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar],dtype=np.float64))
+                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar,dx_act_err,dy_act_err],dtype=np.float64))
         
         
         # Destroy the devices before returning
