@@ -84,7 +84,7 @@ Nexp = int(configpars['injection']['Nexp'])
 disp_double = float(configpars['injection']['disp_double'])
 step_double = float(configpars['injection']['step_double'])
 speed_double = float(configpars['injection']['speed_double'])
-print("Read configuration [t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
+print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
 #-----------------#
 # Auxiliary Grids #
@@ -2842,8 +2842,9 @@ class alignment:
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.10)
-            obj.optimization_spiral_gradient(False,5*10**(-3),0.0025,config,0.10,10)
-            obj.optimization_spiral_gradient(False,3*10**(-3),0.0005,config,0.10,5)
+            obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.10,5)
+            obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.10,3)
+            obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.10,1)
             return
 
         # Configuration parameters
