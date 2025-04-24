@@ -75,6 +75,7 @@ configpars = ConfigParser()
 configpars.read('../../script/cfg/config.cfg')
 t_write = int(configpars['redis']['t_write'])
 bool_UT = (configpars['injection']['bool_UT'] == "True")
+bool_offset = (configpars['injection']['bool_offset'] == "True")
 fac_loc = int(configpars['injection']['fac_loc'])
 SNR_inj = int(configpars['injection']['SNR_inj'])
 Ncrit = int(configpars['injection']['Ncrit'])
@@ -981,8 +982,12 @@ class alignment:
         
         """
         
-        # Snap accuracies
-        accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
+        if bool_offset:
+            # Snap accuracies
+            accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
+        else:
+            # No empirical offsets to be incorporated
+            accur_snap = np.zeros(4,dtype=np.float64)
         
         return accur_snap
 
@@ -1829,7 +1834,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
+                    speeds = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -2061,7 +2066,7 @@ class alignment:
         # Necessary displacements
         act_disp = ACT_final-act_curr
         #speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
-        speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
+        speeds = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("Bringing to optimized actuator position : ", np.max(SNR_samples), "SNR improvement at ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
@@ -2264,7 +2269,7 @@ class alignment:
                     # Necessary displacements
                     act_disp = ACT_final-act_curr
                     #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
+                    speeds = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds,act_disp) 
                     print("Bringing to actuator position above SNR improvement threshold : ", act_curr+act_disp, " mm.")
                     # Push bench to configuration of optimal found injection.
@@ -2300,7 +2305,7 @@ class alignment:
         # Necessary displacements
         act_disp = act_init-act_curr
         #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-        speeds = np.array([0.001,0.001,0.001,0.001],dtype=np.float64) #TBD
+        speeds = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
         print("No sample above SNR improvement threshold found, returning to pre-spiral state : ", act_curr+act_disp, " mm.")
         # Push bench to configuration of optimal found injection.
@@ -2818,7 +2823,7 @@ class alignment:
             # Necessary Displacements for Alignment
             curr_pos = self._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
-            speed_arr = np.abs(disp_arr.copy()/10)
+            speed_arr = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64)
             off = self._actoffset(speed_arr,disp_arr)
             self._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
@@ -2832,13 +2837,13 @@ class alignment:
             dy=rand_sign()*random.uniform(20,50)*10**(-3)
             print("Kicking the beam away from aligned state, by random \pm 50 um distances in image plane (dx,dy) = ", (dx,dy))
             steps = np.array([0,0,dx,dy])
-            speed_arr = np.array([0.001,0.001,0.005/10,0.005/10],dtype=np.float64)
+            speed_arr = np.array([0.01,0.01,0.01,0.01],dtype=np.float64)
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
             # Spiraling to return 
-            obj.localization_spiral(False,20,0.010,config,0.15)
-            obj.optimization_spiral(False,5*10**(-3),0.0025,config,0.15)
-            obj.optimization_spiral(False,1*10**(-3),0.0005,config,0.15)
+            obj.localization_spiral(False,20,0.010,config,0.10)
+            obj.optimization_spiral_gradient(False,5*10**(-3),0.0025,config,0.10)
+            obj.optimization_spiral_gradient(False,1*10**(-3),0.0005,config,0.10)
             return
 
         # Configuration parameters
