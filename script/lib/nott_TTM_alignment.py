@@ -2316,7 +2316,7 @@ class alignment:
         plt.close(fig)
         return
     
-    def optimization_cross(self,sky,d,speed,config,dt_sample):
+    def optimization_cross(self,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050):
         """
         Description
         -----------
@@ -2334,13 +2334,8 @@ class alignment:
         
         Parameters
         ----------
-        sky : single boolean
-            If True : spiral on-sky.
-            If False : spiral in image plane.
         d : single float value (mm)
             The dimension by which the crosses should make their steps.
-            If sky == True : on-sky angular step (radian) 
-            If sky == False : dummy parameter, 5 micron is taken by default.
         speed : single float value (mm/s)
             Actuator speed by which a spiral step should occur.
             Note: Parameter to be removed once optimal speed is obtained.
@@ -2353,8 +2348,6 @@ class alignment:
         Remarks
         -------
         The function is expected to be called after the "localization_spiral" function has been called. It is thus expected that a first, broad-scope alignment has already been performed.
-        If sky == True : Before calling this function, it is expected that the TTMs have already been aligned such that the on-sky source is imaged onto the chip input.
-        If sky == False : Before calling this function, it is expected that the TTMs have already been aligned such that the internal VLTI beam is injected into the chip input.
 
         Returns
         -------
@@ -2427,8 +2420,8 @@ class alignment:
             act_curr = self._get_actuator_pos(config)[0]
             act_disp = act_init-act_curr
             speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-            pos_offset = self._actoffset(speeds,act_disp) 
-            _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,t_delay-t_write) 
+            pos_offset = self._actoffset(speeds_return,act_disp) 
+            _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
               
         #-----------------------------------------------------------------------#
         # Step 2 : Moving in each cartesian direction until out of improvement  |
@@ -2463,8 +2456,8 @@ class alignment:
                         act_curr = self._get_actuator_pos(config)[0]
                         act_disp = act_max-act_curr
                         speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                        pos_offset = self._actoffset(speeds,act_disp) 
-                        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,t_delay-t_write) 
+                        pos_offset = self._actoffset(speeds_return,act_disp) 
+                        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
                         
                         return
                     
