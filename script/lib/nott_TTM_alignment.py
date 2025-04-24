@@ -239,7 +239,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
-        self.act_pos_align1 = [5.219587,5.449435,3.431372,3.874415]
+        self.act_pos_align1 = [5.2197395,5.4487945,3.4313415,3.8745675]
         
         '''
         # Opening all shutters
@@ -1787,7 +1787,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
@@ -1979,18 +1979,11 @@ class alignment:
             
             return indplotpar
     
-        #                          STOP
-        #                           x
-        #                           |
-        #           x---x---x---x   x
-        #           |           |   |
-        #           x   x---x   x   x
-        ##########  |   |   |   |   |
-        # Spiral #  x   x   x   x   x
-        ##########  |   |       |   |
-        #           x   x---x---x   x
-        #           |               |
-        #           x---x---x---x---x    
+        #            x---x   x
+        ##########   |   |   |
+        # Spiral #   x   x   x
+        ##########   |       |
+        #            x---x---x
         
         # Possible moves
         if sky:
@@ -2025,7 +2018,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev)
                 # Saving error for next step.
                 err_prev = np.array(err,dtype=np.float64)
@@ -2051,7 +2044,7 @@ class alignment:
             # Counting the amount of performed move type switches
             Nswitch += 1
         
-            if (Nswitch % 2 == 0):
+            if (Nswitch % 2 == 0 and not Nsteps == 2):
                 Nsteps += 1
     
         # Safety sleep
@@ -2192,18 +2185,11 @@ class alignment:
             
             return indplotpar
     
-        #                          STOP
-        #                           x
-        #                           |
-        #           x---x---x---x   x
-        #           |           |   |
-        #           x   x---x   x   x
-        ##########  |   |   |   |   |
-        # Spiral #  x   x   x   x   x
-        ##########  |   |       |   |
-        #           x   x---x---x   x
-        #           |               |
-        #           x---x---x---x---x    
+        #            x---x   x
+        ##########   |   |   |
+        # Spiral #   x   x   x
+        ##########   |       |
+        #            x---x---x   
         
         # Possible moves
         if sky:
@@ -2238,7 +2224,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed/10,speed/10], dtype=np.float64) # TBD
+                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
                 _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev)
                 # Saving error for next step.
                 err_prev = np.array(err,dtype=np.float64)
@@ -2305,14 +2291,14 @@ class alignment:
             # Counting the amount of performed move type switches
             Nswitch += 1
         
-            if (Nswitch % 2 == 0):
+            if (Nswitch % 2 == 0 and not Nsteps == 2):
                 Nsteps += 1
             
         # If no sample above the SNR improvement threshold is found, return to initial state.
         # Current configuration
         act_curr = self._get_actuator_pos(config)[0]
         # Necessary displacements
-        act_disp = ACT_init-act_curr
+        act_disp = act_init-act_curr
         #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
         speeds = np.array([0.0001,0.0001,0.0001,0.0001],dtype=np.float64) #TBD
         pos_offset = self._actoffset(speeds,act_disp) 
