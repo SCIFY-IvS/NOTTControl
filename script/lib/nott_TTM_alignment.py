@@ -2387,7 +2387,7 @@ class alignment:
         #-----------------------------------------------#
         
         # A) Storing characteristics of initial configuration
-        
+        print("Identifying waveguide direction...")
         # Exposure time for first exposure (ms)
         dt_exp_opt = 200
         # Start time for initial exposure
@@ -2402,7 +2402,7 @@ class alignment:
         act_init = self._get_actuator_pos(config)[0]
         
         # B) Probing all four cartesian directions
-        
+    
         # Container for marking what cartesian directions yield SNR improvement
         impr = np.ones(4,dtype=np.float64)
     
@@ -2415,9 +2415,9 @@ class alignment:
             snr = (rois-photo_init)/noise
             sample_size = len(snr)
             # First-quarter average
-            start = snr[0:sample_size//4]
+            start = np.mean(snr[0:sample_size//4])
             # Last quarter average
-            end = snr[3*(sample_size)//4:sample_size-1]
+            end = np.mean(snr[3*(sample_size)//4:sample_size-1])
             if end < start:
                 impr[i] = 0
             
@@ -2427,12 +2427,13 @@ class alignment:
             speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
             pos_offset = self._actoffset(speeds_return,act_disp) 
             _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
-              
+        print("Identified directions of waveguide (up,down,left,right): ", impr)     
         #-----------------------------------------------------------------------#
         # Step 2 : Moving in each cartesian direction until out of improvement  |
         #-----------------------------------------------------------------------#
-
+        print("Moving towards waveguide...")
         for i in range(0,4):
+            print(i)
             # Only move in the directions that are towards the waveguide.
             if impr[i] != 0:
                 stop = False
@@ -2444,6 +2445,7 @@ class alignment:
                 photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
                 
                 while not stop:
+                    print("Step")
                     # Step
                     speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
                     _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
@@ -2464,7 +2466,7 @@ class alignment:
                         pos_offset = self._actoffset(speeds_return,act_disp) 
                         _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
                         
-                        return
+                        stop = True
                     
         return
     
