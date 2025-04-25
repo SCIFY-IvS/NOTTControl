@@ -2470,7 +2470,7 @@ class alignment:
                     
         return
     
-    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5,SNR_impr):
+    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5,SNR_impr=2):
         """
         Description
         -----------
