@@ -240,7 +240,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
-        self.act_pos_align1 = [5.1934485,5.4557485,3.4304265,3.8805455]
+        self.act_pos_align1 = [5.214036,5.40826,3.433324,3.8887805]
         
         '''
         # Opening all shutters
@@ -2470,7 +2470,7 @@ class alignment:
                     
         return
     
-    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10):
+    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5,SNR_impr):
         """
         Description
         -----------
@@ -2492,7 +2492,11 @@ class alignment:
         dt_sample : single float (s)
             Amount of time a sample should span.
         k : single integer
-            Amount of ROI samples to average to one point.
+            Window size
+        l : single integer
+            Step size between windows
+        SNR_impr : single integer
+            
 
         Remarks
         -------
@@ -2531,7 +2535,7 @@ class alignment:
         # A) Storing characteristics of initial configuration
 
         # Exposure time for first exposure (ms)
-        dt_exp_opt = 200
+        dt_exp_opt = 1000
         # Start time for initial exposure
         t_start = self._get_time(1000*time.time(),t_delay)
         # Sleep
@@ -2561,8 +2565,6 @@ class alignment:
                 
                 # Take an average for each sliding window of size k
                 
-                # Step size between adjacent windows
-                l = 3
                 n_windows = (len(rois)-k)//l + 1
 
                 rois_slide = np.array([rois[i:i+k] for i in range(0,n_windows*l,l)])
@@ -2572,7 +2574,8 @@ class alignment:
                 
                 # snr
                 snr = (rois_slide_av-photo_init)/noise
-                
+                print(rois)
+                print(rois_slide_av)
                 # Case 1 : If the maximum is at the beginning, return to the initial state. This direction is not towards the waveguide.
                 if (i_max_av == 0):
                     act_disp = act_pre-act_post
@@ -2583,7 +2586,7 @@ class alignment:
                     stop = True
                 
                 # Case 2 : If the maximum is not at the beginning or end, stop and return to the maximum SNR actuator configuration
-                if (i_max_av != len(snr)-1):
+                if (i_max_av != len(snr)-1 and snr[i_max_av] >= SNR_impr*noise):
                     # Push maximum injecting configuration to bench
                     i_max = np.argmax(snr[i_max_av:i_max_av+k])
                     act_max = acts[i_max]
