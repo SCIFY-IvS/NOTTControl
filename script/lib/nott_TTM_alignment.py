@@ -2581,8 +2581,10 @@ class alignment:
                 i_max = np.argmax(snr[i_max_av:i_max_av+k])
                 act_max = acts[i_max]
                 
-                # Only continue when there is monotonuous improvement in the ROI sampled readouts.
-                if (np.all(np.diff(rois_slide_av) > 0)):
+                # Only continue when there is improvement in the ROI sampled readouts.
+                first_h = np.mean(rois_slide_av[0:len(rois_slide_av)//2]) 
+                second_h = np.mean(rois_slide_av[len(rois_slide_av)//2:-1])
+                if ((second_h-first_h)/noise) > noise/2):
                     stop = False
                     
                 if stop:
