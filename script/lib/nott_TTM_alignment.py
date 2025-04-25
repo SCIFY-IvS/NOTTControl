@@ -2584,7 +2584,7 @@ class alignment:
                 # Only continue when there is improvement in the ROI sampled readouts.
                 first_h = np.mean(rois_slide_av[0:len(rois_slide_av)//2]) 
                 second_h = np.mean(rois_slide_av[len(rois_slide_av)//2:-1])
-                if ((second_h-first_h)/noise) > noise/2):
+                if ((second_h-first_h)/noise > 0.5):
                     stop = False
                     
                 if stop:
