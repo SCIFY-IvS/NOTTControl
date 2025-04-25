@@ -2316,7 +2316,7 @@ class alignment:
         plt.close(fig)
         return
     
-    def optimization_cross(self,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050):
+    def optimization_cross(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050):
         """
         Description
         -----------
@@ -2334,6 +2334,9 @@ class alignment:
         
         Parameters
         ----------
+        sky : single boolean
+            If True : spiral on-sky.
+            If False : spiral in image plane.
         d : single float value (mm)
             The dimension by which the crosses should make their steps.
         speed : single float value (mm/s)
@@ -2348,6 +2351,8 @@ class alignment:
         Remarks
         -------
         The function is expected to be called after the "localization_spiral" function has been called. It is thus expected that a first, broad-scope alignment has already been performed.
+        If sky == True : Before calling this function, it is expected that the TTMs have already been aligned such that the on-sky source is imaged onto the chip input.
+        If sky == False : Before calling this function, it is expected that the TTMs have already been aligned such that the internal VLTI beam is injected into the chip input.
 
         Returns
         -------
@@ -2445,7 +2450,7 @@ class alignment:
                     # Take an roi average for each sliding window of size k.
                     k = 10
                     rois_slide = np.lib.stride_tricks.sliding_window_view(rois,k)
-                    rois_slide_av = numpy.mean(rois_slide,axis=1) 
+                    rois_slide_av = np.mean(rois_slide,axis=1) 
                     # If the maximum of this array is not at the end, stop
                     i_max_av = np.argmax(rois_slide_av)
                     if (i_max_av != len(rois_slide_av)-1):
