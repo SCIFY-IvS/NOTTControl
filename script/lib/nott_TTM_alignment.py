@@ -2470,21 +2470,11 @@ class alignment:
                     
         return
     
-    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050):
+    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10):
         """
         Description
         -----------
-        By cross-shaped motion, this function brings the beam centroid (in the image plane) towards the position of optimal injection.
-        
-        First, the direction of the waveguide with respect to the initial beam centroid is determined.
-        To do so, a cross of dimension "d" is traced. One step of "d" is made in each cartesian direction (up/down/left/right).
-        Along each step, samples of corresponding actuator configurations and camera averages are retrieved via opcua and stored.
-        The two cartesian directions that show an improvement in camera readout correspond to the direction of the waveguide.
-        The beam centroid is returned to its initial position afterwards.
-        
-        Second, steps are made (and samples are retrieved) in each of the two identified directions.
-        As long as the sampled camera readouts improve monotonously, the motion in the direction is continued.
-        Once a step has shown a maximum in sampled camera readouts, the motion along that direction is stopped and the beam is brought to the actuator configuration corresponding to this maximum.
+        TBC
         
         Parameters
         ----------
@@ -2501,6 +2491,8 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         dt_sample : single float (s)
             Amount of time a sample should span.
+        k : single integer
+            Amount of ROI samples to average to one point.
 
         Remarks
         -------
@@ -2563,17 +2555,23 @@ class alignment:
                 act_pre = self._get_actuator_pos(config)[0]
                 # Step
                 speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
+                _,_,acts,_,rois,_,_ = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
                 # Registering post-motion actuator configuration
                 act_post = self._get_actuator_pos(config)[0]
                 
-                # Sampled SNR improvement values 
-                snr = (rois-photo_init)/noise
-                # Take an average for each sliding window of size k.
-                k = 7
-                snr_slide = np.lib.stride_tricks.sliding_window_view(snr,k)
-                snr_slide_av = np.mean(snr_slide,axis=1) 
-                i_max_av = np.argmax(snr_slide_av)
+                # Take an average for each sliding window of size k
+                
+                # Step size between adjacent windows
+                l = 3
+                n_windows = (len(rois)-k)//l + 1
+
+                rois_slide = np.array([rois[i:i+k] for i in range(0,n_windows*l,l)])
+                rois_slide_av = np.mean(rois_slide,axis=1)
+            
+                i_max_av = np.argmax(rois_slide_av)
+                
+                # snr
+                snr = (rois_slide_av-photo_init)/noise
                 
                 # Case 1 : If the maximum is at the beginning, return to the initial state. This direction is not towards the waveguide.
                 if (i_max_av == 0):
@@ -2585,7 +2583,7 @@ class alignment:
                     stop = True
                 
                 # Case 2 : If the maximum is not at the beginning or end, stop and return to the maximum SNR actuator configuration
-                if (i_max_av != len(snr_slide_av)-1):
+                if (i_max_av != len(snr)-1):
                     # Push maximum injecting configuration to bench
                     i_max = np.argmax(snr[i_max_av:i_max_av+k])
                     act_max = acts[i_max]
