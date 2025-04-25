@@ -2470,7 +2470,7 @@ class alignment:
                     
         return
     
-    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5,SNR_impr=2):
+    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
         """
         Description
         -----------
@@ -2495,9 +2495,7 @@ class alignment:
             Window size
         l : single integer
             Step size between windows
-        SNR_impr : single integer
             
-
         Remarks
         -------
         The function is expected to be called after the "localization_spiral" function has been called. It is thus expected that a first, broad-scope alignment has already been performed.
@@ -2544,7 +2542,7 @@ class alignment:
         _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
         # Initial position photometric output measurement
         photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
-        
+        print("Initial noise level : ", noise)
         # B) Probe all four cartesian directions
         dirs = ["up","left","down","right"]
         for i in range(0,4):
@@ -2555,13 +2553,15 @@ class alignment:
             
             while not stop:
                 print("Step")
-                # Registering pre-motion actuator configuration
-                act_pre = self._get_actuator_pos(config)[0]
+                
                 # Step
                 speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
                 _,_,acts,_,rois,_,_ = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
                 # Registering post-motion actuator configuration
                 act_post = self._get_actuator_pos(config)[0]
+                
+                # Set stop to True
+                stop = True
                 
                 # Take an average for each sliding window of size k
                 
@@ -2576,30 +2576,22 @@ class alignment:
                 snr = (rois_slide_av-photo_init)/noise
                 print(rois)
                 print(rois_slide_av)
-                # Case 1 : If the maximum is at the beginning, return to the initial state. This direction is not towards the waveguide.
-                if (i_max_av == 0):
-                    act_disp = act_pre-act_post
-                    speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                    pos_offset = self._actoffset(speeds_return,act_disp) 
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_post,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
                 
-                    stop = True
+                # State of optimal injection
+                i_max = np.argmax(snr[i_max_av:i_max_av+k])
+                act_max = acts[i_max]
                 
-                # Case 2 : If the maximum is not at the beginning or end, stop and return to the maximum SNR actuator configuration
-                if (i_max_av != len(snr)-1 and snr[i_max_av] >= SNR_impr*noise):
-                    # Push maximum injecting configuration to bench
-                    i_max = np.argmax(snr[i_max_av:i_max_av+k])
-                    act_max = acts[i_max]
-
+                # Only continue when there is monotonuous improvement in the ROI sampled readouts.
+                if (np.all(np.diff(rois_slide_av) > 0)):
+                    stop = False
+                    
+                if stop:
+                    # If no improvement, stop is True, push back to the state of optimal injection sampled throughout the motion.
                     act_disp = act_max-act_post
                     speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
                     pos_offset = self._actoffset(speeds_return,act_disp) 
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_post,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
-                        
-                    stop = True
-                    
-                # Case 3 : If the maximum is at the end, keep going. Moving towards the waveguide.    
-                    
+                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_post,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write)
+        
         return
     
     ##########################################
