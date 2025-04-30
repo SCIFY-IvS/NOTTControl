@@ -12,16 +12,15 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 #-------#
 
 # A) Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed).
-# --> TO BE COMPLETED, one all actuators are installed and spiraling algorithms are fully functional and performant.
+# --> TO BE COMPLETED, once all actuators are installed and spiraling algorithms are fully functional and performant.
 
 # B) Add function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames.
 # --> TO BE COMPLETED, got VLTI maps from M.A.M. and still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
 
 # C) General efficiency of code & documentation where relevant (i.e. non-testing functions)
 
-# D) Write and run framework performance
-# E) Optimize efficiency based on previous two (decide on spiral steps&speeds) 
-# F) Write and run algorithm performance
+# D) Optimize efficiency of algorithm (decide on algorithm type, stepsize and speed) 
+# E) Write and run algorithm performance
 
 #---------#
 # Imports #
@@ -240,6 +239,7 @@ class alignment:
         self.b = bloc.copy()
         self.N = eqns_.copy()
         
+        # Defining actuator positions corresponding to an aligned, injecting state.
         self.act_pos_align1 = [5.214036,5.40826,3.433324,3.8887805]
         
         '''
@@ -825,11 +825,11 @@ class alignment:
         # TTM1X
         xsum_align = act_config[0]+act_config[1]
         xsum_input = pos[0]+pos[1]
-        TTM1X = ttm_config[0] - np.arcsin((xsum_align-xsum_input)/(2*d1_ca))
+        TTM1X = ttm_config[0] + np.arcsin((xsum_align-xsum_input)/(2*d1_ca)) # TBD
         # TTM1Y
         xdiff_align = act_config[1]-act_config[0]
         xdiff_input = pos[1]-pos[0]
-        TTM1Y = +ttm_config[1] + np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca))
+        TTM1Y = +ttm_config[1] - np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca)) # TBD
         # TTM2X
         TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_ca)
         # TTM2Y
@@ -880,8 +880,8 @@ class alignment:
         # TTM1
         xsum_align = (act_config[0]+act_config[1])/2
         xdiff_align = (act_config[1]-act_config[0])/2
-        xsum = xsum_align - d1_ca*np.sin(ttm_config[0]-ttm_angles[0])
-        xdiff = xdiff_align - d1_ca*np.sin(ttm_config[1]-ttm_angles[1])
+        xsum = xsum_align + d1_ca*np.sin(ttm_config[0]-ttm_angles[0]) # TBD
+        xdiff = xdiff_align + d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) # TBD
         x1 = xsum-xdiff
         x2 = xsum+xdiff
         
@@ -982,6 +982,7 @@ class alignment:
         
         """
         
+        # Only return an empirical offset if the global variable is set to incorporate offsets.
         if bool_offset:
             # Snap accuracies
             accur_snap = np.array(self._snap_accuracy_grid(act_speed,act_disp),dtype=np.float64)
@@ -1277,9 +1278,9 @@ class alignment:
         -----------
         The function moves all actuators (1,2,3,4) in a configuration "config" (=beam), initially at positions "init_pos",
         by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
-        Actuator positions are sampled during the motion, by timestep "dt_sample", as well as the timestamps at which they were read out.
+        Actuator positions are sampled during the motion, by timestep "dt_sample". The timestamps at which they were read out are also registered.
         If "sample" is True, real-time photometric ROI values are also sampled, the timestamps of which lack behind by t_delay.
-        In the context of spiraling, actuator errors "err_prev" of the previous step are taken into account.
+        In the context of spiraling, actuator errors "err_prev" of the previous step can be taken into account.
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
@@ -1321,7 +1322,7 @@ class alignment:
         roi : list of floats
             List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == true).
         err : List of floats (mm)
-            Errors made upon actuator motions. Positive values indicate overshoot.
+            Actuator errors made upon actuator motions. Positive values indicate overshoot.
 
         """
         
@@ -1542,7 +1543,7 @@ class alignment:
         t_delay : single float (ms) 
             Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
         err_prev : numpy array of float values (mm)
-            Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
+            Actuator errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
         act_disp_prev : numpy array of float values (mm)
             Actuator motions made in a previous step. In the context of spiraling, it is often useful (efficiency-wise) to not explicitly recompute 
             actuator motions that are similar to the previous step.    
@@ -2082,7 +2083,7 @@ class alignment:
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane).
         Throughout each step along the spiral, corresponding actuator configurations and camera averages are retrieved via opcua and stored.
-        If a single sample shows an improvement in SNR, compared to the pre-spiral photometric output, larger than a threshold, the spiral is stopped.
+        If a single sample along a step shows an improvement in SNR, compared to the pre-spiral photometric output, that is larger than SNR_opt, the spiral is stopped.
         The actuator configuration corresponding to this sample is then pushed to the bench.
         
         Parameters
@@ -2316,21 +2317,15 @@ class alignment:
         plt.close(fig)
         return
     
-    def optimization_cross(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050):
+    def optimization_cross(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
         """
         Description
         -----------
-        By cross-shaped motion, this function brings the beam centroid (in the image plane) towards the position of optimal injection.
-        
-        First, the direction of the waveguide with respect to the initial beam centroid is determined.
-        To do so, a cross of dimension "d" is traced. One step of "d" is made in each cartesian direction (up/down/left/right).
-        Along each step, samples of corresponding actuator configurations and camera averages are retrieved via opcua and stored.
-        The two cartesian directions that show an improvement in camera readout correspond to the direction of the waveguide.
-        The beam centroid is returned to its initial position afterwards.
-        
-        Second, steps are made (and samples are retrieved) in each of the two identified directions.
-        As long as the sampled camera readouts improve monotonously, the motion in the direction is continued.
-        Once a step has shown a maximum in sampled camera readouts, the motion along that direction is stopped and the beam is brought to the actuator configuration corresponding to this maximum.
+        This function brings the beam centroid to a state of optimized injection by shaping a cross in the image plane.
+        Motion is continued in each of the four cartesian directions as long as there is monotonuous improvement in sampled ROI values.
+        The sampled ROI values are averaged by a sliding window approach, with size k and stepsize l between subsequent windows.
+        This sliding window approach is adopted to robustly probe the general ROI trend.
+        When a step does not show monotonuous improvement, the actuator configuration, sampled along the step, corresponding to maximal ROI readout is pushed to the bench.
         
         Parameters
         ----------
@@ -2338,161 +2333,17 @@ class alignment:
             If True : spiral on-sky.
             If False : spiral in image plane.
         d : single float value (mm)
-            The dimension by which the crosses should make their steps.
+            The dimension by which the cross should make its steps.
         speed : single float value (mm/s)
-            Actuator speed by which a spiral step should occur.
+            Actuator speed by which a step should occur.
             Note: Parameter to be removed once optimal speed is obtained.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         dt_sample : single float (s)
-            Amount of time a sample should span.
-
-        Remarks
-        -------
-        The function is expected to be called after the "localization_spiral" function has been called. It is thus expected that a first, broad-scope alignment has already been performed.
-        If sky == True : Before calling this function, it is expected that the TTMs have already been aligned such that the on-sky source is imaged onto the chip input.
-        If sky == False : Before calling this function, it is expected that the TTMs have already been aligned such that the internal VLTI beam is injected into the chip input.
-
-        Returns
-        -------
-        None.
-
-        """
-        print("----------------------------------")
-        print("Optimizing by cross-motion...")
-        print("----------------------------------")
-        if (config < 0 or config > 3):
-            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-
-        # Delay time (total delay minus writing time)
-        t_delay = self._get_delay(100,True)-t_write
-
-        # Possible moves
-        if sky:
-            up=np.array([0,d,0,0],dtype=np.float64)
-            left=np.array([-d,0,0,0],dtype=np.float64)
-            down=np.array([0,-d,0,0],dtype=np.float64)
-            right=np.array([d,0,0,0],dtype=np.float64)
-            moves = np.array([up,left,down,right])
-        else:
-            up=np.array([0,0,0,d],dtype=np.float64)
-            left=np.array([0,0,-d,0],dtype=np.float64)
-            down=np.array([0,0,0,-d],dtype=np.float64)
-            right=np.array([0,0,d,0],dtype=np.float64)
-            moves = np.array([up,left,down,right])
-
-        #-----------------------------------------------#
-        # Step 1 : Determining the waveguide directions |
-        #-----------------------------------------------#
-        
-        # A) Storing characteristics of initial configuration
-        print("Identifying waveguide direction...")
-        # Exposure time for first exposure (ms)
-        dt_exp_opt = 200
-        # Start time for initial exposure
-        t_start = self._get_time(1000*time.time(),t_delay)
-        # Sleep
-        time.sleep((dt_exp_opt+t_write)*10**(-3))
-        # Initial position noise measurement
-        _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
-        # Initial position photometric output measurement
-        photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
-        # Initial actuator configuration
-        act_init = self._get_actuator_pos(config)[0]
-        
-        # B) Probing all four cartesian directions
-    
-        # Container for marking what cartesian directions yield SNR improvement
-        impr = np.ones(4,dtype=np.float64)
-    
-        for i in range(0,4):
-            # Step
-            speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-            _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
-            
-            # Does the direction show a decrease in readout?
-            snr = (rois-photo_init)/noise
-            sample_size = len(snr)
-            # First-quarter average
-            start = np.mean(snr[0:sample_size//4])
-            # Last quarter average
-            end = np.mean(snr[3*(sample_size)//4:sample_size-1])
-            if end < start:
-                impr[i] = 0
-            
-            # Bring configuration back to initial one.
-            act_curr = self._get_actuator_pos(config)[0]
-            act_disp = act_init-act_curr
-            speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-            pos_offset = self._actoffset(speeds_return,act_disp) 
-            _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
-        print("Identified directions of waveguide (up,down,left,right): ", impr)     
-        #-----------------------------------------------------------------------#
-        # Step 2 : Moving in each cartesian direction until out of improvement  |
-        #-----------------------------------------------------------------------#
-        print("Moving towards waveguide...")
-        for i in range(0,4):
-            print(i)
-            # Only move in the directions that are towards the waveguide.
-            if impr[i] != 0:
-                stop = False
-                # Remeasure characteristics
-                dt_exp_opt = 200
-                t_start = self._get_time(1000*time.time(),t_delay)
-                time.sleep((dt_exp_opt+t_write)*10**(-3))
-                _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
-                photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
-                
-                while not stop:
-                    print("Step")
-                    # Step
-                    speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-                    _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
-                    # Take an roi average for each sliding window of size k.
-                    k = 10
-                    rois_slide = np.lib.stride_tricks.sliding_window_view(rois,k)
-                    rois_slide_av = np.mean(rois_slide,axis=1) 
-                    # If the maximum of this array is not at the end, stop
-                    i_max_av = np.argmax(rois_slide_av)
-                    if (i_max_av != len(rois_slide_av)-1):
-                        # Push maximum injecting configuration to bench
-                        i_max = np.argmax(rois[i_max_av:i_max_av+k])
-                        act_max = acts[i_max]
-
-                        act_curr = self._get_actuator_pos(config)[0]
-                        act_disp = act_max-act_curr
-                        speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                        pos_offset = self._actoffset(speeds_return,act_disp) 
-                        _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write) 
-                        
-                        stop = True
-                    
-        return
-    
-    def optimization_cross2(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
-        """
-        Description
-        -----------
-        TBC
-        
-        Parameters
-        ----------
-        sky : single boolean
-            If True : spiral on-sky.
-            If False : spiral in image plane.
-        d : single float value (mm)
-            The dimension by which the crosses should make their steps.
-        speed : single float value (mm/s)
-            Actuator speed by which a spiral step should occur.
-            Note: Parameter to be removed once optimal speed is obtained.
-        config : single integer
-            Configuration number (= VLTI input beam) (0,1,2,3).
-            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        dt_sample : single float (s)
-            Amount of time a sample should span.
+            Amount of time a sample, made along a step, should span.
         k : single integer
-            Window size
+            Window size for sample averaging
         l : single integer
             Step size between windows
             
@@ -2582,9 +2433,7 @@ class alignment:
                 act_max = acts[i_max]
                 
                 # Only continue when there is improvement in the ROI sampled readouts.
-                first_h = np.mean(rois_slide_av[0:len(rois_slide_av)//2]) 
-                second_h = np.mean(rois_slide_av[len(rois_slide_av)//2:-1])
-                if ((second_h-first_h)/noise > 0.5):
+                if (np.all(np.diff(rois_slide_av) > 0)):
                     stop = False
                     
                 if stop:
