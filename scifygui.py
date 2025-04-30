@@ -164,10 +164,10 @@ class MainWindow(QMainWindow):
         self.ui.label_dl_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sState")))
 
     def update_cryo_temps(self):
-        nodes = ["ns=4;s=GVL_Cryo_Temperatures.Temp_1", 
-            "ns=4;s=GVL_Cryo_Temperatures.Temp_2",
-            "ns=4;s=GVL_Cryo_Temperatures.Temp_3",
-            "ns=4;s=GVL_Cryo_Temperatures.Temp_4" ]
+        nodes = ["ns=4;s=MAIN.not_cryo_ctrl.lrTempC_1", 
+            "ns=4;s=MAIN.not_cryo_ctrl.lrTempC_2",
+            "ns=4;s=MAIN.not_cryo_ctrl.lrTempC_3",
+            "ns=4;s=MAIN.not_cryo_ctrl.lrTempC_4" ]
 
         values = self.opcua_conn.read_nodes(nodes)
 
