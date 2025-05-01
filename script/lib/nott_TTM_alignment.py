@@ -882,8 +882,8 @@ class alignment:
         xdiff_align = (act_config[1]-act_config[0])/2
         xsum = xsum_align + d1_ca*np.sin(ttm_config[0]-ttm_angles[0]) # TBD
         xdiff = xdiff_align + d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) # TBD
-        x1 = (xsum-xdiff)/2
-        x2 = (xsum+xdiff)/2
+        x1 = xsum-xdiff/2 #TBD
+        x2 = xsum+xdiff/2 #TBD
         
         # TTM2 
         x3 = act_config[2] - d2_ca*np.sin(ttm_config[3]-ttm_angles[3])
