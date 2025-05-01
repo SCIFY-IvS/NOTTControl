@@ -2741,7 +2741,7 @@ class alignment:
             np.save("backnegoff"+str(i+1),matrix_back)
         return
     
-    def visible_camera_performance(self,N,pupilpar=False):
+    def visible_camera_performance(self,N,dxpar,dypar,pupilpar=False):
         """
         
         Parameters
@@ -2882,7 +2882,8 @@ class alignment:
             pos_init_IM = retrieve_pos(device_IM,nodemap_IM,rfit_im)
             pos_init_PUPIL = retrieve_pos(device_PUPIL,nodemap_PUPIL,rfit_pup)
             # 2) Perform an individual step by the given dimensions, in the plane specified; with random speed.
-            speed=random.uniform(0.005,25)*10**(-3)
+            #speed=random.uniform(0.005,25)*10**(-3)
+            speed = 10*10**(-3)
             speeds = np.array([speed,speed,speed,speed],dtype=np.float64) # mm/s TBC
             speeds[speeds<0.005*10**(-3)] = 0.005*10**(-3)
             if pupilpar:
@@ -2911,7 +2912,8 @@ class alignment:
             Darr = self._snap_distance_grid(curr_ttm,1)
             shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
             # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
-            return [np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3),np.array([shifts[2],shifts[3],shifts[0],shifts[1]],dtype=np.float64),speed] #mm(/s)
+            #return [np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3),np.array([shifts[2],shifts[3],shifts[0],shifts[1]],dtype=np.float64),speed] #mm(/s)
+            return [np.array([pos_init_IM,pos_final_IM],dtype=np.float64)*2.40*10**(-3),np.array([shifts[2],shifts[3],shifts[0],shifts[1]],dtype=np.float64),speed]
         
         def rand_sign():
             return 1 if random.random() < 0.5 else -1
@@ -2920,7 +2922,7 @@ class alignment:
         # Step 1 : Align
         self.align()
         # Step 2 : Drawing random shifts and imposing the steps to the bench, note: only if the imposed state is valid (f.e. not off the slicer)
-        def step_validcheck():
+        def step_validcheck(dx,dy):
             valid = False
             while not valid:
                 valid = True
@@ -2928,31 +2930,33 @@ class alignment:
                     dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
                     dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 else:
-                    dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
-                    dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
+                    #dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
+                    #dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 try:
-                    shifts,err,speed = step(dx,dy)
+                    #shifts,err,speed = step(dx,dy)
+                    pos,err,speed = step(dx,dy)
                 # If individual_step throws exception (state not valid), stay in while loop.
                 except ValueError:
                     valid = False
-            return shifts,err,dx,dy,speed
+            #return shifts,err,dx,dy,speed
+            return pos,err,dx,dy,speed
         
         # Shifts data container
         acc = []
         for i in range(0,N):
-            shifts_iter,err_iter,dx,dy,speed = step_validcheck()
+            shifts_iter,err_iter,dx,dy,speed = step_validcheck(dxpar,dypar)
             if pupilpar:
                 dx_err = np.abs(dx)-np.abs(shifts_iter[2])
                 dy_err = np.abs(dy)-np.abs(shifts_iter[3])
                 acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],speed,pupilpar],dtype=np.float64))
             else:
-                dx_err = np.abs(dx)-np.abs(shifts_iter[0])
-                dy_err = np.abs(dy)-np.abs(shifts_iter[1])
-                dx_act_err = np.abs(dx+err_iter[0])-np.abs(shifts_iter[0])
-                dy_act_err = np.abs(dy+err_iter[1])-np.abs(shifts_iter[1])
-                print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
-                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar,dx_act_err,dy_act_err],dtype=np.float64))
-        
+                #dx_err = np.abs(dx)-np.abs(shifts_iter[0])
+                #dy_err = np.abs(dy)-np.abs(shifts_iter[1])
+                #dx_act_err = np.abs(dx+err_iter[0])-np.abs(shifts_iter[0])
+                #dy_act_err = np.abs(dy+err_iter[1])-np.abs(shifts_iter[1])
+                #print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
+                #acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar,dx_act_err,dy_act_err],dtype=np.float64))
+                acc.append([dx,dy,err_iter,shifts_iter])
         
         # Destroy the devices before returning
         system.destroy_device(device=device_IM)
@@ -3008,10 +3012,10 @@ class alignment:
             # Start time for exposure
             t_start = self._get_time(1000*time.time(),t_delay)
             # Sleep
-            time.sleep((dt_exp_loc+t_write)*10**(-3)) 
+            time.sleep((500+t_write)*10**(-3)) 
             # Photometric output measurement 
             photo_ach = self._get_photo(Nexp,t_start,500,1)
-            print("Initial photometric output : ", photo_init)
+            print("Initial photometric output : ", photo_ach)
             
             return dx,dy,t_spent,photo_ach
 
