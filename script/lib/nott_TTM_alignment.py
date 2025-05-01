@@ -97,8 +97,8 @@ TTM1Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/
 TTM2Xgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2X.npy")
 TTM2Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2Y.npy")
 # On-bench simulated accuracy grid (achieved-imposed) for positive/negative displacements
-accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Pos_finetuned.npy")
-accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg_finetuned.npy")
+accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Pos_optimized.npy")
+accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg_optimized.npy")
 
 class alignment:
      
@@ -2662,7 +2662,7 @@ class alignment:
             print(i)
         return matrix_acc,times,positions
     
-    def act_backlash_test_multi(self,act_displacements,len_speeds,act_name,act_index,config=1):
+    def act_backlash_test_multi(self,act_displacements,len_speeds,act_name,act_index,offset,config=1):
         # Function to probe the backlash, remaining after incorporation of the empirical actuator offsets, for a range of displacements and speeds.
         # For each speed v and displacement dx, the actuator is moved by \pm dx at speed v and then the same displacement is reversed. The backlash is
         # characterised by how well the initial position (before any displacement) and the final position (after two displacements) agree.
@@ -2687,9 +2687,9 @@ class alignment:
                 # Current position
                 init_pos = self._get_actuator_pos(config)[0][act_index]
                 # Step 1
-                arr1,_,_ = self.act_response_test_single(disp,speeds[j],act_name,act_index,True,align_pos)
+                arr1,_,_ = self.act_response_test_single(disp,speeds[j],act_name,act_index,offset,align_pos)
                 # Step 2
-                arr2,_,_ = self.act_response_test_single(-disp,speeds[j],act_name,act_index,True,align_pos)
+                arr2,_,_ = self.act_response_test_single(-disp,speeds[j],act_name,act_index,offset,align_pos)
                 # Final achieved position
                 final_pos = arr2[2]
                 # Backlash
@@ -2722,17 +2722,23 @@ class alignment:
         
         displacements_pos = np.geomspace(0.0005,0.025,grid_size)
         displacements_neg = np.geomspace(-0.0005,-0.025,grid_size)
-        for i in range(0,5):
-            # Backlash grids
-            matrix_back = self.act_backlash_test_multi(displacements_pos,grid_size,act_name,3)
-            np.save("backpos"+str(i+1),matrix_back)
-            matrix_back = self.act_backlash_test_multi(displacements_neg,grid_size,act_name,3)
-            np.save("backneg"+str(i+1),matrix_back)
+        for i in range(0,3):
             # Offset-accounted grids
             matrix_acc,times,positions = self.act_response_test_multi(displacements_pos,grid_size,act_name,3,True)
             np.save("offpos"+str(i+1),matrix_acc)
             matrix_acc,times,positions = self.act_response_test_multi(displacements_neg,grid_size,act_name,3,True)
             np.save("offneg"+str(i+1),matrix_acc)
+        for i in range(0,4):
+            # Backlash grids
+            matrix_back = self.act_backlash_test_multi(displacements_pos,grid_size,act_name,3,False)
+            np.save("backpos"+str(i+1),matrix_back)
+            matrix_back = self.act_backlash_test_multi(displacements_neg,grid_size,act_name,3,False)
+            np.save("backneg"+str(i+1),matrix_back)
+            # Backlash grids
+            matrix_back = self.act_backlash_test_multi(displacements_pos,grid_size,act_name,3,True)
+            np.save("backposoff"+str(i+1),matrix_back)
+            matrix_back = self.act_backlash_test_multi(displacements_neg,grid_size,act_name,3,True)
+            np.save("backnegoff"+str(i+1),matrix_back)
         return
     
     def visible_camera_performance(self,N,pupilpar=False):
@@ -2968,7 +2974,7 @@ class alignment:
             self._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
     
-    def algorithm_test(self):
+    def algorithm_test(self,N):
         
         def kick_loc_opt(obj,config):
             def rand_sign():
@@ -2980,13 +2986,34 @@ class alignment:
             speed_arr = np.array([0.01,0.01,0.01,0.01],dtype=np.float64)
             # Kick away
             obj.individual_step(True,0,steps,speed_arr,1,False,0.010,self._get_delay(100,True)-t_write)
+            # Registering start time 
+            t_start = time.time()
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.10)
-            obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.05,8)
-            obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.05,4)
-            obj.optimization_spiral_gradient(False,1*10**(-3),0.0011,config,0.05,2)
-            obj.optimization_spiral_gradient(False,0.2*10**(-3),0.0003,config,0.05,1)
-            return
+            obj.optimization_cross(False,2*10**(-3),1.1*10**(-3),1,0.030,15,8)
+            
+            #obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.05,8)
+            #obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.05,4)
+            #obj.optimization_spiral_gradient(False,1*10**(-3),0.0011,config,0.05,2)
+            #obj.optimization_spiral_gradient(False,0.2*10**(-3),0.0003,config,0.05,1)
+            
+            # Measuring end time
+            t_end = time.time()
+            # Time spent localizing and optimizing
+            t_spent = t_end-t_start
+            # Achieved ROI outputs
+            
+            # Delay time (total delay minus writing time)
+            t_delay = self._get_delay(100,True)-t_write 
+            # Start time for exposure
+            t_start = self._get_time(1000*time.time(),t_delay)
+            # Sleep
+            time.sleep((dt_exp_loc+t_write)*10**(-3)) 
+            # Photometric output measurement 
+            photo_ach = self._get_photo(Nexp,t_start,500,1)
+            print("Initial photometric output : ", photo_init)
+            
+            return dx,dy,t_spent,photo_ach
 
         # Configuration parameters
         configpar = 1 # second beam
@@ -3001,7 +3028,16 @@ class alignment:
         act_name='NTPB2'
         curr_pos = self._get_actuator_pos(configpar)[0]
         print("Current actuator positions :", self._get_actuator_pos(configpar)[0])
-        self.align(configpar)
-        kick_loc_opt(self,configpar)
+        
+        data = []
+        
+        for i in range(0,N):
+            self.align(configpar)
+            dx,dy,t_spent,photo_ach = kick_loc_opt(self,configpar)
+            data.append([dx,dy,t_spent,photo_ach])
+        
+        data_arr = np.array(data,dtype=np.float64)
+        np.save("AlgorithmTest",data_arr)
+        return 
         
     
