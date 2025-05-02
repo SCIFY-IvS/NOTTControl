@@ -825,11 +825,11 @@ class alignment:
         # TTM1X
         xsum_align = act_config[0]+act_config[1]
         xsum_input = pos[0]+pos[1]
-        TTM1X = ttm_config[0] + np.arcsin((xsum_align-xsum_input)/(2*d1_ca)) # TBD
+        TTM1X = ttm_config[0] - np.arcsin((xsum_align-xsum_input)/(2*d1_ca)) 
         # TTM1Y
         xdiff_align = act_config[1]-act_config[0]
         xdiff_input = pos[1]-pos[0]
-        TTM1Y = +ttm_config[1] - np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca)) # TBD
+        TTM1Y = +ttm_config[1] + np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca)) 
         # TTM2X
         TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_ca)
         # TTM2Y
@@ -880,8 +880,8 @@ class alignment:
         # TTM1
         xsum_align = (act_config[0]+act_config[1])/2
         xdiff_align = (act_config[1]-act_config[0])/2
-        xsum = xsum_align + d1_ca*np.sin(ttm_config[0]-ttm_angles[0]) # TBD
-        xdiff = xdiff_align + d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) # TBD
+        xsum = xsum_align - d1_ca*np.sin(ttm_config[0]-ttm_angles[0])
+        xdiff = xdiff_align - d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) 
         x1 = xsum-xdiff/2 #TBD
         x2 = xsum+xdiff/2 #TBD
         
@@ -2974,7 +2974,7 @@ class alignment:
             self._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
     
-    def algorithm_test(self,N):
+    def algorithm_test(self,K):
         
         def kick_loc_opt(obj,config):
             def rand_sign():
@@ -3031,7 +3031,7 @@ class alignment:
         
         data = []
         
-        for i in range(0,N):
+        for i in range(0,K):
             self.align(configpar)
             dx,dy,t_spent,photo_ach = kick_loc_opt(self,configpar)
             data.append([dx,dy,t_spent,photo_ach])
