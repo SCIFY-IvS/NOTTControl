@@ -2974,7 +2974,7 @@ class alignment:
             self._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
     
-    def algorithm_test(self,K):
+    def algorithm_test(self,K,step_opt,speed_opt,dt_opt,k_opt,l_opt):
         
         def kick_loc_opt(obj,config):
             def rand_sign():
@@ -2990,7 +2990,7 @@ class alignment:
             t_start = time.time()
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.10)
-            obj.optimization_cross(False,2*10**(-3),1.1*10**(-3),1,0.030,15,8)
+            obj.optimization_cross(False,step_opt,speed_opt,1,dt_opt,k_opt,l_opt)
             
             #obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.05,8)
             #obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.05,4)
