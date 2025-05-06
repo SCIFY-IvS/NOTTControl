@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1700</width>
-    <height>712</height>
+    <width>1422</width>
+    <height>718</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,103 +16,11 @@
   <property name="styleSheet">
    <string notr="true">background-color: rgb(255, 255, 255);</string>
   </property>
-  <widget class="QPushButton" name="pushButton_cryostat">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>550</y>
-     <width>200</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(50, 129, 140);
-font: 700 14pt &quot;Segoe UI&quot;;
-color: rgb(255, 255, 255);</string>
-   </property>
-   <property name="text">
-    <string>Cryostat</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_light_source">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>250</y>
-     <width>200</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="toolTip">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;de&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(50, 129, 140);
-font: 700 14pt &quot;Segoe UI&quot;;
-color: rgb(71, 185, 200)</string>
-   </property>
-   <property name="text">
-    <string>Light Source</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_delay_lines">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>320</y>
-     <width>200</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(50, 129, 140);
-font: 700 14pt &quot;Segoe UI&quot;;
-color: rgb(255, 255, 255);</string>
-   </property>
-   <property name="text">
-    <string>Delay Lines</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_shutters">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>470</y>
-     <width>200</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(50, 129, 140);
-font: 700 14pt &quot;Segoe UI&quot;;
-color: rgb(71, 185, 200);</string>
-   </property>
-   <property name="text">
-    <string>Shutters</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_filter_wheel">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>390</y>
-     <width>200</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(50, 129, 140);
-font: 700 14pt &quot;Segoe UI&quot;;color: rgb(71, 185, 200);</string>
-   </property>
-   <property name="text">
-    <string>Filter Wheel</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>370</x>
-     <y>40</y>
+     <x>100</x>
+     <y>10</y>
      <width>321</width>
      <height>61</height>
     </rect>
@@ -127,30 +35,11 @@ font: 700 14pt &quot;Segoe UI&quot;;color: rgb(71, 185, 200);</string>
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>200</width>
-     <height>200</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="pixmap">
-    <pixmap>ASGARD.png</pixmap>
-   </property>
-   <property name="scaledContents">
-    <bool>true</bool>
-   </property>
-  </widget>
   <widget class="QLabel" name="dl_dl1_label_opcua_status">
    <property name="geometry">
     <rect>
-     <x>780</x>
-     <y>70</y>
+     <x>510</x>
+     <y>40</y>
      <width>141</width>
      <height>41</height>
     </rect>
@@ -165,29 +54,11 @@ font: 700 14pt &quot;Segoe UI&quot;;color: rgb(71, 185, 200);</string>
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_error">
-   <property name="geometry">
-    <rect>
-     <x>320</x>
-     <y>690</y>
-     <width>361</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">font:  14pt &quot;Segoe UI&quot;;
-color: rgb(255, 38, 0);
-border-color: rgb(0, 0, 0);</string>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
   <widget class="MotorWidget" name="motor_widget_1" native="true">
    <property name="geometry">
     <rect>
-     <x>280</x>
-     <y>120</y>
+     <x>10</x>
+     <y>90</y>
      <width>343</width>
      <height>396</height>
     </rect>
@@ -196,8 +67,8 @@ border-color: rgb(0, 0, 0);</string>
   <widget class="MotorWidget" name="motor_widget_2" native="true">
    <property name="geometry">
     <rect>
-     <x>630</x>
-     <y>120</y>
+     <x>360</x>
+     <y>90</y>
      <width>343</width>
      <height>396</height>
     </rect>
@@ -206,8 +77,8 @@ border-color: rgb(0, 0, 0);</string>
   <widget class="MotorWidget" name="motor_widget_3" native="true">
    <property name="geometry">
     <rect>
-     <x>980</x>
-     <y>120</y>
+     <x>710</x>
+     <y>90</y>
      <width>343</width>
      <height>396</height>
     </rect>
@@ -216,8 +87,8 @@ border-color: rgb(0, 0, 0);</string>
   <widget class="MotorWidget" name="motor_widget_4" native="true">
    <property name="geometry">
     <rect>
-     <x>1320</x>
-     <y>120</y>
+     <x>1050</x>
+     <y>90</y>
      <width>343</width>
      <height>396</height>
     </rect>
