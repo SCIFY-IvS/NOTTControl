@@ -1,11 +1,11 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from opcua import OPCUAConnection
 from configparser import ConfigParser
 from components.shutter import Shutter
 
-class ShutterWindow(QWidget):
+class ShutterWindow(QMainWindow):
     closing = pyqtSignal()
 
     def __init__(self, parent, opcua_conn, redis_client):
@@ -35,6 +35,9 @@ class ShutterWindow(QWidget):
         self.ui.shutter_widget_3.setup(self.opcua_conn, self.redis_client, self._shutter3)
         self.ui.shutter_widget_4.setup(self.opcua_conn, self.redis_client, self._shutter4)
 
+        self.ui.actionClose_all.triggered.connect(self.close_all)
+        self.ui.actionOpen_all.triggered.connect(self.open_all)
+
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
         self.t_pos.start(5)
@@ -61,3 +64,21 @@ class ShutterWindow(QWidget):
         self.ui.shutter_widget_2.load_position()
         self.ui.shutter_widget_3.load_position()
         self.ui.shutter_widget_4.load_position()
+    
+    def close_all(self):
+        try:
+            self._shutter1.close()
+            self._shutter2.close()
+            self._shutter3.close()
+            self._shutter4.close()
+        except Exception as e:
+            print(f"Error calling RPC method: {e}")
+    
+    def open_all(self):
+        try:
+            self._shutter1.open()
+            self._shutter2.open()
+            self._shutter3.open()
+            self._shutter4.open()
+        except Exception as e:
+            print(f"Error calling RPC method: {e}")
