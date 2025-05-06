@@ -240,7 +240,7 @@ class alignment:
         self.N = eqns_.copy()
         
         # Defining actuator positions corresponding to an aligned, injecting state.
-        self.act_pos_align1 = [5.214036,5.40826,3.433324,3.8887805]
+        self.act_pos_align1 = [2.928549,2.690405,3.3754655,3.870572]
         
         '''
         # Opening all shutters
@@ -882,8 +882,8 @@ class alignment:
         xdiff_align = (act_config[1]-act_config[0])/2
         xsum = xsum_align - d1_ca*np.sin(ttm_config[0]-ttm_angles[0])
         xdiff = xdiff_align - d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) 
-        x1 = xsum-xdiff/2 #TBD
-        x2 = xsum+xdiff/2 #TBD
+        x1 = xsum-xdiff #TBD
+        x2 = xsum+xdiff #TBD
         
         # TTM2 
         x3 = act_config[2] - d2_ca*np.sin(ttm_config[3]-ttm_angles[3])
@@ -2911,7 +2911,7 @@ class alignment:
             Darr = self._snap_distance_grid(curr_ttm,1)
             shifts = self._framework_numeric_int_reverse(ttm_acc,Darr,1)
             # Returning x and y shifts in physical dimensions (micrometer) - each pixel is 2.40 um
-            return [np.array([xshift_IM,yshift_IM,xshift_PUPIL,yshift_PUPIL],dtype=np.float64)*2.40*10**(-3),np.array([shifts[2],shifts[3],shifts[0],shifts[1]],dtype=np.float64),speed] #mm(/s)
+            return [np.array([pos_init_PUPIL[0],pos_init_PUPIL[1],pos_final_PUPIL[0],pos_final_PUPIL[1],pos_init_IM[0],pos_init_IM[1],pos_final_IM[0],pos_final_IM[1]],dtype=np.float64)*2.40*10**(-3),np.array([shifts[2],shifts[3],shifts[0],shifts[1]],dtype=np.float64),speed] #mm(/s)
         
         def rand_sign():
             return 1 if random.random() < 0.5 else -1
@@ -2931,34 +2931,53 @@ class alignment:
                     dx=rand_sign()*random.uniform(0.5,25)*10**(-3)
                     dy=rand_sign()*random.uniform(0.5,25)*10**(-3)
                 try:
-                    shifts,err,speed = step(dx,dy)
+                    coordsx,errx,speed = step(dx,0)
+                    coordsy,erry,speed = step(0,dy)
                 # If individual_step throws exception (state not valid), stay in while loop.
                 except ValueError:
                     valid = False
-            return shifts,err,dx,dy,speed
+            return coordsx,coordsy,errx,erry,dx,dy,speed
         
         # Shifts data container
         acc = []
+        pos = []
         for i in range(0,N):
-            shifts_iter,err_iter,dx,dy,speed = step_validcheck()
+            coordsx,coordsy,errx,erry,dx,dy,speed = step_validcheck()
             if pupilpar:
-                dx_err = np.abs(dx)-np.abs(shifts_iter[2])
-                dy_err = np.abs(dy)-np.abs(shifts_iter[3])
+                dx_err = np.abs(dx)-np.abs(shifts[2])
+                dy_err = np.abs(dy)-np.abs(shifts[3])
                 acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[0],shifts_iter[1],speed,pupilpar],dtype=np.float64))
             else:
-                dx_err = np.abs(dx)-np.abs(shifts_iter[0])
-                dy_err = np.abs(dy)-np.abs(shifts_iter[1])
-                dx_act_err = np.abs(dx+err_iter[0])-np.abs(shifts_iter[0])
-                dy_act_err = np.abs(dy+err_iter[1])-np.abs(shifts_iter[1])
+                pos_init_x = coordsx[4:6]
+                pos_final_x = coordsx[6:8]
+                pos_init_y = coordsy[4:6]
+                pos_final_y = coordsy[6:8]
+                pos_init_x_PUP = coordsx[0:2]
+                pos_final_x_PUP = coordsx[2:4]
+                pos_init_y_PUP = coordsy[0:2]
+                pos_final_y_PUP = coordsy[2:4]
+                
+                err = errx+erry
+                
+                dx_ach = pos_final_y[0]-pos_init_x[0]
+                dy_ach = pos_final_y[1]-pos_init_x[1]
+                dx_pup = pos_final_y_PUP[0]-pos_init_x_PUP[0]
+                dy_pup = pos_final_y_PUP[1]-pos_init_x_PUP[1]
+                
+                dx_err = np.abs(dx)-np.abs(dx_ach)
+                dy_err = np.abs(dy)-np.abs(dy_ach)
+                dx_act_err = np.abs(dx+err[0])-np.abs(dx_ach)
+                dy_act_err = np.abs(dy+err[1])-np.abs(dy_ach)
                 print("Iteration "+str(i)+" : "+str([1000*dx_err,1000*dy_err])+" um errors on imposed displacements "+str([1000*dx,1000*dy])+" um.")
-                acc.append(np.array([dx,dy,dx_err,dy_err,shifts_iter[2],shifts_iter[3],speed,pupilpar,dx_act_err,dy_act_err],dtype=np.float64))
-        
+                acc.append(np.array([dx,dy,dx_err,dy_err,dx_pup,dy_pup,speed,pupilpar,dx_act_err,dy_act_err],dtype=np.float64))
+                pos.append(np.array([pos_init_x,pos_final_x,pos_init_y,pos_final_y,pos_init_x_PUP,pos_final_x_PUP,pos_init_y_PUP,pos_final_y_PUP],dtype=np.float64))
         
         # Destroy the devices before returning
         system.destroy_device(device=device_IM)
         system.destroy_device(device=device_PUPIL)
         # Saving result
         np.save("Acc_frame", np.array(acc))
+        np.save("Pos_frame",np.array(pos))
         return acc
     
     def align(self,config=1):
