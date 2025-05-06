@@ -27,6 +27,7 @@ from collections import deque
 from enum import Enum
 from camera.roi import Roi
 from camera.roiwidget import RoiWidget
+import queue
 
 t=time.perf_counter()
 tLive=t
@@ -105,6 +106,18 @@ class MainWindow(QMainWindow):
 
         self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
+
+        self.roi_queue = queue.Queue()
+        threading.Thread(target=self.load_roi_worker, daemon=True).start()
+    
+    def load_roi_worker(self):
+        while True:
+            item = self.roi_queue.get()
+            img = item[0]
+            timestamp = item[1]
+            print(f"Calculating ROI for timestamp {timestamp}")
+            self.calculate_roi(img, timestamp)
+
 
     def load_roi_config(self, config):
         self.roi_config = []
@@ -283,31 +296,18 @@ class MainWindow(QMainWindow):
         
         with self.interface.get_image() as image:
             img = image.get_image_data()
-            timestamp_offset = image.get_timestamp()
-        
-        if self.time_reference_frames < 100:
-            new_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
-            print(f"Timestamp reference: {new_timestamp_ref}")
-            if img_timestamp_ref is None:
-                img_timestamp_ref = new_timestamp_ref
-            #Take the earliest time because there is always a delay, and the estimated timestamp can never be earlier thatn the actual timestamp
-            img_timestamp_ref = min(img_timestamp_ref, new_timestamp_ref)
-
-            self.time_reference_frames = self.time_reference_frames + 1
-
-            if self.time_reference_frames == 100:
-                print(f"Final timestamp reference: {img_timestamp_ref}")
-
-            #Use the first 100 frames purely to establish time
-            return
-        
-        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
+            timestamp_offset = image.get_timestamp() #not used ATM, but can we use this as a failsafe somehow?
+                
+        timestamp = recording_timestamp #TODO: this needs changing after coordinating with the PLC
 
         #print(f"Delay: {recording_timestamp - timestamp}")
         
         if self.recording:
-            self.calculate_roi(img, timestamp)
-        
+            if(self.roi_queue.qsize() > 5):
+                print('Dropping frame!')
+            else:
+                self.roi_queue.put((img, timestamp))
+            #self.calculate_roi(img, timestamp)
 
         if (t-tLive) > 0.4:
             tLive=t
