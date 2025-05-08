@@ -1066,8 +1066,7 @@ class alignment:
         '''
         Description
         -----------
-        Function returns the average noise value (=ROI9), derived from "N" exposures of duration "t" each.
-        Shutters are not closed during this procedure.
+        Function returns the average background and noise values (=ROI9), derived as the average of "N" exposures of duration "t" each.
         
         Parameters
         ----------
@@ -1108,8 +1107,8 @@ class alignment:
         '''
         Description
         -----------
-        Function returns the average background value (=ROI9), derived from "N" exposures of duration "t" each.
-        Shutters are closed during this procedure.
+        Function returns the photometric output value, for a certain beam channel (config), derived as the average of "N" exposures of duration "t" each.
+        
         
         Parameters
         ----------
@@ -1120,12 +1119,13 @@ class alignment:
         N : single integer
             Amount of exposures.
         config : single integer
-            Configuration parameter.
-
+            Configuration number (= VLTI input beam) (0,1,2,3).
+            Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
+            
         Returns
         -------
-        back : single float
-            Background average value
+        photo : single float
+            Photometric output average value
 
         '''
         # REDIS field names of photometric outputs' ROIs
