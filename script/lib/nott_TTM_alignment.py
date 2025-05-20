@@ -280,6 +280,8 @@ class alignment:
                 actuators[i].enable()
                 time.sleep(0.050)
         
+        self.align()
+        
         # Closing OPCUA connection
         opcua_conn.disconnect()
         '''
@@ -1066,7 +1068,7 @@ class alignment:
         '''
         Description
         -----------
-        Function returns the average background and noise values (=ROI9), derived as the average of "N" exposures of duration "t" each.
+        Function returns the average background and noise values (=ROI9), derived as the average of "N" exposures of duration "dt" each.
         
         Parameters
         ----------
@@ -1087,7 +1089,9 @@ class alignment:
         '''
         # Background measurements
         exps = []
-        # Gathering five background exposures
+        # Noise measurements
+        noises = []
+        # Gathering five exposures
         for j in range(0, N):
             if (j!=0):
                 time.sleep(dt)
@@ -1096,10 +1100,11 @@ class alignment:
             exp_av = get_field("roi9_avg",t_start,t_stop,True)
             exp_full = get_field("roi9_avg",t_start,t_stop,False) 
             exps.append(exp_av[1])
-        # Taking the std
-        noise = exp_full.std(0)[1]
+            noises.append(exp_full.std(0)[1])
+            
         # Taking the mean 
         mean = np.mean(exps)
+        noise = np.mean(noise)
         
         return mean,noise
 
@@ -1107,7 +1112,7 @@ class alignment:
         '''
         Description
         -----------
-        Function returns the photometric output value, for a certain beam channel (config), derived as the average of "N" exposures of duration "t" each.
+        Function returns the photometric output value, for a certain beam channel (config), derived as the average of "N" exposures of duration "dt" each.
         
         
         Parameters
@@ -2988,7 +2993,7 @@ class alignment:
             # Necessary Displacements for Alignment
             curr_pos = self._get_actuator_pos(config)[0]
             disp_arr = pos_arr-curr_pos
-            speed_arr = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64)
+            speed_arr = np.array([0.021,0.021,0.021,0.021],dtype=np.float64)
             off = self._actoffset(speed_arr,disp_arr)
             self._move_abs_ttm_act(curr_pos,disp_arr,speed_arr,off,config,False,0.010,self._get_delay(100,True)-t_write)
             return
