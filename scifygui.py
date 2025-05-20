@@ -224,8 +224,8 @@ class DelayLinesWindow(QMainWindow):
 
         self.ui.actionSave_Current_Positions.triggered.connect(self.save_dl_positions)
         self.ui.actionRecall_Positions.triggered.connect(self.recall_dl_positions)
-
-        self.saved_configurations = self.redis_client.load_DL_pos()[0]
+        
+        self.saved_configurations = self.redis_client.load_DL_pos()
 
         self.timestamp = None
         self.t_pos = QTimer()

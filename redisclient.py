@@ -1,6 +1,7 @@
 import redis
 from datetime import datetime
 from camera.utils.utils import BrightnessResults
+import json
 
 class RedisClient:
     def __init__(self, url):
@@ -51,4 +52,8 @@ class RedisClient:
         self.db.json().set("saved_pos", "$", dl_pos_json)
     
     def load_DL_pos(self):
-        return self.db.json().get("saved_pos", "$",)
+        saved_pos = self.db.json().get("saved_pos", "$",)
+        if saved_pos is None:
+            return {}
+        else:
+            return saved_pos[0]
