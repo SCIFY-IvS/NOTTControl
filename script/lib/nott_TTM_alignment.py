@@ -1104,7 +1104,7 @@ class alignment:
             
         # Taking the mean 
         mean = np.mean(exps)
-        noise = np.mean(noise)
+        noise = np.mean(noises)
         
         return mean,noise
 
