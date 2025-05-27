@@ -2335,8 +2335,10 @@ class alignment:
         CS : single boolean
             If True, the CS position is kept fixed throughout the cross motion, which is then traced in the image plane.
             If False, the IM position is kept fixed throughout the cross motion, which is then traced in the pupil plane.
-        d : single float value (mm)
+        d : single float value 
             The dimension by which the cross should make its steps.
+            If sky : on-sky angular stepsize (rad)
+            else : displacement stepsize in CS/IM plane (mm)
         speed : single float value (mm/s)
             Actuator speed by which a step should occur.
         config : single integer
