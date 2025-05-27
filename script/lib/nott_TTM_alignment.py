@@ -2330,8 +2330,8 @@ class alignment:
         Parameters
         ----------
         sky : single boolean
-            If True : spiral on-sky.
-            If False : spiral internally.
+            If True : trace a cross on-sky.
+            If False : trace a cross internally.
         CS : single boolean
             If True, the CS position is kept fixed throughout the cross motion, which is then traced in the image plane.
             If False, the IM position is kept fixed throughout the cross motion, which is then traced in the pupil plane.
