@@ -11,16 +11,9 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 # TO DO #
 #-------#
 
-# A) Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed).
-# --> TO BE COMPLETED, once all actuators are installed and spiraling algorithms are fully functional and performant.
-
+# A) Complete the actuator positions in a state of alignment (act_pos_align) for the other beam channels once their actuators are installed.
 # B) Add function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames.
-# --> TO BE COMPLETED, got VLTI maps from M.A.M. and still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
-
-# C) General efficiency of code & documentation where relevant (i.e. non-testing functions)
-
-# D) Optimize efficiency of algorithm (decide on algorithm type, stepsize and speed) 
-# E) Write and run algorithm performance
+# C) Quantify the performance of localization and optimization routines once the imprecision of beam control is resolved.
 
 #---------#
 # Imports #
@@ -131,7 +124,8 @@ class alignment:
             (4) Define vector N globally, comprising the four symbolic equations.
             (5) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
             (6) Define matrix M and vector of symbolic shifts b globally. 
-            (7) Prepare all actuators for use.
+            (7) Define the actuator positions, corresponding to a state of optimized injection, globally.
+            (8) Prepare all actuators for use.
                    
         Defines
         -------
@@ -1650,11 +1644,12 @@ class alignment:
         sky : single boolean
             If True : spiral by given dimension on-sky
             If False : spiral by given dimension in image plane
-        step : single float value (mm)
+        step : single float value 
             The dimension by which the spiral should make its steps.
             If sky == True : on-sky angular step (radian) 
                             Note : It is recommended to take the apparent on-sky angular radius of the source as step.
-            If sky == False : dummy parameter, 20 micron (waveguide dimension) is taken by default.
+            If sky == False : image plane step (mm)
+                            Note : Dummy parameter, 20 micron (waveguide dimension) is taken by default.
         speed : single float value (mm/s)
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
@@ -2322,11 +2317,11 @@ class alignment:
         plt.close(fig)
         return
     
-    def optimization_cross(self,sky,d=2*10**(-3),speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
+    def optimization_cross(self,sky,CS,d,speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
         """
         Description
         -----------
-        This function brings the beam centroid to a state of optimized injection by shaping a cross in the image plane.
+        This function brings the beam centroid to a state of optimized injection by shaping a cross in the pupil or image plane, controlled by parameter "CS". 
         Motion is continued in each of the four cartesian directions as long as there is monotonuous improvement in sampled ROI values.
         The sampled ROI values are averaged by a sliding window approach, with size k and stepsize l between subsequent windows.
         This sliding window approach is adopted to robustly probe the general ROI trend.
@@ -2336,12 +2331,14 @@ class alignment:
         ----------
         sky : single boolean
             If True : spiral on-sky.
-            If False : spiral in image plane.
+            If False : spiral internally.
+        CS : single boolean
+            If True, the CS position is kept fixed throughout the cross motion, which is then traced in the image plane.
+            If False, the IM position is kept fixed throughout the cross motion, which is then traced in the pupil plane.
         d : single float value (mm)
             The dimension by which the cross should make its steps.
         speed : single float value (mm/s)
             Actuator speed by which a step should occur.
-            Note: Parameter to be removed once optimal speed is obtained.
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
@@ -2374,16 +2371,27 @@ class alignment:
 
         # Possible moves
         if sky:
+            if CS:
+                sky = 1
+            else:
+                sky = -1
             up=np.array([0,d,0,0],dtype=np.float64)
             left=np.array([-d,0,0,0],dtype=np.float64)
             down=np.array([0,-d,0,0],dtype=np.float64)
             right=np.array([d,0,0,0],dtype=np.float64)
             moves = np.array([up,left,down,right])
         else:
-            up=np.array([0,0,0,d],dtype=np.float64)
-            left=np.array([0,0,-d,0],dtype=np.float64)
-            down=np.array([0,0,0,-d],dtype=np.float64)
-            right=np.array([0,0,d,0],dtype=np.float64)
+            sky = 0
+            if CS: 
+                up=np.array([0,0,0,d],dtype=np.float64)
+                left=np.array([0,0,-d,0],dtype=np.float64)
+                down=np.array([0,0,0,-d],dtype=np.float64)
+                right=np.array([0,0,d,0],dtype=np.float64)
+            else:
+                up=np.array([0,d,0,0],dtype=np.float64)
+                left=np.array([-d,0,0,0],dtype=np.float64)
+                down=np.array([0,-d,0,0],dtype=np.float64)
+                right=np.array([d,0,0,0],dtype=np.float64)
             moves = np.array([up,left,down,right])
         
         # A) Storing characteristics of initial configuration
@@ -3014,7 +3022,7 @@ class alignment:
             t_start = time.time()
             # Spiraling to return 
             obj.localization_spiral(False,20,0.010,config,0.10)
-            obj.optimization_cross(False,step_opt,speed_opt,1,dt_opt,k_opt,l_opt)
+            obj.optimization_cross(False,True,step_opt,speed_opt,1,dt_opt,k_opt,l_opt)
             
             #obj.optimization_spiral_gradient(False,5*10**(-3),0.0011,config,0.05,8)
             #obj.optimization_spiral_gradient(False,3*10**(-3),0.0011,config,0.05,4)
