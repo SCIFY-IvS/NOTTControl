@@ -108,15 +108,22 @@ class MainWindow(QMainWindow):
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
 
         self.roi_queue = queue.Queue()
-        threading.Thread(target=self.load_roi_worker, daemon=True).start()
+        threading.Thread(target=self.process_frame, daemon=True).start()
     
-    def load_roi_worker(self):
+    def process_frame(self):
+        tLastUpdate = time.perf_counter()
         while True:
             item = self.roi_queue.get()
             img = item[0]
             timestamp = item[1]
-            print(f"Calculating ROI for timestamp {timestamp}")
-            self.calculate_roi(img, timestamp)
+            if self.recording:
+                print(f"Calculating ROI for timestamp {timestamp}")
+                self.calculate_roi(img, timestamp)
+
+            t = time.perf_counter()
+            if (t-tLastUpdate) > 0.4:
+                tLastUpdate = t
+                self.request_image_update.emit(img)
 
 
     def load_roi_config(self, config):
@@ -302,16 +309,11 @@ class MainWindow(QMainWindow):
 
         #print(f"Delay: {recording_timestamp - timestamp}")
         
-        if self.recording:
-            if(self.roi_queue.qsize() > 5):
-                print('Dropping frame!')
-            else:
-                self.roi_queue.put((img, timestamp))
-            #self.calculate_roi(img, timestamp)
+        if(self.roi_queue.qsize() > 5):
+            print('Dropping frame!')
+        else:
+            self.roi_queue.put((img, timestamp))
 
-        if (t-tLive) > 0.4:
-            tLive=t
-            self.request_image_update.emit(img)
     
     def initialize_image_display(self, img):
         self.image.setImage(img, autoRange=False)
