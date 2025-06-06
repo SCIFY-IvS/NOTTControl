@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
             timestamp = item[1]
             if self.recording:
                 print(f"Calculating ROI for timestamp {timestamp}")
-                self.calculate_roi(img, timestamp)
+                self.process_roi(img, timestamp, coadded_frame=False)
 
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
@@ -147,6 +147,7 @@ class MainWindow(QMainWindow):
                     #Create 3D array containing all values
                     arr = numpy.array(self.coadd_frames_buffer)
                     img = numpy.average(arr, axis=0)
+                    self.process_roi(img, timestamp, coadded_frame=True)
                     self.coadd_frames_buffer.clear()
                 else:
                     coadd_in_process = True
@@ -393,15 +394,28 @@ class MainWindow(QMainWindow):
             if roi_widget.isChecked():
                 self.pw_roi.plot(list(self.timestamps), list(roi_widget.max_values), name= roi_widget.name, pen= roi_widget.color)
                 
-    def calculate_roi(self, img, timestamp):
-        #Loop over all ROI: calculate values
-        # Push to redis
-        # Update corresponding GUI components
-
-        calculator = BrightnessCalculator([roi_widget.roi.getArrayRegion(img, self.image.getImageItem()) for roi_widget in self.roi_widgets])
+    def process_roi(self, img, timestamp, coadded_frame):
+        calculator = self.run_roi_calculator(img)
+        if not coadded_frame:
+            self.store_roi_to_db(timestamp, calculator)
+            self.roi_tracking_frames += 1
         
-        calculator.run()
+        if coadded_frame or not self.is_coadd_enabled():
+            self.update_gui_with_newroi(timestamp, calculator)
+            
+    def update_gui_with_newroi(self, timestamp, calculator):
+        self.timestamps.appendleft(datetime.timestamp(timestamp))
+        for i in range(len(self.roi_widgets)):
+            self.roi_widgets[i].add_max_value(calculator.results[i].max)
+                
+        self.roi_calculation_finished.emit(calculator)
 
+    def run_roi_calculator(self, img):
+        calculator = BrightnessCalculator([roi_widget.roi.getArrayRegion(img, self.image.getImageItem()) for roi_widget in self.roi_widgets])
+        calculator.run()
+        return calculator
+
+    def store_roi_to_db(self, timestamp, calculator):
         roi_values = dict()
         for i in range(len(self.roi_widgets)):
             key = self.roi_widgets[i].db_key
@@ -409,14 +423,6 @@ class MainWindow(QMainWindow):
             roi_values[key] = value
         
         self.redisclient.add_roi_values(timestamp, roi_values)
-        
-        self.timestamps.appendleft(datetime.timestamp(timestamp))
-        for i in range(len(self.roi_widgets)):
-            self.roi_widgets[i].add_max_value(calculator.results[i].max)
-                
-        self.roi_calculation_finished.emit(calculator)
-        
-        self.roi_tracking_frames += 1
     
     def on_roi_calculations_finished(self, calculator):
         for i in range(len(self.roi_widgets)):
