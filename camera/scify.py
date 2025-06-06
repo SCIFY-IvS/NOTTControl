@@ -1,6 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QIntValidator
 from PyQt5.uic import loadUi
 
 import sys
@@ -107,9 +108,27 @@ class MainWindow(QMainWindow):
         self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
 
+        self.ui.cb_coadd.stateChanged.connect(self.enable_coadd)
+        self.ui.lineEdit_coadd_frames.setPlaceholderText("Please enter a valid number up to 999")
+        self.ui.lineEdit_coadd_frames.setValidator(QIntValidator(1, 999, self))
+
+        self.coadd_frames_buffer = []
         self.roi_queue = queue.Queue()
         threading.Thread(target=self.process_frame, daemon=True).start()
     
+    def enable_coadd(self):
+        self.ui.lineEdit_coadd_frames.setEnabled(self.is_coadd_enabled())
+
+        if self.is_coadd_enabled:
+            self.coadd_frames_buffer.clear()
+    
+    def is_coadd_enabled(self):
+        return self.ui.cb_coadd.isChecked()
+    
+    def nb_coadd_frames(self):
+        s = self.ui.lineEdit_coadd_frames.text()
+        return int(s)
+
     def process_frame(self):
         tLastUpdate = time.perf_counter()
         while True:
@@ -120,12 +139,23 @@ class MainWindow(QMainWindow):
                 print(f"Calculating ROI for timestamp {timestamp}")
                 self.calculate_roi(img, timestamp)
 
+            #If coadding, check to see if we have the required amount of frames
+            coadd_in_process = False
+            if self.is_coadd_enabled():
+                self.coadd_frames_buffer.append(img)
+                if len(self.coadd_frames_buffer) >= self.nb_coadd_frames():
+                    #Create 3D array containing all values
+                    arr = numpy.array(self.coadd_frames_buffer)
+                    img = numpy.average(arr, axis=0)
+                    self.coadd_frames_buffer.clear()
+                else:
+                    coadd_in_process = True
+            
             t = time.perf_counter()
-            if (t-tLastUpdate) > 0.4:
+            if (t-tLastUpdate) > 0.4 and not coadd_in_process:
                 tLastUpdate = t
                 self.request_image_update.emit(img)
-
-
+    
     def load_roi_config(self, config):
         self.roi_config = []
         for roi_widget in self.roi_widgets:
