@@ -41,7 +41,7 @@ def get_field(field1, start, end):
     
     
     # Read data
-    r = redis.from_url('redis://10.33.178.176:6379')
+    r = redis.from_url('redis://nott-server.ster.kuleuven.be:6379')
 
     # Extract data
     ts = r.ts()
@@ -98,7 +98,7 @@ def get_position(DL,field, start,end): #return podition of Delay line 'DL' and t
 
     
     # Read data
-    r = redis.from_url('redis://10.33.178.176:6379')
+    r = redis.from_url('redis://nott-server.ster.kuleuven.be:6379')
 
     # Extract data
     ts = r.ts()
@@ -1341,7 +1341,7 @@ import time
 from datetime import datetime, timedelta
 import nott_control
 
-def get_field2(field, start, end, return_avg, db_address='redis://10.33.178.176:6379'):
+def get_field2(field, start, end, return_avg, db_address='redis://nott-server.ster.kuleuven.be:6379'):
     """
     Get the data in the database of the required `field` in a time range limited by `start` and `end`.
     The returned object is a 2D-array which rows are the datapoints, the first column is the timestamp
@@ -1358,7 +1358,7 @@ def get_field2(field, start, end, return_avg, db_address='redis://10.33.178.176:
     return_avg: bool
         Return the average value on the number of points.
     db_address : str, optional
-        Address of the database. The default is 'redis://10.33.178.176:6379'.
+        Address of the database. The default is 'redis://nott-server.ster.kuleuven.be:6379'.
 
     Returns
     -------
