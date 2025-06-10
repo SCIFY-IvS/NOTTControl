@@ -1,6 +1,7 @@
 import redis
 from datetime import datetime
 from camera.utils.utils import BrightnessResults
+import json
 
 class RedisClient:
     def __init__(self, url):
@@ -46,3 +47,13 @@ class RedisClient:
         pipe.execute()
     def unix_time_ms(self, time):
         return round((time - self.epoch).total_seconds() * 1000.0)
+    
+    def save_DL_pos(self, dl_pos_json):
+        self.db.json().set("saved_pos", "$", dl_pos_json)
+    
+    def load_DL_pos(self):
+        saved_pos = self.db.json().get("saved_pos", "$",)
+        if saved_pos is None:
+            return {}
+        else:
+            return saved_pos[0]

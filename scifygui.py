@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget
+from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from opcua import OPCUAConnection
@@ -10,6 +10,7 @@ from configparser import ConfigParser
 from components.motor import Motor
 from shutters_window import ShutterWindow
 from tiptilt_window import TipTiltWindow
+import json
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -184,7 +185,7 @@ class MainWindow(QMainWindow):
         self.temp4 = str(values[3])
         self.ui.main_label_temp4.setText(self.temp4)
 
-class DelayLinesWindow(QWidget):
+class DelayLinesWindow(QMainWindow):
     closing = pyqtSignal()
 
     def __init__(self, parent, opcua_conn, redis_client):
@@ -221,6 +222,11 @@ class DelayLinesWindow(QWidget):
 
         self._activeCommand = None
 
+        self.ui.actionSave_Current_Positions.triggered.connect(self.save_dl_positions)
+        self.ui.actionRecall_Positions.triggered.connect(self.recall_dl_positions)
+        
+        self.saved_configurations = self.redis_client.load_DL_pos()
+
         self.timestamp = None
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
@@ -236,6 +242,49 @@ class DelayLinesWindow(QWidget):
         self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
+
+    def save_dl_positions(self):
+        pos1 = self._motor1.getPositionAndSpeed()[0]
+        pos2 = self._motor2.getPositionAndSpeed()[0]
+        pos3 = self._motor3.getPositionAndSpeed()[0]
+        pos4 = self._motor4.getPositionAndSpeed()[0]
+
+        name, dlgResult = QInputDialog.getText(self, "Please provide a name for the DL configuration", "Name")
+        if dlgResult:
+            print(name)
+        else:
+            print("cancel")
+            return
+
+        self.saved_configurations[name] = [pos1, pos2, pos3, pos4]
+
+        self.redis_client.save_DL_pos(self.saved_configurations)
+    
+    def recall_dl_positions(self):
+        print('Recall DL positions')
+
+        name, dlgResult = QInputDialog.getText(self, "Please provide the name of the saved configuration", "Name")
+        if dlgResult:
+            print(name)
+        else:
+            print("cancel")
+            return
+        
+        if not name in self.saved_configurations:
+            print("Configuration not found!")
+            msgBox = QMessageBox(self)
+            msgBox.setText("Configuration not found!")
+            msgBox.exec()
+            return
+        
+        configuration = self.saved_configurations[name]
+        print(f'Loading DL positions: pos1: {configuration[0]}; pos2: {configuration[1]}; pos3: {configuration[2]}; pos4; {configuration[3]}')
+
+        self._motor1.command_move_absolute(configuration[0]).execute()
+        self._motor2.command_move_absolute(configuration[1]).execute()
+        self._motor3.command_move_absolute(configuration[2]).execute()
+        self._motor4.command_move_absolute(configuration[3]).execute()
+
     
     def startCameraRecording(self):
         self.parent.camera_window.start_recording()

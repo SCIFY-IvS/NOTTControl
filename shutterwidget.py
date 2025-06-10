@@ -35,7 +35,7 @@ class ShutterWidget(QWidget):
             self.ui.label_status.setText(str(status))
             self.ui.label_state.setText(str(state))
             self.ui.label_subState.setText(str(substate))
-            hwStatus = self._shutter.getHardwareStatus()
+            hwStatus = self._shutter.getHardwareStatus()[0]
             self.ui.label_opened.setText(str(hwStatus))
         except Exception as e:
             print(e)
