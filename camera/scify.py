@@ -336,8 +336,23 @@ class MainWindow(QMainWindow):
             img = image.get_image_data()
             timestamp_offset = image.get_timestamp() #not used ATM, but can we use this as a failsafe somehow?
                 
-        timestamp = recording_timestamp #TODO: this needs changing after coordinating with the PLC
+        if self.time_reference_frames < 100:
+            new_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
+            print(f"Timestamp reference: {new_timestamp_ref}")
+            if img_timestamp_ref is None:
+                img_timestamp_ref = new_timestamp_ref
+            #Take the earliest time because there is always a delay, and the estimated timestamp can never be earlier thatn the actual timestamp
+            img_timestamp_ref = min(img_timestamp_ref, new_timestamp_ref)
 
+            self.time_reference_frames = self.time_reference_frames + 1
+
+            if self.time_reference_frames == 100:
+                print(f"Final timestamp reference: {img_timestamp_ref}")
+
+            #Use the first 100 frames purely to establish time
+            return
+        
+        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
         
         if(self.roi_queue.qsize() > 5):
