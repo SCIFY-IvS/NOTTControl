@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from numpy.polynomial import Polynomial
 
-redis_url = 'redis://10.33.178.176:6379'
+redis_url = 'redis://nott-server.ster.kuleuven.be:6379'
 # Get epoch
 epoch = datetime.utcfromtimestamp(0)
 
@@ -881,7 +881,8 @@ def build_kappa_matrix(delay, shutter_radiation, n_aper, fields, return_throughp
     fields : list
         Name of the ROI fields of the camera to grab from the database
     return_throughput : bool
-        If `True`, normalise the column of the matrix by its sum, and it is the splitting ration. If `False`, it is normalised by the flux on the corresponding photometric output: it directly gives the contribution of a beam in a given output, knowing the flux in its photometric output.
+        If `True`, normalise the column of the matrix by its sum, and it is the splitting ration. If `False`, it is normalised by the flux on the corresponding photometric output: it directly
+          gives the contribution of a beam in a given output, knowing the flux in its photometric output.
 
     Returns
     -------
@@ -918,7 +919,7 @@ def build_kappa_matrix(delay, shutter_radiation, n_aper, fields, return_throughp
     # startend = time1
     
     kappa_mat = []
-    beams_pos_in_output = [0, 1, 6, 7]
+    beams_pos_in_output = [0, 1, 6, 7]  #?????
 
     for sh in range(n_aper):
         # Measure of the bias induced by the thermal emission of all shutters and measure the flux on the outputs of the chip
@@ -1051,7 +1052,7 @@ fields = [P1, P2, I1, I2, I3, I4, P3, P4, detbg]
 
 delay = 2
 n_aper = 4
-return_throughput = False
+return_throughput = True
 
 nott_control.all_shutters_open(n_aper)
 
@@ -1063,19 +1064,19 @@ nott_control.all_shutters_open(n_aper)
 
 # print(flux)
 
-# print('Block the source and press Enter to continue')
-# input()
-# print('NEW: Measuring shuter radiations')
-# shutters_radiation = get_shutter_radiation(n_aper, delay, fields)
-# print('Done')
-# print('Unblock the source and press Enter to continue')
-# input()
-# print('NEW: Measuring kappa matrix')
-# kappa = build_kappa_matrix(delay, shutters_radiation, n_aper, fields, return_throughput)
-# print('Done')
-# print(kappa.shape)
+print('Block the source and press Enter to continue')
+input()
+print('NEW: Measuring shuter radiations')
+shutters_radiation = get_shutter_radiation(n_aper, delay, fields)
+print('Done')
+print('Unblock the source and press Enter to continue')
+input()
+print('NEW: Measuring kappa matrix')
+kappa = build_kappa_matrix(delay, shutters_radiation, n_aper, fields, return_throughput)
+print('Done')
+print(kappa.shape)
 # np.save('kappa', kappa)
-# print(kappa)
+print(kappa)
 
 # print('THROUGHPUT')
 # print('Block the source and press Enter to continue')

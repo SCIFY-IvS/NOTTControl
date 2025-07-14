@@ -87,6 +87,7 @@ def remove_background(field,shift,start, end): #remove the backround of field an
     value_f=get_mean_value(field, start,end)
     shift_f=get_mean_value(shift, start,end)
 
+    
     shutter_open('1')
     shutter_open('2')
     shutter_open('3')
@@ -1534,7 +1535,7 @@ fields = [P1, P2, I1, I2, I3, I4, P3, P4, Shift]
 
 delay = 2
 n_aper = 4
-return_throughput = False
+return_throughput = True
 
 # nott_control.all_shutters_close(n_aper)
 # for sh in range(1, 5):
