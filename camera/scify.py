@@ -112,9 +112,12 @@ class MainWindow(QMainWindow):
         self.ui.lineEdit_coadd_frames.setPlaceholderText("Please enter a valid number up to 999")
         self.ui.lineEdit_coadd_frames.setValidator(QIntValidator(1, 999, self))
 
+        #This should translate to roughly 30s, assuming 200 Hz
+        deque_length = 6000
+
+        self.timestamps = deque(maxlen = deque_length)
         self.coadd_frames_buffer = []
         self.roi_queue = queue.Queue()
-        threading.Thread(target=self.process_frame, daemon=True).start()
     
     def enable_coadd(self):
         self.ui.lineEdit_coadd_frames.setEnabled(self.is_coadd_enabled())
@@ -135,8 +138,7 @@ class MainWindow(QMainWindow):
             item = self.roi_queue.get()
             img = item[0]
             timestamp = item[1]
-            if self.recording:
-                print(f"Calculating ROI for timestamp {timestamp}")
+            if self.recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
 
             #If coadding, check to see if we have the required amount of frames
@@ -334,6 +336,8 @@ class MainWindow(QMainWindow):
         
         with self.interface.get_image() as image:
             img = image.get_image_data()
+            if not self.imageInit:
+                self.request_image_update.emit(img)
             timestamp_offset = image.get_timestamp() #not used ATM, but can we use this as a failsafe somehow?
                 
         if self.time_reference_frames < 100:
@@ -381,10 +385,10 @@ class MainWindow(QMainWindow):
         self.plot_data_item_roi = self.pw_roi.plot()
         self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time')
 
-        #This should translate to roughly 30s, assuming 200 Hz
-        deque_length = 6000
+        #Now safe to start processing the frames
+        threading.Thread(target=self.process_frame, daemon=True).start()
 
-        self.timestamps = deque(maxlen = deque_length)
+
 
     def initialize_roi(self, img):
         for roi_widget in self.roi_widgets:
@@ -411,7 +415,7 @@ class MainWindow(QMainWindow):
                 
     def process_roi(self, img, timestamp, coadded_frame):
         calculator = self.run_roi_calculator(img)
-        if not coadded_frame:
+        if not coadded_frame and self.recording:
             self.store_roi_to_db(timestamp, calculator)
             self.roi_tracking_frames += 1
         
