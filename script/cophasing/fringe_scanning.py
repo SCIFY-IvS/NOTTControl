@@ -128,6 +128,11 @@ config.read('../cfg/config.cfg')
 
 plt.ion()
 
+# Read config file
+config = configparser.ConfigParser()
+config.read('../cfg/config.cfg')
+
+
 P1='roi1_avg' # define all the ROI output
 P2='roi2_avg'
 I1='roi3_avg'

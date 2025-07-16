@@ -117,6 +117,7 @@ def move_abs_dl(pos, speed, opcua_motor, pos_offset):
     opcua_conn.disconnect()      
     return 'done'
 
+
 # Read current position
 def read_current_pos(opcua_motor):
     """ Read current position. Return it in mm """
