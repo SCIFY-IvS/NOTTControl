@@ -41,7 +41,7 @@ def get_field(field1, start, end):
     
     
     # Read data
-    r = redis.from_url('redis://10.33.178.176:6379')
+    r = redis.from_url('redis://nott-server.ster.kuleuven.be:6379')
 
     # Extract data
     ts = r.ts()
@@ -98,7 +98,7 @@ def get_position(DL,field, start,end): #return podition of Delay line 'DL' and t
 
     
     # Read data
-    r = redis.from_url('redis://10.33.178.176:6379')
+    r = redis.from_url('redis://nott-server.ster.kuleuven.be:6379')
 
     # Extract data
     ts = r.ts()

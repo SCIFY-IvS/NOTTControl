@@ -1,4 +1,6 @@
 import sys
+import os
+import pickle
 
 # Add the path to sys.path
 sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
@@ -8,7 +10,7 @@ from nott_control import shutter_close, shutter_open
 import numpy as np
 
 
-redis_url = 'redis://10.33.178.176:6379'
+redis_url = 'redis://nott-server.ster.kuleuven.be:6379'
 
 # =============================================================================
 # TODO: measure visibility
@@ -208,8 +210,9 @@ I3='roi5_avg'
 I4='roi6_avg'
 P3='roi7_avg'
 P4='roi8_avg'
-detbg='roi9_avg'
-fields = [P1, P2, I1, I2, I3, I4, P3, P4, detbg]
+detbg4='roi9_avg'
+detbg5='roi10_avg'
+fields = [P1, P2, I1, I2, I3, I4, P3, P4, detbg4,detbg5]
 
 delay = 2
 n_aper = 4
@@ -217,13 +220,14 @@ return_throughput = False
 
 nott_control.all_shutters_open(n_aper)
 
-# duration = 2.
-# time.sleep(0.5)
-# start, end = define_time(duration)
-# time.sleep(0.5)
-# flux = get_field(P1, start, end, False)
 
-# print(flux)
+#duration = 2.
+#time.sleep(0.5)
+#start, end = define_time(duration)
+#time.sleep(0.5)
+#flux = get_field(I3, start, end, False)
+
+#print(flux)
 
 # print('Block the source and press Enter to continue')
 # input()
@@ -258,27 +262,39 @@ nott_control.all_shutters_open(n_aper)
 # import pickle
 # import os
 
-# def save_data(data, path, name):
-#     print('MSG - Save data in:', path+name)
-#     list_saved_files = [elt for elt in os.listdir(path) if name in elt]
-#     count_file = len(list_saved_files) + 1
-#     name_file = name+'_%03d.pkl'%(count_file)
-#     dbfile = open(path + name_file, 'wb')
-#     pickle.dump(data, dbfile)
-#     dbfile.close()
+'For null measurement'
 
-# path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/calibration/'
-# name = 'kappa_matrix_ts'
-# start = datetime(2024, 9, 5, 12, 56, 00)
-# end = datetime(2024, 9, 5, 12, 58, 30)
 
-# start = round(start.timestamp()*1000)
-# end = round(end.timestamp()*1000)
+def save_data(data, path, name):
+    print('MSG - Save data in:', path+name)
+    list_saved_files = [elt for elt in os.listdir(path) if name in elt]
+    count_file = len(list_saved_files) + 1
+    name_file = name+'_%03d.pkl'%(count_file)
+    dbfile = open(path + name_file, 'wb')
+    pickle.dump(data, dbfile)
+    dbfile.close()
 
-# dic_data = {}
+path = 'C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/calibration/'
+name = 'Background'
+#name = 'Null_scan_200'
+name = 'Null_fixed_L'
+#name = 'OPD_variations'
+#name = 'Fringe_scanning_3800'
+#start = datetime(2024, 9, 5, 12, 56, 00)
+#end = datetime(2024, 9, 5, 12, 58, 30)
+duration = 30
+time.sleep(0.5)
+start, end = define_time(duration)
+time.sleep(0.5)
 
-# for f in fields:
-#     out = get_field(f, start, end, False)
-#     dic_data[f] = out
+#start = round(start.timestamp()*1000)
+#end = round(end.timestamp()*1000)
 
-# save_data(dic_data, path, name)
+dic_data = {}
+
+for f in fields:
+    out = get_field(f, start, end, False)
+    dic_data[f] = out
+
+save_data(dic_data, path, name)
+''

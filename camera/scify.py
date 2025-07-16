@@ -1,6 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QIntValidator
 from PyQt5.uic import loadUi
 
 import sys
@@ -27,6 +28,7 @@ from collections import deque
 from enum import Enum
 from camera.roi import Roi
 from camera.roiwidget import RoiWidget
+import queue
 
 t=time.perf_counter()
 tLive=t
@@ -106,6 +108,57 @@ class MainWindow(QMainWindow):
         self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
 
+        self.ui.cb_coadd.stateChanged.connect(self.enable_coadd)
+        self.ui.lineEdit_coadd_frames.setPlaceholderText("Please enter a valid number up to 999")
+        self.ui.lineEdit_coadd_frames.setValidator(QIntValidator(1, 999, self))
+
+        #This should translate to roughly 30s, assuming 200 Hz
+        deque_length = 6000
+
+        self.timestamps = deque(maxlen = deque_length)
+        self.coadd_frames_buffer = []
+        self.roi_queue = queue.Queue()
+    
+    def enable_coadd(self):
+        self.ui.lineEdit_coadd_frames.setEnabled(self.is_coadd_enabled())
+
+        if self.is_coadd_enabled:
+            self.coadd_frames_buffer.clear()
+    
+    def is_coadd_enabled(self):
+        return self.ui.cb_coadd.isChecked()
+    
+    def nb_coadd_frames(self):
+        s = self.ui.lineEdit_coadd_frames.text()
+        return int(s)
+
+    def process_frame(self):
+        tLastUpdate = time.perf_counter()
+        while True:
+            item = self.roi_queue.get()
+            img = item[0]
+            timestamp = item[1]
+            if self.recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
+                self.process_roi(img, timestamp, coadded_frame=False)
+
+            #If coadding, check to see if we have the required amount of frames
+            coadd_in_process = False
+            if self.is_coadd_enabled():
+                self.coadd_frames_buffer.append(img)
+                if len(self.coadd_frames_buffer) >= self.nb_coadd_frames():
+                    #Create 3D array containing all values
+                    arr = numpy.array(self.coadd_frames_buffer)
+                    img = numpy.average(arr, axis=0)
+                    self.process_roi(img, timestamp, coadded_frame=True)
+                    self.coadd_frames_buffer.clear()
+                else:
+                    coadd_in_process = True
+            
+            t = time.perf_counter()
+            if (t-tLastUpdate) > 0.4 and not coadd_in_process:
+                tLastUpdate = t
+                self.request_image_update.emit(img)
+    
     def load_roi_config(self, config):
         self.roi_config = []
         for roi_widget in self.roi_widgets:
@@ -283,8 +336,10 @@ class MainWindow(QMainWindow):
         
         with self.interface.get_image() as image:
             img = image.get_image_data()
-            timestamp_offset = image.get_timestamp()
-        
+            if not self.imageInit:
+                self.request_image_update.emit(img)
+            timestamp_offset = image.get_timestamp() #not used ATM, but can we use this as a failsafe somehow?
+                
         if self.time_reference_frames < 100:
             new_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
             print(f"Timestamp reference: {new_timestamp_ref}")
@@ -302,16 +357,13 @@ class MainWindow(QMainWindow):
             return
         
         timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
-
         #print(f"Delay: {recording_timestamp - timestamp}")
         
-        if self.recording:
-            self.calculate_roi(img, timestamp)
-        
+        if(self.roi_queue.qsize() > 5):
+            print('Dropping frame!')
+        else:
+            self.roi_queue.put((img, timestamp))
 
-        if (t-tLive) > 0.4:
-            tLive=t
-            self.request_image_update.emit(img)
     
     def initialize_image_display(self, img):
         self.image.setImage(img, autoRange=False)
@@ -333,10 +385,10 @@ class MainWindow(QMainWindow):
         self.plot_data_item_roi = self.pw_roi.plot()
         self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time')
 
-        #This should translate to roughly 30s, assuming 200 Hz
-        deque_length = 6000
+        #Now safe to start processing the frames
+        threading.Thread(target=self.process_frame, daemon=True).start()
 
-        self.timestamps = deque(maxlen = deque_length)
+
 
     def initialize_roi(self, img):
         for roi_widget in self.roi_widgets:
@@ -361,15 +413,28 @@ class MainWindow(QMainWindow):
             if roi_widget.isChecked():
                 self.pw_roi.plot(list(self.timestamps), list(roi_widget.max_values), name= roi_widget.name, pen= roi_widget.color)
                 
-    def calculate_roi(self, img, timestamp):
-        #Loop over all ROI: calculate values
-        # Push to redis
-        # Update corresponding GUI components
-
-        calculator = BrightnessCalculator([roi_widget.roi.getArrayRegion(img, self.image.getImageItem()) for roi_widget in self.roi_widgets])
+    def process_roi(self, img, timestamp, coadded_frame):
+        calculator = self.run_roi_calculator(img)
+        if not coadded_frame and self.recording:
+            self.store_roi_to_db(timestamp, calculator)
+            self.roi_tracking_frames += 1
         
-        calculator.run()
+        if coadded_frame or not self.is_coadd_enabled():
+            self.update_gui_with_newroi(timestamp, calculator)
+            
+    def update_gui_with_newroi(self, timestamp, calculator):
+        self.timestamps.appendleft(datetime.timestamp(timestamp))
+        for i in range(len(self.roi_widgets)):
+            self.roi_widgets[i].add_max_value(calculator.results[i].max)
+                
+        self.roi_calculation_finished.emit(calculator)
 
+    def run_roi_calculator(self, img):
+        calculator = BrightnessCalculator([roi_widget.roi.getArrayRegion(img, self.image.getImageItem()) for roi_widget in self.roi_widgets])
+        calculator.run()
+        return calculator
+
+    def store_roi_to_db(self, timestamp, calculator):
         roi_values = dict()
         for i in range(len(self.roi_widgets)):
             key = self.roi_widgets[i].db_key
@@ -377,14 +442,6 @@ class MainWindow(QMainWindow):
             roi_values[key] = value
         
         self.redisclient.add_roi_values(timestamp, roi_values)
-        
-        self.timestamps.appendleft(datetime.timestamp(timestamp))
-        for i in range(len(self.roi_widgets)):
-            self.roi_widgets[i].add_max_value(calculator.results[i].max)
-                
-        self.roi_calculation_finished.emit(calculator)
-        
-        self.roi_tracking_frames += 1
     
     def on_roi_calculations_finished(self, calculator):
         for i in range(len(self.roi_widgets)):
