@@ -30,6 +30,7 @@ from nott_time import unix_time_ms
 from datetime import datetime, timedelta
 from scipy.interpolate import interp1d
 import time
+from configparser import ConfigParser
 
 # #  Function to read field values from the REDIS database and corresponding delay line position for the last 'delay' ms
 # def get_field(field1, field2, field3, field4, delay, dl_name):
@@ -165,6 +166,12 @@ def get_field(field, start, end, return_avg, lag=0, db_address='redis://nott-ser
         Output of the required field from the database.
 
     """
+    
+    # REDIS database url (read from config.ini)
+    configpars = ConfigParser()
+    configpars.read('../../config.ini')
+    db_address =  configpars['DEFAULT']['databaseurl']  
+    
     # Read data
     r = redis.from_url(db_address)
 
