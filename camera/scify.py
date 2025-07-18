@@ -148,7 +148,8 @@ class MainWindow(QMainWindow):
                 if len(self.coadd_frames_buffer) >= self.nb_coadd_frames():
                     #Create 3D array containing all values
                     arr = numpy.array(self.coadd_frames_buffer)
-                    img = numpy.average(arr, axis=0)
+                    #maintain dtype, otherwise the background substraction will throw an error
+                    img = numpy.average(arr, axis=0).astype(numpy.uint16)
                     self.process_roi(img, timestamp, coadded_frame=True)
                     self.coadd_frames_buffer.clear()
                 else:
