@@ -25,7 +25,7 @@ sys.path.append('/home/labo/src/NOTTControl/')
 from components.shutter import Shutter
 from components.motor import Motor
 from opcua import OPCUAConnection
-from configparser import ConfigParser
+from nottcontrol import config
 
 
 ####################################################
@@ -99,8 +99,6 @@ d.append(device("NDL4", 8))
 # Total number of devices that can be controlled by the LCU
 nbCtrlDevs = len(d) 
 
-config = ConfigParser()
-config.read('../config.ini')
 url = config['DEFAULT']['opcuaaddress']
 opc_conn = OPCUAConnection(url)
 opc_conn.connect()

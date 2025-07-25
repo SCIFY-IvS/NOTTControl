@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from opcua import OPCUAConnection
-from configparser import ConfigParser
+from nottcontrol import config
 from components.shutter import Shutter
 
 class ShutterWindow(QMainWindow):
@@ -13,8 +13,6 @@ class ShutterWindow(QMainWindow):
 
         self.parent = parent
 
-        config = ConfigParser()
-        config.read('config.ini')
         url =  config['DEFAULT']['opcuaaddress']
 
         # save the OPC UA connection

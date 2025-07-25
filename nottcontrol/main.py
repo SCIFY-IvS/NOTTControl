@@ -1,10 +1,10 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 from opcua import OPCUAConnection
-from configparser import ConfigParser
 from scifygui import MainWindow
 import os
 import logging
+from nottcontrol import config
 
 def main():
     #Change the running directory to this directory
@@ -12,8 +12,6 @@ def main():
     os.chdir(os.path.dirname(__file__))
 
     # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('config.ini')
     url =  config['DEFAULT']['opcuaaddress']
 
     logger = logging.getLogger("asyncua")

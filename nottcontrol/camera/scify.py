@@ -22,8 +22,7 @@ import cv2
 from camera.brightness_calculator import BrightnessCalculator
 from camera.parametersdialog import ParametersDialog
 from redisclient import RedisClient
-
-from configparser import ConfigParser
+from nottcontrol import config
 from collections import deque
 from enum import Enum
 from camera.roi import Roi
@@ -98,12 +97,10 @@ class MainWindow(QMainWindow):
         self.roi_tracking_frames = 0
         self.calculating_roi = False
 
-        self.config = ConfigParser()
-        self.config.read('config.ini')
-        url =  self.config['DEFAULT']['databaseurl']
+        url =  config['DEFAULT']['databaseurl']
         self.redisclient = RedisClient(url)
         
-        self.load_roi_config(self.config)
+        self.load_roi_config(config)
 
         self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
@@ -178,7 +175,7 @@ class MainWindow(QMainWindow):
         return Roi(roi_dimensions[0], roi_dimensions[1], roi_dimensions[2], roi_dimensions[3])
     
     def load_roi_positions_from_config(self):
-        self.load_roi_config(self.config)
+        self.load_roi_config(config)
         if self.imageInit:
             for roi_widget in self.roi_widgets:
                 roi_widget.updateRoi_from_config()
@@ -189,19 +186,18 @@ class MainWindow(QMainWindow):
 
 
     def save_roi_positions_to_config(self):
-        if not self.config.has_section('CAMERA'):
-            self.config.add_section('CAMERA')
+        if not config.config_parser.has_section('CAMERA'):
+            config.config_parser.add_section('CAMERA')
 
         for roi_widget in self.roi_widgets:
             self.save_roi_position_to_config(roi_widget.roi, roi_widget.name)
 
-        with open('config.ini', 'w') as configfile:
-            self.config.write(configfile)
+        config.write()
 
     def save_roi_position_to_config(self, roi, key):
         roi_pos = roi.pos()
         roi_size = roi.size()
-        self.config.set('CAMERA', key, f'{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}')
+        config.config_parser.set('CAMERA', key, f'{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}')
 
     def connectSignalSlots(self):
         self.ui.button_connect.clicked.connect(self.connect_clicked)
@@ -267,13 +263,13 @@ class MainWindow(QMainWindow):
     
 
     def set_window(self):
-        if not self.config['CAMERA'].getboolean('windowing'):
+        if not config['CAMERA'].getboolean('windowing'):
             return
 
-        self.interface.setparam_int32(294, self.config['CAMERA'].getint('window_w'))
-        self.interface.setparam_int32(295, self.config['CAMERA'].getint('window_h'))
-        self.interface.setparam_int32(292, self.config['CAMERA'].getint('window_x'))
-        self.interface.setparam_int32(293, self.config['CAMERA'].getint('window_y'))
+        self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
+        self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
+        self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
+        self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
 
         self.set_brightness_auto()
             

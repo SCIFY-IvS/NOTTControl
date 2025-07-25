@@ -6,7 +6,7 @@ from asyncua import ua
 from datetime import datetime
 from redisclient import RedisClient
 from camera.scify import MainWindow as camera_ui
-from configparser import ConfigParser
+from nottcontrol import config
 from components.motor import Motor
 from shutters_window import ShutterWindow
 from tiptilt_window import TipTiltWindow
@@ -43,8 +43,6 @@ class MainWindow(QMainWindow):
         self.shutter_window = None
         self.tiptilt_window = None
 
-        config = ConfigParser()
-        config.read('config.ini')
         url =  config['DEFAULT']['databaseurl']
         self.redis_client = RedisClient(url)
 
@@ -193,8 +191,6 @@ class DelayLinesWindow(QMainWindow):
 
         self.parent = parent
 
-        config = ConfigParser()
-        config.read('config.ini')
         url =  config['DEFAULT']['opcuaaddress']
 
         # save the OPC UA connection

@@ -6,7 +6,7 @@ from asyncua import ua
 from datetime import datetime
 from redisclient import RedisClient
 from camera.scify import MainWindow as camera_ui
-from configparser import ConfigParser
+from nottcontrol import config
 from components.motor import Motor
 from shutters_window import ShutterWindow
 
@@ -18,8 +18,6 @@ class TipTiltWindow(QWidget):
 
         self.parent = parent
 
-        config = ConfigParser()
-        config.read('config.ini')
         url =  config['DEFAULT']['opcuaaddress']
 
         # save the OPC UA connection
