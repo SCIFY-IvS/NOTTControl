@@ -1,5 +1,5 @@
-from commands.move_abs_command import MoveAbsCommand
-from commands.move_rel_command import MoveRelCommand
+from nottcontrol.commands.move_abs_command import MoveAbsCommand
+from nottcontrol.commands.move_rel_command import MoveRelCommand
 
 class Motor():
     def __init__(self, opcua_conn, opcua_prefix: str, name: str, speed: int):

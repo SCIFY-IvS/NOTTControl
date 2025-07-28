@@ -1,8 +1,6 @@
-from commands.command_sequence import CommandSequence
-from commands.move_abs_command import MoveAbsCommand
-from commands.stop_camera_recording_command import StopCameraRecordingCommand
-from commands.start_camera_recording_command import StartCameraRecordingCommand
-from opcua import OPCUAConnection
+from nottcontrol.commands.command_sequence import CommandSequence
+from nottcontrol.commands.stop_camera_recording_command import StopCameraRecordingCommand
+from nottcontrol.commands.start_camera_recording_command import StartCameraRecordingCommand
 
 class ScanFringesCommand(CommandSequence):
     # scan fringes does the following:

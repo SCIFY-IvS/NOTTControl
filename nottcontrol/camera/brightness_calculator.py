@@ -5,9 +5,8 @@ Created on Fri Mar 10 12:18:09 2023
 @author: Kwinten
 """
 
-from datetime import datetime
 import numpy
-from camera.utils.utils import BrightnessResults
+from nottcontrol.camera.utils.utils import BrightnessResults
 
 class BrightnessCalculator():
     

@@ -1,4 +1,4 @@
-from commands.scan_fringes_command import ScanFringesCommand
+from nottcontrol.commands.scan_fringes_command import ScanFringesCommand
 
 from PyQt5.QtWidgets import QWidget, QMenu
 from PyQt5.QtCore import pyqtSignal

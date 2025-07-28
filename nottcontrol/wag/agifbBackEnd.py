@@ -20,11 +20,9 @@ import zmq
 import re
 import json
 import sys
-#TODO: setup proper imports
-sys.path.append('/home/labo/src/NOTTControl/')
-from components.shutter import Shutter
-from components.motor import Motor
-from opcua import OPCUAConnection
+from nottcontrol.components.shutter import Shutter
+from nottcontrol.components.motor import Motor
+from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
 
 

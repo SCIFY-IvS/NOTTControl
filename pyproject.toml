@@ -17,6 +17,7 @@ dependencies = [
   "asyncua",
   "pyqtgraph",
   "numpy",
+  "scipy",
   "opencv-contrib-python",
   "redis",
   "pyzmq",

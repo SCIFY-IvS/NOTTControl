@@ -8,7 +8,6 @@ Created on Wed May  3 11:09:31 2023
 from PyQt5.QtWidgets import QDialog
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
-from camera.infratec_interface import InfratecInterface, Image
 
 class PresetParameter:
     def __init__(self, name, parameter_nr, parameter_type, read=True, write=True):

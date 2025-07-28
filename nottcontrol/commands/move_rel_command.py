@@ -1,5 +1,4 @@
-from opcua import OPCUAConnection
-from commands.async_command import AsyncCommand
+from nottcontrol.commands.async_command import AsyncCommand
 
 class MoveRelCommand(AsyncCommand):
     def __init__(self, opcua_conn, opcua_prefix, rel_pos, speed):

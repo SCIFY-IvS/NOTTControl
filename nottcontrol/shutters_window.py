@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
-from opcua import OPCUAConnection
+from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
-from components.shutter import Shutter
+from nottcontrol.components.shutter import Shutter
 
 class ShutterWindow(QMainWindow):
     closing = pyqtSignal()

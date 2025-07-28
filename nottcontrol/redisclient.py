@@ -1,6 +1,6 @@
 import redis
 from datetime import datetime
-from camera.utils.utils import BrightnessResults
+from nottcontrol.camera.utils.utils import BrightnessResults
 import json
 
 class RedisClient:

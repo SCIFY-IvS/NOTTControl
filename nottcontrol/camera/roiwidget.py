@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QFrame
-from camera.utils.utils import BrightnessResults
-from camera.roi import Roi
+from nottcontrol.camera.utils.utils import BrightnessResults
+from nottcontrol.camera.roi import Roi
 import pyqtgraph as pg
 from collections import deque
 

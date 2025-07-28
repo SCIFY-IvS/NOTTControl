@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from opcua import OPCUAConnection
-from scifygui import MainWindow
+from nottcontrol.opcua import OPCUAConnection
+from nottcontrol.scifygui import MainWindow
 import os
 import logging
 from nottcontrol import config

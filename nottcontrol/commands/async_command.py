@@ -1,4 +1,4 @@
-from commands.command import Command
+from nottcontrol.commands.command import Command
 import time
 
 class AsyncCommand(Command):

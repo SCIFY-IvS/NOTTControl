@@ -15,18 +15,18 @@ from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColorConstants
-from camera.infratec_interface import InfratecInterface, Image
+from nottcontrol.camera.infratec_interface import InfratecInterface, Image
 
 import numpy
 import cv2
-from camera.brightness_calculator import BrightnessCalculator
-from camera.parametersdialog import ParametersDialog
-from redisclient import RedisClient
+from nottcontrol.camera.brightness_calculator import BrightnessCalculator
+from nottcontrol.camera.parametersdialog import ParametersDialog
+from nottcontrol.redisclient import RedisClient
 from nottcontrol import config
 from collections import deque
 from enum import Enum
-from camera.roi import Roi
-from camera.roiwidget import RoiWidget
+from nottcontrol.camera.roi import Roi
+from nottcontrol.camera.roiwidget import RoiWidget
 import queue
 
 t=time.perf_counter()

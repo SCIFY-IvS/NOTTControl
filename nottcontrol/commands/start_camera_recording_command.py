@@ -1,4 +1,4 @@
-from commands.sync_command import SyncCommand
+from nottcontrol.commands.sync_command import SyncCommand
 
 class StartCameraRecordingCommand(SyncCommand):
     def __init__(self, camera_window):

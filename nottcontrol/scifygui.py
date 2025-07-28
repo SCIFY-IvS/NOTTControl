@@ -1,15 +1,15 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
-from opcua import OPCUAConnection
+from nottcontrol.opcua import OPCUAConnection
 from asyncua import ua
 from datetime import datetime
-from redisclient import RedisClient
-from camera.scify import MainWindow as camera_ui
+from nottcontrol.redisclient import RedisClient
+from nottcontrol.camera.scify import MainWindow as camera_ui
 from nottcontrol import config
-from components.motor import Motor
-from shutters_window import ShutterWindow
-from tiptilt_window import TipTiltWindow
+from nottcontrol.components.motor import Motor
+from nottcontrol.shutters_window import ShutterWindow
+from nottcontrol.tiptilt_window import TipTiltWindow
 import json
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
