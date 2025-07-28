@@ -13,7 +13,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "PyQt5 == 5.15",
+  "PyQt5",
   "asyncua",
   "pyqtgraph",
   "numpy",
