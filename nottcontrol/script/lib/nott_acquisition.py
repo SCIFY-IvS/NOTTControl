@@ -24,14 +24,11 @@ __email__ = "denis.defrere@kuleuven.be"
 __status__ = "Production"
 
 # Import libraries
-import sys
 import time
 import numpy as np
 
-# Add the path to sys.path
-sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/lib/')
-from nott_control import shutter_close, shutter_open
-from nott_database import get_data
+from nottcontrol.script.lib.nott_control import shutter_close, shutter_open
+from nottcontrol.script.lib.nott_database import get_data
 
 # Function to cophase the instrument
 def cophase(delay):

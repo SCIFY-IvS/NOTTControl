@@ -1,1 +1,5 @@
-include nottcontrol/config.inip
+include *.npy
+graft nottcontrol/script/data
+include nottcontrol/config.ini
+include nottcontrol/script/config/config.cfg
+include nottcontrol/script/cfg/config.cfg
