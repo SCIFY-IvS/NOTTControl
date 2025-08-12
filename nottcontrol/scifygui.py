@@ -10,6 +10,7 @@ from nottcontrol import config
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
+from nottcontrol.tip_tilt_control import TipTiltControl
 import json
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
@@ -139,7 +140,7 @@ class MainWindow(QMainWindow):
     def open_tiptilt_window(self):
         try:
             if self.tiptilt_window is None:
-                self.tiptilt_window = TipTiltWindow(self, self.opcua_conn, self.redis_client)
+                self.tiptilt_window = TipTiltControl(self, self.opcua_conn, self.redis_client)
                 self.tiptilt_window.closing.connect(self.clear_tiptilt_window)
                 self.tiptilt_window.show()
                 print("Tiptilt window is opening fine")
