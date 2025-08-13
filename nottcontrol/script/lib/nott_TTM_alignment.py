@@ -42,64 +42,46 @@ import random
 
 import sys
 import time
-from configparser import ConfigParser
 import logging
-
-# Add the path to sys.path
-sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
 
 # OPCUA / redis
 import redis
-from opcua import OPCUAConnection
+from nottcontrol.opcua import OPCUAConnection
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
 logger.setLevel(logging.WARNING)
 # Motors
-from components.motor import Motor
+from nottcontrol.components.motor import Motor
 # Functions for retrieving data from REDIS
-from nott_database import define_time
-from nott_database import get_field
+from nottcontrol.script.lib.nott_database import define_time
+from nottcontrol.script.lib.nott_database import get_field
 # Shutter control
-from nott_control import all_shutters_close
-from nott_control import all_shutters_open
-
+from nottcontrol.script.lib.nott_control import all_shutters_close
+from nottcontrol.script.lib.nott_control import all_shutters_open
+from nottcontrol import config as nott_config
+from nottcontrol.script import config_alignment
+from nottcontrol.script import data_files
 #-----------------------------#
 # Parameters from config file #
 #-----------------------------#
 # Opcua address
-configpars = ConfigParser()
-configpars.read('../../config.ini')
-url =  configpars['DEFAULT']['opcuaaddress']
+url =  nott_config['DEFAULT']['opcuaaddress']
 # Global parameters
-configpars = ConfigParser()
-configpars.read('../../script/cfg/config.cfg')
-t_write = int(configpars['redis']['t_write'])
-bool_UT = (configpars['injection']['bool_UT'] == "True")
-fac_loc = int(configpars['injection']['fac_loc'])
-SNR_inj = int(configpars['injection']['SNR_inj'])
-Ncrit = int(configpars['injection']['Ncrit'])
-Nsteps_skyb = int(configpars['injection']['Nsteps_skyb'])
-Nexp = int(configpars['injection']['Nexp'])
-disp_double = float(configpars['injection']['disp_double'])
-step_double = float(configpars['injection']['step_double'])
-speed_double = float(configpars['injection']['speed_double'])
+t_write = int(config_alignment['redis']['t_write'])
+bool_UT = (config_alignment['injection']['bool_UT'] == "True")
+fac_loc = int(config_alignment['injection']['fac_loc'])
+SNR_inj = int(config_alignment['injection']['SNR_inj'])
+Ncrit = int(config_alignment['injection']['Ncrit'])
+Nsteps_skyb = int(config_alignment['injection']['Nsteps_skyb'])
+Nexp = int(config_alignment['injection']['Nexp'])
+disp_double = float(config_alignment['injection']['disp_double'])
+step_double = float(config_alignment['injection']['step_double'])
+speed_double = float(config_alignment['injection']['speed_double'])
 print("Read configuration [t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
 #-----------------#
 # Auxiliary Grids #
 #-----------------#
-
-# Zemax-simulated inter-component distance grid
-Dgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Dgrid.npy")
-# Absolute TTM angles by which the grid of distance values (Dgrid) is simulated
-TTM1Xgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM1X.npy")
-TTM1Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM1Y.npy")
-TTM2Xgrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2X.npy")
-TTM2Ygrid = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/TTMGrids/Grid_TTM2Y.npy")
-# On-bench simulated accuracy grid (achieved-imposed) for positive/negative displacements
-accurgrid_pos = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Pos.npy")
-accurgrid_neg = np.load("C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/script/data/Grid_Accuracy_Neg.npy")
-
 class alignment:
      
     def __init__(self):
@@ -246,9 +228,9 @@ class alignment:
         # Preparing actuators for use
         print("Preparing actuators...")
         # Retrieving OPCUA url from config.ini
-        configpars = ConfigParser()
-        configpars.read('../../config.ini')
-        url =  configpars['DEFAULT']['opcuaaddress']
+        config_alignment = ConfigParser()
+        config_alignment.read('../../config.ini')
+        url =  config_alignment['DEFAULT']['opcuaaddress']
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()
@@ -626,12 +608,12 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
-        a = np.argmin(np.abs(TTM1Ygrid[config] - ttm_angles[1]))
-        b = np.argmin(np.abs(TTM2Ygrid[config] - ttm_angles[3]))
-        c = np.argmin(np.abs(TTM1Xgrid[config] - ttm_angles[0]))
-        d = np.argmin(np.abs(TTM2Xgrid[config] - ttm_angles[2]))
+        a = np.argmin(np.abs(data_files.TTM1Ygrid[config] - ttm_angles[1]))
+        b = np.argmin(np.abs(data_files.TTM2Ygrid[config] - ttm_angles[3]))
+        c = np.argmin(np.abs(data_files.TTM1Xgrid[config] - ttm_angles[0]))
+        d = np.argmin(np.abs(data_files.TTM2Xgrid[config] - ttm_angles[2]))
         
-        D_snap = Dgrid[config,:,a,b,c,d]
+        D_snap = data_files.Dgrid[config,:,a,b,c,d]
   
         return D_snap
 
@@ -730,14 +712,14 @@ class alignment:
                 # Interpolation
                 if sign > 0:
                     # Accuracy interpolation
-                    a_disp = v1*accurgrid_pos[i1,j1]+v2*accurgrid_pos[i2,j1]
-                    a_speed = w1*accurgrid_pos[i1,j1]+w2*accurgrid_pos[i1,j2]
+                    a_disp = v1*data_files.accurgrid_pos[i1,j1]+v2*data_files.accurgrid_pos[i2,j1]
+                    a_speed = w1*data_files.accurgrid_pos[i1,j1]+w2*data_files.accurgrid_pos[i1,j2]
                     # Average
                     a_snap[i] = (a_disp+a_speed)/2
                 if sign < 0:
                     # Accuracy interpolation
-                    a_disp = v1*accurgrid_neg[i1,j1]+v2*accurgrid_neg[i2,j1]
-                    a_speed = w1*accurgrid_neg[i1,j1]+w2*accurgrid_neg[i1,j2]
+                    a_disp = v1*data_files.accurgrid_neg[i1,j1]+v2*data_files.accurgrid_neg[i2,j1]
+                    a_speed = w1*data_files.accurgrid_neg[i1,j1]+w2*data_files.accurgrid_neg[i1,j2]
                     # Average
                     a_snap[i] = (a_disp+a_speed)/2
         

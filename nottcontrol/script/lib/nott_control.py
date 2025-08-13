@@ -23,17 +23,13 @@ __maintainer__ = "Denis Defrere"
 __email__ = "denis.defrere@kuleuven.be"
 __status__ = "Production"
 
-
-import sys
 import time
-from configparser import ConfigParser
+from nottcontrol import config
 import logging
 
-# Add the path to sys.path
-sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
-from opcua import OPCUAConnection
-from components.motor import Motor
-from components.shutter import Shutter
+from nottcontrol.opcua import OPCUAConnection
+from nottcontrol.components.motor import Motor
+from nottcontrol.components.shutter import Shutter
 
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
@@ -47,8 +43,6 @@ def move_rel_dl(rel_pos, speed, opcua_motor):
     """ Send a relative motion to a delay line """
 
     # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('../../config.ini')
     url =  config['DEFAULT']['opcuaaddress']
 
     opcua_conn = OPCUAConnection(url)
@@ -81,8 +75,6 @@ def move_abs_dl(pos, speed, opcua_motor, pos_offset):
     """
 
     # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('../../config.ini')
     url =  config['DEFAULT']['opcuaaddress']
 
     opcua_conn = OPCUAConnection(url)
@@ -123,8 +115,6 @@ def read_current_pos(opcua_motor):
     """ Read current position. Return it in mm """
     
     # Initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('../../config.ini')
     url =  config['DEFAULT']['opcuaaddress']
 
     opcua_conn = OPCUAConnection(url)
@@ -145,8 +135,6 @@ def shutter_close(shutter_id):
     """ Function to close a shutter """
 
     # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('../../config.ini')
     url =  config['DEFAULT']['opcuaaddress']
 
     opcua_conn = OPCUAConnection(url)
@@ -162,8 +150,6 @@ def shutter_open(shutter_id):
     """ Function to open a shutter """
 
     # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('../../config.ini')
     url =  config['DEFAULT']['opcuaaddress']
 
     opcua_conn = OPCUAConnection(url)

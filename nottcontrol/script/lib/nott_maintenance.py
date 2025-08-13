@@ -23,13 +23,7 @@ __maintainer__ = "Denis Defrere"
 __email__ = "denis.defrere@kuleuven.be"
 __status__ = "Production"
 
-
-import sys
-from configparser import ConfigParser
-
-# Add the path to sys.path
-sys.path.append('C:/Users/fys-lab-ivs/Documents/Git/NottControl/NOTTControl/')
-from nott_control import shutter_close, shutter_open
+from nottcontrol.script.lib.nott_control import shutter_close, shutter_open
 
 #### DELAY LINES FUNCTIONS ####
 ###############################

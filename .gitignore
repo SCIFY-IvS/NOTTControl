@@ -1,5 +1,7 @@
 *.pyc
 *_ui.py
+build/*
+nottcontrol.egg-info/*
 nottcontrol/script/data/*
 nottcontrol/script/diagnostics/*
 nottcontrol/script/cophasing/intrafringe_backlash_nott_ics.Delay_Lines.NDL1_speed_0.006299999999999955_nbfringe_02.png
