@@ -1,0 +1,7 @@
+include *.npy
+include *.ui
+graft nottcontrol
+graft nottcontrol/script/data
+include nottcontrol/config.ini
+include nottcontrol/script/config/config.cfg
+include nottcontrol/script/cfg/config.cfg
