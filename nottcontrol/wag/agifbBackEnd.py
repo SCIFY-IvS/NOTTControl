@@ -116,7 +116,24 @@ d_map = {"NSH1": Shutter(opc_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutte
          "NDL1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1", 'DL_1', speed= 50),
          "NDL2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2", 'DL_2', speed= 50),
          "NDL3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL3", 'DL_3', speed= 50),
-         "NDL4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4", 'DL_4', speed= 50)}
+         "NDL4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4", 'DL_4', speed= 50),
+         "NTPA1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA1", 'NTPA1', speed= 10),
+         "NTPA2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA2", 'NTPA2', speed= 10),
+         "NTPA3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA3", 'NTPA3', speed= 10),
+         "NTPA4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA4", 'NTPA4', speed= 10),
+         "NTTA1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA1", 'NTTA1', speed= 10),
+         "NTTA2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA2", 'NTTA2', speed= 10),
+         "NTTA3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA3", 'NTTA3', speed= 10),
+         "NTTA4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA4", 'NTTA4', speed= 10),
+         "NTPB1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB1", 'NTPB1', speed= 10),
+         "NTPB2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB2", 'NTPB2', speed= 10),
+         "NTPB3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB3", 'NTPB3', speed= 10),
+         "NTPB4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB4", 'NTPB4', speed= 10),
+         "NTTB1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB1", 'NTTB1', speed= 10),
+         "NTTB2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB2", 'NTTB2', speed= 10),
+         "NTTB3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB3", 'NTTB3', speed= 10),
+         "NTTB4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB4", 'NTTB4', speed= 10)
+}
 
 # Template of message in JSON to send,  in order to update the database on wag
 
