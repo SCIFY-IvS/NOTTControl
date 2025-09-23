@@ -24,6 +24,7 @@ from nottcontrol.components.shutter import Shutter
 from nottcontrol.components.motor import Motor
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
+import threading
 
 
 ####################################################
@@ -69,6 +70,10 @@ for i in range(nbSemas):
 # same controller) must have the same semaphore ID (= second parameter)
 #...................................
 
+#For every device, the following is needed:
+# - a code eg. "NSH1"
+# - a semaphore
+# - a mapping to an object that can be acted on 
 d = []
 # Example: we cannot move HTPP1 and HTTP1 at the same time because they
 # have the same semaphore ID (= 1)
@@ -89,6 +94,8 @@ d.append(device("NDL1", 5))
 d.append(device("NDL2", 6))
 d.append(device("NDL3", 7))
 d.append(device("NDL4", 8))
+
+
 # d.append(device("FPSH1", 11))
 # d.append(device("FPSH2", 12))
 # d.append(device("FPSH3", 13))
@@ -101,14 +108,15 @@ url = config['DEFAULT']['opcuaaddress']
 opc_conn = OPCUAConnection(url)
 opc_conn.connect()
 
+#TODO: load speed from config
 d_map = {"NSH1": Shutter(opc_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1'),
          "NSH2": Shutter(opc_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH2", 'Shutter 2'),
          "NSH3": Shutter(opc_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH3", 'Shutter 3'),
          "NSH4": Shutter(opc_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH4", 'Shutter 4'),
-         "NDL1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1", 'DL_1'),
-         "NDL2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2", 'DL_2'),
-         "NDL3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL3", 'DL_3'),
-         "NDL4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4", 'DL_4')}
+         "NDL1": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1", 'DL_1', speed= 50),
+         "NDL2": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2", 'DL_2', speed= 50),
+         "NDL3": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL3", 'DL_3', speed= 50),
+         "NDL4": Motor(opc_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4", 'DL_4', speed= 50)}
 
 # Template of message in JSON to send,  in order to update the database on wag
 
@@ -131,9 +139,63 @@ print("Created server socket")
 # Create client socket (sending database update requests to agifbDbRelay
 # process on wag)
 cliSocket = context.socket(zmq.PUSH)
-cliSocket.connect("tcp://10.33.179.102:5562")
+cliSocket.connect("tcp://10.33.179.152:5562")
 
 running = 1
+
+def monitor():
+    #Monitor actuators, update WAG
+    lastRun = None
+
+    while running == 1:
+        
+        if lastRun is not None:
+            #Don't start the next loop until at least a second has passed
+            nextRun = lastRun + datetime.timedelta(seconds= 1)
+            delta = nextRun - datetime.datetime.utcnow()
+            if(delta.total_seconds() > 0):
+                time.sleep(delta.total_seconds())
+        print("---------")
+        print(str(datetime.datetime.utcnow()))
+        print("Starting new loop")
+
+        for key, device in d_map.items():
+            if isinstance(device, Shutter):
+                dbMsg['command']['parameters'].clear()
+
+                hwStatus, timeStamp = device.getHardwareStatus()
+
+                attribute = "<alias>" + key +":DATA.status0"
+
+                dbMsg['command']['parameters'].append({"attribute":attribute, "value":hwStatus})
+
+                now = datetime.datetime.utcnow() 
+                dbMsg['command']['time'] = now.strftime("%Y-%m-%dT%H:%M:%S")
+
+                outputMsg = json.dumps(dbMsg) + '\0'
+
+                cliSocket.send_string(outputMsg)
+                print(outputMsg)
+            
+            if isinstance(device, Motor):
+                dbMsg['command']['parameters'].clear()
+
+                pos,_,_ = device.getPositionAndSpeed()
+                pos = pos * 1000 #Convert from mm to micron
+
+                attribute = "<alias>" + key +":DATA.status0"
+                dbMsg['command']['parameters'].append({"attribute":attribute, "value":""})
+                attribute = "<alias>" + key +":DATA.posEnc"
+                dbMsg['command']['parameters'].append({"attribute":attribute, "value":pos})
+
+                outputMsg = json.dumps(dbMsg) + '\0'
+                cliSocket.send_string(outputMsg)
+                print(outputMsg)
+
+        lastRun = datetime.datetime.utcnow()
+
+t = threading.Thread(target=monitor)
+t.start()
 
 # Main loop
 
@@ -436,6 +498,12 @@ while running == 1:
         context.destroy()
         opc_conn.disconnect()
         exit()
+
+def listen():
+    #TODO: move listening loop here
+    pass
+
+
 
 
 
