@@ -24,6 +24,9 @@
     <Compile Include="DUTs\T_NOTT_IR_CAMERA_DL_SYNC.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DUTs\T_NOTT_CAMERA_TIMESTAMPS_N_DL_POS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="GlobalTextList.TcGTLO">
       <SubType>Code</SubType>
     </Compile>
@@ -60,6 +63,14 @@
     </Compile>
     <Compile Include="Visualization Manager.TcVMO">
       <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Cryo\GUI_CRYO_TEMPS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Templates\TEMPLATE_NOTT_CRYO_TEMPS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
     <Compile Include="VISUs\GUIs\Delay_Lines\GUI_NOTT_DL_CONFIG.TcVIS">
       <SubType>Code</SubType>
@@ -125,6 +136,8 @@
     <Folder Include="POUs" />
     <Folder Include="VISUs\GUIs" />
     <Folder Include="VISUs\GUIs\Delay_Lines" />
+    <Folder Include="VISUs\GUIs\Cryo" />
+    <Folder Include="VISUs\GUIs\Templates" />
     <Folder Include="VISUs\GUIs\TipTilt" />
     <Folder Include="VISUs\GUIs\Time" />
     <Folder Include="VISUs\GUIs\Shutters" />
@@ -135,9 +148,17 @@
       <DefaultResolution>ESO LDC Comm Common Library, * (ESO)</DefaultResolution>
       <Namespace>ESO_LDC_Comm_Common_Library</Namespace>
     </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Comm Tcp Library">
+      <DefaultResolution>ESO LDC Comm Tcp Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Comm_Tcp_Library</Namespace>
+    </PlaceholderReference>
     <PlaceholderReference Include="ESO LDC Common Library">
       <DefaultResolution>ESO LDC Common Library, * (ESO)</DefaultResolution>
       <Namespace>ESO_LDC_Common_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Cryo Library">
+      <DefaultResolution>ESO LDC Cryo Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Cryo_Library</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="ESO LDC Motor Library">
       <DefaultResolution>ESO LDC Motor Library, * (ESO)</DefaultResolution>
@@ -222,6 +243,11 @@
     <None Include="nott_ics.tmc">
       <SubType>Content</SubType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderResolution Include="ESO LDC Comm Common Library">
+      <Resolution>ESO LDC Comm Common Library, 0.2.0.2 (ESO)</Resolution>
+    </PlaceholderResolution>
   </ItemGroup>
   <ProjectExtensions>
     <PlcProjectOptions>

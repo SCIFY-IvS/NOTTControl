@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
   <Visu Name="GUI_NOTT_TIP_B_CTRL" Id="{8b593c5a-b54c-4777-8c28-eb938c4c4e60}">
     <XmlArchive>
       <Data>

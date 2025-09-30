@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
   <GlobalTextList Name="GlobalTextList" Id="{ed472398-af47-49e2-a45a-609aef837d14}">
     <XmlArchive>
       <Data>
@@ -8,6 +8,16 @@
             <o>
               <v n="TextID">"46"</v>
               <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"411"</v>
+              <v n="TextDefault">"%.2f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"196"</v>
+              <v n="TextDefault">"%.2f C"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -28,6 +38,11 @@
             <o>
               <v n="TextID">"860"</v>
               <v n="TextDefault">"%.7f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"828"</v>
+              <v n="TextDefault">"%s"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -58,6 +73,11 @@
             <o>
               <v n="TextID">"126"</v>
               <v n="TextDefault">"DL 4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"55"</v>
+              <v n="TextDefault">"Error"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -228,6 +248,21 @@
             <o>
               <v n="TextID">"1119"</v>
               <v n="TextDefault">"Target              Actual"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"286"</v>
+              <v n="TextDefault">"Temperature in C"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"743"</v>
+              <v n="TextDefault">"Valid"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"672"</v>
+              <v n="TextDefault">"Warning"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
           </l>

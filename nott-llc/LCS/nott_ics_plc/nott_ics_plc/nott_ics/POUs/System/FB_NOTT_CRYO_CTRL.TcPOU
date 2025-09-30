@@ -7,13 +7,84 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
+	
+	temp_1:		FB_CRYO_SENSOR_TEMPERATURE;
+	temp_2:		FB_CRYO_SENSOR_TEMPERATURE;
+	temp_3:		FB_CRYO_SENSOR_TEMPERATURE;
+	temp_4:		FB_CRYO_SENSOR_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	lrTempC_1:	LREAL;
+	{attribute 'OPC.UA.DA' := '1'}
+	lrTempC_2:	LREAL;
+	{attribute 'OPC.UA.DA' := '1'}
+	lrTempC_3:	LREAL;
+	{attribute 'OPC.UA.DA' := '1'}
+	lrTempC_4:	LREAL;
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[
+M_ReadSensors();]]></ST>
     </Implementation>
+    <Method Name="M_ReadSensors" Id="{55b09f23-1072-4390-9e1d-acc3ae7e70c2}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[temp_1(
+	in_sName:= 'Temp 1', 
+	in_nType:= E_CRYO_SENSOR_TYPE_TEMP.PT100, 
+	in_lrScale:= 0.1, 
+	in_bIgnoreUnderrange:= TRUE, 
+	in_nRampPeriodSec:= 60, 
+	in_bResistor_1_64:= );
+lrTempC_1 := temp_1.stat.lrTempC;	
+
+temp_2(
+	in_sName:= 'Temp 2', 
+	in_nType:= E_CRYO_SENSOR_TYPE_TEMP.PT100, 
+	in_lrScale:= 0.1, 
+	in_bIgnoreUnderrange:= TRUE, 
+	in_nRampPeriodSec:= 60, 
+	in_bResistor_1_64:= );
+lrTempC_2 := temp_2.stat.lrTempC;
+	
+temp_3(
+	in_sName:= 'Temp 3', 
+	in_nType:= E_CRYO_SENSOR_TYPE_TEMP.PT100, 
+	in_lrScale:= 0.1, 
+	in_bIgnoreUnderrange:= TRUE, 
+	in_nRampPeriodSec:= 60, 
+	in_bResistor_1_64:= );
+lrTempC_3 := temp_3.stat.lrTempC;
+	
+temp_4(
+	in_sName:= 'Temp 4', 
+	in_nType:= E_CRYO_SENSOR_TYPE_TEMP.PT100, 
+	in_lrScale:= 0.1, 
+	in_bIgnoreUnderrange:= TRUE, 
+	in_nRampPeriodSec:= 60, 
+	in_bResistor_1_64:= );
+lrTempC_4 := temp_4.stat.lrTempC;]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_NOTT_CRYO_CTRL">
-      <LineId Id="9" Count="0" />
+      <LineId Id="32" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_CRYO_CTRL.M_ReadSensors">
+      <LineId Id="6" Count="7" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="15" Count="5" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="5" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="33" Count="6" />
+      <LineId Id="32" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

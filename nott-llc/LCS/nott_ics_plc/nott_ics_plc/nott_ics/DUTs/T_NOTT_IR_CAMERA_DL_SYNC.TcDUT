@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
   <DUT Name="T_NOTT_IR_CAMERA_DL_SYNC" Id="{3988b824-1c9b-4936-9b87-c9a30fe104cf}">
     <Declaration><![CDATA[TYPE T_NOTT_IR_CAMERA_DL_SYNC :
 STRUCT

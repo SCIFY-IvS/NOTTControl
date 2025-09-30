@@ -1560,7 +1560,7 @@ External Setpoint Generation:
 			</SubItem>
 		</DataType>
 		<DataType>
-			<Name GUID="{18071995-0000-0000-0000-002000000004}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..3] OF BIT</Name>
+			<Name GUID="{18071995-0000-0000-0000-002000000004}" IecBaseType="true" BitType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..3] OF BIT</Name>
 			<BitSize>4</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
 			<ArrayInfo>
@@ -1569,7 +1569,7 @@ External Setpoint Generation:
 			</ArrayInfo>
 		</DataType>
 		<DataType>
-			<Name GUID="{18071995-0000-0000-0000-002000000007}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..6] OF BIT</Name>
+			<Name GUID="{18071995-0000-0000-0000-002000000007}" IecBaseType="true" BitType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..6] OF BIT</Name>
 			<BitSize>7</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
 			<ArrayInfo>
@@ -1680,8 +1680,8 @@ External Setpoint Generation:
 				<Target>
 					<ManualSelect>{57BD9670-089D-434A-85CF-90A857EE0EFF}</ManualSelect>
 					<ManualSelect>{54BC404D-F267-4F81-A7FD-9796672C1C24}</ManualSelect>
-					<ManualSelect>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</ManualSelect>
 					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
+					<ManualSelect>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</ManualSelect>
 					<ManualSelect>{3EBB9639-5FF3-42B6-8847-35C70DC013C8}</ManualSelect>
 					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSystemId="{6FBEE245-64E9-1FCF-9840-D733C640E1BF}" DongleSerialNumber="000bsfll"/>
 				</Target>
@@ -3218,7 +3218,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 				<Axis Id="6" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt">
 					<Name>NTPA_2</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.6" Deceleration="0.6" Jerk="0.8"/>
+						<Dynamic AccelerationMaximum="1.8" DecelerationMaximum="1.8" Acceleration="0.2525" Deceleration="0.2525" Jerk="15.9390625"/>
 						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.05" FastManual="0.1" Fast="0.4" Maximum="0.4"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.05" PulseDistanceNeg="0.05"/>
 					</AxisPara>
@@ -3354,9 +3354,12 @@ Time at the client when the reply arrived from the server;]]></Comment>
 							</Var>
 						</Vars>
 					</Drive>
-					<Controller Name="Ctrl" CtrType="1">
+					<Controller Name="Ctrl" CtrType="13">
 						<CtrPara PriorControlFactor="1">
-							<Observer BandWidth="20"/>
+							<PID PosKp="50" PosTn="5" PosTd="0.5" DeadBandPosition="1e-05"/>
+							<Observer ObserverMode="1" MotorTorqueConstant="2" BandWidth="20"/>
+							<ParameterChanged>592</ParameterChanged>
+							<ParameterChanged>593</ParameterChanged>
 						</CtrPara>
 					</Controller>
 					<Vars VarGrpType="1" InsertType="1">
@@ -3377,7 +3380,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 				<Axis Id="10" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt" GroupId="17">
 					<Name>NTPB_2</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.6" Deceleration="0.6" Jerk="0.8"/>
+						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.34447" Deceleration="0.34447" Jerk="1.3484"/>
 						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.05" FastManual="0.1" Fast="0.4" Maximum="0.4"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.05" PulseDistanceNeg="0.05"/>
 					</AxisPara>
@@ -3515,6 +3518,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="20"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -3536,7 +3540,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 				<Axis Id="14" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt" GroupId="10">
 					<Name>NTTA_2</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.6" Deceleration="0.6" Jerk="0.8"/>
+						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.34447" Deceleration="0.34447" Jerk="1.3484"/>
 						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.05" FastManual="0.1" Fast="0.4" Maximum="0.4"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.05" PulseDistanceNeg="0.05"/>
 					</AxisPara>
@@ -3674,6 +3678,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="20"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -3695,7 +3700,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 				<Axis Id="18" CreateSymbols="true" AxisType="1" AxisFolder="TipTilt" GroupId="14">
 					<Name>NTTB_2</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.6" Deceleration="0.6" Jerk="0.8"/>
+						<Dynamic AccelerationMaximum="0.6" DecelerationMaximum="0.6" Acceleration="0.2525" Deceleration="0.2525" Jerk="15.9391"/>
 						<Velo RefSearch="0.05" RefSync="0.05" SlowManual="0.05" FastManual="0.1" Fast="0.4" Maximum="0.4"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.05" PulseDistanceNeg="0.05"/>
 					</AxisPara>
@@ -3833,6 +3838,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="20"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -5747,7 +5753,7 @@ Time at the client when the reply arrived from the server;]]></Comment>
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{985F9A62-FC88-3971-FC67-DAC8CCE2482D}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{F9A3085B-062D-B4B3-9D6A-C4B2C937701C}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -6862,6 +6868,38 @@ Time at the client when the reply arrived from the server;]]></Comment>
 							<Comment><![CDATA[ Brake control signal - to be linked to q_bBrake_Ctrl ]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_1.i_nStatus</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_1.i_nValue</Name>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_2.i_nStatus</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_2.i_nValue</Name>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_3.i_nStatus</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_3.i_nValue</Name>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_4.i_nStatus</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.not_cryo_ctrl.temp_4.i_nValue</Name>
+							<Type>INT</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
@@ -7643,6 +7681,9 @@ Time at the client when the reply arrived from the server;]]></Comment>
 							<DcData>3000000000000000000000000000000000000000000000000000000000000000</DcData>
 							<DcMode>44434c415443480000000000000000004443204c61746368204163746976650000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000</DcMode>
 							<DcMode>4672656552756e0000000000000000004672656552756e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
+							<MBoxUserCmdData>020003000c0000000a000000030000000000000000000000000000000000000020e0f802040000003764a8c04950204164647265737300</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000c0000000a000000030000000000000000000000000000000000000020e0f8030400000000ffffff5375626e65746d61736b00</MBoxUserCmdData>
+							<MBoxUserCmdData>020003000a0000001700000003000000000000000000000000000000000000002080f801020000002000507265636973696f6e2054696d652050726f746f636f6c00</MBoxUserCmdData>
 							<Pdo Name="  External Sync" Index="#x1a00" Flags="#x0010" SyncMan="3">
 								<ExcludePdo>#x1a01</ExcludePdo>
 								<ExcludePdo>#x1a02</ExcludePdo>
@@ -16357,6 +16398,16 @@ Time at the client when the reply arrived from the server;]]></Comment>
 				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.NottTime.i_extDevNotConnected" VarB="  External Sync^External device not connected"/>
 				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.NottTime.i_inTime" VarB="  External Sync^Internal time stamp"/>
 				<Link VarA="CameraTrigs Inputs^INFRATEC_TRIGERS.NottTime.i_syncMode" VarB="  External Sync^Sync Mode"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 21 (EL3218)">
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_1.i_nStatus" VarB="RTD Inputs Channel 1^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_1.i_nValue" VarB="RTD Inputs Channel 1^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_2.i_nStatus" VarB="RTD Inputs Channel 2^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_2.i_nValue" VarB="RTD Inputs Channel 2^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_3.i_nStatus" VarB="RTD Inputs Channel 3^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_3.i_nValue" VarB="RTD Inputs Channel 3^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_4.i_nStatus" VarB="RTD Inputs Channel 4^Status"/>
+				<Link VarA="PlcTask Inputs^MAIN.not_cryo_ctrl.temp_4.i_nValue" VarB="RTD Inputs Channel 4^Value"/>
 			</OwnerB>
 			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL1">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
