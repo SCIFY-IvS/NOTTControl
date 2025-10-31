@@ -1,12 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
   <POU Name="MAIN" Id="{d1f43969-a3b8-40c6-8624-60de23968539}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
 	{attribute 'OPC.UA.DA' := '1'}
 	nott_ics:		FB_NOTT_ICS;
 	{attribute 'OPC.UA.DA' := '1'}
-	not_cryo_ctrl:	FB_NOTT_CRYO_CTRL;	
+	not_cryo_ctrl:	FB_NOTT_CRYO_CTRL;
+	{attribute 'OPC.UA.DA' := '1'}
+	fbServices : FB_SERVICES;	
 	
 END_VAR
 ]]></Declaration>

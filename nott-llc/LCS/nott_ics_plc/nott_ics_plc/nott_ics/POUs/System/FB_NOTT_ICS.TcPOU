@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
   <POU Name="FB_NOTT_ICS" Id="{35e04548-ee92-4622-970e-d83afc0b7c18}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_ICS
 VAR_INPUT
@@ -7,42 +7,49 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
-	
-	Delay_Lines:		FB_NOTT_DELAY_LINES;
-	
-	Shutters:			FB_NOTT_SHUTTERS;
-	
-	TipTilt:			FB_NOTT_TipTilt;
-	
 
+	Events:								FB_NOTT_EVENTS;
+	Cryo_Interlocks:					FB_NOTT_CRYO_INTERLOCKS;
+	
+	Shutters:							FB_NOTT_SHUTTERS;
+	TipTilt:							FB_NOTT_TIP_TILT;	
+	Delay_Lines:						FB_NOTT_DELAY_LINES;
+	CO2TransStages:						FB_NOTT_CO2_TRANS_STAGES;
+	ZnSeActuators:						FB_NOTT_ZNSE_ACTUATORS;
+	Birefringence:						FB_NOTT_BIREFRINGENCE;
+	Calibration_Unit_Beam_Splitter:		FB_NOTT_CALIBRATION_BEAM_SPLITTER;
+	CO2_Pressure_Control:				FB_NOTT_CO2_PRESSURE_CONTROL;
 	
 	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
-
-Delay_Lines();
-Delay_Lines.M_SET_DL_ACTUAL_POS();
+Events();
+Cryo_Interlocks();
 
 Shutters();
-
 TipTilt();
-
-
-]]></ST>
+Delay_Lines();
+Delay_Lines.M_SET_DL_ACTUAL_POS();
+CO2TransStages();
+ZnSeActuators();
+Birefringence();
+Calibration_Unit_Beam_Splitter();
+CO2_Pressure_Control();]]></ST>
     </Implementation>
     <LineIds Name="FB_NOTT_ICS">
-      <LineId Id="18" Count="1" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="64" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="18" Count="0" />
       <LineId Id="32" Count="0" />
       <LineId Id="31" Count="0" />
-      <LineId Id="81" Count="0" />
       <LineId Id="80" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="145" Count="2" />
       <LineId Id="87" Count="0" />
-      <LineId Id="63" Count="0" />
       <LineId Id="62" Count="0" />
+      <LineId Id="149" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

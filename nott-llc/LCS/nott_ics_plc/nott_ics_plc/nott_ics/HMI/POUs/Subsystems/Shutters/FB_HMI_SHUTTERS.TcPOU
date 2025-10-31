@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_SHUTTERS" Id="{7d407b36-31f6-418f-b73c-0f3409371df6}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_SHUTTERS EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	fbInstance		: FB_NOTT_SHUTTERS;
+
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+fbHealthStatus( 
+				bIsEnabled:= TRUE, 
+				bIsGood := NOT fbInstance.stat.bError,
+				bHasWarning := fbInstance.stat.bWarning
+				);
+				
+fbBusyStatus(
+				bIsBusy := fbInstance.stat.bBusy,
+				bIsEnabled := TRUE);				
+M_UpdateStatusColor();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_SHUTTERS">
+      <LineId Id="23" Count="9" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

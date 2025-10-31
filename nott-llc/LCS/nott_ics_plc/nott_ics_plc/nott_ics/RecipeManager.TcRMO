@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <RecipeManager Name="RecipeManager" Id="{c8cd6495-7c57-47e0-bda2-5c3df47826df}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="RecipeManObject">
+          <o n="LMGuids" t="LanguageModelGuidHelper">
+            <d n="NamesAndGuids" t="Hashtable" ckt="String" cvt="Guid">
+              <v>GVL_RECIPEMANAGEMENT_3300</v>
+              <v>dcf89edb-38af-4916-a827-b54cd96020be</v>
+              <v>RECIPEFACTORY</v>
+              <v>29ec3c69-e004-47a7-91cf-99cdf53e8beb</v>
+              <v>RECIPEFACTORYCREATERECIPE</v>
+              <v>9634ecac-0d49-4596-8c5a-da9adae83091</v>
+              <v>RECIPEFACTORYFB_INIT</v>
+              <v>ceb12bbb-fe2c-4a06-b48d-1d7b9f25babe</v>
+              <v>RECIPEFACTORYFREERECIPE</v>
+              <v>158edd7b-413d-46ea-9503-1162f3c622eb</v>
+              <v>RECIPEMANAGEMENTINIT</v>
+              <v>d17a8d5a-0303-4b9e-b03d-63649b0c59df</v>
+              <v>RECIPEMANAGEMENTINITFB_INIT</v>
+              <v>f51811c2-c4ba-4168-b662-23841cf4c76c</v>
+              <v>RECIPEMANAGEMENTINITFB_REINIT</v>
+              <v>dc6030a8-a5ef-4541-a26e-c7e5c2acf511</v>
+              <v>RECIPEMANAGEMENTINITINITIALIZE</v>
+              <v>e8df3836-fdc3-47db-aa23-e3e43938d989</v>
+            </d>
+          </o>
+          <n n="StorageSettings" />
+          <v n="RecipesInPlc">true</v>
+          <v n="RecipesInPlcAssigned">false</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="Boolean">System.Boolean</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="Hashtable">System.Collections.Hashtable</Type>
+        <Type n="LanguageModelGuidHelper">{3bce4913-f2c1-4b54-84e8-6d7ec1809176}</Type>
+        <Type n="RecipeManObject">{09ecc42e-586d-4a08-932f-5bdcac20bb55}</Type>
+        <Type n="String">System.String</Type>
+      </TypeList>
+    </XmlArchive>
+  </RecipeManager>
+</TcPlcObject>

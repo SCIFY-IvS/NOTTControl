@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="E_HMI_COLORS" Id="{fc7e3e0f-93cf-4167-8c90-becea194c3ee}">
+    <Declaration><![CDATA[TYPE E_HMI_COLORS :
+(
+	GREEN := 16#FF00FF00,
+	RED := 16#FFFF0000,
+	ORANGE := 16#FFFF802D,
+	GRAY := 16#FFD3D3D3,
+	DARK_GRAY := 16#FF949494,
+	BLACK := 16#FF000000,
+	WHITE := 16#FFFFFFFF,
+	BLUE := 16#FF0000FF
+) DWORD;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

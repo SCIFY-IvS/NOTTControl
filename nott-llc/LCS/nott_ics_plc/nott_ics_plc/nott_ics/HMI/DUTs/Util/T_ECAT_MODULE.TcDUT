@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="T_ECAT_MODULE" Id="{1dd7ff71-6480-4164-915d-2467884b9596}">
+    <Declaration><![CDATA[TYPE T_ECAT_MODULE :
+STRUCT
+    sName : STRING(32);
+    sType : STRING(16);
+    nState : UINT;
+    sState : STRING(16);
+    bError : BOOL;
+    bDisabled : BOOL;
+    bNotPresent : BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <Task Name="VISU_TASK" Id="{944cb3d0-cedb-42dd-a898-9ba3e8c2113b}">
+    <!--CycleTime in micro seconds.-->
+    <CycleTime>200000</CycleTime>
+    <Priority>30</Priority>
+    <PouCall>
+      <Name>PRG_HMI</Name>
+    </PouCall>
+    <TaskFBGuid>{d2a9285e-5e06-4b53-8422-2d4965d737c3}</TaskFBGuid>
+    <Fb_init>{29d0ab44-5248-414b-86f2-4f2ed8ff9794}</Fb_init>
+    <Fb_exit>{136c70c7-6410-4df2-a291-0af46fa939c8}</Fb_exit>
+    <CycleUpdate>{6cf24007-4849-4b01-aa1c-f4c6aeb277cb}</CycleUpdate>
+    <PostCycleUpdate>{3b99c354-f346-4167-9d60-4f2201199fa9}</PostCycleUpdate>
+  </Task>
+</TcPlcObject>

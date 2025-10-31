@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
   <POU Name="FB_NOTT_SHUTTERS" Id="{5e7ffd6c-ffbc-4dd1-b7ad-e668e0db56a4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_SHUTTERS
 VAR_INPUT
@@ -7,75 +7,51 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
-	NSH1:		FB_SHUTTER;
-	NSH2:		FB_SHUTTER;
-	NSH3:		FB_SHUTTER;
-	NSH4:		FB_SHUTTER;
+	NSH1:		FB_NOTT_STEPPER_SHUTTER;
+	NSH2:		FB_NOTT_STEPPER_SHUTTER;
+	NSH3:		FB_NOTT_STEPPER_SHUTTER;
+	NSH4:		FB_NOTT_STEPPER_SHUTTER;
 	
 	
-	ptrShutters:	ARRAY [1..4] OF POINTER TO FB_SHUTTER;
+	ptrShutters:	ARRAY [1..4] OF POINTER TO FB_NOTT_STEPPER_SHUTTER;
 	// GUI stuff
 	guiShutterIndex:	UINT := 1;	// Index for Shutter Engineering GUI
+	
+	stat:		T_NOTT_STAT;
 	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
+
 NSH1(
-	in_sName:= 'NSH1', 
-	in_bActiveLowClosed:= , 
-	in_bActiveLowFault:= , 
-	in_bActiveLowOpen:= TRUE, 
-	in_bActiveLowSwitch:= , 
-	in_bIgnoreClosed:= , 
-	in_bIgnoreFault:= , 
-	in_bIgnoreOpen:= , 
-	in_bInitialState:= , 
-	in_nTimeout:= , 
-	in_bLogExtTime:= , 
-	in_bLog:= );
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 21000);
 	
 NSH2(
-	in_sName:= 'NSH2', 
-	in_bActiveLowClosed:= , 
-	in_bActiveLowFault:= , 
-	in_bActiveLowOpen:= TRUE, 
-	in_bActiveLowSwitch:= , 
-	in_bIgnoreClosed:= , 
-	in_bIgnoreFault:= , 
-	in_bIgnoreOpen:= , 
-	in_bInitialState:= , 
-	in_nTimeout:= , 
-	in_bLogExtTime:= , 
-	in_bLog:= );
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 22000);
 	
 NSH3(
-	in_sName:= 'NSH3', 
-	in_bActiveLowClosed:= , 
-	in_bActiveLowFault:= , 
-	in_bActiveLowOpen:= TRUE, 
-	in_bActiveLowSwitch:= , 
-	in_bIgnoreClosed:= , 
-	in_bIgnoreFault:= , 
-	in_bIgnoreOpen:= , 
-	in_bInitialState:= , 
-	in_nTimeout:= , 
-	in_bLogExtTime:= , 
-	in_bLog:= );
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 23000);
 	
 NSH4(
-	in_sName:= 'NSH4', 
-	in_bActiveLowClosed:= , 
-	in_bActiveLowFault:= , 
-	in_bActiveLowOpen:= TRUE, 
-	in_bActiveLowSwitch:= , 
-	in_bIgnoreClosed:= , 
-	in_bIgnoreFault:= , 
-	in_bIgnoreOpen:= , 
-	in_bInitialState:= , 
-	in_nTimeout:= , 
-	in_bLogExtTime:= , 
-	in_bLog:= );
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 24000);
+
 	
 M_Configure();]]></ST>
     </Implementation>
@@ -93,16 +69,9 @@ ptrShutters[4] := ADR(NSH4);]]></ST>
       </Implementation>
     </Method>
     <LineIds Name="FB_NOTT_SHUTTERS">
-      <LineId Id="18" Count="12" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="34" Count="0" />
-      <LineId Id="36" Count="11" />
-      <LineId Id="35" Count="0" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="50" Count="11" />
-      <LineId Id="49" Count="0" />
-      <LineId Id="62" Count="0" />
-      <LineId Id="64" Count="11" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="104" Count="25" />
+      <LineId Id="103" Count="0" />
       <LineId Id="63" Count="0" />
       <LineId Id="82" Count="1" />
     </LineIds>

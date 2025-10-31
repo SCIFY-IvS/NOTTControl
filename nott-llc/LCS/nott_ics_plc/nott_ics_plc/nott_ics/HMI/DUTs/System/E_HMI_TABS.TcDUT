@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="E_HMI_TABS" Id="{a384023f-7dba-49bb-80ec-c93c8ae389b2}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_HMI_TABS :
+(
+	HOME,
+    SERVICES,
+	EVENTS,
+	CRYO_INTERLOCKS,
+	
+	SHUTTERS,
+	TIP_TILT,
+	DELAY_LINES,
+	CO2_TRANSLATION_STAGES,
+	ZNSE_ACTUATORS,
+	BIREFRINGENCE_ACTUATORS,
+	CALIBRATION_UNIT_BEAM_SPLITER,
+	CO2_PRESSURE_CONTROL
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

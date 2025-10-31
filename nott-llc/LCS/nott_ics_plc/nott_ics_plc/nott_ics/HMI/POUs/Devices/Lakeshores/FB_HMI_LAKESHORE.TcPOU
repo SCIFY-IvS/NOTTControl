@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_LAKESHORE" Id="{e25329ba-1e78-40af-a51d-0181e9790c3a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_LAKESHORE EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+    bConnected : BOOL;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+    fbInstance : FB_METIS_LAKESHORE_336_TCP;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbHealthStatus(
+    bIsEnabled := bConnected,
+    bIsGood := fbInstance.stat.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING,
+    bHasWarning := fbInstance.stat.bLocal);
+                     
+fbBusyStatus(
+    bIsEnabled := bConnected,
+    bIsBusy := fbInstance.stat.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+
+M_UpdateStatusColor();
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_LAKESHORE">
+      <LineId Id="152" Count="2" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="158" Count="5" />
+      <LineId Id="92" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

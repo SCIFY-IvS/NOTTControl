@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_SERVICES_TIME" Id="{e23eebbf-6ab2-46e1-8d9a-93fd51686b76}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_SERVICES_TIME EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+    fbInstance : FB_TIME;
+END_VAR
+VAR
+    // because GUI_TEMPLATE_TIME is a large height,
+    // and because scrolling doesn't seem to work (bug in TC HMI?),
+    // we display the GUI_TEMPLATE_TIME twice, with an offset in between 
+    nAbsoluteMovementY : INT := -495;
+    
+    sUtc : STRING;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// update the health & busy states
+fbHealthStatus(
+    bIsGood     := fbInstance.stat.signal.qos = E_TIME_SIGNAL_QOS.VALID,
+    bIsEnabled  := fbInstance.stat.signal.status = E_TIME_SIGNAL_STATUS.CONNECTED);
+fbBusyStatus(bIsBusy := FALSE); // never busy
+
+sUtc := LEFT(fbInstance.stat.sUtcTime, 19); 
+
+M_UpdateStatusColor();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_SERVICES_TIME">
+      <LineId Id="19" Count="4" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

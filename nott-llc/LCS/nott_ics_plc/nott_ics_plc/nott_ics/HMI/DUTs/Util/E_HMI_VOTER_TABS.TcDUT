@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="E_HMI_VOTER_TABS" Id="{b5f6f6b7-bf66-4a5f-8d81-4a25ef347766}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_HMI_VOTER_TABS :
+(
+	VOTER_1,
+    VOTER_2,
+    VOTER_3,
+    VOTER_4,
+    VOTER_5,
+    VOTER_6,
+    VOTER_7,
+    VOTER_8,
+    VOTER_9,
+    VOTER_10
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

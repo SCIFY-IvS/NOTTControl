@@ -2,9 +2,9 @@
 <TcLicenseInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2011/11/TcLicenseInfo">
 	<LicenseInfo>
 		<SystemId>{B5D3B63F-AEC5-8735-88B7-6E3657F757FF}</SystemId>
-		<IssueTime>2025-07-17T12:29:00</IssueTime>
-		<ExpireTime>2025-07-25T00:00:00</ExpireTime>
-		<LicenseKey>f708a13e976c6e718c1cf386898d234ab96900e045326f23ea6cd670843f9758102a223b09651871406df1e31d0e9cf10298ec5c64f201a2a82cb5e947b0bea4a5be1a7546715875a6b4e34e992b9d669cf9386502baa5aceec492f6db9ed8f5aa9d111c72244e4142a53d8cf9b565879541f8d07d74f9f38e42ca9b808b29cdcb1071e46ed1ebe3cab3096a3fd0262fc6a90f63879d565603e7fc58bdb62c5e28f74d5a6c36d4e004c31f9dc293700212b18e9f40e0c9748365e0a6b8424dd7b907224a9537b9c0230d54348cfe9c91b9788ad5be5c2a65ed8c25d612d482679b89cdba6d665fbff2794addd1675f8aa451fed2d8bc31f43180e786bf76e528</LicenseKey>
+		<IssueTime>2025-10-23T09:43:00</IssueTime>
+		<ExpireTime>2025-10-31T00:00:00</ExpireTime>
+		<LicenseKey>ca0401566f0519df52a7543769edc07f9e5f371c59ddf05becec6ab23bf77e4329e9d08fc20e16adae4b7ee5d9fc1527d84df1fefa7d06a863ee63d712345f9c8cc7f6d540ea2a6d860e5f34b4810b70497f9f177bd583d8c89699e071f3754af8ff704ae2d4220cc8a712979b01558c4ec8fe909ff6738fa8da5f8db7973bcff18ae6422e92feb180a0059db295b33a5831a5285f16a75e732a734a1d3100470820fa6ff4e39ed8adf2a9c59ef2800b1f28ec9fb4377e99d08558e9eec218edd3af8bd3273a7259449066e5444ffd705404ecb719e1367ceb7447f2e07223f735816205ff2b5524452bafa6b546cb7cf391027a970c734cdc9f02adaa8acf10</LicenseKey>
 		<License>
 			<LicenseId>{4C256767-E6E6-4AF5-BD68-9F7ABAD0C200}</LicenseId>
 			<Name>TC3 ADS</Name>
@@ -40,6 +40,11 @@
 			<OrderNo>TF6225</OrderNo>
 		</License>
 		<License>
+			<LicenseId>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</LicenseId>
+			<Name>TC3 Serial-Communication</Name>
+			<OrderNo>TF6340</OrderNo>
+		</License>
+		<License>
 			<LicenseId>{CC0BCBD5-3EA7-D7D4-4C71-A8B125F0DB72}</LicenseId>
 			<Name>TC3 OPC-UA Analytics Read</Name>
 		</License>
@@ -51,11 +56,6 @@
 			<LicenseId>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</LicenseId>
 			<Name>TC3 OPC-UA</Name>
 			<OrderNo>TF6100</OrderNo>
-		</License>
-		<License>
-			<LicenseId>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</LicenseId>
-			<Name>TC3 Serial-Communication</Name>
-			<OrderNo>TF6340</OrderNo>
 		</License>
 		<License>
 			<LicenseId>{3EBB9639-5FF3-42B6-8847-35C70DC013C8}</LicenseId>

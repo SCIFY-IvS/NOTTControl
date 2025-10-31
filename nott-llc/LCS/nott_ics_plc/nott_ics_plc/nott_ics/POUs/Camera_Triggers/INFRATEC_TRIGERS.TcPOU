@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
   <POU Name="INFRATEC_TRIGERS" Id="{554c6c4b-0a56-4090-86ae-3490f5c27c88}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM INFRATEC_TRIGERS
 VAR

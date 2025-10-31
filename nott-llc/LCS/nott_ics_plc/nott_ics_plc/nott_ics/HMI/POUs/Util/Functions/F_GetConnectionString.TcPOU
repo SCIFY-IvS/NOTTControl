@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="F_GetConnectionString" Id="{c38a4031-5dde-420b-9d0c-d82ada4d6489}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_GetConnectionString : STRING
+VAR_INPUT
+    bConnected : BOOL;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bConnected THEN
+    F_GetConnectionString := 'Connected';
+ELSE
+    F_GetConnectionString := 'Disconnected';
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="F_GetConnectionString">
+      <LineId Id="8" Count="3" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

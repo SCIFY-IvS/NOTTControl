@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_CO2_TRANS_STAGES" Id="{521883f0-b3fb-43a0-94bc-e67e46bebd44}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_CO2_TRANS_STAGES EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	fbInstance		: FB_NOTT_CO2_TRANS_STAGES;
+
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+fbHealthStatus( 
+				bIsEnabled:= TRUE, 
+				bIsGood := NOT fbInstance.stat.bError,
+				bHasWarning := fbInstance.stat.bWarning 
+				);
+				
+fbBusyStatus(
+				bIsBusy := fbInstance.stat.bBusy,
+				bIsEnabled := TRUE);
+				
+M_UpdateStatusColor();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_CO2_TRANS_STAGES">
+      <LineId Id="23" Count="10" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

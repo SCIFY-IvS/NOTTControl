@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_TIP_TILT" Id="{52c9111e-5e25-41b8-87a9-02ec456eaa97}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_TIP_TILT EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	fbInstance		: FB_NOTT_TIP_TILT;
+END_VAR
+VAR
+    // active tab of the main frame
+    eActiveTab : E_HMI_TIP_TILT_TABS := E_HMI_TIP_TILT_TABS.TIP_A;
+    sActiveName : STRING;
+    
+    // components
+    fbTIPA: 		FB_HMI_TIP_A;
+	fbTIPB:			FB_HMI_TIP_B;
+	fbTILTA:		FB_HMI_TILT_A;
+    fbTILTB: 		FB_HMI_TILT_B;
+	
+
+    
+    // buttons
+    fbTipAButton		: FB_HMI_BUTTON(sName := 'Tip A'         , sIconName := '', nThisTab := E_HMI_TIP_TILT_TABS.TIP_A);
+    fbTipBButton        : FB_HMI_BUTTON(sName := 'Tip B'         , sIconName := '', nThisTab := E_HMI_TIP_TILT_TABS.TIP_B);
+    fbTiltAButton       : FB_HMI_BUTTON(sName := 'Tilt A'        , sIconName := '', nThisTab := E_HMI_TIP_TILT_TABS.TILT_A);
+    fbTiltBButton  		: FB_HMI_BUTTON(sName := 'Tilt B'        , sIconName := '', nThisTab := E_HMI_TIP_TILT_TABS.TILT_B);
+    
+    // connection status
+    sConnected           : STRING;
+    eConnectedColor      : E_HMI_COLORS;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+// update the components
+fbTIPA(fbInstance := fbInstance);
+fbTIPB(fbInstance := fbInstance );
+fbTILTA(fbInstance := fbInstance );
+fbTILTB(fbInstance := fbInstance);
+
+// update the buttons
+// sca
+fbTipAButton(
+    stColor     := fbTIPA.fbStatusColor,
+    nActiveTab  := eActiveTab,
+    sActiveName := sActiveName);
+fbTipBButton(
+    stColor     := fbTIPB.fbStatusColor,
+    nActiveTab  := eActiveTab,
+    sActiveName := sActiveName);
+fbTiltAButton(
+    stColor     := fbTILTA.fbStatusColor,
+    nActiveTab  := eActiveTab,
+    sActiveName := sActiveName);
+fbTiltBButton(
+    stColor     := fbTILTB.fbStatusColor,
+    nActiveTab  := eActiveTab,
+    sActiveName := sActiveName);
+
+
+fbHealthStatus( 
+				bIsEnabled:= TRUE, 
+				bIsGood := NOT fbInstance.stat.bError,
+				bHasWarning := fbInstance.stat.bWarning
+				);
+				
+fbBusyStatus(
+				bIsBusy := fbInstance.stat.bBusy,
+				bIsEnabled := TRUE);
+							
+M_UpdateStatusColor();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_TIP_TILT">
+      <LineId Id="83" Count="6" />
+      <LineId Id="93" Count="18" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="23" Count="9" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

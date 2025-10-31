@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_NOTT_CO2_TRANS_STAGES" Id="{55170b58-63a0-43a4-953c-e7d76ea2abd1}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CO2_TRANS_STAGES
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	NCP1:		FB_NOTT_MOTOR;
+	NCP2:		FB_NOTT_MOTOR;
+	NCP3:		FB_NOTT_MOTOR;
+	NCP4:		FB_NOTT_MOTOR;
+	
+	
+	ptrNCPs:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
+	// GUI stuff
+	guiNCPsIndex:	UINT := 1;	// Index for Shutter Engineering GUI
+	
+	stat:		T_NOTT_STAT;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+NCP1(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL1', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 25000);
+	
+NCP2(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL2', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 26000);
+	
+NCP3(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL3', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 27000);
+	
+NCP4(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NDL4', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 28000);
+
+	
+M_Configure();]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{64a7d10e-af79-4d51-8967-cb714db219d2}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ptrNCPs[1] := ADR(NCP1);
+ptrNCPs[2] := ADR(NCP2);
+ptrNCPs[3] := ADR(NCP3);
+ptrNCPs[4] := ADR(NCP4);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_NOTT_CO2_TRANS_STAGES">
+      <LineId Id="101" Count="1" />
+      <LineId Id="104" Count="25" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="82" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_CO2_TRANS_STAGES.M_Configure">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="2" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

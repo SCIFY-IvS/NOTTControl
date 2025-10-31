@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_COMPONENT" Id="{7c0d017e-864e-4210-8c94-e5ade760e15b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+    fbHealthStatus : FB_HMI_HEALTH_STATUS;
+    fbBusyStatus : FB_HMI_BUSY_STATUS;
+    fbStatusColor : T_HMI_COLORS;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_UpdateStatusColor" Id="{d83e0729-6281-4c94-b757-bf3e108374e5}">
+      <Declaration><![CDATA[METHOD PROTECTED M_UpdateStatusColor
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// health and busy states must be updated by the subtype before calling this method!
+fbStatusColor := F_HMI_HEALTH_BUSY_TO_COLOR(fbHealthStatus, fbBusyStatus);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_HMI_COMPONENT">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_HMI_COMPONENT.M_UpdateStatusColor">
+      <LineId Id="8" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

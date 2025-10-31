@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
   <POU Name="FB_NOTT_DELAY_LINES" Id="{775cfb6f-4389-4959-8f2c-a4b0ad5c5054}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_DELAY_LINES
 VAR_INPUT
@@ -7,15 +7,16 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
-	NDL1:		FB_MOTOR;
-	NDL2:		FB_MOTOR;
-	NDL3:		FB_MOTOR;
-	NDL4:		FB_MOTOR;
+	NDL1:		FB_NOTT_MOTOR;
+	NDL2:		FB_NOTT_MOTOR;
+	NDL3:		FB_NOTT_MOTOR;
+	NDL4:		FB_NOTT_MOTOR;
 	
-	ptrDelayLines:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	ptrDelayLines:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
 	// GUI stuff
 	guiShutterIndex:	UINT := 1;	// Index for Shutter Engineering GUI
-		
+	
+	stat:		T_NOTT_STAT;
 END_VAR
 ]]></Declaration>
     <Implementation>

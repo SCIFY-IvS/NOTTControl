@@ -1,49 +1,52 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
-  <POU Name="FB_NOTT_TipTilt" Id="{f38a4431-261f-431d-a596-42067753e201}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_TipTilt
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_NOTT_TIP_TILT" Id="{f38a4431-261f-431d-a596-42067753e201}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_TIP_TILT
 VAR
+	
+	stat:		T_NOTT_STAT;
+	
 //	Tip Actuators A 
 
-	NTPA1:			FB_MOTOR;
-	NTPA2:			FB_MOTOR;
-	NTPA3:			FB_MOTOR;
-	NTPA4:			FB_MOTOR;
+	NTPA1:			FB_NOTT_MOTOR;
+	NTPA2:			FB_NOTT_MOTOR;
+	NTPA3:			FB_NOTT_MOTOR;
+	NTPA4:			FB_NOTT_MOTOR;
 	
-	ptrTipActuatorsA:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	ptrTipActuatorsA:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
 	// GUI stuff
 	guiTipActuatorsAIndex:	UINT := 1;	// Index for Tip Actuators A Engineering GUI
 
 //	Tilt Actuators A 
 	
-	NTTA1:			FB_MOTOR;
-	NTTA2:			FB_MOTOR;
-	NTTA3:			FB_MOTOR;
-	NTTA4:			FB_MOTOR;
+	NTTA1:			FB_NOTT_MOTOR;
+	NTTA2:			FB_NOTT_MOTOR;
+	NTTA3:			FB_NOTT_MOTOR;
+	NTTA4:			FB_NOTT_MOTOR;
 	
-	ptrTiltActuatorsA:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	ptrTiltActuatorsA:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
 	// GUI stuff
 	guiTiltActuatorsAIndex:	UINT := 1;	// Index for Tilt Actuators A Engineering GUI	
 	
 //	Tip Actuators B 
 
-	NTPB1:			FB_MOTOR;
-	NTPB2:			FB_MOTOR;
-	NTPB3:			FB_MOTOR;
-	NTPB4:			FB_MOTOR;
+	NTPB1:			FB_NOTT_MOTOR;
+	NTPB2:			FB_NOTT_MOTOR;
+	NTPB3:			FB_NOTT_MOTOR;
+	NTPB4:			FB_NOTT_MOTOR;
 	
-	ptrTipActuatorsB:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	ptrTipActuatorsB:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
 	// GUI stuff
 	guiTipActuatorsBIndex:	UINT := 1;	// Index for Tip Actuators B Engineering GUI	
 
 //	Tilt Actuators B 
 	
-	NTTB1:			FB_MOTOR;
-	NTTB2:			FB_MOTOR;
-	NTTB3:			FB_MOTOR;
-	NTTB4:			FB_MOTOR;
+	NTTB1:			FB_NOTT_MOTOR;
+	NTTB2:			FB_NOTT_MOTOR;
+	NTTB3:			FB_NOTT_MOTOR;
+	NTTB4:			FB_NOTT_MOTOR;
 	
-	ptrTiltActuatorsB:	ARRAY [1..4] OF POINTER TO FB_MOTOR;
+	ptrTiltActuatorsB:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
 	// GUI stuff
 	guiTiltActuatorsBIndex:	UINT := 1;	// Index for Tilt Actuators A Engineering GUI
 
@@ -294,7 +297,7 @@ ptrTiltActuatorsB[3] := ADR(NTTB3);
 ptrTiltActuatorsB[4] := ADR(NTTB4);]]></ST>
       </Implementation>
     </Method>
-    <LineIds Name="FB_NOTT_TipTilt">
+    <LineIds Name="FB_NOTT_TIP_TILT">
       <LineId Id="215" Count="0" />
       <LineId Id="214" Count="0" />
       <LineId Id="91" Count="1" />
@@ -366,7 +369,7 @@ ptrTiltActuatorsB[4] := ADR(NTTB4);]]></ST>
       <LineId Id="216" Count="0" />
       <LineId Id="89" Count="1" />
     </LineIds>
-    <LineIds Name="FB_NOTT_TipTilt.M_Configure">
+    <LineIds Name="FB_NOTT_TIP_TILT.M_Configure">
       <LineId Id="14" Count="1" />
       <LineId Id="13" Count="0" />
       <LineId Id="17" Count="3" />

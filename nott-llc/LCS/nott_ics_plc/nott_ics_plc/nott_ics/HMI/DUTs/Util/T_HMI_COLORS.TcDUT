@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="T_HMI_COLORS" Id="{86c19be6-6a52-4268-8f68-b0cc72c06164}">
+    <Declaration><![CDATA[TYPE T_HMI_COLORS :
+STRUCT
+    fg : E_HMI_COLORS; // foreground
+    bg : E_HMI_COLORS; // background
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
