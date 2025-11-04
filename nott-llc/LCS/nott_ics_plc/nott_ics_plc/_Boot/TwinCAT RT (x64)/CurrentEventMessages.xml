@@ -1470,4 +1470,32 @@
 			<Message LcId="1033">MOVE VEL: Vel {0} Started</Message>
 		</Event>
 	</Source>
+	<Source>
+		<GUID>{81F3413D-EECC-4399-B73C-92ED96669442}</GUID>
+		<Name LcId="1033">CryoValveEventClass</Name>
+		<Event>
+			<Id>1</Id>
+			<Message LcId="1033">HW Error</Message>
+		</Event>
+		<Event>
+			<Id>2</Id>
+			<Message LcId="1033">Valve failed to open</Message>
+		</Event>
+		<Event>
+			<Id>3</Id>
+			<Message LcId="1033">Valve failed to close</Message>
+		</Event>
+	</Source>
+	<Source>
+		<GUID>{8E409A84-C3CF-44E5-8B7A-9FA560253E5D}</GUID>
+		<Name LcId="1033">CryoGenLogEventClass</Name>
+		<Event>
+			<Id>1</Id>
+			<Message LcId="1033">{0}</Message>
+		</Event>
+		<Event>
+			<Id>2</Id>
+			<Message LcId="1033">{0}</Message>
+		</Event>
+	</Source>
 </TcEventSources>

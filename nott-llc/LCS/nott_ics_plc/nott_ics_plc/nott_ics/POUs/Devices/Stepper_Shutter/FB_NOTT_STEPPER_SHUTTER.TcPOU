@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
-  <POU Name="FB_NOTT_STEPPER_SHUTTER" Id="{31322c72-c385-4813-8f38-f78cce6a2309}" SpecialFunc="None">
+  <POU Name="FB_NOTT_STEPPER_SHUTTER" Id="{2b5f4452-810d-4eb6-9497-660721820ccc}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_STEPPER_SHUTTER EXTENDS FB_MOTOR
 VAR_INPUT
 END_VAR
@@ -11,13 +11,10 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
-
-
-
-super^();]]></ST>
+SUPER^();]]></ST>
     </Implementation>
     <LineIds Name="FB_NOTT_STEPPER_SHUTTER">
-      <LineId Id="10" Count="3" />
+      <LineId Id="10" Count="0" />
       <LineId Id="9" Count="0" />
     </LineIds>
   </POU>

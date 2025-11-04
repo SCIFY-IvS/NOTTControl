@@ -265,6 +265,10 @@
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
+    <Compile Include="HMI\VISUs\Templates\CO2_Valve\GUI_TEMPLATE_ACTUATOR_ENG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
     <Compile Include="HMI\VISUs\Templates\Motors\GUI_TEMPLATE_MOTOR.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
@@ -279,6 +283,14 @@
     </Compile>
     <Compile Include="HMI\VISUs\Templates\NOTT_Images.TcIPO">
       <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Shutters\GUI_TEMPLATE_NOTT_SHUTTER.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Shutters\GUI_TEMPLATE_SHUTTER_CONTROL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
     <Compile Include="HMI\VISUs\Util\Button\VISU_HMI_BUTTON_IMAGES.TcIPO">
       <SubType>Code</SubType>
@@ -363,6 +375,12 @@
     <Compile Include="POUs\System\FB_NOTT_ICS.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Valve\FB_CRYO_BIN_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Valve\FB_CRYO_VALVE_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Visualization Manager.TcVMO">
       <SubType>Code</SubType>
     </Compile>
@@ -371,6 +389,10 @@
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
     <Compile Include="VISUs\GUIs\NBS\GUI_NOTT_NBS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Shutters\GUI_TEST_STEPPER_SHUTTER.TcVIS">
       <SubType>Code</SubType>
       <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
     </Compile>
@@ -499,6 +521,8 @@
     <Folder Include="HMI\VISUs\Subsystems\TipTilt" />
     <Folder Include="HMI\VISUs\Subsystems\Shutters" />
     <Folder Include="HMI\VISUs\Templates\Motors" />
+    <Folder Include="HMI\VISUs\Templates\CO2_Valve" />
+    <Folder Include="HMI\VISUs\Templates\Shutters" />
     <Folder Include="HMI\VISUs\Util" />
     <Folder Include="HMI\VISUs\Util\Button" />
     <Folder Include="POUs\Devices\Stepper_Shutter" />
@@ -508,6 +532,7 @@
     <Folder Include="POUs\Cryo_Interlocks" />
     <Folder Include="POUs\Camera_Triggers" />
     <Folder Include="POUs\EVENTS" />
+    <Folder Include="POUs\Valve" />
     <Folder Include="POUs\Services" />
     <Folder Include="POUs\Simulation" />
     <Folder Include="POUs\Subsystems" />

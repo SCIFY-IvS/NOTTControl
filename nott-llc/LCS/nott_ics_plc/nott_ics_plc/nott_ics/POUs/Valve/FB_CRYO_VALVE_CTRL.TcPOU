@@ -1,0 +1,293 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_CRYO_VALVE_CTRL" Id="{821ef5cb-5c3c-4548-8cdd-f457c89df676}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_VALVE_CTRL EXTENDS FB_CRYO_BIN_CTRL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// Alarm handling
+	//
+	// List of alarms to be handled by Valve.
+	// Alarms cannot be defined in FB_CRYO_BIN_CTRL,
+	// because they are specific to the device/controller.
+	// There are three alarms for Valves:
+	//   0: NOT_OP
+	//   1: CLOSE failed
+	//   2: OPEN  failed
+	arrEventEntry : ARRAY [0..2] OF TcEventEntry;
+	// Alarm handler FB
+	fbAlarmHandler : FB_AlarmHandler;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// This call just configures logs at the very start.
+// Logging is done by explicit calls to M_LogInfo().
+logs(in_sName := in_sName);
+
+
+// Execute parent FB.
+SUPER^();
+
+
+// Update the status.
+// This will handle alarms as well.
+M_SetStatus(stat.nState);
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{575769a3-a950-43a6-baea-8fe18b9cc362}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Device specific implementation
+// 
+arrEventEntry[0] := Tc_Events.CryoValveEventClass.HardwareError;
+arrEventEntry[1] := Tc_Events.CryoValveEventClass.FailureOpen;
+arrEventEntry[2] := Tc_Events.CryoValveEventClass.FailureClose;
+
+
+// A MUST !!!
+stat.bConfigured	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetStateLabel" Id="{6a029015-f860-4667-b045-190dc1159f0d}">
+      <Declaration><![CDATA[//
+// Overrides the same method in FB_CRYO_BIN_CTRL.
+//
+// Set labels for logging.
+//	OPEN, CLOSE (for valves)
+METHOD M_GetStateLabel : STRING
+VAR_INPUT
+	state:	E_CRYO_BIN_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE state OF
+	E_CRYO_BIN_CTRL_STATE.OFF:
+		M_GetStateLabel	:= 'CLOSED';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+		M_GetStateLabel	:= 'OPENING...';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+		M_GetStateLabel	:= 'CLOSED';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+		M_GetStateLabel	:= 'OPEN';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+		M_GetStateLabel	:= 'CLOSING...';
+	
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+		M_GetStateLabel	:= 'ERROR';
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{4aedb583-a641-44e2-9926-6d1ee3abadf1}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_BIN_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute the status of the parent FB.
+SUPER^.M_SetStatus(nState);
+
+
+// Handle alarms
+M_UpdateAlarms();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateAlarms" Id="{2d0c7459-e7b0-4922-a181-0aa4996638a1}">
+      <Declaration><![CDATA[METHOD M_UpdateAlarms
+VAR_INPUT
+END_VAR
+VAR
+	stEventEntry : TcEventEntry;
+	sText : STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Array of EventEntry is initialised in the M_Configure method with 
+// the alarms defined for the Valve.
+
+fbAlarmHandler(stAlarms := stat.stAlarms);
+
+
+// Trigger alarms in case of failure.
+// The alarms are raised with a rising edge trigger.
+// The alarms are cleared with a falling edge trigger.
+IF stat.nState = E_CRYO_BIN_CTRL_STATE.ERROR THEN
+	IF Actuator.i_nCouplerState <> 8 THEN
+		// System not OPERATIONAL or
+		// i_nCouplerState not linked to State variable.
+		fbAlarmHandler.M_SetAlarm(Tc_Events.CryoValveEventClass.HardwareError);
+		stat.sState	:= 'ERROR: System not OPERATIONAL';
+	ELSIF Actuator.stat.nLastCommand = E_CRYO_BIN_ACT_CMD.OFF	THEN
+		// Valve failed to Close.
+		fbAlarmHandler.M_SetAlarm(Tc_Events.CryoValveEventClass.FailureClose);
+		stat.sState	:= 'ERROR: Valve failed to CLOSE.';
+	ELSIF Actuator.stat.nLastCommand = E_CRYO_BIN_ACT_CMD.ON	THEN
+		// Valve failed to Open.
+		fbAlarmHandler.M_SetAlarm(Tc_Events.CryoValveEventClass.FailureOpen);
+		stat.sState	:= 'ERROR: Valve failed to OPEN.';
+	END_IF
+
+END_IF
+
+//
+// Clear non-active alarms
+// Alarms and their indexes are defined in M_Configure().
+// There are three alarms for Valves:
+//   0: NOT_OP
+//   1: CLOSE failed
+//   2: OPEN  failed
+//
+IF fbAlarmHandler.arrAlarmState[0]  AND  Actuator.i_nCouplerState = 8 THEN
+	fbAlarmHandler.M_ClearAlarm(Tc_Events.CryoValveEventClass.HardwareError);
+END_IF
+
+IF fbAlarmHandler.arrAlarmState[1]  AND  stat.nState <> E_CRYO_BIN_CTRL_STATE.ERROR THEN
+	fbAlarmHandler.M_ClearAlarm(Tc_Events.CryoValveEventClass.FailureClose);
+END_IF
+
+IF fbAlarmHandler.arrAlarmState[2] = TRUE  AND  stat.nState <> E_CRYO_BIN_CTRL_STATE.ERROR THEN
+	fbAlarmHandler.M_ClearAlarm(Tc_Events.CryoValveEventClass.FailureOpen);
+END_IF
+
+
+fbAlarmHandler.M_ProcessAlarms(
+	arrEventEntry := arrEventEntry,
+	sEventString := in_sName);
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_User_SetAction" Id="{60abe389-4ad1-49f5-a9ed-250397cb9229}">
+      <Declaration><![CDATA[METHOD M_User_SetAction : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// Set Valve command based on the input parameter in_bEnable.
+//
+	
+IF	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF  AND in_bEnable THEN
+	// Activate the actuator, i.e. open the valve
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.ON;
+ELSIF  stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON AND NOT in_bEnable THEN
+	// Dectivate the actuator, i.e. close the valve
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+ELSE
+	// Don't do anything
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.NONE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_VALVE_CTRL">
+      <LineId Id="50" Count="4" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="27" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_Configure">
+      <LineId Id="7" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="14" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_GetStateLabel">
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_SetStatus">
+      <LineId Id="159" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="164" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_UpdateAlarms">
+      <LineId Id="77" Count="3" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="92" Count="1" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="114" Count="5" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="142" Count="4" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="128" Count="2" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="131" Count="6" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="82" Count="2" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_VALVE_CTRL.M_User_SetAction">
+      <LineId Id="5" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

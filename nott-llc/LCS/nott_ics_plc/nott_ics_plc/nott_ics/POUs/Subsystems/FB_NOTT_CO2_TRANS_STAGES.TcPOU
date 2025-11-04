@@ -27,28 +27,28 @@ END_VAR
 NCP1(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL1', 
+	sName:= 'NCP 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 25000);
 	
 NCP2(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL2', 
+	sName:= 'NCP 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 26000);
 	
 NCP3(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL3', 
+	sName:= 'NCP 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 27000);
 	
 NCP4(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL4', 
+	sName:= 'NCP 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 28000);
 

@@ -4,69 +4,69 @@
     <Declaration><![CDATA[PROGRAM INFRATEC_TRIGERS
 VAR
 	
-	Trig_Cam_1 AT %Q*:		BOOL;
-	Trig_Cam_2 AT %Q*:		BOOL;
+//	Trig_Cam_1 AT %Q*:		BOOL;
+//	Trig_Cam_2 AT %Q*:		BOOL;
 	
 	
-	Cam_response_1 AT %I*:	BOOL;
-	Cam_response_2 AT %I*:	BOOL;
+//	Cam_response_1 AT %I*:	BOOL;
+//	Cam_response_2 AT %I*:	BOOL;
 	
-	{attribute 'OPC.UA.DA' := '1'}
-	bTrigCam_1:				BOOL;
-	{attribute 'OPC.UA.DA' := '1'}
-	bTrigCam_2:				BOOL;
+//	{attribute 'OPC.UA.DA' := '1'}
+//	bTrigCam_1:				BOOL;
+//	{attribute 'OPC.UA.DA' := '1'}
+//	bTrigCam_2:				BOOL;
 	
-	{attribute 'OPC.UA.DA' := '1'}
-	bCamResponse_1:			BOOL;
-	{attribute 'OPC.UA.DA' := '1'}
-	bCamResponse_2:			BOOL;
+//	{attribute 'OPC.UA.DA' := '1'}
+//	bCamResponse_1:			BOOL;
+//	{attribute 'OPC.UA.DA' := '1'}
+//	bCamResponse_2:			BOOL;
 	
-	Trig1_Sync_Info:		T_NOTT_IR_CAMERA_DL_SYNC;
-	Trig2_Sync_Info:		T_NOTT_IR_CAMERA_DL_SYNC;
+//	Trig1_Sync_Info:		T_NOTT_IR_CAMERA_DL_SYNC;
+//	Trig2_Sync_Info:		T_NOTT_IR_CAMERA_DL_SYNC;
 	
-	NottTime:			FB_TIME;
+//	NottTime:			FB_TIME;
 	
-	// Time Stamp
-	fbGetSystemTime  : GETSYSTEMTIME;
-	fileTime         : T_FILETIME;
-	{attribute 'OPC.UA.DA':='1'}
-	sPLCTime            : STRING;
+//	// Time Stamp
+//	fbGetSystemTime  : GETSYSTEMTIME;
+//	fileTime         : T_FILETIME;
+//	{attribute 'OPC.UA.DA':='1'}
+//	sPLCTime            : STRING;
 	
-	// NTP External Time
+//	// NTP External Time
 	
-	nNTPExternalTime AT %I*: LINT;
-	{attribute 'OPC.UA.DA':='1'}
-	sNTPExtTime:			STRING;
+//	nNTPExternalTime AT %I*: LINT;
+//	{attribute 'OPC.UA.DA':='1'}
+//	sNTPExtTime:			STRING;
 	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
-NottTime();
+//NottTime();
 
 
 
-Trig_Cam_1 := bTrigCam_1;
-Trig_Cam_2 := bTrigCam_2;
+//Trig_Cam_1 := bTrigCam_1;
+//Trig_Cam_2 := bTrigCam_2;
 
 
-bCamResponse_1 := Cam_response_1;
-bCamResponse_2 := Cam_response_2;
+//bCamResponse_1 := Cam_response_1;
+//bCamResponse_2 := Cam_response_2;
 
-Trig1_Sync_Info.TimeStamp := NottTime.GetTime();
-Trig1_Sync_Info.lrActPos_DL1 := NOTT_GVL.gv_DL1_ActualPos;
-Trig1_Sync_Info.lrActPos_DL2 := NOTT_GVL.gv_DL1_ActualPos;
-Trig1_Sync_Info.lrActPos_DL3 := NOTT_GVL.gv_DL1_ActualPos;
-Trig1_Sync_Info.lrActPos_DL4 := NOTT_GVL.gv_DL1_ActualPos;
+//Trig1_Sync_Info.TimeStamp := NottTime.GetTime();
+//Trig1_Sync_Info.lrActPos_DL1 := NOTT_GVL.gv_DL1_ActualPos;
+//Trig1_Sync_Info.lrActPos_DL2 := NOTT_GVL.gv_DL1_ActualPos;
+//Trig1_Sync_Info.lrActPos_DL3 := NOTT_GVL.gv_DL1_ActualPos;
+//Trig1_Sync_Info.lrActPos_DL4 := NOTT_GVL.gv_DL1_ActualPos;
 
-// Time Stamps
+//// Time Stamps
 
-fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
-sPLCTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
+//fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
+//sPLCTime := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
 
-// NTP External Time
+//// NTP External Time
 
-sNTPExtTime := F_SysTimeToString(nNTPExternalTime);
+//sNTPExtTime := F_SysTimeToString(nNTPExternalTime);
 
 ]]></ST>
     </Implementation>

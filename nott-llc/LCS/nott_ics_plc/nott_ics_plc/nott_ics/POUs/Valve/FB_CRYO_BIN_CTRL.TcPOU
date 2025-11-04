@@ -1,0 +1,553 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_CRYO_BIN_CTRL" Id="{911ba4c8-b9f4-47c8-a937-6e4327965c35}" SpecialFunc="None">
+    <Declaration><![CDATA[// Binary Controller
+FUNCTION_BLOCK FB_CRYO_BIN_CTRL
+VAR_INPUT
+	in_sName:			STRING := 'Binary Controller';	// Controller name
+	in_nFeedback:		E_CRYO_BIN_ACT_FEEDBACK := E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY;	// Feedbacks
+	in_nTimeout:		UDINT := 10000;	// Timeout for switching on/off [ms]. Default 10000.
+	in_bActiveLowCtrl:	BOOL := FALSE;	// Active Low for Control output
+	in_bActiveLowStat:	BOOL := FALSE;	// Active Low for Status signals, i.e. feedback
+	in_bEnable:			BOOL := FALSE;	// Controller active while in_bEnable is TRUE
+END_VAR
+VAR
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	Actuator:	FB_CRYO_BIN_ACT;	// Heater, valve, etc.
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_CRYO_BIN_CTRL_STATUS;
+
+
+	{attribute 'OPC.UA.DA' := '0'}
+	bReset:		BOOL := FALSE;		// RESET Command
+
+
+	{attribute 'OPC.UA.DA' := '0'}
+	timer:		TON;		// Timer for commands
+	
+	// Controller logs
+	logs:	FB_CRYO_FUNCTION_LOG;
+	
+	//
+	// Triggers.
+	//
+	// Capture Enable/Disable.
+	trigEnable:		R_TRIG;	// in_bEnable
+	trigDisable:	F_TRIG;	// in_bEnable
+	// Capture ON/OFF.
+	trigON:			R_TRIG;	// i_bIn
+	trigOFF:		F_TRIG;	// i_bIn
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Don't do anything until the controller is configured
+IF NOT stat.bConfigured THEN
+	M_Configure();
+	RETURN;
+END_IF
+
+// Increment cycle counter
+stat.nCycleCounter := stat.nCycleCounter + 1;
+
+
+// Execute Actuator FB on every cycle
+Actuator(
+	in_nFeedback		:= in_nFeedback,
+	in_nTimeout			:= in_nTimeout,
+	in_bActiveLowCtrl	:= in_bActiveLowCtrl,
+	in_bActiveLowStat	:= in_bActiveLowStat);
+
+
+CASE stat.nState OF
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.NONE:
+	/////////////////////////////////
+	//
+	// This is the state on power-up.
+	// Determine the initial state based on the command amd actuator state.
+	IF Actuator.stat.bError  OR NOT stat.bCtrlOK	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF in_bEnable  AND  Actuator.stat.bON	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_ON;
+	ELSIF in_bEnable  AND  Actuator.stat.bOFF	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF;
+	ELSIF NOT in_bEnable  THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.OFF;
+	END_IF
+	M_SetStatus(stat.nState);	
+	logs.M_LogInfo(M_GetStateLabel(stat.nState));
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.OFF:
+	/////////////////////////////////
+	//
+	IF	Actuator.stat.bError	OR NOT stat.bCtrlOK	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF in_bEnable  THEN
+		// Activate the control loop.
+		// Goto Active_Off first.
+		//
+		// Start the timer
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		// Set next state
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+	/////////////////////////////////
+	//
+	IF	Actuator.stat.bError	OR NOT stat.bCtrlOK  THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF NOT in_bEnable  THEN
+		// Goto Off.
+		//
+		// Set next state
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.OFF;
+	ELSIF M_User_SetAction() = E_CRYO_BIN_CTRL_ACTION.ON THEN
+		// Goto Active_Off.
+		//
+		// Start the timer
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		
+		// Trigger action
+		Actuator(in_bExecute:=FALSE);
+		Actuator(in_bExecute:=TRUE, in_nCommand:=E_CRYO_BIN_ACT_CMD.ON);
+		
+		// Set next state
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON;
+		logs.M_LogInfo(M_GetStateLabel(stat.nState));
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	//////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+	//////////////////////////////////////////
+	//
+	// Check for timeout
+	timer(IN:=TRUE);
+	IF timer.Q THEN
+		// Stop the timer
+		timer(IN:=FALSE);
+		// Goto ERROR state
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF	Actuator.stat.bError	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF Actuator.stat.bON THEN
+		// The actuator is ON, transition completed.
+		// Goto Active_On.
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_ON;
+		logs.M_LogInfo(M_GetStateLabel(stat.nState));
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+	/////////////////////////////////
+	//
+	IF	Actuator.stat.bError	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF	NOT in_bEnable 		OR  
+			NOT stat.bCtrlOK	OR
+			M_User_SetAction() = E_CRYO_BIN_CTRL_ACTION.OFF THEN
+		// Goto Active_Off.
+		// If NOT in_bExecute, the system will continue to complete OFF
+		//
+		// Start the timer
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		
+		// Trigger action
+		Actuator(in_bExecute:=FALSE);
+		Actuator(in_bExecute:=TRUE, in_nCommand:=E_CRYO_BIN_ACT_CMD.OFF);
+		
+		// Set next state
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF;
+		logs.M_LogInfo(M_GetStateLabel(stat.nState));
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	///////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+	///////////////////////////////////////////
+	//
+	// Check for timeout
+	timer(IN:=TRUE);
+	IF timer.Q THEN
+		// Stop the timer
+		timer(IN:=FALSE);
+		// Goto ERROR state
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF	Actuator.stat.bError	THEN
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF Actuator.stat.bOFF THEN
+		// The actuator is OFF, transition completed.
+		// Goto Active_Off.
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF;
+		logs.M_LogInfo(M_GetStateLabel(stat.nState));
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+	/////////////////////////////////
+	//
+	M_User_TryRecovery();
+
+END_CASE]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{92878932-8a8c-456b-983b-c198d7294ec4}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Overwrite this method for specific implementation.
+// Here we have just a dummy implementation to set
+// stat.bConfigured	:= TRUE;
+
+
+// Device specific implementation
+// TODO
+
+
+// A MUST !!!
+
+// This call just configures logs at the very start.
+// Logging is done by explicit calls to M_LogInfo().
+logs(in_sName := in_sName);
+
+stat.bConfigured	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetStateLabel" Id="{10737e36-c19f-4423-ade6-8c6ca739190d}">
+      <Declaration><![CDATA[// Set labels for logging.
+// Examples:
+//	ON, OFF (for heaters)
+//	OPEN, CLOSE (for valves)
+METHOD M_GetStateLabel : STRING
+VAR_INPUT
+	state:	E_CRYO_BIN_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE state OF
+	E_CRYO_BIN_CTRL_STATE.OFF:
+		M_GetStateLabel	:= 'OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+		M_GetStateLabel	:= 'SWITCHING_ON';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+		M_GetStateLabel	:= 'OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+		M_GetStateLabel	:= 'ON';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+		M_GetStateLabel	:= 'SWITCHING_OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+		M_GetStateLabel	:= 'ERROR';
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{5e9e5b69-a092-4050-96d5-b4c0bb6fb059}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// By setting the bReset flag,
+// The actuator will try to exit error state.
+// In ERROR state, method M_User_TryRecovery() is executed.
+bReset	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{89312a00-5c08-4e45-9d98-831d0a6b2667}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_BIN_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bActON		:= Actuator.stat.bON;
+stat.bActOFF	:= Actuator.stat.bOFF;
+
+
+CASE nState OF
+	
+	E_CRYO_BIN_CTRL_STATE.OFF:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= FALSE;
+	stat.sState	:= 'OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'ACTIVE_OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'ACTIVE_ON';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'ACTIVE_SWITCHING_ON...';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'ACTIVE_SWITCHING_OFF...';
+	
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= TRUE;
+	stat.bActive:= FALSE;
+	stat.sState	:= 'ERROR';
+
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_User_SetAction" Id="{ec97d002-202c-4612-975b-6d9857b07066}">
+      <Declaration><![CDATA[METHOD M_User_SetAction : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+//
+// This method implements the logic for controlling the actuator.
+// The actuator can be a heater, valve, etc.
+//
+// This example implements the heater control with the following assumptions:
+// There are two input values from sensors and two deltas for comparison.
+//
+// in_lrInput1 - Temperature of the Cryo Bench (B)
+// in_lrInput2 - Temperature of the Detector (D). Coming from Lakeshore.
+// in_lrPar1 - Delta [K] to turn the heater ON:  IF B < D - in_lrPar1
+// in_lrPar2 - Delta [K] to turn the heater OFF: IF B > D - in_lrPar2
+//
+// in_lrDelta1 > in_lrDelta2, e.g. 10K > 4K.
+//
+IF	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF  OR  
+	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON THEN
+(*	
+	IF in_lrInput1 < in_lrInput2 - in_lrPar1 THEN
+		// Activate the actuator
+		M_User_SetOutput	:= E_CRYO_BIN_CTRL_ACTION.ON;
+	ELSIF in_lrInput1 > in_lrInput2 - in_lrPar2 THEN
+		// Dectivate the actuator
+		M_User_SetOutput	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+	END_IF
+*)
+ELSE
+	// Don't do anything
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.NONE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_User_TryRecovery" Id="{b466d6fe-28bb-4b23-a093-43ae31684784}">
+      <Declaration><![CDATA[METHOD M_User_TryRecovery
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// This is the default recovery routine.
+// To be customided by the user, if needed.
+//
+IF bReset THEN
+	// RESET the controller in order to try to clear error
+	bReset	:= FALSE;	// Clear RESET flag
+	
+	// Start the timer
+	timer(IN:=FALSE);
+	timer(IN:=TRUE, PT:=T#5S);
+	
+	// Trigger action
+	Actuator(in_bExecute:=FALSE);
+	Actuator(in_bExecute:=TRUE, in_nCommand:=E_CRYO_BIN_ACT_CMD.OFF);
+	
+	// Goto SWITCHING_OFF state
+	stat.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF;
+	M_SetStatus(stat.nState);	
+ELSIF NOT Actuator.stat.bError AND stat.bCtrlOK  THEN
+	// Self recovery since everything seems to be OK now.
+	// Goto NONE state.
+	// From there proper state will be found and set.
+	stat.nState	:= E_CRYO_BIN_CTRL_STATE.NONE;
+	M_SetStatus(stat.nState);	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_BIN_CTRL">
+      <LineId Id="1921" Count="5" />
+      <LineId Id="1682" Count="2" />
+      <LineId Id="1928" Count="0" />
+      <LineId Id="1685" Count="1" />
+      <LineId Id="1884" Count="3" />
+      <LineId Id="1687" Count="18" />
+      <LineId Id="1966" Count="0" />
+      <LineId Id="1706" Count="46" />
+      <LineId Id="1968" Count="0" />
+      <LineId Id="1753" Count="21" />
+      <LineId Id="1969" Count="0" />
+      <LineId Id="1775" Count="26" />
+      <LineId Id="1970" Count="0" />
+      <LineId Id="1802" Count="21" />
+      <LineId Id="1971" Count="0" />
+      <LineId Id="1824" Count="9" />
+      <LineId Id="48" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_CTRL.M_Configure">
+      <LineId Id="5" Count="1" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="20" Count="4" />
+      <LineId Id="14" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_CTRL.M_GetStateLabel">
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_CTRL.M_Reset">
+      <LineId Id="7" Count="2" />
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_CTRL.M_SetStatus">
+      <LineId Id="140" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="101" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="109" Count="2" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_CTRL.M_User_SetAction">
+      <LineId Id="5" Count="2" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="83" Count="2" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_CTRL.M_User_TryRecovery">
+      <LineId Id="29" Count="3" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="11" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

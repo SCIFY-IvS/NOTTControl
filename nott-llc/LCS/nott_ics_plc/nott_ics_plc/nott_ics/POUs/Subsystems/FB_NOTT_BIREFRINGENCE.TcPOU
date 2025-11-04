@@ -27,28 +27,28 @@ END_VAR
 NPC1(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL1', 
+	sName:= 'NPC 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 33000);
 	
 NPC2(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL2', 
+	sName:= 'NPC 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 34000);
 	
 NPC3(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL3', 
+	sName:= 'NPC 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 35000);
 	
 NPC4(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL4', 
+	sName:= 'NPC 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 36000);
 

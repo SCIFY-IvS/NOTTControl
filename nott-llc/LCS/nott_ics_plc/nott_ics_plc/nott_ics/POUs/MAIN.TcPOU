@@ -5,9 +5,9 @@
 VAR
 	{attribute 'OPC.UA.DA' := '1'}
 	nott_ics:		FB_NOTT_ICS;
-	{attribute 'OPC.UA.DA' := '1'}
-	not_cryo_ctrl:	FB_NOTT_CRYO_CTRL;
-	{attribute 'OPC.UA.DA' := '1'}
+//	{attribute 'OPC.UA.DA' := '1'}
+//	not_cryo_ctrl:	FB_NOTT_CRYO_CTRL;
+//	{attribute 'OPC.UA.DA' := '1'}
 	fbServices : FB_SERVICES;	
 	
 END_VAR
@@ -16,7 +16,7 @@ END_VAR
       <ST><![CDATA[
 nott_ics();
 
-not_cryo_ctrl();
+//not_cryo_ctrl();
 ]]></ST>
     </Implementation>
     <LineIds Name="MAIN">

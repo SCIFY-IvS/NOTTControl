@@ -541,6 +541,11 @@
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1303"</v>
+              <v n="TextDefault">"Actual Valve command "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"3192"</v>
               <v n="TextDefault">"Actual variable setpoint temperature"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -782,6 +787,16 @@ BLANK = Not Used"</v>
 
 This is needed ONLY if NOVRAM was previously used for data structures different than T_MOTOR_CFG (or for previous versions of T_MOTOR_CFG).
 Bring the motor to NOT_READY first and then clear NOVRAM."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1956"</v>
+              <v n="TextDefault">"CLOSE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4164"</v>
+              <v n="TextDefault">"Close Shutter"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1033,6 +1048,11 @@ Axis"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1941"</v>
+              <v n="TextDefault">"Either shutter is opening or closing"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"866"</v>
               <v n="TextDefault">"ENABLE"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -1077,6 +1097,11 @@ Axis"</v>
             <o>
               <v n="TextID">"1445"</v>
               <v n="TextDefault">"ENG"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1572"</v>
+              <v n="TextDefault">"Engineering / Commissioning Mode"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1853,8 +1878,88 @@ RED=Not-initialized"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"1235"</v>
+              <v n="TextDefault">"NCP 1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1612"</v>
+              <v n="TextDefault">"NCP 2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2017"</v>
+              <v n="TextDefault">"NCP 3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"3064"</v>
+              <v n="TextDefault">"NCP 4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"3001"</v>
+              <v n="TextDefault">"NGP 1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"426"</v>
+              <v n="TextDefault">"NGP 2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1090"</v>
+              <v n="TextDefault">"NGP 3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"3319"</v>
+              <v n="TextDefault">"NGP 4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"1653"</v>
               <v n="TextDefault">"NOTT Instrument Control"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6483"</v>
+              <v n="TextDefault">"NPC 1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6799"</v>
+              <v n="TextDefault">"NPC 2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"3469"</v>
+              <v n="TextDefault">"NPC 3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6064"</v>
+              <v n="TextDefault">"NPC 4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4363"</v>
+              <v n="TextDefault">"NSH 1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4288"</v>
+              <v n="TextDefault">"NSH 2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"488"</v>
+              <v n="TextDefault">"NSH 3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"5927"</v>
+              <v n="TextDefault">"NSH 4"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -1964,6 +2069,16 @@ RED=Not-initialized"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"212"</v>
+              <v n="TextDefault">"OPEN"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6731"</v>
+              <v n="TextDefault">"Open Shutter"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"498"</v>
               <v n="TextDefault">"Open-loop Motion"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -2009,6 +2124,16 @@ RED=Not-initialized"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"5638"</v>
+              <v n="TextDefault">"Partially OPEN"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1437"</v>
+              <v n="TextDefault">"Permit CLOSE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"803"</v>
               <v n="TextDefault">"Permit OFF"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -2016,6 +2141,11 @@ RED=Not-initialized"</v>
             <o>
               <v n="TextID">"93"</v>
               <v n="TextDefault">"Permit ON"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1308"</v>
+              <v n="TextDefault">"Permit OPEN"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -2591,6 +2721,31 @@ BLANK = Released"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"5572"</v>
+              <v n="TextDefault">"Shutter Control"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4392"</v>
+              <v n="TextDefault">"Shutter is closed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"5273"</v>
+              <v n="TextDefault">"Shutter is Open"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"4060"</v>
+              <v n="TextDefault">"Shutter Speed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6591"</v>
+              <v n="TextDefault">"Shutter Speed (mm/sec)"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"549"</v>
               <v n="TextDefault">"Shutter1"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -2743,6 +2898,11 @@ BLANK = Released"</v>
             <o>
               <v n="TextID">"2051"</v>
               <v n="TextDefault">"Source"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6901"</v>
+              <v n="TextDefault">"Speed"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
@@ -3238,6 +3398,11 @@ Procs"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
+              <v n="TextID">"4193"</v>
+              <v n="TextDefault">"Valve Cmd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
               <v n="TextID">"408"</v>
               <v n="TextDefault">"Valve ctrl"</v>
               <l n="LanguageTexts" t="ArrayList" />
@@ -3250,6 +3415,16 @@ Procs"</v>
             <o>
               <v n="TextID">"616"</v>
               <v n="TextDefault">"Valve open (0 - 100)%"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"973"</v>
+              <v n="TextDefault">"Valve State"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1494"</v>
+              <v n="TextDefault">"Valve state: ON=OPEN, OFF=CLOSED"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>

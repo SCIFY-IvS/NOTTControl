@@ -3,19 +3,167 @@
   <POU Name="FB_NOTT_MOTOR" Id="{5c8e8201-f39f-4718-9355-022ac104e455}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_MOTOR EXTENDS FB_MOTOR
 VAR_INPUT
+	in_bStepper_Shutter:	BOOL := FALSE;
 END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
+	bShutterPartiallyOpen: BOOL := FALSE;
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
+M_CheckShutterStatus();
+
 SUPER^();]]></ST>
     </Implementation>
+    <Method Name="M_CheckShutterStatus" Id="{6415d6ef-b429-446e-97b6-d73559d34026}">
+      <Declaration><![CDATA[METHOD M_CheckShutterStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+bShutterPartiallyOpen := NOT (stat.signals[0].bActive OR stat.signals[5].bActive);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_CloseShutter" Id="{b106d3a1-30e2-4abd-a1b9-a555066a0d9c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_CloseShutter : INT
+VAR
+	lrVel:	LREAL := 2.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT in_bStepper_Shutter THEN
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+// If unsafe, move is not allowed.
+IF NOT in_bSafe THEN
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Move in Velocity command is accepted only in OP state.
+IF	stat.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be 0.0.
+ELSIF	lrVel = 0.0	THEN
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_ZERO);
+	RETURN;
+// Set velocity cannot be greater than MAX Velocity.
+// Note that MoveVel() accepts negative velocity. That is
+// why we use ABS().
+ELSIF	ABS(lrVel) > stat.axis.lrMaxVelocity	THEN
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+	RETURN;
+ELSE
+	// Set command
+	ctrl.nCommand 		:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ctrl.nMoveType		:= E_MOTOR_MOVE_TYPE.VELOCITY;
+
+	ctrl.lrVelocity		:= lrVel;
+	ctrl.nDirection		:= MC_Positive_Direction;
+
+
+	ctrl.bExecute 		:= TRUE;
+	
+	// Call was successful
+	RPC_CloseShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_OpenShutter" Id="{20215d79-9849-4acf-aee6-fa2b1aa10640}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_OpenShutter : INT
+VAR
+	lrVel:	LREAL := 2.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT in_bStepper_Shutter THEN
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+// If unsafe, move is not allowed.
+IF NOT in_bSafe THEN
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Move in Velocity command is accepted only in OP state.
+IF	stat.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be 0.0.
+ELSIF	lrVel = 0.0	THEN
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_ZERO);
+	RETURN;
+// Set velocity cannot be greater than MAX Velocity.
+// Note that MoveVel() accepts negative velocity. That is
+// why we use ABS().
+ELSIF	ABS(lrVel) > stat.axis.lrMaxVelocity	THEN
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+	RETURN;
+ELSE
+	// Set command
+	ctrl.nCommand 		:= E_MOTOR_COMMAND.MOTOR_MOVE;
+	ctrl.nMoveType		:= E_MOTOR_MOVE_TYPE.VELOCITY;
+
+	ctrl.lrVelocity		:= lrVel;
+	ctrl.nDirection		:= MC_Negative_Direction;
+
+
+	ctrl.bExecute 		:= TRUE;
+	
+	// Call was successful
+	RPC_OpenShutter	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_NOTT_MOTOR">
+      <LineId Id="20" Count="1" />
       <LineId Id="10" Count="0" />
       <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_MOTOR.M_CheckShutterStatus">
+      <LineId Id="7" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_MOTOR.RPC_CloseShutter">
+      <LineId Id="187" Count="1" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="147" Count="38" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_MOTOR.RPC_OpenShutter">
+      <LineId Id="187" Count="1" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="147" Count="38" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="2" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

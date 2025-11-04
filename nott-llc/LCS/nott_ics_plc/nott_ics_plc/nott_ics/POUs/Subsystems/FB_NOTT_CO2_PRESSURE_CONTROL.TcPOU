@@ -7,14 +7,128 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
+	CO2_Valve:	FB_CRYO_VALVE_CTRL;
+	
+	// Pointers to valves
+	ptrV:	 POINTER TO FB_CRYO_VALVE_CTRL;
+	// Pointers to valve commands
+	ptrVC:	 POINTER TO FB_CRYO_CMD_OVERRIDE;
+	// Pointers to Enable flags for valves
+	ptrEV:	 POINTER TO BOOL;
+	
+	cor_CO2_Valve:	FB_CRYO_CMD_OVERRIDE;
+	bEnable_CO2_Valve:	BOOL := FALSE;
+		
+	
+	
 	stat:		T_NOTT_STAT;
+	
+	nCO2_Diff_Press_Sens AT %I*	:INT;
+	lrCO2_Diff_Press_mbar:		LREAL;
+	
+	bConfigured:		BOOL := FALSE;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[
+
+M_Configure();
+
+M_ReadSensors();
+
+M_Execute_Controller();]]></ST>
     </Implementation>
+    <Method Name="M_Configure" Id="{ac5d4578-9264-47ed-8c8d-ebcb3ba747ad}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+IF NOT bConfigured THEN
+
+
+
+
+	ptrV := ADR(CO2_Valve);
+	
+	
+	// Set pointers to Valve Commands - MUST!!!
+	ptrVC	:= ADR(cor_CO2_Valve);
+	
+	ptrEV	:= ADR(bEnable_CO2_Valve);
+	
+	
+	
+	
+	bConfigured := TRUE;
+
+
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Execute_Controller" Id="{6f90081b-56ca-47b4-b3a4-6fff259ba009}">
+      <Declaration><![CDATA[METHOD M_Execute_Controller : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cor_CO2_Valve(in_bEnable := bEnable_CO2_Valve);	// Handling of PVV1 commands
+
+CO2_Valve(
+	in_sName			:= 'CO2_Valve', 
+	in_bEnable			:= cor_CO2_Valve.out_bEnable,
+	in_nFeedback		:= E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{8803597c-1c5f-4621-9384-5ec6a2d9b9dc}">
+      <Declaration><![CDATA[METHOD M_ReadSensors : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+lrCO2_Diff_Press_mbar := nCO2_Diff_Press_Sens * 0.01;]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="FB_NOTT_CO2_PRESSURE_CONTROL">
+      <LineId Id="36" Count="1" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="38" Count="0" />
       <LineId Id="9" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_CO2_PRESSURE_CONTROL.M_Configure">
+      <LineId Id="15" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="27" Count="2" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_CO2_PRESSURE_CONTROL.M_Execute_Controller">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="3" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_NOTT_CO2_PRESSURE_CONTROL.M_ReadSensors">
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

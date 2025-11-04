@@ -27,28 +27,28 @@ END_VAR
 NGP1(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL1', 
+	sName:= 'NGP 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 29000);
 	
 NGP2(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL2', 
+	sName:= 'NGP 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 30000);
 	
 NGP3(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL3', 
+	sName:= 'NGP 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 31000);
 	
 NGP4(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL4', 
+	sName:= 'NGP 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 32000);
 

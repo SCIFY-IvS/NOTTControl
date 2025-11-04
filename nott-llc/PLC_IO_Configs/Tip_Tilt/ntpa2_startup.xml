@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EtherCATMailbox>
+	<CoE>
+		<InitCmds>
+			<InitCmd>
+				<Transition>IP</Transition>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>61569</Index>
+				<SubIndex>1</SubIndex>
+				<Data>00001800</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>IP</Transition>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>4339</Index>
+				<SubIndex>5</SubIndex>
+				<Data>0100</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Maximal current]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>1</SubIndex>
+				<Data>9600</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Nominal voltage]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>3</SubIndex>
+				<Data>e02e</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Nominal current]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>2</SubIndex>
+				<Data>4b00</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Motor coil resistance]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>4</SubIndex>
+				<Data>882c</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Reduced current (positive)]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>5</SubIndex>
+				<Data>1900</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Reduced current (negative)]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>6</SubIndex>
+				<Data>1900</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Encoder increments (4-fold)]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>7</SubIndex>
+				<Data>0001</Data>
+			</InitCmd>
+			<InitCmd>
+				<Transition>PS</Transition>
+				<Comment><![CDATA[Maximal motor velocity]]></Comment>
+				<Timeout>0</Timeout>
+				<Ccs>1</Ccs>
+				<Index>32800</Index>
+				<SubIndex>8</SubIndex>
+				<Data>0730</Data>
+			</InitCmd>
+		</InitCmds>
+	</CoE>
+</EtherCATMailbox>

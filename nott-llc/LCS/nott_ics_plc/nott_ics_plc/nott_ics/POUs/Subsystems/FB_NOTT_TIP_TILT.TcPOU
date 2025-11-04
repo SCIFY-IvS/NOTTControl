@@ -91,28 +91,28 @@ END_VAR
 NTPA1(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPA1', 
+	sName:= 'NTPA 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 5000);
 	
 NTPA2(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPA2', 
+	sName:= 'NTPA 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 6000);
 	
 NTPA3(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPA3', 
+	sName:= 'NTPA 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 7000);
 	
 NTPA4(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPA4', 
+	sName:= 'NTPA 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 8000);
 	
@@ -121,28 +121,28 @@ NTPA4(
 NTTA1(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTA1', 
+	sName:= 'NTTA 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 9000);
 	
 NTTA2(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTA2', 
+	sName:= 'NTTA 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 10000);
 	
 NTTA3(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTA3', 
+	sName:= 'NTTA 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 11000);
 	
 NTTA4(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTA4', 
+	sName:= 'NTTA 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 12000);
 	
@@ -151,28 +151,28 @@ NTTA4(
 NTPB1(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPB1', 
+	sName:= 'NTPB 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 13000);
 	
 NTPB2(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPB2', 
+	sName:= 'NTPB 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 14000);
 	
 NTPB3(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPB3', 
+	sName:= 'NTPB 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 15000);
 	
 NTPB4(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTPB4', 
+	sName:= 'NTPB 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 16000);
 
@@ -181,28 +181,28 @@ NTPB4(
 NTTB1(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTB1', 
+	sName:= 'NTTB 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 17000);
 	
 NTTB2(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTB2', 
+	sName:= 'NTTB 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 18000);
 	
 NTTB3(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTB3', 
+	sName:= 'NTTB 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 19000);
 	
 NTTB4(
 	in_bSafe:= , 
 	in_bDisableIfUnsafe:= , 
-	sName:= 'NTTB4', 
+	sName:= 'NTTB 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 20000);
 

@@ -219,11 +219,11 @@
                     </o>
                     <o>
                       <v n="Id">1649127785L</v>
-                      <v n="Value" t="Int16">10</v>
+                      <v n="Value" t="Int16">28</v>
                     </o>
                     <o>
                       <v n="Id">357335551L</v>
-                      <v n="Value">48</v>
+                      <v n="Value" t="Int16">104</v>
                     </o>
                     <o>
                       <v n="Id">2422045748L</v>
@@ -500,11 +500,11 @@
                     </o>
                     <o>
                       <v n="Id">550940142L</v>
-                      <v n="Value">6</v>
+                      <v n="Value">28</v>
                     </o>
                     <o>
                       <v n="Id">1473355128L</v>
-                      <v n="Value">48</v>
+                      <v n="Value">84</v>
                     </o>
                     <o>
                       <v n="Id">493260384L</v>
@@ -797,13 +797,13 @@
             <d2 n="Size" ckt="Int32" cvt="VisualObjectSize">
               <v>0</v>
               <o>
-                <v n="Width">910</v>
-                <v n="Height">798</v>
+                <v n="Width">928</v>
+                <v n="Height">854</v>
               </o>
               <v>1</v>
               <o>
-                <v n="Width">910</v>
-                <v n="Height">798</v>
+                <v n="Width">928</v>
+                <v n="Height">854</v>
               </o>
             </d2>
             <v n="Version">1</v>

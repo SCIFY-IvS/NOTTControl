@@ -14,7 +14,7 @@ VAR
 	
 	ptrDelayLines:	ARRAY [1..4] OF POINTER TO FB_NOTT_MOTOR;
 	// GUI stuff
-	guiShutterIndex:	UINT := 1;	// Index for Shutter Engineering GUI
+	guiDLIndex:	UINT := 1;	// Index for Shutter Engineering GUI
 	
 	stat:		T_NOTT_STAT;
 END_VAR
@@ -23,28 +23,28 @@ END_VAR
       <ST><![CDATA[NDL1(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL1', 
+	sName:= 'NDL 1', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 1000);
 	
 NDL2(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL2', 
+	sName:= 'NDL 2', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 2000);
 	
 NDL3(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL3', 
+	sName:= 'NDL 3', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 3000);
 	
 NDL4(
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
-	sName:= 'NDL4', 
+	sName:= 'NDL 4', 
 	nNOVRAM_DevId:= 6, 
 	nNOVRAM_Offset:= 4000);
 	
