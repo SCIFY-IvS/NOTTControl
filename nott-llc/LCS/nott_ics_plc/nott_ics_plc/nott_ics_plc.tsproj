@@ -1424,6 +1424,47 @@ External Setpoint Generation:
 			</Relations>
 		</DataType>
 		<DataType>
+			<Name GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library" AutoDeleteType="true">T_MOTOR_SWITCHES</Name>
+			<BitSize>48</BitSize>
+			<SubItem>
+				<Name>bLSTOP</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<Comment><![CDATA[ Variables that need mapping ]]></Comment>
+				<BitSize>8</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bLHW</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>8</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bREF</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>16</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bINDEX</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>24</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUHW</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>32</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>bUSTOP</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<BitSize>8</BitSize>
+				<BitOffs>40</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-000000000041}" TcBaseType="true" HideSubItems="true" CName="AmsNetId">AMSNETID</Name>
 			<BitSize>48</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
@@ -1476,47 +1517,6 @@ External Setpoint Generation:
 				<Parameter>.netId[5]</Parameter>
 				<Parameter>.port</Parameter>
 			</Format>
-		</DataType>
-		<DataType>
-			<Name GUID="{BF6EEF42-D21E-3F23-16B3-5B03F4B3CDE2}" Namespace="ESO_LDC_Motor_Library" AutoDeleteType="true">T_MOTOR_SWITCHES</Name>
-			<BitSize>48</BitSize>
-			<SubItem>
-				<Name>bLSTOP</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<Comment><![CDATA[ Variables that need mapping ]]></Comment>
-				<BitSize>8</BitSize>
-				<BitOffs>0</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bLHW</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>8</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bREF</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>16</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bINDEX</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>24</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bUHW</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>32</BitOffs>
-			</SubItem>
-			<SubItem>
-				<Name>bUSTOP</Name>
-				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
-				<BitSize>8</BitSize>
-				<BitOffs>40</BitOffs>
-			</SubItem>
 		</DataType>
 		<DataType>
 			<Name GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library" AutoDeleteType="true">T_TIME_INFO</Name>
@@ -1666,8 +1666,8 @@ External Setpoint Generation:
 				<Target>
 					<ManualSelect>{57BD9670-089D-434A-85CF-90A857EE0EFF}</ManualSelect>
 					<ManualSelect>{54BC404D-F267-4F81-A7FD-9796672C1C24}</ManualSelect>
-					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
 					<ManualSelect>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</ManualSelect>
+					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
 					<ManualSelect>{3EBB9639-5FF3-42B6-8847-35C70DC013C8}</ManualSelect>
 				</Target>
 			</Licenses>
@@ -5073,10 +5073,13 @@ External Setpoint Generation:
 				<Axis Id="16" CreateSymbols="true" AxisType="1" AxisFolder="Shutters">
 					<Name>NSH2</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="100" Deceleration="100" Jerk="1000"/>
+						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
+						<PositionAreaControl Enable="false"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="0.00234375" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -5137,7 +5140,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="35" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -5209,6 +5212,8 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PosDiffControl Enable="false"/>
+							<PID PosKp="10"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -5230,10 +5235,13 @@ External Setpoint Generation:
 				<Axis Id="17" CreateSymbols="true" AxisType="1" AxisFolder="Shutters">
 					<Name>NSH3</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="100" Deceleration="100" Jerk="1000"/>
+						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
+						<PositionAreaControl Enable="false"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="0.00234375" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -5294,7 +5302,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="35" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -5366,6 +5374,8 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PosDiffControl Enable="false"/>
+							<PID PosKp="10"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -5387,10 +5397,13 @@ External Setpoint Generation:
 				<Axis Id="18" CreateSymbols="true" AxisType="1" AxisFolder="Shutters">
 					<Name>NSH4</Name>
 					<AxisPara>
-						<OtherSettings AllowMotionCmdToSlave="true"/>
+						<Dynamic AccelerationMaximum="200" DecelerationMaximum="200" Acceleration="127.556" Deceleration="127.556" Jerk="726.357"/>
+						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
+						<PositionAreaControl Enable="false"/>
+						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="0.00234375" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -5451,7 +5464,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="24">
 						<DrvPara>
-							<Analog TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="35" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -5523,6 +5536,8 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PosDiffControl Enable="false"/>
+							<PID PosKp="10"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -7612,68 +7627,11 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{E8A513DA-73A0-A0B9-41C7-4CD5F4AF97D0}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{0CA6AD87-4231-E47D-9988-B6E3B0B7C52E}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1" ContextId="1" AreaNo="16">
 						<Name>PlcTask Inputs</Name>
-						<Var>
-							<Name>MAIN.fbServices.i_nDevState</Name>
-							<Comment><![CDATA[ Let's always link the EtherCAT DevState, so that 
- we always have one sync variable (even if all subsystems are disabled)]]></Comment>
-							<Type>UINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_inTime</Name>
-							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
-							<Type>ULINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_exTime</Name>
-							<Type>ULINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_dc2TcOffset</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_dc2ExtOffset</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_extDevNotConnected</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_syncMode</Name>
-							<Type>UINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_AdsAddr</Name>
-							<Comment><![CDATA[ ADS address structure]]></Comment>
-							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_exNtpExtTime</Name>
-							<Comment><![CDATA[ Input variables from NTP]]></Comment>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_exNtpSysTime</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_exNtpExtOffset</Name>
-							<Type>LINT</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_exNtpConnected</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.i_exNtpSynchronized</Name>
-							<Type>BOOL</Type>
-						</Var>
 						<Var>
 							<Name>MAIN.nott_ics.Shutters.NSH1.switches</Name>
 							<Comment><![CDATA[ Limit switches ]]></Comment>
@@ -9450,13 +9408,66 @@ External Setpoint Generation:
 							<Name>MAIN.nott_ics.CO2_Pressure_Control.nCO2_Diff_Press_Sens</Name>
 							<Type>INT</Type>
 						</Var>
+						<Var>
+							<Name>MAIN.fbServices.i_nDevState</Name>
+							<Comment><![CDATA[ Let's always link the EtherCAT DevState, so that 
+ we always have one sync variable (even if all subsystems are disabled)]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_inTime</Name>
+							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_exTime</Name>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_dc2TcOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_dc2ExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_extDevNotConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_syncMode</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_AdsAddr</Name>
+							<Comment><![CDATA[ ADS address structure]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_exNtpExtTime</Name>
+							<Comment><![CDATA[ Input variables from NTP]]></Comment>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_exNtpSysTime</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_exNtpExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_exNtpConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.i_exNtpSynchronized</Name>
+							<Type>BOOL</Type>
+						</Var>
 					</Vars>
 					<Vars VarGrpType="2" ContextId="1" AreaNo="17">
 						<Name>PlcTask Outputs</Name>
-						<Var>
-							<Name>MAIN.fbServices.fbTime.q_timeInfo</Name>
-							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
-						</Var>
 						<Var>
 							<Name>MAIN.nott_ics.Shutters.NSH1.q_bBrake_Ctrl</Name>
 							<Comment><![CDATA[ Brake control signal - DIGITAL OUT ]]></Comment>
@@ -10058,6 +10069,10 @@ External Setpoint Generation:
 							<Name>MAIN.nott_ics.CO2_Pressure_Control.CO2_Valve.Actuator.q_bCtrl</Name>
 							<Comment><![CDATA[ Control output signal]]></Comment>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbServices.fbTime.q_timeInfo</Name>
+							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
 						</Var>
 					</Vars>
 					<Contexts>
@@ -12340,7 +12355,6 @@ External Setpoint Generation:
 									<BootStrapData>0010f400f410f400</BootStrapData>
 									<DcMode>53796e6368726f6e00000000000000004672656552756e2f534d2d53796e6368726f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
 									<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
-									<MBoxUserCmdData>004003000c0000000000000000000000000000000000000000000000000000002081f001040000000000130000</MBoxUserCmdData>
 									<MBoxUserCmdData>004003000a00000000000000000000000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002020800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020208002020000009c004e6f6d696e616c2063757272656e7400</MBoxUserCmdData>
@@ -16348,8 +16362,15 @@ External Setpoint Generation:
 									<BootStrapData>0010f400f410f400</BootStrapData>
 									<DcMode>53796e6368726f6e00000000000000004672656552756e2f534d2d53796e6368726f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
 									<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
-									<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000170000</MBoxUserCmdData>
-									<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000c0000000000000000000000000000000000000000000000000000002081f001040000000000170000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000a00000000000000000000000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000006400526564756365642063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e8034d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -16777,8 +16798,15 @@ External Setpoint Generation:
 									<BootStrapData>0010f400f410f400</BootStrapData>
 									<DcMode>53796e6368726f6e00000000000000004672656552756e2f534d2d53796e6368726f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
 									<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
-									<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000170000</MBoxUserCmdData>
-									<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000c0000000000000000000000000000000000000000000000000000002081f001040000000000170000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000a00000000000000000000000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000006400526564756365642063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e8034d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -17206,8 +17234,15 @@ External Setpoint Generation:
 									<BootStrapData>0010f400f410f400</BootStrapData>
 									<DcMode>53796e6368726f6e00000000000000004672656552756e2f534d2d53796e6368726f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
 									<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
-									<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000170000</MBoxUserCmdData>
-									<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000c0000000000000000000000000000000000000000000000000000002081f001040000000000170000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000a00000000000000000000000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000006400526564756365642063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e8034d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -17635,8 +17670,15 @@ External Setpoint Generation:
 									<BootStrapData>0010f400f410f400</BootStrapData>
 									<DcMode>53796e6368726f6e00000000000000004672656552756e2f534d2d53796e6368726f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
 									<DcMode>4443000000000000000000000000000044432d53796e6368726f6e000000000000000000000000000000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000000000000000000000</DcMode>
-									<MBoxUserCmdData>004003000c0000000000000003000000000000000000000000000000000000002081f001040000000000150000</MBoxUserCmdData>
-									<MBoxUserCmdData>004003000a00000000000000030010000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000c0000000000000000000000000000000000000000000000000000002081f001040000000000150000</MBoxUserCmdData>
+									<MBoxUserCmdData>004003000a00000000000000000000000000000000000000000000000000000020f3100502000000010000</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020108002020000006400526564756365642063757272656e7400</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002010800302000000e02e4e6f6d696e616c20766f6c7461676500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800402000000e8034d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -19387,7 +19429,7 @@ External Setpoint Generation:
 									<CoeProfile ProfileNo="46142345" DisplayName="Positioning interfa"/>
 								</EtherCAT>
 							</Box>
-							<Box Id="36" BoxType="9099" BoxFlags="#x00000020">
+							<Box Id="90" BoxType="9099" BoxFlags="#x00000020">
 								<Name>NDL4 (N4) (EL7047)</Name>
 								<ImageId>1009</ImageId>
 								<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1b873052" RevisionNo="#x00170000" InfoDataAddr="true" InfoDataSoeDS401="true" RepeatSupport="true" SetFrameRepeatTime="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7047 1Ch. Stepper motor output stage (50V, 5A)" Desc="EL7047" PortABoxInfo="#x01000023">
@@ -19830,7 +19872,7 @@ External Setpoint Generation:
 							<Box Id="37" BoxType="9099" BoxFlags="#x00000020">
 								<Name>NTPA1 - NTPA2 (N6) (EL7342)</Name>
 								<ImageId>1009</ImageId>
-								<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1cae3052" RevisionNo="#x00180000" InfoDataAddr="true" InfoDataSoeDS401="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7342 2Ch. DC motor output stage (50V, 3.5A)" Desc="EL7342" PortABoxInfo="#x01000024">
+								<EtherCAT SlaveType="2" PdiType="#x0405" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1cae3052" RevisionNo="#x00180000" InfoDataAddr="true" InfoDataSoeDS401="true" TimeoutMailbox2="2000" CheckRevisionNoType="3" PortPhys="51" SdoUploadWithMaxLength="true" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL7342 2Ch. DC motor output stage (50V, 3.5A)" Desc="EL7342" PortABoxInfo="#x0100005a">
 									<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
 									<SyncMan>801080002200010002000000400080008000801022010000</SyncMan>
 									<SyncMan>001110002400010003000000000000001000001124010000</SyncMan>
@@ -27929,8 +27971,6 @@ Bit1: Value smaller than Limit2]]></Comment>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.switches^bLSTOP" VarB="STM Status^Status^Digital input 1"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.switches^bUSTOP" VarB="STM Status^Status^Digital input 2"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.Test_Shutter.i_nCouplerState" VarB="InfoData^State"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.Test_Shutter.switches^bLSTOP" VarB="STM Status^Status^Digital input 1"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.Test_Shutter.switches^bUSTOP" VarB="STM Status^Status^Digital input 2"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 15 (EK1101)^NSH2 (N17) (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.i_nCouplerState" VarB="InfoData^State"/>

@@ -330,9 +330,6 @@
     <Compile Include="POUs\Devices\NOTT_Motor\FB_NOTT_MOTOR.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Devices\Stepper_Shutter\FB_NOTT_STEPPER_SHUTTER.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="POUs\EVENTS\FB_NOTT_EVENTS.TcPOU">
       <SubType>Code</SubType>
     </Compile>

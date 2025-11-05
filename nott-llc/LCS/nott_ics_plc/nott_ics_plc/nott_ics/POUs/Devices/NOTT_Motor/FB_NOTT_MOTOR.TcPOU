@@ -31,7 +31,7 @@ bShutterPartiallyOpen := NOT (stat.signals[0].bActive OR stat.signals[5].bActive
       <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
 METHOD RPC_CloseShutter : INT
 VAR
-	lrVel:	LREAL := 2.0;
+	lrVel:	LREAL := 15.0;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -87,7 +87,7 @@ END_IF
       <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
 METHOD RPC_OpenShutter : INT
 VAR
-	lrVel:	LREAL := 2.0;
+	lrVel:	LREAL := 15.0;
 END_VAR
 ]]></Declaration>
       <Implementation>
