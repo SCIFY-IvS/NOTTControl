@@ -7,7 +7,8 @@ import time
 opc = OPCUAConnection("opc.tcp://10.33.179.151:4840")
 opc.connect()
 
-shutter1 = Shutter(opc, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", "NSH1", speed=10, open_pos=-64.0, close_pos=-36.0)
+#Speed here is increased by a factor of 1000, as the PLC seems to accept speed in different units!
+shutter1 = Shutter(opc, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", "NSH1", speed=10 * 10**3, open_pos=-64.0, close_pos=-36.0)
 
 shutter1.getStatusInformation()
 shutter1.getPositionAndSpeed()
