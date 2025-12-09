@@ -9,7 +9,6 @@ import sys
 sys.path.append("/home/labo/src/NOTTControl/")
 sys.path.append("/home/labo/src/NOTTControl/script/lib/")
 
-from nott_control import shutter_close, shutter_open
 
 
 dburl = "redis://nott-server.ster.kuleuven.be:6379"
@@ -27,40 +26,6 @@ config.read("/home/labo/src/NOTTControl/config.ini")
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
 
-def shutter_close(shutter_id):
-    """ Function to close a shutter """
-
-    # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('/home/labo/src/NOTTControl/config.ini')
-    url =  config['DEFAULT']['opcuaaddress']
-
-    opcua_conn = OPCUAConnection(url)
-    opcua_conn.connect()
-    shutter = Shutter(opcua_conn, f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutter_id}Shutter {shutter_id}")
-    shutter.close()
-
-    # Disconnect
-    opcua_conn.disconnect()
-    return 'done'
-
-def shutter_open(shutter_id):
-    """ Function to open a shutter """
-
-    # initialize the OPC UA connection
-    config = ConfigParser()
-    config.read('/home/labo/src/NOTTControl/config.ini')
-    url =  config['DEFAULT']['opcuaaddress']
-
-    opcua_conn = OPCUAConnection(url)
-    opcua_conn.connect()
-    shutter = Shutter(opcua_conn, f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutter_id}Shutter {shutter_id}")
-    shutter = Shutter(opcua_conn, f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutter_id}Shutter {shutter_id}")
-    shutter.open()
-    
-    # Disconnect
-    opcua_conn.disconnect()
-    return 'done'
 
 class HumInt(object):
     def __init__(self, lam_mean=mean_wl,
@@ -93,8 +58,11 @@ class HumInt(object):
         self.shutters = [
             Shutter(self.opcua_conn,
                 f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutterid+1}",
-                f"Shutter {shutterid+1}")\
-                    for shutterid in range(4)
+                f"NSH{shutterid+1}",
+                speed=10.0*1e3,
+                open_pos=-64.0,
+                close_pos=-36.0)\
+             for shutterid in range(4)
         ]
 
         self.move(np.array([0., 0., 0., 0.]))
