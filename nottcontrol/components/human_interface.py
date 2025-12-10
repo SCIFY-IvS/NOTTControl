@@ -17,12 +17,12 @@ x_filter = np.array([0.000003332231310433949, 0.000003359090941083894, 0.0000033
 y_filter = np.array([0.0017543387818981376, 0.004561388410207326, 0.014385942578987246, 0.036842100544856524, 0.2277192639592904, 0.45789470381399533, 0.6599999760939395, 0.7863157750042266, 0.8508771992735247, 0.8705263076110844, 0.9028070197457336, 0.89017544583122, 0.8873684260854863, 0.9056140394914672, 0.9014035098728668, 0.8410526451047448, 0.8410526451047448, 0.8621052782564592, 0.916842103533114, 0.9210526331517145, 0.8957894703813994, 0.8957894703813994, 0.9028070197457336, 0.8803508916624401, 0.7975438539871611, 0.4761403471025518, 0.2726315201258773, 0.07473679240582154, 0.028420951659928514, 0.005964793694059473, 0.0017543387818981376])
 mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 
-from opcua import OPCUAConnection
-from nott_control import Shutter
+from nottcontrol.opcua import OPCUAConnection
+from nottcontrol.components.shutter import Shutter
 from configparser import ConfigParser
 
 config = ConfigParser()
-config.read("/home/labo/src/NOTTControl/config.ini")
+config.read("/home/labo/src/NOTTControl/nottcontrol/config.ini")
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
 
@@ -59,7 +59,7 @@ class HumInt(object):
             Shutter(self.opcua_conn,
                 f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutterid+1}",
                 f"NSH{shutterid+1}",
-                speed=10.0*1e3,
+                speed=15.0*1e3,
                 open_pos=-64.0,
                 close_pos=-36.0)\
              for shutterid in range(4)
