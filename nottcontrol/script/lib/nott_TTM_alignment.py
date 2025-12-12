@@ -11,24 +11,29 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 # TO DO #
 #-------#
 
-# A) Complete act_pos_align (actuator positions in state of alignment) for each config (once more actuators are installed).
-# --> TO BE COMPLETED, one all actuators are installed and spiraling algorithms are fully functional and performant.
+# ! A) Complete act_pos_align, the actuator positions in a state of alignment, for each configuration.
+# --> Motorize all four beams
+# --> First positions after manual optimization of injection
+# --> Second positions once flexure mounts are in & localization/optimization algorithms are (hopefully) fully functional and performant.
 
-# B) Generalize sky-ttm angle relations to account for different AT aperture size. 
-# --> DONE, no change as Heimdallr brings all beams to 12 mm regardless of AT pupil diameter.
+# ! B) Add tool to align the beams on the visible cameras
+# --> Implement Arena_API functionalities: streaming frames and fitting centroids
+# --> Implement visual feedback: beam position and size in state of optimal injection vs. current beam position and size
+# --> Generalize TTM control functions to all four beams
 
-# C) Add function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames.
-# --> TO BE COMPLETED, got VLTI maps from M.A.M. and still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
+# ! C) Add tool to calculate dispersed null depths
+# --> Change ROIs accordingly
+# --> Output data frames
 
-# D) Rerun actuator performance grids
-# --> The unability to recover optimal injection configurations is likely due to sub-par actuator (TTM2) resolution.
-# --> Rerun actuator grids, close to aligned positions, extending to smaller displacements (down to 0.5 um)
+# D) Add a function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames. 
+# --> Got VLTI maps from M.A.M., still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
 
-# E) General efficiency of code & documentation where relevant (i.e. non-testing functions)
+# E) Improve general code efficiency. 
+# F) Complete documentation. 
 
-# H) Write and run framework performance
-# I) Optimize efficiency based on previous two (decide on spiral steps&speeds) 
-# J) Write and run algorithm performance
+# G) Re-run framework performance with the flexure mounts. Compare to thesis results.
+# H) Optimize the efficiency of localization & optimization algorithms - i.e., decide on spiral steps and speeds.
+# I) Write and run algorithm performance.
 
 #---------#
 # Imports #
