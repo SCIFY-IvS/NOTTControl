@@ -296,13 +296,13 @@ class lucid_utils:
         
         # FITTING #
         #---------#
-        # Airy disk model
-        airy = models.AiryDisk2D(amplitude=np.max(myframe),x_0=i,y_0=j,radius=rfit,bounds={"amplitude":(0,1.5*np.max(myframe)),"x_0":(0,w),"y_0":(0,h),"radius":(0,2*rfit)}))
+        # Disk model
+        disk = models.Disk2D(amplitude=np.max(myframe),x_0=i,y_0=j,R_0=rfit,bounds={"amplitude":(0,1.5*np.max(myframe)),"x_0":(0,w),"y_0":(0,h),"R_0":(0,2*rfit)}))
         
         # Performing least squares fitting procedure
         fit_ent = fitting.LevMarLSQFitter(calc_uncertainties=True)
-        pix = fit_ent(airy,x,y,myframe)
-        centroid_x_fit,centroid_y_fit,radius_fit=int(pix.x_0.value),int(pix.y_0.value),float(pix.radius.value)
+        pix = fit_ent(disk,x,y,myframe)
+        centroid_x_fit,centroid_y_fit,radius_fit=int(pix.x_0.value),int(pix.y_0.value),float(pix.R_0.value)
         
         #-----------------#
         # Visual feedback #
