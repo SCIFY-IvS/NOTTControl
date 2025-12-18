@@ -347,8 +347,6 @@ class lucid_utils:
             
         return centroid_x_fit,centroid_y_fit,radius_fit
         
-        return 
-        
     def get_fit_pup(self,beam_nr,visual_feedback,**params):
         """
         Fit for the centroid position and radius of a single beam that is visible on the pupil camera.
