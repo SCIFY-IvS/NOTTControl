@@ -10,18 +10,15 @@ Created on Wed Dec 17 13:36:18 2025
 #---------#
 
 # General
+import time
+import ast
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-import time
-import ast
 # Imports for visible camera (lucid) interfacing
-import arena_api
 from arena_api.system import system
 # Imports for centroid fitting
-import scipy
 from scipy.ndimage import gaussian_filter, sobel
-import lmfit
 from lmfit import Parameters, minimize
 from astropy.modeling import models, fitting
 
@@ -138,8 +135,8 @@ class lucid_utils:
                     time.sleep(1)
                     print(f'{sec_count+1 } seconds passed ', '.' * sec_count, end='\r')
                 tries += 1
-        else:       
-            raise Exception(f'Could not find both visible cameras on the network. Please check their Ethernet connection and try again.')
+                
+        raise Exception('Could not find both visible cameras on the network. Please check their Ethernet connection and try again.')
         
     def __exit__(self,exc_type,exc_value,traceback):
         """Stop any ongoing buffer streaming, close all devices."""
