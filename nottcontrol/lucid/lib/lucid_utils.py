@@ -13,6 +13,7 @@ Created on Wed Dec 17 13:36:18 2025
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
+import time
 import ast
 # Imports for visible camera (lucid) interfacing
 import arena_api
@@ -22,6 +23,7 @@ import scipy
 from scipy.ndimage import gaussian_filter, sobel
 import lmfit
 from lmfit import Parameters, minimize
+from astropy.modeling import models, fitting
 
 #---------------#
 # Configuration #
@@ -31,6 +33,22 @@ from lmfit import Parameters, minimize
 from nottcontrol.lucid import config_lucid
 # Dictionary for type conversions
 convert_dict = dict(config_lucid['convert_dict'])
+
+def convert(dic,conversion_dic):
+    # Converting to correct types
+    for key in dic.keys():
+        if conversion_dic[key] == "Bool":
+            dic[key] = bool(dic[key])
+        if conversion_dic[key] == "Int":
+            dic[key] = int(dic[key])
+        if conversion_dic[key] == "Float":
+            dic[key] = float(dic[key])
+        if conversion_dic[key] == "String":
+            dic[key] = str(dic[key])
+        if conversion_dic[key] == "IntTuple":
+            dic[key] = ast.literal_eval(dic[key])
+    return dic
+
 # Connectivity parameters
 im_ip = str(config_lucid['connection']['im_ip'])
 pup_ip = str(config_lucid['connection']['pup_ip'])
@@ -49,21 +67,6 @@ fit_params = {"im_cam":fit_im, "pup_cam":fit_pup}
 ref_im = convert(dict(config_lucid['ref_im']),convert_dict)
 ref_pup = convert(dict(config_lucid['ref_pup']),convert_dict)
 ref_state = {"im_cam":ref_im, "pup_cam":ref_pup}
-
-def convert(dic,conversion_dic):
-    # Converting to correct types
-    for key in dic.keys():
-        if conversion_dic[key] == "Bool":
-            dic[key] = bool(dic[key])
-        if conversion_dic[key] == "Int":
-            dic[key] = int(dic[key])
-        if conversion_dic[key] == "Float":
-            dic[key] = float(dic[key])
-        if conversion_dic[key] == "String":
-            dic[key] = str(dic[key])
-        if conversion_dic[key] == "IntTuple":
-            dic[key] = ast.literal_eval(dic[key])
-    return dic
 
 class lucid_utils:
     '''
@@ -116,6 +119,15 @@ class lucid_utils:
                             pup_cam_device = system.create_device(cam_device_info)
                             self.devices["pup_cam"] = pup_cam_device
                             print("Device used for pupil plane:\n\t{pup_cam_device}")
+                            
+                    # Installing default readout and streaming configuration
+                    for name in self.devices.keys():
+                        self.configure_camera_readout(name,**readout_params[name])
+                        self.configure_camera_stream(name,**stream_params[name])
+                
+                    # Return self to user to allow for utils access.
+                    return self
+                            
                 except Exception as e:
                     self._cleanup()
                     raise e
@@ -128,14 +140,6 @@ class lucid_utils:
                 tries += 1
         else:       
             raise Exception(f'Could not find both visible cameras on the network. Please check their Ethernet connection and try again.')
-        
-        # Installing default readout and streaming configuration
-        for name in self.devices.keys():
-            self.configure_camera_readout(name,**readout_params[name])
-            self.configure_camera_stream(name,**stream_params[name])
-    
-        # Return self to user to allow for utils access.
-        return self
         
     def __exit__(self,exc_type,exc_value,traceback):
         """Stop any ongoing buffer streaming, close all devices."""
@@ -235,7 +239,7 @@ class lucid_utils:
         
         buffer = device.get_buffer()
         frame = np.array(buffer.data, dtype=np.uint8)
-        frame = nparray.reshape(buffer.height, buffer.width)
+        frame = frame.reshape(buffer.height, buffer.width)
         # Width and height
         w = nodemap["Width"].value
         h = nodemap["Height"].value
@@ -244,7 +248,7 @@ class lucid_utils:
         
         return frame,w,h
     
-    def get_fit(self,name,beam_nr,visual_feedback,**params):
+    def get_fit(self,name,beam_nr,visual_feedback):
         """Fit for the centroid position and radius of a single beam that is visible on camera "name".
         beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
         If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
@@ -263,6 +267,8 @@ class lucid_utils:
         beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
         If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
         """
+        # Unpack parameters
+        N,rfit = params["N"],params["rfit"]
         # Name of considered beam
         beam_name = "beam"+str(beam_nr)
         # Reference state of considered beam
@@ -297,7 +303,7 @@ class lucid_utils:
         # FITTING #
         #---------#
         # Disk model
-        disk = models.Disk2D(amplitude=np.max(myframe),x_0=i,y_0=j,R_0=rfit,bounds={"amplitude":(0,1.5*np.max(myframe)),"x_0":(0,w),"y_0":(0,h),"R_0":(0,2*rfit)}))
+        disk = models.Disk2D(amplitude=np.max(myframe),x_0=i,y_0=j,R_0=rfit,bounds={"amplitude":(0,1.5*np.max(myframe)),"x_0":(0,w),"y_0":(0,h),"R_0":(0,2*rfit)})
         
         # Performing least squares fitting procedure
         fit_ent = fitting.LevMarLSQFitter(calc_uncertainties=True)
@@ -349,6 +355,8 @@ class lucid_utils:
         beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
         If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
         """
+        # Unpack parameters
+        sigma,mybinx,mybiny,perc_grad_low,perc_grad_high,perc_int = params["sigma"],params["mybinx"],params["mybiny"],params["perc_grad_low"],params["perc_grad_high"],params["perc_int"]
         # Name of considered beam
         beam_name = "beam"+str(beam_nr)
         # Reference state of considered beam
@@ -431,7 +439,7 @@ class lucid_utils:
             myresid = (data - model)**2/error**2
             return myresid.flatten()
         
-        %time res = minimize(residual, param, args=[myframe_bin, noise])
+        res = minimize(residual, param, args=[myframe_bin, noise])
         
         #-------------#
         # Fit results #
