@@ -302,92 +302,6 @@ class Utils:
             return self.get_fit_pup(beam_nr,visual_feedback,**fit_params[name])
         else:
             raise Exception(f"Camera with name {name} not recognized. Please specify either 'im_cam' or 'pup_cam' as name.")
-        
-    def get_fit_im2(self,beam_nr,visual_feedback,**params):
-        """
-        Fit for the centroid position and radius of a single beam that is visible on the image camera.
-        beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
-        If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
-        """
-        # Unpack parameters
-        N,rfit = params["N"],params["rfit"]
-        # Name of considered beam
-        beam_name = "beam"+str(beam_nr)
-        # Reference state of considered beam
-        ref = ref_state["im_cam"][beam_name]
-        # Taking frame
-        myframe,w,h = self.get_frame("im_cam")
-        # Grid
-        x = np.linspace(1,w,w)
-        y = np.linspace(1,h,h)
-        x,y = np.meshgrid(x,y)
-        
-        # Find an indication of area where the intensity is largest.
-        # Find the indices of the N largest values of the data frame:
-        def get_n_largest_indices(matrix, n):
-            
-            # Flatten the matrix to a 1D array
-            flat_array = matrix.flatten()
-            # Get the indices of the n largest elements in the flattened array
-            indices = np.argpartition(flat_array, -n)[-n:]
-            # Sort the indices by value in descending order
-            indices = indices[np.argsort(-flat_array[indices])]
-            # Convert the flat indices to multi-dimensional indices
-            return np.unravel_index(indices, matrix.shape)
-        
-        ind = get_n_largest_indices(myframe,N)
-        row_indices,col_indices = ind[0],ind[1]
-    
-        # Average them to get an initial guess for the Airy disk centers.
-        j = int(np.average(row_indices))
-        i = int(np.average(col_indices))
-        
-        # FITTING #
-        #---------#
-        # Disk model
-        disk = models.Disk2D(amplitude=np.max(myframe),x_0=i,y_0=j,R_0=rfit,bounds={"amplitude":(0,1.5*np.max(myframe)),"x_0":(0,w),"y_0":(0,h),"R_0":(0,2*rfit)})
-        
-        # Performing least squares fitting procedure
-        fit_ent = fitting.LevMarLSQFitter(calc_uncertainties=True)
-        pix = fit_ent(disk,x,y,myframe)
-        centroid_x_fit,centroid_y_fit,radius_fit=int(pix.x_0.value),int(pix.y_0.value),float(pix.R_0.value)
-        
-        #-----------------#
-        # Visual feedback #
-        #-----------------#
-        if visual_feedback:
-            
-            fig = plt.figure(figsize=(15,10))
-            ax = fig.add_subplot(111)
-            img = ax.imshow(myframe)
-            
-            fit_beam = Circle((centroid_x_fit, centroid_y_fit), radius_fit, 
-                            color='blue', fill=False, linewidth=2,ls=":",label="Current")
-            ref_beam = Circle((ref[0], ref[1]), ref[2], 
-                            color='red', fill=False, linewidth=5,label="Reference")
-            
-            ax.add_patch(fit_beam)
-            ax.add_patch(ref_beam)
-            
-            # Set tick labels
-            xticks = np.linspace(0,w-1,w)
-            yticks = np.linspace(0,h-1,h)
-            labelsx = np.linspace(0,w-1,w)*2.4
-            labelsy = np.linspace(0,h-1,h)*2.4
-            ax.axes.get_xaxis().set_ticks(xticks)
-            ax.axes.get_yaxis().set_ticks(yticks)
-            ax.set_xticklabels(labelsx)
-            ax.set_yticklabels(labelsy)
-            
-            plt.colorbar()
-            ax.legend()
-            
-            fig.suptitle("Image camera view", fontsize=24)
-            fig.canvas.draw()
-            fig.canvas.flush_events()
-            fig.show()
-            
-        return centroid_x_fit,centroid_y_fit,radius_fit
        
     def get_fit_im(self,beam_nr,visual_feedback,**params):
         """
@@ -505,6 +419,9 @@ class Utils:
             ax.add_patch(fit_beam)
             ax.add_patch(ref_beam)
             
+            ax.scatter(centroid_x_fit,centroid_y_fit,color="blue")
+            ax.scatter(ref[0],ref[1],color="red")
+            
             # Set tick labels
             Nticks = 10
             xticks = np.linspace(0,w-1,Nticks)
@@ -525,7 +442,7 @@ class Utils:
             ax.legend()
             ax.grid(color="white",linestyle="--",linewidth=0.5)
             
-            fig.suptitle("Pupil camera view", fontsize=24)
+            fig.suptitle("Image camera view", fontsize=24)
             fig.canvas.draw()
             fig.canvas.flush_events()
             fig.show()
@@ -649,6 +566,9 @@ class Utils:
             
             ax.add_patch(fit_beam)
             ax.add_patch(ref_beam)
+            
+            ax.scatter(centroid_x_fit,centroid_y_fit,color="blue")
+            ax.scatter(ref[0],ref[1],color="red")
             
             # Set tick labels
             Nticks = 10
