@@ -32,6 +32,10 @@ from nottcontrol.lucid import config_lucid
 convert_dict = dict(config_lucid['convert_dict'])
 
 def convert(dic,conversion_dic):
+    """
+    The .cfg file format does not allow for specification of parameter type.
+    This function converts the parameter values (retrieved from the .cfg file as strings) to the type that is specified in the input conversion_dic.
+    """
     # Converting to correct types
     for key in dic.keys():
         if conversion_dic[key] == "Bool":
@@ -65,7 +69,7 @@ ref_im = convert(dict(config_lucid['ref_im']),convert_dict)
 ref_pup = convert(dict(config_lucid['ref_pup']),convert_dict)
 ref_state = {"im_cam":ref_im, "pup_cam":ref_pup}
 
-class lucid_utils:
+class Utils:
     '''
     Class that bundles functionalities related to the lucid visible cameras installed in the pupil and image plane.
     Functionalities include:
@@ -109,13 +113,13 @@ class lucid_utils:
                 try:
                     for cam_device_info in cam_device_infos:
                         if cam_device_info["ip"] == im_ip:
-                            im_cam_device = system.create_device(cam_device_info)
+                            im_cam_device = system.create_device(cam_device_info)[0]
                             self.devices["im_cam"] = im_cam_device
-                            print("Device used for image plane:\n\t{im_cam_device}")
+                            print("Device used for image plane:",im_cam_device)
                         elif cam_device_info["ip"] == pup_ip:
-                            pup_cam_device = system.create_device(cam_device_info)
+                            pup_cam_device = system.create_device(cam_device_info)[0]
                             self.devices["pup_cam"] = pup_cam_device
-                            print("Device used for pupil plane:\n\t{pup_cam_device}")
+                            print("Device used for pupil plane:",pup_cam_device)
                             
                     # Installing default readout and streaming configuration
                     for name in self.devices.keys():
@@ -126,7 +130,7 @@ class lucid_utils:
                     return self
                             
                 except Exception as e:
-                    self._cleanup()
+                    self._clean()
                     raise e
                 
             else:
@@ -167,8 +171,10 @@ class lucid_utils:
         nodemap = device.nodemap
         
         for param, value in params.items():
-            if param in nodemap:
+            if param in nodemap.feature_names:
                 nodemap[param].value = value
+            else:
+                print(f"Parameter {param} not found in the nodemap of camera {name}.")
                 
         print(f"Camera {name} readout parameters configured.")
     
@@ -182,8 +188,10 @@ class lucid_utils:
         stream_nodemap = device.tl_stream_nodemap
         
         for param, value in params.items():
-            if param in stream_nodemap:
+            if param in stream_nodemap.feature_names:
                 stream_nodemap[param].value = value
+            else:
+                print(f"Parameter {param} not found in the stream nodemap of camera {name}.")
                 
         print(f"Camera {name} streaming parameters configured.")
         

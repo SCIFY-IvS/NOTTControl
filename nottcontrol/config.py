@@ -3,7 +3,8 @@ from configparser import ConfigParser
 class Config:
     def __init__(self, path:str):
         self._path = path
-        self.config_parser = ConfigParser()
+        self.config_parser = ConfigParser()µ
+        self.config_parser.optionxform = str # Preserve case sensitivity
         self.config_parser.read(path)
 
     def __getitem__(self, key):
