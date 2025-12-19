@@ -414,13 +414,13 @@ class Utils:
             fit_beam = Circle((centroid_x_fit, centroid_y_fit), radius_fit, 
                             color='blue', fill=False, linewidth=2,ls=":",label="Current")
             ref_beam = Circle((ref[0], ref[1]), ref[2], 
-                            color='red', fill=False, linewidth=5,label="Reference")
+                            color='red', fill=False, linewidth=2,label="Reference")
             
             ax.add_patch(fit_beam)
             ax.add_patch(ref_beam)
             
-            ax.scatter(centroid_x_fit,centroid_y_fit,color="blue",size=8)
-            ax.scatter(ref[0],ref[1],color="red",size=8)
+            ax.scatter(centroid_x_fit,centroid_y_fit,color="blue",s=8)
+            ax.scatter(ref[0],ref[1],color="red",s=8)
             
             # Set tick labels
             Nticks = 10
@@ -562,7 +562,7 @@ class Utils:
             fit_beam = Circle((centroid_x_fit, centroid_y_fit), radius_fit, 
                             color='blue', fill=False, linewidth=2,ls=":",label="Current")
             ref_beam = Circle((ref[0], ref[1]), ref[2], 
-                            color='red', fill=False, linewidth=5,label="Reference")
+                            color='red', fill=False, linewidth=2,label="Reference")
             
             ax.add_patch(fit_beam)
             ax.add_patch(ref_beam)
