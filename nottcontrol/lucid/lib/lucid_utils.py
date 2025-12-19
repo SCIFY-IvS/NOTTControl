@@ -81,7 +81,9 @@ class Utils:
         
     Example use case:
         
-    with lucid_utils() as utils:
+    import lucid_utils
+    with lucid_utils.Utils() as utils:
+        
         utils.start_streaming("im_cam")
         frame,width,height = utils.get_frame("im_cam")
         utils.stop_streaming("im_cam")
@@ -164,6 +166,9 @@ class Utils:
     def configure_camera_readout(self,name,**params):
         """Set the readout configuration parameters for camera "name."""
     
+        if not isinstance(name,str):
+            name = str(name)
+    
         if name not in self.devices.keys():
             raise Exception(f"A camera device with name {name} does not exist.")
             
@@ -171,6 +176,10 @@ class Utils:
         nodemap = device.nodemap
         
         for param, value in params.items():
+            
+            if not isinstance(param,str):
+                param = str(param)
+            
             if param in nodemap.feature_names:
                 nodemap[param].value = value
             else:
@@ -181,6 +190,9 @@ class Utils:
     def configure_camera_stream(self,name,**params):
         """Set the streaming configuration parameters for camera "name"."""
         
+        if not isinstance(name,str):
+            name = str(name)
+        
         if name not in self.devices.keys():
             raise Exception(f"A camera device with name {name} does not exist.")
             
@@ -188,6 +200,10 @@ class Utils:
         stream_nodemap = device.tl_stream_nodemap
         
         for param, value in params.items():
+            
+            if not isinstance(param,str):
+                param = str(param)
+            
             if param in stream_nodemap.feature_names:
                 stream_nodemap[param].value = value
             else:
@@ -195,17 +211,23 @@ class Utils:
                 
         print(f"Camera {name} streaming parameters configured.")
         
-    def get_camera_info(self,name,key):
-        """Return the value corresponding to the given "key" for camera "name", in either stream or readout nodemaps."""
+    def get_camera_info(self,name,param):
+        """Return the value corresponding to the given "param" for camera "name", in either stream or readout nodemaps."""
+        
+        if not isinstance(name,str):
+            name = str(name)
+        if not isinstance(param,str):
+            param = str(param)
+        
         device = self.devices[name]
         nodemap = device.nodemap
         stream_nodemap = device.tl_stream_nodemap
         try:
-            val = nodemap[key].value
+            val = nodemap[param].value
         except:
-            val = stream_nodemap[key].value
+            val = stream_nodemap[param].value
             
-        print(f'Camera {name} has parameter {key} set to {val}.')
+        print(f'Camera {name} has parameter {param} set to {val}.')
         
     
     #-----------------------------------------#
@@ -214,6 +236,10 @@ class Utils:
     
     def start_streaming(self,name):
         """Start streaming on camera "name"."""
+        
+        if not isinstance(name,str):
+            name = str(name)
+        
         if self.streaming[name]:
             print(f"Camera {name} is already streaming.")
         else:
@@ -225,6 +251,10 @@ class Utils:
         
     def stop_streaming(self,name):
         """Stop streaming on camera "name"."""
+        
+        if not isinstance(name,str):
+            name = str(name)
+        
         if self.streaming[name]:
             device = self.devices[name]
             device.stop_stream()
@@ -236,6 +266,10 @@ class Utils:
         
     def get_frame(self,name): # To be checked : Is "with device.start_stream()" superior?
         """Retrieve a frame (and its width & height) from camera "name"."""
+        
+        if not isinstance(name,str):
+            name = str(name)
+        
         device = self.devices[name]
         nodemap = device.nodemap
         
@@ -258,6 +292,9 @@ class Utils:
         beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
         If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
         """
+        
+        if not isinstance(name,str):
+            name = str(name)
         
         if name == "im_cam":
             return self.get_fit_im(beam_nr,visual_feedback,**fit_params[name])
