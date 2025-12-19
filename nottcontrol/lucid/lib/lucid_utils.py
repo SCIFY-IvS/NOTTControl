@@ -297,13 +297,13 @@ class Utils:
             name = str(name)
         
         if name == "im_cam":
-            return self.get_fit_pup(name,beam_nr,visual_feedback,**fit_params[name])
+            return self.get_fit_im(beam_nr,visual_feedback,**fit_params[name])
         if name == "pup_cam":
-            return self.get_fit_pup(name,beam_nr,visual_feedback,**fit_params[name])
+            return self.get_fit_pup(beam_nr,visual_feedback,**fit_params[name])
         else:
             raise Exception(f"Camera with name {name} not recognized. Please specify either 'im_cam' or 'pup_cam' as name.")
         
-    def get_fit_im(self,beam_nr,visual_feedback,**params):
+    def get_fit_im2(self,beam_nr,visual_feedback,**params):
         """
         Fit for the centroid position and radius of a single beam that is visible on the image camera.
         beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
@@ -388,23 +388,162 @@ class Utils:
             fig.show()
             
         return centroid_x_fit,centroid_y_fit,radius_fit
+       
+    def get_fit_im(self,beam_nr,visual_feedback,**params):
+        """
+        Fit for the centroid position and radius of a single beam that is visible on the image camera.
+        beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
+        If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
+        """
+        # Unpack parameters
+        mybinx,mybiny,perc_grad_low,perc_grad_high,perc_int = params["mybinx"],params["mybiny"],params["perc_grad_low"],params["perc_grad_high"],params["perc_int"]
+        # Name of considered beam
+        beam_name = "beam"+str(beam_nr)
+        # Reference state of considered beam
+        ref = ref_state["im_cam"][beam_name]
+        # Binning function
+        def bin_frame(data, binning_x, binning_y):
+            h, w = data.shape
+            bins_x = h // binning_x
+            bins_y = w // binning_y
+            a = data.reshape(bins_x, binning_x, bins_y, binning_y).mean(axis=(1,3))
+            return a
+    
+        #--------------#
+        # Taking frame #
+        #--------------#
+        myframe,w,h = self.get_frame("im_cam")
+        myframe_bin = bin_frame(myframe,mybinx,mybiny)
+        #------------------------------------------------------------#
+        # Detecting the beam edge by gradient and intensity criteria #
+        #------------------------------------------------------------#
+        # Calculating gradients (Sobel operator)
+        grad_x = sobel(myframe_bin,axis=1)
+        grad_y = sobel(myframe_bin,axis=0)
+        grad_mag = np.sqrt(grad_x**2 + grad_y**2)
+        # Determining the pixels with the highest gradient
+        thresh_grad_low = np.percentile(grad_mag,perc_grad_low)
+        thresh_grad_high = np.percentile(grad_mag,perc_grad_high)
+        mask_grad_low = grad_mag >= thresh_grad_low
+        mask_grad_high = grad_mag <= thresh_grad_high
+        mask_grad = mask_grad_low & mask_grad_high
+        # Determining the pixels with the highest intensity
+        thresh_int = np.percentile(myframe_bin,perc_int)
+        mask_int = myframe_bin >= thresh_int
+        # Determining the pixels that belong to the beam edge by convolving above two criteria
+        mask_edge = mask_grad & mask_int
+        #-----------------#
+        # Initial guesses #
+        #-----------------#
+        # Guess for centroid position
+        rows, cols = np.where(mask_edge)
+        centroid_x = np.mean(cols)
+        centroid_y = np.mean(rows)
+        print("Centroid guess xy: ", centroid_x*mybinx, centroid_y*mybiny)
+        # Guess for beam radius
+        radius = np.hypot(np.std(rows),np.std(cols))
+        print("Radius guess: ", radius*mybinx)
+        # Guess for total flux in binned beam
+        x, y = np.meshgrid(np.arange(w/mybinx), np.arange(h/mybiny), )
+        mask_circle = np.hypot(x-centroid_x,y-centroid_y) < radius
+        flux = np.sum(myframe_bin[mask_circle])
+        print("Flux guess: ", flux*mybinx*mybiny)
+        # Detector noise estimate (TBD)
+        amin, amax = np.percentile(myframe, 95.), np.percentile(myframe, 99.)
+        amask =  (myframe <= amax) * (myframe >= amin)
+        noise = np.std(myframe[amask])
+        print("Noise estimation: ", noise)
+        #---------#
+        # Fitting #
+        #---------#
+        param = Parameters()
+        param.add("x_loc", centroid_x, min=0, max=w)
+        param.add("y_loc", centroid_y, min=0, max=h)
+        param.add("radius", radius, min=0.5*radius, max=1.5*radius, vary=True)
+        param.add("flux", flux, min = 0.5*flux, max = 1.5*flux, vary=True)
+    
+        refearray = np.zeros_like(myframe)
+
+        def disc(aparam):
+            model = np.zeros(refearray.shape)
+            xx, yy = np.meshgrid(np.arange(model.shape[1]), np.arange(model.shape[0]), )
+            rad = np.hypot(xx-aparam["x_loc"], yy-aparam["y_loc"])
+            mod = np.exp(-(rad**2/aparam["radius"]**2)**8)
+            mod = aparam["flux"] / mod.sum() * mod
+            return mod
+            
+        def residual(aparam, data, error):
+            model = disc(aparam)
+            myresid = (data - model)**2/error**2
+            return myresid.flatten()
         
-    def get_fit_pup(self,name,beam_nr,visual_feedback,**params):
+        res = minimize(residual, param, args=[myframe_bin, noise])
+        
+        #-------------#
+        # Fit results #
+        #-------------#
+        # Fitted centroid & radius
+        centroid_x_fit = res.params["x_loc"]*mybinx
+        centroid_y_fit = res.params["y_loc"]*mybiny
+        # Only considering circular beams
+        radius_fit = res.params["radius"]*mybinx
+        
+        #-----------------#
+        # Visual feedback #
+        #-----------------#
+        if visual_feedback:
+            
+            fig = plt.figure(figsize=(15,10))
+            ax = fig.add_subplot(111)
+            img = ax.imshow(myframe)
+            
+            fit_beam = Circle((centroid_x_fit, centroid_y_fit), radius_fit, 
+                            color='blue', fill=False, linewidth=2,ls=":",label="Current")
+            ref_beam = Circle((ref[0], ref[1]), ref[2], 
+                            color='red', fill=False, linewidth=5,label="Reference")
+            
+            ax.add_patch(fit_beam)
+            ax.add_patch(ref_beam)
+            
+            # Set tick labels
+            Nticks = 10
+            xticks = np.linspace(0,w-1,Nticks)
+            yticks = np.linspace(0,h-1,Nticks)
+            labelsx = np.round(np.linspace(0,w-1,Nticks)*2.4,0)
+            labelsy = np.round(np.linspace(0,h-1,Nticks)*2.4,0)
+            ax.axes.get_xaxis().set_ticks(xticks)
+            ax.axes.get_yaxis().set_ticks(yticks)
+            ax.set_xticklabels(labelsx)
+            ax.set_yticklabels(labelsy)
+            
+            # Add axis labels
+            ax.set_xlabel('Relative Position (um)', fontsize=14)
+            ax.set_ylabel('Relative Position (um)', fontsize=14)
+            
+            clb = plt.colorbar(img)
+            clb.ax.set_title('Counts',fontsize=12)
+            ax.legend()
+            ax.grid(color="white",linestyle="--",linewidth=0.5)
+            
+            fig.suptitle("Pupil camera view", fontsize=24)
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+            fig.show()
+            
+        return centroid_x_fit,centroid_y_fit,radius_fit
+    
+    def get_fit_pup(self,beam_nr,visual_feedback,**params):
         """
         Fit for the centroid position and radius of a single beam that is visible on the pupil camera.
         beam_nr is either 1,2,3 or 4. Beams are numbered counting towards the bench edge; beam 1 is the innermost one, beam 4 the outermost one.
         If "visual_feedback" is True, the frame and identified centroid / beam size are plotted.
         """
-        
-        if not isinstance(name,str):
-            name = str(name)
-        
         # Unpack parameters
         sigma,mybinx,mybiny,perc_grad_low,perc_grad_high,perc_int = params["sigma"],params["mybinx"],params["mybiny"],params["perc_grad_low"],params["perc_grad_high"],params["perc_int"]
         # Name of considered beam
         beam_name = "beam"+str(beam_nr)
         # Reference state of considered beam
-        ref = ref_state[name][beam_name]
+        ref = ref_state["pup_cam"][beam_name]
         # Binning function
         def bin_frame(data, binning_x, binning_y):
             h, w = data.shape
@@ -416,7 +555,7 @@ class Utils:
         #---------------------------------------#
         # Taking frame, smoothening and binning #
         #---------------------------------------#
-        myframe,w,h = self.get_frame(name)
+        myframe,w,h = self.get_frame("pup_cam")
         myframe_smooth = gaussian_filter(myframe,sigma)
         myframe_smooth_bin = bin_frame(myframe_smooth,mybinx,mybiny)
         myframe_bin = bin_frame(myframe,mybinx,mybiny)
@@ -512,23 +651,26 @@ class Utils:
             ax.add_patch(ref_beam)
             
             # Set tick labels
-            xticks = np.linspace(0,w-1,5)
-            yticks = np.linspace(0,h-1,5)
-            labelsx = np.round(np.linspace(0,w-1,5)*2.4,0)
-            labelsy = np.round(np.linspace(0,h-1,5)*2.4,0)
+            Nticks = 10
+            xticks = np.linspace(0,w-1,Nticks)
+            yticks = np.linspace(0,h-1,Nticks)
+            labelsx = np.round(np.linspace(0,w-1,Nticks)*2.4,0)
+            labelsy = np.round(np.linspace(0,h-1,Nticks)*2.4,0)
             ax.axes.get_xaxis().set_ticks(xticks)
             ax.axes.get_yaxis().set_ticks(yticks)
             ax.set_xticklabels(labelsx)
             ax.set_yticklabels(labelsy)
             
             # Add axis labels
-            ax.set_xlabel('Relative X Position (um)', fontsize=14)
-            ax.set_ylabel('Relative Y Position (um)', fontsize=14)
+            ax.set_xlabel('Relative Position (um)', fontsize=14)
+            ax.set_ylabel('Relative Position (um)', fontsize=14)
             
-            plt.colorbar(img)
+            clb = plt.colorbar(img)
+            clb.ax.set_title('Counts',fontsize=12)
             ax.legend()
+            ax.grid(color="white",linestyle="--",linewidth=0.5)
             
-            fig.suptitle(name+" view", fontsize=24)
+            fig.suptitle("Pupil camera view", fontsize=24)
             fig.canvas.draw()
             fig.canvas.flush_events()
             fig.show()
