@@ -362,12 +362,12 @@ class Utils:
             img = ax.imshow(myframe)
             
             fit_beam = Circle((centroid_x_fit, centroid_y_fit), radius_fit, 
-                            color='blue', fill=False, linewidth=2,ls=":")
+                            color='blue', fill=False, linewidth=2,ls=":",label="Current")
             ref_beam = Circle((ref[0], ref[1]), ref[2], 
-                            color='red', fill=False, linewidth=5)
+                            color='red', fill=False, linewidth=5,label="Reference")
             
-            ax.add_patch(fit_beam,label="Current")
-            ax.add_patch(ref_beam,label="Reference")
+            ax.add_patch(fit_beam)
+            ax.add_patch(ref_beam)
             
             # Set tick labels
             xticks = np.linspace(0,w-1,w)
@@ -500,12 +500,12 @@ class Utils:
             img = ax.imshow(myframe)
             
             fit_beam = Circle((centroid_x_fit, centroid_y_fit), radius_fit, 
-                            color='blue', fill=False, linewidth=2,ls=":")
+                            color='blue', fill=False, linewidth=2,ls=":",label="Current")
             ref_beam = Circle((ref[0], ref[1]), ref[2], 
-                            color='red', fill=False, linewidth=5)
+                            color='red', fill=False, linewidth=5,label="Reference")
             
-            ax.add_patch(fit_beam,label="Current")
-            ax.add_patch(ref_beam,label="Reference")
+            ax.add_patch(fit_beam)
+            ax.add_patch(ref_beam)
             
             # Set tick labels
             xticks = np.linspace(0,w-1,w)
