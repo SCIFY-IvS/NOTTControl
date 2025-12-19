@@ -459,10 +459,10 @@ class Utils:
         param = Parameters()
         param.add("x_loc", centroid_x, min=0, max=w)
         param.add("y_loc", centroid_y, min=0, max=h)
-        param.add("radius", radius, min=0.5*radius, max=1.5*radius, vary=True)
-        param.add("flux", flux, min = 0.5*flux, max = 1.5*flux, vary=True)
+        param.add("radius", radius, min=0.01*radius, max=5*radius, vary=True)
+        param.add("flux", flux, min = 0.01*flux, max = 5*flux, vary=True)
     
-        refearray = np.zeros_like(myframe)
+        refearray = np.zeros_like(myframe_bin)
 
         def disc(aparam):
             model = np.zeros(refearray.shape)
