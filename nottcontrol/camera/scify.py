@@ -159,6 +159,7 @@ class MainWindow(QMainWindow):
     
     def load_roi_config(self, config):
         self.roi_config = []
+        i = 1
         for roi_widget in self.roi_widgets:
             try:
                 roi_config = self.load_roi_from_config(config, roi_widget.name)
@@ -166,6 +167,7 @@ class MainWindow(QMainWindow):
                 print(f'Failed to load roi configuration for {roi_widget.name}, using default')
                 roi_config = Roi(i*100, 600, 50,50)
             roi_widget.setConfig(roi_config)
+            i += 1
             
     def load_roi_from_config(self, config, adr):
         roi_string = config['CAMERA'][adr]
