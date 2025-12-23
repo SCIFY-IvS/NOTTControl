@@ -2470,6 +2470,19 @@ class alignment:
     # Performance characterization / Testing #
     ##########################################
     
+    def cam_read(self,dt):
+    # Function that retrieves the average ROI values - registered in the REDIS database - from the past dt seconds.
+    
+    # REDIS field names
+    names = ["roi1_avg","roi2_avg","roi3_avg","roi4_avg","roi5_avg","roi6_avg","roi7_avg","roi8_avg","roi9_avg","roi10_avg"]
+    
+    # Readout "dt" seconds back in time
+    t_start,t_stop = define_time(dt)
+    
+    output = [get_field(names[i],t_start,t_stop,False) for i in range(0,len(names))]
+    
+    return output
+    
     def cam_read_test(self,config):
     # Function to test the readout of the camera ROIs from the REDIS database
         
