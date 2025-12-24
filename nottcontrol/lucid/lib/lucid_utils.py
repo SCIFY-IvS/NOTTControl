@@ -363,7 +363,7 @@ class Utils:
         flux = np.sum(myframe_bin[mask_circle])
         print("Flux guess: ", flux*mybinx*mybiny)
         # Detector noise estimate (TBD)
-        amin, amax = np.percentile(myframe, 95.), np.percentile(myframe, 99.)
+        amin, amax = np.percentile(myframe, 99.5.), np.percentile(myframe, 99.9)
         amask =  (myframe <= amax) * (myframe >= amin)
         noise = np.std(myframe[amask])
         print("Noise estimation: ", noise)

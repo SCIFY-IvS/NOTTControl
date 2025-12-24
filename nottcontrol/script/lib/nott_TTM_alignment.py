@@ -242,7 +242,7 @@ class alignment:
         self.N = eqns_.copy()
         
         # Defining actuator positions corresponding to an aligned & injecting state.
-        self.act_pos_align = np.array([[0,0,0,0],[2.928549,2.690405,3.3754655,3.870572],[0,0,0,0],[0,0,0,0]],dtype=np.float64)
+        self.act_pos_align = np.array([[4.172522,4.7416215,4.7712065,3.676958],[3.0494205,3.4115165,4.4507735,3.7884355],[4.3811115,4.759281,4.7679125,3.1275005],[4.8730765,4.678456,4.819549,3.992511]],dtype=np.float64)
         
         '''
         # Opening all shutters
@@ -2473,15 +2473,15 @@ class alignment:
     def cam_read(self,dt):
     # Function that retrieves the average ROI values - registered in the REDIS database - from the past dt seconds.
     
-    # REDIS field names
-    names = ["roi1_avg","roi2_avg","roi3_avg","roi4_avg","roi5_avg","roi6_avg","roi7_avg","roi8_avg","roi9_avg","roi10_avg"]
-    
-    # Readout "dt" seconds back in time
-    t_start,t_stop = define_time(dt)
-    
-    output = [get_field(names[i],t_start,t_stop,False) for i in range(0,len(names))]
-    
-    return output
+        # REDIS field names
+        names = ["roi1_avg","roi2_avg","roi3_avg","roi4_avg","roi5_avg","roi6_avg","roi7_avg","roi8_avg","roi9_avg","roi10_avg"]
+        
+        # Readout "dt" seconds back in time
+        t_start,t_stop = define_time(dt)
+        
+        output = [get_field(names[i],t_start,t_stop,False) for i in range(0,len(names))]
+        
+        return output
     
     def cam_read_test(self,config):
     # Function to test the readout of the camera ROIs from the REDIS database
