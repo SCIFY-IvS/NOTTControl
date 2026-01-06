@@ -2,10 +2,10 @@ import os
 import ctypes
 
 class MacieInterface():
-    def __init__(self):
+    def __init__(self, offline_mode = True):
         self._macielib = ctypes.CDLL("macie_exe/libmacie_interface.so", mode = os.RTLD_LAZY)
         
-        self._macielib.M_initialize.argtypes = [ctypes.c_char_p]
+        self._macielib.M_initialize.argtypes = [ctypes.c_char_p, ctypes.c_bool]
         self._macielib.M_powerOn.argtypes = []
         self._macielib.M_powerOff.argtypes = []
         self._macielib.M_getPower.argtypes = []
@@ -15,7 +15,7 @@ class MacieInterface():
 
         #Load ctypes dll, and call initialize
         #Should the config file be part of the constructor, or hard-coded?
-        self._macielib.M_initialize(b"macie_exe/config_files/basic_warm_slow.cfg")
+        self._macielib.M_initialize(b"macie_exe/config_files/basic_warm_slow.cfg", offline_mode)
     
     def __enter__(self):
         self.init_camera()

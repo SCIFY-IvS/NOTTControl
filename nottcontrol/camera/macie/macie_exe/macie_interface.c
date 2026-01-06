@@ -10,14 +10,18 @@
 string _configFile = "";
 MACIE_Settings *_ptUserData;
 
-extern "C" int M_initialize(const char* configFile)
+extern "C" int M_initialize(const char* configFile, bool offline_mode)
 {
     string cfgFile = string(configFile);
-    printf("Calling initialize, configfile %s", configFile);
+    printf("Calling initialize, configfile %s, offline_mode %d \n", configFile, offline_mode);
     _configFile = cfgFile;
     _ptUserData = new MACIE_Settings;
-    return initialize(cfgFile, _ptUserData);
-    //return 1;
+    int ret = initialize(cfgFile, _ptUserData);
+    if(offline_mode)
+    {
+        toggle_offline_testing(true, _ptUserData);
+    }
+    return ret;
 }
 extern "C" void M_acquire(const bool no_recon)
 {
