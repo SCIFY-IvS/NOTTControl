@@ -232,6 +232,11 @@ void acquire(bool no_recon, MACIE_Settings *ptUserData )
     }
 }
 
+void toggle_offline_testing(bool offline_testing, MACIE_Settings *ptUserData)
+{
+    ptUserData->offline_develop = offline_testing;
+}
+
 // Run command line executable:
 //  $ ./macieacq config_files/basic_slow_HxRG_warm.cfg
 int main(int argc, char *argv[])
