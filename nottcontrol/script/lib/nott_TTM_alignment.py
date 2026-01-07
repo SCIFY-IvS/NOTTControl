@@ -242,7 +242,7 @@ class alignment:
         self.N = eqns_.copy()
         
         # Defining actuator positions corresponding to an aligned & injecting state.
-        self.act_pos_align = np.array([[4.172522,4.7416215,4.7712065,3.676958],[3.0494205,3.4115165,4.4507735,3.7884355],[4.3811115,4.759281,4.7679125,3.1275005],[4.8730765,4.678456,4.819549,3.992511]],dtype=np.float64)
+        self.act_pos_align = np.array([[4.1503485,4.683458,4.8155535,3.7141985],[3.6502095,3.4818495,4.5511795,3.8486425],[4.326547,4.7265545,4.751717,3.167242],[4.8233615,4.648322,4.8802135,4.002576]],dtype=np.float64)
         
         '''
         # Opening all shutters

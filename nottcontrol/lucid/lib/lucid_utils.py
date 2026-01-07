@@ -264,7 +264,7 @@ class Utils:
     
         self.streaming[name] = False
         
-    def get_frame(self,name): # To be checked : Is "with device.start_stream()" superior?
+    def get_frame(self,name): 
         """Retrieve a frame (and its width & height) from camera "name"."""
         
         if not isinstance(name,str):
@@ -273,17 +273,16 @@ class Utils:
         device = self.devices[name]
         nodemap = device.nodemap
         
-        if not self.streaming[name]:
-            raise Exception(f'Camera {name} is not streaming, cannot read frames.')
+        with device.start_stream():
         
-        buffer = device.get_buffer()
-        frame = np.array(buffer.data, dtype=np.uint8)
-        frame = frame.reshape(buffer.height, buffer.width)
-        # Width and height
-        w = nodemap["Width"].value
-        h = nodemap["Height"].value
-        # Requeue to release buffer memory
-        device.requeue_buffer(buffer)
+            buffer = device.get_buffer()
+            frame = np.array(buffer.data, dtype=np.uint8)
+            frame = frame.reshape(buffer.height, buffer.width)
+            # Width and height
+            w = nodemap["Width"].value
+            h = nodemap["Height"].value
+            # Requeue to release buffer memory
+            device.requeue_buffer(buffer)
         
         return frame,w,h
     
