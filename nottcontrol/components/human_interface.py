@@ -42,6 +42,7 @@ class HumInt(object):
         # self.lamb_max = lam_range[-1]
         self.lam_mean = lam_mean
         self.pad = pad
+        self.shutter_pad = 5.5
         self.interf = interf
         self.act_index = act_index
         self.non_motorized = non_motorized # Index of the non-mororized beam
@@ -60,8 +61,8 @@ class HumInt(object):
                 f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutterid+1}",
                 f"NSH{shutterid+1}",
                 speed=15.0*1e3,
-                open_pos=-64.0,
-                close_pos=-36.0)\
+                open_pos=5.0,
+                close_pos=35.0)\
              for shutterid in range(4)
         ]
 
@@ -258,14 +259,29 @@ class HumInt(object):
         plt.ylabel("Amplitude of light variation")
         plt.show()
 
-    def shutter_set(self, values):
+    def shutter_set(self, values, wait=True, verbose=False):
+        if not isinstance(values, np.ndarray):
+            thevalues = np.array(values)
+        else:
+            thevalues = values
         for i, ashutter in enumerate(self.shutters):
             values_bool = values.astype(bool)
             if values_bool[i]:
                 ashutter.open()
             else:
                 ashutter.close()
-        sleep(self.pad)
+        if wait:
+            sleep(self.shutter_pad)
+        if verbose:
+            for i, ashutter in enumerate(self.shutters):
+                print(i, ashutter.getStatusInformation()[1], ashutter.getPositionAndSpeed()[0])
+
+    def dark_sequence(self, dt=0.5, verbose=False):
+        self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
+        mydark = self.get_dark(dt=dt)
+        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
+        return mydark
+        
 
     def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
                     offset_scan=0., saveto="/dev/shm/cal_raw.fits",
