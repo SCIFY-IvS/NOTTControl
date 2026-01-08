@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
             #base_path = r"Y:\Documents\Scify\Frames\frame_"
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
-            filename = timestamp.strftime("%H%M%S%f") + ".png"
+            filename = timestamp.strftime("%H%M%S%f")[:-3] + ".png"
             filepath = str(Path.joinpath(directory, filename))
             
             if self.recording:
