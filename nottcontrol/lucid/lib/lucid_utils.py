@@ -84,9 +84,7 @@ class Utils:
     import lucid_utils
     with lucid_utils.Utils() as utils:
         
-        utils.start_streaming("im_cam")
         frame,width,height = utils.get_frame("im_cam")
-        utils.stop_streaming("im_cam")
         
     '''
  
@@ -275,6 +273,7 @@ class Utils:
         
         with device.start_stream():
         
+            self.streaming[name] = True
             buffer = device.get_buffer()
             frame = np.array(buffer.data, dtype=np.uint8)
             frame = frame.reshape(buffer.height, buffer.width)
@@ -283,6 +282,8 @@ class Utils:
             h = nodemap["Height"].value
             # Requeue to release buffer memory
             device.requeue_buffer(buffer)
+        
+        self.streaming[name] = False
         
         return frame,w,h
     
@@ -362,7 +363,7 @@ class Utils:
         flux = np.sum(myframe_bin[mask_circle])
         print("Flux guess: ", flux*mybinx*mybiny)
         # Detector noise estimate (TBD)
-        amin, amax = np.percentile(myframe, 99.5.), np.percentile(myframe, 99.9)
+        amin, amax = np.percentile(myframe, 99.5), np.percentile(myframe, 99.9)
         amask =  (myframe <= amax) * (myframe >= amin)
         noise = np.std(myframe[amask])
         print("Noise estimation: ", noise)
