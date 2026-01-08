@@ -272,8 +272,6 @@ class MainWindow(QMainWindow):
         self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
         self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
         self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
-
-        self.set_brightness_auto()
             
     def disconnect_camera(self):
         if not self.connected:
@@ -401,6 +399,7 @@ class MainWindow(QMainWindow):
         if not self.imageInit:
             self.set_window()
             self.initialize_image_display(img)
+            self.set_brightness_auto()
         else:
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
