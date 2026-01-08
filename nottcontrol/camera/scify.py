@@ -144,13 +144,15 @@ class MainWindow(QMainWindow):
             directory.mkdir(parents=True, exist_ok=True)
             filename = timestamp.strftime("%H%M%S%f")[:-3] + ".png"
             filepath = str(Path.joinpath(directory, filename))
+
+            recording = self.recording
             
-            if self.recording:
+            if recording:
                 print(f"Saving {filepath} ...")
                 thread = threading.Thread(target = cv2.imwrite, args =(filepath, img))
                 thread.start()
 
-            if self.recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
+            if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
 
             #If coadding, check to see if we have the required amount of frames
@@ -172,7 +174,7 @@ class MainWindow(QMainWindow):
                 tLastUpdate = t
                 self.request_image_update.emit(img)
             
-            if self.recording:
+            if recording:
                 thread.join()
     
     def load_roi_config(self, config):
