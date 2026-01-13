@@ -28,6 +28,7 @@ from enum import Enum
 from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.roiwidget import RoiWidget
 import queue
+from pathlib import Path
 
 t=time.perf_counter()
 tLive=t
@@ -131,11 +132,27 @@ class MainWindow(QMainWindow):
 
     def process_frame(self):
         tLastUpdate = time.perf_counter()
+        base_path = config["DEFAULT"]["frame_directory"]
+        print(f"base directory: {base_path}")
         while True:
             item = self.roi_queue.get()
             img = item[0]
+
             timestamp = item[1]
-            if self.recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
+            #base_path = r"Y:\Documents\Scify\Frames\frame_"
+            directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
+            directory.mkdir(parents=True, exist_ok=True)
+            filename = timestamp.strftime("%H%M%S%f")[:-3] + ".png"
+            filepath = str(Path.joinpath(directory, filename))
+
+            recording = self.recording
+            
+            if recording:
+                print(f"Saving {filepath} ...")
+                thread = threading.Thread(target = cv2.imwrite, args =(filepath, img))
+                thread.start()
+
+            if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
 
             #If coadding, check to see if we have the required amount of frames
@@ -156,6 +173,9 @@ class MainWindow(QMainWindow):
             if (t-tLastUpdate) > 0.4 and not coadd_in_process:
                 tLastUpdate = t
                 self.request_image_update.emit(img)
+            
+            if recording:
+                thread.join()
     
     def load_roi_config(self, config):
         self.roi_config = []
