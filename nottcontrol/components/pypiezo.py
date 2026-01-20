@@ -11,29 +11,32 @@ import numpy as np
 import serial
 import threading
 import time
-gain = 4000.0/9.5 # ADU / microns
-gains = gain*np.ones(4)
-port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
+from nottcontrol import config as nott_config
+
+default_gains = list(map(int,nott_config['PIEZO']['default_gains'].split(',')))
+default_offsets = list(map(int,nott_config['PIEZO']['default_offsets'].split(',')))
+default_min_volt = int(nott_config['PIEZO']['default_min_volt'])
+default_max_volt = int(nott_config['PIEZO']['default_max_volt'])
+default_port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
                      "bytesize":serial.EIGHTBITS, "parity":"N",
                      "stopbits":1}
+
 class piezointerface(object):
-    def __init__(self, n=4, gains=gains, offsets=None,
-                 port_params=port_params,):
+    def __init__(self, n=4, gains=default_gains, offsets=default_offsets, raw_value_min=default_min_volt, raw_value_max=default_max_volt,
+                 port_params=default_port_params,):
         print("Opening the interface")
         try :
             self.ser = serial.Serial(**port_params)
         except :
             self.ser = None
             print("Could not open the serial port")
-        self.value_min = 0
-        self.value_max = 9.5
+            
+        self.gains = gains
+        self.offsets = offsets
+        self.raw_value_min = raw_value_min
+        self.raw_value_max = raw_value_max
         self.n = n
         self.values = np.zeros(self.n)
-        if offsets is None:
-            self.offsets = np.zeros(n)
-        else:
-            self.offsets = offsets
-        self.gains = gains
         self.raw_values = self.values2raw(self.values)
 
         self.listening = True
@@ -58,7 +61,8 @@ class piezointerface(object):
         
     def get_raw_values(self):
         return self.raw_values
-        
+     
+    # TBD for index 1, which shows a non-linear translation between voltage and position.
     def values2raw(self, values):
         raw = ((values + self.offsets) * self.gains).astype(int)
         return self.sanitize_raws(raw)
@@ -97,10 +101,12 @@ class piezointerface(object):
         self._send()
         
     def sanitize_values(self, values):
-        return np.clip(values, self.value_min, self.value_max)
+        values_min = self.raw2values(self.raw_value_min)
+        values_max = self.raw2values(self.raw_value_max)
+        return np.clip(values, values_min, values_max)
         
     def sanitize_raws(self, raws):
-        newraws = np.clip(raws, 0, 4000)
+        newraws = np.clip(raws, self.raw_value_min, self.raw_value_max)
         return newraws
         
     def vals2bytes(self, mystring, myarray):

@@ -35,12 +35,14 @@ tLive=t
 
 img_timestamp_ref = None
 
+use_camera_time_ = bool(config['CAMERA']['use_camera_time'])
+
 def callback(context,*args):#, aHandle, aStreamIndex):
     recording_timestamp = datetime.utcnow()
     
     global img_timestamp_ref
     
-    context.load_image(recording_timestamp)
+    context.load_image(recording_timestamp,use_camera_time_)
 
 class MainWindow(QMainWindow):
     #Without this call, the GUI is resized and tiny
@@ -339,7 +341,7 @@ class MainWindow(QMainWindow):
         self.background_img = self.image.getImageItem().image
         self.ui.checkBox_subtractbackground.setEnabled(True)
     
-    def load_image(self, recording_timestamp):  
+    def load_image(self, recording_timestamp, use_camera_time):  
         global t
         global tLive
         global img_timestamp_ref
@@ -373,7 +375,10 @@ class MainWindow(QMainWindow):
             #Use the first 100 frames purely to establish time
             return
         
-        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
+        if use_camera_time:
+            timestamp = timedelta(milliseconds=timestamp_offset)
+        else:
+            timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
         
         if(self.roi_queue.qsize() > 5):
