@@ -44,7 +44,7 @@ class Frame():
         # ROIs
         rois_crop_ = []
         rois_data_ = [] 
-        for k in range(0,10):
+        for k in range(0,8):
             # ROI positions within windowed frame
             x,y,w,h = int(rois_[k].x-window_["x"]),int(rois_[k].y-window_["y"]),int(rois_[k].w),int(rois_[k].h)
             i1,i2,j1,j2 = y,y+h,x,x+w
@@ -73,7 +73,7 @@ class Frame():
         # ROIs
         rois_crop_ = []
         rois_data_ = []
-        for k in range(0,10):
+        for k in range(0,8):
             # ROI positions within windowed frame
             x,y,w,h = int(rois_[k].x-self.window["x"]),int(rois_[k].y-self.window["y"]),int(rois_[k].w),int(rois_[k].h)
             i1,i2,j1,j2 = y,y+h,x,x+w

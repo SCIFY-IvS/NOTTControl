@@ -229,7 +229,6 @@ class HumInt(object):
         # 'frame' : frame containing calibrated signal-to-noise-ratio data, instance of the Frame class
         # 'snr' : SNR threshold for identification of outputs
         # ! Function to be performed when not in a state of null
-        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         outputs_pos = (frame.data >= snr_thresh)
         # Returning mask as Frame object
         outputs_mask = frame.copy()
