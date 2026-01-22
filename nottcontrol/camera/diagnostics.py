@@ -22,6 +22,8 @@ import nottcontrol.components.human_interface as human_interface
 from nottcontrol import redisclient
 
 pix_to_lamb = list(map(float,nott_config['CAMERA']['pix_to_lamb'].split(',')))
+low_lamb = float(nott_config['CAMERA']['low_lamb'])
+up_lamb = float(nott_config['CAMERA']['up_lamb'])
 
 class Diagnostics():
 
@@ -103,49 +105,61 @@ class Diagnostics():
         self.infra_interf.setparam_idx_int32(262,0,integtime_32)
         return
 
-    # Upper-level: Data exchange and synchronization + calculating diagnostics for a demanded time series
-    def diagnose(self,dt,visual_feedback):
+    def diagnose(self,dt,visual_feedback=True,custom_lambs=False):
     
-        # Fetching master science frame
-        master_sci_frame = self.human_interf.science_frame_sequence(dt)
-        # Flux,snr of chip outputs in master science frame
-        flux,snr = self.diagnose_frame(master_sci_frame)
+        if custom_lambs:
+            lambs = pix_to_lamb
+        else:
+            lambs = np.linspace(low_lamb,up_lamb,self.output_height)
+    
+        # Fetching master science frame and time series of broadband flux/snr in constituent frames
+        master_sci_frame,flux_broad,snr_broad = self.human_interf.science_frame_sequence(dt)
+        # Dispersed flux,snr of chip outputs in master science frame
+        _,_,flux_disp,snr_disp = self.diagnose_frame(master_sci_frame,broadband=False)
         # Timestamps of individual frames
         stamps = master_sci_frame.id
-        # Fetching time series of spatial average flux over ROIs
-        spat_avg = []
-        for i in range(0,8):
-            spat_avg.append(get_field("roi"+str(i+1)+"_avg",np.min(stamps),np.max(stamps),False)[:,1])
         
         if visual_feedback:
-            fig,axs = plt.subplots(3)
-            fig.suptitle("Diagnostics in time frame "+str([np.min(stamps),np.max(stamps)]+" (ms)"))
+            fig,axs = plt.subplots(4)
+            fig.suptitle("Diagnostics of chip outputs in time frame "+str([np.min(stamps),np.max(stamps)]+" (ms)"))
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']            
             for i in range(0,8):
-                axs[0].scatter(stamps,spat_avg[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-                axs[1].scatter(pix_to_lamb,flux[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-                axs[2].scatter(pix_to_lamb,snr[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-    
+                axs[0].scatter(stamps,flux_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+                axs[1].scatter(stamps,snr_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+            for i in range(2,6):
+                axs[2].scatter(lambs,flux_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+                axs[3].scatter(lambs,snr_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+            # Differential null
+            axs[2].scatter(lambs,flux_disp[4]-flux_disp[3],color=colors[7],marker=markers[7],label="Diff. null")
+            axs[3].scatter(lambs,snr_disp[4]-snr_disp[3],color=colors[7],marker=markers[7],label="Diff. null")
+
             axs[0].set_xlabel("Time (ms)")
-            axs[1].set_xlabel("Wavelength (micron)")
+            axs[1].set_xlabel("Time (ms)")
             axs[2].set_xlabel("Wavelength (micron)")
-            axs[0].set_ylabel("Flux avg (counts)")
-            axs[1].set_ylabel("Flux avg (counts)")
-            axs[2].set_ylabel("SNR")
+            axs[3].set_xlabel("Wavelength (micron)")
+            axs[0].set_ylabel("Flux sum (counts)")
+            axs[1].set_ylabel("SNR")
+            axs[2].set_ylabel("Flux sum (counts)")
+            axs[3].set_ylabel("SNR")
     
-            axs[0].title.set_text("Raw flux readout")
-            axs[1].title_set_text("Calibrated chip output fluxes")
-            axs[2].title_set_text("Calibrated chip output SNR")
+            axs[0].title.set_text("Broadband Flux")
+            axs[1].title_set_text("Broadband SNR")
+            axs[1].title_set_text("Dispersed Flux")
+            axs[2].title_set_text("Dispersed SNR")
     
-            axs[0].legend(loc="upper right")
-            axs[1].legend(loc="upper right")
-            axs[2].legend(loc="upper right")
+            for i in range(0,4):
+                axs[i].legend(loc="upper right")
     
-        return stamps,avg,flux,snr
+            plt.tight_layout()
+            # Showing
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+    
+        return stamps,flux_broad,snr_broad,flux_disp,snr_disp
     
     # Lower-level: Calculating diagnostics for a single camera frame
-    def diagnose_frame(self,frame,master_dark=self.master_dark,master_flat=self.master_flat,bg_noise=self.bg_noise):
+    def diagnose_frame(self,frame,master_dark=self.master_dark,master_flat=self.master_flat,bg_noise=self.bg_noise,broadband):
         '''
         Parameters
         ----------
@@ -157,8 +171,9 @@ class Diagnostics():
             Master flat frame
         bg_noise : Instance of the Frame class
             Background noise frame
-        visual_feedback : boolean
-            True if visual feedback is desired.
+        broadband : Boolean
+            If True, only compute the broadband flux inside the chip outputs
+            If False, only compute the dispersed flux inside the chip outputs
         '''
                 
         # Calibrating frame
@@ -170,24 +185,42 @@ class Diagnostics():
         Nroi = len(rois_s)
         
         # Gathering fluxes,snr
-        flux = [np.zeros(self.output_height)]*Nroi
-        snr = [np.zeros(self.output_height)]*Nroi
-        for i in range(0,Nroi):
-            px_outputs = self.ind_outputs_sorted[i]
-            for px in px_outputs:
-                k,l = px[0],px[1]
-                flux_px = rois_s[i][k,l]
-                snr_px = rois_snr[i][k,l]
-                idx = k-self.output_top_idx
-                flux[i][idx] += flux_px
-                snr[i][idx] += snr_px
+        flux_broad = np.zeros(Nroi)
+        snr_broad = np.zeros(Nroi)
+        flux_disp = [np.zeros(self.output_height)]*Nroi
+        snr_disp = [np.zeros(self.output_height)]*Nroi
         
-        # Arrays 'flux' & 'snr' now contain
-        # > 1st index a : ROI (chip output) number (0,1,2,...,6,7)
-        # > 2nd index b : index of pixel row within the ROI (0,1,...,self.output_height)
-        # flux[a][b] is then the flux value in ROI a, summed for all output (identified by SNR criterion) pixels in the row b.
+        if broadband:
+            for i in range(0,Nroi):
+                px_outputs = self.ind_outputs_sorted[i]
+                for px in px_outputs:
+                    k,l = px[0],px[1]
+                    flux_px = rois_s[i][k,l]
+                    snr_pix = rois_snr[i][k,l]
+                    flux_broad[i] += flux_px
+                    snr_broad[i] += snr_pix
+                    
+            # Arrays 'flux_broad' & 'snr_broad' now contain
+            # > 1st index a : ROI (chip output) number (0,1,2,...,6,7)
+            # flux_broad[a] is the total, broadband flux in chip output a
         
-        return flux,snr
+        if not broadband:
+            for i in range(0,Nroi):
+                px_outputs = self.ind_outputs_sorted[i]
+                for px in px_outputs:
+                    k,l = px[0],px[1]
+                    flux_px = rois_s[i][k,l]
+                    snr_px = rois_snr[i][k,l]
+                    idx = k-self.output_top_idx
+                    flux_disp[i][idx] += flux_px
+                    snr_disp[i][idx] += snr_px
+        
+            # Arrays 'flux_disp' & 'snr_disp' now contain
+            # > 1st index a : ROI (chip output) number (0,1,2,...,6,7)
+            # > 2nd index b : index of pixel row within the ROI (0,1,...,self.output_height)
+            # flux[a][b] is then the flux value in ROI a, summed for all output (identified by SNR criterion) pixels in the row b.
+        
+        return flux_broad,snr_broad,flux_disp,snr_disp
         
         
         

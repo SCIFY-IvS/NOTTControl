@@ -18,6 +18,7 @@ mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.camera.frame import Frame
+from nottcontrol.camera.diagnostics import Diagnostics
 from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
 
@@ -36,7 +37,7 @@ class HumInt(object):
                 opcuad=opcuad,
                 nb_beams=4,
                 non_motorized=0,
-                offset = 8.0):
+                offset = 8.0,snr_thresh=5):
         # self.lamb_min = lam_range[0]
         # self.lamb_max = lam_range[-1]
         self.lam_mean = lam_mean
@@ -64,7 +65,7 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
-
+        self.diagnostics = Diagnostics(snr_thresh)
         self.move(np.array([0., 0., 0., 0.]))
 
     # Auxiliary functions
@@ -177,6 +178,13 @@ class HumInt(object):
         frames = []
         for stamp in stamps:
             frames.append(Frame(stamp))
+        # Calculate time series of broadband fluxes
+        flux_broad = []
+        snr_broad = []
+        for frame in frames:
+            flux_broad_,snr_broad_,_,_ = self.diagnostics.diagnose_frame(frame,broadband=True)
+            flux_broad.append(flux_broad_)
+            snr_broad.append(snr_broad_)
         # Master frame
         master_full = np.mean([frame.data for frame in frames],axis=0)
         # Background noise
@@ -192,12 +200,14 @@ class HumInt(object):
         master_frame.set_data(master_full)
         bg_noise_frame.set_data(bg_noise)
         
-        return master_frame,bg_noise_frame
+        return master_frame,bg_noise_frame,flux_broad,snr_broad
 
     def science_frame_sequence(self, dt, verbose=False):
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
-        master,_ = self.get_master_frame(dt) 
-        return master
+        master,_,flux_broad,snr_broad = self.get_master_frame(dt) 
+        flux_broad = np.transpose(flux_broad)
+        snr_broad = np.transpose(snr_broad)
+        return master,flux_broad,snr_broad
 
     def dark_sequence(self, dt=0.5, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
@@ -207,7 +217,7 @@ class HumInt(object):
         
     def dark_frame_sequence(self, dt, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
-        master,bg_noise = self.get_master_frame(dt) 
+        master,bg_noise,_,_ = self.get_master_frame(dt) 
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         return master,bg_noise
 
