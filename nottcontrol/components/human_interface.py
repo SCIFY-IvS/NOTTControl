@@ -235,14 +235,28 @@ class HumInt(object):
         frame_cal_snr.set_data(snr)
         return frame_cal,frame_cal_snr
 
-    def identify_outputs(self,frame,snr_thresh):
+    def identify_outputs(self,frame,use_geom,snr_thresh):
         # 'frame' : frame containing calibrated signal-to-noise-ratio data, instance of the Frame class
-        # 'snr' : SNR threshold for identification of outputs
+        # 'use_geom' : If True, the ROIs - defined within the Frame object - are used to define the outputs. If False, the SNR threshold is used.
+        # 'snr_thresh' : SNR threshold for identification of outputs, only used when 'use_geom' is False.
         # ! Function to be performed when not in a state of null
-        outputs_pos = (frame.data >= snr_thresh)
-        # Returning mask as Frame object
-        outputs_mask = frame.copy()
-        outputs_mask.set_data(outputs_pos)
+        if use_geom:
+            shape = (frame.height,frame.width)
+            outputs_pos = np.zeros(shape,dtype=bool)
+            for roi_crop in frame.rois_crop:
+                x,y,w,h = roi_crop.x,roi_crop.y,roi_crop.w,roi_crop.h
+                i1,i2,j1,j2 = y,y+h,x,x+w
+                outputs_pos[i1:i2,j1:j2] = True
+            # Returning mask as Frame object
+            outputs_mask = frame.copy()
+            outputs_mask.set_data(outputs_pos)
+                
+        if not use_geom:
+            outputs_pos = (frame.data >= snr_thresh)
+            # Returning mask as Frame object
+            outputs_mask = frame.copy()
+            outputs_mask.set_data(outputs_pos)
+        
         return outputs_mask
 
     # Surface level functions
