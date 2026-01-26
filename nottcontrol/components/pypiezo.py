@@ -13,8 +13,8 @@ import threading
 import time
 from nottcontrol import config as nott_config
 
-default_gains = list(map(int,nott_config['PIEZO']['default_gains'].split(',')))
-default_offsets = list(map(int,nott_config['PIEZO']['default_offsets'].split(',')))
+default_gains = list(map(float,nott_config['PIEZO']['default_gains'].split(',')))
+default_offsets = list(map(float,nott_config['PIEZO']['default_offsets'].split(',')))
 default_min_volt = int(nott_config['PIEZO']['default_min_volt'])
 default_max_volt = int(nott_config['PIEZO']['default_max_volt'])
 default_port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
@@ -68,8 +68,9 @@ class piezointerface(object):
         return self.sanitize_raws(raw)
         
     def raw2values(self, raws):
+        raws = self.sanitize_raws(raws)
         values = raws/self.gains - self.offsets
-        return self.sanitize_values(values)
+        return values
 
     def send_current(self,):
         bytearray = self.vals2bytes("s", self.raw_values)
@@ -99,11 +100,6 @@ class piezointerface(object):
                 self.values = thevalues
                 self.raw_values = self.values2raw(self.values)
         self._send()
-        
-    def sanitize_values(self, values):
-        values_min = self.raw2values(self.raw_value_min)
-        values_max = self.raw2values(self.raw_value_max)
-        return np.clip(values, values_min, values_max)
         
     def sanitize_raws(self, raws):
         newraws = np.clip(raws, self.raw_value_min, self.raw_value_max)
