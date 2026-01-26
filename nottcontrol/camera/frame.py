@@ -100,7 +100,7 @@ class Frame():
         calc = BrightnessCalculator(self.rois_data)
         calc.run()
         
-        return calc.results, rois_data
+        return calc.results, self.rois_data
             
         
 
