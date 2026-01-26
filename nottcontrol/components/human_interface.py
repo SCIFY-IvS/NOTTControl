@@ -4,7 +4,6 @@ from time import sleep, time
 from tqdm import tqdm
 from copy import copy
 
-
 import sys
 sys.path.append("/home/labo/src/NOTTControl/")
 sys.path.append("/home/labo/src/NOTTControl/script/lib/")
@@ -168,16 +167,23 @@ class HumInt(object):
         print("You can remove the shutters")
 
     def get_master_frame(self, dt):
+        # Timespan dt in seconds
         
         start = self.db_time()
         sleep(dt)
         end = self.db_time()
         # Fetching InfraTec times registered in this timeframe        
         stamps = get_field("roi9_avg",start,end,False)[:,0]
+        stamps_str = []
         # Retrieving frames from local storage
         frames = []
         for stamp in stamps:
-            frames.append(Frame(stamp))
+            # Converting stamp (datetime object, timestamp in ms) to stamp_str (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+            Ymd = stamp.strftime("%Y%m%d")
+            HMS = stamp.strftime("%H%M%S%f")[:-3]
+            stamp_str = Ymd+"_"+HMS
+            stamps_str.append(stamp_str)
+            frames.append(Frame(stamp_str))
         # Calculate time series of broadband fluxes
         flux_broad = []
         snr_broad = []
@@ -195,8 +201,8 @@ class HumInt(object):
         # Return master and background noise frames as Frame objects
         master_frame = frames[0].copy()
         bg_noise_frame = frames[0].copy()
-        master_frame.set_id(stamps)
-        bg_noise_frame.set_id(stamps)
+        master_frame.set_id(stamps_str)
+        bg_noise_frame.set_id(stamps_str)
         master_frame.set_data(master_full)
         bg_noise_frame.set_data(bg_noise)
         

@@ -2,8 +2,15 @@
 Base example:
 ```python
     mypiezo = piezointerface()
-    mypiezo.send(np.array([1.0e-6,1.0e-6,1.0e-6,1.0e-6]))
+    mypiezo.send(np.array([1.0,1.0,1.0e,1.0e]))
 ```
+
+Units
+-----
+Values (positions) : micrometer
+Raw values : ADU
+Gains : ADU/um
+
 """
 
 
@@ -13,16 +20,16 @@ import threading
 import time
 from nottcontrol import config as nott_config
 
-default_gains = list(map(float,nott_config['PIEZO']['default_gains'].split(',')))
-default_offsets = list(map(float,nott_config['PIEZO']['default_offsets'].split(',')))
-default_min_volt = int(nott_config['PIEZO']['default_min_volt'])
-default_max_volt = int(nott_config['PIEZO']['default_max_volt'])
+default_gains = np.array(list(map(float,nott_config['PIEZO']['default_gains'].split(','))))
+default_offsets = np.array(list(map(float,nott_config['PIEZO']['default_offsets'].split(','))))
+default_min_raw = int(nott_config['PIEZO']['default_min_raw'])
+default_max_raw = int(nott_config['PIEZO']['default_max_raw'])
 default_port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
                      "bytesize":serial.EIGHTBITS, "parity":"N",
                      "stopbits":1}
 
 class piezointerface(object):
-    def __init__(self, n=4, gains=default_gains, offsets=default_offsets, raw_value_min=default_min_volt, raw_value_max=default_max_volt,
+    def __init__(self, n=4, gains=default_gains, offsets=default_offsets, raw_value_min=default_min_raw, raw_value_max=default_max_raw,
                  port_params=default_port_params,):
         print("Opening the interface")
         try :
@@ -62,7 +69,7 @@ class piezointerface(object):
     def get_raw_values(self):
         return self.raw_values
      
-    # TBD for index 1, which shows a non-linear translation between voltage and position.
+    # TBD for index 1, which shows a non-linear translation between ADU and position.
     def values2raw(self, values):
         raw = ((values + self.offsets) * self.gains).astype(int)
         return self.sanitize_raws(raw)

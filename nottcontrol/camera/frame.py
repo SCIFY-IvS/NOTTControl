@@ -14,6 +14,7 @@ from PIL import Image
 from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.brightness_calculator import BrightnessCalculator
 from nottcontrol import config as nott_config
+from pathlib import Path
 
 # Loading from config.ini
 frame_directory = str(nott_config['DEFAULT']['frame_directory'])
@@ -31,12 +32,17 @@ class Frame():
     
     def __init__(self,id_,window_=window_cfg,rois_=rois_cfg):
         
-        # Setting ID (=InfraTec timestamp)
+        # Setting frame ID
+        # Frame ID = String of Windows machine time in "Y%m%d_H%M%S" format, up to millisecond precision. Date and time are separated by an underscore.
         self.id = id_
         # Setting window
         self.window = window_
         # Fetch data from local machine
-        img = Image.open(frame_directory+str(id_)+'.png')
+        Ymd,HMS = self.id.split(sep="_")[0],self.id.split(sep="_")[1]
+        directory = Path(frame_directory).joinpath(Ymd)
+        filename = HMS+'.png'
+        img_path = str(Path.joinpath(directory,filename))
+        img = Image.open(img_path)
         data_ =  np.asarray(img)
         self.data = data_
         self.width = data_.shape[1]

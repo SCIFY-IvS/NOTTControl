@@ -117,11 +117,15 @@ class Diagnostics():
         # Dispersed flux,snr of chip outputs in master science frame
         _,_,flux_disp,snr_disp = self.diagnose_frame(master_sci_frame,broadband=False)
         # Timestamps of individual frames
-        stamps = master_sci_frame.id
+        stamps_str = master_sci_frame.id
+        stamps = []
+        for stamp_str in stamps_str:
+            HMS = int(stamp_str.split(sep="_")[1])
+            stamps.append(HMS)
         
         if visual_feedback:
             fig,axs = plt.subplots(4)
-            fig.suptitle("Diagnostics of chip outputs in time frame "+str([np.min(stamps),np.max(stamps)]+" (ms)"))
+            fig.suptitle("Diagnostics of chip outputs in time frame "+str([stamps_str[0],stamps_str[-1]]+" (ms)"))
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']            
             for i in range(0,8):
