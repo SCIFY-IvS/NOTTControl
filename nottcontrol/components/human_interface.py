@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from time import sleep, time
 from tqdm import tqdm
 from copy import copy
+import datetime
+from datetime import timedelta
 
 import sys
 sys.path.append("/home/labo/src/NOTTControl/")
@@ -163,17 +165,27 @@ class HumInt(object):
         self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
         print("You can remove the shutters")
 
-    def get_frame(self,stamp):
+    def unix_to_datetime(self,unix_stamp):
+        # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
+        epoch = datetime.utcfromtimestamp(0)
+        dt = datetime.timedelta(milliseconds=unix_stamp)
+        stamp = epoch + dt
+        return stamp
+
+    def get_frame(self,unix_stamp):
         
-        # Converting stamp (datetime object, timestamp in ms) to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
-        Ymd = stamp.strftime("%Y%m%d")
-        HMS = stamp.strftime("%H%M%S%f")[:-3]
+        # Converting unix_stamp to datetime object utc_stamp
+        utc_stamp = self.unix_to_datetime(unix_stamp)
+        # Converting utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+        Ymd = utc_stamp.strftime("%Y%m%d")
+        HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
         frame_id = Ymd+"_"+HMS
         return Frame(frame_id)
 
     def get_master_frame(self, dt):
         # Timespan dt in seconds
         
+        # db_time returns stamps in unix_time_ms since 01/01/1970 00:00:00, as registered in redis
         start = self.db_time()
         sleep(dt)
         end = self.db_time()
