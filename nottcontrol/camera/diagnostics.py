@@ -64,7 +64,7 @@ class Diagnostics():
         # Calibrate science frame 
         master_sci_cal,master_sci_cal_snr = self.human_interf.calib_frame(master_sci_,master_dark_,master_flat_,bg_noise_)
         # Identify outputs
-        outputs_mask_ = self.human_interf.identify_outputs(master_sci_cal_snr,snr_thresh)
+        outputs_mask_ = self.human_interf.identify_outputs(master_sci_cal_snr,True,snr_thresh)
         self.outputs_mask = outputs_mask_
         
         # Identify output dimensions
@@ -79,6 +79,7 @@ class Diagnostics():
         ind_outputs_sorted_ = [[]]*Nroi
         for px in ind_outputs:
             ind_outputs_sorted_[px[0]].append(px[1:3])
+        ind_outputs_sorted_ = np.array(ind_outputs_sorted_)
         self.ind_outputs_sorted = ind_outputs_sorted_
         # Determining the top index and height of the outputs from the photometric channels
         ind_outputs_sorted_photo = ind_outputs_sorted_[[0,1,Nroi-2,Nroi-1]]
@@ -89,8 +90,8 @@ class Diagnostics():
             output_row_min[i] = np.min(output_row)
             output_row_max[i] = np.max(output_row)
         
-        self.output_top_idx = np.min(output_row_min)
-        self.output_height = np.max(output_row_max) - self.output_top_idx 
+        self.output_top_idx = int(np.min(output_row_min))
+        self.output_height = int(np.max(output_row_max) - self.output_top_idx)
 
     def set_cam_framerate(self,framerate):
         framerate_64 = np.array([framerate],dtype=np.float64)
@@ -134,7 +135,7 @@ class Diagnostics():
         
         if visual_feedback:
             fig,axs = plt.subplots(4)
-            fig.suptitle("Diagnostics of chip outputs in time frame "+str([stamps_str[0],stamps_str[-1]]+" (ms)"))
+            fig.suptitle("Diagnostics of chip outputs in time frame "+str([ids[0],ids[-1]]+" (ms)"))
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']            
             for i in range(0,8):
