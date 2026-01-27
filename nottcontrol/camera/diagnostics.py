@@ -51,9 +51,9 @@ class Diagnostics():
         #        Otherwise, the simple SNR criterion used will not pick up the output positions of the two dark outputs.
         dt = 50*(1/self.framerate)
         # Fetch a science frame
-        master_sci_ = human_interf.science_frame_sequence(dt)        
+        master_sci_ = self.human_interf.science_frame_sequence(dt)        
         # Fetch a master dark
-        master_dark_,bg_noise_ = human_interf.dark_frame_sequence(dt)
+        master_dark_,bg_noise_ = self.human_interf.dark_frame_sequence(dt)
         # Fetch a master flat (TBD)
         master_flat_ = master_dark_.copy()
         master_flat_.set_data(np.ones_like(master_dark_.data))
@@ -62,9 +62,9 @@ class Diagnostics():
         self.bg_noise = bg_noise_
         
         # Calibrate science frame 
-        master_sci_cal,master_sci_cal_snr = human_interf.calib_frame(master_sci_,master_dark_,master_flat_,bg_noise_)
+        master_sci_cal,master_sci_cal_snr = self.human_interf.calib_frame(master_sci_,master_dark_,master_flat_,bg_noise_)
         # Identify outputs
-        outputs_mask_ = human_interf.identify_outputs(master_sci_cal_snr,snr_thresh)
+        outputs_mask_ = self.human_interf.identify_outputs(master_sci_cal_snr,snr_thresh)
         self.outputs_mask = outputs_mask_
         
         # Identify output dimensions
@@ -163,7 +163,7 @@ class Diagnostics():
         return stamps,flux_broad,snr_broad,flux_disp,snr_disp
     
     # Lower-level: Calculating diagnostics for a single camera frame
-    def diagnose_frame(self,frame,master_dark=self.master_dark,master_flat=self.master_flat,bg_noise=self.bg_noise,broadband):
+    def diagnose_frame(self,frame,broadband,master_dark=None,master_flat=None,bg_noise=None):
         '''
         Parameters
         ----------
@@ -179,7 +179,15 @@ class Diagnostics():
             If True, only compute the broadband flux inside the chip outputs
             If False, only compute the dispersed flux inside the chip outputs
         '''
-                
+            
+        # Setting defaults
+        if master_dark is None:
+            master_dark = self.master_dark
+        if master_flat is None:
+            master_flat = self.master_flat
+        if bg_noise is None:
+            bg_noise = self.bg_noise
+        
         # Calibrating frame
         frame_cal,frame_cal_snr = self.human_interf.calib_frame(frame,master_dark,master_flat,bg_noise)
         # Fetching signal and signal-to-noise ratios

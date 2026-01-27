@@ -1,4 +1,7 @@
 from configparser import ConfigParser
+import logging
+logit = logging.getLogger(__name__)
+import numpy as np
 
 class Config:
     
