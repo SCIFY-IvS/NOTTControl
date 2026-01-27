@@ -23,7 +23,7 @@ for key in window_cfg.keys():
     window_cfg[key] = int(nott_config['CAMERA']['window_'+key])
 rois_cfg = []
 for i in range(0,10):
-    roi_i = list(map(int,nott_config['CAMERA']['ROI '+str(i+1)].split(',')))
+    roi_i = nott_config.getarray('CAMERA','ROI '+str(i+1),np.int32)
     if len(roi_i) != 4:
         raise Exception('Invalid ROI config')
     rois_cfg.append(Roi(roi_i[0],roi_i[1],roi_i[2],roi_i[3]))

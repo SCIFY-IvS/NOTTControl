@@ -20,8 +20,8 @@ import threading
 import time
 from nottcontrol import config as nott_config
 
-default_gains = np.array(list(map(float,nott_config['PIEZO']['default_gains'].split(','))))
-default_offsets = np.array(list(map(float,nott_config['PIEZO']['default_offsets'].split(','))))
+default_gains = nott_config.getarray('PIEZO','default_gains')
+default_offsets = nott_config.getarray('PIEZO','default_offsets')
 default_min_raw = int(nott_config['PIEZO']['default_min_raw'])
 default_max_raw = int(nott_config['PIEZO']['default_max_raw'])
 default_port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
