@@ -91,7 +91,12 @@ class Frame():
         return
         
     def copy(self):
-        frame_copy = Frame(self.id)
+        if type(frame.id) is list:
+            frame_copy = Frame(self.id[0])
+            frame_copy.set_id(self.id)
+            frame_copy.set_data(self.data)
+        else:
+            frame_copy = Frame(self.id)
         return frame_copy
      
     def get_roi(self,idx):
