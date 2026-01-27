@@ -50,8 +50,6 @@ class Diagnostics():
         # To Do: Guarantee that this function is called when not in a null state.
         #        Otherwise, the simple SNR criterion used will not pick up the output positions of the two dark outputs.
         dt = 50*(1/self.framerate)
-        # Fetch a science frame
-        master_sci_ = self.human_interf.science_frame_sequence(dt)        
         # Fetch a master dark
         master_dark_,bg_noise_ = self.human_interf.dark_frame_sequence(dt)
         # Fetch a master flat (TBD)
@@ -61,6 +59,8 @@ class Diagnostics():
         self.master_flat = master_flat_
         self.bg_noise = bg_noise_
         
+        # Fetch a science frame
+        master_sci_,_ = self.human_interf.science_frame_sequence(dt) 
         # Calibrate science frame 
         master_sci_cal,master_sci_cal_snr = self.human_interf.calib_frame(master_sci_,master_dark_,master_flat_,bg_noise_)
         # Identify outputs
@@ -112,15 +112,24 @@ class Diagnostics():
         else:
             lambs = np.linspace(low_lamb,up_lamb,self.output_height)
     
-        # Fetching master science frame and time series of broadband flux/snr in constituent frames
-        master_sci_frame,flux_broad,snr_broad = self.human_interf.science_frame_sequence(dt)
+        # Fetching master science frame and constituent, individual science frames
+        master_sci_frame,sci_frames = self.human_interf.science_frame_sequence(dt)
+        # Broadband flux,snr of chip outputs in single science frames
+        fluxes_broad = []
+        snrs_broad = []
+        for sci_frame in sci_frames:
+            flux_broad,snr_broad,_,_ = self.diagnose_frame(sci_frame,broadband=True)
+            fluxes_broad.append(flux_broad)
+            snrs_broad.append(snr_broad)
+        fluxes_broad = np.transpose(fluxes_broad)
+        snrs_broad = np.transpose(snrs_broad)
         # Dispersed flux,snr of chip outputs in master science frame
         _,_,flux_disp,snr_disp = self.diagnose_frame(master_sci_frame,broadband=False)
         # Timestamps of individual frames
-        stamps_str = master_sci_frame.id
+        ids = master_sci_frame.id
         stamps = []
-        for stamp_str in stamps_str:
-            HMS = int(stamp_str.split(sep="_")[1])
+        for id_s in ids:
+            HMS = int(id_s.split(sep="_")[1])
             stamps.append(HMS)
         
         if visual_feedback:
@@ -129,8 +138,8 @@ class Diagnostics():
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']            
             for i in range(0,8):
-                axs[0].scatter(stamps,flux_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-                axs[1].scatter(stamps,snr_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+                axs[0].scatter(stamps,fluxes_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+                axs[1].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
             for i in range(2,6):
                 axs[2].scatter(lambs,flux_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
                 axs[3].scatter(lambs,snr_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
@@ -160,7 +169,7 @@ class Diagnostics():
             fig.canvas.draw()
             fig.canvas.flush_events()
     
-        return stamps,flux_broad,snr_broad,flux_disp,snr_disp
+        return stamps,fluxes_broad,snrs_broad,flux_disp,snr_disp
     
     # Lower-level: Calculating diagnostics for a single camera frame
     def diagnose_frame(self,frame,broadband,master_dark=None,master_flat=None,bg_noise=None):
@@ -169,15 +178,15 @@ class Diagnostics():
         ----------
         frame : Instance of the Frame class
             Infrared camera frame  
+        broadband : Boolean
+            If True, only compute the broadband flux inside the chip outputs
+            If False, only compute the dispersed flux inside the chip outputs
         master_dark : Instance of the Frame class
             Master dark frame
         master_flat : Instance of the Frame class
             Master flat frame
         bg_noise : Instance of the Frame class
             Background noise frame
-        broadband : Boolean
-            If True, only compute the broadband flux inside the chip outputs
-            If False, only compute the dispersed flux inside the chip outputs
         '''
             
         # Setting defaults

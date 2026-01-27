@@ -17,12 +17,10 @@ mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.camera.frame import Frame
-from nottcontrol.camera.diagnostics import Diagnostics
 from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
+from nottcontrol import config 
 
-config = ConfigParser()
-config.read("/home/labo/src/NOTTControl/nottcontrol/config.ini")
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
 
@@ -64,7 +62,6 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
-        self.diagnostics = Diagnostics(snr_thresh)
         self.move(np.array([0., 0., 0., 0.]))
 
     # Auxiliary functions
@@ -166,6 +163,14 @@ class HumInt(object):
         self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
         print("You can remove the shutters")
 
+    def get_frame(self,stamp):
+        
+        # Converting stamp (datetime object, timestamp in ms) to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+        Ymd = stamp.strftime("%Y%m%d")
+        HMS = stamp.strftime("%H%M%S%f")[:-3]
+        frame_id = Ymd+"_"+HMS
+        return Frame(frame_id)
+
     def get_master_frame(self, dt):
         # Timespan dt in seconds
         
@@ -174,23 +179,14 @@ class HumInt(object):
         end = self.db_time()
         # Fetching InfraTec times registered in this timeframe        
         stamps = get_field("roi9_avg",start,end,False)[:,0]
-        stamps_str = []
+        ids = []
         # Retrieving frames from local storage
         frames = []
         for stamp in stamps:
-            # Converting stamp (datetime object, timestamp in ms) to stamp_str (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
-            Ymd = stamp.strftime("%Y%m%d")
-            HMS = stamp.strftime("%H%M%S%f")[:-3]
-            stamp_str = Ymd+"_"+HMS
-            stamps_str.append(stamp_str)
-            frames.append(Frame(stamp_str))
-        # Calculate time series of broadband fluxes
-        flux_broad = []
-        snr_broad = []
-        for frame in frames:
-            flux_broad_,snr_broad_,_,_ = self.diagnostics.diagnose_frame(frame,broadband=True)
-            flux_broad.append(flux_broad_)
-            snr_broad.append(snr_broad_)
+            frame = self.get_frame(stamp)
+            frames.append(frame)
+            ids.append(frame.id)
+            
         # Master frame
         master_full = np.mean([frame.data for frame in frames],axis=0)
         # Background noise
@@ -201,19 +197,17 @@ class HumInt(object):
         # Return master and background noise frames as Frame objects
         master_frame = frames[0].copy()
         bg_noise_frame = frames[0].copy()
-        master_frame.set_id(stamps_str)
-        bg_noise_frame.set_id(stamps_str)
+        master_frame.set_id(ids)
+        bg_noise_frame.set_id(ids)
         master_frame.set_data(master_full)
         bg_noise_frame.set_data(bg_noise)
         
-        return master_frame,bg_noise_frame,flux_broad,snr_broad
+        return master_frame,bg_noise_frame,frames
 
     def science_frame_sequence(self, dt, verbose=False):
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
-        master,_,flux_broad,snr_broad = self.get_master_frame(dt) 
-        flux_broad = np.transpose(flux_broad)
-        snr_broad = np.transpose(snr_broad)
-        return master,flux_broad,snr_broad
+        master,_,frames = self.get_master_frame(dt) 
+        return master,frames
 
     def dark_sequence(self, dt=0.5, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
@@ -223,7 +217,7 @@ class HumInt(object):
         
     def dark_frame_sequence(self, dt, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
-        master,bg_noise,_,_ = self.get_master_frame(dt) 
+        master,bg_noise,_ = self.get_master_frame(dt) 
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         return master,bg_noise
 
@@ -388,7 +382,7 @@ class HumInt(object):
 
     def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
                     offset_scan=0., saveto="/dev/shm/cal_raw.fits",
-                    overwrite=True
+                    overwrite=True,
                     dn_object=None, bidir=True, verbose=False):
         import dnull as dn
         if saveto is not None:
