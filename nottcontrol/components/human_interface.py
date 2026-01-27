@@ -5,6 +5,7 @@ from tqdm import tqdm
 from copy import copy
 import datetime
 from datetime import timedelta
+from datetime import timezone
 
 import sys
 sys.path.append("/home/labo/src/NOTTControl/")
@@ -167,7 +168,7 @@ class HumInt(object):
 
     def unix_to_datetime(self,unix_stamp):
         # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
-        epoch = datetime.utcfromtimestamp(0)
+        epoch = datetime.datetime.fromtimestamp(0,timezone.utc)
         dt = datetime.timedelta(milliseconds=unix_stamp)
         stamp = epoch + dt
         return stamp
