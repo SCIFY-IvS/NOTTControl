@@ -91,7 +91,7 @@ class Frame():
         return
         
     def copy(self):
-        if type(frame.id) is list:
+        if type(self.id) is list:
             frame_copy = Frame(self.id[0])
             frame_copy.set_id(self.id)
             frame_copy.set_data(self.data)

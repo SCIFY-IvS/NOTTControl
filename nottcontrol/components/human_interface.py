@@ -259,7 +259,7 @@ class HumInt(object):
             for roi_crop in frame.rois_crop:
                 x,y,w,h = roi_crop.x,roi_crop.y,roi_crop.w,roi_crop.h
                 i1,i2,j1,j2 = y,y+h,x,x+w
-                outputs_pos[i1:i2,j1:j2] = True
+                outputs_pos[i1:i2+1,j1:j2+1] = True
             # Returning mask as Frame object
             outputs_mask = frame.copy()
             outputs_mask.set_data(outputs_pos)
