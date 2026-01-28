@@ -312,6 +312,7 @@ class MainWindow(QMainWindow):
         if self.recording:
             self.stop_recording()
         else:
+            self.time_reference_frames = 0
             self.start_recording()
             
     def start_recording(self):
