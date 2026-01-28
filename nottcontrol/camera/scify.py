@@ -35,12 +35,14 @@ tLive=t
 
 img_timestamp_ref = None
 
+use_camera_time_ = (config['CAMERA']['use_camera_time'] == "True")
+
 def callback(context,*args):#, aHandle, aStreamIndex):
-    recording_timestamp = datetime.utcnow()
+    recording_timestamp = datetime.now(timezone.utc)
     
     global img_timestamp_ref
     
-    context.load_image(recording_timestamp)
+    context.load_image(recording_timestamp,use_camera_time_)
 
 class MainWindow(QMainWindow):
     #Without this call, the GUI is resized and tiny
@@ -142,7 +144,9 @@ class MainWindow(QMainWindow):
             #base_path = r"Y:\Documents\Scify\Frames\frame_"
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
-            filename = timestamp.strftime("%H%M%S%f")[:-3] + ".png"
+            timestamp_str = timestamp.strftime("%H%M%S%f")
+            timestamp_str_round = str(np.round((int(timestamp_str)/1000)))
+            filename = timestamp_str_round + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
             recording = self.recording
@@ -310,6 +314,7 @@ class MainWindow(QMainWindow):
         if self.recording:
             self.stop_recording()
         else:
+            self.time_reference_frames = 0
             self.start_recording()
             
     def start_recording(self):
@@ -339,7 +344,7 @@ class MainWindow(QMainWindow):
         self.background_img = self.image.getImageItem().image
         self.ui.checkBox_subtractbackground.setEnabled(True)
     
-    def load_image(self, recording_timestamp):  
+    def load_image(self, recording_timestamp, use_camera_time):  
         global t
         global tLive
         global img_timestamp_ref
@@ -373,7 +378,10 @@ class MainWindow(QMainWindow):
             #Use the first 100 frames purely to establish time
             return
         
-        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
+        if use_camera_time:
+            timestamp = timedelta(milliseconds=timestamp_offset)
+        else:
+            timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
         
         if(self.roi_queue.qsize() > 5):

@@ -2,8 +2,15 @@
 Base example:
 ```python
     mypiezo = piezointerface()
-    mypiezo.send(np.array([1.0e-6,1.0e-6,1.0e-6,1.0e-6]))
+    mypiezo.send(np.array([1.0,1.0,1.0e,1.0e]))
 ```
+
+Units
+-----
+Values (positions) : micrometer
+Raw values : ADU
+Gains : ADU/um
+
 """
 
 
@@ -11,29 +18,32 @@ import numpy as np
 import serial
 import threading
 import time
-gain = 4000.0/9.5 # ADU / microns
-gains = gain*np.ones(4)
-port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
+from nottcontrol import config as nott_config
+
+default_gains = nott_config.getarray('PIEZO','default_gains')
+default_offsets = nott_config.getarray('PIEZO','default_offsets')
+default_min_raw = int(nott_config['PIEZO']['default_min_raw'])
+default_max_raw = int(nott_config['PIEZO']['default_max_raw'])
+default_port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
                      "bytesize":serial.EIGHTBITS, "parity":"N",
                      "stopbits":1}
+
 class piezointerface(object):
-    def __init__(self, n=4, gains=gains, offsets=None,
-                 port_params=port_params,):
+    def __init__(self, n=4, gains=default_gains, offsets=default_offsets, raw_value_min=default_min_raw, raw_value_max=default_max_raw,
+                 port_params=default_port_params,):
         print("Opening the interface")
         try :
             self.ser = serial.Serial(**port_params)
         except :
             self.ser = None
             print("Could not open the serial port")
-        self.value_min = 0
-        self.value_max = 9.5
+            
+        self.gains = gains
+        self.offsets = offsets
+        self.raw_value_min = raw_value_min
+        self.raw_value_max = raw_value_max
         self.n = n
         self.values = np.zeros(self.n)
-        if offsets is None:
-            self.offsets = np.zeros(n)
-        else:
-            self.offsets = offsets
-        self.gains = gains
         self.raw_values = self.values2raw(self.values)
 
         self.listening = True
@@ -58,14 +68,16 @@ class piezointerface(object):
         
     def get_raw_values(self):
         return self.raw_values
-        
+     
+    # TBD for index 1, which shows a non-linear translation between ADU and position.
     def values2raw(self, values):
         raw = ((values + self.offsets) * self.gains).astype(int)
         return self.sanitize_raws(raw)
         
     def raw2values(self, raws):
+        raws = self.sanitize_raws(raws)
         values = raws/self.gains - self.offsets
-        return self.sanitize_values(values)
+        return values
 
     def send_current(self,):
         bytearray = self.vals2bytes("s", self.raw_values)
@@ -96,11 +108,8 @@ class piezointerface(object):
                 self.raw_values = self.values2raw(self.values)
         self._send()
         
-    def sanitize_values(self, values):
-        return np.clip(values, self.value_min, self.value_max)
-        
     def sanitize_raws(self, raws):
-        newraws = np.clip(raws, 0, 4000)
+        newraws = np.clip(raws, self.raw_value_min, self.raw_value_max)
         return newraws
         
     def vals2bytes(self, mystring, myarray):
