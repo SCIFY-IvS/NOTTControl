@@ -38,7 +38,7 @@ img_timestamp_ref = None
 use_camera_time_ = (config['CAMERA']['use_camera_time'] == "True")
 
 def callback(context,*args):#, aHandle, aStreamIndex):
-    recording_timestamp = datetime.utcnow()
+    recording_timestamp = datetime.now(timezone.utc)
     
     global img_timestamp_ref
     
