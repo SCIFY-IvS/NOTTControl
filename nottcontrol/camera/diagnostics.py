@@ -174,26 +174,27 @@ class Diagnostics():
             else:
                 
                 for i in range(0,8):
-                axs[0].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-            for i in range(2,6):
-                axs[1].scatter(lambs,snr_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-            # Differential null
-            axs[2].scatter(lambs,snr_disp[4]-snr_disp[3],color='magenta',marker=markers[7],label="Diff. null")
-
-            axs[0].set_xlabel("Time (ms)")
-            axs[1].set_xlabel("Wavelength (micron)")
-            axs[2].set_xlabel("Wavelength (micron)")
-            axs[0].set_ylabel("Cal. snr sum (counts)")
-            axs[1].set_ylabel("Cal. snr sum (counts)")
-            axs[2].set_ylabel("Cal. snr sum (counts)")
+                    axs[0].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+                for i in range(2,6):
+                    axs[1].scatter(lambs,snr_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+                # Differential null
+                axs[2].scatter(lambs,snr_disp[4]-snr_disp[3],color='magenta',marker=markers[7],label="Diff. null")
     
-            axs[0].title.set_text("Broadband SNR")
-            axs[1].title.set_text("Dispersed SNR")
-            axs[2].title.set_text("Differential null")
+                axs[0].set_xlabel("Time (ms)")
+                axs[1].set_xlabel("Wavelength (micron)")
+                axs[2].set_xlabel("Wavelength (micron)")
+                axs[0].set_ylabel("Cal. snr sum (counts)")
+                axs[1].set_ylabel("Cal. snr sum (counts)")
+                axs[2].set_ylabel("Cal. snr sum (counts)")
+        
+                axs[0].title.set_text("Broadband SNR")
+                axs[1].title.set_text("Dispersed SNR")
+                axs[2].title.set_text("Differential null")
     
-            # Legends
+            # Legend
             for i in range(0,3):
                 axs[i].legend(loc="upper right")
+                
             # Showing
             plt.tight_layout()
             plt.subplots_adjust(right=0.85)     
