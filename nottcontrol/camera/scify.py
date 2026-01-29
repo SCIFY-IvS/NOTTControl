@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
             timestamp_str = timestamp.strftime("%H%M%S%f")
-            timestamp_str_round = str(np.round((int(timestamp_str)/1000)))
+            timestamp_str_round = str(round((int(timestamp_str)/1000)))
             filename = timestamp_str_round + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
