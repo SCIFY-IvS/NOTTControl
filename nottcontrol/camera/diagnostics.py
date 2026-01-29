@@ -146,7 +146,7 @@ class Diagnostics():
         
         if visual_feedback:
             
-            fig,axs = plt.subplots(3)
+            fig,axs = plt.subplots(4)
             fig.suptitle("Diagnostics of chip outputs in time frame  ["+str(ids[0])+" , "+str(ids[-1])+"]  (ms)")
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']  
@@ -155,41 +155,55 @@ class Diagnostics():
                 
                 for i in range(0,8):
                     axs[0].scatter(stamps,fluxes_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-                for i in range(2,6):
-                    axs[1].scatter(lambs,flux_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+            
+                # Bright
+                axs[1].scatter(lambs,flux_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI"+str(3))
+                axs[1].scatter(lambs,flux_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI"+str(6))
+                # Null
+                axs[2].scatter(lambs,flux_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI"+str(4))
+                axs[2].scatter(lambs,flux_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI"+str(5))
                 # Differential null
-                axs[2].scatter(lambs,flux_disp[4]-flux_disp[3],color='magenta',marker=markers[7],label="Diff. null")
+                diff = flux_disp[4]-flux_disp[3]
+                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="Diff. null")
+                axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
-                axs[1].set_xlabel("Wavelength (micron)")
-                axs[2].set_xlabel("Wavelength (micron)")
-                axs[0].set_ylabel("Cal. flux sum (counts)")
-                axs[1].set_ylabel("Cal. flux sum (counts)")
-                axs[2].set_ylabel("Cal. flux sum (counts)")
+                for i in range(1,4):
+                    axs[i].set_xlabel("Wavelength (um)")
+                for i in range(0,4):
+                    axs[i].set_ylabel("Output intensity (counts)")
         
-                axs[0].title.set_text("Broadband Flux")
-                axs[1].title.set_text("Dispersed Flux")
-                axs[2].title.set_text("Differential null")
+                axs[0].title.set_text("Broadband")
+                axs[1].title.set_text("Dispersed - Bright outputs")
+                axs[2].title.set_text("Dispersed - Null outputs")
+                axs[3].title.set_text("Dispersed - Differential null")
                 
             else:
                 
                 for i in range(0,8):
                     axs[0].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-                for i in range(2,6):
-                    axs[1].scatter(lambs,snr_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
+            
+                # Bright
+                axs[1].scatter(lambs,snr_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI"+str(3))
+                axs[1].scatter(lambs,snr_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI"+str(6))
+                # Null
+                axs[2].scatter(lambs,snr_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI"+str(4))
+                axs[2].scatter(lambs,snr_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI"+str(5))
                 # Differential null
-                axs[2].scatter(lambs,snr_disp[4]-snr_disp[3],color='magenta',marker=markers[7],label="Diff. null")
+                diff = snr_disp[4]-snr_disp[3]
+                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="Diff. null")
+                axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
-                axs[1].set_xlabel("Wavelength (micron)")
-                axs[2].set_xlabel("Wavelength (micron)")
-                axs[0].set_ylabel("Cal. snr sum (counts)")
-                axs[1].set_ylabel("Cal. snr sum (counts)")
-                axs[2].set_ylabel("Cal. snr sum (counts)")
+                for i in range(1,4):
+                    axs[i].set_xlabel("Wavelength (um)")
+                for i in range(0,4):
+                    axs[i].set_ylabel("Output SNR (counts)")
         
-                axs[0].title.set_text("Broadband SNR")
-                axs[1].title.set_text("Dispersed SNR")
-                axs[2].title.set_text("Differential null")
+                axs[0].title.set_text("Broadband")
+                axs[1].title.set_text("Dispersed - Bright outputs")
+                axs[2].title.set_text("Dispersed - Null outputs")
+                axs[3].title.set_text("Dispersed - Differential null")
     
             # Legend
             for i in range(0,3):
