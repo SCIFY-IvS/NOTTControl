@@ -171,12 +171,7 @@ class Diagnostics():
                 for i in range(1,4):
                     axs[i].set_xlabel("Wavelength (um)")
                 for i in range(0,4):
-                    axs[i].set_ylabel("Output intensity (counts)")
-        
-                axs[0].title.set_text("Broadband")
-                axs[1].title.set_text("Dispersed - Bright outputs")
-                axs[2].title.set_text("Dispersed - Null outputs")
-                axs[3].title.set_text("Dispersed - Differential null")
+                    axs[i].set_ylabel("counts")
                 
             else:
                 
@@ -184,29 +179,24 @@ class Diagnostics():
                     axs[0].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
             
                 # Bright
-                axs[1].scatter(lambs,snr_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI"+str(3))
-                axs[1].scatter(lambs,snr_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI"+str(6))
+                axs[1].scatter(lambs,snr_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / B1")
+                axs[1].scatter(lambs,snr_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / B2")
                 # Null
-                axs[2].scatter(lambs,snr_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI"+str(4))
-                axs[2].scatter(lambs,snr_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI"+str(5))
+                axs[2].scatter(lambs,snr_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / D1")
+                axs[2].scatter(lambs,snr_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / D2")
                 # Differential null
                 diff = snr_disp[4]-snr_disp[3]
-                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="Diff. null")
+                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="D2-D1")
                 axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
                 for i in range(1,4):
                     axs[i].set_xlabel("Wavelength (um)")
                 for i in range(0,4):
-                    axs[i].set_ylabel("Output SNR (counts)")
-        
-                axs[0].title.set_text("Broadband")
-                axs[1].title.set_text("Dispersed - Bright outputs")
-                axs[2].title.set_text("Dispersed - Null outputs")
-                axs[3].title.set_text("Dispersed - Differential null")
+                    axs[i].set_ylabel("Output SNR")
     
             # Legend
-            for i in range(0,3):
+            for i in range(0,4):
                 axs[i].legend(loc="upper right")
                 
             # Showing
