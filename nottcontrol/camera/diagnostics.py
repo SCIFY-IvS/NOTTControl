@@ -31,18 +31,19 @@ class Diagnostics():
         
         # Camera interface
         infra_interf_ = InfratecInterface()
+        # TBD : connect
         framerate_ = infra_interf_.getparam_single(240)
         integtime_ = infra_interf_.getparam_idx_int32(262,0)
         self.infra_interf = infra_interf_
         self.framerate = framerate_       # in Hz
-        self.integtime = 10**6*integtime_ # in seconds
+        self.integtime = integtime_       # in microseconds
         # Piezo interface
         piezo_interf_ = pypiezo.piezointerface()
         self.piezo_interf = piezo_interf_
         # Redis client
         redis_client_ = redisclient.RedisClient(human_interface.dburl)
         self.redis_client = redis_client_
-        # Human interface
+        # Human interface TBD : Offset
         human_interf_ = human_interface.HumInt(interf=piezo_interf_,db_server=redis_client_,pad=0.08,offset=5.0)
         self.human_interf = human_interf_
         
@@ -94,22 +95,30 @@ class Diagnostics():
         self.output_height = int(np.max(output_row_max) - self.output_top_idx)
 
     def set_cam_framerate(self,framerate):
+        # framerate in Hz
+        # TBD : connect
         framerate_64 = np.array([framerate],dtype=np.float64)
         framerate_32 = framerate_64.astype(np.float32)[0]
         self.infra_interf.setparam_single(240,framerate_32)
+        self.framerate = framerate_32
         return
     
     def set_cam_integtime(self,integtime):
+        # integtime in microseconds
+        # TBD : connect
         integtime_64 = np.array([integtime],dtype=np.int64)
         integtime_32 = integtime_64.astype(np.int32)[0]
         # Using index 0 as camera is in Single Integration Mode
         self.infra_interf.setparam_idx_int32(262,0,integtime_32)
+        self.integtime = integtime_32
         return
 
     def diagnose(self,dt,visual_feedback=True,custom_lambs=False):
     
         if custom_lambs:
             lambs = pix_to_lamb
+            if len(lambs) != self.output_height:
+                raise Exception("The length of the custom list of wavelengths" + str(len(lambs)) + " does not match the size of the outputs " + str(self.output_height))
         else:
             lambs = np.linspace(low_lamb,up_lamb,self.output_height)
     
@@ -132,6 +141,8 @@ class Diagnostics():
         for id_s in ids:
             HMS = int(id_s.split(sep="_")[1])
             stamps.append(HMS)
+        # Normalizing to start
+        stamps -= stamps[0]
         
         if visual_feedback:
             fig,axs = plt.subplots(4)
@@ -145,8 +156,8 @@ class Diagnostics():
                 axs[2].scatter(lambs,flux_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
                 axs[3].scatter(lambs,snr_disp[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
             # Differential null
-            axs[2].scatter(lambs,flux_disp[4]-flux_disp[3],color=colors[7],marker=markers[7],label="Diff. null")
-            axs[3].scatter(lambs,snr_disp[4]-snr_disp[3],color=colors[7],marker=markers[7],label="Diff. null")
+            axs[2].scatter(lambs,flux_disp[4]-flux_disp[3],color='magenta',marker=markers[7],label="Diff. null")
+            axs[3].scatter(lambs,snr_disp[4]-snr_disp[3],color='magenta',marker=markers[7],label="Diff. null")
 
             axs[0].set_xlabel("Time (ms)")
             axs[1].set_xlabel("Time (ms)")
