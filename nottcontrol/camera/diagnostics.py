@@ -27,23 +27,24 @@ up_lamb = float(nott_config['CAMERA']['up_lamb'])
 
 class Diagnostics():
 
-    def __init__(self,snr_thresh=5):    
+    def __init__(self,snr_thresh=5,framerate_=100):    
         
         # Camera interface
         infra_interf_ = InfratecInterface()
-        # TBD : connect
-        framerate_ = infra_interf_.getparam_single(240)
-        integtime_ = infra_interf_.getparam_idx_int32(262,0)
+        # TBD 
+        #framerate_ = infra_interf_.getparam_single(240)
+        #integtime_ = infra_interf_.getparam_idx_int32(262,0)
         self.infra_interf = infra_interf_
         self.framerate = framerate_       # in Hz
-        self.integtime = integtime_       # in microseconds
+        #self.integtime = integtime_       # in microseconds
         # Piezo interface
         piezo_interf_ = pypiezo.piezointerface()
         self.piezo_interf = piezo_interf_
         # Redis client
         redis_client_ = redisclient.RedisClient(human_interface.dburl)
         self.redis_client = redis_client_
-        # Human interface TBD : Offset
+        # Human interface 
+        # TBD : Offset
         human_interf_ = human_interface.HumInt(interf=piezo_interf_,db_server=redis_client_,pad=0.08,offset=5.0)
         self.human_interf = human_interf_
         
@@ -96,7 +97,7 @@ class Diagnostics():
 
     def set_cam_framerate(self,framerate):
         # framerate in Hz
-        # TBD : connect
+        # TBD 
         framerate_64 = np.array([framerate],dtype=np.float64)
         framerate_32 = framerate_64.astype(np.float32)[0]
         self.infra_interf.setparam_single(240,framerate_32)
@@ -105,7 +106,7 @@ class Diagnostics():
     
     def set_cam_integtime(self,integtime):
         # integtime in microseconds
-        # TBD : connect
+        # TBD 
         integtime_64 = np.array([integtime],dtype=np.int64)
         integtime_32 = integtime_64.astype(np.int32)[0]
         # Using index 0 as camera is in Single Integration Mode
