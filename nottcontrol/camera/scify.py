@@ -293,24 +293,24 @@ class MainWindow(QMainWindow):
             return
         
         # Fetching current window dimensions
-        w_cur = self.interface.getparam_int32(294)
-        h_cur = self.interface.getparam_int32(295)
+        #w_cur = self.interface.getparam_int32(294)
+        #h_cur = self.interface.getparam_int32(295)
         # Fetching config window dimensions
-        w_con = config['CAMERA'].getint('window_w')
-        h_con = config['CAMERA'].getint('window_h')
+        #w_con = config['CAMERA'].getint('window_w')
+        #h_con = config['CAMERA'].getint('window_h')
         
         # Large frame to small frame
-        if w_cur*h_cur > w_con*h_con:
-            self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
-            self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
-            self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
-            self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
-        else:
+        #if w_cur*h_cur > w_con*h_con:
+        self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
+        self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
+        self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
+        self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        #else:
         # Small frame to large frame
-            self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
-            self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
-            self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
-            self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
+        #    self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
+        #    self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        #    self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
+        #    self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
             
     def disconnect_camera(self):
         if not self.connected:
