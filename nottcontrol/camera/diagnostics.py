@@ -146,7 +146,7 @@ class Diagnostics():
         
         if visual_feedback:
             
-            fig,axs = plt.subplots(4)
+            fig,axs = plt.subplots(4,gridspec_kw={"height_ratios": [4, 1.5, 1.5, 1],"hspace": 0.15}, figsize=(10,8))
             fig.suptitle("Diagnostics of chip outputs in time frame  ["+str(ids[0])+" , "+str(ids[-1])+"]  (ms)")
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']  
@@ -157,11 +157,11 @@ class Diagnostics():
                     axs[0].scatter(stamps,fluxes_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
             
                 # Bright
-                axs[1].scatter(lambs,flux_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI"+str(3))
-                axs[1].scatter(lambs,flux_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI"+str(6))
+                axs[1].scatter(lambs,flux_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / B1")
+                axs[1].scatter(lambs,flux_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / B2")
                 # Null
-                axs[2].scatter(lambs,flux_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI"+str(4))
-                axs[2].scatter(lambs,flux_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI"+str(5))
+                axs[2].scatter(lambs,flux_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / D1")
+                axs[2].scatter(lambs,flux_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / D2")
                 # Differential null
                 diff = flux_disp[4]-flux_disp[3]
                 axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="Diff. null")
