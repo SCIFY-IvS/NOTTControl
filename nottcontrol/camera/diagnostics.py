@@ -142,11 +142,11 @@ class Diagnostics():
             HMS = int(id_s.split(sep="_")[1])
             stamps.append(HMS)
         # Normalizing to start
-        stamps -= stamps[0]
+        stamps = np.array(stamps)-stamps[0]
         
         if visual_feedback:
             fig,axs = plt.subplots(4)
-            fig.suptitle("Diagnostics of chip outputs in time frame "+str([ids[0],ids[-1]]+" (ms)"))
+            fig.suptitle("Diagnostics of chip outputs in time frame ["+str(ids[0])+","+str(ids[-1])+"] (ms)"))
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']            
             for i in range(0,8):
@@ -169,17 +169,16 @@ class Diagnostics():
             axs[3].set_ylabel("SNR")
     
             axs[0].title.set_text("Broadband Flux")
-            axs[1].title_set_text("Broadband SNR")
-            axs[1].title_set_text("Dispersed Flux")
-            axs[2].title_set_text("Dispersed SNR")
+            axs[1].title.set_text("Broadband SNR")
+            axs[2].title.set_text("Dispersed Flux")
+            axs[3].title.set_text("Dispersed SNR")
     
             for i in range(0,4):
                 axs[i].legend(loc="upper right")
     
             plt.tight_layout()
-            # Showing
-            fig.canvas.draw()
-            fig.canvas.flush_events()
+            # Showing        
+            plt.show()
     
         return stamps,fluxes_broad,snrs_broad,flux_disp,snr_disp
     
