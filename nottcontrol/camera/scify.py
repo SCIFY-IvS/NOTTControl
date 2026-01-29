@@ -38,7 +38,11 @@ img_timestamp_ref = None
 use_camera_time_ = (config['CAMERA']['use_camera_time'] == "True")
 
 def callback(context,*args):#, aHandle, aStreamIndex):
+    # Creating timezone-aware datetime object, in utc
     recording_timestamp = datetime.now(timezone.utc)
+    # Dropping the timezone info
+    recording_timestamp = recording_timestamp.replace(tzinfo=None)
+    
     
     global img_timestamp_ref
     
