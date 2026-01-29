@@ -11,11 +11,10 @@ This class bundles functionalities for
 
 """
 
+from time import sleep,time
 import numpy as np
 import matplotlib.pyplot as plt
-from time import sleep,time
 from nottcontrol import config as nott_config
-from nottcontrol.script.lib.nott_database import get_field
 from nottcontrol.camera.infratec_interface import InfratecInterface
 import nottcontrol.components.pypiezo as pypiezo
 import nottcontrol.components.human_interface as human_interface
@@ -93,7 +92,7 @@ class Diagnostics():
             output_row_max[i] = np.max(output_row)
         
         self.output_top_idx = int(np.min(output_row_min))
-        self.output_height = int(np.max(output_row_max) - self.output_top_idx)
+        self.output_height = int(np.max(output_row_max) - self.output_top_idx)+1
 
     def set_cam_framerate(self,framerate):
         # framerate in Hz
