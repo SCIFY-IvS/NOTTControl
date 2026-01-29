@@ -217,6 +217,7 @@ class Diagnostics():
         return stamps,fluxes_broad,snrs_broad,flux_disp,snr_disp
     
     # Lower-level: Calculating diagnostics for a single camera frame
+    # TO BE CLEANED
     def diagnose_frame(self,frame,broadband,master_dark=None,master_flat=None,bg_noise=None):
         '''
         Parameters
@@ -253,8 +254,8 @@ class Diagnostics():
         # Gathering fluxes,snr
         flux_broad = np.zeros(Nroi)
         snr_broad = np.zeros(Nroi)
-        flux_disp = [np.zeros(self.output_height)]*Nroi
-        snr_disp = [np.zeros(self.output_height)]*Nroi
+        flux_disp = []
+        snr_disp = []
         
         if broadband:
             for i in range(0,Nroi):
@@ -272,21 +273,24 @@ class Diagnostics():
         
         if not broadband:
             for i in range(0,Nroi):
-                px_outputs = self.ind_outputs_sorted[i]
-                for px in px_outputs:
-                    k,l = px[0],px[1]
-                    flux_px = rois_s[i][k,l]
-                    snr_px = rois_snr[i][k,l]
-                    idx = k-self.output_top_idx
-                    flux_disp[i][idx] += flux_px
-                    snr_disp[i][idx] += snr_px
+                # Sum over columns for each ROI
+                flux_disp.append(rois_s[i].sum(axis=1)[self.output_top_idx:self.output_top_idx+self.output_height])
+                snr_disp.append(rois_snr[i].sum(axis=1)[self.output_top_idx:self.output_top_idx+self.output_height])
+                #px_outputs = self.ind_outputs_sorted[i]
+                #for px in px_outputs:
+                #    k,l = px[0],px[1]
+                #    flux_px = rois_s[i][k,l]
+                #    snr_px = rois_snr[i][k,l]
+                #    idx = k-self.output_top_idx
+                #    flux_disp[i][idx] += flux_px
+                #    snr_disp[i][idx] += snr_px
         
             # Arrays 'flux_disp' & 'snr_disp' now contain
             # > 1st index a : ROI (chip output) number (0,1,2,...,6,7)
             # > 2nd index b : index of pixel row within the ROI (0,1,...,self.output_height)
             # flux[a][b] is then the flux value in ROI a, summed for all output (identified by SNR criterion) pixels in the row b.
         
-        return flux_broad,snr_broad,flux_disp,snr_disp
+        return flux_broad,snr_broad,np.array(flux_disp),np.array(snr_disp)
         
         
         
