@@ -36,12 +36,18 @@ tLive=t
 
 img_timestamp_ref = None
 
+use_camera_time_ = (config['CAMERA']['use_camera_time'] == "True")
+
 def callback(context,*args):#, aHandle, aStreamIndex):
-    recording_timestamp = datetime.utcnow()
+    # Creating timezone-aware datetime object, in utc
+    recording_timestamp = datetime.now(timezone.utc)
+    # Dropping the timezone info
+    recording_timestamp = recording_timestamp.replace(tzinfo=None)
+    
     
     global img_timestamp_ref
     
-    context.load_image(recording_timestamp)
+    context.load_image(recording_timestamp,use_camera_time_)
 
 class MainWindow(QMainWindow):
     #Without this call, the GUI is resized and tiny
@@ -178,7 +184,9 @@ class MainWindow(QMainWindow):
             #base_path = r"Y:\Documents\Scify\Frames\frame_"
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
-            filename = timestamp.strftime("%H%M%S%f")[:-3] + ".png"
+            timestamp_str = timestamp.strftime("%H%M%S%f")
+            timestamp_str_round = str(round((int(timestamp_str)/1000)))
+            filename = timestamp_str_round + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
             recording = self.recording
@@ -323,11 +331,26 @@ class MainWindow(QMainWindow):
     def set_window(self):
         if not config['CAMERA'].getboolean('windowing'):
             return
-
+        
+        # Fetching current window dimensions
+        #w_cur = self.interface.getparam_int32(294)
+        #h_cur = self.interface.getparam_int32(295)
+        # Fetching config window dimensions
+        #w_con = config['CAMERA'].getint('window_w')
+        #h_con = config['CAMERA'].getint('window_h')
+        
+        # Large frame to small frame
+        #if w_cur*h_cur > w_con*h_con:
         self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
         self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
         self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
         self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        #else:
+        # Small frame to large frame
+        #    self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
+        #    self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        #    self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
+        #    self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
             
     def disconnect_camera(self):
         if not self.connected:
@@ -346,6 +369,7 @@ class MainWindow(QMainWindow):
         if self.recording:
             self.stop_recording()
         else:
+            self.time_reference_frames = 0
             self.start_recording()
             
     def start_recording(self):
@@ -378,7 +402,7 @@ class MainWindow(QMainWindow):
         self.background_img = self.image.getImageItem().image
         self.ui.checkBox_subtractbackground.setEnabled(True)
     
-    def load_image(self, recording_timestamp):  
+    def load_image(self, recording_timestamp, use_camera_time):  
         global t
         global tLive
         global img_timestamp_ref
@@ -412,7 +436,10 @@ class MainWindow(QMainWindow):
             #Use the first 100 frames purely to establish time
             return
         
-        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
+        if use_camera_time:
+            timestamp = timedelta(milliseconds=timestamp_offset)
+        else:
+            timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
         
         if(self.roi_queue.qsize() > 5):
