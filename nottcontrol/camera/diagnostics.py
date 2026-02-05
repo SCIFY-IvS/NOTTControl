@@ -26,8 +26,20 @@ up_lamb = float(nott_config['CAMERA']['up_lamb'])
 
 class Diagnostics():
 
-    def __init__(self,snr_thresh=5,framerate_=100):    
+    def __init__(self,use_geom=True,snr_thresh=5,framerate_=100):    
+        """
+        Parameters
+        ----------
+        use_geom : boolean
+            If True, the outputs are identified as all pixels within the ROIs
+            If False, the outputs are identified as all pixels with SNR > snr_thresh
+        snr_thresh : float
+            SNR threshold for output identification
+        """
         
+        #-----------------------#
+        # Setting up interfaces |
+        #-----------------------#
         # Camera interface
         infra_interf_ = InfratecInterface()
         # TBD 
@@ -47,52 +59,29 @@ class Diagnostics():
         human_interf_ = human_interface.HumInt(interf=piezo_interf_,db_server=redis_client_,pad=0.08,offset=5.0)
         self.human_interf = human_interf_
         
-        # Determine pixels corresponding to outputs
-        # To Do: Guarantee that this function is called when not in a null state.
-        #        Otherwise, the simple SNR criterion used will not pick up the output positions of the two dark outputs.
-        dt = 50*(1/self.framerate)
-        # Fetch a master dark
-        master_dark_,bg_noise_ = self.human_interf.dark_frame_sequence(dt)
-        # Fetch a master flat (TBD)
-        master_flat_ = master_dark_.copy()
-        master_flat_.set_data(np.ones_like(master_dark_.data))
-        self.master_dark = master_dark_
-        self.master_flat = master_flat_
-        self.bg_noise = bg_noise_
+        #---------------------------#
+        # Determining output pixels | For use_geom = False: guarantee that this function is called when not in a state of null.
+        #---------------------------#
         
-        # Fetch a science frame
-        master_sci_,_ = self.human_interf.science_frame_sequence(dt) 
-        # Calibrate science frame 
-        master_sci_cal,master_sci_cal_snr = self.human_interf.calib_frame(master_sci_,master_dark_,master_flat_,bg_noise_)
-        # Identify outputs
-        outputs_mask_ = self.human_interf.identify_outputs(master_sci_cal_snr,True,snr_thresh)
-        self.outputs_mask = outputs_mask_
-        
-        # Identify output dimensions
-        
-        # Amount of relevant ROIs (=chip outputs)
-        Nroi = len(self.outputs_mask.rois_data)
-        # ind_outputs : 1st index - N total output px (over all rois)
-        #               2nd index - nr. of the ROI the output px is in
-        #               3rd,4th index - position within the ROI of the output px
-        ind_outputs = np.argwhere(self.outputs_mask.rois_data)
-        # Sorting by ROIs
-        ind_outputs_sorted_ = [[]]*Nroi
-        for px in ind_outputs:
-            ind_outputs_sorted_[px[0]].append(px[1:3])
-        ind_outputs_sorted_ = np.array(ind_outputs_sorted_)
-        self.ind_outputs_sorted = ind_outputs_sorted_
+        # Getting a calibrated science frame
+        dt = 100*(1/self.framerate)
+        sci_frames = self.human_interf.science_frame_sequence(dt)
+        dark_frames_ = self.human_interf.dark_frame_sequence(dt)
+        self.dark_frames = dark_frames_
+        cal_mean,cal_std,_ = sci_frames.calib(dark_frames_)
+        cal_snr = np.divide(cal_mean,cal_std)
+        # Identifying outputs
+        outputs_pos_ = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
+        self.outputs_pos = outputs_pos_
         # Determining the top index and height of the outputs from the photometric channels
-        ind_outputs_sorted_photo = ind_outputs_sorted_[[0,1,Nroi-2,Nroi-1]]
-        output_row_min = np.zeros(4)
-        output_row_max = np.zeros(4)
-        for i in range(0,4):
-            output_row = np.transpose(ind_outputs_sorted_photo[i])[0]
-            output_row_min[i] = np.min(output_row)
-            output_row_max[i] = np.max(output_row)
-        
-        self.output_top_idx = int(np.min(output_row_min))
-        self.output_height = int(np.max(output_row_max) - self.output_top_idx)+1
+        photo_outputs_pos = outputs_pos_[[0,1,-2,-1]]
+        # output_pxs : 1st index - N total output px in the photo ROIs
+        #              2nd index - 0 = Index of the photo ROI
+        #                          1,2 - Position within the ROI of the output px
+        output_pxs = np.argwhere(photo_outputs_pos)
+        row_ind = output_pxs[:,2]
+        self.output_top_idx = int(np.min(row_ind))
+        self.output_height = int(np.max(row_ind)) - self.output_top_idx+1
 
     def set_cam_framerate(self,framerate):
         # framerate in Hz
@@ -122,27 +111,30 @@ class Diagnostics():
         else:
             lambs = np.linspace(low_lamb,up_lamb,self.output_height)
     
-        # Fetching master science frame and constituent, individual science frames
-        master_sci_frame,sci_frames = self.human_interf.science_frame_sequence(dt)
-        # Broadband flux,snr of chip outputs in single science frames
-        fluxes_broad = []
-        snrs_broad = []
-        for sci_frame in sci_frames:
-            flux_broad,snr_broad,_,_ = self.diagnose_frame(sci_frame,broadband=True)
-            fluxes_broad.append(flux_broad)
-            snrs_broad.append(snr_broad)
-        fluxes_broad = np.transpose(fluxes_broad)
-        snrs_broad = np.transpose(snrs_broad)
-        # Dispersed flux,snr of chip outputs in master science frame
-        _,_,flux_disp,snr_disp = self.diagnose_frame(master_sci_frame,broadband=False)
+        # Fetch science frames
+        sci_frames = self.human_interf.science_frame_sequence(dt)
+        # Calibration
+        cal_mean,cal_std,cal_seq = sci_frames.calib(self.dark_frames)
+        cal_mean_snr = np.divide(cal_mean,cal_std)
+        # Masking outputs
+        cal_mean = cal_mean*self.outputs_pos
+        cal_mean_snr = cal_mean_snr*self.outputs_pos
+        # Time series of broadband flux: sum output pixels' signal in each frame
+        fluxes_broad = cal_seq.sum(axis=(2,3))
+        snrs_broad = cal_seq.sum(axis=(2,3)) # SNR for individual frames TBD
+        # Dispersed flux: sum output pixels' signal row-per-row in master frame
+        flux_disp = cal_mean.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
+        snr_disp = cal_mean_snr.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
+    
         # Timestamps of individual frames
-        ids = master_sci_frame.id
+        ids = sci_frames.id
         stamps = []
         for id_s in ids:
             HMS = int(id_s.split(sep="_")[1])
             stamps.append(HMS)
         # Normalizing to start
         stamps = np.array(stamps)-stamps[0]
+    
         
         if visual_feedback:
             
@@ -205,82 +197,4 @@ class Diagnostics():
             plt.show()
     
         return stamps,fluxes_broad,snrs_broad,flux_disp,snr_disp
-    
-    # Lower-level: Calculating diagnostics for a single camera frame
-    # TO BE CLEANED
-    def diagnose_frame(self,frame,broadband,master_dark=None,master_flat=None,bg_noise=None):
-        '''
-        Parameters
-        ----------
-        frame : Instance of the Frame class
-            Infrared camera frame  
-        broadband : Boolean
-            If True, only compute the broadband flux inside the chip outputs
-            If False, only compute the dispersed flux inside the chip outputs
-        master_dark : Instance of the Frame class
-            Master dark frame
-        master_flat : Instance of the Frame class
-            Master flat frame
-        bg_noise : Instance of the Frame class
-            Background noise frame
-        '''
             
-        # Setting defaults
-        if master_dark is None:
-            master_dark = self.master_dark
-        if master_flat is None:
-            master_flat = self.master_flat
-        if bg_noise is None:
-            bg_noise = self.bg_noise
-        
-        # Calibrating frame
-        frame_cal,frame_cal_snr = self.human_interf.calib_frame(frame,master_dark,master_flat,bg_noise)
-        # Fetching signal and signal-to-noise ratios
-        rois_s = frame_cal.rois_data
-        rois_snr = frame_cal_snr.rois_data
-        # Amount of relevant ROIs (=chip outputs)
-        Nroi = len(rois_s)
-        
-        # Gathering fluxes,snr
-        flux_broad = np.zeros(Nroi)
-        snr_broad = np.zeros(Nroi)
-        flux_disp = []
-        snr_disp = []
-        
-        if broadband:
-            for i in range(0,Nroi):
-                px_outputs = self.ind_outputs_sorted[i]
-                for px in px_outputs:
-                    k,l = px[0],px[1]
-                    flux_px = rois_s[i][k,l]
-                    snr_pix = rois_snr[i][k,l]
-                    flux_broad[i] += flux_px
-                    snr_broad[i] += snr_pix
-                    
-            # Arrays 'flux_broad' & 'snr_broad' now contain
-            # > 1st index a : ROI (chip output) number (0,1,2,...,6,7)
-            # flux_broad[a] is the total, broadband flux in chip output a
-        
-        if not broadband:
-            for i in range(0,Nroi):
-                # Sum over columns for each ROI
-                flux_disp.append(rois_s[i].sum(axis=1)[self.output_top_idx:self.output_top_idx+self.output_height])
-                snr_disp.append(rois_snr[i].sum(axis=1)[self.output_top_idx:self.output_top_idx+self.output_height])
-                #px_outputs = self.ind_outputs_sorted[i]
-                #for px in px_outputs:
-                #    k,l = px[0],px[1]
-                #    flux_px = rois_s[i][k,l]
-                #    snr_px = rois_snr[i][k,l]
-                #    idx = k-self.output_top_idx
-                #    flux_disp[i][idx] += flux_px
-                #    snr_disp[i][idx] += snr_px
-        
-            # Arrays 'flux_disp' & 'snr_disp' now contain
-            # > 1st index a : ROI (chip output) number (0,1,2,...,6,7)
-            # > 2nd index b : index of pixel row within the ROI (0,1,...,self.output_height)
-            # flux[a][b] is then the flux value in ROI a, summed for all output (identified by SNR criterion) pixels in the row b.
-        
-        return flux_broad,snr_broad,np.array(flux_disp),np.array(snr_disp)
-        
-        
-        

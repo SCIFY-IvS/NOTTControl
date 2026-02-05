@@ -168,20 +168,17 @@ class HumInt(object):
         # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
         epoch = datetime.fromtimestamp(0,timezone.utc)
         dt = timedelta(milliseconds=unix_stamp)
-        stamp = epoch + dt
-        return stamp
+        utc_stamp = epoch + dt
+        return utc_stamp
 
-    def get_frame(self,unix_stamp):
-        
-        # Converting unix_stamp to datetime object utc_stamp
-        utc_stamp = self.unix_to_datetime(unix_stamp)
-        # Converting utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+    def datetime_to_id(self,utc_stamp):
+        # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
         Ymd = utc_stamp.strftime("%Y%m%d")
         HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
         frame_id = Ymd+"_"+HMS
-        return Frame(frame_id)
+        return frame_id
 
-    def get_master_frame(self, dt):
+    def get_frames(self,dt):
         # Timespan dt in seconds
         
         # db_time returns stamps in unix_time_ms since 01/01/1970 00:00:00, as registered in redis
@@ -189,36 +186,22 @@ class HumInt(object):
         sleep(dt)
         end = self.db_time()
         # Fetching InfraTec times registered in this timeframe        
-        stamps = get_field("roi9_avg",start,end,False)[:,0]
+        unix_stamps = get_field("roi9_avg",start,end,False)[:,0]
         ids = []
-        # Retrieving frames from local storage
-        frames = []
-        for stamp in stamps:
-            frame = self.get_frame(stamp)
-            frames.append(frame)
-            ids.append(frame.id)
-            
-        # Master frame
-        master_full = np.mean([frame.data for frame in frames],axis=0)
-        # Background noise
-        # Note: This noise estimate does not consider the individual noise components (read, dark current, photon) separately. 
-        #       The estimate is thus only to be used for calibrating frames with one specific exposure time, the camera integration time.
-        #       Camera characterization needs to ensue to generalize to arbitrary exposure time, e.g. by characterizing the dark current.
-        bg_noise = np.std([frame.data for frame in frames],axis=0)
-        # Return master and background noise frames as Frame objects
-        master_frame = frames[0].copy()
-        bg_noise_frame = frames[0].copy()
-        master_frame.set_id(ids)
-        bg_noise_frame.set_id(ids)
-        master_frame.set_data(master_full)
-        bg_noise_frame.set_data(bg_noise)
+        for unix_stamp in unix_stamps:
+            utc_stamp = self.unix_to_datetime(unix_stamp)
+            frame_id = self.datetime_to_id(utc_stamp)
+            ids.append(frame_id)
+
+        # Creating a Frame object by given ids
+        frames = Frame(ids)
         
-        return master_frame,bg_noise_frame,frames
+        return frames
 
     def science_frame_sequence(self, dt, verbose=False):
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
-        master,_,frames = self.get_master_frame(dt) 
-        return master,frames
+        sci_frames = self.get_frames(dt) 
+        return sci_frames
 
     def dark_sequence(self, dt=0.5, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
@@ -228,47 +211,23 @@ class HumInt(object):
         
     def dark_frame_sequence(self, dt, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
-        master,bg_noise,_ = self.get_master_frame(dt) 
+        dark_frames = self.get_frames(dt) 
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
-        return master,bg_noise
+        return dark_frames
 
-    def calib_frame(self,frame,dark,flat,bg_noise):
-        # "frame" : frame containing raw science data, instance of the Frame class
-        # "dark","flat","bg_noise" : dark, flat and background noise, instances of the Frame class
+    def identify_outputs(self,rois_data,use_geom=True,snr_thresh=5):
+        # 'rois_data': numpy array containing the image data of each ROI
+        # 'use_geom': If True, define the entire ROI as output. If False, identify output pixels by SNR criterion.
+        # 'snr_thresh' : SNR threshold for identification of outputs.
+        # ! Limiting calculations to data within the ROIs for efficiency
+        # Returns a numpy array of booleans, indicating True for output pixels.
         
-        s = np.divide(frame.data-dark.data,flat.data)
-        snr = np.divide(s,bg_noise.data)
-        
-        # Returning as Frame objects
-        frame_cal = frame.copy()
-        frame_cal.set_data(s)
-        frame_cal_snr = frame.copy()
-        frame_cal_snr.set_data(snr)
-        return frame_cal,frame_cal_snr
-
-    def identify_outputs(self,frame,use_geom,snr_thresh):
-        # 'frame' : frame containing calibrated signal-to-noise-ratio data, instance of the Frame class
-        # 'use_geom' : If True, the ROIs - defined within the Frame object - are used to define the outputs. If False, the SNR threshold is used.
-        # 'snr_thresh' : SNR threshold for identification of outputs, only used when 'use_geom' is False.
-        # ! Function to be performed when not in a state of null
         if use_geom:
-            shape = (frame.height,frame.width)
-            outputs_pos = np.zeros(shape,dtype=bool)
-            for roi_crop in frame.rois_crop:
-                x,y,w,h = roi_crop.x,roi_crop.y,roi_crop.w,roi_crop.h
-                i1,i2,j1,j2 = y,y+h,x,x+w
-                outputs_pos[i1:i2+1,j1:j2+1] = True
-            # Returning mask as Frame object
-            outputs_mask = frame.copy()
-            outputs_mask.set_data(outputs_pos)
-                
-        if not use_geom:
-            outputs_pos = (frame.data >= snr_thresh)
-            # Returning mask as Frame object
-            outputs_mask = frame.copy()
-            outputs_mask.set_data(outputs_pos)
-        
-        return outputs_mask
+            outputs_pos = np.ones_like(rois_data,dtype=bool)
+        else:
+            outputs_pos = (rois_data >= snr_thresh)
+            
+        return outputs_pos
 
     # Surface level functions
     
