@@ -79,7 +79,7 @@ class Diagnostics():
         #              2nd index - 0 = Index of the photo ROI
         #                          1,2 - Position within the ROI of the output px
         output_pxs = np.argwhere(photo_outputs_pos)
-        row_ind = output_pxs[:,2]
+        row_ind = output_pxs[:,1]
         self.output_top_idx = int(np.min(row_ind))
         self.output_height = int(np.max(row_ind)) - self.output_top_idx+1
 

@@ -53,8 +53,8 @@ class Frame():
             data_cube.append(data_)
             
         self.data = np.array(data_cube)
-        self.width = data_cube.shape[2]
-        self.height = data_cube.shape[1]
+        self.width = self.data.shape[2]
+        self.height = self.data.shape[1]
         # ROIs
         rois_crop_ = []
         rois_data_ = [] 
@@ -63,7 +63,7 @@ class Frame():
             x,y,w,h = int(rois_[k].x-window_["x"]),int(rois_[k].y-window_["y"]),int(rois_[k].w),int(rois_[k].h)
             i1,i2,j1,j2 = y,y+h,x,x+w
             rois_crop_.append(Roi(x,y,w,h))
-            rois_data_.append(data_cube[:,i1:i2+1,j1:j2+1])
+            rois_data_.append(self.data[:,i1:i2+1,j1:j2+1])
         self.rois = rois_
         self.rois_crop = rois_crop_
         self.rois_data = rois_data_
@@ -142,7 +142,8 @@ class Frame():
         cal_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
         
         # 2) Calibrated sequence of frames
-        cal_seq = np.subtract(self.rois_data,dark_mean)
+        cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
+        cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
         # SNR for individual frames TBD
         return cal_mean,cal_std,cal_seq
         
