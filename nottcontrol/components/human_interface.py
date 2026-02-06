@@ -3,13 +3,11 @@ import matplotlib.pyplot as plt
 from time import sleep, time
 from tqdm import tqdm
 from copy import copy
-
+from datetime import datetime,timedelta,timezone
 
 import sys
 sys.path.append("/home/labo/src/NOTTControl/")
 sys.path.append("/home/labo/src/NOTTControl/script/lib/")
-
-
 
 dburl = "redis://nott-server.ster.kuleuven.be:6379"
 
@@ -19,12 +17,12 @@ mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
+from nottcontrol.camera.frame import Frame
+from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
+from nottcontrol import config 
 
-config = ConfigParser()
-config.read("/home/labo/src/NOTTControl/nottcontrol/config.ini")
 opcuad = config["DEFAULT"]["opcuaaddress"]
-
 
 
 class HumInt(object):
@@ -37,7 +35,7 @@ class HumInt(object):
                 opcuad=opcuad,
                 nb_beams=4,
                 non_motorized=0,
-                offset = 8.0):
+                offset = 8.0,snr_thresh=5):
         # self.lamb_min = lam_range[0]
         # self.lamb_max = lam_range[-1]
         self.lam_mean = lam_mean
@@ -45,7 +43,7 @@ class HumInt(object):
         self.shutter_pad = 5.5
         self.interf = interf
         self.act_index = act_index
-        self.non_motorized = non_motorized # Index of the non-mororized beam
+        self.non_motorized = non_motorized # Index of the non-motorized beam
         self.nb_beams = nb_beams
         self.offset = offset * np.ones(self.nb_beams)
         self.offset[self.non_motorized] = 0
@@ -65,12 +63,174 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
-
         self.move(np.array([0., 0., 0., 0.]))
 
+    # Auxiliary functions
+    
     def __del__(self):
         self.opcua_conn.disconnect()
+    
+    def db_time(self):
+        aresp = self.ts.ts.get(self.rois[0])
+        return aresp[0]
 
+    def four2three(self, position):
+        return position - position[self.non_motorized]
+
+    def deltaval2p(self, deltaval, frac, amp=800.):
+        lam_micron = 1.0e6 * self.lam_mean
+        deltap = lam_micron * frac
+        inner = -deltaval / (amp * 2 * np.sin(2*np.pi/lam_micron * deltap))
+        p = lam_micron /(2*np.pi) * np.arcsin(inner)
+        return p
+
+    # Shutter control functions
+    
+    def shutter_set(self, values, wait=True, verbose=False):
+        if not isinstance(values, np.ndarray):
+            thevalues = np.array(values)
+        else:
+            thevalues = values
+        for i, ashutter in enumerate(self.shutters):
+            values_bool = values.astype(bool)
+            if values_bool[i]:
+                ashutter.open()
+            else:
+                ashutter.close()
+        if wait:
+            sleep(self.shutter_pad)
+        if verbose:
+            for i, ashutter in enumerate(self.shutters):
+                print(i, ashutter.getStatusInformation()[1], ashutter.getPositionAndSpeed()[0])
+
+    # Piezo control functions
+
+    def get_position(self):
+        pos = self.interf.values.copy()
+        pos -= self.offset
+        return pos
+
+    def move(self, position ):
+        # print(f"moving to {position:.3e}")
+        values = self.four2three(position) + self.offset
+        self.interf.send(any_values=values)
+
+    def relative_move(self, motion):
+        thepos = self.get_position()
+        thepos[self.act_index] += motion 
+        self.interf.send(any_values=thepos)
+
+    # Sample functions
+
+    def sample(self):
+        mes = np.array([self.ts.ts.get(akey) for akey in self.rois])
+        return mes.T[1]
+
+    def sample_cal(self):
+        return self.sample() - self.dark
+
+    def sample_long(self, dt=1.0):
+        # start = int(np.round(time()*1000).astype(int))
+        start = self.db_time()
+        sleep(dt)
+        # end = int(np.round(time()*1000).astype(int))
+        end = self.db_time()
+        mes = np.array([self.ts.ts.range(akey, start, end) for akey in self.rois])
+        return mes.T[1]
+
+    def sample_long_cal(self, dt):
+        return self.sample_long(dt=dt) - self.dark
+
+    def move_and_sample(self, position, dt=None, move_back=True):
+        orig_pos = self.get_position()
+        self.move(position)
+        sleep(self.pad)
+        if dt is None:
+            res = self.sample_cal()
+        else:
+            res = self.sample_long_cal(dt)
+        if move_back:
+            print(f"moving_back to {orig_pos}")
+            self.move(orig_pos)
+            sleep(self.pad)
+        return res
+
+    # Image calibration functions 
+
+    def get_dark(self, dt):
+        print("Taking darks")
+        measurement = self.sample_long(dt=dt)
+        self.dark = measurement.mean(axis=0)
+        self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
+        print("You can remove the shutters")
+
+    def unix_to_datetime(self,unix_stamp):
+        # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
+        epoch = datetime.fromtimestamp(0,timezone.utc)
+        dt = timedelta(milliseconds=unix_stamp)
+        utc_stamp = epoch + dt
+        return utc_stamp
+
+    def datetime_to_id(self,utc_stamp):
+        # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+        Ymd = utc_stamp.strftime("%Y%m%d")
+        HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
+        frame_id = Ymd+"_"+HMS
+        return frame_id
+
+    def get_frames(self,dt):
+        # Timespan dt in seconds
+        
+        # db_time returns stamps in unix_time_ms since 01/01/1970 00:00:00, as registered in redis
+        start = self.db_time()
+        sleep(dt)
+        end = self.db_time()
+        # Fetching InfraTec times registered in this timeframe        
+        unix_stamps = get_field("roi9_avg",start,end,False)[:,0]
+        ids = []
+        for unix_stamp in unix_stamps:
+            utc_stamp = self.unix_to_datetime(unix_stamp)
+            frame_id = self.datetime_to_id(utc_stamp)
+            ids.append(frame_id)
+
+        # Creating a Frame object by given ids
+        frames = Frame(ids)
+        
+        return frames
+
+    def science_frame_sequence(self, dt, verbose=False):
+        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
+        sci_frames = self.get_frames(dt) 
+        return sci_frames
+
+    def dark_sequence(self, dt=0.5, verbose=False):
+        self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
+        mydark = self.get_dark(dt=dt)
+        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
+        return mydark
+        
+    def dark_frame_sequence(self, dt, verbose=False):
+        self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
+        dark_frames = self.get_frames(dt) 
+        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
+        return dark_frames
+
+    def identify_outputs(self,rois_data,use_geom=True,snr_thresh=5):
+        # 'rois_data': numpy array containing the image data of each ROI
+        # 'use_geom': If True, define the entire ROI as output. If False, identify output pixels by SNR criterion.
+        # 'snr_thresh' : SNR threshold for identification of outputs.
+        # ! Limiting calculations to data within the ROIs for efficiency
+        # Returns a numpy array of booleans, indicating True for output pixels.
+        
+        if use_geom:
+            outputs_pos = np.ones_like(rois_data,dtype=bool)
+        else:
+            outputs_pos = (rois_data >= snr_thresh)
+            
+        return outputs_pos
+
+    # Surface level functions
+    
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
         default_params = np.array([100,50,1900,2000])
         if isinstance(parameters, str):
@@ -134,70 +294,6 @@ class HumInt(object):
             # plt.show()
         self.move(newpos)
 
-    def deltaval2p(self, deltaval, frac, amp=800.):
-        lam_micron = 1.0e6 * self.lam_mean
-        deltap = lam_micron * frac
-        inner = -deltaval / (amp * 2 * np.sin(2*np.pi/lam_micron * deltap))
-        p = lam_micron /(2*np.pi) * np.arcsin(inner)
-        return p
-
-    def move_and_sample(self, position, dt=None, move_back=True):
-        orig_pos = self.get_position()
-        self.move(position)
-        sleep(self.pad)
-        if dt is None:
-            res = self.sample_cal()
-        else:
-            res = self.sample_long_cal(dt)
-        if move_back:
-            print(f"moving_back to {orig_pos}")
-            self.move(orig_pos)
-            sleep(self.pad)
-        return res
-
-    def get_dark(self, dt):
-        print("Taking darks")
-        measurement = self.sample_long(dt=dt)
-        self.dark = measurement.mean(axis=0)
-        self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
-        print("You can remove the shutters")
-
-    def sample(self):
-        mes = np.array([self.ts.ts.get(akey) for akey in self.rois])
-        return mes.T[1]
-
-    def sample_cal(self):
-        return self.sample() - self.dark
-
-    def db_time(self):
-        aresp = self.ts.ts.get(self.rois[0])
-        return aresp[0]
-
-    def sample_long(self, dt=1.0):
-        # start = int(np.round(time()*1000).astype(int))
-        start = self.db_time()
-        sleep(dt)
-        # end = int(np.round(time()*1000).astype(int))
-        end = self.db_time()
-        mes = np.array([self.ts.ts.range(akey, start, end) for akey in self.rois])
-        return mes.T[1]
-
-    def sample_long_cal(self, dt):
-        return self.sample_long(dt=dt) - self.dark
-
-    def four2three(self, position):
-        return position - position[self.non_motorized]
-
-    def move(self, position ):
-        # print(f"moving to {position:.3e}")
-        values = self.four2three(position) + self.offset
-        self.interf.send(any_values=values)
-
-    def get_position(self):
-        pos = self.interf.values.copy()
-        pos -= self.offset
-        return pos
-
     def do_scan(self, beam_index, start=-3.0, end=3.0, nsteps=1000, dt=0.1):
         step_vals = np.linspace(start, end, nsteps)
         starting_pos = self.get_position()
@@ -224,11 +320,6 @@ class HumInt(object):
         self.move(starting_pos)
         print("Scan ended")
         return steps, results, stds
-
-    def relative_move(self, motion):
-        thepos = self.get_position()
-        thepos[self.act_index] += motion 
-        self.interf.send(any_values=thepos)
 
     def evaluate_lag(self, act_index, n=10, lag_min=0.05, lag_max=0.15, amplitude=0.5, roi_index=3):
         start_pos = self.get_position()
@@ -258,30 +349,6 @@ class HumInt(object):
         plt.xlabel("Lag [s]")
         plt.ylabel("Amplitude of light variation")
         plt.show()
-
-    def shutter_set(self, values, wait=True, verbose=False):
-        if not isinstance(values, np.ndarray):
-            thevalues = np.array(values)
-        else:
-            thevalues = values
-        for i, ashutter in enumerate(self.shutters):
-            values_bool = values.astype(bool)
-            if values_bool[i]:
-                ashutter.open()
-            else:
-                ashutter.close()
-        if wait:
-            sleep(self.shutter_pad)
-        if verbose:
-            for i, ashutter in enumerate(self.shutters):
-                print(i, ashutter.getStatusInformation()[1], ashutter.getPositionAndSpeed()[0])
-
-    def dark_sequence(self, dt=0.5, verbose=False):
-        self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
-        mydark = self.get_dark(dt=dt)
-        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
-        return mydark
-        
 
     def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
                     offset_scan=0., saveto="/dev/shm/cal_raw.fits",
