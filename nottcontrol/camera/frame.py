@@ -19,7 +19,7 @@ from pathlib import Path
 frame_directory = str(nott_config['DEFAULT']['frame_directory'])
 window_cfg = dict.fromkeys(["w","h","x","y"])
 for key in window_cfg.keys():
-    window_cfg[key] = int(nott_config['CAMERA']['window_'+key])
+    window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
 rois_cfg = []
 for i in range(0,10):
     roi_i = nott_config.getarray('CAMERA','ROI '+str(i+1),np.int32)
@@ -27,75 +27,75 @@ for i in range(0,10):
         raise Exception('Invalid ROI config')
     rois_cfg.append(Roi(roi_i[0],roi_i[1],roi_i[2],roi_i[3]))
 
-class Frame():
+class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
-    def __init__(self,id_,window_=window_cfg,rois_=rois_cfg):
+    def __init__(self,ids,window=window_cfg,rois=rois_cfg):
         """
         Parameters
         ----------
-        id_ : list of strings
+        ids : list of strings
             IDs of the constituent frames.
             Frame ID = Windows machine time in string "Y%m%d_H%M%S" format, up to millisecond precision. Date and time are separated by an underscore.
         """
         # Setting frame IDs
-        self.id = id_
+        self.ids = ids
         # Setting window
-        self.window = window_
+        self.window = window
         # Fetch data from local machine
         data_cube = []
-        for frame_id in id_:
+        for frame_id in ids:
             Ymd,HMS = frame_id.split(sep="_")[0],frame_id.split(sep="_")[1]
             directory = Path(frame_directory).joinpath(Ymd)
             filename = HMS+'.png'
             img_path = str(Path.joinpath(directory,filename))
             img = Image.open(img_path)
-            data_ =  np.asarray(img)
-            data_cube.append(data_)
+            data_slice =  np.asarray(img)
+            data_cube.append(data_slice)
             
         self.data = np.array(data_cube)
         self.width = self.data.shape[2]
         self.height = self.data.shape[1]
         # ROIs
-        rois_crop_ = []
-        rois_data_ = [] 
+        rois_crop = []
+        rois_data = [] 
         for k in range(0,8):
             # ROI positions within windowed frame
-            x,y,w,h = int(rois_[k].x-window_["x"]),int(rois_[k].y-window_["y"]),int(rois_[k].w),int(rois_[k].h)
+            x,y,w,h = int(round(rois[k].x-window["x"])),int(round(rois[k].y-window["y"])),int(round(rois[k].w)),int(round(rois[k].h))
             i1,i2,j1,j2 = y,y+h,x,x+w
-            rois_crop_.append(Roi(x,y,w,h))
-            rois_data_.append(self.data[:,i1:i2+1,j1:j2+1])
-        self.rois = rois_
-        self.rois_crop = rois_crop_
-        self.rois_data = rois_data_
+            rois_crop.append(Roi(x,y,w,h))
+            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+        self.rois = rois
+        self.rois_crop = rois_crop
+        self.rois_data = rois_data
      
-    def set_id(self,id_):
-        self.id = id_
+    def set_ids(self,ids):
+        self.ids = ids
         return
     
-    def set_window(self,window_):
-        self.window = window_
+    def set_window(self,window):
+        self.window = window
         return
     
-    def set_data(self,data_):
-        self.data = data_
-        self.width = data_.shape[2]
-        self.height = data_.shape[1]
+    def set_data(self,data):
+        self.data = data
+        self.width = data.shape[2]
+        self.height = data.shape[1]
         self.set_rois(self.rois)
         return
      
-    def set_rois(self,rois_):
+    def set_rois(self,rois):
         # ROIs
-        rois_crop_ = []
-        rois_data_ = []
+        rois_crop = []
+        rois_data = []
         for k in range(0,8):
             # ROI positions within windowed frame
-            x,y,w,h = int(rois_[k].x-self.window["x"]),int(rois_[k].y-self.window["y"]),int(rois_[k].w),int(rois_[k].h)
+            x,y,w,h = int(round(rois[k].x-self.window["x"])),int(round(rois[k].y-self.window["y"])),int(round(rois[k].w)),int(round(rois[k].h))
             i1,i2,j1,j2 = y,y+h,x,x+w
-            rois_crop_.append(Roi(x,y,w,h))
-            rois_data_.append(self.data[:,i1:i2+1,j1:j2+1])
-        self.rois = rois_
-        self.rois_crop = rois_crop_
-        self.rois_data = rois_data_
+            rois_crop.append(Roi(x,y,w,h))
+            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+        self.rois = rois
+        self.rois_crop = rois_crop
+        self.rois_data = rois_data
         return
         
     def av_full(self):

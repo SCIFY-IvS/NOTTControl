@@ -24,9 +24,9 @@ pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
 low_lamb = float(nott_config['CAMERA']['low_lamb'])
 up_lamb = float(nott_config['CAMERA']['up_lamb'])
 
-class Diagnostics():
+class Diagnostics(object):
 
-    def __init__(self,use_geom=True,snr_thresh=5,framerate_=100):    
+    def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5,framerate=100):    
         """
         Parameters
         ----------
@@ -40,24 +40,35 @@ class Diagnostics():
         #-----------------------#
         # Setting up interfaces |
         #-----------------------#
-        # Camera interface
-        infra_interf_ = InfratecInterface()
-        # TBD 
-        #framerate_ = infra_interf_.getparam_single(240)
-        #integtime_ = infra_interf_.getparam_idx_int32(262,0)
-        self.infra_interf = infra_interf_
-        self.framerate = framerate_       # in Hz
-        #self.integtime = integtime_       # in microseconds
-        # Piezo interface
-        piezo_interf_ = pypiezo.piezointerface()
-        self.piezo_interf = piezo_interf_
-        # Redis client
-        redis_client_ = redisclient.RedisClient(human_interface.dburl)
-        self.redis_client = redis_client_
-        # Human interface 
-        # TBD : Offset
-        human_interf_ = human_interface.HumInt(interf=piezo_interf_,db_server=redis_client_,pad=0.08,offset=5.0)
-        self.human_interf = human_interf_
+        if infra_interf is None:
+            # Camera interface
+            infra_interf = InfratecInterface()
+            # TBD 
+            #framerate = infra_interf.getparam_single(240)
+            #integtime = infra_interf.getparam_idx_int32(262,0)
+            self.framerate = framerate       # in Hz
+            #self.integtime = integtime      # in microseconds
+        if piezo_interf is None:
+            # Piezo interface
+            piezo_interf = pypiezo.piezointerface()
+        if redis_client is None:
+            # Redis client
+            redis_client = redisclient.RedisClient(human_interface.dburl)
+            
+        self.infra_interf = infra_interf
+        self.piezo_interf = piezo_interf
+        self.redis_client = redis_client
+            
+        if human_interf is None:
+            # Human interface 
+            # TBD : Offset
+            human_interf = human_interface.HumInt(interf=piezo_interf,db_server=redis_client,pad=0.08,offset=5.0)
+        else:
+            # Overwrite piezo interface and redis client with the ones tied to input human interface.
+            self.piezo_interf = human_interf.interf
+            self.redis_client = human_interf.db_server
+            
+        self.human_interf = human_interf
         
         #---------------------------#
         # Determining output pixels | For use_geom = False: guarantee that this function is called when not in a state of null.
@@ -66,15 +77,15 @@ class Diagnostics():
         # Getting a calibrated science frame
         dt = 100*(1/self.framerate)
         sci_frames = self.human_interf.science_frame_sequence(dt)
-        dark_frames_ = self.human_interf.dark_frame_sequence(dt)
-        self.dark_frames = dark_frames_
-        cal_mean,cal_std,_ = sci_frames.calib(dark_frames_)
+        dark_frames = self.human_interf.dark_frame_sequence(dt)
+        self.dark_frames = dark_frames
+        cal_mean,cal_std,_ = sci_frames.calib(dark_frames)
         cal_snr = np.divide(cal_mean,cal_std)
         # Identifying outputs
-        outputs_pos_ = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
-        self.outputs_pos = outputs_pos_
+        outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
+        self.outputs_pos = outputs_pos
         # Determining the top index and height of the outputs from the photometric channels
-        photo_outputs_pos = outputs_pos_[[0,1,-2,-1]]
+        photo_outputs_pos = outputs_pos[[0,1,-2,-1]]
         # output_pxs : 1st index - N total output px in the photo ROIs
         #              2nd index - 0 = Index of the photo ROI
         #                          1,2 - Position within the ROI of the output px
@@ -127,10 +138,10 @@ class Diagnostics():
         snr_disp = cal_mean_snr.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
     
         # Timestamps of individual frames
-        ids = sci_frames.id
+        ids = sci_frames.ids
         stamps = []
         for id_s in ids:
-            HMS = int(id_s.split(sep="_")[1])
+            HMS = int(id_s.split(sep="_")[1]) # string to int
             stamps.append(HMS)
         # Normalizing to start
         stamps = np.array(stamps)-stamps[0]
