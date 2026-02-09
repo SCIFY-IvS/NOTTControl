@@ -199,7 +199,6 @@ class HumInt(object):
         return frames
 
     def science_frame_sequence(self, dt, verbose=False):
-        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         sci_frames = self.get_frames(dt) 
         return sci_frames
 

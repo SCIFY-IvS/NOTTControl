@@ -138,7 +138,18 @@ class Diagnostics():
         
         if visual_feedback:
             
-            fig,axs = plt.subplots(4,gridspec_kw={"height_ratios": [4, 1.5, 1.5, 1],"hspace": 0.15}, figsize=(10,8))
+            # Only make figure if there isn't already one active
+            if not hasattr(self, '_diag_fig') or not plt.fignum_exists(getattr(self, '_diag_fig_num', -1)):
+                plt.ion()
+                self._diag_fig, self._diag_axs = plt.subplots(4, gridspec_kw={"height_ratios": [4, 1.5, 1.5, 1], "hspace": 0.15}, figsize=(10,8))
+                self._diag_fig_num = self._diag_fig.number
+            
+            fig, axs = self._diag_fig, self._diag_axs
+            
+            # Clear axes
+            for ax in axs:
+                ax.clear()
+
             fig.suptitle("Diagnostics of chip outputs in time frame  ["+str(ids[0])+" , "+str(ids[-1])+"]  (ms)")
             colors = ['gray','brown','blue','red','black','green','purple','orange']
             markers = ['o','o','x','^','^','x','o','o']  
@@ -194,7 +205,8 @@ class Diagnostics():
             # Showing
             plt.tight_layout()
             plt.subplots_adjust(right=0.85)     
-            plt.show()
+            fig.canvas.draw()
+            fig.canvas.flush_events()
     
         return stamps,fluxes_broad,snrs_broad,flux_disp,snr_disp
             
