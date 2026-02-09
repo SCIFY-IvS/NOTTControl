@@ -134,16 +134,20 @@ class Frame(object):
         # Calculating the mean over all frames = mean counts per DIT (detector integration time)
         sci_mean = self.av_rois()
         dark_mean = dark.av_rois()
-        # Calculating the sample's standard deviation over all frames, dividing by nr. of frames to get the std on the mean.
-        sci_mean_std = self.std_rois() / N_sci
-        dark_mean_std = dark.std_rois() / N_dark
+        # Calculating the sample's standard deviation over all scientific frames
+        sci_sample_std = self.std_rois()
+        # Dividing by nr. of frames to get the std on the mean.
+        sci_mean_std = sci_sample_std / np.sqrt(N_sci)
+        dark_mean_std = dark.std_rois() / np.sqrt(N_dark)
         # Calibrated master frame, corresponding to one DIT (FLAT TBD)
         cal_mean = sci_mean-dark_mean
-        cal_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
+        cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
         
         # 2) Calibrated sequence of frames
         cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
         cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
+        cal_seq_std = np.sqrt(sci_sample_std**2+dark_mean_std**2)
+        
         # SNR for individual frames TBD
-        return cal_mean,cal_std,cal_seq
+        return cal_mean,cal_mean_std,cal_seq,cal_seq_std
         

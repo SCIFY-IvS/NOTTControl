@@ -79,7 +79,7 @@ class Diagnostics(object):
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.dark_frames = dark_frames
-        cal_mean,cal_std,_ = sci_frames.calib(dark_frames)
+        cal_mean,cal_std,_,_ = sci_frames.calib(dark_frames)
         cal_snr = np.divide(cal_mean,cal_std)
         # Identifying outputs
         outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
@@ -125,14 +125,16 @@ class Diagnostics(object):
         # Fetch science frames
         sci_frames = self.human_interf.science_frame_sequence(dt)
         # Calibration
-        cal_mean,cal_std,cal_seq = sci_frames.calib(self.dark_frames)
+        cal_mean,cal_std,cal_seq,cal_seq_std = sci_frames.calib(self.dark_frames)
         cal_mean_snr = np.divide(cal_mean,cal_std)
+        cal_seq_snr = np.divide(np.transpose(cal_seq,axes=[1,0,2,3]),cal_seq_std)
+        cal_seq_snr = np.transpose(cal_seq_snr,axes=[1,0,2,3])
         # Masking outputs
         cal_mean = cal_mean*self.outputs_pos
         cal_mean_snr = cal_mean_snr*self.outputs_pos
         # Time series of broadband flux: sum output pixels' signal in each frame
         fluxes_broad = cal_seq.sum(axis=(2,3))
-        snrs_broad = cal_seq.sum(axis=(2,3)) # SNR for individual frames TBD
+        snrs_broad = cal_seq_snr.sum(axis=(2,3)) 
         # Dispersed flux: sum output pixels' signal row-per-row in master frame
         flux_disp = cal_mean.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
         snr_disp = cal_mean_snr.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
