@@ -94,25 +94,6 @@ class Diagnostics(object):
         self.output_top_idx = int(np.min(row_ind))
         self.output_height = int(np.max(row_ind)) - self.output_top_idx+1
 
-    def set_cam_framerate(self,framerate):
-        # framerate in Hz
-        # TBD 
-        framerate_64 = np.array([framerate],dtype=np.float64)
-        framerate_32 = framerate_64.astype(np.float32)[0]
-        self.infra_interf.setparam_single(240,framerate_32)
-        self.framerate = framerate_32
-        return
-    
-    def set_cam_integtime(self,integtime):
-        # integtime in microseconds
-        # TBD 
-        integtime_64 = np.array([integtime],dtype=np.int64)
-        integtime_32 = integtime_64.astype(np.int32)[0]
-        # Using index 0 as camera is in Single Integration Mode
-        self.infra_interf.setparam_idx_int32(262,0,integtime_32)
-        self.integtime = integtime_32
-        return
-
     def diagnose(self,dt,visual_feedback=True,visual_feedback_flux=True,custom_lambs=False):
     
         if custom_lambs:
