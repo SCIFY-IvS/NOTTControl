@@ -79,17 +79,19 @@ class Diagnostics(object):
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.dark_frames = dark_frames
+        self.rois = sci_frames.rois
+        self.channels = list(self.rois.keys())
         cal_mean,cal_std,_,_ = sci_frames.calib(dark_frames)
         cal_snr = np.divide(cal_mean,cal_std)
-        # Identifying outputs
-        output_channels = list(sci_frames.rois.keys())
-        photo_idx = []
-        for i in range(1,5): 
-            photo_idx.append(np.where(np.array(output_channels) == 'P'+str(i))[0][0])
-        
+        # Identifying the outputs
         outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
         self.outputs_pos = outputs_pos
-        # Determining the top index and height of the outputs from the photometric channels
+        # Determining indices of photometric channels
+        photo_idx = []
+        for i,channel_label in enumerate sci_frames.rois:
+            if list(channel_label)[0] == "P":
+                photo_idx.append(i)     
+        # Determining the top index and height of the outputs from the selected photometric channel(s)
         photo_outputs_pos = outputs_pos[photo_idx]
         # output_pxs : 1st index - N total output px in the photo ROIs
         #              2nd index - 0 = Index of the photo ROI
@@ -150,25 +152,29 @@ class Diagnostics(object):
                 ax.clear()
 
             fig.suptitle("Diagnostics of chip outputs in time frame  ["+str(ids[0])+" , "+str(ids[-1])+"]  (ms)")
-            colors = ['gray','brown','blue','red','black','green','purple','orange']
-            markers = ['o','o','x','^','^','x','o','o']  
+            colors = ['gray','brown','blue','red','black','green','purple','orange','pink','pink']
+            markers = ['o','o','x','^','^','x','o','o','x','x']  
             
             if visual_feedback_flux:
                 
-                for i in range(0,8):
-                    axs[0].scatter(stamps,fluxes_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-            
-                # Bright
-                axs[1].scatter(lambs,flux_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / I1")
-                axs[1].scatter(lambs,flux_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / I4")
-                # Null
-                axs[2].scatter(lambs,flux_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / I2")
-                axs[2].scatter(lambs,flux_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / I3")
-                # Differential null
-                diff = flux_disp[4]-flux_disp[3]
-                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="I3-I2")
-                axs[3].set_ylim(np.min(diff),np.max(diff))
-    
+                for i in range(0, len(channels)):
+                    channel = self.channels[i]
+                    roi_idx = self.rois[channel].idx
+                    axs[0].scatter(stamps,fluxes_broad[i],color=colors[idx],marker=markers[idx],label="ROI"+str(idx))
+                    
+                    if channel == "I1" or channel == "I4":
+                        plot_idx = 1
+                    if channel == "I2" or channel == "I3":
+                        plot_idx = 2
+                    axs[plot_idx].scatter(lambs,flux_disp[i],color=colors[roi_idx],marker=markers[roi_idx],s=10,label="ROI"+roi_idx+"/"+str(channel))
+                    
+                if "I2" in channels and "I3" in channels:
+                    idx_I2 = np.argwhere(np.array(channels)=="I2")[0][0]
+                    idx_I3 = np.argwhere(np.array(channels)=="I3")[0][0]
+                    diff = flux_disp[idx_I3]-flux_disp[idx_I2]
+                    axs[3].scatter(lambs,diff,color="magenta",marker=markers[7],label="I3-I2")
+                    axs[3].set_ylim(np.min(diff),np.max(diff))
+                    
                 axs[0].set_xlabel("Time (ms)")
                 for i in range(1,4):
                     axs[i].set_xlabel("Wavelength (um)")
@@ -177,19 +183,23 @@ class Diagnostics(object):
                 
             else:
                 
-                for i in range(0,8):
-                    axs[0].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
-            
-                # Bright
-                axs[1].scatter(lambs,snr_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / I1")
-                axs[1].scatter(lambs,snr_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / I4")
-                # Null
-                axs[2].scatter(lambs,snr_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / I2")
-                axs[2].scatter(lambs,snr_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / I3")
-                # Differential null
-                diff = snr_disp[4]-snr_disp[3]
-                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="I3-I2")
-                axs[3].set_ylim(np.min(diff),np.max(diff))
+                for i in range(0, len(channels)):
+                    channel = self.channels[i]
+                    roi_idx = self.rois[channel].idx
+                    axs[0].scatter(stamps,snrs_broad[i],color=colors[idx],marker=markers[idx],label="ROI"+str(idx))
+                    
+                    if channel == "I1" or channel == "I4":
+                        plot_idx = 1
+                    if channel == "I2" or channel == "I3":
+                        plot_idx = 2
+                    axs[plot_idx].scatter(lambs,snr_disp[i],color=colors[roi_idx],marker=markers[roi_idx],s=10,label="ROI"+roi_idx+"/"+str(channel))
+                    
+                if "I2" in channels and "I3" in channels:
+                    idx_I2 = np.argwhere(np.array(channels)=="I2")[0][0]
+                    idx_I3 = np.argwhere(np.array(channels)=="I3")[0][0]
+                    diff = snr_disp[idx_I3]-snr_disp[idx_I2]
+                    axs[3].scatter(lambs,diff,color="magenta",marker=markers[7],label="I3-I2")
+                    axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
                 for i in range(1,4):

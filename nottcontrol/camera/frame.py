@@ -20,12 +20,17 @@ frame_directory = str(nott_config['DEFAULT']['frame_directory'])
 window_cfg = dict.fromkeys(["w","h","x","y"])
 for key in window_cfg.keys():
     window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
-rois_cfg = dict.fromkeys(nott_config.getarray('CAMERA','outputs_roi',str))
-for i,output_label in enumerate(rois_cfg):
-    roi = nott_config.getarray('CAMERA', 'ROI '+str(i+1),np.int32)
+    
+channel_labels = nott_config.getarray('CAMERA', 'channel_labels', str)
+roi_indices = nott_config.getarray('CAMERA', 'roi_indices', np.int32)
+rois_cfg = dict.fromkeys(channel_labels)
+for i,channel_label in enumerate(rois_cfg):
+    roi_index = roi_indices[i]
+    roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.int32)
     if len(roi) != 4:
         raise Exception('Invalid ROI config')
-    rois_cfg[output_label] = Roi(roi[0],roi[1],roi[2],roi[3])
+    rois_cfg[output_label] = Roi(roi[0],roi[1],roi[2],roi[3],roi_index)
+    
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
@@ -74,7 +79,7 @@ class Frame(object):
             # ROI positions within windowed frame
             x,y,w,h = int(round(roi.x-window["x"])),int(round(roi.y-window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
-            rois_crop[channel] = Roi(x,y,w,h)
+            rois_crop[channel] = Roi(x,y,w,h,roi.idx)
             rois_data[channel] = self.data[:,i1:i2+1,j1:j2+1]
         self.rois = rois
         self.rois_crop = rois_crop
@@ -108,7 +113,7 @@ class Frame(object):
             # ROI positions within windowed frame
             x,y,w,h = int(round(roi.x-self.window["x"])),int(round(roi.y-self.window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
-            rois_crop[channel] = Roi(x,y,w,h)
+            rois_crop[channel] = Roi(x,y,w,h,roi.idx)
             rois_data[channel] = self.data[:,i1:i2+1,j1:j2+1]
         self.rois = rois
         self.rois_crop = rois_crop
@@ -165,6 +170,5 @@ class Frame(object):
         cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
         cal_seq_std = np.sqrt(sci_sample_std**2+dark_mean_std**2)
         
-        # SNR for individual frames TBD
         return cal_mean,cal_mean_std,cal_seq,cal_seq_std
         
