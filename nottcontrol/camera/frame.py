@@ -20,12 +20,12 @@ frame_directory = str(nott_config['DEFAULT']['frame_directory'])
 window_cfg = dict.fromkeys(["w","h","x","y"])
 for key in window_cfg.keys():
     window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
-rois_cfg = []
-for i in range(0,10):
-    roi_i = nott_config.getarray('CAMERA','ROI '+str(i+1),np.int32)
-    if len(roi_i) != 4:
+rois_cfg = dict.fromkeys(nott_config.getarray('CAMERA','outputs_roi',str))
+for i,output_label in enumerate(rois_cfg):
+    roi = nott_config.getarray('CAMERA', 'ROI '+str(i+1),np.int32)
+    if len(roi) != 4:
         raise Exception('Invalid ROI config')
-    rois_cfg.append(Roi(roi_i[0],roi_i[1],roi_i[2],roi_i[3]))
+    rois_cfg[output_label] = Roi(roi[0],roi[1],roi[2],roi[3])
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
@@ -36,6 +36,17 @@ class Frame(object):
         ids : list of strings
             IDs of the constituent frames.
             Frame ID = Windows machine time in string "Y%m%d_H%M%S" format, up to millisecond precision. Date and time are separated by an underscore.
+        window : dictionary (keys: string, values: int)
+            Contains the infrared camera window's position and size, as integers (px), respectively under keys "x"&"y" (column,row of top-left corner) and "w"&"h" (width,height).
+        rois : dictionary (keys : string, values : objects of ROI class)
+            Contains the infrared camera regions of interest's positions and sizes, as ROI objects, under keys representing the chip output channel (see config.ini: outputs_roi). 
+        
+        Fields
+        ------
+        rois_crop : dictionary (keys: string, values : objects of ROI class)
+            Same as "rois", but with the ROI positions adjusted to the camera window (instead of defined wrt the full frame)
+        rois_data : dictionary (keys: string, values : numpy arrays)
+            Contains the data within each ROI, sliced from the loaded data cube. 
         """
         # Setting frame IDs
         self.ids = ids
@@ -56,14 +67,15 @@ class Frame(object):
         self.width = self.data.shape[2]
         self.height = self.data.shape[1]
         # ROIs
-        rois_crop = []
-        rois_data = [] 
-        for k in range(0,8):
+        rois_crop = dict()
+        rois_data = dict()
+        for channel in list(rois.keys()):
+            roi = rois[channel]
             # ROI positions within windowed frame
-            x,y,w,h = int(round(rois[k].x-window["x"])),int(round(rois[k].y-window["y"])),int(round(rois[k].w)),int(round(rois[k].h))
+            x,y,w,h = int(round(roi.x-window["x"])),int(round(roi.y-window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
-            rois_crop.append(Roi(x,y,w,h))
-            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+            rois_crop[channel] = Roi(x,y,w,h)
+            rois_data[channel] = self.data[:,i1:i2+1,j1:j2+1]
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = rois_data
@@ -76,6 +88,10 @@ class Frame(object):
         self.window = window
         return
     
+    def get_rois_data(self):
+        # Return rois data as a list - instead of dictionary - for easier data handling
+        return list(self.rois_data.values())
+    
     def set_data(self,data):
         self.data = data
         self.width = data.shape[2]
@@ -85,14 +101,15 @@ class Frame(object):
      
     def set_rois(self,rois):
         # ROIs
-        rois_crop = []
-        rois_data = []
-        for k in range(0,8):
+        rois_crop = dict()
+        rois_data = dict()
+        for channel in list(rois.keys()):
+            roi = rois[channel]
             # ROI positions within windowed frame
-            x,y,w,h = int(round(rois[k].x-self.window["x"])),int(round(rois[k].y-self.window["y"])),int(round(rois[k].w)),int(round(rois[k].h))
+            x,y,w,h = int(round(roi.x-self.window["x"])),int(round(roi.y-self.window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
-            rois_crop.append(Roi(x,y,w,h))
-            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+            rois_crop[channel] = Roi(x,y,w,h)
+            rois_data[channel] = self.data[:,i1:i2+1,j1:j2+1]
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = rois_data
@@ -104,7 +121,7 @@ class Frame(object):
         
     def av_rois(self):
         # Averaging the ROIs, over all DITs
-        return np.mean(self.rois_data,axis=1)
+        return np.mean(self.get_rois_data(),axis=1)
     
     def std_full(self):
         # Calculating the standard deviation over all DITs, for the full frames
@@ -112,12 +129,12 @@ class Frame(object):
     
     def std_rois(self):
         # Calculating the standard deviation over all DITs, for the ROIs
-        return np.std(self.rois_data,axis=1)
+        return np.std(self.get_rois_data(),axis=1)
      
     def get_roi(self,idx):
         
         # Calculating min,max,mean,sum
-        calc = BrightnessCalculator(self.rois_data)
+        calc = BrightnessCalculator(self.get_rois_data())
         calc.run()
         
         return calc.results, self.rois_data
@@ -144,7 +161,7 @@ class Frame(object):
         cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
         
         # 2) Calibrated sequence of frames
-        cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
+        cal_seq = np.subtract(np.transpose(self.get_rois_data(),axes=[1,0,2,3]),dark_mean)
         cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
         cal_seq_std = np.sqrt(sci_sample_std**2+dark_mean_std**2)
         

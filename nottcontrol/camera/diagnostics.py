@@ -66,7 +66,7 @@ class Diagnostics(object):
         else:
             # Overwrite piezo interface and redis client with the ones tied to input human interface.
             self.piezo_interf = human_interf.interf
-            self.redis_client = human_interf.db_server
+            self.redis_client = human_interf.ts
             
         self.human_interf = human_interf
         
@@ -82,10 +82,15 @@ class Diagnostics(object):
         cal_mean,cal_std,_,_ = sci_frames.calib(dark_frames)
         cal_snr = np.divide(cal_mean,cal_std)
         # Identifying outputs
+        output_channels = list(sci_frames.rois.keys())
+        photo_idx = []
+        for i in range(1,5): 
+            photo_idx.append(np.where(np.array(output_channels) == 'P'+str(i))[0][0])
+        
         outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
         self.outputs_pos = outputs_pos
         # Determining the top index and height of the outputs from the photometric channels
-        photo_outputs_pos = outputs_pos[[0,1,-2,-1]]
+        photo_outputs_pos = outputs_pos[photo_idx]
         # output_pxs : 1st index - N total output px in the photo ROIs
         #              2nd index - 0 = Index of the photo ROI
         #                          1,2 - Position within the ROI of the output px
@@ -154,14 +159,14 @@ class Diagnostics(object):
                     axs[0].scatter(stamps,fluxes_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
             
                 # Bright
-                axs[1].scatter(lambs,flux_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / B1")
-                axs[1].scatter(lambs,flux_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / B2")
+                axs[1].scatter(lambs,flux_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / I1")
+                axs[1].scatter(lambs,flux_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / I4")
                 # Null
-                axs[2].scatter(lambs,flux_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / D1")
-                axs[2].scatter(lambs,flux_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / D2")
+                axs[2].scatter(lambs,flux_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / I2")
+                axs[2].scatter(lambs,flux_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / I3")
                 # Differential null
                 diff = flux_disp[4]-flux_disp[3]
-                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="Diff. null")
+                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="I3-I2")
                 axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
@@ -176,14 +181,14 @@ class Diagnostics(object):
                     axs[0].scatter(stamps,snrs_broad[i],color=colors[i],marker=markers[i],label="ROI"+str(i+1))
             
                 # Bright
-                axs[1].scatter(lambs,snr_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / B1")
-                axs[1].scatter(lambs,snr_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / B2")
+                axs[1].scatter(lambs,snr_disp[2],color=colors[2],marker=markers[2],s=10,label="ROI3 / I1")
+                axs[1].scatter(lambs,snr_disp[5],color=colors[5],marker=markers[5],s=12,label="ROI6 / I4")
                 # Null
-                axs[2].scatter(lambs,snr_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / D1")
-                axs[2].scatter(lambs,snr_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / D2")
+                axs[2].scatter(lambs,snr_disp[3],color=colors[3],marker=markers[3],s=10,label="ROI4 / I2")
+                axs[2].scatter(lambs,snr_disp[4],color=colors[4],marker=markers[4],s=12,label="ROI5 / I3")
                 # Differential null
                 diff = snr_disp[4]-snr_disp[3]
-                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="D2-D1")
+                axs[3].scatter(lambs,diff,color='magenta',marker=markers[7],label="I3-I2")
                 axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
