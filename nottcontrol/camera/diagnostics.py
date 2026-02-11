@@ -79,8 +79,8 @@ class Diagnostics(object):
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.dark_frames = dark_frames
-        cal_mean,cal_std,_,_ = sci_frames.calib(dark_frames)
-        cal_snr = np.divide(cal_mean,cal_std)
+        cal_mean,cal_mean_std = sci_frames.calib_master(dark_frames)
+        cal_snr = np.divide(cal_mean,cal_mean_std)
         # Identifying the outputs
         outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
         self.outputs_pos = outputs_pos
@@ -116,8 +116,8 @@ class Diagnostics(object):
         # Fetch science frames
         sci_frames = self.human_interf.science_frame_sequence(dt)
         # Calibration
-        cal_mean,cal_std,cal_seq,cal_seq_std = sci_frames.calib(self.dark_frames)
-        cal_mean_snr = np.divide(cal_mean,cal_std)
+        cal_mean,cal_mean_std,cal_seq,cal_seq_std = sci_frames.calib(self.dark_frames)
+        cal_mean_snr = np.divide(cal_mean,cal_mean_std)
         cal_seq_snr = np.divide(np.transpose(cal_seq,axes=[1,0,2,3]),cal_seq_std)
         cal_seq_snr = np.transpose(cal_seq_snr,axes=[1,0,2,3])
         # Masking outputs

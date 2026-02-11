@@ -182,31 +182,57 @@ class Frame(object):
         
         return calc.results, self.rois_data
     
-    def calib(self,dark,flat=None):
-        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instance of the Frame class
+    @property
+    def master(self):
+        # Calculates a master frame (= mean counts per DIT; detector integration time) and the corresponding std map
         # ! Limiting calculations to data within the ROIs for efficiency
         
-        # 1) Calibrated mean frame
         # Amount of frames
-        N_sci = len(self.data)
-        N_dark = len(dark.data)
-        # Doing following calculations pixel-per-pixel
-        # Calculating the mean over all frames = mean counts per DIT (detector integration time)
-        sci_mean = self.av_rois()
-        dark_mean = dark.av_rois()
-        # Calculating the sample's standard deviation over all scientific frames
-        sci_sample_std = self.std_rois()
-        # Dividing by nr. of frames to get the std on the mean.
-        sci_mean_std = sci_sample_std / np.sqrt(N_sci)
-        dark_mean_std = dark.std_rois() / np.sqrt(N_dark)
-        # Calibrated master frame, corresponding to one DIT (FLAT TBD)
-        cal_mean = sci_mean-dark_mean
-        cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
+        N = len(self.data)
+        # Calculating the master frame from the individual frames
+        master_frame = self.av_rois()
+        # Dividing sample std by nr. of frames to get the std on the mean
+        master_frame_std = self.std_rois() / np.sqrt(N)
+    
+        return master_frame,master_frame_std
+      
+    def calib_seq(self,dark,flat=None):
+        # Compute a sequence of calibrated individual frames and calculate the corresponding std map for each
+        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
+        # ! Limiting calculations to data within the ROIs for efficiency
         
-        # 2) Calibrated sequence of frames
+        # Mean dark frame and corresponding std frame
+        dark_mean,dark_mean_std = dark.master
+        # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
         cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
         cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
-        cal_seq_std = np.sqrt(sci_sample_std**2+dark_mean_std**2)
+        cal_seq_std = np.sqrt(self.std_rois()**2+dark_mean_std**2)
+        return cal_seq,cal_seq_std
         
+    def calib_master(self,dark,flat=None):
+        # Compute the calibrated master frame and calculate the corresponding std map
+        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
+        # ! Limiting calculations to data within the ROIs for efficiency
+        
+        # Mean science and dark frames and corresponding std frames
+        sci_mean,sci_mean_std = self.master
+        dark_mean,dark_mean_std = dark.master
+        # Calibrate the master science frame (= one DIT; detector integration time), calculate total std (science mean std + dark mean std)
+        cal_mean = sci_mean-dark_mean
+        cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
+        return cal_mean,cal_mean_std
+    
+    def calib(self,dark,flat=None):
+        # Function that combines above two into one.
+        
+        # Mean science and dark frames and corresponding std frames
+        sci_mean,sci_mean_std = self.master
+        dark_mean,dark_mean_std = dark.master
+        # Calibrate the master science frame (= one DIT; detector integration time), calculate total std (science mean std + dark mean std)
+        cal_mean = sci_mean-dark_mean
+        cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
+        # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
+        cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
+        cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
+        cal_seq_std = np.sqrt(self.std_rois()**2+dark_mean_std**2)
         return cal_mean,cal_mean_std,cal_seq,cal_seq_std
-        
