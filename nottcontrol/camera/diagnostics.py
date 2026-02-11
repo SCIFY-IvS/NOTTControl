@@ -71,7 +71,7 @@ class Diagnostics(object):
         self.human_interf = human_interf
         
         #---------------------------#
-        # Determining output pixels | For use_geom = False: guarantee that this function is called when not in a state of null.
+        # Determining output pixels | For use_geom = False: guarantee that this code block is called when not in a state of null.
         #---------------------------#
         
         # Getting a calibrated science frame
@@ -79,20 +79,21 @@ class Diagnostics(object):
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.dark_frames = dark_frames
-        channels_roi,channels_data = sci_frames.link_to_channels
-        self.channels_roi = channels_roi
-        self.channels_data = channels_data
-        self.channels = list(channels_roi.keys())
         cal_mean,cal_std,_,_ = sci_frames.calib(dark_frames)
         cal_snr = np.divide(cal_mean,cal_std)
         # Identifying the outputs
         outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
         self.outputs_pos = outputs_pos
+        # Linking ROIs to output channels
+        channels_roi,channels_data = sci_frames.link_to_channels
+        self.channels_roi = channels_roi
+        self.channels_data = channels_data
+        self.channels = list(channels_roi.keys())
         # Determining indices of photometric channels
         photo_idx = []
         for channel_label in self.channels:
             if list(channel_label)[0] == "P":
-                photo_idx.append(self.channels_roi[channel_label].idx)    
+                photo_idx.append(self.channels_roi[channel_label].idx-1)    
         # Determining the top index and height of the outputs from the selected photometric channel(s)
         photo_outputs_pos = outputs_pos[photo_idx]
         # output_pxs : 1st index - N total output px in the photo ROIs
@@ -162,18 +163,18 @@ class Diagnostics(object):
                     c = colors_markers[channel][0]
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
-                    axs[0].scatter(stamps,fluxes_broad[roi_idx],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    axs[0].scatter(stamps,fluxes_broad[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                     if channel == "I1" or channel == "I4":
-                        plot_idx = 1
+                        axs[1].scatter(lambs,flux_disp[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
                     if channel == "I2" or channel == "I3":
-                        plot_idx = 2
-                    axs[plot_idx].scatter(lambs,flux_disp[roi_idx],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
+                        axs[2].scatter(lambs,flux_disp[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    
                     
                 if "I2" in self.channels and "I3" in self.channels:
                     idx_I2 = self.channels_roi["I2"].idx
                     idx_I3 = self.channels_roi["I3"].idx
-                    diff = flux_disp[idx_I3]-flux_disp[idx_I2]
+                    diff = flux_disp[idx_I3-1]-flux_disp[idx_I2-1]
                     axs[3].scatter(lambs,diff,color="magenta",marker=markers[7],label="I3-I2")
                     axs[3].set_ylim(np.min(diff),np.max(diff))
                     
@@ -189,18 +190,17 @@ class Diagnostics(object):
                     c = colors_markers[channel][0]
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
-                    axs[0].scatter(stamps,snrs_broad[roi_idx],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    axs[0].scatter(stamps,snrs_broad[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                     if channel == "I1" or channel == "I4":
-                        plot_idx = 1
+                        axs[1].scatter(lambs,snr_disp[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
                     if channel == "I2" or channel == "I3":
-                        plot_idx = 2
-                    axs[plot_idx].scatter(lambs,snr_disp[roi_idx],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
+                        axs[2].scatter(lambs,snr_disp[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                 if "I2" in self.channels and "I3" in self.channels:
                     idx_I2 = self.channels_roi["I2"].idx
                     idx_I3 = self.channels_roi["I3"].idx
-                    diff = snr_disp[idx_I3]-snr_disp[idx_I2]
+                    diff = snr_disp[idx_I3-1]-snr_disp[idx_I2-1]
                     axs[3].scatter(lambs,diff,color="magenta",marker=markers[7],label="I3-I2")
                     axs[3].set_ylim(np.min(diff),np.max(diff))
     

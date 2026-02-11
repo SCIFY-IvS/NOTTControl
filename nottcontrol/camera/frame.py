@@ -59,14 +59,14 @@ class Frame(object):
             Frame ID = Windows machine time in string "Y%m%d_H%M%S" format, up to millisecond precision. Date and time are separated by an underscore.
         window : dictionary (keys: string, values: int)
             Contains the infrared camera window's position and size, as integers (px), respectively under keys "x"&"y" (column,row of top-left corner) and "w"&"h" (width,height).
-        rois : list (list index : ROI index, values : objects of ROI class)
+        rois : list (list index : ROI index - 1, values : objects of ROI class)
             Contains the infrared camera regions of interest's positions and sizes, as ROI objects. 
         
         Fields
         ------
-        rois_crop : list (list index : ROI index, values : objects of ROI class)
+        rois_crop : list (list index : ROI index - 1, values : objects of ROI class)
             Same as "rois", but with the ROI positions adjusted to the camera window (instead of defined wrt the full frame)
-        rois_data : numpy array (index : ROI index, values : numpy arrays)
+        rois_data : numpy array (array index : ROI index - 1, values : numpy arrays)
             Contains the data, of all recorded frames, within each ROI. Obtained by slicing the loaded data cube. 
             Note: As this field contains data, it is a numpy array - and not a list - to promote efficiency of data handling.
         """
@@ -114,22 +114,23 @@ class Frame(object):
         """
         Description
         -----------
-        Get the ROI matched to each specified channel and the camera data registered within that ROI.
-        Channels (photo,bright,dark,background), and the matching ROIs, should be specified in the configuration (config.ini) file.
+        Use the link between channels (photo,bright,dark,background) and matching ROIs (as specified in config.ini)
+        to associate camera data (captured within the matching ROI) to each channel.
+        
         Returns
         -------
-        (1) Returns rois as a dictionary (instead of a list)
-        (2) Return rois_data as a dictionary (instead of a numpy array).
-        Dictionary key : Channel name (string)
+        (1) channels_roi : "rois" as a dictionary (instead of a list)
+        (2) channels_data : "rois_data" as a dictionary (instead of a numpy array).
+        Dictionary key : channel name (string)
         Dictionary value : (1) ROI Object 
-                           (2) Data registered in matching ROI (numpy array)
+                           (2) data registered in matching ROI (numpy array)
         """
         # Camera ROIs' positions and sizes : matched to outputs (dictionary format)
         channel_labels = nott_config.getarray('CAMERA', 'channel_labels', str) # np array of strings
         roi_indices = nott_config.getarray('CAMERA', 'roi_indices', np.int32) # np array of ints
         channels_roi = dict.fromkeys(channel_labels)
         channels_data = dict.fromkeys(channel_labels)
-        for i,channel_label in enumerate(channels_data.items()):
+        for i,channel_label in enumerate(channels_data):
             roi_index = roi_indices[i]
             channels_roi[channel_label] = self.rois[roi_index]
             channels_data[channel_label] = self.rois_data[roi_index]
