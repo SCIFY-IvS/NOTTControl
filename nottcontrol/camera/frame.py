@@ -204,8 +204,7 @@ class Frame(object):
         # Mean dark frame and corresponding std frame
         dark_mean,dark_mean_std = dark.master
         # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
-        cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
-        cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
+        cal_seq = self.rois_data - dark_mean[:, np.newaxis, :, :]
         cal_seq_std = np.sqrt(self.std_rois()**2+dark_mean_std**2)
         return cal_seq,cal_seq_std
         
@@ -232,7 +231,6 @@ class Frame(object):
         cal_mean = sci_mean-dark_mean
         cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
         # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
-        cal_seq = np.subtract(np.transpose(self.rois_data,axes=[1,0,2,3]),dark_mean)
-        cal_seq = np.transpose(cal_seq,axes=[1,0,2,3])
+        cal_seq = self.rois_data - dark_mean[:, np.newaxis, :, :]
         cal_seq_std = np.sqrt(self.std_rois()**2+dark_mean_std**2)
         return cal_mean,cal_mean_std,cal_seq,cal_seq_std
