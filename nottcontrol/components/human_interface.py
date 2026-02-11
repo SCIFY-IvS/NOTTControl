@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from time import sleep, time
 from tqdm import tqdm
 from copy import copy
@@ -214,8 +215,10 @@ class HumInt(object):
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         return dark_frames
 
-    def identify_outputs(self,rois_data,use_geom=True,snr_thresh=5):
-        # 'rois_data': numpy array containing the image data of each ROI
+    def identify_outputs(self,data,rois_crop,rois_data,use_geom=True,snr_thresh=5):
+        # 'data' : numpy array containing the calibrated image data of the full master frame
+        # 'rois_crop' : list of Roi objects, as defined in the windowed master frame
+        # 'rois_data': numpy array containing the calibrated image data of each ROI in the full master frame
         # 'use_geom': If True, define the entire ROI as output. If False, identify output pixels by SNR criterion.
         # 'snr_thresh' : SNR threshold for identification of outputs.
         # ! Limiting calculations to data within the ROIs for efficiency
@@ -225,6 +228,20 @@ class HumInt(object):
             outputs_pos = np.ones_like(rois_data,dtype=bool)
         else:
             outputs_pos = (rois_data >= snr_thresh)
+            
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(8,8))
+        fig.suptitle("Please verify correct matching of ROIs to chip outputs.")
+        
+        ax.imshow(data)
+        
+        for roi_crop in rois_crop:
+            x,y,w,h = roi_crop.x,roi_crop.y,roi_crop.w,roi_crop.h
+            rect = patches.Rectangle((x, y), w, h, linewidth=1, edgecolor='r', facecolor='none')
+            # Add the patch to the axis
+            ax.add_patch(rect)
+        
+        plt.tight_layout()
+        plt.show()
             
         return outputs_pos
 

@@ -79,10 +79,14 @@ class Diagnostics(object):
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.dark_frames = dark_frames
+        # Full frame
+        cal_mean_full,cal_mean_full_std = sci_frames.calib_master(dark_frames,full=True)
+        cal_snr_full = np.divide(cal_mean_full,cal_mean_full_std)
+        # Frame chopped in rois
         cal_mean,cal_mean_std = sci_frames.calib_master(dark_frames)
         cal_snr = np.divide(cal_mean,cal_mean_std)
         # Identifying the outputs
-        outputs_pos = self.human_interf.identify_outputs(cal_snr,use_geom,snr_thresh)
+        outputs_pos = self.human_interf.identify_outputs(cal_snr_full,sci_frames.rois_crop,cal_snr,use_geom,snr_thresh)
         self.outputs_pos = outputs_pos
         # Linking ROIs to output channels
         channels_roi,channels_data = sci_frames.link_to_channels
