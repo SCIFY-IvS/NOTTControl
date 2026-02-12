@@ -29,6 +29,7 @@ from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.roiwidget import RoiWidget
 import queue
 from pathlib import Path
+import zmq
 
 t=time.perf_counter()
 tLive=t
@@ -122,6 +123,41 @@ class MainWindow(QMainWindow):
         self.timestamps = deque(maxlen = deque_length)
         self.coadd_frames_buffer = []
         self.roi_queue = queue.Queue()
+        
+        self.running = True
+        threading.Thread(target=self.socket_server, daemon=True).start()
+    
+    def socket_server(self):
+        context = zmq.Context()
+        socket = context.socket(zmq.REP)
+        socket.bind("tcp://*:65535")
+
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
+
+        while self.running:
+            try:
+                events = dict(poller.poll(timeout=500))
+                if socket in events:
+                    message = socket.recv_string()
+                    print(f"Message received: {message}")
+                    if message == "Start record":
+                        if self.start_recording():
+                            reply = "Ok"
+                        else:
+                            reply = "Not connected"
+                    elif message == "Stop record":
+                        self.stop_recording()
+                        reply = "Ok"
+                    else:
+                        reply = "Unknown command"
+                    
+                    socket.send_string(reply)
+            except Exception as e:
+                print(f"Unexpected error while handling message: {e}")
+            
+        print("Stopping zmq thread")
+
     
     def enable_coadd(self):
         self.ui.lineEdit_coadd_frames.setEnabled(self.is_coadd_enabled())
@@ -338,7 +374,9 @@ class MainWindow(QMainWindow):
             
     def start_recording(self):
         if self.recording:
-            return
+            return True
+        if not self.connected:
+            return False
         
         self.timestamps.clear()
         for roi_widget in self.roi_widgets:
@@ -347,6 +385,7 @@ class MainWindow(QMainWindow):
         self.ui.button_record.setText('Stop')
         self.ui.label_recording.setText('Recording')
         self.recording = True
+        return True
     
     def stop_recording(self):
         if not self.recording:
@@ -500,6 +539,8 @@ class MainWindow(QMainWindow):
         self.interface.free_dll()
         self.closing.emit()
         super().closeEvent(*args)
+
+        self.running = False
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
