@@ -50,7 +50,7 @@ while not stop:
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
-    def __init__(self,ids,integtimes,window=window_cfg,rois=rois_cfg):
+    def __init__(self,ids,integtimes=[],window=window_cfg,rois=rois_cfg):
         """
         Parameters
         ----------

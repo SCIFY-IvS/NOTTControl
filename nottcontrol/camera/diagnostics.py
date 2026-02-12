@@ -180,7 +180,7 @@ class Diagnostics(object):
                     idx_I3 = self.channels_roi["I3"].idx
                     diff = flux_disp[idx_I3-1]-flux_disp[idx_I2-1]
                     diff_err = np.sqrt(flux_disp_err[idx_I3-1]**2+flux_disp_err[idx_I2-1]**2)
-                    axs[3].errorbar(lambs,diff,yerr=diff_err,color="magenta",marker=colors_markers["B1"],label="I3-I2")
+                    axs[3].errorbar(lambs,diff,yerr=diff_err,color="magenta",marker=colors_markers["B1"][1],label="I3-I2")
                     axs[3].set_ylim(np.min(diff),np.max(diff))
                     
                 axs[0].set_xlabel("Time (ms)")
@@ -206,7 +206,7 @@ class Diagnostics(object):
                     idx_I2 = self.channels_roi["I2"].idx
                     idx_I3 = self.channels_roi["I3"].idx
                     diff = snr_disp[idx_I3-1]-snr_disp[idx_I2-1]
-                    axs[3].scatter(lambs,diff,color="magenta",marker=colors_markers["B1"],label="I3-I2")
+                    axs[3].scatter(lambs,diff,color="magenta",marker=colors_markers["B1"][1],label="I3-I2")
                     axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
