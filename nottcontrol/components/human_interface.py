@@ -194,8 +194,11 @@ class HumInt(object):
             frame_id = self.datetime_to_id(utc_stamp)
             ids.append(frame_id)
 
+        # Fetching integration time, as registered in redis for each frame
+        integtimes = get_field("cam_integtime",start,end,False)[:,1] # microseconds
+
         # Creating a Frame object by given ids
-        frames = Frame(ids)
+        frames = Frame(ids,integtimes)
         
         return frames
 

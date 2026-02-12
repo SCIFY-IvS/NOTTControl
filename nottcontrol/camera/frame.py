@@ -27,8 +27,8 @@ for key in window_cfg.keys():
     
 # Camera ROIs' positions and sizes : not linked to outputs (list format)
 rois_cfg = []
-rois_w = {} # sets to contain ROIs widths and heights
-rois_h = {}
+rois_w = set() # sets to contain ROIs widths and heights
+rois_h = set()
 roi_index = 1
 stop = False
 while not stop:
@@ -50,13 +50,15 @@ while not stop:
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
-    def __init__(self,ids,window=window_cfg,rois=rois_cfg):
+    def __init__(self,ids,integtimes,window=window_cfg,rois=rois_cfg):
         """
         Parameters
         ----------
         ids : list of strings
             IDs of the constituent frames.
             Frame ID = Windows machine time in string "Y%m%d_H%M%S" format, up to millisecond precision. Date and time are separated by an underscore.
+        integtimes : list of floats
+            Integration times of the constituent frames.
         window : dictionary (keys: string, values: int)
             Contains the infrared camera window's position and size, as integers (px), respectively under keys "x"&"y" (column,row of top-left corner) and "w"&"h" (width,height).
         rois : list (list index : ROI index - 1, values : objects of ROI class)
@@ -72,6 +74,8 @@ class Frame(object):
         """
         # Setting frame IDs
         self.ids = ids
+        # Setting frame integration times
+        self.integtimes = integtimes
         # Setting window
         self.window = window
         # Fetch data from local machine
@@ -132,8 +136,8 @@ class Frame(object):
         channels_data = dict.fromkeys(channel_labels)
         for i,channel_label in enumerate(channels_data):
             roi_index = roi_indices[i]
-            channels_roi[channel_label] = self.rois[roi_index]
-            channels_data[channel_label] = self.rois_data[roi_index]
+            channels_roi[channel_label] = self.rois[roi_index-1]
+            channels_data[channel_label] = self.rois_data[roi_index-1]
         return channels_roi,channels_data
     
     def set_data(self,data):

@@ -26,7 +26,7 @@ up_lamb = float(nott_config['CAMERA']['up_lamb'])
 
 class Diagnostics(object):
 
-    def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5,framerate=100):    
+    def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5):    
         """
         Parameters
         ----------
@@ -43,11 +43,6 @@ class Diagnostics(object):
         if infra_interf is None:
             # Camera interface
             infra_interf = InfratecInterface()
-            # TBD 
-            #framerate = infra_interf.getparam_single(240)
-            #integtime = infra_interf.getparam_idx_int32(262,0)
-            self.framerate = framerate       # in Hz
-            #self.integtime = integtime      # in microseconds
         if piezo_interf is None:
             # Piezo interface
             piezo_interf = pypiezo.piezointerface()
@@ -75,7 +70,7 @@ class Diagnostics(object):
         #---------------------------#
         
         # Getting a calibrated science frame
-        dt = 100*(1/self.framerate)
+        dt = 5.
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.dark_frames = dark_frames
@@ -127,13 +122,13 @@ class Diagnostics(object):
         cal_mean_std = cal_mean_std*self.outputs_pos
         
         cal_seq = cal_seq*self.outputs_pos[:, np.newaxis, :, :]
-        cal_seq_snr = np.divide(cal_seq,cal_seq_std)
-        cal_seq_std = cal_seq_std*self.outputs_pos[:, np.newaxis, :, :]
+        cal_seq_snr = np.divide(cal_seq,cal_seq_std[:, np.newaxis, :, :])
+        cal_seq_std = cal_seq_std*self.outputs_pos
         
         # Time series of broadband flux: sum output pixels' signal in each frame
         fluxes_broad = cal_seq.sum(axis=(2,3))
         snrs_broad = cal_seq_snr.sum(axis=(2,3)) 
-        fluxes_broad_err = np.sqrt((cal_seq_std**2).sum(axis=(2,3)))
+        fluxes_broad_err = np.sqrt((cal_seq_std**2).sum(axis=(1,2)))
         # Dispersed flux: sum output pixels' signal row-per-row in master frame
         flux_disp = cal_mean.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
         snr_disp = cal_mean_snr.sum(axis=2)[self.output_top_idx:self.output_top_idx+self.output_height]
@@ -172,12 +167,12 @@ class Diagnostics(object):
                     c = colors_markers[channel][0]
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
-                    axs[0].errorbar(stamps,fluxes_broad[roi_idx-1],yerr=fluxes_broad_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    axs[0].errorbar(stamps,fluxes_broad[roi_idx-1],yerr=np.array([fluxes_broad_err[roi_idx-1]]*len(fluxes_broad[roi_idx-1])),color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                     if channel == "I1" or channel == "I4":
-                        axs[1].errorbar(lambs,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
+                        axs[1].errorbar(lambs,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     if channel == "I2" or channel == "I3":
-                        axs[2].errorbar(lambs,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
+                        axs[2].errorbar(lambs,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                     
                 if "I2" in self.channels and "I3" in self.channels:
@@ -185,7 +180,7 @@ class Diagnostics(object):
                     idx_I3 = self.channels_roi["I3"].idx
                     diff = flux_disp[idx_I3-1]-flux_disp[idx_I2-1]
                     diff_err = np.sqrt(flux_disp_err[idx_I3-1]**2+flux_disp_err[idx_I2-1]**2)
-                    axs[3].errorbar(lambs,diff,yerr=diff_err,color="magenta",marker=markers[7],label="I3-I2")
+                    axs[3].errorbar(lambs,diff,yerr=diff_err,color="magenta",marker=colors_markers["B1"],label="I3-I2")
                     axs[3].set_ylim(np.min(diff),np.max(diff))
                     
                 axs[0].set_xlabel("Time (ms)")
@@ -211,7 +206,7 @@ class Diagnostics(object):
                     idx_I2 = self.channels_roi["I2"].idx
                     idx_I3 = self.channels_roi["I3"].idx
                     diff = snr_disp[idx_I3-1]-snr_disp[idx_I2-1]
-                    axs[3].scatter(lambs,diff,color="magenta",marker=markers[7],label="I3-I2")
+                    axs[3].scatter(lambs,diff,color="magenta",marker=colors_markers["B1"],label="I3-I2")
                     axs[3].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")

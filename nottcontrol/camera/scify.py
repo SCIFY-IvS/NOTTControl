@@ -499,6 +499,9 @@ class MainWindow(QMainWindow):
                 
     def process_roi(self, img, timestamp, coadded_frame):
         calculator = self.run_roi_calculator(img)
+        # Storing camera framerate and integration time, alongside ROI data
+        self.store_framerate_to_db(timestamp, self.interface.getparam_single(240))
+        self.store_integtime_to_db(timestamp, self.interface.getparam_idx_int32(262,0))
         if not coadded_frame and self.recording:
             self.store_roi_to_db(timestamp, calculator)
             self.roi_tracking_frames += 1
@@ -526,7 +529,13 @@ class MainWindow(QMainWindow):
             roi_values[key] = value
         
         self.redisclient.add_roi_values(timestamp, roi_values)
-    
+        
+    def store_framerate_to_db(self, timestamp, framerate):
+        self.redisclient.add_cam_framerate(timestamp,framerate)
+        
+    def store_integtime_to_db(self, timestamp, integtime):
+        self.redisclient.add_cam_integtime(timestamp,integtime)
+        
     def on_roi_calculations_finished(self, calculator):
         for i in range(len(self.roi_widgets)):
             self.roi_widgets[i].setValues(calculator.results[i])
