@@ -1025,7 +1025,7 @@ class alignment:
             # Defining a python timeframe (1 second back in time)
             t_start,t_stop = define_time(1)
             # Retrieving the timestamps of redis data registered within this timeframe
-            t_redis = get_field("roi9_avg",t_start,t_stop,False)[:,0]
+            t_redis = get_field("cam_integtime",t_start,t_stop,False)[:,0]
             # Calculating the time delay (difference between requested end of timeframe and redis-registered end of timeframe)
             t_delay_iter = t_stop - t_redis[-1]
             # Append to list

@@ -72,7 +72,7 @@ class HumInt(object):
         self.opcua_conn.disconnect()
     
     def db_time(self):
-        aresp = self.ts.ts.get(self.rois[0])
+        aresp = self.ts.ts.get(f"cam_integtime")
         return aresp[0]
 
     def four2three(self, position):
@@ -186,8 +186,10 @@ class HumInt(object):
         start = self.db_time()
         sleep(dt)
         end = self.db_time()
-        # Fetching InfraTec times registered in this timeframe        
-        unix_stamps = get_field("roi9_avg",start,end,False)[:,0]
+        # Fetching (timestamp,integration time) pairs, for each camera frame captured in this timeframe dt, from redis.
+        pairs = get_field("cam_integtime",start,end,False)
+        # Fetching InfraTec timestamps registered in this timeframe        
+        unix_stamps = pairs[:,0]
         ids = []
         for unix_stamp in unix_stamps:
             utc_stamp = self.unix_to_datetime(unix_stamp)
@@ -195,7 +197,7 @@ class HumInt(object):
             ids.append(frame_id)
 
         # Fetching integration time, as registered in redis for each frame
-        integtimes = get_field("cam_integtime",start,end,False)[:,1] # microseconds
+        integtimes = pairs[:,1] # microseconds
 
         # Creating a Frame object by given ids
         frames = Frame(ids,integtimes)

@@ -58,7 +58,7 @@ class Frame(object):
             IDs of the constituent frames.
             Frame ID = Windows machine time in string "Y%m%d_H%M%S" format, up to millisecond precision. Date and time are separated by an underscore.
         integtimes : list of floats
-            Integration times of the constituent frames.
+            Integration times (microseconds) by which each constituent frame was taken.
         window : dictionary (keys: string, values: int)
             Contains the infrared camera window's position and size, as integers (px), respectively under keys "x"&"y" (column,row of top-left corner) and "w"&"h" (width,height).
         rois : list (list index : ROI index - 1, values : objects of ROI class)

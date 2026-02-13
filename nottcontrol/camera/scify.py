@@ -36,7 +36,8 @@ tLive=t
 
 img_timestamp_ref = None
 
-use_camera_time_ = (config['CAMERA']['use_camera_time'] == "True")
+use_camera_time = (config['CAMERA']['use_camera_time'] == "True")
+record_rois = (config['CAMERA']['record_rois'] == "True")
 
 def callback(context,*args):#, aHandle, aStreamIndex):
     # Creating timezone-aware datetime object, in utc
@@ -47,7 +48,7 @@ def callback(context,*args):#, aHandle, aStreamIndex):
     
     global img_timestamp_ref
     
-    context.load_image(recording_timestamp,use_camera_time_)
+    context.load_image(recording_timestamp,use_camera_time)
 
 class MainWindow(QMainWindow):
     #Without this call, the GUI is resized and tiny
@@ -198,7 +199,8 @@ class MainWindow(QMainWindow):
 
             if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
-
+                self.store_integtime_to_db(timestamp, self.interface.getparam_idx_int32(262,0))
+                
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
             if self.is_coadd_enabled():
@@ -209,6 +211,7 @@ class MainWindow(QMainWindow):
                     #maintain dtype, otherwise the background substraction will throw an error
                     img = numpy.average(arr, axis=0).astype(numpy.uint16)
                     self.process_roi(img, timestamp, coadded_frame=True)
+                    self.store_integtime_to_db(timestamp, self.interface.getparam_idx_int32(262,0))
                     self.coadd_frames_buffer.clear()
                 else:
                     coadd_in_process = True
@@ -499,11 +502,9 @@ class MainWindow(QMainWindow):
                 
     def process_roi(self, img, timestamp, coadded_frame):
         calculator = self.run_roi_calculator(img)
-        # Storing camera framerate and integration time, alongside ROI data
-        self.store_framerate_to_db(timestamp, self.interface.getparam_single(240))
-        self.store_integtime_to_db(timestamp, self.interface.getparam_idx_int32(262,0))
         if not coadded_frame and self.recording:
-            self.store_roi_to_db(timestamp, calculator)
+            if record_rois:
+                self.store_roi_to_db(timestamp, calculator)
             self.roi_tracking_frames += 1
         
         if coadded_frame or not self.is_coadd_enabled():
