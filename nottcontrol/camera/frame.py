@@ -77,6 +77,7 @@ class Frame(object):
         self.ids = ids
         # Setting frame integration times
         self.integtimes = integtimes
+        self.meandit = np.mean(integtimes)
         # Setting window
         self.window = window
         # Fetch data from local machine
@@ -105,6 +106,7 @@ class Frame(object):
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
+        self.integ_counter = 0
      
     def set_ids(self,ids):
         self.ids = ids
@@ -206,6 +208,8 @@ class Frame(object):
         # Calculates a master frame (= mean counts per DIT; detector integration time) and the corresponding std map
         # ! Limiting calculations to data within the ROIs for efficiency
         
+        if hasattr(self, "_master_rois"):
+            return self._master_rois
         # Amount of frames
         N = len(self.data)
         # Calculating the master frame from the individual frames
@@ -262,17 +266,26 @@ class Frame(object):
             
         return cal_mean, cal_mean_std
 
-    def calib(self,dark,flat=None,full=False):
+    def calib_seq_nifits_format(self, dark, flat=None):
+        cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
+        return cal_mean.sum(axis=-1).transpose((1,2,0)), cal_mean_std.sum(axis=-1).transpose((1,2,0))
+
+    def calib_master_nifits_format(self, dark, flat=None):
+        cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
+        return cal_mean.sum(axis=-1).transpose((1,0)), cal_mean_std.sum(axis=-1).transpose((1,0))
+
+    def calib(self, dark, flat=None, full=False):
         # Function that combines above two into one.
-        
         if not full:
-            dark_mean,dark_mean_std = dark.master_rois
+            dark_mean, dark_mean_std = dark.master_rois
         else:
-            dark_mean,dark_mean_std = dark.master_full
-        
-        cal_mean,cal_mean_std = self.calib_master(dark,flat,full,dark_mean,dark_mean_std)
-        cal_seq,cal_seq_std = self.calib_seq(dark,flat,full,dark_mean,dark_mean_std)
-            
-        return cal_mean,cal_mean_std,cal_seq,cal_seq_std  
+            dark_mean, dark_mean_std = dark.master_full
+        cal_mean,cal_mean_std = self.calib_master(dark, flat, full, dark_mean, dark_mean_std)
+        cal_seq,cal_seq_std = self.calib_seq(dark, flat, full, dark_mean, dark_mean_std)
+        return cal_mean, cal_mean_std, cal_seq, cal_seq_std  
+
+    def cache_master_rois(self):
+        self._master_rois = self.master_rois
+        # self._master_full = self.master_full
       
         

@@ -156,19 +156,23 @@ class HumInt(object):
     def sample_long_cal(self, dt):
         return self.sample_long(dt=dt) - self.dark
 
-    def move_and_sample(self, position, dt=None, move_back=True):
+    def move_and_sample(self, position, dt=None, move_back=True, dark=None):
+        if dark is None:
+            dark = self.dark
         orig_pos = self.get_position()
         self.move(position)
         sleep(self.pad)
         if dt is None:
-            res = self.sample_cal()
+            raise ValueError("single frames are no longer supported")
+            # res = self.sample_cal()
         else:
-            res = self.sample_long_cal(dt)
+            # res = self.sample_long_cal(dt)
+            res, std = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
         if move_back:
             print(f"moving_back to {orig_pos}")
             self.move(orig_pos)
             sleep(self.pad)
-        return res
+        return res, std
 
     # Image calibration functions 
 
@@ -187,22 +191,31 @@ class HumInt(object):
         sleep(dt)
         end = self.db_time()
         # Fetching (timestamp,integration time) pairs, for each camera frame captured in this timeframe dt, from redis.
-        pairs = get_field("cam_integtime",start,end,False)
+        pairs = get_field("cam_integtime", start, end, False)
         # Fetching InfraTec timestamps registered in this timeframe        
         unix_stamps = pairs[:,0]
         ids = []
         for unix_stamp in unix_stamps:
-            utc_stamp = self.unix_to_datetime(unix_stamp)
-            frame_id = self.datetime_to_id(utc_stamp)
+            utc_stamp = unix_to_datetime(unix_stamp)
+            frame_id = datetime_to_id(utc_stamp)
             ids.append(frame_id)
-
         # Fetching integration time, as registered in redis for each frame
         integtimes = pairs[:,1] # microseconds
-
         # Creating a Frame object by given ids
-        frames = Frame(ids,integtimes)
+        frames = Frame(ids, integtimes)
         
         return frames
+
+    def get_frames_cal(self, dt, dark=None, sequence=False):
+        if dark is None:
+            dark = self.dark
+        frame = self.get_frames(dt)
+        if not sequence:
+            cal_mean, cal_mean_std = frame.calib_master_nifits_format(dark)
+            return cal_mean, cal_mean_std
+        else:
+            cal_seq, cal_seq_std = frame.calib_seq_nifits_format(dark)
+            return cal_seq, cal_seq_std
 
     def science_frame_sequence(self, dt, verbose=False):
         sci_frames = self.get_frames(dt) 
@@ -401,17 +414,19 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            test_sample = self.sample_long_cal(1.0)
-            rms = np.std(test_sample, axis=0)
+            test_sample, rms = self.get_frames_cal(1.0)
 
         kappa = []
         std_kappa = []
         for beam in shutter_probe:
             shutter_state = np.abs(beam).astype(bool)
             self.shutter_set(shutter_state)
-            a = self.sample_long_cal(dt=dt)
-            kappa.append(a.mean(axis=0))
-            std_kappa.append(a.std(axis=0)/np.sqrt(a.shape[0]))
+            a, a_std = self.get_frames_cal(dt)
+            kappa.append(a)
+            if dt is not None:
+                std_kappa.append(a_std)
+            else:
+                std_kappa.append(rms)
         kappa = np.array(kappa)
         std_kappa = np.array(std_kappa)
     
@@ -452,10 +467,11 @@ class HumInt(object):
             fringes, fringes_std = [], []
             print("Scan of baseline: ",amode)
             for apos in mysequence:
-                a = self.move_and_sample(apos, dt=dt, move_back=False)
+                a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a.mean(axis=0))
+                fringes_std.append(a_std)
                 if dt is not None:
-                    fringes_std.append(a.std(axis=0)/np.sqrt(a.shape[0]))
+                    fringes_std.append(a_std)
                 else:
                     fringes_std.append(rms)
             fringes_std = np.array(fringes_std)
@@ -482,7 +498,7 @@ class HumInt(object):
             hdulist.writeto(saveto, overwrite=overwrite)
         return kappa, A, test_conditions
 
-    def process_calib_pairwise(self, datafile="/dev/shm/cal_raw.fits",
+    def process_calib_pairwise(self, datafile="/dev/shm/cal_raw_d.fits",
                                saveto="/dev/shm/constructed_catm.nifits",
                                overwrite=True,
                               verbose=False, ):
