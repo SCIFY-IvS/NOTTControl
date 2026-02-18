@@ -25,6 +25,20 @@ from nottcontrol import config
 
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
+def unix_to_datetime(self,unix_stamp):
+    # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
+    epoch = datetime.fromtimestamp(0,timezone.utc)
+    dt = timedelta(milliseconds=unix_stamp)
+    utc_stamp = epoch + dt
+    return utc_stamp
+
+def datetime_to_id(self,utc_stamp):
+    # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+    Ymd = utc_stamp.strftime("%Y%m%d")
+    HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
+    frame_id = Ymd+"_"+HMS
+    return frame_id
+
 
 class HumInt(object):
     def __init__(self, lam_mean=mean_wl,
@@ -87,17 +101,54 @@ class HumInt(object):
 
     # Shutter control functions
     
+    class ShutterError(OSError):
+        pass
+    
+    @property
+    def shutter_state(self):
+        
+        # Shutters' (treated like motors) status
+        motor_status = np.array([ashutter.getStatusInformation()[0] for ashutter in self.shutters])
+        standing = (motor_status == 'STANDING')
+
+        shutter_state = np.zeros_like(self.shutters)
+        for i, ashutter in enumerate(self.shutters):
+            # Throw error if a shutter is still moving.
+            if not standing[i]:
+                raise self.ShutterError("Shutter " + str(ashutter.name) + " is still moving.")
+            # Throw error if a shutter is neither moving, neither standing still in an open/closed position. 
+            if standing[i] and not (ashutter.is_open or ashutter.is_close):
+                raise self.ShutterError("Shutter " + str(ashutter.name) + " is neither moving, nor in an open/closed position.")
+            if ashutter.is_open:
+                shutter_state[i] = 1
+        return shutter_state
+    
     def shutter_set(self, values, wait=True, verbose=False):
+        
+        # Shutters state on motor level : operational?
+        motor_state = np.array([ashutter.getStatusInformation()[1] for ashutter in self.shutters])
+        operational = (motor_state == 'OPERATIONAL')
+        
+        # Shutter state on surface level : open/closed?
+        shutter_state = self.shutter_state
+        # Input shutter state
         if not isinstance(values, np.ndarray):
             thevalues = np.array(values)
         else:
             thevalues = values
+        shutter_change = np.invert(shutter_state == thevalues)
+            
         for i, ashutter in enumerate(self.shutters):
+            # Throw error if a shutter is not operational.
+            if not operational[i]:
+                raise self.ShutterError("Shutter " + str(ashutter.name) + " is not in operational state.")
             values_bool = values.astype(bool)
-            if values_bool[i]:
-                ashutter.open()
-            else:
-                ashutter.close()
+            # Only move if current and input state differ
+            if shutter_change[i]:
+                if values_bool[i]:
+                    ashutter.open()
+                else:
+                    ashutter.close()
         if wait:
             sleep(self.shutter_pad)
         if verbose:
@@ -165,20 +216,6 @@ class HumInt(object):
         self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
         print("You can remove the shutters")
 
-    def unix_to_datetime(self,unix_stamp):
-        # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
-        epoch = datetime.fromtimestamp(0,timezone.utc)
-        dt = timedelta(milliseconds=unix_stamp)
-        utc_stamp = epoch + dt
-        return utc_stamp
-
-    def datetime_to_id(self,utc_stamp):
-        # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
-        Ymd = utc_stamp.strftime("%Y%m%d")
-        HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
-        frame_id = Ymd+"_"+HMS
-        return frame_id
-
     def get_frames(self,dt):
         # Timespan dt in seconds
         
@@ -192,8 +229,8 @@ class HumInt(object):
         unix_stamps = pairs[:,0]
         ids = []
         for unix_stamp in unix_stamps:
-            utc_stamp = self.unix_to_datetime(unix_stamp)
-            frame_id = self.datetime_to_id(utc_stamp)
+            utc_stamp = unix_to_datetime(unix_stamp)
+            frame_id = datetime_to_id(utc_stamp)
             ids.append(frame_id)
 
         # Fetching integration time, as registered in redis for each frame
@@ -204,21 +241,31 @@ class HumInt(object):
         
         return frames
 
+    def frame_sequence(self, dt, shutter_state, verbose=False):
+        """
+        Brings the shutters to given shutter_state, takes frames in that state, brings shutters back to initial state.
+        """
+        # Current shutter state
+        shutter_state_pre = self.shutter_state
+        # Bring shutters to input state
+        self.shutter_set(shutter_state, wait=True, verbose=verbose)
+        # Take sequence
+        frames = self.get_frames(dt)
+        # Bring shutters back
+        self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
+        return frames
+    
     def science_frame_sequence(self, dt, verbose=False):
-        sci_frames = self.get_frames(dt) 
-        return sci_frames
+        return self.frame_sequence(dt, shutter_state=[1,1,1,1], verbose=verbose)
+    
+    def dark_frame_sequence(self, dt, verbose=False):
+        return self.frame_sequence(dt, shutter_state=[0,0,0,0], verbose=verbose)
 
     def dark_sequence(self, dt=0.5, verbose=False):
         self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
         mydark = self.get_dark(dt=dt)
         self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
         return mydark
-        
-    def dark_frame_sequence(self, dt, verbose=False):
-        self.shutter_set(np.array([0,0,0,0]), wait=True, verbose=verbose)
-        dark_frames = self.get_frames(dt) 
-        self.shutter_set(np.array([1,1,1,1]), wait=True, verbose=verbose)
-        return dark_frames
 
     def identify_outputs(self,data,rois_crop,rois_data,use_geom=True,snr_thresh=5):
         # 'data' : numpy array containing the calibrated image data of the full master frame
