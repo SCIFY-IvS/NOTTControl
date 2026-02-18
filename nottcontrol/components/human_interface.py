@@ -25,6 +25,20 @@ from nottcontrol import config
 
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
+def unix_to_datetime(unix_stamp):
+    # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
+    epoch = datetime.fromtimestamp(0,timezone.utc)
+    dt = timedelta(milliseconds=unix_stamp)
+    utc_stamp = epoch + dt
+    return utc_stamp
+
+def datetime_to_id(utc_stamp):
+    # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+    Ymd = utc_stamp.strftime("%Y%m%d")
+    HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
+    frame_id = Ymd+"_"+HMS
+    return frame_id
+
 
 class HumInt(object):
     def __init__(self, lam_mean=mean_wl,
@@ -164,20 +178,6 @@ class HumInt(object):
         self.dark = measurement.mean(axis=0)
         self.bg_noise = measurement.std(axis=0)/np.sqrt(measurement.shape[0])
         print("You can remove the shutters")
-
-    def unix_to_datetime(self,unix_stamp):
-        # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
-        epoch = datetime.fromtimestamp(0,timezone.utc)
-        dt = timedelta(milliseconds=unix_stamp)
-        utc_stamp = epoch + dt
-        return utc_stamp
-
-    def datetime_to_id(self,utc_stamp):
-        # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
-        Ymd = utc_stamp.strftime("%Y%m%d")
-        HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
-        frame_id = Ymd+"_"+HMS
-        return frame_id
 
     def get_frames(self,dt):
         # Timespan dt in seconds
