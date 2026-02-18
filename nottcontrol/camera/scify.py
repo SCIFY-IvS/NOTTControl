@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
 
             if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
-                self.store_integtime_to_db(timestamp, self.interface.getparam_idx_int32(262,0))
+                self.store_integtime_to_db(timestamp, self.integtime)
                 
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
@@ -211,7 +211,8 @@ class MainWindow(QMainWindow):
                     #maintain dtype, otherwise the background substraction will throw an error
                     img = numpy.average(arr, axis=0).astype(numpy.uint16)
                     self.process_roi(img, timestamp, coadded_frame=True)
-                    self.store_integtime_to_db(timestamp, self.interface.getparam_idx_int32(262,0))
+                    if recording:
+                        self.store_integtime_to_db(timestamp, self.integtime)
                     self.coadd_frames_buffer.clear()
                 else:
                     coadd_in_process = True
@@ -380,6 +381,9 @@ class MainWindow(QMainWindow):
             return True
         if not self.connected:
             return False
+        
+        # Store current camera integration time
+        self.integtime = self.interface.getparam_idx_int32(262,0)
         
         self.timestamps.clear()
         for roi_widget in self.roi_widgets:
