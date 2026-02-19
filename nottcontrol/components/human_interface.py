@@ -387,7 +387,8 @@ class HumInt(object):
     def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
                     offset_scan=0., saveto="/dev/shm/cal_raw.fits",
                     overwrite=True,
-                    dn_object=None, bidir=True, verbose=False):
+                    dn_object=None, bidir=True, verbose=False,
+                    kappa_threshold = 1e-2):
         import dnull as dn
         if saveto is not None:
             prefix = "HIERARCH NOTT "
@@ -433,16 +434,20 @@ class HumInt(object):
         sleep(2.0)
     
         #Compute the element of the kappa matrix
+        print(f"Shape: ", kappa.shape)
+        # (5, 106, 10)
+        # (frame, wl, output)
+        n_wl = kappa.shape[1]
         kappa_new = []
         for kappa_line in kappa[1:]:
             kappa_new.append(kappa_line-kappa[0])  #Background correction
         kappa_new = np.array(kappa_new)
-        kappa_new = kappa_new[:,:-1]   #Removes the background ROI values
-        for i in range(len(kappa_new)):
-            kappa_new[i] = kappa_new[i]/np.sum(kappa_new[i])  #Normalize the column of the matrix with the sum
-            for j in range(len(kappa_new[i])): 
-                if kappa_new[i,j] < 1e-2:
-                    kappa_new[i,j] = 0
+        kappa_new = kappa_new[:,:-2]   #Removes the background ROI values
+        for i, akrow in enumerate(kappa_new):
+            kappa_new[i,:,:] = akrow / (np.sum(akrow) / n_wl)
+        for k, acell in np.ndenumerate(kappa_new):
+            if kappa_new[k] <= kappa_threshold:
+                kappa_new[k] = 0.
         kappa_old = np.copy(kappa)
         kappa = np.copy(kappa_new)
         print("Transfer matrix")   
@@ -457,6 +462,7 @@ class HumInt(object):
         f0 = 0.5/self.lam_mean * 1e-6
         test_conditions["A"] = A
         test_conditions["stepseries"] = stepseries
+        all_pistons = []
         all_fringes = []
         all_fringes_std = []
         for amode in A:
@@ -468,12 +474,13 @@ class HumInt(object):
             print("Scan of baseline: ",amode)
             for apos in mysequence:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
-                fringes.append(a.mean(axis=0))
+                fringes.append()
                 fringes_std.append(a_std)
                 if dt is not None:
                     fringes_std.append(a_std)
                 else:
                     fringes_std.append(rms)
+                all_pistons.append(apos)
             fringes_std = np.array(fringes_std)
             fringes = np.array(fringes)
             all_fringes.append(fringes)
@@ -489,11 +496,12 @@ class HumInt(object):
             hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=std_kappa, name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:-1], name="FRINGES", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:-1], name="FRINGESE", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,-1], name="BG", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,-1], name="BGE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,-2], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
             hdulist.writeto(saveto, overwrite=overwrite)
         return kappa, A, test_conditions
