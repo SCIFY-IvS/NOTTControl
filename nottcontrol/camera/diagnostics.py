@@ -73,6 +73,7 @@ class Diagnostics(object):
         dt = 5.
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
+        self.Nroi = len(sci_frames.rois_data)
         self.dark_frames = dark_frames
         # Full frame
         cal_mean_full,cal_mean_full_std = sci_frames.calib_master(dark_frames,full=True)
@@ -149,7 +150,7 @@ class Diagnostics(object):
             # Only make figure if there isn't already one active
             if not hasattr(self, '_diag_fig') or not plt.fignum_exists(getattr(self, '_diag_fig_num', -1)):
                 plt.ion()
-                self._diag_fig, self._diag_axs = plt.subplots(4, gridspec_kw={"height_ratios": [4, 1.5, 1.5, 1], "hspace": 0.15}, figsize=(10,8))
+                self._diag_fig, self._diag_axs = plt.subplots(3, gridspec_kw={"height_ratios": [3.25, 3.25, 1.5], "hspace": 0.20}, figsize=(10,8))
                 self._diag_fig_num = self._diag_fig.number
             
             fig, axs = self._diag_fig, self._diag_axs
@@ -168,25 +169,22 @@ class Diagnostics(object):
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
                     axs[0].errorbar(stamps,fluxes_broad[roi_idx-1],yerr=np.array([fluxes_broad_err[roi_idx-1]]*len(fluxes_broad[roi_idx-1])),color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    
-                    if channel == "I1" or channel == "I4":
-                        axs[1].errorbar(lambs,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    if channel == "I2" or channel == "I3":
-                        axs[2].errorbar(lambs,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    
+                    axs[1].errorbar(lambs+(roi_idx-1)*lambs[-1],flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                 if "I2" in self.channels and "I3" in self.channels:
                     idx_I2 = self.channels_roi["I2"].idx
                     idx_I3 = self.channels_roi["I3"].idx
                     diff = flux_disp[idx_I3-1]-flux_disp[idx_I2-1]
                     diff_err = np.sqrt(flux_disp_err[idx_I3-1]**2+flux_disp_err[idx_I2-1]**2)
-                    axs[3].errorbar(lambs,diff,yerr=diff_err,color="magenta",marker=colors_markers["B1"][1],label="I3-I2")
-                    axs[3].set_ylim(np.min(diff),np.max(diff))
+                    axs[2].errorbar(lambs,diff,yerr=diff_err,color="magenta",marker=colors_markers["B1"][1],label="I3-I2")
+                    axs[2].set_ylim(np.min(diff),np.max(diff))
                     
                 axs[0].set_xlabel("Time (ms)")
-                for i in range(1,4):
+                axs[1].set_xticks(lambs[0]+np.linspace(0,self.Nroi*lambs[-1],self.Nroi+1))
+                axs[1].set_xticklabels([lambs[0]]*self.Nroi)
+                for i in range(1,3):
                     axs[i].set_xlabel("Wavelength (um)")
-                for i in range(0,4):
+                for i in range(0,3):
                     axs[i].set_ylabel("counts")
                 
             else:
@@ -196,27 +194,25 @@ class Diagnostics(object):
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
                     axs[0].scatter(stamps,snrs_broad[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    
-                    if channel == "I1" or channel == "I4":
-                        axs[1].scatter(lambs,snr_disp[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    if channel == "I2" or channel == "I3":
-                        axs[2].scatter(lambs,snr_disp[roi_idx-1],color=c,marker=m,s=10,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    axs[1].scatter(lambs+(roi_idx-1)*lambs[-1],snr_disp[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                 if "I2" in self.channels and "I3" in self.channels:
                     idx_I2 = self.channels_roi["I2"].idx
                     idx_I3 = self.channels_roi["I3"].idx
                     diff = snr_disp[idx_I3-1]-snr_disp[idx_I2-1]
-                    axs[3].scatter(lambs,diff,color="magenta",marker=colors_markers["B1"][1],label="I3-I2")
-                    axs[3].set_ylim(np.min(diff),np.max(diff))
+                    axs[2].scatter(lambs,diff,color="magenta",marker=colors_markers["B1"][1],label="I3-I2")
+                    axs[2].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
-                for i in range(1,4):
+                axs[1].set_xticks(lambs[0]+np.linspace(0,self.Nroi*lambs[-1],self.Nroi+1))
+                axs[1].set_xticklabels([lambs[0]]*self.Nroi)
+                for i in range(1,3):
                     axs[i].set_xlabel("Wavelength (um)")
-                for i in range(0,4):
-                    axs[i].set_ylabel("Output SNR")
+                for i in range(0,3):
+                    axs[i].set_ylabel("counts")
     
             # Legend
-            for i in range(0,4):
+            for i in range(0,3):
                 axs[i].legend(loc="upper right")
                 
             # Showing
