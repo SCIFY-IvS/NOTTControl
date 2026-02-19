@@ -20,7 +20,10 @@ class Config:
     def write(self):
         with open(self._path, 'w') as configfile:
             self.config_parser.write(configfile)
-            
+      
+    class ParseError(ValueError):
+        pass
+      
     def getarray(self, section, key, dtype=np.float64):
         """
         An extra get method to parse arrays 
@@ -32,9 +35,12 @@ class Config:
         * dtype     : A data type for the array conversion
         """
         logit.info("Pulling an array from config file")
-        thestring = self[section][key]
-        thelist = thestring.split(sep=",")
-        thearray = np.array( thelist, dtype=dtype)
+        try:
+            thestring = self[section][key]
+            thelist = thestring.split(sep=",")
+            thearray = np.array( thelist, dtype=dtype)
+        except:
+            raise ParseError("Could not parse as array")
         return thearray
     
     ConfigParser.getarray = getarray

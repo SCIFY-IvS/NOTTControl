@@ -15,41 +15,42 @@ from nottcontrol.camera.brightness_calculator import BrightnessCalculator
 from nottcontrol import config as nott_config
 from pathlib import Path
 
-# Loading from config.ini
-
-# Location of frames on the machine
-frame_directory = str(nott_config['DEFAULT']['frame_directory'])
-
-# Camera window position and size (dictionary format)
-window_cfg = dict.fromkeys(["w","h","x","y"])
-for key in window_cfg.keys():
-    window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
-    
-# Camera ROIs' positions and sizes : not linked to outputs (list format)
-rois_cfg = []
-rois_w = set() # sets to contain ROIs widths and heights
-rois_h = set()
-roi_index = 1
-stop = False
-while not stop:
-    try:
-        roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
-    except:
-        stop = True
-    else:
-        if len(roi) != 4:
-            raise Exception('Invalid ROI configuration, please check the configuration file for correct x,y,w,h assignments.')
-        # Checking whether all ROIs have the same dimension. Throwing exception if not the case.
-        rois_w.add(int(round(roi[2])))
-        rois_h.add(int(round(roi[3])))
-        if len(rois_w) != 1 or len(rois_h) != 1:
-            raise Exception('Invalid ROI configuration, please check that all ROIs have the same dimensions in the configuration file.')
-        # Storing roi
-        rois_cfg.append(Roi(roi[0],roi[1],roi[2],roi[3],roi_index))
-        roi_index += 1    
-
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
+    
+    # Loading from config.ini
+
+    # Location of frames on the machine
+    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+    
+    # Camera window position and size (dictionary format)
+    window_cfg = dict.fromkeys(["w","h","x","y"])
+    for key in window_cfg.keys():
+        window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
+        
+    # Camera ROIs' positions and sizes : not linked to outputs (list format)
+    rois_cfg = []
+    rois_w = set() # sets to contain ROIs widths and heights
+    rois_h = set()
+    roi_index = 1
+    stop = False
+    while not stop:
+        try:
+            roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
+        except:
+            stop = True
+        else:
+            if len(roi) != 4:
+                raise Exception('Invalid ROI configuration, please check the configuration file for correct x,y,w,h assignments.')
+            # Checking whether all ROIs have the same dimension. Throwing exception if not the case.
+            rois_w.add(int(round(roi[2])))
+            rois_h.add(int(round(roi[3])))
+            if len(rois_w) != 1 or len(rois_h) != 1:
+                raise Exception('Invalid ROI configuration, please check that all ROIs have the same dimensions in the configuration file.')
+            # Storing roi
+            rois_cfg.append(Roi(roi[0],roi[1],roi[2],roi[3],roi_index))
+            roi_index += 1    
+    
     def __init__(self,ids,integtimes=[],window=window_cfg,rois=rois_cfg):
         """
         Parameters

@@ -20,11 +20,11 @@ import nottcontrol.components.pypiezo as pypiezo
 import nottcontrol.components.human_interface as human_interface
 from nottcontrol import redisclient
 
-pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
-low_lamb = float(nott_config['CAMERA']['low_lamb'])
-up_lamb = float(nott_config['CAMERA']['up_lamb'])
-
 class Diagnostics(object):
+
+    pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
+    low_lamb = float(nott_config['CAMERA']['low_lamb'])
+    up_lamb = float(nott_config['CAMERA']['up_lamb'])    
 
     def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5):    
         """

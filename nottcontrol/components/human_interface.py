@@ -111,7 +111,7 @@ class HumInt(object):
         motor_status = np.array([ashutter.getStatusInformation()[0] for ashutter in self.shutters])
         standing = (motor_status == 'STANDING')
 
-        shutter_state = np.zeros_like(self.shutters)
+        shutter_state = np.zeros(len(self.shutters),dtype=np.int32)
         for i, ashutter in enumerate(self.shutters):
             # Throw error if a shutter is still moving.
             if not standing[i]:
