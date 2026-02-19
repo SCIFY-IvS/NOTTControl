@@ -41,7 +41,7 @@ class Shutter(Motor):
         super().__init__(opcua_conn, opcua_prefix, name, speed)
         self._open_pos = open_pos
         self._close_pos = close_pos
-        self.rtol = 0.02 # relative tolerance for is_open / is_closed
+        self.rtol = rtol # relative tolerance for is_open / is_closed
     
     def open(self):
         self.command_move_absolute(self._open_pos).execute()

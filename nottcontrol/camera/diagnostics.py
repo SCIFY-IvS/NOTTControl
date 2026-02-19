@@ -209,7 +209,7 @@ class Diagnostics(object):
                 for i in range(1,3):
                     axs[i].set_xlabel("Wavelength (um)")
                 for i in range(0,3):
-                    axs[i].set_ylabel("counts")
+                    axs[i].set_ylabel("Output SNR")
     
             # Legend
             for i in range(0,3):

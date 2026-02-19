@@ -117,7 +117,7 @@ class HumInt(object):
             if not standing[i]:
                 raise self.ShutterError("Shutter " + str(ashutter.name) + " is still moving.")
             # Throw error if a shutter is neither moving, neither standing still in an open/closed position. 
-            if standing[i] and not (ashutter.is_open or ashutter.is_close):
+            if not (ashutter.is_open or ashutter.is_close):
                 raise self.ShutterError("Shutter " + str(ashutter.name) + " is neither moving, nor in an open/closed position.")
             if ashutter.is_open:
                 shutter_state[i] = 1
