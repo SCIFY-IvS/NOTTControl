@@ -18,40 +18,7 @@ from pathlib import Path
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
     
-    # Loading from config.ini
-
-    # Location of frames on the machine
-    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
-    
-    # Camera window position and size (dictionary format)
-    window_cfg = dict.fromkeys(["w","h","x","y"])
-    for key in window_cfg.keys():
-        window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
-        
-    # Camera ROIs' positions and sizes : not linked to outputs (list format)
-    rois_cfg = []
-    rois_w = set() # sets to contain ROIs widths and heights
-    rois_h = set()
-    roi_index = 1
-    stop = False
-    while not stop:
-        try:
-            roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
-        except:
-            stop = True
-        else:
-            if len(roi) != 4:
-                raise Exception('Invalid ROI configuration, please check the configuration file for correct x,y,w,h assignments.')
-            # Checking whether all ROIs have the same dimension. Throwing exception if not the case.
-            rois_w.add(int(round(roi[2])))
-            rois_h.add(int(round(roi[3])))
-            if len(rois_w) != 1 or len(rois_h) != 1:
-                raise Exception('Invalid ROI configuration, please check that all ROIs have the same dimensions in the configuration file.')
-            # Storing roi
-            rois_cfg.append(Roi(roi[0],roi[1],roi[2],roi[3],roi_index))
-            roi_index += 1    
-    
-    def __init__(self,ids,integtimes=[],window=window_cfg,rois=rois_cfg):
+    def __init__(self,ids,integtimes=[],window=None,rois=None):
         """
         Parameters
         ----------
@@ -73,6 +40,45 @@ class Frame(object):
             Contains the data, of all recorded frames, within each ROI. Obtained by slicing the loaded data cube. 
             Note: As this field contains data, it is a numpy array - and not a list - to promote efficiency of data handling.
         """
+        
+        # Loading from config.ini
+
+        # Location of frames on the machine
+        frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+        
+        # Camera window position and size (dictionary format)
+        window_cfg = dict.fromkeys(["w","h","x","y"])
+        for key in window_cfg.keys():
+            window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
+            
+        # Camera ROIs' positions and sizes : not linked to outputs (list format)
+        rois_cfg = []
+        rois_w = set() # sets to contain ROIs widths and heights
+        rois_h = set()
+        roi_index = 1
+        stop = False
+        while not stop:
+            try:
+                roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
+            except:
+                stop = True
+            else:
+                if len(roi) != 4:
+                    raise Exception('Invalid ROI configuration, please check the configuration file for correct x,y,w,h assignments.')
+                # Checking whether all ROIs have the same dimension. Throwing exception if not the case.
+                rois_w.add(int(round(roi[2])))
+                rois_h.add(int(round(roi[3])))
+                if len(rois_w) != 1 or len(rois_h) != 1:
+                    raise Exception('Invalid ROI configuration, please check that all ROIs have the same dimensions in the configuration file.')
+                # Storing roi
+                rois_cfg.append(Roi(roi[0],roi[1],roi[2],roi[3],roi_index))
+                roi_index += 1    
+        
+        if window is None:
+            window = window_cfg
+        if rois is None:
+            rois = rois_cfg
+        
         # Setting frame IDs
         self.ids = ids
         # Setting frame integration times
@@ -215,7 +221,7 @@ class Frame(object):
     
         return master_frame,master_frame_std
       
-     def calib_seq(self,dark,flat=None,full=False,dark_mean=None,dark_mean_std=None):
+    def calib_seq(self,dark,flat=None,full=False,dark_mean=None,dark_mean_std=None):
         # Compute a sequence of calibrated individual frames and calculate the corresponding std map for each
         # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
         

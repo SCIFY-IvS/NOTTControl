@@ -3,6 +3,9 @@ import logging
 logit = logging.getLogger(__name__)
 import numpy as np
 
+class ParseError(ValueError):
+    pass
+
 class Config:
     
     def __init__(self, path:str):
@@ -20,9 +23,6 @@ class Config:
     def write(self):
         with open(self._path, 'w') as configfile:
             self.config_parser.write(configfile)
-      
-    class ParseError(ValueError):
-        pass
       
     def getarray(self, section, key, dtype=np.float64):
         """

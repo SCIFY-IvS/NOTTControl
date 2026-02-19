@@ -25,14 +25,14 @@ from nottcontrol import config
 
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
-def unix_to_datetime(self,unix_stamp):
+def unix_to_datetime(unix_stamp):
     # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
     epoch = datetime.fromtimestamp(0,timezone.utc)
     dt = timedelta(milliseconds=unix_stamp)
     utc_stamp = epoch + dt
     return utc_stamp
 
-def datetime_to_id(self,utc_stamp):
+def datetime_to_id(utc_stamp):
     # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
     Ymd = utc_stamp.strftime("%Y%m%d")
     HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
@@ -49,13 +49,14 @@ class HumInt(object):
                 db_server=None,
                 opcuad=opcuad,
                 nb_beams=4,
+                shutter_pad=5.5,
                 non_motorized=0,
                 offset = 8.0,snr_thresh=5):
         # self.lamb_min = lam_range[0]
         # self.lamb_max = lam_range[-1]
         self.lam_mean = lam_mean
         self.pad = pad
-        self.shutter_pad = 5.5
+        self.shutter_pad = shutter_pad
         self.interf = interf
         self.act_index = act_index
         self.non_motorized = non_motorized # Index of the non-motorized beam
@@ -117,7 +118,7 @@ class HumInt(object):
             if not standing[i]:
                 raise self.ShutterError("Shutter " + str(ashutter.name) + " is still moving.")
             # Throw error if a shutter is neither moving, neither standing still in an open/closed position. 
-            if not (ashutter.is_open or ashutter.is_close):
+            if not (ashutter.is_open or ashutter.is_closed):
                 raise self.ShutterError("Shutter " + str(ashutter.name) + " is neither moving, nor in an open/closed position.")
             if ashutter.is_open:
                 shutter_state[i] = 1
@@ -142,14 +143,14 @@ class HumInt(object):
             # Throw error if a shutter is not operational.
             if not operational[i]:
                 raise self.ShutterError("Shutter " + str(ashutter.name) + " is not in operational state.")
-            values_bool = values.astype(bool)
+            values_bool = thevalues.astype(bool)
             # Only move if current and input state differ
             if shutter_change[i]:
                 if values_bool[i]:
                     ashutter.open()
                 else:
                     ashutter.close()
-        if wait:
+        if wait and shutter_change.any():
             sleep(self.shutter_pad)
         if verbose:
             for i, ashutter in enumerate(self.shutters):

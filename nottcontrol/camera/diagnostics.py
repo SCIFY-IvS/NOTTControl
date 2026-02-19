@@ -22,10 +22,6 @@ from nottcontrol import redisclient
 
 class Diagnostics(object):
 
-    pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
-    low_lamb = float(nott_config['CAMERA']['low_lamb'])
-    up_lamb = float(nott_config['CAMERA']['up_lamb'])    
-
     def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5):    
         """
         Parameters
@@ -36,6 +32,11 @@ class Diagnostics(object):
         snr_thresh : float
             SNR threshold for output identification
         """
+        
+        self.pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
+        self.low_lamb = float(nott_config['CAMERA']['low_lamb'])
+        self.up_lamb = float(nott_config['CAMERA']['up_lamb']) 
+        self.dlamb = up_lamb-low_lamb
         
         #-----------------------#
         # Setting up interfaces |
@@ -57,7 +58,7 @@ class Diagnostics(object):
         if human_interf is None:
             # Human interface 
             # TBD : Offset
-            human_interf = human_interface.HumInt(interf=piezo_interf,db_server=redis_client,pad=0.08,offset=5.0)
+            human_interf = human_interface.HumInt(interf=piezo_interf,db_server=redis_client,shutter_pad=10,pad=0.08,offset=5.0)
         else:
             # Overwrite piezo interface and redis client with the ones tied to input human interface.
             self.piezo_interf = human_interf.interf
@@ -107,11 +108,11 @@ class Diagnostics(object):
     def diagnose(self,dt,visual_feedback=True,visual_feedback_flux=True,custom_lambs=False):
     
         if custom_lambs:
-            lambs = pix_to_lamb
+            lambs = self.pix_to_lamb
             if len(lambs) != self.output_height:
                 raise Exception("The length of the custom list of wavelengths" + str(len(lambs)) + " does not match the size of the outputs " + str(self.output_height))
         else:
-            lambs = np.linspace(low_lamb,up_lamb,self.output_height)
+            lambs = np.linspace(self.low_lamb,self.up_lamb,self.output_height)
     
         # Fetch science frames
         sci_frames = self.human_interf.science_frame_sequence(dt)
@@ -169,7 +170,7 @@ class Diagnostics(object):
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
                     axs[0].errorbar(stamps,fluxes_broad[roi_idx-1],yerr=np.array([fluxes_broad_err[roi_idx-1]]*len(fluxes_broad[roi_idx-1])),color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    axs[1].errorbar(lambs+(roi_idx-1)*lambs[-1],flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    axs[1].errorbar(lambs+(roi_idx-1)*self.dlamb,flux_disp[roi_idx-1],yerr=flux_disp_err[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                 if "I2" in self.channels and "I3" in self.channels:
                     idx_I2 = self.channels_roi["I2"].idx
@@ -180,8 +181,9 @@ class Diagnostics(object):
                     axs[2].set_ylim(np.min(diff),np.max(diff))
                     
                 axs[0].set_xlabel("Time (ms)")
-                axs[1].set_xticks(lambs[0]+np.linspace(0,self.Nroi*lambs[-1],self.Nroi+1))
-                axs[1].set_xticklabels([lambs[0]]*self.Nroi)
+                Nticks = self.Nroi+1
+                axs[1].set_xticks(lambs[0]+np.linspace(0,self.Nroi*self.dlamb,Nticks))
+                axs[1].set_xticklabels([lambs[0]]*Nticks)
                 for i in range(1,3):
                     axs[i].set_xlabel("Wavelength (um)")
                 for i in range(0,3):
@@ -194,7 +196,7 @@ class Diagnostics(object):
                     m = colors_markers[channel][1]
                     roi_idx = self.channels_roi[channel].idx
                     axs[0].scatter(stamps,snrs_broad[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
-                    axs[1].scatter(lambs+(roi_idx-1)*lambs[-1],snr_disp[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
+                    axs[1].scatter(lambs+(roi_idx-1)*self.dlamb,snr_disp[roi_idx-1],color=c,marker=m,label="ROI"+str(roi_idx)+"/"+str(channel))
                     
                 if "I2" in self.channels and "I3" in self.channels:
                     idx_I2 = self.channels_roi["I2"].idx
@@ -204,8 +206,9 @@ class Diagnostics(object):
                     axs[2].set_ylim(np.min(diff),np.max(diff))
     
                 axs[0].set_xlabel("Time (ms)")
-                axs[1].set_xticks(lambs[0]+np.linspace(0,self.Nroi*lambs[-1],self.Nroi+1))
-                axs[1].set_xticklabels([lambs[0]]*self.Nroi)
+                Nticks = self.Nroi+1
+                axs[1].set_xticks(lambs[0]+np.linspace(0,self.Nroi*self.dlamb,Nticks))
+                axs[1].set_xticklabels([lambs[0]]*Nticks)
                 for i in range(1,3):
                     axs[i].set_xlabel("Wavelength (um)")
                 for i in range(0,3):
