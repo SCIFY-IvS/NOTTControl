@@ -14,11 +14,15 @@ from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.brightness_calculator import BrightnessCalculator
 from nottcontrol import config as nott_config
 from pathlib import Path
+from platform import system
 
 # Loading from config.ini
 
 # Location of frames on the machine
-frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+if system() == "Windows":
+    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+else:
+    frame_directory = str(nott_config['DEFAULT']['linux_frame_directory'])
 
 # Camera window position and size (dictionary format)
 window_cfg = dict.fromkeys(["w","h","x","y"])

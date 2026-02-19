@@ -19,6 +19,7 @@ from nottcontrol.camera.infratec_interface import InfratecInterface
 import nottcontrol.components.pypiezo as pypiezo
 import nottcontrol.components.human_interface as human_interface
 from nottcontrol import redisclient
+from platform import system
 
 pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
 low_lamb = float(nott_config['CAMERA']['low_lamb'])
@@ -42,10 +43,16 @@ class Diagnostics(object):
         #-----------------------#
         if infra_interf is None:
             # Camera interface
-            infra_interf = InfratecInterface()
+            if system() == "Windows":
+                infra_interf = InfratecInterface()
+            else:
+                infra_interf = None
         if piezo_interf is None:
             # Piezo interface
-            piezo_interf = pypiezo.piezointerface()
+            if system() == "Linux":
+                piezo_interf = pypiezo.piezointerface()
+            else:
+                piezo_interf = None
         if redis_client is None:
             # Redis client
             redis_client = redisclient.RedisClient(human_interface.dburl)
