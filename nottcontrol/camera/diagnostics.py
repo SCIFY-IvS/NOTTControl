@@ -21,6 +21,11 @@ import nottcontrol.components.human_interface as human_interface
 from nottcontrol import redisclient
 
 class Diagnostics(object):
+    
+    pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
+    low_lamb = float(nott_config['CAMERA']['low_lamb'])
+    up_lamb = float(nott_config['CAMERA']['up_lamb']) 
+    dlamb = up_lamb-low_lamb    
 
     def __init__(self,infra_interf=None,piezo_interf=None,redis_client=None,human_interf=None,use_geom=True,snr_thresh=5):    
         """
@@ -32,11 +37,6 @@ class Diagnostics(object):
         snr_thresh : float
             SNR threshold for output identification
         """
-        
-        self.pix_to_lamb = nott_config.getarray('CAMERA','pix_to_lamb')
-        self.low_lamb = float(nott_config['CAMERA']['low_lamb'])
-        self.up_lamb = float(nott_config['CAMERA']['up_lamb']) 
-        self.dlamb = up_lamb-low_lamb
         
         #-----------------------#
         # Setting up interfaces |
