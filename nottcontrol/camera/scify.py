@@ -193,13 +193,13 @@ class MainWindow(QMainWindow):
             recording = self.recording
             
             if recording:
+                self.store_integtime_to_db(timestamp, self.integtime)
                 print(f"Saving {filepath} ...")
                 thread = threading.Thread(target = cv2.imwrite, args =(filepath, img))
                 thread.start()
 
             if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
-                self.store_integtime_to_db(timestamp, self.integtime)
                 
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
@@ -312,6 +312,7 @@ class MainWindow(QMainWindow):
         if not self.connected:
             self.time_reference_frames = 0
             self.connect_camera()
+            self.integtime = self.interface.getparam_idx_int32(262,0)
         else:
             self.disconnect_camera()
     
