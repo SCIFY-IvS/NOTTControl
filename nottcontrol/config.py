@@ -50,9 +50,9 @@ ConfigParser.getdate = getdate
 
 class Config:
     
-    def __init__(self, path:str, comment_prefixes=None):
+    def __init__(self, path:str, comment_prefixes="#", **kwargs):
         self._path = path
-        self.config_parser = ConfigParser(comment_prefixes=comment_prefixes)
+        self.config_parser = ConfigParser(comment_prefixes=comment_prefixes, **kwargs)
         self.config_parser.optionxform = str # Preserve case sensitivity
         self.config_parser.read(path)
 
