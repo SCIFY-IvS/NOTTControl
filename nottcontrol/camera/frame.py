@@ -91,8 +91,12 @@ class Frame(object):
             Ymd,HMS = frame_id.split(sep="_")[0],frame_id.split(sep="_")[1]
             directory = Path(frame_directory).joinpath(Ymd)
             filename = HMS+'.png'
-            img_path = str(Path.joinpath(directory,filename))
-            img = Image.open(img_path)
+            try:
+                img_path = str(Path.joinpath(directory,filename))
+                img = Image.open(img_path)
+            except OSError:
+                print(f"File could not be loaded: {img_path}")
+                continue
             data_slice =  np.asarray(img)
             data_cube.append(data_slice)
             

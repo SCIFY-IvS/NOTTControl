@@ -173,6 +173,12 @@ class MainWindow(QMainWindow):
         s = self.ui.lineEdit_coadd_frames.text()
         return int(s)
 
+    def save_frame_write_redis(self, filepath, img, timestamp):
+        print(f"Saving {filepath} ...")
+        cv2.imwrite(filepath, img)
+        print(f"Writing integration time ...")
+        self.store_integtime_to_db(timestamp, self.integtime)
+
     def process_frame(self):
         tLastUpdate = time.perf_counter()
         base_path = config["DEFAULT"]["frame_directory"]
@@ -193,9 +199,7 @@ class MainWindow(QMainWindow):
             recording = self.recording
             
             if recording:
-                self.store_integtime_to_db(timestamp, self.integtime)
-                print(f"Saving {filepath} ...")
-                thread = threading.Thread(target = cv2.imwrite, args =(filepath, img))
+                thread = threading.Thread(target = self.save_frame_write_redis, args =(filepath, img, timestamp))
                 thread.start()
 
             if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
@@ -211,8 +215,6 @@ class MainWindow(QMainWindow):
                     #maintain dtype, otherwise the background substraction will throw an error
                     img = numpy.average(arr, axis=0).astype(numpy.uint16)
                     self.process_roi(img, timestamp, coadded_frame=True)
-                    if recording:
-                        self.store_integtime_to_db(timestamp, self.integtime)
                     self.coadd_frames_buffer.clear()
                 else:
                     coadd_in_process = True
