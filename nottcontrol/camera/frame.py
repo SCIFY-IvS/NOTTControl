@@ -15,6 +15,7 @@ from nottcontrol.camera.brightness_calculator import BrightnessCalculator
 from nottcontrol import config as nott_config
 from pathlib import Path
 from platform import system
+from time import sleep
 
 # Loading from config.ini
 
@@ -91,6 +92,7 @@ class Frame(object):
             directory = Path(frame_directory).joinpath(Ymd)
             filename = HMS+'.png'
             img_path = str(Path.joinpath(directory,filename))
+            sleep(0.01)
             img = Image.open(img_path)
             data_slice =  np.asarray(img)
             data_cube.append(data_slice)

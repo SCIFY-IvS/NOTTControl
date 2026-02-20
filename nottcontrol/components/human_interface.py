@@ -471,20 +471,22 @@ class HumInt(object):
             sleep(10 * self.pad)
             mysequence = amode[None,:] * stepseries[:,None]
             fringes, fringes_std = [], []
+            pistons = []
             print("Scan of baseline: ",amode)
             for apos in mysequence:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
-                fringes.append()
+                fringes.append(a)
                 fringes_std.append(a_std)
                 if dt is not None:
                     fringes_std.append(a_std)
                 else:
                     fringes_std.append(rms)
-                all_pistons.append(apos)
+                pistons.append(apos)
             fringes_std = np.array(fringes_std)
             fringes = np.array(fringes)
             all_fringes.append(fringes)
             all_fringes_std.append(fringes_std)
+            all_pistons.append(pistons)
             relsteps = 2*stepseries
             phases = 2*np.pi/(self.lam_mean*1e6) * relsteps
         all_fringes = np.array(all_fringes)
