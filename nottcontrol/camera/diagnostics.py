@@ -160,7 +160,9 @@ class Diagnostics(object):
             for ax in axs:
                 ax.clear()
 
-            fig.suptitle("Diagnostics of chip outputs in time frame  ["+str(ids[0])+" , "+str(ids[-1])+"]  (ms)")
+            integtime_ms = np.average(sci_frames.integtimes)*1000
+
+            fig.suptitle("Diagnostics of chip outputs in time frame  ["+str(ids[0])+" , "+str(ids[-1])+"]  (ms) - Frame integration time : "+str(integtime_ms)+" (ms)")
             colors_markers = {"P1":['gray','o'],"P2":['brown','o'],"I1":['blue','x'],"I2":['red','^'],"I3":['black','^'],"I4":['green','x'],"P3":['purple','o'],"P4":['orange','o'],"B1":['pink','x'],"B2":['pink','x']} # photo P, interferometric I, background B
             
             if visual_feedback_flux:
