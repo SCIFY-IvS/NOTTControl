@@ -72,6 +72,7 @@ class Diagnostics(object):
         
         # Getting a calibrated science frame
         dt = 5.
+        self.human_interf.shutter_set([1,1,1,1],wait=True)
         sci_frames = self.human_interf.science_frame_sequence(dt)
         dark_frames = self.human_interf.dark_frame_sequence(dt)
         self.Nroi = len(sci_frames.rois_data)
