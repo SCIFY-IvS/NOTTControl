@@ -92,7 +92,6 @@ class Frame(object):
             directory = Path(frame_directory).joinpath(Ymd)
             filename = HMS+'.png'
             img_path = str(Path.joinpath(directory,filename))
-            sleep(0.01)
             img = Image.open(img_path)
             data_slice =  np.asarray(img)
             data_cube.append(data_slice)
