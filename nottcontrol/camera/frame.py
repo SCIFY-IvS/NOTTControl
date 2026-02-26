@@ -89,7 +89,7 @@ class Frame(object):
         data_cube = []
         for frame_id in ids:
             Ymd,HMS = frame_id.split(sep="_")[0],frame_id.split(sep="_")[1]
-            directory = Path(frame_directory).joinpath(Ymd)
+            directory = Path(self.frame_directory).joinpath(Ymd)
             filename = HMS+'.png'
             try:
                 img_path = str(Path.joinpath(directory,filename))
