@@ -278,8 +278,8 @@ class Frame(object):
         return cal_mean, cal_mean_std
 
     def calib_seq_nifits_format(self, dark, flat=None):
-        cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
-        return cal_mean.sum(axis=-1).transpose((1,2,0)), cal_mean_std.sum(axis=-1).transpose((1,2,0))
+        cal_seq, cal_seq_std = self.calib_seq(dark, flat=flat)
+        return cal_seq.sum(axis=-1).transpose((1,2,0)), cal_seq_std.sum(axis=-1).transpose((1,2,0))
 
     def calib_master_nifits_format(self, dark, flat=None):
         cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
