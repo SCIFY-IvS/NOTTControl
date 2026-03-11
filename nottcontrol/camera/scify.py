@@ -30,6 +30,14 @@ from nottcontrol.camera.roiwidget import RoiWidget
 import queue
 from pathlib import Path
 import zmq
+from platform import system
+
+# Location of frames on the machine
+if system() == "Windows":
+    frame_directory = str(config['DEFAULT']['frame_directory'])
+else:
+    frame_directory = str(config['DEFAULT']['linux_frame_directory'])
+
 
 t=time.perf_counter()
 tLive=t
@@ -127,6 +135,7 @@ class MainWindow(QMainWindow):
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
+        self.frame_directory = frame_directory
     
     def socket_server(self):
         context = zmq.Context()
@@ -181,7 +190,7 @@ class MainWindow(QMainWindow):
 
     def process_frame(self):
         tLastUpdate = time.perf_counter()
-        base_path = config["DEFAULT"]["frame_directory"]
+        base_path = self.frame_directory
         print(f"base directory: {base_path}")
         while True:
             item = self.roi_queue.get()

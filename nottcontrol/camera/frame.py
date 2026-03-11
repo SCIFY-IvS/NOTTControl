@@ -14,14 +14,22 @@ from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.brightness_calculator import BrightnessCalculator
 from nottcontrol import config as nott_config
 from pathlib import Path
+from platform import system
+from time import sleep
+
+
+# Location of frames on the machine
+if system() == "Windows":
+    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+else:
+    frame_directory = str(nott_config['DEFAULT']['linux_frame_directory'])
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
     
     # Loading from config.ini
 
-    # Location of frames on the machine
-    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+    # Location of frames on the machine Already as a global
         
     # Camera window position and size (dictionary format)
     window_cfg = dict.fromkeys(["w","h","x","y"])
@@ -79,6 +87,8 @@ class Frame(object):
             window = self.window_cfg
         if rois is None:
             rois = self.rois_cfg
+
+        self.frame_directory = frame_directory
         
         # Setting frame IDs
         self.ids = ids
@@ -93,12 +103,8 @@ class Frame(object):
             Ymd,HMS = frame_id.split(sep="_")[0],frame_id.split(sep="_")[1]
             directory = Path(self.frame_directory).joinpath(Ymd)
             filename = HMS+'.png'
-            try:
-                img_path = str(Path.joinpath(directory,filename))
-                img = Image.open(img_path)
-            except OSError:
-                print(f"File could not be loaded: {img_path}")
-                continue
+            img_path = str(Path.joinpath(directory,filename))
+            img = Image.open(img_path)
             data_slice =  np.asarray(img)
             data_cube.append(data_slice)
             
