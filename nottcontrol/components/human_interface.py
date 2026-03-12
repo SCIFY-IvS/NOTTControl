@@ -85,6 +85,18 @@ class HumInt(object):
     
     def __del__(self):
         self.opcua_conn.disconnect()
+
+    def solve_spectral_cal_linear(self):
+        lamb_low =   config.config_parser.getfloat("CAMERA","low_lamb")
+        lamb_high =  config.config_parser.getfloat("CAMERA","up_lamb")
+        index_low =  config.config_parser.getfloat("CAMERA","low_index")
+        index_high = config.config_parser.getfloat("CAMERA","up_index")
+        roi_len = int(round(config.getarray("CAMERA","ROI 1")[3]))
+        lamb_per_pix = (lamb_high-lamb_low) / (index_high - index_low)
+        lamb_0 = lamb_low - index_low * lamb_per_pix
+        lamb_max = lamb_0 + roi_len * lamb_per_pix
+        calibration = np.linspace( lamb_0, lamb_max, roi_len)
+        self.cal_spec = calibration
     
     def db_time(self):
         aresp = self.ts.ts.get(f"cam_integtime")
