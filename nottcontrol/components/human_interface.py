@@ -286,6 +286,12 @@ class HumInt(object):
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
             return cal_seq, cal_seq_std
 
+    def get_frames_cal_to_np(self, dt, dark=None, sequence=False, shutter_state=None, verbose=False):
+        cal,cal_std = self.get_frames_cal(dt, dark, sequence, shutter_state, verbose)
+        np.save("cal",cal)
+        np.save("cal_std",cal_std)
+        return
+
     def science_frame_sequence(self, dt, verbose=False):
         return self.frame_sequence(dt, shutter_state=[1,1,1,1], verbose=verbose)
     
