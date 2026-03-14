@@ -256,29 +256,34 @@ class HumInt(object):
         
         return frames
 
-    def frame_sequence(self, dt, shutter_state, verbose=False):
+    def frame_sequence(self, dt, shutter_state=None, verbose=False):
         """
-        Brings the shutters to given shutter_state, takes frames in that state, brings shutters back to initial state.
+        Identical to get_frames but adding shutter control.
+        Brings the shutters to given shutter_state (if not None), takes frames in that state, brings shutters back to initial state.
         """
-        # Current shutter state
-        shutter_state_pre = self.shutter_state
-        # Bring shutters to input state
-        self.shutter_set(shutter_state, wait=True, verbose=verbose)
-        # Take sequence
-        frames = self.get_frames(dt)
-        # Bring shutters back
-        self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
-        return frames
+        if shutter_state is None:
+            frames = self.get_frames(dt)
+            return frames
+        else:
+            # Current shutter state
+            shutter_state_pre = self.shutter_state
+            # Bring shutters to input state
+            self.shutter_set(shutter_state, wait=True, verbose=verbose)
+            # Take sequence
+            frames = self.get_frames(dt)
+            # Bring shutters back
+            self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
+            return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False):
+    def get_frames_cal(self, dt, dark=None, sequence=False, shutter_state=None, verbose=False):
         if dark is None:
             dark = self.dark
-        frame = self.get_frames(dt)
+        frames = self.frame_sequence(dt, shutter_state, verbose)
         if not sequence:
-            cal_mean, cal_mean_std = frame.calib_master_nifits_format(dark)
+            cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
             return cal_mean, cal_mean_std
         else:
-            cal_seq, cal_seq_std = frame.calib_seq_nifits_format(dark)
+            cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
             return cal_seq, cal_seq_std
 
     def science_frame_sequence(self, dt, verbose=False):
