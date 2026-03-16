@@ -5,6 +5,7 @@ from time import sleep, time
 from tqdm import tqdm
 from copy import copy
 from datetime import datetime,timedelta,timezone
+from xaosim.shmlib import shm
 
 import sys
 sys.path.append("/home/labo/src/NOTTControl/")
@@ -38,6 +39,39 @@ def datetime_to_id(utc_stamp):
     HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
     frame_id = Ymd+"_"+HMS
     return frame_id
+
+class RollingShm(object):
+    def __init__(self, fname="/dev/shm/default.plt.shm",
+                    depth=10, width=8, wls=None):
+        if self.wls is None:
+            self.shape = (depth, width)
+        else:
+            self.shape = (depth, width, wls)
+        self.shm = self.create_shm(fname)
+        self.buffer = np.nan * np.ones(shape=self.shape, dtype=float)
+        self.shm = shm(fname, data=self.buffer, verbose=False,)
+
+    def get_data(self, *args, **kwargs):
+        """
+            Loads data from the shm object
+        """
+        self.buffer = self.shm.get_data(*args, **kwargs)
+        return self.buffer
+
+    def push(self, data):
+        """
+            Push new data at the back of the buffer, then
+        writes to the shm. The oldest data is erased.
+        """
+        self.buffer = np.roll(self.buffer, -1, axis=0)
+        self.buffer[-1] = data
+        self.shm.set_data(self.buffer)
+
+    def close(self):
+        """
+            Is used to remove the shm
+        """
+        self.shm.close()
 
 
 class HumInt(object):
@@ -80,11 +114,21 @@ class HumInt(object):
              for shutterid in range(4)
         ]
         self.move(np.array([0., 0., 0., 0.]))
+        self.auto_display = False
 
     # Auxiliary functions
     
     def __del__(self):
         self.opcua_conn.disconnect()
+        if hasattr(self, "buffer_broad"):
+            self.buffer_broad.close()
+
+    def initialize_shm_broadband(self, depth=30, width=8):
+        dummy_data = np.nan * np.zeros((depth, width), dtype=float)
+        self.shm_broad = shm("/dev/shm/nott_buffer_broad.plt.shm", data=dummy_data)
+        self.buffer_broad = RollingShm("/dev/shm/nott_buffer_broad.plt.shm",
+                                        depth=depth, widht=width)
+        self.auto_display = True
 
     def solve_spectral_cal_linear(self):
         lamb_low =   config.config_parser.getfloat("CAMERA","low_lamb")
@@ -96,8 +140,10 @@ class HumInt(object):
         lamb_0 = lamb_low - index_low * lamb_per_pix
         lamb_max = lamb_0 + roi_len * lamb_per_pix
         calibration = np.linspace( lamb_0, lamb_max, roi_len)
-        self.cal_spec = calibration
-    
+        self.cal_spec = 1.0e-6 * calibration
+        self.spectral_mask = np.logical_and(self.cal_spec >= 1.0e-6 * lamb_low,
+                                            self.cal_spec <= 1.0e-6 * lamb_high)
+
     def db_time(self):
         aresp = self.ts.ts.get(f"cam_integtime")
         return aresp[0]
@@ -281,6 +327,8 @@ class HumInt(object):
         frames = self.frame_sequence(dt, shutter_state, verbose)
         if not sequence:
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
+            if self.auto_display is not False:
+                self.buffer_broad.push(cal_mean[self.spectral_mask,:].sum(axis=0))
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
