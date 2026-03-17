@@ -43,13 +43,13 @@ def datetime_to_id(utc_stamp):
 class RollingShm(object):
     def __init__(self, fname="/dev/shm/default.plt.shm",
                     depth=10, width=8, wls=None):
-        if self.wls is None:
+        if wls is None:
             self.shape = (depth, width)
         else:
             self.shape = (depth, width, wls)
-        self.shm = self.create_shm(fname)
         self.buffer = np.nan * np.ones(shape=self.shape, dtype=float)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
+
 
     def get_data(self, *args, **kwargs):
         """
@@ -127,7 +127,7 @@ class HumInt(object):
         dummy_data = np.nan * np.zeros((depth, width), dtype=float)
         self.shm_broad = shm("/dev/shm/nott_buffer_broad.plt.shm", data=dummy_data)
         self.buffer_broad = RollingShm("/dev/shm/nott_buffer_broad.plt.shm",
-                                        depth=depth, widht=width)
+                                        depth=depth, width=width)
         self.auto_display = True
 
     def solve_spectral_cal_linear(self):
@@ -323,6 +323,8 @@ class HumInt(object):
     
     def get_frames_cal(self, dt, dark=None, sequence=False, shutter_state=None, verbose=False):
         if dark is None:
+            if verbose:
+                print("Using the default dark")
             dark = self.dark
         frames = self.frame_sequence(dt, shutter_state, verbose)
         if not sequence:
