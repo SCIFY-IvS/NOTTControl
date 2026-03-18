@@ -163,7 +163,7 @@ class Frame(object):
         self.bg_roi_idx = []
         for channel_label in list(channels_roi.keys()):
             if list(channel_label)[0] == "B":
-                self.bg_roi_idx.append(self.channels_roi[channel_label].idx-1)
+                self.bg_roi_idx.append(channels_roi[channel_label].idx-1)
                 
         return channels_roi,channels_data
     
