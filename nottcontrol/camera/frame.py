@@ -119,7 +119,7 @@ class Frame(object):
             x,y,w,h = int(round(roi.x-window["x"])),int(round(roi.y-window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
             rois_crop.append(Roi(x,y,w,h,roi.idx))
-            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+            rois_data.append(self.data[:,i1:i2,j1:j2])
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
@@ -183,7 +183,7 @@ class Frame(object):
             x,y,w,h = int(round(roi.x-self.window["x"])),int(round(roi.y-self.window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
             rois_crop.append(Roi(x,y,w,h,roi.idx))
-            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+            rois_data.append(self.data[:,i1:i2,j1:j2])
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
