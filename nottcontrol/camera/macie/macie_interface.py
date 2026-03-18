@@ -11,6 +11,7 @@ class MacieInterface():
         self._macielib.M_getPower.argtypes = []
         self._macielib.M_initCamera.argtypes = []
         self._macielib.M_acquire.argtypes = [ctypes.c_bool]
+        self._macielib.M_halt_acquisition.argtypes = []
         self._macielib.M_close.argtypes = []
 
         #Load ctypes dll, and call initialize
@@ -41,5 +42,9 @@ class MacieInterface():
     
     def close(self):
         self._macielib.M_close()
+    
+    def halt_acquisition(self):
+        self._macielib.M_halt_acquisition()
+
     
 

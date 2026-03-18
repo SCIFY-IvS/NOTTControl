@@ -31,6 +31,13 @@ extern "C" void M_acquire(const bool no_recon)
     return;
 }
 
+extern "C" void M_halt_acquisition()
+{
+    std::cout << "Calling halt" << std::endl;;
+    halt_acquisition(_ptUserData);
+    return;
+}
+
 extern "C" bool M_initCamera()
 {
     std::cout << "Calling initCamera" << std::endl;;

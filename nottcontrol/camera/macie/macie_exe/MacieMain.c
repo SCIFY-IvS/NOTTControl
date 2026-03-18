@@ -175,6 +175,16 @@ int initialize(string configFile, MACIE_Settings *ptUserData)
     return 0;
 }
 
+void halt_acquisition(MACIE_Settings *ptUserData)
+{
+    verbose_printf(LOG_INFO, ptUserData, "Halting Data Acquisition...\n");
+
+    // What is the proper order?
+    HaltCameraAcq(ptUserData);
+    delay(300);
+    CloseGigEScienceInterface(ptUserData);
+}
+
 void acquire(bool no_recon, MACIE_Settings *ptUserData )
 {
     verbose_printf(LOG_INFO, ptUserData, "Starting Data Acquisition...\n");
