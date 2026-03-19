@@ -3,7 +3,7 @@ import ctypes
 from threading import Thread, Event
 
 class MacieInterface():
-    def __init__(self, offline_mode = True):
+    def __init__(self, offline_mode = True, config_file="basic_warm_slow.cfg"):
         self._macielib = ctypes.CDLL("macie_exe/libmacie_interface.so", mode = os.RTLD_LAZY)
         
         self._macielib.M_initialize.argtypes = [ctypes.c_char_p, ctypes.c_bool]
@@ -17,12 +17,13 @@ class MacieInterface():
 
         #Load ctypes dll, and call initialize
         #Should the config file be part of the constructor, or hard-coded?
-        self._macielib.M_initialize(b"macie_exe/config_files/basic_warm_slow.cfg", offline_mode)
+        file = os.path.join("macie_exe/config_files", config_file)
+        self._macielib.M_initialize(bytes(file, "utf-8"), offline_mode)
 
         self.continuous_acquisition_running = False
-        self._acquiring = threading.Event()
+        self._acquiring = Event()
         self._acquiring.clear()
-        self._closing = threading.Event()
+        self._closing = Event()
     
     def __enter__(self):
         self.init_camera()
@@ -41,7 +42,7 @@ class MacieInterface():
         self._macielib.M_initCamera()
 
         #Start the thread for continuous acquisition - it won't execute anything until start_continuous_acquisition is called
-        thread = Thread(target = continuous_acquisition)
+        thread = Thread(target = self.continuous_acquisition)
         thread.start()
     
     def acquire(self, no_recon = False):
