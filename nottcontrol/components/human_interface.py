@@ -41,7 +41,7 @@ def datetime_to_id(utc_stamp):
     return frame_id
 
 class RollingShm(object):
-    def __init__(self, fname="/dev/shm/default.plt.shm",
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
                     depth=10, width=8, wls=None):
         """
         Only use wls for separate plotting of outputs. For dispersed
@@ -51,7 +51,7 @@ class RollingShm(object):
             self.shape = (depth, width)
         else:
             self.shape = (depth, wls, width)
-        self.buffer = np.nan * np.ones(shape=self.shape, dtype=float)
+        self.buffer = np.zeros(shape=self.shape, dtype=float)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
 
 
@@ -138,7 +138,7 @@ class HumInt(object):
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
         dummy_data = np.nan * np.zeros((depth, width), dtype=float)
-        self.buffer_broad = RollingShm("/dev/shm/nott_buffer_broad.im.shm",
+        self.buffer_broad = RollingShm("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
                                         depth=depth, width=width)
 
     def disp_initialize_shm_dispersed(self, depth=30, width=None,
@@ -150,7 +150,7 @@ class HumInt(object):
         initial_shape = (depth, width, nwls)
         dummy_raw = np.nan * np.zeros(initial_shape, dtype=float)
         dummy_data_reshaped = dummy_raw.reshape(depth, width * nwls)
-        self.buffer_disp = RollingShm("/dev/shm/nott_buffer_disp.im.shm",
+        self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
                                         depth=dummy_data_reshaped.shape[0],
                                         width=dummy_data_reshaped.shape[1])
         spacers = nwls * np.arange(width+1)
@@ -185,7 +185,7 @@ class HumInt(object):
         """
             This is the array of wavelengths limited to the science mask.
         """
-        return self.lambs(self.sc_mask)
+        return self.lambs[self.sc_mask]
 
     def db_time(self):
         aresp = self.ts.ts.get(f"cam_integtime")
@@ -374,7 +374,7 @@ class HumInt(object):
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
             if self.auto_display is not False:
                 self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
-                self.buffer_disp.push(cal_mean[self.sc_mask,:].flatten())
+                self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
@@ -607,7 +607,7 @@ class HumInt(object):
         for kappa_line in kappa[1:]:
             kappa_new.append(kappa_line-kappa[0])  #Background correction
         kappa_new = np.array(kappa_new)
-        kappa_new = kappa_new[:,:-2]   #Removes the background ROI values
+        kappa_new = kappa_new[:,:,:-2]   #Removes the background ROI values
         for i, akrow in enumerate(kappa_new):
             kappa_new[i,:,:] = akrow / (np.sum(akrow) / n_wl)
         for k, acell in np.ndenumerate(kappa_new):
@@ -653,23 +653,23 @@ class HumInt(object):
             all_fringes_std.append(fringes_std)
             all_pistons.append(pistons)
             relsteps = 2*stepseries
-            phases = 2*np.pi/(self.lambs*1e6) * relsteps
+            phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
         self.move(np.array([0., 0., 0., 0.]))
         self.shutter_set(np.ones(4).astype(bool))
 
         if saveto is not None:
-            hdulist.append(fits.hdu.ImageHDU(data=kappa.T[self.sc_mask,:,:], name="KAPPA", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=std_kappa[self.sc_mask,:,:], name="KAPPAE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,self.sc_mask,:-2], name="FRINGES", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,self.sc_mask,:-2], name="FRINGESE", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,self.sc_mask,-2:], name="BG", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,self.sc_mask,-2], name="BGE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,-2:], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
-            hdulist.append(fits.hdu.ImagHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
             hdulist.writeto(saveto, overwrite=overwrite)
         return kappa, A, test_conditions
