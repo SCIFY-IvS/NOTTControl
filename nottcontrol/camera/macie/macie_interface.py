@@ -2,7 +2,10 @@ import os
 import ctypes
 from threading import Thread, Event
 
+#Usage: calling init_camera puts the camera in a state where it is ready to acquire images.
+#By using the python 'with' statement, you can ensure that both the initialization and the de-initialization are done
 class MacieInterface():
+    
     def __init__(self, offline_mode = True, config_file="basic_warm_slow.cfg"):
         self._macielib = ctypes.CDLL("macie_exe/libmacie_interface.so", mode = os.RTLD_LAZY)
         
@@ -16,7 +19,6 @@ class MacieInterface():
         self._macielib.M_close.argtypes = []
 
         #Load ctypes dll, and call initialize
-        #Should the config file be part of the constructor, or hard-coded?
         file = os.path.join("macie_exe/config_files", config_file)
         self._macielib.M_initialize(bytes(file, "utf-8"), offline_mode)
 
