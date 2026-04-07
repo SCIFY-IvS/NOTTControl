@@ -1,5 +1,8 @@
 *.pyc
 *_ui.py
+*.o
+*.so
+*.a
 build/*
 nottcontrol.egg-info/*
 nottcontrol/script/data/*

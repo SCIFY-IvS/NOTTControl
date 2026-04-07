@@ -11,7 +11,7 @@ try:
     import IRBGrab.hirbgrab as hirb
 except ImportError:
     # print('HERE')
-    import nottcontrol.camera.hirbgrab as hirb
+    import nottcontrol.camera.infratec.hirbgrab as hirb
     
 import pkg_resources as pkgrsrc
 

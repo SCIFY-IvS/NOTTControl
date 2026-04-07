@@ -5,7 +5,7 @@ from nottcontrol.opcua import OPCUAConnection
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
-from nottcontrol.camera.scify import MainWindow as camera_ui
+from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
 from nottcontrol import config
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow

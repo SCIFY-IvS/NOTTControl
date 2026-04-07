@@ -6,7 +6,7 @@ Created on Fri Mar 10 12:18:09 2023
 """
 
 import numpy
-from nottcontrol.camera.utils.utils import BrightnessResults
+from nottcontrol.camera.infratec.utils.utils import BrightnessResults
 
 class BrightnessCalculator():
     
