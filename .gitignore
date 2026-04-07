@@ -228,3 +228,4 @@ nottcontrol/script/diagnostics/redis_lag_shutter_time_stats_008.txt
 nottcontrol/script/diagnostics/redis_lag_shutter_time_stats_009.txt
 nottcontrol/script/diagnostics/redis_lag_shutter_time_stats_010.txt
 nottcontrol/script/diagnostics/redis_lag_shutter_time_stats.png
+*.ipynb_checkpoints*
