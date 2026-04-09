@@ -46,7 +46,7 @@ class ParametersDialog(QDialog):
     def setup_presets_combobox(self):
         parameters = [
             PresetParameter('Framerate_Hz', 240, self.TYPE_Single),
-            PresetParameter('IntegTime_us', 262, self.TYPE_IdxInt32)
+            PresetParameter('IntegTime', 262, self.TYPE_IdxInt32)
         ]
         
         
@@ -90,8 +90,9 @@ class ParametersDialog(QDialog):
             case self.TYPE_String:
                 result = self.interface.getparam_string(parameter_nr)
             case self.TYPE_IdxInt32:
-                result = self.interface.getparam_idx_int32(parameter_nr,0) # parameter index to be incorporated in GUI input
-        #TOOD: finish match statement
+                result = self.interface.getparam_idx_int32(parameter_nr,0) # default index 0 for now
+        #TODO: finish match statement
+        #TODO: incorporate the ability to specify the parameter index (for IdxInt & IdxString) in the GUI
         
         self.ui.edit_param_value.setText(str(result))
         self.ui.label_feedback.setText('Parameter get succesful')
@@ -113,8 +114,9 @@ class ParametersDialog(QDialog):
             case self.TYPE_String:
                 self.interface.setparam_string(parameter_nr, value)
             case self.TYPE_IdxInt32:
-                self.interface.setparam_idx_int32(parameter_nr,0,int(value)) # parameter index to be incorporated in GUI input
-        #TODO finish match statement
+                self.interface.setparam_idx_int32(parameter_nr,0,int(value)) # default index 0 for now
+        #TODO: finish match statement
+        #TODO: incorporate the ability to specify the parameter index (for IdxInt & IdxString) in the GUI
         
         self.ui.edit_param_value.clear()
         self.ui.label_feedback.setText('Parameter set succesful')
