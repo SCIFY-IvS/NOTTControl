@@ -28,8 +28,6 @@ class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
     
     # Loading from config.ini
-
-    # Location of frames on the machine Already as a global
         
     # Camera window position and size (dictionary format)
     window_cfg = dict.fromkeys(["w","h","x","y"])
@@ -119,11 +117,11 @@ class Frame(object):
             x,y,w,h = int(round(roi.x-window["x"])),int(round(roi.y-window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
             rois_crop.append(Roi(x,y,w,h,roi.idx))
-            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+            rois_data.append(self.data[:,i1:i2,j1:j2])
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
-        self.integ_counter = 0
+        self.bg_roi_idx = [8,9] # default, overwritten upon calling link_to_channels
      
     def set_ids(self,ids):
         self.ids = ids
@@ -158,6 +156,12 @@ class Frame(object):
             roi_index = roi_indices[i]
             channels_roi[channel_label] = self.rois[roi_index-1]
             channels_data[channel_label] = self.rois_data[roi_index-1]
+        # Identify background indices
+        self.bg_roi_idx = []
+        for channel_label in list(channels_roi.keys()):
+            if list(channel_label)[0] == "B":
+                self.bg_roi_idx.append(channels_roi[channel_label].idx-1)
+                
         return channels_roi,channels_data
     
     def set_data(self,data):
@@ -176,7 +180,7 @@ class Frame(object):
             x,y,w,h = int(round(roi.x-self.window["x"])),int(round(roi.y-self.window["y"])),int(round(roi.w)),int(round(roi.h))
             i1,i2,j1,j2 = y,y+h,x,x+w
             rois_crop.append(Roi(x,y,w,h,roi.idx))
-            rois_data.append(self.data[:,i1:i2+1,j1:j2+1])
+            rois_data.append(self.data[:,i1:i2,j1:j2])
         self.rois = rois
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
@@ -237,9 +241,10 @@ class Frame(object):
         return master_frame,master_frame_std
       
     def calib_seq(self, dark, flat=None, full=False, dark_mean=None, dark_mean_std=None):
-        # Compute a sequence of calibrated individual frames and calculate the corresponding std map for each
+        # Compute a sequence of calibrated (dark-subtracted, also background-subtracted if not full) individual frames and calculate the corresponding std map for each
         # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
-        
+        # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
+
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
             if not full:
@@ -248,19 +253,29 @@ class Frame(object):
                 dark_mean, dark_mean_std = dark.master_full
         
         if not full:
-            # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
+            # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std + mean background error)
+            # Dark subtract
             cal_seq = self.rois_data - dark_mean[:, np.newaxis, :, :]
-            cal_seq_std = np.sqrt(self.std_rois()**2+dark_mean_std**2)
+            cal_seq_std = np.hypot(self.std_rois(), dark_mean_std)
+            # Calculate mean dark-subtracted background from background ROIs, for each individual frame in the sequence.
+            N = len(self.bg_roi_idx)
+            cal_meanbg_seq = np.average(cal_seq[self.bg_roi_idx],axis=0)
+            cal_meanbg_seq_err = np.linalg.norm(cal_seq_std[self.bg_roi_idx],axis=0) / N
+            # Background subtract
+            cal_seq = cal_seq - cal_meanbg_seq[np.newaxis, :, :, :]
+            cal_seq_std = np.hypot(cal_seq_std, cal_meanbg_seq_std[np.newaxis, :, :])
         else:
             # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
             cal_seq = self.data - dark_mean[np.newaxis, :, :]
-            cal_seq_std = np.sqrt(self.std_full()**2+dark_mean_std**2)
+            cal_seq_std = np.hypot(self.std_full(), dark_mean_std)
+
         return cal_seq, cal_seq_std
 
     def calib_master(self, dark, flat=None, full=False, dark_mean=None, dark_mean_std=None):
-        # Compute the calibrated master frame and calculate the corresponding std map
+        # Compute the calibrated (dark-subtracted, also background-subtracted if not full) master frame and calculate the corresponding std map
         # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
-        
+        # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
+              
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
             if not full:
@@ -271,16 +286,24 @@ class Frame(object):
         if not full:
             # Mean science and dark frames and corresponding std frames
             sci_mean, sci_mean_std = self.master_rois
-            # Calibrate the master science frame (= one DIT; detector integration time), calculate total std (science mean std + dark mean std)
+            # Calibrate the master science frame (= one DIT; detector integration time), calculate total std (science mean std + dark mean std + mean background error)
+            # Dark subtract
             cal_mean = sci_mean-dark_mean
-            cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
+            cal_mean_std = np.hypot(sci_mean_std, dark_mean_std)
+            # Calculate mean dark-subtracted background from background ROIs, for the master frame.
+            N = len(self.bg_roi_idx)
+            cal_meanbg_mean = np.average(cal_mean[self.bg_roi_idx],axis=0)
+            cal_meanbg_mean_std = np.linalg.norm(cal_mean_std[self.bg_roi_idx],axis=0) / N
+            # Background subtract
+            cal_mean = cal_mean - cal_meanbg_mean[np.newaxis, :, :]
+            cal_mean_std = np.hypot(cal_mean_std, cal_meanbg_mean_std[np.newaxis, :, :]) 
         else:
             # Mean science and dark frames and corresponding std frames
             sci_mean, sci_mean_std = self.master_full
             # Calibrate the master science frame (= one DIT; detector integration time), calculate total std (science mean std + dark mean std)
             cal_mean = sci_mean-dark_mean
-            cal_mean_std = np.sqrt(sci_mean_std**2+dark_mean_std**2)
-            
+            cal_mean_std = np.hypot(sci_mean_std, dark_mean_std)
+    
         return cal_mean, cal_mean_std
 
     def calib_seq_nifits_format(self, dark, flat=None):

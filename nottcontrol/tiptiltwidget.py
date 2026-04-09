@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 from datetime import datetime
-from nottcontrol.script import config_alignment
+from nottcontrol import config as nott_config
 import numpy as np
 
 class TipTiltWidget(QWidget):
@@ -24,9 +24,9 @@ class TipTiltWidget(QWidget):
         self.setup_plane_combobox()
         
         #read default step size from config
-        default_step = config_alignment["tip_tilt_control"]["step_default"]
+        default_step = nott_config["tip_tilt_control"]["step_default"]
         self.ui.le_stepsize.setText(str(default_step))
-        self._default_speed = float(config_alignment["tip_tilt_control"]["speed"])
+        self._default_speed = float(nott_config["tip_tilt_control"]["speed"])
 
         self.ui.bt_moveleft.clicked.connect(self.move_left)
         self.ui.bt_moveup.clicked.connect(self.move_up)
