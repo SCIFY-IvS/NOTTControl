@@ -657,11 +657,12 @@ class HumInt(object):
             all_fringes_std.append(fringes_std)
             all_pistons.append(pistons)
             relsteps = 2*stepseries
-            phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
+            # phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
         self.move(np.array([0., 0., 0., 0.]))
         self.shutter_set(np.ones(4).astype(bool))
+        phases = 2*np.pi / (self.sc_lambs[None,:,None]*1.0e6) * all_pistons[:,None,:]
 
         if saveto is not None:
             hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
