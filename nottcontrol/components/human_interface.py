@@ -41,15 +41,19 @@ def datetime_to_id(utc_stamp):
     return frame_id
 
 class RollingShm(object):
-    def __init__(self, fname="/dev/shm/default.plt.shm",
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
                     depth=10, width=8, wls=None):
-        if self.wls is None:
+        """
+        Only use wls for separate plotting of outputs. For dispersed
+        waterfall, reshape to width * nwls instead.
+        """
+        if wls is None:
             self.shape = (depth, width)
         else:
-            self.shape = (depth, width, wls)
-        self.shm = self.create_shm(fname)
-        self.buffer = np.nan * np.ones(shape=self.shape, dtype=float)
+            self.shape = (depth, wls, width)
+        self.buffer = np.zeros(shape=self.shape, dtype=float)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
+
 
     def get_data(self, *args, **kwargs):
         """
@@ -99,7 +103,8 @@ class HumInt(object):
         self.offset[self.non_motorized] = 0
         self.verbose = verbose
         self.ts = db_server
-        self.rois = [f"roi{n}_sum" for n in rois_interest]
+        self.rois_old = [f"roi{n}_sum" for n in rois_interest]
+        self.rois = rois_interest
         self.dark = None
         self.bg_noise = None
         self.opcua_conn = OPCUAConnection(opcuad)
@@ -116,6 +121,12 @@ class HumInt(object):
         self.move(np.array([0., 0., 0., 0.]))
         self.auto_display = False
 
+        self.disp_roi_mask = np.ones(self.rois.shape, dtype=bool)
+        self.disp_waterfall_broad = False,
+        self.disp_waterfall_dispersed = False
+        self.disp_depth = 30
+        self.disp_calls = []
+
     # Auxiliary functions
     
     def __del__(self):
@@ -123,14 +134,39 @@ class HumInt(object):
         if hasattr(self, "buffer_broad"):
             self.buffer_broad.close()
 
-    def initialize_shm_broadband(self, depth=30, width=8):
+    def disp_initialize_shm_broadband(self, depth=30, width=None):
+        if width is None:
+            width = np.count_nonzero(self.disp_roi_mask)
         dummy_data = np.nan * np.zeros((depth, width), dtype=float)
-        self.shm_broad = shm("/dev/shm/nott_buffer_broad.plt.shm", data=dummy_data)
-        self.buffer_broad = RollingShm("/dev/shm/nott_buffer_broad.plt.shm",
-                                        depth=depth, widht=width)
-        self.auto_display = True
+        self.buffer_broad = RollingShm("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
+                                        depth=depth, width=width)
+
+    def disp_initialize_shm_dispersed(self, depth=30, width=None,
+                                        nwls=None):
+        if width is None:
+            width = np.count_nonzero(self.disp_roi_mask)
+        if nwls is None:
+            nwls = np.count_nonzero(self.sc_mask)
+        initial_shape = (depth, width, nwls)
+        dummy_raw = np.nan * np.zeros(initial_shape, dtype=float)
+        dummy_data_reshaped = dummy_raw.reshape(depth, width * nwls)
+        self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
+                                        depth=dummy_data_reshaped.shape[0],
+                                        width=dummy_data_reshaped.shape[1])
+        spacers = nwls * np.arange(width+1)
+        np.save("/dev/shm/spacers.npy", spacers)
+
+
+
 
     def solve_spectral_cal_linear(self):
+        """
+            This simple spectral calibration writes to `self.lambs` the 
+        wavelength value [m] of each roi pixel. Relies on `low_lamb` ...
+        `low_index` ... from config file. This method creates a *linear*
+        range based on these values for basic correspondance to pixels.
+            Also creates a mask corresponding to the science wavelengths.
+        """
         lamb_low =   config.config_parser.getfloat("CAMERA","low_lamb")
         lamb_high =  config.config_parser.getfloat("CAMERA","up_lamb")
         index_low =  config.config_parser.getfloat("CAMERA","low_index")
@@ -140,9 +176,16 @@ class HumInt(object):
         lamb_0 = lamb_low - index_low * lamb_per_pix
         lamb_max = lamb_0 + roi_len * lamb_per_pix
         calibration = np.linspace( lamb_0, lamb_max, roi_len)
-        self.cal_spec = 1.0e-6 * calibration
-        self.spectral_mask = np.logical_and(self.cal_spec >= 1.0e-6 * lamb_low,
-                                            self.cal_spec <= 1.0e-6 * lamb_high)
+        self.lambs = 1.0e-6 * calibration
+        self.sc_mask = np.logical_and(self.lambs >= 1.0e-6 * lamb_low,
+                                            self.lambs <= 1.0e-6 * lamb_high)
+
+    @property
+    def sc_lambs(self):
+        """
+            This is the array of wavelengths limited to the science mask.
+        """
+        return self.lambs[self.sc_mask]
 
     def db_time(self):
         aresp = self.ts.ts.get(f"cam_integtime")
@@ -323,12 +366,15 @@ class HumInt(object):
     
     def get_frames_cal(self, dt, dark=None, sequence=False):
         if dark is None:
+            if verbose:
+                print("Using the default dark")
             dark = self.dark
         frames = self.get_frames(dt)
         if not sequence:
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
             if self.auto_display is not False:
-                self.buffer_broad.push(cal_mean[self.spectral_mask,:].sum(axis=0))
+                self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
+                self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
@@ -509,6 +555,7 @@ class HumInt(object):
                     dn_object=None, bidir=True, verbose=False,
                     kappa_threshold = 1e-2):
         import dnull as dn
+        from astropy.time import Time
         if saveto is not None:
             prefix = "HIERARCH NOTT "
             import astropy.io.fits as fits
@@ -517,7 +564,10 @@ class HumInt(object):
                                  (prefix+"temp", 25.0),
                                  (prefix+"rhum", 0.3),
                                  (prefix+"pres", 1e3),
-                                 (prefix+"co2" , 450)])
+                                 (prefix+"co2" , 450),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"exptime", dt),
+                                 (dateobs, Time.now().isot)])
             hdulist.append(fits.PrimaryHDU(header=myheader))
         test_conditions = {
             "co2_ppm": 1e6,
@@ -561,7 +611,7 @@ class HumInt(object):
         for kappa_line in kappa[1:]:
             kappa_new.append(kappa_line-kappa[0])  #Background correction
         kappa_new = np.array(kappa_new)
-        kappa_new = kappa_new[:,:-2]   #Removes the background ROI values
+        kappa_new = kappa_new[:,:,:-2]   #Removes the background ROI values
         for i, akrow in enumerate(kappa_new):
             kappa_new[i,:,:] = akrow / (np.sum(akrow) / n_wl)
         for k, acell in np.ndenumerate(kappa_new):
@@ -607,22 +657,24 @@ class HumInt(object):
             all_fringes_std.append(fringes_std)
             all_pistons.append(pistons)
             relsteps = 2*stepseries
-            phases = 2*np.pi/(self.lam_mean*1e6) * relsteps
+            # phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
         self.move(np.array([0., 0., 0., 0.]))
         self.shutter_set(np.ones(4).astype(bool))
+        phases = 2*np.pi / (self.sc_lambs[None,:,None]*1.0e6) * all_pistons[:,None,:]
 
         if saveto is not None:
-            hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=std_kappa, name="KAPPAE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:-2], name="FRINGES", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:-2], name="FRINGESE", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,-2:], name="BG", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,-2], name="BGE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,-2:], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
             hdulist.writeto(saveto, overwrite=overwrite)
         return kappa, A, test_conditions
@@ -701,8 +753,8 @@ class HumInt(object):
         ntel = 4
         shutter_probe, piston_probe = dn.dnull.full_hadamard_probe(ntel, amp, steps=steps, bidir=True)
         # shutter_probe = dn.dnull.shutter_probe(ntel)
-        shutter_phasor = jp.ones_like(self.lambs)[None,:,None] * shutter_probe[:,None,:]
-        hadamard_phasor = jp.exp(1j*2*np.pi/self.lambs[None,:,None] * 1e-6*piston_probe[:,None,:])
+        shutter_phasor = jp.ones_like(self.sc_lambs)[None,:,None] * shutter_probe[:,None,:]
+        hadamard_phasor = jp.exp(1j*2*np.pi/self.sc_lambs[None,:,None] * 1e-6*piston_probe[:,None,:])
         probe_series = jp.concatenate((shutter_phasor, hadamard_phasor), axis=0)
         amplitude_full = np.ones((shutter_probe.shape[0] + piston_probe.shape[0], shutter_probe.shape[1]))
         amplitude_full[:shutter_probe.shape[0], :] *= shutter_probe
