@@ -79,7 +79,6 @@ from nottcontrol.script.lib.nott_database import get_field
 from nottcontrol.script.lib.nott_control import all_shutters_close
 from nottcontrol.script.lib.nott_control import all_shutters_open
 from nottcontrol import config as nott_config
-from nottcontrol.script import config_alignment
 from nottcontrol.script import data_files
 
 #-----------------------------#
@@ -88,17 +87,17 @@ from nottcontrol.script import data_files
 # Opcua address
 url =  nott_config['DEFAULT']['opcuaaddress']
 # Global parameters
-t_write = int(config_alignment['redis']['t_write'])
-bool_UT = (config_alignment['injection']['bool_UT'] == "True")
-bool_offset = (config_alignment['injection']['bool_offset'] == "True")
-fac_loc = int(config_alignment['injection']['fac_loc'])
-SNR_inj = int(config_alignment['injection']['SNR_inj'])
-Ncrit = int(config_alignment['injection']['Ncrit'])
-Nsteps_skyb = int(config_alignment['injection']['Nsteps_skyb'])
-Nexp = int(config_alignment['injection']['Nexp'])
-disp_double = float(config_alignment['injection']['disp_double'])
-step_double = float(config_alignment['injection']['step_double'])
-speed_double = float(config_alignment['injection']['speed_double'])
+t_write = int(nott_config['redis']['t_write'])
+bool_UT = (nott_config['injection']['bool_UT'] == "True")
+bool_offset = (nott_config['injection']['bool_offset'] == "True")
+fac_loc = int(nott_config['injection']['fac_loc'])
+SNR_inj = int(nott_config['injection']['SNR_inj'])
+Ncrit = int(nott_config['injection']['Ncrit'])
+Nsteps_skyb = int(nott_config['injection']['Nsteps_skyb'])
+Nexp = int(nott_config['injection']['Nexp'])
+disp_double = float(nott_config['injection']['disp_double'])
+step_double = float(nott_config['injection']['step_double'])
+speed_double = float(nott_config['injection']['speed_double'])
 print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
 class alignment:
@@ -250,10 +249,6 @@ class alignment:
         
         # Preparing actuators for use
         print("Preparing actuators...")
-        # Retrieving OPCUA url from config.ini
-        config_alignment = ConfigParser()
-        config_alignment.read('../../config.ini')
-        url =  config_alignment['DEFAULT']['opcuaaddress']
         # Opening OPCUA connection
         opcua_conn = OPCUAConnection(url)
         opcua_conn.connect()

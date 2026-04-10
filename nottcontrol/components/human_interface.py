@@ -364,12 +364,12 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False, shutter_state=None, verbose=False):
+    def get_frames_cal(self, dt, dark=None, sequence=False):
         if dark is None:
             if verbose:
                 print("Using the default dark")
             dark = self.dark
-        frames = self.frame_sequence(dt, shutter_state, verbose)
+        frames = self.get_frames(dt)
         if not sequence:
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
             if self.auto_display is not False:
@@ -380,8 +380,8 @@ class HumInt(object):
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
             return cal_seq, cal_seq_std
 
-    def get_frames_cal_to_np(self, dt, dark=None, sequence=False, shutter_state=None, verbose=False):
-        cal,cal_std = self.get_frames_cal(dt, dark, sequence, shutter_state, verbose)
+    def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
+        cal,cal_std = self.get_frames_cal(dt, dark, sequence)
         np.save("cal",cal)
         np.save("cal_std",cal_std)
         return
