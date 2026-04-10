@@ -555,6 +555,7 @@ class HumInt(object):
                     dn_object=None, bidir=True, verbose=False,
                     kappa_threshold = 1e-2):
         import dnull as dn
+        from astropy.time import Time
         if saveto is not None:
             prefix = "HIERARCH NOTT "
             import astropy.io.fits as fits
@@ -563,7 +564,10 @@ class HumInt(object):
                                  (prefix+"temp", 25.0),
                                  (prefix+"rhum", 0.3),
                                  (prefix+"pres", 1e3),
-                                 (prefix+"co2" , 450)])
+                                 (prefix+"co2" , 450),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"exptime", dt),
+                                 (dateobs, Time.now().isot)])
             hdulist.append(fits.PrimaryHDU(header=myheader))
         test_conditions = {
             "co2_ppm": 1e6,
