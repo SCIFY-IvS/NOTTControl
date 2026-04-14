@@ -263,7 +263,7 @@ class Frame(object):
             cal_meanbg_seq_err = np.linalg.norm(cal_seq_std[self.bg_roi_idx],axis=0) / N
             # Background subtract
             cal_seq = cal_seq - cal_meanbg_seq[np.newaxis, :, :, :]
-            cal_seq_std = np.hypot(cal_seq_std, cal_meanbg_seq_std[np.newaxis, :, :])
+            cal_seq_std = np.hypot(cal_seq_std, cal_meanbg_seq_err[np.newaxis, :, :])
         else:
             # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std)
             cal_seq = self.data - dark_mean[np.newaxis, :, :]
