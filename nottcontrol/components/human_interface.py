@@ -569,7 +569,7 @@ class HumInt(object):
                                  (prefix+"co2" , 450),
                                  (prefix+"co2" , 450),
                                  (prefix+"exptime", dt),
-                                 (dateobs, Time.now().isot)])
+                                 ("DATE-OBS", Time.now().isot)])
             hdulist.append(fits.PrimaryHDU(header=myheader))
         test_conditions = {
             "co2_ppm": 1e6,
@@ -633,15 +633,14 @@ class HumInt(object):
         all_pistons = []
         all_fringes = []
         all_fringes_std = []
-        for amode in mode_set:
-            shutter_state= np.abs(amode).astype(bool)
-            self.shutter_set(shutter_state)
-            sleep(self.shutter_pad)
-            mysequence = amode[None,:] * stepseries[:,None]
+        for amodesteps in mode_set:
+            # self.shutter_set(shutter_state)
+            # sleep(self.shutter_pad)
+            # mysequence = amode[None,:] * stepseries[:,None]
             fringes, fringes_std = [], []
             pistons = []
-            print("Scan of mode: ", amode)
-            for apos in mysequence:
+            print("Scan of mode: ", amodesteps)
+            for apos in amodesteps:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
                 fringes_std.append(a_std)
@@ -655,7 +654,6 @@ class HumInt(object):
             all_fringes.append(fringes)
             all_fringes_std.append(fringes_std)
             all_pistons.append(pistons)
-            relsteps = 2*stepseries
             # phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
@@ -666,7 +664,8 @@ class HumInt(object):
         if saveto is not None:
             hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
+            # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,-2:], name="BG", header=None))
@@ -676,7 +675,7 @@ class HumInt(object):
             hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
             hdulist.writeto(saveto, overwrite=overwrite)
-        return kappa, A, test_conditions
+        return fringes
 
     def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
                     offset_scan=0., saveto="/dev/shm/cal_raw.fits",
