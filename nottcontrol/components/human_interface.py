@@ -549,8 +549,9 @@ class HumInt(object):
 
     def chip_calib_direct(self, mode_series, dt=0.5,
                     kappa=None, kappa_std=None,
+                    mode_shutter_probe=None,
                     offset_scan=0.,
-                    saveto="/dev/shm/cal_raw.fits",
+                    saveto="/dev/shm/cal_dir.fits",
                     overwrite=True,
                     dn_object=None, bidir=True, verbose=False,
                     kappa_threshold = 1e-2):
@@ -559,7 +560,7 @@ class HumInt(object):
         if saveto is not None:
             prefix = "HIERARCH NOTT "
             import astropy.io.fits as fits
-            hdulist = fits.HDUListist()
+            hdulist = fits.HDUList()
             myheader = fits.Header([(prefix+"co2_ppm", 1e6),
                                  (prefix+"temp", 25.0),
                                  (prefix+"rhum", 0.3),
@@ -578,16 +579,17 @@ class HumInt(object):
         }
         ntel = 4
         print("Kappa matrix")
-        shutter_probe = dn.dnull.shutter_probe(ntel)
-        shutter_state = np.abs(shutter_probe[0]).astype(bool)
-        self.shutter_set(shutter_state)
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
             test_sample, rms = self.get_frames_cal(1.0)
 
-        if kappa is not None:
+        if kappa is None:
+            inherit_kappa = False
             if verbose: print("Making a new kappa matrix")
+            shutter_probe = dn.dnull.shutter_probe(ntel)
+            shutter_state = np.abs(shutter_probe[0]).astype(bool)
+            self.shutter_set(shutter_state)
             kappa = []
             std_kappa = []
             for beam in shutter_probe:
@@ -622,9 +624,14 @@ class HumInt(object):
             kappa_old = np.copy(kappa)
             kappa = np.copy(kappa_new)
         else: # kappa is provided
-            print("Reusing kappa")
+            inherit_kappa = True
+            if verbose: print("Reusing kappa")
             pass
         print("Transfer matrix")   
+        if mode_shutter_probe is None:
+            self.shutter_set(np.ones(4).astype(bool))
+        else:
+            raise NotImplementedError("Not implemented direct calib with shutters: Do your kappa matrix separately")
         mode_set = offset_scan + mode_series
         f0 = 0.5/self.lam_mean * 1e-6
         test_conditions["stepseries"] = mode_set
@@ -637,7 +644,7 @@ class HumInt(object):
             # mysequence = amode[None,:] * stepseries[:,None]
             fringes, fringes_std = [], []
             pistons = []
-            print("Scan of mode: ", amodesteps)
+            if verbose : print("Scan of mode: ", amodesteps)
             for apos in amodesteps:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
@@ -662,8 +669,12 @@ class HumInt(object):
         phases = 2*np.pi / (self.sc_lambs[None,None,:,None]*1.0e6) * all_pistons[:,:,None,:]
 
         if saveto is not None:
-            hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
+            if inherit_kappa:
+                hdulist.append(fits.hdu.ImageHDU(data=kappa, name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
+            else:
+                hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
