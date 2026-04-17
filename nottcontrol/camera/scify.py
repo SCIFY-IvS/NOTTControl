@@ -183,9 +183,7 @@ class MainWindow(QMainWindow):
         return int(s)
 
     def save_frame_write_redis(self, filepath, img, timestamp):
-        print(f"Saving {filepath} ...")
         cv2.imwrite(filepath, img)
-        print(f"Writing integration time ...")
         self.store_integtime_to_db(timestamp, self.integtime)
 
     def process_frame(self):
