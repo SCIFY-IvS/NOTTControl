@@ -28,18 +28,35 @@ from enum import Enum
 from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.roiwidget import RoiWidget
 import queue
+from pathlib import Path
+import zmq
+from platform import system
+
+# Location of frames on the machine
+if system() == "Windows":
+    frame_directory = str(config['DEFAULT']['frame_directory'])
+else:
+    frame_directory = str(config['DEFAULT']['linux_frame_directory'])
+
 
 t=time.perf_counter()
 tLive=t
 
 img_timestamp_ref = None
 
+use_camera_time = (config['CAMERA']['use_camera_time'] == "True")
+record_rois = (config['CAMERA']['record_rois'] == "True")
+
 def callback(context,*args):#, aHandle, aStreamIndex):
-    recording_timestamp = datetime.utcnow()
+    # Creating timezone-aware datetime object, in utc
+    recording_timestamp = datetime.now(timezone.utc)
+    # Dropping the timezone info
+    recording_timestamp = recording_timestamp.replace(tzinfo=None)
+    
     
     global img_timestamp_ref
     
-    context.load_image(recording_timestamp)
+    context.load_image(recording_timestamp,use_camera_time)
 
 class MainWindow(QMainWindow):
     #Without this call, the GUI is resized and tiny
@@ -115,6 +132,42 @@ class MainWindow(QMainWindow):
         self.timestamps = deque(maxlen = deque_length)
         self.coadd_frames_buffer = []
         self.roi_queue = queue.Queue()
+        
+        self.running = True
+        threading.Thread(target=self.socket_server, daemon=True).start()
+        self.frame_directory = frame_directory
+    
+    def socket_server(self):
+        context = zmq.Context()
+        socket = context.socket(zmq.REP)
+        socket.bind("tcp://*:65535")
+
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
+
+        while self.running:
+            try:
+                events = dict(poller.poll(timeout=500))
+                if socket in events:
+                    message = socket.recv_string()
+                    print(f"Message received: {message}")
+                    if message == "Start record":
+                        if self.start_recording():
+                            reply = "Ok"
+                        else:
+                            reply = "Not connected"
+                    elif message == "Stop record":
+                        self.stop_recording()
+                        reply = "Ok"
+                    else:
+                        reply = "Unknown command"
+                    
+                    socket.send_string(reply)
+            except Exception as e:
+                print(f"Unexpected error while handling message: {e}")
+            
+        print("Stopping zmq thread")
+
     
     def enable_coadd(self):
         self.ui.lineEdit_coadd_frames.setEnabled(self.is_coadd_enabled())
@@ -129,15 +182,37 @@ class MainWindow(QMainWindow):
         s = self.ui.lineEdit_coadd_frames.text()
         return int(s)
 
+    def save_frame_write_redis(self, filepath, img, timestamp):
+        cv2.imwrite(filepath, img)
+        self.store_integtime_to_db(timestamp, self.integtime)
+
     def process_frame(self):
         tLastUpdate = time.perf_counter()
+        base_path = self.frame_directory
+        print(f"base directory: {base_path}")
         while True:
             item = self.roi_queue.get()
             img = item[0]
-            timestamp = item[1]
-            if self.recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
-                self.process_roi(img, timestamp, coadded_frame=False)
 
+            timestamp = item[1]
+            #base_path = r"Y:\Documents\Scify\Frames\frame_"
+            directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
+            directory.mkdir(parents=True, exist_ok=True)
+            timestamp_str = timestamp.strftime("%H%M%S%f")
+            # timestamp_str_round = str(round((int(timestamp_str)/1000)))
+            timestamp_str_round = f"{round(int(timestamp_str) / 1000):09d}"
+            filename = timestamp_str_round + ".png"
+            filepath = str(Path.joinpath(directory, filename))
+
+            recording = self.recording
+            
+            if recording:
+                thread = threading.Thread(target = self.save_frame_write_redis, args =(filepath, img, timestamp))
+                thread.start()
+
+            if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
+                self.process_roi(img, timestamp, coadded_frame=False)
+                
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
             if self.is_coadd_enabled():
@@ -156,9 +231,13 @@ class MainWindow(QMainWindow):
             if (t-tLastUpdate) > 0.4 and not coadd_in_process:
                 tLastUpdate = t
                 self.request_image_update.emit(img)
+            
+            if recording:
+                thread.join()
     
     def load_roi_config(self, config):
         self.roi_config = []
+        i = 1
         for roi_widget in self.roi_widgets:
             try:
                 roi_config = self.load_roi_from_config(config, roi_widget.name)
@@ -166,6 +245,7 @@ class MainWindow(QMainWindow):
                 print(f'Failed to load roi configuration for {roi_widget.name}, using default')
                 roi_config = Roi(i*100, 600, 50,50)
             roi_widget.setConfig(roi_config)
+            i = i + 1
             
     def load_roi_from_config(self, config, adr):
         roi_string = config['CAMERA'][adr]
@@ -242,6 +322,7 @@ class MainWindow(QMainWindow):
         if not self.connected:
             self.time_reference_frames = 0
             self.connect_camera()
+            self.integtime = self.interface.getparam_idx_int32(262,0)
         else:
             self.disconnect_camera()
     
@@ -265,13 +346,26 @@ class MainWindow(QMainWindow):
     def set_window(self):
         if not config['CAMERA'].getboolean('windowing'):
             return
-
+        
+        # Fetching current window dimensions
+        #w_cur = self.interface.getparam_int32(294)
+        #h_cur = self.interface.getparam_int32(295)
+        # Fetching config window dimensions
+        #w_con = config['CAMERA'].getint('window_w')
+        #h_con = config['CAMERA'].getint('window_h')
+        
+        # Large frame to small frame
+        #if w_cur*h_cur > w_con*h_con:
         self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
         self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
         self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
         self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
-
-        self.set_brightness_auto()
+        #else:
+        # Small frame to large frame
+        #    self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
+        #    self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        #    self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
+        #    self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
             
     def disconnect_camera(self):
         if not self.connected:
@@ -290,11 +384,17 @@ class MainWindow(QMainWindow):
         if self.recording:
             self.stop_recording()
         else:
+            self.time_reference_frames = 0
             self.start_recording()
             
     def start_recording(self):
         if self.recording:
-            return
+            return True
+        if not self.connected:
+            return False
+        
+        # Store current camera integration time
+        self.integtime = self.interface.getparam_idx_int32(262,0)
         
         self.timestamps.clear()
         for roi_widget in self.roi_widgets:
@@ -303,6 +403,7 @@ class MainWindow(QMainWindow):
         self.ui.button_record.setText('Stop')
         self.ui.label_recording.setText('Recording')
         self.recording = True
+        return True
     
     def stop_recording(self):
         if not self.recording:
@@ -319,7 +420,7 @@ class MainWindow(QMainWindow):
         self.background_img = self.image.getImageItem().image
         self.ui.checkBox_subtractbackground.setEnabled(True)
     
-    def load_image(self, recording_timestamp):  
+    def load_image(self, recording_timestamp, use_camera_time):  
         global t
         global tLive
         global img_timestamp_ref
@@ -353,7 +454,10 @@ class MainWindow(QMainWindow):
             #Use the first 100 frames purely to establish time
             return
         
-        timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
+        if use_camera_time:
+            timestamp = timedelta(milliseconds=timestamp_offset)
+        else:
+            timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
         
         if(self.roi_queue.qsize() > 5):
@@ -399,6 +503,7 @@ class MainWindow(QMainWindow):
         if not self.imageInit:
             self.set_window()
             self.initialize_image_display(img)
+            self.set_brightness_auto()
         else:
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
@@ -413,7 +518,8 @@ class MainWindow(QMainWindow):
     def process_roi(self, img, timestamp, coadded_frame):
         calculator = self.run_roi_calculator(img)
         if not coadded_frame and self.recording:
-            self.store_roi_to_db(timestamp, calculator)
+            if record_rois:
+                self.store_roi_to_db(timestamp, calculator)
             self.roi_tracking_frames += 1
         
         if coadded_frame or not self.is_coadd_enabled():
@@ -439,7 +545,13 @@ class MainWindow(QMainWindow):
             roi_values[key] = value
         
         self.redisclient.add_roi_values(timestamp, roi_values)
-    
+        
+    def store_framerate_to_db(self, timestamp, framerate):
+        self.redisclient.add_cam_framerate(timestamp,framerate)
+        
+    def store_integtime_to_db(self, timestamp, integtime):
+        self.redisclient.add_cam_integtime(timestamp,integtime)
+        
     def on_roi_calculations_finished(self, calculator):
         for i in range(len(self.roi_widgets)):
             self.roi_widgets[i].setValues(calculator.results[i])
@@ -452,6 +564,8 @@ class MainWindow(QMainWindow):
         self.interface.free_dll()
         self.closing.emit()
         super().closeEvent(*args)
+
+        self.running = False
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
