@@ -183,9 +183,7 @@ class MainWindow(QMainWindow):
         return int(s)
 
     def save_frame_write_redis(self, filepath, img, timestamp):
-        print(f"Saving {filepath} ...")
         cv2.imwrite(filepath, img)
-        print(f"Writing integration time ...")
         self.store_integtime_to_db(timestamp, self.integtime)
 
     def process_frame(self):
@@ -201,7 +199,8 @@ class MainWindow(QMainWindow):
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
             timestamp_str = timestamp.strftime("%H%M%S%f")
-            timestamp_str_round = str(round((int(timestamp_str)/1000)))
+            # timestamp_str_round = str(round((int(timestamp_str)/1000)))
+            timestamp_str_round = f"{round(int(timestamp_str) / 1000):09d}"
             filename = timestamp_str_round + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
