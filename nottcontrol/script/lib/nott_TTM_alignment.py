@@ -779,7 +779,7 @@ class alignment:
         
         return [pos,timestamp]
     
-    def _actuator_position_to_ttm_angle(self,pos,config): # TBC
+    def _actuator_position_to_ttm_angle(self,pos,config):
         """
         Description
         -----------
@@ -792,15 +792,20 @@ class alignment:
             
         Constants 
         ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
+        d1_pa : TTM1 (Siskyou IXF2.0a M flexure mount) pivot-to-actuator distance (mm) 
+        d2_pa : TTM2 (Newport U200-G2K Ultima gimbal mount) pivot-to-actuator distance (mm)
 
         Remarks
         -------
-        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
-                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
-        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
-                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
+        For both sets of TTMs : The two actuators are installed in agreement with the transverse X/Y dimensions.
+                                To achieve a TTMX/TTMY (tip/tilt) angular offset, the corresponding actuator can act independently.
+        For the set of TTM1s : The pivot point is located at the bottom of the flexure ridge and it remains fixed (to fair approximation) through tip/tilt motion, as confirmed by Siskyou.
+                               The lever arm stretches from this pivot to the point where the actuator holder clamps the actuator.
+                               Motorized tip-tilt motion is induced thanks to the actuator - affirmed to the mount sub-part that is to be tipped/tilted via an actuator holder - pushing against a driver block on the adjacent sub-part.
+                               Lever arm distance deduced from CAD models provided by Siskyou.
+        For the set of TTM2s : The pivot point is located at the center of the front optical cavity, by gimbal design.
+                               The lever arm stretches from this pivot to the contact point of the actuator and the mount.
+                               Lever arm distance measured on-bench. 
 
         Returns
         -------
@@ -808,33 +813,29 @@ class alignment:
             The TTM (TTM1X,TTM1Y,TTM2X,TTM2Y) angles.
 
         """
-        # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
+        # Lever arm distances
+        d1_pa = 71.566060392 
+        d2_pa = 1.375*25.4
         # Zemax optimal coupling angles (rad)
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
         act_config = self.act_pos_align[config]
-    
+
         # TTM1X
-        xsum_align = act_config[0]+act_config[1]
-        xsum_input = pos[0]+pos[1]
-        TTM1X = ttm_config[0] - np.arcsin((xsum_align-xsum_input)/(2*d1_ca)) 
+        TTM1X = ttm_config[0] + (pos[1]-act_config[1])/d1_pa    
         # TTM1Y
-        xdiff_align = act_config[1]-act_config[0]
-        xdiff_input = pos[1]-pos[0]
-        TTM1Y = +ttm_config[1] + np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca)) 
+        TTM1Y = ttm_config[1] + (pos[0]-act_config[0])/d1_pa
         # TTM2X
-        TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_ca)
+        TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_pa)
         # TTM2Y
-        TTM2Y = +ttm_config[3] + np.arcsin((pos[2]-act_config[2])/d2_ca)
+        TTM2Y = +ttm_config[3] + np.arcsin((pos[2]-act_config[2])/d2_pa)
         
         ttm_angles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
         
         return ttm_angles
     
-    def _ttm_angle_to_actuator_position(self,ttm_angles,config): # TBC 
+    def _ttm_angle_to_actuator_position(self,ttm_angles,config):
         """
         Description
         -----------
@@ -847,24 +848,30 @@ class alignment:
             
         Constants 
         ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
+        d1_pa : TTM1 (Siskyou IXF2.0a M flexure mount) pivot-to-actuator distance (mm) 
+        d2_pa : TTM2 (Newport U200-G2K Ultima gimbal mount) pivot-to-actuator distance (mm)
 
         Remarks
         -------
-        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
-                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
-        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
-                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
+        For both sets of TTMs : The two actuators are installed in agreement with the transverse X/Y dimensions.
+                                To achieve a TTMX/TTMY (tip/tilt) angular offset, the corresponding actuator can act independently.
+        For the set of TTM1s : The pivot point is located at the bottom of the flexure ridge and it remains fixed (to fair approximation) through tip/tilt motion, as confirmed by Siskyou.
+                               The lever arm stretches from this pivot to the point where the actuator holder clamps the actuator.
+                               Motorized tip-tilt motion is induced thanks to the actuator - affirmed to the mount sub-part that is to be tipped/tilted via an actuator holder - pushing against a driver block on the adjacent sub-part.
+                               Lever arm distance deduced from CAD models provided by Siskyou.
+        For the set of TTM2s : The pivot point is located at the center of the front optical cavity, by gimbal design.
+                               The lever arm stretches from this pivot to the contact point of the actuator and the mount.
+                               Lever arm distance measured on-bench.   
 
         Returns
         -------
         pos : (1,4) numpy array of floats (mm)
             The actuator (x1,x2,x3,x4) positions.
         """
+
         # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
+        d1_pa = 71.566060392 
+        d2_pa = 1.375*25.4
         # Zemax optimal coupling angles (rad)
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
@@ -872,16 +879,11 @@ class alignment:
         act_config = self.act_pos_align[config]
     
         # TTM1
-        xsum_align = (act_config[0]+act_config[1])/2
-        xdiff_align = (act_config[1]-act_config[0])/2
-        xsum = xsum_align - d1_ca*np.sin(ttm_config[0]-ttm_angles[0])
-        xdiff = xdiff_align - d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) 
-        x1 = xsum-xdiff #TBD
-        x2 = xsum+xdiff #TBD
-        
+        x1 = act_config[0] + d1_pa*(ttm_angles[1]-ttm_config[1])
+        x2 = act_config[1] + d1_pa*(ttm_angles[0]-ttm_config[0])
         # TTM2 
-        x3 = act_config[2] - d2_ca*np.sin(ttm_config[3]-ttm_angles[3])
-        x4 = act_config[3] + d2_ca*np.sin(ttm_config[2]-ttm_angles[2])
+        x3 = act_config[2] - d2_pa*np.sin(ttm_config[3]-ttm_angles[3])
+        x4 = act_config[3] + d2_pa*np.sin(ttm_config[2]-ttm_angles[2])
         
         pos = np.array([x1,x2,x3,x4],dtype=np.float64)
         
@@ -905,10 +907,10 @@ class alignment:
         -------
         displacements : (1,4) numpy array of float values (mm)
             The actuator displacements (dx1,dx2,dx3,dx4) necessary to achieve the demanded angular offsets.
-            dx1 : Displacement of the TTM1 actuator that is closest to the bench edge
-            dx2 : Displacement of the TTM1 actuator that is furthest from the bench edge
-            dx3 : Displacement of the TTM2 actuator whose motion is in the X plane, thus inducing TTM2 Y angles.
-            dx4 : Displacement of the TTM2 actuator whose motion is in the Y plane, thus inducing TTM2 X angles.
+            dx1 : Displacement of the TTM1 actuator whose motion is in the XZ plane, thus inducing TTM1 Y (tilt) angles.
+            dx2 : Displacement of the TTM1 actuator whose motion is in the YZ plane, thus inducing TTM1 X (tip) angles. 
+            dx3 : Displacement of the TTM2 actuator whose motion is in the XZ plane, thus inducing TTM2 Y (tilt) angles.
+            dx4 : Displacement of the TTM2 actuator whose motion is in the YZ plane, thus inducing TTM2 X (tip) angles.
             Sign convention : A positive displacement is away from the actuator
     
         """
