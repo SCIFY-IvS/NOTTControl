@@ -674,7 +674,7 @@ class HumInt(object):
                 hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
             else:
                 hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
-                hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[:,self.sc_mask,:], name="KAPPAE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
@@ -784,7 +784,6 @@ class HumInt(object):
             for apos in mysequence:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
-                fringes_std.append(a_std)
                 if dt is not None:
                     fringes_std.append(a_std)
                 else:
@@ -806,7 +805,7 @@ class HumInt(object):
 
         if saveto is not None:
             hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[:,self.sc_mask,:], name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
