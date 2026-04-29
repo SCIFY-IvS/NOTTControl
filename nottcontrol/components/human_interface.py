@@ -77,9 +77,9 @@ class RollingShm(object):
         """
         self.shm.close()
 
-def SimpleShm(object):
+class SimpleShm(object):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
-                    shape=None:
+                    shape=None):
         """
         Only use wls for separate plotting of outputs. For dispersed
         waterfall, reshape to width * nwls instead.
@@ -191,7 +191,7 @@ class HumInt(object):
                                         depth=dummy_data_reshaped.shape[0],
                                         width=dummy_data_reshaped.shape[1])
         self.buffer_im = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
-                                        shape=self.dark.master_full.shape)
+                                        shape=self.dark.master_full[0].shape)
         spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
 
@@ -412,7 +412,7 @@ class HumInt(object):
             if self.auto_display is not False:
                 self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
                 self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
-                self.buffer_im.push(frames.master_full - dark.master_full)
+                self.buffer_im.push(frames.master_full[0] - dark.master_full[0])
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
