@@ -77,6 +77,40 @@ class RollingShm(object):
         """
         self.shm.close()
 
+def SimpleShm(object):
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
+                    shape=None:
+        """
+        Only use wls for separate plotting of outputs. For dispersed
+        waterfall, reshape to width * nwls instead.
+        """
+        if shape is None:
+            shape = (10,10)
+        self.shape = shape
+        self.buffer = np.zeros(shape=self.shape, dtype=float)
+        self.shm = shm(fname, data=self.buffer, verbose=False,)
+
+
+    def get_data(self, *args, **kwargs):
+        """
+            Loads data from the shm object
+        """
+        self.buffer = self.shm.get_data(*args, **kwargs)
+        return self.buffer
+
+    def push(self, data):
+        """
+            This is not a rolling buffer, so just set the data
+        """
+
+        self.shm.set_data(data)
+
+    def close(self):
+        """
+            Is used to remove the shm
+        """
+        self.shm.close()
+
 
 class HumInt(object):
     def __init__(self, lam_mean=mean_wl,
@@ -143,6 +177,9 @@ class HumInt(object):
 
     def disp_initialize_shm_dispersed(self, depth=30, width=None,
                                         nwls=None):
+        """
+            Now also initializes an image buffer
+        """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
         if nwls is None:
@@ -153,6 +190,8 @@ class HumInt(object):
         self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
                                         depth=dummy_data_reshaped.shape[0],
                                         width=dummy_data_reshaped.shape[1])
+        self.buffer_im = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
+                                        shape=self.dark.master_full.shape)
         spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
 
@@ -373,6 +412,7 @@ class HumInt(object):
             if self.auto_display is not False:
                 self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
                 self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
+                self.buffer_im.push(frames.master_full - dark.master_full)
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
