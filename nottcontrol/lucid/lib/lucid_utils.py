@@ -74,7 +74,7 @@ ref_im = convert(dict(nott_config['ref_im']),convert_dict)
 ref_pup = convert(dict(nott_config['ref_pup']),convert_dict)
 ref_state = {"im_cam":ref_im, "pup_cam":ref_pup}
 
-class Utils:
+class LucidUtils:
     '''
     Class that bundles functionalities related to the lucid visible cameras installed in the pupil and image plane.
     Functionalities include:
@@ -87,7 +87,7 @@ class Utils:
     Example use case:
         
     import lucid_utils
-    with lucid_utils.Utils() as utils:
+    with lucid_utils.LucidUtils() as utils:
         # Getting a single frame
         frame,width,height = utils.snap("im_cam")
         
