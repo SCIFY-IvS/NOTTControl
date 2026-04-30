@@ -1,6 +1,7 @@
 import os
 import ctypes
 from threading import Thread, Event
+import zmq
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -9,20 +10,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 class MacieInterface():
     
     def __init__(self, offline_mode = False, config_file="basic_warm_slow.cfg"):
-        self._macielib = ctypes.CDLL(BASE_DIR + "/macie_exe/libmacie_interface.so", mode = os.RTLD_LAZY)
-        
-        self._macielib.M_initialize.argtypes = [ctypes.c_char_p, ctypes.c_bool]
-        self._macielib.M_powerOn.argtypes = []
-        self._macielib.M_powerOff.argtypes = []
-        self._macielib.M_getPower.argtypes = []
-        self._macielib.M_initCamera.argtypes = []
-        self._macielib.M_acquire.argtypes = [ctypes.c_bool]
-        self._macielib.M_halt_acquisition.argtypes = []
-        self._macielib.M_close.argtypes = []
+        self._context = zmq.Context()
+        self._socket = self._context.socket(zmq.REQ)
+        self._socket.connect("tcp://localhost:65534")
 
         #Load ctypes dll, and call initialize
         file = os.path.join(BASE_DIR + "/macie_exe/config_files", config_file)
-        self._macielib.M_initialize(bytes(file, "utf-8"), offline_mode)
+        self.initialize(file, offline_mode)
 
         self.continuous_acquisition_running = False
         self._acquiring = Event()
@@ -36,31 +30,55 @@ class MacieInterface():
     def __exit__(self):
         self.close()
     
+    def initialize(self, config_file, offline_mode):
+        self._socket.send_string(f"init;{config_file};{str(offline_mode).lower()}")
+        message = self._socket.recv_string()
+        #TODO: process reply properly
+        print (f"Received reply {message}")
+    
     def power_off(self):
-        self._macielib.M_powerOff()
+        self._socket.send_string("poweroff")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
     
     def power_on(self):
-        self._macielib.M_powerOn()
-    
+        self._socket.send_string("poweron")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
+
     def init_camera(self):
-        self._macielib.M_initCamera()
+        self._socket.send_string("initcamera")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
 
         #Start the thread for continuous acquisition - it won't execute anything until start_continuous_acquisition is called
         thread = Thread(target = self.continuous_acquisition)
         thread.start()
     
     def acquire(self, no_recon = False):
-        self._macielib.M_acquire(no_recon)
+        self._socket.send_string(f"acquire;{str(no_recon).lower()}")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
     
     def get_power(self):
-        self._macielib.M_getPower()
+        self._socket.send_string("getpower")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
     
     def close(self):
         self._closing.set()
-        self._macielib.M_close()
+
+        self._socket.send_string("close")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
+
+        self._socket.close()
+        self._context.term()
     
     def halt_acquisition(self):
-        self._macielib.M_halt_acquisition()
+        self._socket.send_string("halt")
+        message = self._socket.recv_string()
+        print (f"Received reply {message}")
     
     def start_continuous_acquisition(self):
         self._acquiring.set()
@@ -71,5 +89,5 @@ class MacieInterface():
     def continuous_acquisition(self):
         #Run for as long as the interface is not closed
         while not self._closing.is_set():
-            self._acquiring.wait()
-            self.acquire()
+            if (self._acquiring.wait(0.1)):
+                self.acquire()

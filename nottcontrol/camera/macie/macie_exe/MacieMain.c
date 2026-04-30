@@ -153,7 +153,9 @@ char **completer(const char *text, int start, int end)
 
 int initialize(string configFile, MACIE_Settings *ptUserData)
 {
+    printf("In initialize... \n");
     std::cout << std::fixed << std::setprecision(1);
+    printf("Calling MACIE lib version ...\n");
     std::cout << "MACIE Library Version: " << MACIE_LibVersion() << std::endl;
 
     if (create_param_struct(ptUserData, LOG_INFO) == false)
@@ -249,7 +251,7 @@ void toggle_offline_testing(bool offline_testing, MACIE_Settings *ptUserData)
 
 // Run command line executable:
 //  $ ./macieacq config_files/basic_slow_HxRG_warm.cfg
-int main(int argc, char *argv[])
+int main2(int argc, char *argv[])
 {
     string option, configFile;
     unsigned int val = 0;
