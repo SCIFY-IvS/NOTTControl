@@ -78,6 +78,40 @@ class RollingShm(object):
         """
         self.shm.close()
 
+class SimpleShm(object):
+    def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
+                    shape=None):
+        """
+        Only use wls for separate plotting of outputs. For dispersed
+        waterfall, reshape to width * nwls instead.
+        """
+        if shape is None:
+            shape = (10,10)
+        self.shape = shape
+        self.buffer = np.zeros(shape=self.shape, dtype=float)
+        self.shm = shm(fname, data=self.buffer, verbose=False,)
+
+
+    def get_data(self, *args, **kwargs):
+        """
+            Loads data from the shm object
+        """
+        self.buffer = self.shm.get_data(*args, **kwargs)
+        return self.buffer
+
+    def push(self, data):
+        """
+            This is not a rolling buffer, so just set the data
+        """
+
+        self.shm.set_data(data)
+
+    def close(self):
+        """
+            Is used to remove the shm
+        """
+        self.shm.close()
+
 
 class HumInt(object):
     def __init__(self, lam_mean=mean_wl,
@@ -146,6 +180,9 @@ class HumInt(object):
 
     def disp_initialize_shm_dispersed(self, depth=30, width=None,
                                         nwls=None):
+        """
+            Now also initializes an image buffer
+        """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
         if nwls is None:
@@ -156,6 +193,8 @@ class HumInt(object):
         self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
                                         depth=dummy_data_reshaped.shape[0],
                                         width=dummy_data_reshaped.shape[1])
+        self.buffer_im = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
+                                        shape=self.dark.master_full[0].shape)
         spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
 
@@ -367,10 +406,8 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False):
+    def get_frames_cal(self, dt, dark=None, sequence=False,):
         if dark is None:
-            if verbose:
-                print("Using the default dark")
             dark = self.dark
         frames = self.get_frames(dt)
         if not sequence:
@@ -378,6 +415,7 @@ class HumInt(object):
             if self.auto_display is not False:
                 self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
                 self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
+                self.buffer_im.push(frames.master_full[0] - dark.master_full[0])
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
@@ -552,6 +590,147 @@ class HumInt(object):
         plt.ylabel("Amplitude of light variation")
         plt.show()
 
+    def chip_calib_direct(self, mode_series, dt=0.5,
+                    kappa=None, kappa_std=None,
+                    mode_shutter_probe=None,
+                    offset_scan=0.,
+                    saveto="/dev/shm/cal_dir.fits",
+                    overwrite=True,
+                    dn_object=None, bidir=True, verbose=False,
+                    kappa_threshold = 1e-2):
+        import dnull as dn
+        from astropy.time import Time
+        if saveto is not None:
+            prefix = "HIERARCH NOTT "
+            import astropy.io.fits as fits
+            hdulist = fits.HDUList()
+            myheader = fits.Header([(prefix+"co2_ppm", 1e6),
+                                 (prefix+"temp", 25.0),
+                                 (prefix+"rhum", 0.3),
+                                 (prefix+"pres", 1e3),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"co2" , 450),
+                                 (prefix+"exptime", dt),
+                                 ("DATE-OBS", Time.now().isot)])
+            hdulist.append(fits.PrimaryHDU(header=myheader))
+        test_conditions = {
+            "co2_ppm": 1e6,
+            "temp": 25.0,
+            "rhum": 0.3,
+            "pres": 1e3,
+            "co2" : 450,
+        }
+        ntel = 4
+        print("Kappa matrix")
+        #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
+
+        if dt is None:
+            test_sample, rms = self.get_frames_cal(1.0)
+
+        if kappa is None:
+            inherit_kappa = False
+            if verbose: print("Making a new kappa matrix")
+            shutter_probe = dn.dnull.shutter_probe(ntel)
+            shutter_state = np.abs(shutter_probe[0]).astype(bool)
+            self.shutter_set(shutter_state)
+            kappa = []
+            std_kappa = []
+            for beam in shutter_probe:
+                shutter_state = np.abs(beam).astype(bool)
+                self.shutter_set(shutter_state)
+                a, a_std = self.get_frames_cal(dt)
+                kappa.append(a)
+                if dt is not None:
+                    std_kappa.append(a_std)
+                else:
+                    std_kappa.append(rms)
+            kappa = np.array(kappa)
+            std_kappa = np.array(std_kappa)
+    
+            sleep(2.0)
+    
+            #Compute the element of the kappa matrix
+            print(f"Shape: ", kappa.shape)
+            # (5, 106, 10)
+            # (frame, wl, output)
+            n_wl = kappa.shape[1]
+            kappa_new = []
+            for kappa_line in kappa[1:]:
+                kappa_new.append(kappa_line-kappa[0])  #Background correction
+            kappa_new = np.array(kappa_new)
+            kappa_new = kappa_new[:,:,:-2]   #Removes the background ROI values
+            for i, akrow in enumerate(kappa_new):
+                kappa_new[i,:,:] = akrow / (np.sum(akrow) / n_wl)
+            for k, acell in np.ndenumerate(kappa_new):
+                if kappa_new[k] <= kappa_threshold:
+                    kappa_new[k] = 0.
+            kappa_old = np.copy(kappa)
+            kappa = np.copy(kappa_new)
+        else: # kappa is provided
+            inherit_kappa = True
+            if verbose: print("Reusing kappa")
+            pass
+        print("Transfer matrix")   
+        if mode_shutter_probe is None:
+            self.shutter_set(np.ones(4).astype(bool))
+        else:
+            raise NotImplementedError("Not implemented direct calib with shutters: Do your kappa matrix separately")
+        mode_set = offset_scan + mode_series
+        f0 = 0.5/self.lam_mean * 1e-6
+        test_conditions["stepseries"] = mode_set
+        all_pistons = []
+        all_fringes = []
+        all_fringes_std = []
+        for amodesteps in mode_set:
+            # self.shutter_set(shutter_state)
+            # sleep(self.shutter_pad)
+            # mysequence = amode[None,:] * stepseries[:,None]
+            fringes, fringes_std = [], []
+            pistons = []
+            if verbose : print("Scan of mode: ", amodesteps)
+            for apos in amodesteps:
+                a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
+                fringes.append(a)
+                fringes_std.append(a_std)
+                if dt is not None:
+                    fringes_std.append(a_std)
+                else:
+                    fringes_std.append(rms)
+                pistons.append(apos)
+            pistons = np.array(pistons)
+            fringes_std = np.array(fringes_std)
+            fringes = np.array(fringes)
+            all_fringes.append(fringes)
+            all_fringes_std.append(fringes_std)
+            all_pistons.append(pistons)
+            # phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
+        all_fringes = np.array(all_fringes)
+        all_fringes_std = np.array(all_fringes_std)
+        all_pistons = np.array(all_pistons)
+        self.move(np.array([0., 0., 0., 0.]))
+        self.shutter_set(np.ones(4).astype(bool))
+        phases = 2*np.pi / (self.sc_lambs[None,None,:,None]*1.0e6) * all_pistons[:,:,None,:]
+
+        if saveto is not None:
+            if inherit_kappa:
+                hdulist.append(fits.hdu.ImageHDU(data=kappa, name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
+            else:
+                hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[:,self.sc_mask,:], name="KAPPAE", header=None))
+            # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,-2:], name="BGE", header=None))
+            # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=phases, name="PHASES", header=None))
+            hdulist.writeto(saveto, overwrite=overwrite)
+        return fringes
+
     def chip_calib_pairwise(self, amp, steps=10, dt=0.5,
                     offset_scan=0., saveto="/dev/shm/cal_raw.fits",
                     overwrite=True,
@@ -570,7 +749,7 @@ class HumInt(object):
                                  (prefix+"co2" , 450),
                                  (prefix+"co2" , 450),
                                  (prefix+"exptime", dt),
-                                 (dateobs, Time.now().isot)])
+                                 ("DATE-OBS", Time.now().isot)])
             hdulist.append(fits.PrimaryHDU(header=myheader))
         test_conditions = {
             "co2_ppm": 1e6,
@@ -648,7 +827,6 @@ class HumInt(object):
             for apos in mysequence:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
-                fringes_std.append(a_std)
                 if dt is not None:
                     fringes_std.append(a_std)
                 else:
@@ -663,13 +841,14 @@ class HumInt(object):
             # phases = 2*np.pi/(self.lambs[None,:]*1e6) * relsteps[:,None]
         all_fringes = np.array(all_fringes)
         all_fringes_std = np.array(all_fringes_std)
+        all_pistons = np.array(all_pistons)
         self.move(np.array([0., 0., 0., 0.]))
         self.shutter_set(np.ones(4).astype(bool))
-        phases = 2*np.pi / (self.sc_lambs[None,:,None]*1.0e6) * all_pistons[:,None,:]
+        phases = 2*np.pi / (self.sc_lambs[None,None,:,None]*1.0e6) * all_pistons[:,:,None,:]
 
         if saveto is not None:
             hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,self.sc_mask,:], name="KAPPAE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[:,self.sc_mask,:], name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
