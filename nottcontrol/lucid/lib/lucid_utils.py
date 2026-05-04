@@ -262,12 +262,12 @@ class LucidUtils:
 
             try:
                 # a) Verify the node is writable
-                if not nodemap[param].is_writable:
+                if not stream_nodemap[param].is_writable:
                     raise RuntimeError(f"Parameter {param} is not writable at the moment. Often nodes are locked whilst streaming.")
                 # b) In the specific case of PixelFormat, check whether the camera supports the input format first.
                 # Based on "Acquisition: Compressed Image Handling" arena api example code
                 if param == 'PixelFormat':
-                    entries = nodemap[param].enumentry_names
+                    entries = stream_nodemap[param].enumentry_names
                     found = False
                     for e in entries:
                         if (e == value):
@@ -276,7 +276,7 @@ class LucidUtils:
                     if not found:
                         raise Exception("Input PixelFormat not supported by camera.")
                 # c) In the case of any other param
-                nodemap[param].value = value
+                stream_nodemap[param].value = value
                 
             except Exception as e:
                 fail = True
@@ -406,8 +406,8 @@ class LucidUtils:
         pxformat_str = nodemap['PixelFormat'].value
         # Numpy data type
         if pxformat_str not in self.pxformats:
-            if dtype = None:
-                raise Exception("Pixel format not supported for automatic conversion to numpy data type (see self.pxformats in lucid_utils). Please input a numpy datatype manually via the "dtype" parameter of this method.")
+            if dtype is None:
+                raise Exception("Pixel format not supported for automatic conversion to numpy data type (see self.pxformats in lucid_utils). Please input a numpy datatype manually via the 'dtype' parameter of this method.")
             else:
                 dtype = dtype
         else:
@@ -525,7 +525,7 @@ class LucidUtils:
         #--------------#
         # Taking frame #
         #--------------#
-        myframe,w,h = self.get_frame("im_cam")
+        myframe,w,h = self._get_frame("im_cam")
         myframe_bin = self._bin_frame(myframe,mybinx,mybiny)
         #------------------------------------------------------------#
         # Detecting the beam edge by gradient and intensity criteria #
@@ -664,7 +664,7 @@ class LucidUtils:
         #---------------------------------------#
         # Taking frame, smoothening and binning #
         #---------------------------------------#
-        myframe,w,h = self.get_frame("pup_cam")
+        myframe,w,h = self._get_frame("pup_cam")
         myframe_smooth = gaussian_filter(myframe,sigma)
         myframe_smooth_bin = self._bin_frame(myframe_smooth,mybinx,mybiny)
         myframe_bin = self._bin_frame(myframe,mybinx,mybiny)
