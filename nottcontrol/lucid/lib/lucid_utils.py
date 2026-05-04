@@ -39,6 +39,7 @@ from astropy.modeling import models, fitting
 
 # Loading config
 from nottcontrol import config as nott_config
+nott_config = nott_config.config_parser._sections
 # Dictionary for type conversions
 convert_dict = dict(nott_config['convert_dict'])
 
