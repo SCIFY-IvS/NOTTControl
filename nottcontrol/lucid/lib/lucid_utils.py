@@ -412,7 +412,7 @@ class LucidUtils:
             else:
                 dtype = dtype
         else:
-            dtype = self.dtypes[np.argwhere(self.pxformats == pxformat_str)] 
+            dtype = self.dtypes[self.pxformats.index(pxformat_str)] 
         # Data
         frame = np.array(buffer.data, dtype=dtype)
         frame = frame.reshape(h,w)
@@ -432,7 +432,7 @@ class LucidUtils:
         # Open stream
         self.start_streaming(name)
         try:
-            frame, w, h = self._get_frame(device,nodemap,verbose)
+            frame, w, h = self._get_frame(device,nodemap,verbose=verbose)
         finally:
             self.stop_streaming(name)
             print(f"Camera {name} returned a snapshot, stream closed.")
