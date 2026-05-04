@@ -21,7 +21,13 @@ from arena_api.system import system
 from arena_api.buffer import BufferFactory
 from arena_api.enums import PixelFormat
 # xaosim-supported datatypes
-from xaosim.shmlib import all_dtypes
+try:
+    from xaosim.shmlib import all_dtypes
+except:
+    all_dtypes = [np.uint8, np.int8, np.uint16, np.int16,
+                  np.uint32, np.int32, np.uint64, np.int64,
+                  np.float32, np.float64, np.complex64, np.complex128] 
+
 # Imports for centroid fitting
 from scipy.ndimage import gaussian_filter, sobel
 from lmfit import Parameters, minimize
