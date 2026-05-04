@@ -525,7 +525,9 @@ class LucidUtils:
         #--------------#
         # Taking frame #
         #--------------#
-        myframe,w,h = self._get_frame("im_cam")
+        device = self.devices["im_cam"]
+        nodemap = device.nodemap
+        myframe,w,h = self._get_frame(device, nodemap)
         myframe_bin = self._bin_frame(myframe,mybinx,mybiny)
         #------------------------------------------------------------#
         # Detecting the beam edge by gradient and intensity criteria #
@@ -664,7 +666,9 @@ class LucidUtils:
         #---------------------------------------#
         # Taking frame, smoothening and binning #
         #---------------------------------------#
-        myframe,w,h = self._get_frame("pup_cam")
+        device = self.devices["pup_cam"]
+        nodemap = device.nodemap
+        myframe,w,h = self._get_frame(device, nodemap)
         myframe_smooth = gaussian_filter(myframe,sigma)
         myframe_smooth_bin = self._bin_frame(myframe_smooth,mybinx,mybiny)
         myframe_bin = self._bin_frame(myframe,mybinx,mybiny)
