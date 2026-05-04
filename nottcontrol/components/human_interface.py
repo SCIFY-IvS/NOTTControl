@@ -462,11 +462,23 @@ class HumInt(object):
             dark = self.dark
         frames = self.get_frames(dt)
         if not sequence:
+            # Get calibrated master science frame
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
+            # Calculate broadband values and errors
+            cal_broad = cal_mean[self.sc_mask,:].sum(axis=0)
+            cal_broad_std = np.linalg.norm(cal_mean_std[self.sc_mask,:], axis=0) / len(self.sc_mask)
+            # Stack values and errors
+            cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
+            cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
+            
             if self.auto_display is not False:
-                self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
-                self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
+                # Push data to corresponding buffers
                 self.buffer_im.push(frames.master_full[0] - dark.master_full[0])
+                self.buffer_broad.push(cal_broad_stack)
+                # Dispersed data in waterfall format
+                cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
+                self.buffer_disp.push(cal_disp_stack_waterfall)
+                self.buffer_disp_last.push(cal_disp_stack_waterfall)
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
