@@ -377,8 +377,6 @@ class LucidUtils:
         else:
             # Convert to user-specified format
             buffer_copy = BufferFactory.convert(buffer, pxformat)
-        # Requeueing the buffer as it is no longer needed
-        device.requeue_buffer(buffer)
 
         # Analysing buffer copy
         # ---------------------
@@ -419,6 +417,8 @@ class LucidUtils:
 
         # Destroy the buffer copy
         BufferFactory.destroy(buffer_copy)
+        # Requeueing the buffer as it is no longer needed
+        device.requeue_buffer(buffer)
         
         return frame,w,h
 
