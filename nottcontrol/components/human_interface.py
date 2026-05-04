@@ -170,8 +170,24 @@ class HumInt(object):
     
     def __del__(self):
         self.opcua_conn.disconnect()
+        if hasattr(self, "buffer_im"):
+            self.buffer_im.close()
         if hasattr(self, "buffer_broad"):
             self.buffer_broad.close()
+        if hasattr(self, "buffer_broad_null"):
+            self.buffer_broad_null.close()
+        if hasattr(self, "buffer_disp"):
+            self.buffer_disp.close()
+        if hasattr(self, "buffer_disp_err"):
+            self.buffer_disp_err.close()
+        if hasattr(self, "buffer_disp_last"):
+            self.buffer_disp_last.close()
+        if hasattr(self, "buffer_disp_null"):
+            self.buffer_disp_null.close()
+        if hasattr(self, "buffer_disp_null_err"):
+            self.buffer_disp_null_err.close()
+        if hasattr(self, "buffer_disp_null_last"):
+            self.buffer_disp_null_last.close()
 
     def disp_initialize_shm_cam_view(self):
         """
@@ -226,7 +242,7 @@ class HumInt(object):
         dummy_data_null_err = np.nan * np.zeros(null_shape, dtype=float)
         self.buffer_disp_null = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null.im.shm",
                                         depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
-        self.buffer_disp_null = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null_err.im.shm",
+        self.buffer_disp_null_err = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null_err.im.shm",
                                         depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
 
         # Buffers with latest entries
@@ -505,6 +521,19 @@ class HumInt(object):
         return outputs_pos
 
     # Surface level functions
+
+    def characterize_null(self, frames=None):
+        """
+        This function calculates the broadband & dispersed null depths N2, N3 (bright outputs) and Ndiff (differential). Corresponding errors are also calculated.
+        Calculated dataframes are pushed to the corresponding buffers for visualization (shmview).
+                              are returned by this function.
+        If "frames" is left unspecified, the function will fetch frames for this characterization.
+        This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
+        """
+
+                
+
+        
     
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
         default_params = np.array([100,50,1900,2000])
