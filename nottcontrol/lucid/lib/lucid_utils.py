@@ -411,8 +411,7 @@ class LucidUtils:
             else:
                 dtype = self.dtypes[self.pxformats.index(pxformat_str)] 
             # Data
-            frame = np.array(buffer_copy.data, dtype=dtype)
-            frame = frame.reshape(h,w)
+            frame = np.frombuffer(bytes(buffer_copy.data), dtype=dtype).reshape(h,w).copy()
 
         finally:
             # Destroy the buffer copy
