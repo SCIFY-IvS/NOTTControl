@@ -51,6 +51,7 @@ class RollingShm(object):
             - To offer errors with passed values (flux/null), set "dim" to 2; index 0 of dimension "dim" will then be the value, index 1 its error.
             Note: Currently not supporting transferring errors for separated dispersed readout, as this would constitute a 4D (# readouts, # ROIs, # wls, 2) array (not supported by shmlib)
                   Passing such dataframes by two buffers instead (see disp_initialize)
+            TBD: Alternatively, could double the size of the # wls dimension to include both the value and error (wl1, wl1_err, ..., wlN, wlN_err)
             - ...
         """
         if dim is None:
