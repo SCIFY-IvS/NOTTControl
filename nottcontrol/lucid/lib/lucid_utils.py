@@ -409,7 +409,10 @@ class LucidUtils:
                 if dtype is None:
                     raise Exception("Pixel format not supported for automatic conversion to numpy data type (see self.pxformats in lucid_utils). Please input a numpy datatype manually via the 'dtype' parameter of this method.")
             else:
-                dtype = self.dtypes[self.pxformats.index(pxformat_str)] 
+                dtype_usr = dtype
+                dtype = self.dtypes[self.pxformats.index(pxformat_str)]
+                if dtype_usr is not None and dtype != dtype_usr:
+                    print(f"Warning: the supplied data type {dtype_usr} will be overwritten by the data type {dtype}, which is automatically associated with the supplied pixel format.")
             # Data
             frame = np.frombuffer(bytes(buffer_copy.data), dtype=dtype).reshape(h,w).copy()
 
