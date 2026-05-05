@@ -380,45 +380,45 @@ class LucidUtils:
 
         # Analysing buffer copy
         # ---------------------
-        if verbose:
-            print("Buffer id: ", buffer_copy.frame_id)
-            print("Buffer timestamp (ns): ", buffer_copy.timestamp_ns)
-            print("Buffer pixel format: ", buffer_copy.pixel_format.name)
-            print("")
-            print("Buffer payload type: ", buffer_copy.payload_type) # To check whether the buffer holds Chunk data and the w,h retrieval should be adapted to that. To be removed
-            print("Buffer has image data? ", buffer_copy.has_imagedata)
-            print("Buffer has chunk data? ", buffer_copy.has_chunkdata)
-            print("")
-            print("Buffer size: ", buffer_copy.buffer_size)
-            print("Size of filled buffer: ", buffer_copy.size_filled)
-            print("Payload size: ", buffer_copy.payload_size)
-            print("Is buffer incomplete? ", buffer_copy.is_incomplete)
-            print("Is data larger than buffer? ", buffer_copy.is_data_larger_than_buffer)
-            print("")
-            print("Buffer width, height (px): ", buffer_copy.width, buffer_copy.height)
-            print("Buffer x,y offsets (px): ", buffer_copy.offset_x, buffer_copy.offset_y)
+        try:
+            if verbose:
+                print("Buffer id: ", buffer_copy.frame_id)
+                print("Buffer timestamp (ns): ", buffer_copy.timestamp_ns)
+                print("Buffer pixel format: ", buffer_copy.pixel_format.name)
+                print("")
+                print("Buffer payload type: ", buffer_copy.payload_type) # To check whether the buffer holds Chunk data and the w,h retrieval should be adapted to that. To be removed
+                print("Buffer has image data? ", buffer_copy.has_imagedata)
+                print("Buffer has chunk data? ", buffer_copy.has_chunkdata)
+                print("")
+                print("Buffer size: ", buffer_copy.buffer_size)
+                print("Size of filled buffer: ", buffer_copy.size_filled)
+                print("Payload size: ", buffer_copy.payload_size)
+                print("Is buffer incomplete? ", buffer_copy.is_incomplete)
+                print("Is data larger than buffer? ", buffer_copy.is_data_larger_than_buffer)
+                print("")
+                print("Buffer width, height (px): ", buffer_copy.width, buffer_copy.height)
+                print("Buffer x,y offsets (px): ", buffer_copy.offset_x, buffer_copy.offset_y)
  
-        # Width and height
-        w = buffer_copy.width
-        h = buffer_copy.height
-        # Pixel format name
-        pxformat_str = nodemap['PixelFormat'].value
-        # Numpy data type
-        if pxformat_str not in self.pxformats:
-            if dtype is None:
-                raise Exception("Pixel format not supported for automatic conversion to numpy data type (see self.pxformats in lucid_utils). Please input a numpy datatype manually via the 'dtype' parameter of this method.")
+            # Width and height
+            w = buffer_copy.width
+            h = buffer_copy.height
+            # Pixel format name
+            pxformat_str = buffer_copy.pixel_format.name
+            # Numpy data type
+            if pxformat_str not in self.pxformats:
+                if dtype is None:
+                    raise Exception("Pixel format not supported for automatic conversion to numpy data type (see self.pxformats in lucid_utils). Please input a numpy datatype manually via the 'dtype' parameter of this method.")
             else:
-                dtype = dtype
-        else:
-            dtype = self.dtypes[self.pxformats.index(pxformat_str)] 
-        # Data
-        frame = np.array(buffer.data, dtype=dtype)
-        frame = frame.reshape(h,w)
+                dtype = self.dtypes[self.pxformats.index(pxformat_str)] 
+            # Data
+            frame = np.array(buffer_copy.data, dtype=dtype)
+            frame = frame.reshape(h,w)
 
-        # Destroy the buffer copy
-        BufferFactory.destroy(buffer_copy)
-        # Requeueing the buffer as it is no longer needed
-        device.requeue_buffer(buffer)
+        finally:
+            # Destroy the buffer copy
+            BufferFactory.destroy(buffer_copy)
+            # Requeueing the buffer as it is no longer needed
+            device.requeue_buffer(buffer)
         
         return frame,w,h
 
