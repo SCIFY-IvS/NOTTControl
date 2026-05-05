@@ -193,7 +193,7 @@ class HumInt(object):
     def disp_initialize_shm_cam_view(self):
         """
         Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR camera images.
-            - buffer_im: Infrared camera view of the latest readout. 
+            - buffer_im; (frame shape); Infrared camera view of the latest readout. 
         """
         self.buffer_im = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
                                         shape=self.dark.master_full[0].shape)
@@ -201,8 +201,8 @@ class HumInt(object):
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of broadband data, deduced from the ROIs defined on the IR camera frame.
-            - buffer_broad: Broadband flux and error in selected ROIs (# ROIs = "width"), for the latest "depth" amount of readouts.
-            - buffer_broad_null: Broadband null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
+            - buffer_broad; (depth, 2, width); Broadband flux and error in selected ROIs (# ROIs = "width"), for the latest "depth" amount of readouts.
+            - buffer_broad_null; (depth, 2, 3); Broadband null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
         
         """
         if width is None:
@@ -219,10 +219,11 @@ class HumInt(object):
                                         nwls=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of dispersed data, deduced from the ROIs defined on the IR camera frame.
-            - buffer_disp(_err): Dispersed flux and errors in selected ROIs, for the latest "depth" amount of readouts. Waterfall style, ROIs and wavelengths are glued together ("width" = # ROIs * nwls) 
-            - buffer_disp_null(_err): Dispersed null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
-            - buffer_disp_last: Buffer to store and visualize latest entry of buffer_disp
-            - buffer_disp_null_last: Buffer to store and visualize latest entry of buffer_disp_null
+                buffer name           buffer dim.          buffer content
+            - buffer_disp; (depth, 2, width*nwls); Dispersed flux and errors in selected ROIs, for the latest "depth" amount of readouts. Waterfall style, ROIs and wavelengths are glued together ("width" = # ROIs * nwls) 
+            - buffer_disp_null(_err); (depth, nwls, 3);  Dispersed null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
+            - buffer_disp_last; (width, nwls); Buffer to store and visualize latest entry of buffer_disp
+            - buffer_disp_null_last; (3, nwls);  Buffer to store and visualize latest entry of buffer_disp_null
         """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
