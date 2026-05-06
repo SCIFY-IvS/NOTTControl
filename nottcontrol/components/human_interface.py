@@ -401,7 +401,8 @@ class HumInt(object):
             # res = self.sample_cal()
         else:
             # res = self.sample_long_cal(dt)
-            res, std = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
+            res, std = cal_disp_stack[0], cal_disp_stack[1]
         if move_back:
             print(f"moving_back to {orig_pos}")
             self.move(orig_pos)
@@ -481,15 +482,17 @@ class HumInt(object):
                 cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall)
                 self.buffer_disp_last.push(cal_mean.transpose((1,0)))
-            return cal_mean, cal_mean_std
+            return cal_disp_stack, cal_broad_stack
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
             return cal_seq, cal_seq_std
 
     def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
-        cal,cal_std = self.get_frames_cal(dt, dark, sequence)
-        np.save("cal",cal)
-        np.save("cal_std",cal_std)
+        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
+        np.save("cal_disp", cal_disp_stack[0])
+        np.save("cal_disp_err", cal_disp_stack[1])
+        np.save("cal_broad", cal_broad_stack[0])
+        np.save("cal_broad_err", cal_broad_stack[1])
         return
 
     def science_frame_sequence(self, dt, verbose=False):
@@ -703,7 +706,8 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            test_sample, rms = self.get_frames_cal(1.0)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
+            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
 
         if kappa is None:
             inherit_kappa = False
@@ -716,7 +720,8 @@ class HumInt(object):
             for beam in shutter_probe:
                 shutter_state = np.abs(beam).astype(bool)
                 self.shutter_set(shutter_state)
-                a, a_std = self.get_frames_cal(dt)
+                cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
+                a, a_std = cal_disp_stack[0], cal_disp_stack[1]
                 kappa.append(a)
                 if dt is not None:
                     std_kappa.append(a_std)
@@ -844,14 +849,16 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            test_sample, rms = self.get_frames_cal(1.0)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
+            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
 
         kappa = []
         std_kappa = []
         for beam in shutter_probe:
             shutter_state = np.abs(beam).astype(bool)
             self.shutter_set(shutter_state)
-            a, a_std = self.get_frames_cal(dt)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
+            a, a_std = cal_disp_stack[0], cal_disp_stack[1]
             kappa.append(a)
             if dt is not None:
                 std_kappa.append(a_std)
