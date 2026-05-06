@@ -422,7 +422,7 @@ class LucidUtils:
             # Requeueing the buffer as it is no longer needed
             device.requeue_buffer(buffer)
         
-        return frame,w,h
+        return frame
 
     def snap(self, name, verbose=False):
         """Take a snapshot of camera {name}'s view, i.e. one single frame of data. This function handles the opening and closing of the stream."""
@@ -434,7 +434,7 @@ class LucidUtils:
         # Open stream
         self.start_streaming(name)
         try:
-            frame, w, h = self._get_frame(device,nodemap,verbose=verbose)
+            frame = self._get_frame(device,nodemap,verbose=verbose)
         finally:
             self.stop_streaming(name)
             print(f"Camera {name} returned a snapshot, stream closed.")
@@ -460,7 +460,8 @@ class LucidUtils:
             try:
                 while not stop_event.is_set():
                     if self.streaming_callback[name]:
-                        frame, w, h = self._get_frame(device,nodemap)
+                        frame = self._get_frame(device,nodemap)
+                        w, h = frame.shape[1], frame.shape[0]
                         # Pass frame to callback function
                         callback(frame, w, h)
                     else:
@@ -530,7 +531,8 @@ class LucidUtils:
         #--------------#
         device = self.devices["im_cam"]
         nodemap = device.nodemap
-        myframe,w,h = self._get_frame(device, nodemap)
+        myframe = self._get_frame(device, nodemap)
+        w, h = myframe.shape[1], myframe.shape[0]
         myframe_bin = self._bin_frame(myframe,mybinx,mybiny)
         #------------------------------------------------------------#
         # Detecting the beam edge by gradient and intensity criteria #
@@ -671,7 +673,8 @@ class LucidUtils:
         #---------------------------------------#
         device = self.devices["pup_cam"]
         nodemap = device.nodemap
-        myframe,w,h = self._get_frame(device, nodemap)
+        myframe = self._get_frame(device, nodemap)
+        w, h = myframe.shape[1], myframe.shape[0]
         myframe_smooth = gaussian_filter(myframe,sigma)
         myframe_smooth_bin = self._bin_frame(myframe_smooth,mybinx,mybiny)
         myframe_bin = self._bin_frame(myframe,mybinx,mybiny)
