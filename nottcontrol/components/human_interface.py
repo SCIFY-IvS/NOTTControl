@@ -480,7 +480,7 @@ class HumInt(object):
                 # Dispersed data in waterfall format
                 cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall)
-                self.buffer_disp_last.push(cal_disp_stack_waterfall)
+                self.buffer_disp_last.push(cal_mean.transpose((1,0)))
             return cal_mean, cal_mean_std
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
