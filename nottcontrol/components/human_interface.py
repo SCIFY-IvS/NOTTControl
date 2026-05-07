@@ -560,19 +560,50 @@ class HumInt(object):
         If "frames" is left unspecified, the function will fetch frames for this characterization.
         This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
         """
-        if frames is None:
-            # Fetch data products of a master science frame
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt, dark, sequence, frames)
-            
+        # Fetch data products of a master science frame
+        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt, dark, sequence, frames)
+        broad, broad_err = cal_broad_stack[0], cal_broad_stack[1]
+        disp, disp_err = cal_disp_stack[0], cal_disp_stack[1]
         # Fetching ROI indices of interferometric outputs
         roi_idx = np.zeros(4)
         for i in range(0,4):
             roi_idx[i] = self.channel_roi_link["I"+str(i+1)]
+        idx_I1, idx_I2, idx_I3, idx_I4 = roi_idx[0], roi_idx[1], roi_idx[2], roi_idx[3]
 
         # Calculating null depths and propagating errors
-        
-        
-    
+        # 1) Summing the bright outputs (I1, I4):
+        brightsum_broad = broad[idx_I1] + broad[idx_I4]
+        brightsum_broad_err = np.hypot(broad_err[idx_I1], broad_err[idx_I4])
+        brightsum_disp = disp[:,idx_I1] + disp[:,idx_I4]
+        brightsum_disp_err = np.hypot(disp_err[:,idx_I1], disp_err[:,idx_I4])
+        # 2) Calculating relative errors
+        # a) Relative error sum of brights
+        brightsum_broad_rel_err = np.divide(brightsum_broad_err, brightsum_broad)
+        brightsum_disp_rel_err = np.divide(brightsum_disp_err, brightsum_disp)
+        # b) Relative error individual outputs
+        broad_rel_err = np.divide(broad_err, broad)
+        disp_rel_err = np.divide(disp_err, disp)
+        # 3) Calculating null depths, propagating errors
+        N2_broad, N2_disp = np.divide(broad[idx_I2], brightsum_broad), np.divide(disp[:,idx_I2], brightsum_disp)
+        N2_broad_err, N2_disp_err = np.multiply(N2_broad, np.hypot(broad_rel_err[idx_I2], brightsum_broad_rel_err)), np.multiply(N2_disp, np.hypot(disp_rel_err[idx_I2], brightsum_disp_rel_err))
+        N3_broad, N3_disp = np.divide(broad[idx_I3], brightsum_broad), np.divide(disp[:,idx_I3], brightsum_disp)
+        N3_broad_err, N3_disp_err = np.multiply(N3_broad, np.hypot(broad_rel_err[idx_I3], brightsum_broad_rel_err)), np.multiply(N3_disp, np.hypot(disp_rel_err[idx_I3], brightsum_disp_rel_err))
+        Ndiff_broad, Ndiff_broad_err = N3_broad - N2_broad, np.hypot(N2_broad_err, N3_broad_err)
+        Ndiff_disp, Ndiff_disp_err = N3_disp - N2_disp, np.hypot(N2_disp_err, N3_disp_err)
+
+        # Bundling data
+        broad_null = np.stack([N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err], axis=0)
+        disp_null = np.stack([N2_disp, N3_disp, Ndiff_disp], axis=1)
+        disp_null_err = np.stack([N2_disp_err, N3_disp_err, Ndiff_disp_err], axis=1)
+
+        # Pushing to buffers
+        self.buffer_broad_null.push(broad_null)
+        self.buffer_disp_null.push(disp_null)
+        self.buffer_disp_null_err.push(disp_null_err)
+        self.buffer_disp_null_last.push(disp_null.transpose((1,0)))
+
+        return broad_null, disp_null, disp_null_err
+
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
         default_params = np.array([100,50,1900,2000])
         if isinstance(parameters, str):
