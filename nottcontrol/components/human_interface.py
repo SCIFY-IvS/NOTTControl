@@ -158,6 +158,12 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
+
+        # Getting link between outputs and ROI indices from config
+        channel_labels = config.getarray('CAMERA', 'channel_labels', str)
+        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32)
+        self.channel_roi_link = dict(zip(channel_labels,roi_indices))
+        
         self.move(np.array([0., 0., 0., 0.]))
         self.auto_display = False
 
@@ -460,10 +466,11 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False,):
+    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None):
         if dark is None:
             dark = self.dark
-        frames = self.get_frames(dt)
+        if frames is None:
+            frames = self.get_frames(dt)
         if not sequence:
             # Get calibrated master science frame
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
@@ -539,7 +546,7 @@ class HumInt(object):
 
     # Surface level functions
 
-    def characterize_null(self, frames=None):
+    def characterize_null(self, dt, dark=None, sequence=False, frames=None):
         """
         This function calculates the broadband & dispersed null depths N2, N3 (bright outputs) and Ndiff (differential). Corresponding errors are also calculated.
         Calculated dataframes are pushed to the corresponding buffers for visualization (shmview).
@@ -547,8 +554,16 @@ class HumInt(object):
         If "frames" is left unspecified, the function will fetch frames for this characterization.
         This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
         """
+        if frames is None:
+            # Fetch data products of a master science frame
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt, dark, sequence, frames)
+            
+        # Fetching ROI indices of interferometric outputs
+        roi_idx = np.zeros(4)
+        for i in range(0,4):
+            roi_idx[i] = self.channel_roi_link["I"+str(i+1)]
 
-                
+        # Calculating null depths and propagating errors
 
         
     
