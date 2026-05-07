@@ -439,7 +439,7 @@ class LucidUtils:
         finally:
             self.stop_streaming(name)
             print(f"Camera {name} returned a snapshot, stream closed.")
-        return frame, w, h
+        return frame
 
     def start_thread(self, name, callback):
         """Create and return a thread that fetches snapshots of camera {name} in real-time and passes each one to the callback function.
