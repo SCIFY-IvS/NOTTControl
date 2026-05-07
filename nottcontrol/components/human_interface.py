@@ -467,6 +467,12 @@ class HumInt(object):
             return frames
     
     def get_frames_cal(self, dt, dark=None, sequence=False, frames=None):
+        """
+        Gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+        Returns:
+            1) cal_disp_stack; (2, nwls, nROIs); value and error (axis 1) of/on the dispersed readout (axis 2) in all ROIs (axis 3)
+            2) cal_broad_stack; (2, nROIs); value and error (axis 1) of/on the broadband readout in all ROIs (axis 2)
+        """
         if dark is None:
             dark = self.dark
         if frames is None:
@@ -564,7 +570,7 @@ class HumInt(object):
             roi_idx[i] = self.channel_roi_link["I"+str(i+1)]
 
         # Calculating null depths and propagating errors
-
+        
         
     
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
