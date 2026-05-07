@@ -414,6 +414,7 @@ class LucidUtils:
                 if dtype_usr is not None and dtype != dtype_usr:
                     print(f"Warning: the supplied data type {dtype_usr} will be overwritten by the data type {dtype}, which is automatically associated with the supplied pixel format.")
             # Data
+            # ! Assuming the machine that is on the receiving end of the buffers is little-endian, as is the case for x86 systems.
             frame = np.frombuffer(bytes(buffer_copy.data), dtype=dtype).reshape(h,w).copy()
 
         finally:
