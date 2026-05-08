@@ -175,12 +175,21 @@ class HumInt(object):
         self.disp_depth = 30
         self.disp_calls = []
 
+        # Snapping a frame of both visible cameras for reference
+        with LucidUtils() as utils:
+            self.frame_vis_pup = utils.snap("pup_cam")
+            self.frame_vis_im = utils.snap("im_cam")
+
     # Auxiliary functions
     
     def __del__(self):
         self.opcua_conn.disconnect()
-        if hasattr(self, "buffer_im"):
-            self.buffer_im.close()
+        if hasattr(self, "buffer_im_IR"):
+            self.buffer_im_IR.close()
+        if hasattr(self, "buffer_im_VIS_pup"):
+            self.buffer_im_VIS_pup.close()
+        if hasattr(self, "buffer_im_VIS_im"):
+            self.buffer_im_VIS_im.close()
         if hasattr(self, "buffer_broad"):
             self.buffer_broad.close()
         if hasattr(self, "buffer_broad_null"):
@@ -208,9 +217,9 @@ class HumInt(object):
         self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
                                         shape=self.dark.master_full[0].shape)
         self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
-                                        shape=)
+                                        shape=self.frame_vis_pup.shape)
         self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
-                                        shape=)
+                                        shape=self.frame_vis_im.shape)
 
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
@@ -497,7 +506,7 @@ class HumInt(object):
             
             if self.auto_display is not False:
                 # Push data to corresponding buffers
-                self.buffer_im.push(frames.master_full[0] - dark.master_full[0])
+                self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
                 self.buffer_broad.push(cal_broad_stack)
                 # Dispersed data in waterfall format
                 cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
