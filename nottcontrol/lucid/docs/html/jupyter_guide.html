@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Using ArenaView with Jupyter Notebooks | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="Using ArenaView with Jupyter Notebooks | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="Using ArenaView with Jupyter Notebooks | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="arena_sdk_overview.html" rel="next" title="Arena SDK: Overview"/>
+<link href="getting_started_arenaview_mp.html" rel="prev" title="Using ArenaView MP"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">Using ArenaView with Jupyter Notebooks</span>
+</nav>
+<div id="content" role="main">
+<section id="using-arenaview-with-jupyter-notebooks">
+<h1>Using ArenaView with Jupyter Notebooks<a class="headerlink" href="#using-arenaview-with-jupyter-notebooks" title="Link to this heading"><span>#</span></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#introduction'"><span>#</span></a></h2>
+<p>JupyterLab on ArenaView enables application designers to quickly test and validate all camera features and speed up their product qualification workflow without having to set up a custom development environment.
+JupyterLab provides a built-in and preconfigured interactive development environment that can be used for testing and documenting all SDK functions and camera performance.
+It is installed with Arena SDK using the Developer installation option. The following instructions explains how to launch and use JupyterLab within ArenaView.</p>
+<section id="requirements">
+<h3>Requirements<a class="headerlink" href="#requirements" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#requirements'"><span>#</span></a></h3>
+<p>Arena SDK:</p>
+<ul class="simple">
+<li><p>ArenaView v1.0.33.0 or newer</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Developer option must be chosen at installation.</p>
+</div>
+</section>
+<section id="initial-setup">
+<h3>Initial Setup<a class="headerlink" href="#initial-setup" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#initial-setup'"><span>#</span></a></h3>
+<p>Please make sure you have read and completed the initial setup section found in the Arena SDK
+documentation (<a class="reference external" href="https://support.thinklucid.com/arena-sdk-documentation/#4556">https://support.thinklucid.com/arena-sdk-documentation/#4556</a>).
+In particular, make sure you have turned on jumbo frames and set your receive buffer size.
+Atlas10 users that plan to use TCP should read and complete our setup guide for using TCP with Atlas10 cameras
+(<a class="reference external" href="https://support.thinklucid.com/knowledgebase/using-tcp-with-atlas10-cameras-on-windows/">https://support.thinklucid.com/knowledgebase/using-tcp-with-atlas10-cameras-on-windows/</a>).</p>
+</section>
+</section>
+<section id="enabling-jupyterlab-server">
+<h2>Enabling JupyterLab Server<a class="headerlink" href="#enabling-jupyterlab-server" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#enabling-jupyterlab-server'"><span>#</span></a></h2>
+<p>Step 1: Open the Options Window</p>
+<p>Open the Options Windows by clicking View -&gt; Toolbar -&gt; Options.</p>
+<img alt="_images/jupyter_options_window.png" src="_images/jupyter_options_window.png"/>
+<p>Step 2: Select the JupyterLab Options tab</p>
+<p>In the Options Window, click the hamburger button and choose the JupyterLab tab.</p>
+<img alt="_images/jupyter_options_tab_hamburger.png" src="_images/jupyter_options_tab_hamburger.png"/>
+<img alt="_images/jupyter_options_tab_jp.png" src="_images/jupyter_options_tab_jp.png"/>
+<p>Step 3: Turn on the JupyterLab server</p>
+<p>In the JupyterLab options tab, turn on the JupyterLab server. If this is your first time installing Jupyter
+Lab, ArenaView will download and install the required dependencies.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>An Internet connection is required for this step.</p>
+</div>
+<p>Step 3: Turn on the JupyterLab server</p>
+<p>In the JupyterLab options tab, turn on the JupyterLab server. If this is your first time installing
+JupyterLab, ArenaView will download and install the required dependencies.</p>
+<p>Step 4: Enter the JupyterLab server token</p>
+<p>If this is your first time installing JupyterLab, you will also be asked for a token to access the JuptyerLab
+server. This token is presented after ArenaView installs the JupyterLab dependencies. Enter the token
+into the “Password or token” field and press Log in.</p>
+<img alt="_images/jupyter_token.png" src="_images/jupyter_token.png"/>
+<section id="opening-jupyter-notebooks">
+<h3>Opening Jupyter Notebooks<a class="headerlink" href="#opening-jupyter-notebooks" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#opening-jupyter-notebooks'"><span>#</span></a></h3>
+<p>After starting the JupyterLab server, you will be presented with the Jupyter launch page. From this page,
+you can start your own Jupyter notebook or browse the preinstalled examples that come with the
+Arena SDK installation.</p>
+<p>By default, Jupyter notebooks are found here:</p>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="s2">"C:\ProgramData\LUCID Vision Labs\ArenaView\ArenaJp"</span>
+</span></code></pre></div>
+</div>
+<img alt="_images/jupyter_open_notebooks.png" src="_images/jupyter_open_notebooks.png"/>
+<p><strong>Using Jupyter Notebooks</strong></p>
+<p>The JupyterLab environment will let you write Arena Python code to control camera features and
+quickly integrate image analysis and processing.</p>
+</section>
+<section id="jupyter-code-cells">
+<h3>Jupyter Code Cells<a class="headerlink" href="#jupyter-code-cells" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#jupyter-code-cells'"><span>#</span></a></h3>
+<p>A Jupyter code cell contains Python code that is executed by the Jupyter kernel. When the cell type is
+set to <strong>Code</strong>:</p>
+<ul class="simple">
+<li><p>Press the + button to insert a new code cell. This will place a new cell under the currently selected cell.</p></li>
+<li><p>Press the ▶ button to execute a code cell. The code cell will display an asterisk (*) beside the cell while it is being executed, and it will show a number upon completion.</p></li>
+</ul>
+<img alt="_images/jupyter_cells_1.png" src="_images/jupyter_cells_1.png"/>
+<img alt="_images/jupyter_cells_2.png" src="_images/jupyter_cells_2.png"/>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Ensure the camera is not connected in ArenaView before running an example in Jupyter.</p>
+</div>
+</section>
+<section id="jupyter-markdown-cells">
+<h3>Jupyter Markdown Cells<a class="headerlink" href="#jupyter-markdown-cells" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#jupyter-markdown-cells'"><span>#</span></a></h3>
+<p>Formatted text can be entered in a Jupyter notebook for displaying visually rich documentation. When the cell type is set to <strong>Markdown</strong>:</p>
+<ul class="simple">
+<li><p>Press the + button to insert a new markdown cell. This will place a new cell under the currently selected cell.</p></li>
+<li><p>Press the ▶ button to execute a markdown cell. The markdown cell will be formatted for display.</p></li>
+</ul>
+<img alt="_images/jupyter_barcode.png" src="_images/jupyter_barcode.png"/>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a list of markdown options, visit the Markdown Cells section in the Jupyter documentation.
+(<a class="reference external" href="https://jupyter-notebook.readthedocs.io/en/latest/examples/Notebook/Working%20With%20Markdown%20Cells.html">https://jupyter-notebook.readthedocs.io/en/latest/examples/Notebook/Working%20With%20Markdown%20Cells.html</a>)</p>
+</div>
+<p><strong>SDK Documentation</strong></p>
+<p>The Arena SDK Python documentation can be found at the ArenaView Start Page (View -&gt; Start Page).</p>
+<img alt="_images/jupyter_documentation.png" src="_images/jupyter_documentation.png"/>
+<p>Within a Jupyter notebook, it is also possible to display a function’s documentation by adding “??” at the
+end of a function:</p>
+<img alt="_images/jupyter_documentation_q.png" src="_images/jupyter_documentation_q.png"/>
+</section>
+<section id="sample-code-snippets">
+<h3>Sample Code Snippets<a class="headerlink" href="#sample-code-snippets" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#sample-code-snippets'"><span>#</span></a></h3>
+<p>Create Device By Serial Number
+The following code snippet shows how to connect to a camera by its serial number.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="k">def</span><span class="w"> </span><span class="nf">create_device_from_serial_number</span><span class="p">(</span><span class="n">serial_number</span><span class="p">):</span>
+</span><span id="line-2">        <span class="n">camera_found</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="line-3">
+</span><span id="line-4">        <span class="n">device_infos</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="line-5">        <span class="n">selected_index</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="line-6">
+</span><span id="line-7">        <span class="n">device_infos</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">device_infos</span>
+</span><span id="line-8">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">device_infos</span><span class="p">)):</span>
+</span><span id="line-9">                <span class="k">if</span> <span class="n">serial_number</span> <span class="o">==</span> <span class="n">device_infos</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">'serial'</span><span class="p">]:</span>
+</span><span id="line-10">                        <span class="n">selected_index</span> <span class="o">=</span> <span class="n">i</span>
+</span><span id="line-11">                        <span class="n">camera_found</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="line-12">                        <span class="k">break</span>
+</span><span id="line-13">
+</span><span id="line-14">        <span class="k">if</span> <span class="n">camera_found</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="line-15">                <span class="n">selected_model</span> <span class="o">=</span> <span class="n">device_infos</span><span class="p">[</span><span class="n">selected_index</span><span class="p">][</span><span class="s1">'model'</span><span class="p">]</span>
+</span><span id="line-16">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Create device: </span><span class="si">{</span><span class="n">selected_model</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
+</span><span id="line-17">                <span class="n">device</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">create_device</span><span class="p">(</span><span class="n">device_infos</span><span class="o">=</span><span class="n">device_infos</span><span class="p">[</span><span class="n">selected_index</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="line-18"><span class="k">else</span><span class="p">:</span>
+</span><span id="line-19">        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Serial number </span><span class="si">{</span><span class="n">serial_number</span><span class="si">}</span><span class="s2"> cannot be found"</span><span class="p">)</span>
+</span><span id="line-20">
+</span><span id="line-21"><span class="k">return</span> <span class="n">device</span>
+</span></code></pre></div>
+</div>
+<p>Connect to the camera by calling:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">device</span> <span class="o">=</span> <span class="n">select_device_from_serial_number</span><span class="p">(</span><span class="s2">"192900063"</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<p><strong>Convert Image into OpenCV</strong></p>
+<p>The following code snippet shows how to convert an image into OpenCV:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="n">opencv</span><span class="o">-</span><span class="n">python</span>
+</span><span id="line-2">
+</span><span id="line-3"><span class="p">[</span><span class="o">...</span><span class="p">]</span>
+</span><span id="line-4">
+</span><span id="line-5"><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+</span><span id="line-6">
+</span><span id="line-7"><span class="p">[</span><span class="o">...</span><span class="p">]</span>
+</span><span id="line-8">
+</span><span id="line-9"><span class="n">image_buffer</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-10"><span class="n">nparray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">as_array</span><span class="p">(</span><span class="n">image_buffer</span><span class="o">.</span><span class="n">pdata</span><span class="p">,</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">image_buffer</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">image_buffer</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">image_buffer</span><span class="o">.</span><span class="n">bits_per_pixel</span> <span class="o">/</span> <span class="mi">8</span><span class="p">)))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">image_buffer</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">image_buffer</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">image_buffer</span><span class="o">.</span><span class="n">bits_per_pixel</span> <span class="o">/</span> <span class="mi">8</span><span class="p">))</span>
+</span></code></pre></div>
+</div>
+</section>
+</section>
+<section id="convert-a-jupyter-notebook-to-an-executable-program">
+<h2>Convert a Jupyter Notebook to an Executable Program<a class="headerlink" href="#convert-a-jupyter-notebook-to-an-executable-program" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#convert-a-jupyter-notebook-to-an-executable-program'"><span>#</span></a></h2>
+<p>ArenaView allows you to generate an executable program out of their Jupyter notebook.
+The following steps show converting the included Jupyter notebook, py_acquisition.ipynb, into an
+executable file.</p>
+<p>Step 1: Run the following command in your Jupyter notebook:</p>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">!jupyter nbconvert --to script py_acquisition.ipynb
+</span></code></pre></div>
+</div>
+<p>This command will create a py file in the current directory:</p>
+<img alt="_images/jupyter_py_convert.png" src="_images/jupyter_py_convert.png"/>
+<p>Step 2: Select the py file to convert to an exe file in the JupyterLab Options</p>
+<p>Step 3: Convert the py file to an exe file in the JupyterLab Options</p>
+<img alt="_images/jupyter_py_convert_window.png" src="_images/jupyter_py_convert_window.png"/>
+<p>When you click the Convert button, you will be asked if you want to edit the pytoexe.bat file.</p>
+<img alt="_images/jupyter_py_convert_popup.png" src="_images/jupyter_py_convert_popup.png"/>
+<p>Editing the pytoexe.bat file allows you to add additional paths and binaries to the pyinstaller command
+to ensure your exe file works correctly.</p>
+<p>Editing this file is necessary if:</p>
+<ul class="simple">
+<li><p>You are using a custom virtual environment</p></li>
+<li><p>You have downloaded additional libraries to the default environment, and are using the new libraries in your program</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only edit the pyinstaller command in this file.</p>
+</div>
+<p>When the conversion is complete, you will be prompted to press a key to continue. This will open a
+window to the location of your new exe file.</p>
+<img alt="_images/jupyter_py_convert_exe.png" src="_images/jupyter_py_convert_exe.png"/>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When running this exe file outside of ArenaView’s default virtual environment, make sure arena_api and its dependencies are installed on the new environment.</p>
+</div>
+<p>The arena_api wheel used by the ArenaJp virtual environment can be found here:</p>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="s2">"C:\ProgramData\LUCID Vision Labs\ArenaView\ArenaPy"</span>
+</span></code></pre></div>
+</div>
+<p>The wheel file can be installed with a command similar to the following:</p>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">pip install arena_api-<span class="p">&lt;</span>&gt;.<span class="p">&lt;</span>&gt;.<span class="p">&lt;</span>&gt;-py3-none-any.whl
+</span></code></pre></div>
+</div>
+</section>
+<section id="using-a-custom-virtual-environment">
+<h2>Using a Custom Virtual Environment<a class="headerlink" href="#using-a-custom-virtual-environment" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#using-a-custom-virtual-environment'"><span>#</span></a></h2>
+<ul class="simple">
+<li><p>By default, ArenaView uses a preinstalled Miniconda virtual environment for the JupyterLab server.</p></li>
+</ul>
+<p>The preinstalled virtual environment is found here:</p>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="s2">"C:\ProgramData\LUCID Vision Labs\ArenaView\ArenaPy"</span>
+</span></code></pre></div>
+</div>
+<p>It is possible to define the virtual environment used by ArenaView in the JupyterLab Options tab.
+Set the virtual environment slider to <strong>arena</strong> to use the preinstalled virtual environment:</p>
+<img alt="_images/jupyter_env_1.png" src="_images/jupyter_env_1.png"/>
+<p>Set the virtual environment slider to <strong>venv</strong> and press the Browse button to select the to your custom virtual environment:</p>
+<img alt="_images/jupyter_env_2.png" src="_images/jupyter_env_2.png"/>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is recommended to use a virtual environment created by virtualenv or Miniconda.
+In either case, installing packages using pip in your environment is recommended, as that works the best with pyinstaller.</p>
+</div>
+<p>Custom virtual environments must install the JupyterLab requirements in the <strong>jupyter_requirements_win.txt</strong> file found here:</p>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="s2">"C:\ProgramData\LUCID Vision Labs\ArenaView\ArenaPy"</span>
+</span></code></pre></div>
+</div>
+<div class="highlight-batch notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">pip install -r jupyter_requirements_win.txt
+</span></code></pre></div>
+</div>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#introduction'" class="reference internal" href="#introduction">Introduction</a><ul>
+<li><a :data-current="activeSection === '#requirements'" class="reference internal" href="#requirements">Requirements</a></li>
+<li><a :data-current="activeSection === '#initial-setup'" class="reference internal" href="#initial-setup">Initial Setup</a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#enabling-jupyterlab-server'" class="reference internal" href="#enabling-jupyterlab-server">Enabling JupyterLab Server</a><ul>
+<li><a :data-current="activeSection === '#opening-jupyter-notebooks'" class="reference internal" href="#opening-jupyter-notebooks">Opening Jupyter Notebooks</a></li>
+<li><a :data-current="activeSection === '#jupyter-code-cells'" class="reference internal" href="#jupyter-code-cells">Jupyter Code Cells</a></li>
+<li><a :data-current="activeSection === '#jupyter-markdown-cells'" class="reference internal" href="#jupyter-markdown-cells">Jupyter Markdown Cells</a></li>
+<li><a :data-current="activeSection === '#sample-code-snippets'" class="reference internal" href="#sample-code-snippets">Sample Code Snippets</a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#convert-a-jupyter-notebook-to-an-executable-program'" class="reference internal" href="#convert-a-jupyter-notebook-to-an-executable-program">Convert a Jupyter Notebook to an Executable Program</a></li>
+<li><a :data-current="activeSection === '#using-a-custom-virtual-environment'" class="reference internal" href="#using-a-custom-virtual-environment">Using a Custom Virtual Environment</a></li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>NodeMapFactory | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="NodeMapFactory | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="NodeMapFactory | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="cpp_genapi_inodemapdyn.html" rel="next" title="INodeMapDyn"/>
+<link href="cpp_genapi_ienumerationt.html" rel="prev" title="IEnumerationT"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="cpp.html">Arena C++</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="cpp_genapi.html">GenApi C++</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">NodeMapFactory</span>
+</nav>
+<div id="content" role="main">
+<section id="nodemapfactory">
+<h1>NodeMapFactory<a class="headerlink" href="#nodemapfactory" title="Link to this heading"><span>#</span></a></h1>
+
+<p>Definition of the node map factory. </p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv416GENAPI_NAMESPACE">
+<span id="_CPPv316GENAPI_NAMESPACE"></span><span id="_CPPv216GENAPI_NAMESPACE"></span><span id="GENAPI_NAMESPACE"></span><span class="target" id="namespace_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GENAPI_NAMESPACE</span></span></span><br/></dt>
+<dd><dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactoryE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactoryE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CNodeMapFactory</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE'"><span>#</span></a><br/></dt>
+<dd><div class="docutils container">
+<em>#include &lt;NodeMapFactory.h&gt;</em></div>
+<p>The node map factory is used for creating node maps from camera description files. </p>
+<p><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="o">//</span> <span class="n">Simple</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">creation</span> <span class="kn">from</span><span class="w"> </span><span class="nn">buffer</span><span class="p">,</span> <span class="n">downloaded</span> <span class="kn">from</span><span class="w"> </span><span class="nn">a</span> <span class="n">device</span> <span class="k">for</span> <span class="n">instance</span><span class="o">.</span>
+</span><span id="line-2"><span class="n">CNodeMapFactory</span> <span class="n">cameraNodeMapFactory</span><span class="p">(</span> <span class="n">ContentType_ZippedXml</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">bufferSize</span><span class="p">);</span>
+</span><span id="line-3">
+</span><span id="line-4"><span class="o">//</span> <span class="n">Create</span> <span class="n">the</span> <span class="n">node</span> <span class="nb">map</span><span class="o">.</span> <span class="n">The</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">can</span> <span class="n">be</span> <span class="n">destroyed</span> <span class="n">using</span> <span class="n">the</span> <span class="n">IDestroy</span> <span class="n">interface</span> <span class="n">later</span><span class="o">.</span>
+</span><span id="line-5"><span class="n">INodeMap</span><span class="o">*</span> <span class="n">pNodeMap</span> <span class="o">=</span> <span class="n">cameraNodeMapFactory</span><span class="o">.</span><span class="n">CreateNodeMap</span><span class="p">();</span>
+</span><span id="line-6"><span class="o">//</span> <span class="n">The</span> <span class="nb">next</span> <span class="n">step</span> <span class="ow">is</span> <span class="n">attaching</span> <span class="n">the</span> <span class="n">device</span> <span class="n">port</span> <span class="p">(</span><span class="ow">not</span> <span class="n">shown</span><span class="p">)</span><span class="o">.</span>
+</span></code></pre></div>
+</div>
+<dl class="simple">
+<dt><strong>Examples</strong></dt><dd><p></p>
+</dd>
+</dl>
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="o">//</span> <span class="n">Node</span> <span class="nb">map</span> <span class="n">creation</span> <span class="k">with</span> <span class="n">injecting</span> <span class="n">additional</span> <span class="n">xml</span> <span class="n">fragments</span><span class="o">.</span>
+</span><span id="line-2"><span class="n">CNodeMapFactory</span> <span class="n">cameraNodeMapFactory</span><span class="p">(</span> <span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">bufferSize</span><span class="p">);</span>
+</span><span id="line-3"><span class="n">cameraParameters</span><span class="o">.</span><span class="n">AddInjectionData</span><span class="p">(</span> <span class="n">CNodeMapFactory</span><span class="p">(</span><span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">filename1</span><span class="p">));</span>
+</span><span id="line-4"><span class="n">cameraParameters</span><span class="o">.</span><span class="n">AddInjectionData</span><span class="p">(</span> <span class="n">CNodeMapFactory</span><span class="p">(</span><span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">filename2</span><span class="p">));</span>
+</span><span id="line-5">
+</span><span id="line-6"><span class="o">//</span> <span class="n">Create</span> <span class="n">the</span> <span class="n">node</span> <span class="nb">map</span><span class="o">.</span> <span class="n">The</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">can</span> <span class="n">be</span> <span class="n">destroyed</span> <span class="n">using</span> <span class="n">the</span> <span class="n">IDestroy</span> <span class="n">interface</span> <span class="n">later</span><span class="o">.</span>
+</span><span id="line-7"><span class="n">INodeMap</span><span class="o">*</span> <span class="n">pNodeMap</span> <span class="o">=</span> <span class="n">cameraNodeMapFactory</span><span class="o">.</span><span class="n">CreateNodeMap</span><span class="p">();</span>
+</span><span id="line-8"><span class="o">//</span> <span class="n">The</span> <span class="nb">next</span> <span class="n">step</span> <span class="ow">is</span> <span class="n">attaching</span> <span class="n">the</span> <span class="n">device</span> <span class="n">port</span> <span class="p">(</span><span class="ow">not</span> <span class="n">shown</span><span class="p">)</span><span class="o">.</span>
+</span></code></pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="o">//</span> <span class="n">Node</span> <span class="nb">map</span> <span class="n">creation</span> <span class="ow">and</span> <span class="n">additional</span> <span class="n">extraction</span> <span class="n">of</span> <span class="n">a</span> <span class="n">category</span> <span class="n">subtree</span><span class="o">.</span>
+</span><span id="line-2"><span class="n">CNodeMapFactory</span> <span class="n">cameraNodeMapFactory</span><span class="p">(</span> <span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">bufferSize</span><span class="p">);</span>
+</span><span id="line-3"><span class="o">//</span> <span class="n">Extract</span> <span class="n">a</span> <span class="n">subtree</span> <span class="k">for</span> <span class="n">later</span> <span class="n">chunk</span> <span class="n">parsing</span><span class="o">.</span>
+</span><span id="line-4"><span class="n">CNodeMapFactory</span> <span class="n">chunkDataNodeMapFactory</span> <span class="o">=</span> <span class="n">cameraParameters</span><span class="o">.</span><span class="n">ExtractSubtree</span><span class="p">(</span><span class="s2">"ChunkData"</span><span class="p">);</span>
+</span><span id="line-5">
+</span><span id="line-6"><span class="o">//</span> <span class="n">Create</span> <span class="n">the</span> <span class="n">node</span> <span class="nb">map</span><span class="o">.</span> <span class="n">The</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">can</span> <span class="n">be</span> <span class="n">destroyed</span> <span class="n">using</span> <span class="n">the</span> <span class="n">IDestroy</span> <span class="n">interface</span> <span class="n">later</span><span class="o">.</span>
+</span><span id="line-7"><span class="n">INodeMap</span><span class="o">*</span> <span class="n">pNodeMap</span> <span class="o">=</span> <span class="n">cameraParameters</span><span class="o">.</span><span class="n">CreateNodeMap</span><span class="p">();</span>
+</span><span id="line-8"><span class="o">//</span> <span class="n">The</span> <span class="nb">next</span> <span class="n">step</span> <span class="ow">is</span> <span class="n">attaching</span> <span class="n">the</span> <span class="n">device</span> <span class="n">port</span> <span class="p">(</span><span class="ow">not</span> <span class="n">shown</span><span class="p">)</span><span class="o">.</span>
+</span></code></pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="o">//</span> <span class="n">Node</span> <span class="nb">map</span> <span class="n">creation</span> <span class="k">with</span> <span class="n">injecting</span> <span class="n">additional</span> <span class="n">xml</span> <span class="n">fragments</span> <span class="ow">and</span> <span class="n">additional</span> <span class="n">extraction</span> <span class="n">of</span> <span class="n">a</span> <span class="n">category</span> <span class="n">subtree</span><span class="o">.</span>
+</span><span id="line-2"><span class="n">CNodeMapFactory</span> <span class="n">cameraNodeMapFactory</span><span class="p">(</span> <span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">bufferSize</span><span class="p">);</span>
+</span><span id="line-3"><span class="n">cameraParameters</span><span class="o">.</span><span class="n">AddInjectionData</span><span class="p">(</span> <span class="n">CNodeMapFactory</span><span class="p">(</span><span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">filename1</span><span class="p">));</span>
+</span><span id="line-4"><span class="n">cameraParameters</span><span class="o">.</span><span class="n">AddInjectionData</span><span class="p">(</span> <span class="n">CNodeMapFactory</span><span class="p">(</span><span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">filename2</span><span class="p">));</span>
+</span><span id="line-5"><span class="n">CNodeMapFactory</span> <span class="n">chunkDataNodeMapFactory</span> <span class="o">=</span> <span class="n">cameraNodeMapFactory</span><span class="o">.</span><span class="n">ExtractSubtree</span><span class="p">(</span><span class="s2">"ChunkData"</span><span class="p">);</span>
+</span><span id="line-6">
+</span><span id="line-7"><span class="o">//</span> <span class="n">Create</span> <span class="n">the</span> <span class="n">node</span> <span class="nb">map</span><span class="o">.</span> <span class="n">The</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">can</span> <span class="n">be</span> <span class="n">destroyed</span> <span class="n">using</span> <span class="n">the</span> <span class="n">IDestroy</span> <span class="n">interface</span> <span class="n">later</span><span class="o">.</span>
+</span><span id="line-8"><span class="n">INodeMap</span><span class="o">*</span> <span class="n">pNodeMap</span> <span class="o">=</span> <span class="n">cameraNodeMapFactory</span><span class="o">.</span><span class="n">CreateNodeMap</span><span class="p">();</span>
+</span><span id="line-9"><span class="o">//</span> <span class="n">The</span> <span class="nb">next</span> <span class="n">step</span> <span class="ow">is</span> <span class="n">attaching</span> <span class="n">the</span> <span class="n">device</span> <span class="n">port</span> <span class="p">(</span><span class="ow">not</span> <span class="n">shown</span><span class="p">)</span><span class="o">.</span>
+</span><span id="line-10">
+</span><span id="line-11"><span class="o">//</span> <span class="n">A</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">factory</span> <span class="n">can</span> <span class="n">create</span> <span class="n">multiple</span> <span class="n">node</span> <span class="n">maps</span> <span class="kn">from</span><span class="w"> </span><span class="nn">the</span> <span class="n">provided</span> <span class="n">camera</span> <span class="n">description</span> <span class="n">file</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span>
+</span><span id="line-12"><span class="k">for</span><span class="p">(</span><span class="nb">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+</span><span id="line-13"><span class="p">{</span>
+</span><span id="line-14">    <span class="n">INodeMap</span><span class="o">*</span> <span class="n">pNodeMapChunks</span> <span class="o">=</span> <span class="n">chunkDataNodeMapFactory</span><span class="o">.</span><span class="n">CreateNodeMap</span><span class="p">();</span>
+</span><span id="line-15">    <span class="o">//...</span>
+</span><span id="line-16"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p><dl class="simple">
+<dt><strong>Attention</strong></dt><dd><p>The is <a class="reference internal" href="#class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory"><span class="std std-ref">CNodeMapFactory</span></a> not thread-safe.</p>
+</dd>
+<dt><strong>Attention</strong></dt><dd><p>You need to take care when camera description file data can be actually be freed, see method documentation of the node map factory for more detail. </p>
+</dd>
+</dl>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CNodeMapFactory"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a606a1c9bec1fb7542bb5f12e710c6d2d"></span><span class="sig-name descname"><span class="n"><span class="pre">CNodeMapFactory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv'"><span>#</span></a><br/></dt>
+<dd><p>Creates an empty node map factory for assigning a non-empty node map factory later. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::~CNodeMapFactory"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1aa2575dbfb762120fb19c67bc4ff221db"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~CNodeMapFactory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev'"><span>#</span></a><br/></dt>
+<dd><p>Destroys the node map factory data if all references to the data have been released. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CNodeMapFactory__CNodeMapFactoryCR"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1aa6054adafaf425eeac7202e963f75561"></span><span class="sig-name descname"><span class="n"><span class="pre">CNodeMapFactory</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory" title="GENAPI_NAMESPACE::CNodeMapFactory::CNodeMapFactory"><span class="n"><span class="pre">CNodeMapFactory</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory'"><span>#</span></a><br/></dt>
+<dd><p>Creates another reference to the node map factory data. No data is copied. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::assign-operator__CNodeMapFactoryCR"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1ab11c8ec534c89aefd0b7bc98a6b8976d"></span><a class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE" title="GENAPI_NAMESPACE::CNodeMapFactory"><span class="n"><span class="pre">CNodeMapFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE" title="GENAPI_NAMESPACE::CNodeMapFactory"><span class="n"><span class="pre">CNodeMapFactory</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory'"><span>#</span></a><br/></dt>
+<dd><p>Creates another reference to the assigned node map factory data. Destroys the “overwritten” node map factory data if all references to the data have been released. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CNodeMapFactory__EContentType_t.GENICAM_NAMESPACE::gcstringCR.ECacheUsage_t.b"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a10428850182d605575d4832a4ba935ef"></span><span class="sig-name descname"><span class="n"><span class="pre">CNodeMapFactory</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EContentType_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">FileType</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">FileName</span></span>, <span class="n"><span class="pre">ECacheUsage_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">CacheUsage</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CacheUsage_Automatic</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">SuppressStringsOnLoad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb'"><span>#</span></a><br/></dt>
+<dd><p>Creates the node map factory and simply stores the full path to the provided camera description file data. </p>
+<p>
+Throws an invalid argument exception if FileName is empty. Throws if environment variables in FileName cannot be resolved.</p>
+<p><dl class="simple">
+<dt><strong>Attention</strong></dt><dd><p>The given file must be readable until the camera description file data has been released. The IsCameraDescriptionFileDataReleased() method can be used to check if releasing has been done. </p>
+</dd>
+</dl>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>FileType</strong> – <strong>[in]</strong> Defines how the camera description file is stored, e.g. as zipped XML text. </p></li>
+<li><p><strong>FileName</strong> – <strong>[in]</strong> The full path of the camera description file to process. </p></li>
+<li><p><strong>CacheUsage</strong> – <strong>[in]</strong> Defines if and how to use the cache for preprocessed camera description files. </p></li>
+<li><p><strong>SuppressStringsOnLoad</strong> – <strong>[in]</strong> Suppresses loading strings that are not needed for most use cases, e.g. node tooltip or description, for reducing the memory footprint.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CNodeMapFactory__EContentType_t.voidCP.s.ECacheUsage_t.b"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1afd35284f728a39dbccc7a4166ee3eec6"></span><span class="sig-name descname"><span class="n"><span class="pre">CNodeMapFactory</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EContentType_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ContentType</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">pData</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">DataSize</span></span>, <span class="n"><span class="pre">ECacheUsage_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">CacheUsage</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CacheUsage_Automatic</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">SuppressStringsOnLoad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb'"><span>#</span></a><br/></dt>
+<dd><p>Creates the node map factory and simply stores the pointer and the size of the provided camera description file data. </p>
+<p>
+Throws an invalid argument exception if pData is NULL or DataSize is 0.</p>
+<p><dl class="simple">
+<dt><strong>Attention</strong></dt><dd><p>The given buffer must not be freed or changed until the camera description file data has been released. The IsCameraDescriptionFileDataReleased() method can be used to check if releasing has been done. </p>
+</dd>
+</dl>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ContentType</strong> – <strong>[in]</strong> Defines how the camera description file is stored, e.g. as zipped XML text. </p></li>
+<li><p><strong>pData</strong> – <strong>[in]</strong> The pointer to the camera description file data. </p></li>
+<li><p><strong>DataSize</strong> – <strong>[in]</strong> The size of the camera description file data. </p></li>
+<li><p><strong>CacheUsage</strong> – <strong>[in]</strong> Defines if and how to use the cache for preprocessed camera description files. </p></li>
+<li><p><strong>SuppressStringsOnLoad</strong> – <strong>[in]</strong> Suppresses loading strings that are not needed for most use cases, e.g. node tooltip or description, for reducing the memory footprint.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CNodeMapFactory__GENICAM_NAMESPACE::gcstringCR.ECacheUsage_t.b"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a16fee57dec574e2d1e486e0960303071"></span><span class="sig-name descname"><span class="n"><span class="pre">CNodeMapFactory</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">XmlData</span></span>, <span class="n"><span class="pre">ECacheUsage_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">CacheUsage</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CacheUsage_Automatic</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">SuppressStringsOnLoad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb'"><span>#</span></a><br/></dt>
+<dd><p>Creates the node map factory and copies the provided camera description file string. </p>
+<p>
+Throws an invalid argument exception if XmlData is empty. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>XmlData</strong> – <strong>[in]</strong> The camera description file data as XML text. The provided text is copied. You can use the overloaded constructor accepting a buffer to avoid that. <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="n">gcstring</span> <span class="n">cdfData</span><span class="p">;</span>
+</span><span id="line-2"><span class="o">//...</span> <span class="n">fill</span> <span class="n">cdfData</span> <span class="o">...</span>
+</span><span id="line-3"><span class="n">CNodeMapFactory</span> <span class="n">factory</span><span class="p">(</span><span class="n">ContentType_Xml</span><span class="p">,</span> <span class="n">cfdData</span><span class="o">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="n">cfdData</span><span class="o">.</span><span class="n">size</span><span class="p">());</span>
+</span><span id="line-4"><span class="o">//</span> <span class="n">Create</span> <span class="n">the</span> <span class="n">node</span> <span class="nb">map</span><span class="o">.</span> <span class="n">The</span> <span class="n">node</span> <span class="nb">map</span> <span class="n">can</span> <span class="n">be</span> <span class="n">destroyed</span> <span class="n">using</span> <span class="n">the</span> <span class="n">IDestroy</span> <span class="n">interface</span> <span class="n">later</span><span class="o">.</span>
+</span><span id="line-5"><span class="n">INodeMap</span><span class="o">*</span> <span class="n">pNodeMap</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">CreateNodeMap</span><span class="p">();</span>
+</span><span id="line-6"><span class="o">//</span> <span class="n">The</span> <span class="nb">next</span> <span class="n">step</span> <span class="ow">is</span> <span class="n">attaching</span> <span class="n">the</span> <span class="n">device</span> <span class="n">port</span> <span class="p">(</span><span class="ow">not</span> <span class="n">shown</span><span class="p">)</span><span class="o">.</span>
+</span></code></pre></div>
+</div>
+</p></li>
+<li><p><strong>CacheUsage</strong> – <strong>[in]</strong> Defines if and how to use the cache for preprocessed camera description files. </p></li>
+<li><p><strong>SuppressStringsOnLoad</strong> – <strong>[in]</strong> Suppresses loading strings that are not needed for most use cases, e.g. node tooltip or description, for reducing the memory footprint.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::IsEmptyC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a3110f231f6406aaae143b0f136092951"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsEmpty</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv'"><span>#</span></a><br/></dt>
+<dd><p>Returns true if nothing is loaded (IsLoaded()) and no source data is available, e.g. when the node map factory has been created with the default constructor. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::AddInjectionData__CNodeMapFactoryR"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1aae642bb91a664b6ab1dc3992ebb54b0d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AddInjectionData</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE" title="GENAPI_NAMESPACE::CNodeMapFactory"><span class="n"><span class="pre">CNodeMapFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">injectionData</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory'"><span>#</span></a><br/></dt>
+<dd><p>Adds a node map factory representing a camera description file to inject. </p>
+<p>
+The injected files are injected in the order they are added. InjectionData must not be preprocessed. The IsPreprocessed() method can be used to check if preprocessing has been done before. The cache usage of injection data is ignored. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>injectionData</strong> – <strong>[in]</strong> A node map factory representing a camera description file to inject.</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::LoadAndInject"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a7ca659d01e3f131763c5d8da007b41af"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LoadAndInject</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv'"><span>#</span></a><br/></dt>
+<dd><p>Advanced: Loads, Parses, and Injects the camera description files recursively. The result is a memory internal representation of the camera description file(s), the CNodeDataMap (not part of the public interface). </p>
+<p>This step is usually done automatically. Prevents cache read if called manually. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::IsLoadedC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a4839e89bd786e83ec1924740b1a3e0e1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsLoaded</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv'"><span>#</span></a><br/></dt>
+<dd><p>Can be used to check whether the LoadAndInject() processing step has been performed. Returns true if IsPreprocessed() returns true (Preprocessed Data has been loaded from cache). </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::ExtractSubtree__GENICAM_NAMESPACE::gcstringCR.b"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a5e9012c80a12a421a3878d9eacb5518b"></span><a class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE" title="GENAPI_NAMESPACE::CNodeMapFactory"><span class="n"><span class="pre">CNodeMapFactory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExtractSubtree</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">SubTreeRootNodeName</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">doRenameToRoot</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb'"><span>#</span></a><br/></dt>
+<dd><p>The name of the node that represents the root of the subtree that shall be extracted. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SubTreeRootNodeName</strong> – <strong>[in]</strong> The root of the branch to extract, e.g. “ChunkData”. </p></li>
+<li><p><strong>doRenameToRoot</strong> – <strong>[in]</strong> Renames the extracted subtree root node SubTreeRootNodeName to “Root”, sets the IsFeature property. Preprocess() is automatically called if needed to create the memory internal representation of the camera description file(s). The preprocessed result can be read from the cache or written to the cache in this step. This depends on the availability of a cache and the used CacheUsage setting. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::Preprocess"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1aa17fe46a5d57a45c62c15bc7dd5e4596"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Preprocess</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv'"><span>#</span></a><br/></dt>
+<dd><p>Advanced: Creates the preprocessed memory internal representation of the camera description file(s), the CNodeDataMap (not part of the public interface). </p>
+<p>This step is usually done automatically. Preprocessed data can be read from the cache or written to the cache in this step. This depends on the availability of a cache and the used CacheUsage setting. By calling this method directly direct cache load is suppressed, see CreateNodeMap() for more information. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::IsPreprocessedC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a0bcc446c48bc66b01559740c9cf5a45a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsPreprocessed</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv'"><span>#</span></a><br/></dt>
+<dd><p>Can be used to check whether the Preprocess() processing step has been performed. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::ReleaseCameraDescriptionFileData"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1af7aa9a03ccdfff824e2cf79088327702"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ReleaseCameraDescriptionFileData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv'"><span>#</span></a><br/></dt>
+<dd><p>Advanced: Releases any in constructors provided camera description file data buffers or files. </p>
+<p>This step is usually done automatically. All references to added injection data are dropped in this step to free the data. After this step any in constructors provided buffers can be freed or any in constructors given files can be deleted. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::IsCameraDescriptionFileDataReleasedC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a391bf956ff5edac9357ffa4975195da1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsCameraDescriptionFileDataReleased</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv'"><span>#</span></a><br/></dt>
+<dd><p>Can be used to check whether the ReleaseCameraDescriptionFileData() processing step has been performed. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CreateNodeMap__GENICAM_NAMESPACE::gcstringCR.b"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a56a8ff7929faf48b09969a75f464fcea"></span><span class="n"><span class="pre">INodeMap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">CreateNodeMap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">DeviceName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">"Device"</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">DoReleaseCameraDescriptionFileData</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb'"><span>#</span></a><br/></dt>
+<dd><p>Creates a node map from the preprocessed memory internal representation of the camera description file(s). </p>
+<p>Preprocess() is automatically called if needed. The preprocess step can be omitted by the factory depending on the cache mode setting when a cache file is available, then the cache file is read and converted directly into a node map. ReleaseCameraDescriptionFileData() is called if DoReleaseCameraDescriptionFileData is true. This method can be called multiple times to create multiple instances of a node map. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CreateNodeMap__CLockR.GENICAM_NAMESPACE::gcstringCR.b"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a6f7a9b507bc41a4bd6415f35c2bdc191"></span><span class="n"><span class="pre">INodeMap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">CreateNodeMap</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CLock</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">UserProvidedLock</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">DeviceName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">"Device"</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">DoReleaseCameraDescriptionFileData</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb'"><span>#</span></a><br/></dt>
+<dd><p>Creates a node map from the preprocessed memory internal representation of the camera description file(s). </p>
+<p>Preprocess() is automatically called if needed. The preprocess step can be omitted by the factory depending on the cache mode setting when a cache file is available, then the cache file is read and converted directly into a node map. ReleaseCameraDescriptionFileData() is called if DoReleaseCameraDescriptionFileData is true. This method can be called multiple times to create multiple instances of a node map. This method allows to provide an external lock to avoid using too many locks in an application. <dl class="simple">
+<dt><strong>Attention</strong></dt><dd><p>The provided lock must not be destroyed before the created node map. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::GetSupportedSchemaVersions__GENICAM_NAMESPACE::gcstring_vectorRC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a7442aa44c202acf06746dda9f33d005d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetSupportedSchemaVersions</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring_vector</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">SchemaVersions</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE'"><span>#</span></a><br/></dt>
+<dd><p>Each list entry is a string with the format “{Major}.{Minor}” were {Major} and {Minor} are integers Example: {“1.1”, “1.2”} indicates that the schema v1.1 and v1.2 are supported. The SubMinor version number is not given since it is for fully compatible bug fixes only </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::ToStringC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a90fb46ef59bc88996a60e79f5326f35c"></span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ToString</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv'"><span>#</span></a><br/></dt>
+<dd><p>Outputs the pre-processed node map in string form (for debug purpose) </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv">
+<span id="_CPPv3NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv"></span><span id="_CPPv2NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::ToXmlC"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1ad5ec6a87a2cd8f1795cea7b950ba66ea"></span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ToXml</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv'"><span>#</span></a><br/></dt>
+<dd><p>Outputs the pre-processed node map in XML form (mainly for debug purpose) </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::GetNodeStatistics__NodeStatistics_tR"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a5cc3096338f2f843f6915da3ee9117f8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetNodeStatistics</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE" title="GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t"><span class="n"><span class="pre">NodeStatistics_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">NodeStatistics</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::ApplyStyleSheet__GENICAM_NAMESPACE::gcstringCR"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a25e78f60a30b59bac070c957d9584f2a"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ApplyStyleSheet</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">GENICAM_NAMESPACE</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">StyleSheetFileName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE'"><span>#</span></a><br/></dt>
+<dd><p>Applies a style sheet to the pre-processed node map. </p>
+</dd></dl>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CreateEmptyNodeMap"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a8fd7cfe799e333ddd79b5e8001e67d9a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">INodeMap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">CreateEmptyNodeMap</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv'"><span>#</span></a><br/></dt>
+<dd><p>Creates an empty node map usable as placeholder, e.g. if certain features are not supported by a module. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::ClearCache"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a35c4b1c647e1aa7270f453263caf6306"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ClearCache</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv'"><span>#</span></a><br/></dt>
+<dd><p>Deletes all preprocessed camera description files from the cache. </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::CreateNodeDataFromNodeMap__INodeMapP"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1a137cd53dfcc7771c913d64ef5149efb1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">CNodeDataMap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">CreateNodeDataFromNodeMap</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">INodeMap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">pNodeMap</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::m_pImpl__CNodeMapFactoryImplP"></span><span class="target" id="class_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1aa3d34baba8de73dd2bed5284d28d5837"></span><span class="n"><span class="pre">CNodeMapFactoryImpl</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">m_pImpl</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t"></span><span class="target" id="struct_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1_1_node_statistics__t"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NodeStatistics_t</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE'"><span>#</span></a><br/></dt>
+<dd><div class="docutils container">
+<em>#include &lt;NodeMapFactory.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t::NumNodes__uint32_t"></span><span class="target" id="struct_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1_1_node_statistics__t_1a529e74c0d90504c485787b267aed348f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NumNodes</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t::NumProperties__uint32_t"></span><span class="target" id="struct_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1_1_node_statistics__t_1a57100dd1663760d4dcd669aabf0cbb02"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NumProperties</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t::NumLinks__uint32_t"></span><span class="target" id="struct_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1_1_node_statistics__t_1a476841760c51c3b5e2acf1ec216496bc"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NumLinks</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE">
+<span id="_CPPv3N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE"></span><span id="_CPPv2N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE"></span><span id="GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t::NumStrings__uint32_t"></span><span class="target" id="struct_g_e_n_a_p_i___n_a_m_e_s_p_a_c_e_1_1_c_node_map_factory_1_1_node_statistics__t_1aec6d382297aee0df7ed3a9d787f3f5c8"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NumStrings</span></span></span><a class="headerlink" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE'"><span>#</span></a><br/></dt>
+<dd></dd></dl>
+</div>
+</dd></dl>
+</dd></dl>
+</dd></dl>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#_CPPv416GENAPI_NAMESPACE'" class="reference internal" href="#_CPPv416GENAPI_NAMESPACE"><code class="docutils literal notranslate"><span class="pre">GENAPI_NAMESPACE</span></code></a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryE"><code class="docutils literal notranslate"><span class="pre">GENAPI_NAMESPACE::CNodeMapFactory</span></code></a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryEv"><code class="docutils literal notranslate"><span class="pre">CNodeMapFactory()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryD0Ev"><code class="docutils literal notranslate"><span class="pre">~CNodeMapFactory()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERK15CNodeMapFactory"><code class="docutils literal notranslate"><span class="pre">CNodeMapFactory()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactoryaSERK15CNodeMapFactory"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tRKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb"><code class="docutils literal notranslate"><span class="pre">CNodeMapFactory()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryE14EContentType_tPKv6size_t13ECacheUsage_tb"><code class="docutils literal notranslate"><span class="pre">CNodeMapFactory()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15CNodeMapFactoryERKN17GENICAM_NAMESPACE8gcstringE13ECacheUsage_tb"><code class="docutils literal notranslate"><span class="pre">CNodeMapFactory()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory7IsEmptyEv"><code class="docutils literal notranslate"><span class="pre">IsEmpty()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16AddInjectionDataER15CNodeMapFactory"><code class="docutils literal notranslate"><span class="pre">AddInjectionData()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13LoadAndInjectEv"><code class="docutils literal notranslate"><span class="pre">LoadAndInject()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8IsLoadedEv"><code class="docutils literal notranslate"><span class="pre">IsLoaded()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory14ExtractSubtreeERKN17GENICAM_NAMESPACE8gcstringEb"><code class="docutils literal notranslate"><span class="pre">ExtractSubtree()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10PreprocessEv"><code class="docutils literal notranslate"><span class="pre">Preprocess()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory14IsPreprocessedEv"><code class="docutils literal notranslate"><span class="pre">IsPreprocessed()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory32ReleaseCameraDescriptionFileDataEv"><code class="docutils literal notranslate"><span class="pre">ReleaseCameraDescriptionFileData()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory35IsCameraDescriptionFileDataReleasedEv"><code class="docutils literal notranslate"><span class="pre">IsCameraDescriptionFileDataReleased()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapERKN17GENICAM_NAMESPACE8gcstringEb"><code class="docutils literal notranslate"><span class="pre">CreateNodeMap()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory13CreateNodeMapER5CLockRKN17GENICAM_NAMESPACE8gcstringEb"><code class="docutils literal notranslate"><span class="pre">CreateNodeMap()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory26GetSupportedSchemaVersionsERN17GENICAM_NAMESPACE15gcstring_vectorE"><code class="docutils literal notranslate"><span class="pre">GetSupportedSchemaVersions()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory8ToStringEv"><code class="docutils literal notranslate"><span class="pre">ToString()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv'" class="reference internal" href="#_CPPv4NK16GENAPI_NAMESPACE15CNodeMapFactory5ToXmlEv"><code class="docutils literal notranslate"><span class="pre">ToXml()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory17GetNodeStatisticsER16NodeStatistics_t"><code class="docutils literal notranslate"><span class="pre">GetNodeStatistics()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory15ApplyStyleSheetERKN17GENICAM_NAMESPACE8gcstringE"><code class="docutils literal notranslate"><span class="pre">ApplyStyleSheet()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory18CreateEmptyNodeMapEv"><code class="docutils literal notranslate"><span class="pre">CreateEmptyNodeMap()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory10ClearCacheEv"><code class="docutils literal notranslate"><span class="pre">ClearCache()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory25CreateNodeDataFromNodeMapEP8INodeMap"><code class="docutils literal notranslate"><span class="pre">CreateNodeDataFromNodeMap()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory7m_pImplE"><code class="docutils literal notranslate"><span class="pre">m_pImpl</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_tE"><code class="docutils literal notranslate"><span class="pre">GENAPI_NAMESPACE::CNodeMapFactory::NodeStatistics_t</span></code></a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumNodesE"><code class="docutils literal notranslate"><span class="pre">NumNodes</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t13NumPropertiesE"><code class="docutils literal notranslate"><span class="pre">NumProperties</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t8NumLinksE"><code class="docutils literal notranslate"><span class="pre">NumLinks</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE'" class="reference internal" href="#_CPPv4N16GENAPI_NAMESPACE15CNodeMapFactory16NodeStatistics_t10NumStringsE"><code class="docutils literal notranslate"><span class="pre">NumStrings</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>

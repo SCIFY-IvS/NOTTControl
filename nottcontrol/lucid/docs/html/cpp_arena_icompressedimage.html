@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>ICompressedImage | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="ICompressedImage | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="ICompressedImage | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="cpp_arena_interfaceinfo.html" rel="next" title="InterfaceInfo"/>
+<link href="cpp_arena_imagefactory.html" rel="prev" title="ImageFactory"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="cpp.html">Arena C++</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="cpp_arena.html">Arena C++</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">ICompressedImage</span>
+</nav>
+<div id="content" role="main">
+<section id="icompressedimage">
+<h1>ICompressedImage<a class="headerlink" href="#icompressedimage" title="Link to this heading"><span>#</span></a></h1>
+
+<section id="cpp-icompressedimage">
+<span id="id1"></span><h2>ICompressedImage<a class="headerlink" href="#cpp-icompressedimage" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#cpp-icompressedimage'"><span>#</span></a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImageE">
+<span id="_CPPv3N5Arena16ICompressedImageE"></span><span id="_CPPv2N5Arena16ICompressedImageE"></span><span id="Arena::ICompressedImage"></span><span class="target" id="class_arena_1_1_i_compressed_image"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ICompressedImage</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="cpp_arena_ibuffer.html#_CPPv4N5Arena7IBufferE" title="Arena::IBuffer"><span class="n"><span class="pre">IBuffer</span></span></a><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImageE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImageE'"><span>#</span></a><br/></dt>
+<dd><p>An interface to compressed images.</p>
+<p>The compressed image interface helps read and interpret compressed data. It inherits from the buffer interface (<a class="reference internal" href="cpp_arena_ibuffer.html#class_arena_1_1_i_buffer"><span class="std std-ref">Arena::IBuffer</span></a>).</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// retrieving a buffer, checking for and casting to compressed image</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">Arena</span><span class="o">::</span><span class="n">IBuffer</span><span class="o">*</span><span class="w"> </span><span class="n">pBuffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetBuffer</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+</span><span id="line-4"><span class="w">    </span>
+</span><span id="line-5"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pBuffer</span><span class="o">-&gt;</span><span class="n">IsCompressedImage</span><span class="p">())</span>
+</span><span id="line-6"><span class="w">    </span><span class="p">{</span>
+</span><span id="line-7"><span class="w">        </span><span class="n">Arena</span><span class="o">::</span><span class="n">ICompressedImage</span><span class="o">*</span><span class="w"> </span><span class="n">pCompressedImage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pBuffer</span><span class="o">-&gt;</span><span class="n">AsCompressedImage</span><span class="p">();</span>
+</span><span id="line-8"><span class="w">        </span><span class="c1">// ...</span>
+</span><span id="line-9"><span class="w">    </span><span class="p">}</span>
+</span><span id="line-10"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p>In order to receive compressed data, certain pixel formats must be used, such as QOI_Mono8 or QOI_BayerRG8. Ensure camera supports a compressed image pixel format and is selected as the active pixel format.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// enabling compressed pixel formats</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CEnumerationPtr</span><span class="w"> </span><span class="n">pPixelFormat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"PixelFormat"</span><span class="p">);</span>
+</span><span id="line-4"><span class="n">pPixelFormat</span><span class="o">-&gt;</span><span class="n">FromString</span><span class="p">(</span><span class="s">"QOI_Mono8"</span><span class="p">);</span>
+</span><span id="line-5"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p>Along with the functionality of its parent class (<a class="reference internal" href="cpp_arena_ibuffer.html#class_arena_1_1_i_buffer"><span class="std std-ref">Arena::IBuffer</span></a>), compressed images provide access to additional information particular to images. This includes:<ul class="simple">
+<li><p>Offsets (Arena::ICompressedImage::GetOffsetX, Arena::ICompressedImage::GetOffsetY)</p></li>
+<li><p>Padding (Arena::ICompressedImage::GetPaddingX, Arena::ICompressedImage::GetPaddingY)</p></li>
+<li><p>Pixel information (Arena::ICompressedImage::GetPixelFormat, Arena::ICompressedImage::GetPixelEndianness)</p></li>
+<li><p>Timestamps (Arena::ICompressedImage::GetTimestamp, Arena::ICompressedImage::GetTimestampNs)</p></li>
+</ul>
+</p>
+<p>Width and height are not included in the functionality as the compressed image is simply blob data.</p>
+<p>In order to decompress the image, utilize the image factory (<a class="reference internal" href="cpp_arena_imagefactory.html#class_arena_1_1_image_factory"><span class="std std-ref">Arena::ImageFactory</span></a>) and pass the compressed image into the decompress function.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// decompressing compressed images</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">Arena</span><span class="o">::</span><span class="n">ICompressedImage</span><span class="o">*</span><span class="w"> </span><span class="n">pCompressedImage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pBuffer</span><span class="o">-&gt;</span><span class="n">AsCompressedImage</span><span class="p">();</span>
+</span><span id="line-4"><span class="n">Arena</span><span class="o">::</span><span class="n">IImage</span><span class="o">*</span><span class="w"> </span><span class="n">pImage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arena</span><span class="o">::</span><span class="n">ImageFactory</span><span class="o">::</span><span class="n">Decompress</span><span class="p">(</span><span class="n">pCompressedImage</span><span class="p">);</span>
+</span><span id="line-5"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_arena_ibuffer.html#class_arena_1_1_i_buffer"><span class="std std-ref">Arena::IBuffer</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_arena_iimage.html#class_arena_1_1_i_image"><span class="std std-ref">Arena::IImage</span></a></p></li>
+<li><p><a class="reference internal" href="#class_arena_1_1_i_compressed_image"><span class="std std-ref">Arena::ICompressedImage</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Should be requeued; same as other buffers.</p></li>
+<li><p>Properties are lazily instantiated from the acquisition engine.</p></li>
+</ul>
+</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage14GetPixelFormatEv">
+<span id="_CPPv3N5Arena16ICompressedImage14GetPixelFormatEv"></span><span id="_CPPv2N5Arena16ICompressedImage14GetPixelFormatEv"></span><span id="Arena::ICompressedImage::GetPixelFormat"></span><span class="target" id="class_arena_1_1_i_compressed_image_1af5914176b577df21af467b2b379a1048"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetPixelFormat</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage14GetPixelFormatEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage14GetPixelFormatEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetPixelFormat </strong> gets the pixel format (PfncFormat) of the compressed image, as defined by the PFNC (Pixel Format Naming Convention). Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the pixel format is populated by the acquisition engine payload leader. The device itself is not queried as this data is present in the image data.</p>
+<p>Pixel format values are determined by the PFNC (Pixel Format Naming Convention) specification. The PFNC assigns a name and number to each pixel format, helping to standardize pixel formats. The number of bits per pixel can be found in each integer at bytes 5 and 6 (mask 0x00FF0000). The pixel format can be determined by the integer using the GetPixelFormatName function provided by the PFNC.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Represents: enum PfncFormat</p></li>
+<li><p>Pixel format of the image</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage12GetTimestampEv">
+<span id="_CPPv3N5Arena16ICompressedImage12GetTimestampEv"></span><span id="_CPPv2N5Arena16ICompressedImage12GetTimestampEv"></span><span id="Arena::ICompressedImage::GetTimestamp"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a491b2e7909199776c5aa58a4952300d6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetTimestamp</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage12GetTimestampEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage12GetTimestampEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetTimestamp </strong> gets the timestamp of the compressed image in nanoseconds. Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the timestamp is populated by the acquisition engine payload leader. The device itself is not queried as this data is present in the image data.</p>
+<p>This is the same as the nanosecond timestamp call (Arena::ICompressedImage::GetTimestampNs).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+<li><p>Arena::ICompressedImage::GetTimestampNs</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Unit: nanoseconds</p></li>
+<li><p>Timestamp of the image in nanoseconds</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage14GetTimestampNsEv">
+<span id="_CPPv3N5Arena16ICompressedImage14GetTimestampNsEv"></span><span id="_CPPv2N5Arena16ICompressedImage14GetTimestampNsEv"></span><span id="Arena::ICompressedImage::GetTimestampNs"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a7386b7a44b1fa2e6fb8ad8e6184bf08a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetTimestampNs</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage14GetTimestampNsEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage14GetTimestampNsEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetTimestampNs </strong> gets the timestamp of the compressed image in nanoseconds. Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the timestamp is populated by the acquisition engine payload leader. The device itself is not queried as this data is present in the image data.</p>
+<p>This is the same as the general timestamp call (Arena::ICompressedImage::GetTimestamp).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+<li><p>Arena::ICompressedImage::GetTimestamp</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Unit: nanoseconds</p></li>
+<li><p>Timestamp of the image in nanoseconds</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv">
+<span id="_CPPv3N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv"></span><span id="_CPPv2N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv"></span><span id="Arena::ICompressedImage::GetLeaderReceivedTimestamp"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a08cdf590ca2cf4f1bad1c4d205ca6e51"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetLeaderReceivedTimestamp</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetLeaderReceivedTimestamp </strong> gets the timestamp of when the leader was received. Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the timestamp is populated by the acquisition engine on receiving the leader. The device itself is not queried as this data is present in the image data.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Unit: count of 100-nanosecond intervals on Windows count of nanoseconds on Linux</p></li>
+<li><p>Windows: The leader receive time as a count of 100-nanosecond intervals since January 1, 1601</p></li>
+<li><p>Linux: The leader receive time as the number of nanoseconds since January 1, 1970</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage7GetDataEv">
+<span id="_CPPv3N5Arena16ICompressedImage7GetDataEv"></span><span id="_CPPv2N5Arena16ICompressedImage7GetDataEv"></span><span id="Arena::ICompressedImage::GetData"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a0ecab9cbf5711aafb7891f9a4360ad65"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">GetData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage7GetDataEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage7GetDataEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetData </strong> retrieves a pointer to the buffer’s payload data. This data may include compressed image data (along with its own header), chunk data, or both.</p>
+<p>To check the type of data returned, compressed image (Arena::IBuffer::HasImageData) and chunk data (Arena::IBuffer::HasChunkData) can be checked for specifically, or the payload type (<a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a>) can be retrieved.</p>
+<p>The returned data only includes payload data, not transport layer protocol leaders, which is handled internally. The pointer can be used in conjunction with size getters (Arena::IBuffer::GetSizeFilled) to read, process, and pass the compressed data around.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::HasImageData</p></li>
+<li><p>Arena::IBuffer::HasChunkData</p></li>
+<li><p>Arena::IBuffer::GetSizeFilled</p></li>
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: const uint8_t*</p></li>
+<li><p>Pointer to the beginning of the payload data</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage13GetSizeFilledEv">
+<span id="_CPPv3N5Arena16ICompressedImage13GetSizeFilledEv"></span><span id="_CPPv2N5Arena16ICompressedImage13GetSizeFilledEv"></span><span id="Arena::ICompressedImage::GetSizeFilled"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a78d43f5d56f2a4ca7ebd32ec497b2c1a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetSizeFilled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage13GetSizeFilledEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage13GetSizeFilledEv'"><span>#</span></a><br/></dt>
+<dd><p>
+A getter for the size of the compressed data</p>
+<p><strong> GetSizeFilled </strong> retrieves the size of the data of a buffer, excluding transport layer protocol leaders. It takes no inputs and returns the size of the data as output.</p>
+<p>The return value of <strong> GetSizeFilled </strong> should always be the same as the return value of <strong> GetSizeOfBuffer </strong> (Arena::IBuffer::GetSizeOfBuffer), but not because they are one and the same. <strong> GetSizeFilled </strong> returns the size of the data whereas <strong> GetSizeOfBuffer </strong> returns the size of the buffer, which is set according to the expected payload size (‘PayloadSize’).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Unit: bytes</p></li>
+<li><p>Size of the compressed data of the payload</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage14GetPayloadSizeEv">
+<span id="_CPPv3N5Arena16ICompressedImage14GetPayloadSizeEv"></span><span id="_CPPv2N5Arena16ICompressedImage14GetPayloadSizeEv"></span><span id="Arena::ICompressedImage::GetPayloadSize"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a86f034462b81c8709c52e5e42f73d4ea"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetPayloadSize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage14GetPayloadSizeEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage14GetPayloadSizeEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetPayloadSize </strong> retrieves the intended size of the payload. This is similar to the retrieved payload size (Arena::IBuffer::GetSizeFilled), but different in that missed data is included. This returns the same as the SFNC feature by the same name (‘PayloadSize’).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeFilled</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Unit: bytes</p></li>
+<li><p>Size of the intended payload</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage15GetSizeOfBufferEv">
+<span id="_CPPv3N5Arena16ICompressedImage15GetSizeOfBufferEv"></span><span id="_CPPv2N5Arena16ICompressedImage15GetSizeOfBufferEv"></span><span id="Arena::ICompressedImage::GetSizeOfBuffer"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a192af1f0cc91ef31523ba7e3c9febe0c"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetSizeOfBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage15GetSizeOfBufferEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage15GetSizeOfBufferEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetSizeOfBuffer </strong> retrieves the size of the buffer.</p>
+<p>The size filled is often same as the size of the buffer (Arena::IBuffer::GetSizeOfBuffer), but not because they are one and the same. <strong> GetSizeFilled </strong> returns the number of bytes received whereas <strong> GetSizeOfBuffer </strong> returns the size of the buffer, which can either be allocated by the user or calculated by Arena (Arena::IDevice::GetNodeMap, ‘PayloadSize’).</p>
+<p>The payload size is calculated at the beginning of the stream and cannot be recalculated until the stream has stopped. Because of this, features that can affect payload size (‘Width’, ‘Height’, ‘PixelFormat’) become unwritable when the stream has started.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Unit: bytes</p></li>
+<li><p>Size of the buffer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage10GetFrameIdEv">
+<span id="_CPPv3N5Arena16ICompressedImage10GetFrameIdEv"></span><span id="_CPPv2N5Arena16ICompressedImage10GetFrameIdEv"></span><span id="Arena::ICompressedImage::GetFrameId"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a61511910c52e556da1008890dea08fde"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetFrameId</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage10GetFrameIdEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage10GetFrameIdEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetFrameId </strong> returns the frame ID, a sequential identifier for buffers.</p>
+<p>Frame IDs start at ‘1’ and continue until 2^64-1 (64-bit), at which point they roll over back to ‘1’. The frame ID should never be ‘0’.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception. </p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Frame ID</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage14GetPayloadTypeEv">
+<span id="_CPPv3N5Arena16ICompressedImage14GetPayloadTypeEv"></span><span id="_CPPv2N5Arena16ICompressedImage14GetPayloadTypeEv"></span><span id="Arena::ICompressedImage::GetPayloadType"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a67871a2f58773d6eca4f390118ab62ee"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetPayloadType</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage14GetPayloadTypeEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage14GetPayloadTypeEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> GetPayloadType </strong> returns a buffer’s payload type (<a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a>), as defined in the GigE Vision specification.</p>
+<p>The payload type indicates how to interpret the data stored in the buffer. (Arena::IBuffer::GetData). LUCID devices may provide three ways to interpret the data:<ul class="simple">
+<li><p>As an image (Arena::EBufferPayloadType::BufferPayloadTypeImage)</p></li>
+<li><p>As an image with chunk data appended to the end (Arena::EBufferPayloadType::BufferPayloadTypeImageExtended)</p></li>
+<li><p>As chunk data, which may or may not include image data as a chunk</p></li>
+<li><p>(Arena::EBufferPayloadType::BufferPayloadTypeChunkData)</p></li>
+</ul>
+</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetData</p></li>
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Represents: enum <a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+<li><p>Type of payload data</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage12HasImageDataEv">
+<span id="_CPPv3N5Arena16ICompressedImage12HasImageDataEv"></span><span id="_CPPv2N5Arena16ICompressedImage12HasImageDataEv"></span><span id="Arena::ICompressedImage::HasImageData"></span><span class="target" id="class_arena_1_1_i_compressed_image_1aa403d677744148972a2c253f4aa1dc90"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HasImageData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage12HasImageDataEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage12HasImageDataEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> HasImageData </strong> returns whether or not a buffer’s payload may be interpreted as image data.</p>
+<p><strong> HasImageData </strong> returns true if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImage</p></li>
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImageExtendedChunk</p></li>
+</ul>
+</p>
+<p>It returns false if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeChunkData</p></li>
+</ul>
+</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the payload has image data</p></li>
+<li><p>False if the payload has image data packaged as chunk</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage12HasChunkDataEv">
+<span id="_CPPv3N5Arena16ICompressedImage12HasChunkDataEv"></span><span id="_CPPv2N5Arena16ICompressedImage12HasChunkDataEv"></span><span id="Arena::ICompressedImage::HasChunkData"></span><span class="target" id="class_arena_1_1_i_compressed_image_1ae2a1470371305d6ac473f9b583e1ddf7"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HasChunkData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage12HasChunkDataEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage12HasChunkDataEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> HasChunkData </strong> returns whether or not a buffer’s payload may be interpreted as chunk data. Calling <strong> HasChunkData </strong> from chunk data returns true.</p>
+<p><strong> HasChunkData </strong> returns true if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeChunkData</p></li>
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImageExtendedChunk</p></li>
+</ul>
+</p>
+<p>It returns false if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImage</p></li>
+</ul>
+</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>True if the payload has chunk data</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage11AsChunkDataEv">
+<span id="_CPPv3N5Arena16ICompressedImage11AsChunkDataEv"></span><span id="_CPPv2N5Arena16ICompressedImage11AsChunkDataEv"></span><span id="Arena::ICompressedImage::AsChunkData"></span><span class="target" id="class_arena_1_1_i_compressed_image_1aea61a582b4ca78f7456a932ad5cf16a0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="cpp_arena_ichunkdata.html#_CPPv4N5Arena10IChunkDataE" title="Arena::IChunkData"><span class="n"><span class="pre">IChunkData</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">AsChunkData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage11AsChunkDataEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage11AsChunkDataEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> AsChunkData </strong> casts the buffer to a chunk data (<a class="reference internal" href="cpp_arena_ichunkdata.html#class_arena_1_1_i_chunk_data"><span class="std std-ref">Arena::IChunkData</span></a>). This is only possible if the payload contains chunk data.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_ichunkdata.html#class_arena_1_1_i_chunk_data"><span class="std std-ref">Arena::IChunkData</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: <a class="reference internal" href="cpp_arena_ichunkdata.html#class_arena_1_1_i_chunk_data"><span class="std std-ref">Arena::IChunkData</span></a>*</p></li>
+<li><p>Pointer to the original object cast to chunk data</p></li>
+<li><p>Null on failure</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage12IsIncompleteEv">
+<span id="_CPPv3N5Arena16ICompressedImage12IsIncompleteEv"></span><span id="_CPPv2N5Arena16ICompressedImage12IsIncompleteEv"></span><span id="Arena::ICompressedImage::IsIncomplete"></span><span class="target" id="class_arena_1_1_i_compressed_image_1ac03171797060b34d7d65d7010f02c3b1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsIncomplete</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage12IsIncompleteEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage12IsIncompleteEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> IsIncomplete </strong> returns whether or not a buffer’s payload data is complete.</p>
+<p>Error handling may be required if the data is incomplete. An incomplete image signifies that the data size (Arena::IBuffer::GetSizeFilled) does not match the expected data size (‘PayloadSize’). This is either due to missed packets or a small buffer.</p>
+<p>The number of missed packets may be discovered through the stream node map (Arena::IDevice::GetTLStreamNodeMap). The missed packet count feature (‘StreamMissedPacketCount’) is a cumulative count of all missed packets, and does not necessarily reflect the number of missed packets for any given buffer.</p>
+<p>A buffer may be missing data if the buffer to hold the data is too small. This happens when the size of the buffer (Arena::IBuffer::GetSizeOfBuffer) does not match the expected data size (‘PayloadSize’). This function will also return true when checking whether the data is larger than the buffer (Arena::IBuffer::DataLargerThanBuffer).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeFilled</p></li>
+<li><p>Arena::IDevice::GetTLStreamNodeMap</p></li>
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+<li><p>Arena::IBuffer::DataLargerThanBuffer</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the data is incomplete</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage20DataLargerThanBufferEv">
+<span id="_CPPv3N5Arena16ICompressedImage20DataLargerThanBufferEv"></span><span id="_CPPv2N5Arena16ICompressedImage20DataLargerThanBufferEv"></span><span id="Arena::ICompressedImage::DataLargerThanBuffer"></span><span class="target" id="class_arena_1_1_i_compressed_image_1a32ecf18e65bb6469ee8e59a562c5057f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DataLargerThanBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage20DataLargerThanBufferEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage20DataLargerThanBufferEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DataLargerThanBuffer </strong> returns whether or not a buffer’s payload data is too large for the buffer.</p>
+<p>A buffer may be missing data if the buffer to hold the data is too small. This happens when the size of the buffer (Arena::IBuffer::GetSizeOfBuffer) does not match the expected data size (‘PayloadSize’). This function will also return true when checking whether the data is larger than the buffer.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the payload is larger than the buffer</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImage9VerifyCRCEv">
+<span id="_CPPv3N5Arena16ICompressedImage9VerifyCRCEv"></span><span id="_CPPv2N5Arena16ICompressedImage9VerifyCRCEv"></span><span id="Arena::ICompressedImage::VerifyCRC"></span><span class="target" id="class_arena_1_1_i_compressed_image_1aed721f2a6be5bc37325a2f81b221ce6a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VerifyCRC</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImage9VerifyCRCEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImage9VerifyCRCEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> VerifyCRC </strong> calculates the CRC of a buffer’s data and verifies it against the CRC value sent from the device. This helps verify that no data has been changed or missed during a transmission. This function calls a global helper function to calculate the CRC (<a class="reference internal" href="cpp_arena_global.html#namespace_arena_1a6f9b23164ecc27cf2e48356737814a3d"><span class="std std-ref">Arena::CalculateCRC32</span></a>).</p>
+<p>A CRC is performed by running a set of calculations on a dataset both before and after a transmission. The two calculated values are then compared for equality. If the values are the same, then the transmission is deemed successful; if different, then something in the transmission went wrong.</p>
+<p>A device can be set to send a CRC value by enabling its chunk data setting.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// Enable chunk data and the CRC chunk</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">INodeMap</span><span class="o">*</span><span class="w"> </span><span class="n">pNodeMap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetNodeMap</span><span class="p">();</span>
+</span><span id="line-4"><span class="w">    </span>
+</span><span id="line-5"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CBooleanPtr</span><span class="w"> </span><span class="n">pChunkModeActive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"ChunkModeActive"</span><span class="p">);</span>
+</span><span id="line-6"><span class="w">    </span><span class="n">pChunkModeActive</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+</span><span id="line-7"><span class="w">    </span>
+</span><span id="line-8"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CEnumerationPtr</span><span class="w"> </span><span class="n">pChunkSelector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"ChunkSelector"</span><span class="p">);</span>
+</span><span id="line-9"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CEnumEntryPtr</span><span class="w"> </span><span class="n">pCRC</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pChunkSelector</span><span class="o">-&gt;</span><span class="n">GetEntryByname</span><span class="p">(</span><span class="s">"CRC"</span><span class="p">);</span>
+</span><span id="line-10"><span class="w">    </span><span class="n">pChunkSelector</span><span class="o">-&gt;</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">pCRC</span><span class="o">-&gt;</span><span class="n">GetValue</span><span class="p">());</span>
+</span><span id="line-11"><span class="w">    </span>
+</span><span id="line-12"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CBooleanPtr</span><span class="w"> </span><span class="n">pChunkEnable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"ChunkEnable"</span><span class="p">);</span>
+</span><span id="line-13"><span class="w">    </span><span class="n">pChunkEnable</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+</span><span id="line-14"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p>The data can then be checked by verifying the CRC.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// Verifying a buffer's data</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">Arena</span><span class="o">::</span><span class="n">IBuffer</span><span class="o">*</span><span class="w"> </span><span class="n">pBuffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetBuffer</span><span class="p">(</span><span class="n">timeout</span><span class="p">);</span>
+</span><span id="line-4"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">pBuffer</span><span class="o">-&gt;</span><span class="n">VerifyCRC</span><span class="p">())</span>
+</span><span id="line-5"><span class="w">    </span><span class="p">{</span>
+</span><span id="line-6"><span class="w">        </span><span class="c1">// data not complete</span>
+</span><span id="line-7"><span class="w">    </span><span class="p">}</span>
+</span><span id="line-8"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::CalculateCRC</p></li>
+<li><p><a class="reference internal" href="cpp_arena_ibuffer.html#class_arena_1_1_i_buffer"><span class="std std-ref">Arena::IBuffer</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+<li><p>Throws an exception if chunk data disabled or not present, or if CRC chunk disabled.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the calculated CRC value equals the one sent from the device</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena16ICompressedImageD0Ev">
+<span id="_CPPv3N5Arena16ICompressedImageD0Ev"></span><span id="_CPPv2N5Arena16ICompressedImageD0Ev"></span><span id="Arena::ICompressedImage::~ICompressedImage"></span><span class="target" id="class_arena_1_1_i_compressed_image_1ab98a0a984f35f7d7a542562090a1ce3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~ICompressedImage</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena16ICompressedImageD0Ev" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena16ICompressedImageD0Ev'"><span>#</span></a><br/></dt>
+<dd><p>A destructor </p>
+</dd></dl>
+</div>
+</dd></dl>
+</section>
+<section id="getpixelformat">
+<span id="cpp-getpixelformat"></span><h2>GetPixelFormat<a class="headerlink" href="#getpixelformat" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getpixelformat'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1af5914176b577df21af467b2b379a1048"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetPixelFormat</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetPixelFormat </strong> gets the pixel format (PfncFormat) of the compressed image, as defined by the PFNC (Pixel Format Naming Convention). Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the pixel format is populated by the acquisition engine payload leader. The device itself is not queried as this data is present in the image data.</p>
+<p>Pixel format values are determined by the PFNC (Pixel Format Naming Convention) specification. The PFNC assigns a name and number to each pixel format, helping to standardize pixel formats. The number of bits per pixel can be found in each integer at bytes 5 and 6 (mask 0x00FF0000). The pixel format can be determined by the integer using the GetPixelFormatName function provided by the PFNC.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Represents: enum PfncFormat</p></li>
+<li><p>Pixel format of the image</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="gettimestamp">
+<span id="cpp-gettimestamp"></span><h2>GetTimestamp<a class="headerlink" href="#gettimestamp" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#gettimestamp'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a491b2e7909199776c5aa58a4952300d6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetTimestamp</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetTimestamp </strong> gets the timestamp of the compressed image in nanoseconds. Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the timestamp is populated by the acquisition engine payload leader. The device itself is not queried as this data is present in the image data.</p>
+<p>This is the same as the nanosecond timestamp call (Arena::ICompressedImage::GetTimestampNs).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+<li><p>Arena::ICompressedImage::GetTimestampNs</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Unit: nanoseconds</p></li>
+<li><p>Timestamp of the image in nanoseconds</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="gettimestampns">
+<span id="cpp-gettimestampns"></span><h2>GetTimestampNs<a class="headerlink" href="#gettimestampns" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#gettimestampns'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a7386b7a44b1fa2e6fb8ad8e6184bf08a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetTimestampNs</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetTimestampNs </strong> gets the timestamp of the compressed image in nanoseconds. Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the timestamp is populated by the acquisition engine payload leader. The device itself is not queried as this data is present in the image data.</p>
+<p>This is the same as the general timestamp call (Arena::ICompressedImage::GetTimestamp).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+<li><p>Arena::ICompressedImage::GetTimestamp</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Unit: nanoseconds</p></li>
+<li><p>Timestamp of the image in nanoseconds</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getleaderreceivedtimestamp">
+<span id="cpp-getleaderreceivedtimestamp"></span><h2>GetLeaderReceivedTimestamp<a class="headerlink" href="#getleaderreceivedtimestamp" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getleaderreceivedtimestamp'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a08cdf590ca2cf4f1bad1c4d205ca6e51"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetLeaderReceivedTimestamp</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetLeaderReceivedTimestamp </strong> gets the timestamp of when the leader was received. Images are self-describing, so the device does not need to be queried to get this information.</p>
+<p>Compressed images are retrieved from a device (<a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a>). If the image was retrieved from a device, the timestamp is populated by the acquisition engine on receiving the leader. The device itself is not queried as this data is present in the image data.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_idevice.html#class_arena_1_1_i_device"><span class="std std-ref">Arena::IDevice</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Unit: count of 100-nanosecond intervals on Windows count of nanoseconds on Linux</p></li>
+<li><p>Windows: The leader receive time as a count of 100-nanosecond intervals since January 1, 1601</p></li>
+<li><p>Linux: The leader receive time as the number of nanoseconds since January 1, 1970</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getdata">
+<span id="cpp-getdata"></span><h2>GetData<a class="headerlink" href="#getdata" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getdata'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a0ecab9cbf5711aafb7891f9a4360ad65"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetData </strong> retrieves a pointer to the buffer’s payload data. This data may include compressed image data (along with its own header), chunk data, or both.</p>
+<p>To check the type of data returned, compressed image (Arena::IBuffer::HasImageData) and chunk data (Arena::IBuffer::HasChunkData) can be checked for specifically, or the payload type (<a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a>) can be retrieved.</p>
+<p>The returned data only includes payload data, not transport layer protocol leaders, which is handled internally. The pointer can be used in conjunction with size getters (Arena::IBuffer::GetSizeFilled) to read, process, and pass the compressed data around.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::HasImageData</p></li>
+<li><p>Arena::IBuffer::HasChunkData</p></li>
+<li><p>Arena::IBuffer::GetSizeFilled</p></li>
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: const uint8_t*</p></li>
+<li><p>Pointer to the beginning of the payload data</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getsizefilled">
+<span id="cpp-getsizefilled"></span><h2>GetSizeFilled<a class="headerlink" href="#getsizefilled" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getsizefilled'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a78d43f5d56f2a4ca7ebd32ec497b2c1a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetSizeFilled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p>
+A getter for the size of the compressed data</p>
+<p><strong> GetSizeFilled </strong> retrieves the size of the data of a buffer, excluding transport layer protocol leaders. It takes no inputs and returns the size of the data as output.</p>
+<p>The return value of <strong> GetSizeFilled </strong> should always be the same as the return value of <strong> GetSizeOfBuffer </strong> (Arena::IBuffer::GetSizeOfBuffer), but not because they are one and the same. <strong> GetSizeFilled </strong> returns the size of the data whereas <strong> GetSizeOfBuffer </strong> returns the size of the buffer, which is set according to the expected payload size (‘PayloadSize’).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Unit: bytes</p></li>
+<li><p>Size of the compressed data of the payload</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getpayloadsize">
+<span id="cpp-getpayloadsize"></span><h2>GetPayloadSize<a class="headerlink" href="#getpayloadsize" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getpayloadsize'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a86f034462b81c8709c52e5e42f73d4ea"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetPayloadSize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetPayloadSize </strong> retrieves the intended size of the payload. This is similar to the retrieved payload size (Arena::IBuffer::GetSizeFilled), but different in that missed data is included. This returns the same as the SFNC feature by the same name (‘PayloadSize’).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeFilled</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Unit: bytes</p></li>
+<li><p>Size of the intended payload</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getsizeofbuffer">
+<span id="cpp-getsizeofbuffer"></span><h2>GetSizeOfBuffer<a class="headerlink" href="#getsizeofbuffer" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getsizeofbuffer'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a192af1f0cc91ef31523ba7e3c9febe0c"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetSizeOfBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetSizeOfBuffer </strong> retrieves the size of the buffer.</p>
+<p>The size filled is often same as the size of the buffer (Arena::IBuffer::GetSizeOfBuffer), but not because they are one and the same. <strong> GetSizeFilled </strong> returns the number of bytes received whereas <strong> GetSizeOfBuffer </strong> returns the size of the buffer, which can either be allocated by the user or calculated by Arena (Arena::IDevice::GetNodeMap, ‘PayloadSize’).</p>
+<p>The payload size is calculated at the beginning of the stream and cannot be recalculated until the stream has stopped. Because of this, features that can affect payload size (‘Width’, ‘Height’, ‘PixelFormat’) become unwritable when the stream has started.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Unit: bytes</p></li>
+<li><p>Size of the buffer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getframeid">
+<span id="cpp-getframeid"></span><h2>GetFrameId<a class="headerlink" href="#getframeid" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getframeid'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a61511910c52e556da1008890dea08fde"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetFrameId</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetFrameId </strong> returns the frame ID, a sequential identifier for buffers.</p>
+<p>Frame IDs start at ‘1’ and continue until 2^64-1 (64-bit), at which point they roll over back to ‘1’. The frame ID should never be ‘0’.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception. </p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>Frame ID</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="getpayloadtype">
+<span id="cpp-getpayloadtype"></span><h2>GetPayloadType<a class="headerlink" href="#getpayloadtype" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getpayloadtype'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a67871a2f58773d6eca4f390118ab62ee"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GetPayloadType</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> GetPayloadType </strong> returns a buffer’s payload type (<a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a>), as defined in the GigE Vision specification.</p>
+<p>The payload type indicates how to interpret the data stored in the buffer. (Arena::IBuffer::GetData). LUCID devices may provide three ways to interpret the data:<ul class="simple">
+<li><p>As an image (Arena::EBufferPayloadType::BufferPayloadTypeImage)</p></li>
+<li><p>As an image with chunk data appended to the end (Arena::EBufferPayloadType::BufferPayloadTypeImageExtended)</p></li>
+<li><p>As chunk data, which may or may not include image data as a chunk</p></li>
+<li><p>(Arena::EBufferPayloadType::BufferPayloadTypeChunkData)</p></li>
+</ul>
+</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetData</p></li>
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: size_t</p></li>
+<li><p>Represents: enum <a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+<li><p>Type of payload data</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="hasimagedata">
+<span id="cpp-hasimagedata"></span><h2>HasImageData<a class="headerlink" href="#hasimagedata" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#hasimagedata'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1aa403d677744148972a2c253f4aa1dc90"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">HasImageData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> HasImageData </strong> returns whether or not a buffer’s payload may be interpreted as image data.</p>
+<p><strong> HasImageData </strong> returns true if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImage</p></li>
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImageExtendedChunk</p></li>
+</ul>
+</p>
+<p>It returns false if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeChunkData</p></li>
+</ul>
+</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the payload has image data</p></li>
+<li><p>False if the payload has image data packaged as chunk</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="haschunkdata">
+<span id="cpp-haschunkdata"></span><h2>HasChunkData<a class="headerlink" href="#haschunkdata" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#haschunkdata'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1ae2a1470371305d6ac473f9b583e1ddf7"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">HasChunkData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> HasChunkData </strong> returns whether or not a buffer’s payload may be interpreted as chunk data. Calling <strong> HasChunkData </strong> from chunk data returns true.</p>
+<p><strong> HasChunkData </strong> returns true if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeChunkData</p></li>
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImageExtendedChunk</p></li>
+</ul>
+</p>
+<p>It returns false if the payload type is:<ul class="simple">
+<li><p>Arena::EBufferPayloadType::BufferPayloadTypeImage</p></li>
+</ul>
+</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_defs.html#namespace_arena_1a9d96a16211a3776c8dc76d7fc9c7c401"><span class="std std-ref">Arena::EBufferPayloadType</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>True if the payload has chunk data</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="aschunkdata">
+<span id="cpp-aschunkdata"></span><h2>AsChunkData<a class="headerlink" href="#aschunkdata" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#aschunkdata'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1aea61a582b4ca78f7456a932ad5cf16a0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="cpp_arena_ichunkdata.html#_CPPv4N5Arena10IChunkDataE" title="Arena::IChunkData"><span class="n"><span class="pre">IChunkData</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">AsChunkData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> AsChunkData </strong> casts the buffer to a chunk data (<a class="reference internal" href="cpp_arena_ichunkdata.html#class_arena_1_1_i_chunk_data"><span class="std std-ref">Arena::IChunkData</span></a>). This is only possible if the payload contains chunk data.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_ichunkdata.html#class_arena_1_1_i_chunk_data"><span class="std std-ref">Arena::IChunkData</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: <a class="reference internal" href="cpp_arena_ichunkdata.html#class_arena_1_1_i_chunk_data"><span class="std std-ref">Arena::IChunkData</span></a>*</p></li>
+<li><p>Pointer to the original object cast to chunk data</p></li>
+<li><p>Null on failure</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="isincomplete">
+<span id="cpp-isincomplete"></span><h2>IsIncomplete<a class="headerlink" href="#isincomplete" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#isincomplete'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1ac03171797060b34d7d65d7010f02c3b1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IsIncomplete</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> IsIncomplete </strong> returns whether or not a buffer’s payload data is complete.</p>
+<p>Error handling may be required if the data is incomplete. An incomplete image signifies that the data size (Arena::IBuffer::GetSizeFilled) does not match the expected data size (‘PayloadSize’). This is either due to missed packets or a small buffer.</p>
+<p>The number of missed packets may be discovered through the stream node map (Arena::IDevice::GetTLStreamNodeMap). The missed packet count feature (‘StreamMissedPacketCount’) is a cumulative count of all missed packets, and does not necessarily reflect the number of missed packets for any given buffer.</p>
+<p>A buffer may be missing data if the buffer to hold the data is too small. This happens when the size of the buffer (Arena::IBuffer::GetSizeOfBuffer) does not match the expected data size (‘PayloadSize’). This function will also return true when checking whether the data is larger than the buffer (Arena::IBuffer::DataLargerThanBuffer).</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeFilled</p></li>
+<li><p>Arena::IDevice::GetTLStreamNodeMap</p></li>
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+<li><p>Arena::IBuffer::DataLargerThanBuffer</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the data is incomplete</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="datalargerthanbuffer">
+<span id="cpp-datalargerthanbuffer"></span><h2>DataLargerThanBuffer<a class="headerlink" href="#datalargerthanbuffer" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#datalargerthanbuffer'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1a32ecf18e65bb6469ee8e59a562c5057f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DataLargerThanBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> DataLargerThanBuffer </strong> returns whether or not a buffer’s payload data is too large for the buffer.</p>
+<p>A buffer may be missing data if the buffer to hold the data is too small. This happens when the size of the buffer (Arena::IBuffer::GetSizeOfBuffer) does not match the expected data size (‘PayloadSize’). This function will also return true when checking whether the data is larger than the buffer.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IBuffer::GetSizeOfBuffer</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Causes undefined behaviour if buffer requeued.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the payload is larger than the buffer</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="verifycrc">
+<span id="cpp-verifycrc"></span><h2>VerifyCRC<a class="headerlink" href="#verifycrc" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#verifycrc'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1aed721f2a6be5bc37325a2f81b221ce6a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">VerifyCRC</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><br/></dt>
+<dd><p><strong> VerifyCRC </strong> calculates the CRC of a buffer’s data and verifies it against the CRC value sent from the device. This helps verify that no data has been changed or missed during a transmission. This function calls a global helper function to calculate the CRC (<a class="reference internal" href="cpp_arena_global.html#namespace_arena_1a6f9b23164ecc27cf2e48356737814a3d"><span class="std std-ref">Arena::CalculateCRC32</span></a>).</p>
+<p>A CRC is performed by running a set of calculations on a dataset both before and after a transmission. The two calculated values are then compared for equality. If the values are the same, then the transmission is deemed successful; if different, then something in the transmission went wrong.</p>
+<p>A device can be set to send a CRC value by enabling its chunk data setting.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// Enable chunk data and the CRC chunk</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">INodeMap</span><span class="o">*</span><span class="w"> </span><span class="n">pNodeMap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetNodeMap</span><span class="p">();</span>
+</span><span id="line-4"><span class="w">    </span>
+</span><span id="line-5"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CBooleanPtr</span><span class="w"> </span><span class="n">pChunkModeActive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"ChunkModeActive"</span><span class="p">);</span>
+</span><span id="line-6"><span class="w">    </span><span class="n">pChunkModeActive</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+</span><span id="line-7"><span class="w">    </span>
+</span><span id="line-8"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CEnumerationPtr</span><span class="w"> </span><span class="n">pChunkSelector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"ChunkSelector"</span><span class="p">);</span>
+</span><span id="line-9"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CEnumEntryPtr</span><span class="w"> </span><span class="n">pCRC</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pChunkSelector</span><span class="o">-&gt;</span><span class="n">GetEntryByname</span><span class="p">(</span><span class="s">"CRC"</span><span class="p">);</span>
+</span><span id="line-10"><span class="w">    </span><span class="n">pChunkSelector</span><span class="o">-&gt;</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">pCRC</span><span class="o">-&gt;</span><span class="n">GetValue</span><span class="p">());</span>
+</span><span id="line-11"><span class="w">    </span>
+</span><span id="line-12"><span class="w">    </span><span class="n">GenApi</span><span class="o">::</span><span class="n">CBooleanPtr</span><span class="w"> </span><span class="n">pChunkEnable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pNodeMap</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"ChunkEnable"</span><span class="p">);</span>
+</span><span id="line-13"><span class="w">    </span><span class="n">pChunkEnable</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+</span><span id="line-14"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p>The data can then be checked by verifying the CRC.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// Verifying a buffer's data</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">Arena</span><span class="o">::</span><span class="n">IBuffer</span><span class="o">*</span><span class="w"> </span><span class="n">pBuffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetBuffer</span><span class="p">(</span><span class="n">timeout</span><span class="p">);</span>
+</span><span id="line-4"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">pBuffer</span><span class="o">-&gt;</span><span class="n">VerifyCRC</span><span class="p">())</span>
+</span><span id="line-5"><span class="w">    </span><span class="p">{</span>
+</span><span id="line-6"><span class="w">        </span><span class="c1">// data not complete</span>
+</span><span id="line-7"><span class="w">    </span><span class="p">}</span>
+</span><span id="line-8"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::CalculateCRC</p></li>
+<li><p><a class="reference internal" href="cpp_arena_ibuffer.html#class_arena_1_1_i_buffer"><span class="std std-ref">Arena::IBuffer</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>May throw GenICam::GenericException or other derived exception.</p></li>
+<li><p>Throws an exception if chunk data disabled or not present, or if CRC chunk disabled.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the calculated CRC value equals the one sent from the device</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="id2">
+<span id="id3"></span><h2>~ICompressedImage<a class="headerlink" href="#id2" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id2'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_i_compressed_image_1ab98a0a984f35f7d7a542562090a1ce3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE" title="Arena::ICompressedImage"><span class="n"><span class="pre">ICompressedImage</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">~ICompressedImage</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p>A destructor </p>
+</dd></dl>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#cpp-icompressedimage'" class="reference internal" href="#cpp-icompressedimage">ICompressedImage</a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImageE'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImageE"><code class="docutils literal notranslate"><span class="pre">Arena::ICompressedImage</span></code></a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage14GetPixelFormatEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage14GetPixelFormatEv"><code class="docutils literal notranslate"><span class="pre">GetPixelFormat()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage12GetTimestampEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage12GetTimestampEv"><code class="docutils literal notranslate"><span class="pre">GetTimestamp()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage14GetTimestampNsEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage14GetTimestampNsEv"><code class="docutils literal notranslate"><span class="pre">GetTimestampNs()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage26GetLeaderReceivedTimestampEv"><code class="docutils literal notranslate"><span class="pre">GetLeaderReceivedTimestamp()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage7GetDataEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage7GetDataEv"><code class="docutils literal notranslate"><span class="pre">GetData()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage13GetSizeFilledEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage13GetSizeFilledEv"><code class="docutils literal notranslate"><span class="pre">GetSizeFilled()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage14GetPayloadSizeEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage14GetPayloadSizeEv"><code class="docutils literal notranslate"><span class="pre">GetPayloadSize()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage15GetSizeOfBufferEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage15GetSizeOfBufferEv"><code class="docutils literal notranslate"><span class="pre">GetSizeOfBuffer()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage10GetFrameIdEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage10GetFrameIdEv"><code class="docutils literal notranslate"><span class="pre">GetFrameId()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage14GetPayloadTypeEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage14GetPayloadTypeEv"><code class="docutils literal notranslate"><span class="pre">GetPayloadType()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage12HasImageDataEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage12HasImageDataEv"><code class="docutils literal notranslate"><span class="pre">HasImageData()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage12HasChunkDataEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage12HasChunkDataEv"><code class="docutils literal notranslate"><span class="pre">HasChunkData()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage11AsChunkDataEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage11AsChunkDataEv"><code class="docutils literal notranslate"><span class="pre">AsChunkData()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage12IsIncompleteEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage12IsIncompleteEv"><code class="docutils literal notranslate"><span class="pre">IsIncomplete()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage20DataLargerThanBufferEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage20DataLargerThanBufferEv"><code class="docutils literal notranslate"><span class="pre">DataLargerThanBuffer()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImage9VerifyCRCEv'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImage9VerifyCRCEv"><code class="docutils literal notranslate"><span class="pre">VerifyCRC()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena16ICompressedImageD0Ev'" class="reference internal" href="#_CPPv4N5Arena16ICompressedImageD0Ev"><code class="docutils literal notranslate"><span class="pre">~ICompressedImage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#getpixelformat'" class="reference internal" href="#getpixelformat">GetPixelFormat</a></li>
+<li><a :data-current="activeSection === '#gettimestamp'" class="reference internal" href="#gettimestamp">GetTimestamp</a></li>
+<li><a :data-current="activeSection === '#gettimestampns'" class="reference internal" href="#gettimestampns">GetTimestampNs</a></li>
+<li><a :data-current="activeSection === '#getleaderreceivedtimestamp'" class="reference internal" href="#getleaderreceivedtimestamp">GetLeaderReceivedTimestamp</a></li>
+<li><a :data-current="activeSection === '#getdata'" class="reference internal" href="#getdata">GetData</a></li>
+<li><a :data-current="activeSection === '#getsizefilled'" class="reference internal" href="#getsizefilled">GetSizeFilled</a></li>
+<li><a :data-current="activeSection === '#getpayloadsize'" class="reference internal" href="#getpayloadsize">GetPayloadSize</a></li>
+<li><a :data-current="activeSection === '#getsizeofbuffer'" class="reference internal" href="#getsizeofbuffer">GetSizeOfBuffer</a></li>
+<li><a :data-current="activeSection === '#getframeid'" class="reference internal" href="#getframeid">GetFrameId</a></li>
+<li><a :data-current="activeSection === '#getpayloadtype'" class="reference internal" href="#getpayloadtype">GetPayloadType</a></li>
+<li><a :data-current="activeSection === '#hasimagedata'" class="reference internal" href="#hasimagedata">HasImageData</a></li>
+<li><a :data-current="activeSection === '#haschunkdata'" class="reference internal" href="#haschunkdata">HasChunkData</a></li>
+<li><a :data-current="activeSection === '#aschunkdata'" class="reference internal" href="#aschunkdata">AsChunkData</a></li>
+<li><a :data-current="activeSection === '#isincomplete'" class="reference internal" href="#isincomplete">IsIncomplete</a></li>
+<li><a :data-current="activeSection === '#datalargerthanbuffer'" class="reference internal" href="#datalargerthanbuffer">DataLargerThanBuffer</a></li>
+<li><a :data-current="activeSection === '#verifycrc'" class="reference internal" href="#verifycrc">VerifyCRC</a></li>
+<li><a :data-current="activeSection === '#id2'" class="reference internal" href="#id2">~ICompressedImage</a></li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>
