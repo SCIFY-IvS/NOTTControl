@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>_device module | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="_device module | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="_device module | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="arena_api__node.html" rel="next" title="_node module"/>
+<link href="arena_api_system.html" rel="prev" title="system module"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="py.html">Arena Python API</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="arena_api.html">arena_api package</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">_device module</span>
+</nav>
+<div id="content" role="main">
+<section id="module-arena_api._device">
+<span id="device-module"></span><h1>_device module<a class="headerlink" href="#module-arena_api._device" title="Link to this heading"><span>#</span></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="arena_api._device.Device">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">arena_api._device.</span></span><span class="sig-name descname"><span class="pre">Device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hxdevice</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device'"><span>#</span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Devices constitute the core of the <code class="docutils literal notranslate"><span class="pre">Arena</span> <span class="pre">SDK</span></code>, providing the means to
+interacting with physical devices. They are created and
+destroyed via <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code>
+and <code class="docutils literal notranslate"><span class="pre">system.destroy_device()</span></code>.</p>
+<p>A device manages its images and chunk data , events,
+and node maps by:</p>
+<ul class="simple">
+<li><p>Starting and stopping the stream (<code class="docutils literal notranslate"><span class="pre">device.start_stream()</span></code>,    <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code>),</p></li>
+<li><p>retrieving and requeuing image buffers and chunk data buffers    (<code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code>, <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>). <code class="docutils literal notranslate"><span class="pre">Buffer</span></code>    instances could contain image data only or image data appended    with chunkdata,</p></li>
+<li><p>handling events (<code class="docutils literal notranslate"><span class="pre">device.initialize_events()</span></code>,    <code class="docutils literal notranslate"><span class="pre">device.deinitialize_events()</span></code>, <code class="docutils literal notranslate"><span class="pre">device.wait_on_event()</span></code>),</p></li>
+<li><p>and providing access to its node maps (<code class="docutils literal notranslate"><span class="pre">tl_device_nodemap</span></code>,    <code class="docutils literal notranslate"><span class="pre">tl_stream_nodemap</span></code> , <code class="docutils literal notranslate"><span class="pre">tl_interface_nodemap</span></code>).</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Must be destroyed; otherwise, memory will leak.</p></li>
+<li><p>You may not import <code class="docutils literal notranslate"><span class="pre">Device</span></code> nor create it directly. Instead, use     <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code> to retreave <code class="docutils literal notranslate"><span class="pre">Device</span></code> instances.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hxdevice</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.__init__" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.__init__'"><span>#</span></a></dt>
+<dd></dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.DEFAULT_NUM_BUFFERS">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DEFAULT_NUM_BUFFERS</span></span><a class="headerlink" href="#arena_api._device.Device.DEFAULT_NUM_BUFFERS" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.DEFAULT_NUM_BUFFERS'"><span>#</span></a></dt>
+<dd><p>Number of internal buffers to use in the acquisition engine. The
+default value is <code class="docutils literal notranslate"><span class="pre">10</span></code>, and the minimum accepted value is <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns the current default number of buffers.</p>
+</dd>
+<dt class="field-even">Setter<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sets the default number of buffers.</p>
+</dd>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+<p>The streaming underlying engine has an input and an output queue.
+The size of both queues is determined by
+<code class="docutils literal notranslate"><span class="pre">device.DEFAULT_NUM_BUFFERS</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>It is recommended to keep this value relatively small.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.GET_BUFFER_TIMEOUT_MILLISEC">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">GET_BUFFER_TIMEOUT_MILLISEC</span></span><a class="headerlink" href="#arena_api._device.Device.GET_BUFFER_TIMEOUT_MILLISEC" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.GET_BUFFER_TIMEOUT_MILLISEC'"><span>#</span></a></dt>
+<dd><p>Maximum time to wait for a buffer. The default value is
+<code class="docutils literal notranslate"><span class="pre">math.inf</span></code>, and the minimum accepted value is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns the current default number of buffers.</p>
+</dd>
+<dt class="field-even">Setter<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sets the default number of buffers.</p>
+</dd>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int , float infinity</p>
+</dd>
+</dl>
+<p>The value zero will return a buffer(s) if there is a ready buffer(s)
+in the output queue, otherwise, a <code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code> will be raised.
+<code class="docutils literal notranslate"><span class="pre">device.GET_BUFFER_TIMEOUT_MILLISEC</span></code> initial value is <code class="docutils literal notranslate"><span class="pre">math.inf</span></code>
+which is a float; however, <code class="docutils literal notranslate"><span class="pre">device.GET_BUFFER_TIMEOUT_MILLISEC</span></code> only
+accepts <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">math.inf</span></code> values.</p>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.WAIT_ON_EVENT_TIMEOUT_MILLISEC">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WAIT_ON_EVENT_TIMEOUT_MILLISEC</span></span><a class="headerlink" href="#arena_api._device.Device.WAIT_ON_EVENT_TIMEOUT_MILLISEC" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.WAIT_ON_EVENT_TIMEOUT_MILLISEC'"><span>#</span></a></dt>
+<dd><p>Maximum time to wait for an event to occur. The default value is
+<code class="docutils literal notranslate"><span class="pre">math.inf</span></code>, and the minimum accepted value is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns the current default timeout to wait for an event.</p>
+</dd>
+<dt class="field-even">Setter<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sets the default timeout to wait for an event.</p>
+</dd>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int , float infinity</p>
+</dd>
+</dl>
+<p>The value zero will return an event if there is a ready event
+in the events output queue, otherwise, a <code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code> will be raised.
+<code class="docutils literal notranslate"><span class="pre">device.WAIT_ON_EVENT_TIMEOUT_MILLISEC</span></code> initial value is <code class="docutils literal notranslate"><span class="pre">math.inf</span></code>
+which is a float; however <code class="docutils literal notranslate"><span class="pre">device.WAIT_ON_EVENT_TIMEOUT_MILLISEC</span></code> only
+accepts <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">math.inf</span></code> values.
+<strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.start_stream">
+<span class="sig-name descname"><span class="pre">start_stream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">number_of_buffers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.start_stream"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.start_stream" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.start_stream'"><span>#</span></a></dt>
+<dd><blockquote>
+<div><p>Causes the device to begin streaming image/chunk data buffers.
+It must be called before image or chunk data buffers are
+retrieved via <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code> otherwise, a <code class="docutils literal notranslate"><span class="pre">BaseException</span></code>
+will be raised.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p>number_of_buffers :</p>
+<blockquote>
+<div><p>Number of internal buffers to use in the acquisition engine.            The default value is <code class="docutils literal notranslate"><span class="pre">None</span></code>, and the minimum accepted            value is <code class="docutils literal notranslate"><span class="pre">1</span></code>. It can be:</p>
+<ul class="simple">
+<li><p>A positive integer. Relatively small numbers are                 recommended. Zero or a negative int values will raise                <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> exception.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>. This is the default value, which is                 equivalent to                <code class="docutils literal notranslate"><span class="pre">device.start_stream(device.DEFAULT_NUM_BUFFERS)</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code> is zero or a negative intger.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code> type is not int.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p>None</p></li>
+</ul>
+</dd>
+</dl>
+<p>Basically, this method prepares and starts the
+underlying streaming engine. The streaming engine primarily
+consists of a number of buffers, an input and an output queue,
+and a worker thread to run off of the main thread.
+All buffers are first placed in the input queue. When a
+buffer reaches its turn, it is filled with data.
+Once complete, it is moved to the output queue.
+At this point a buffer might be retrieved by the user by
+calling <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code> and then returned
+to the input queue by calling <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.
+More specifically:</p>
+<ul class="simple">
+<li><p>allocates and announces a number of buffers according to        the <code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code> parameter.</p></li>
+<li><p>pushes all buffers to the input queue.</p></li>
+<li><p>opens a stream channel socket.</p></li>
+<li><p>configures the destination IP and port on the device.</p></li>
+<li><p>fires a dummy packet to help with firewalls.</p></li>
+<li><p>requests a test packet to ensure configured packet size is        appropriate.</p></li>
+<li><p>starts the worker thread and begins listening for packets        related to the acquisition engine.</p></li>
+<li><p>has the device lock out certain features        (e.g. ‘Width’, ‘Height’) that cannot be changed during the stream.</p></li>
+<li><p>executes the <code class="docutils literal notranslate"><span class="pre">AcquisitionStart</span></code> feature in order to have the        device start sending packets.</p></li>
+</ul>
+<p>All stream configurations must be completed before starting        the stream. This includes the buffer        handling mode <code class="docutils literal notranslate"><span class="pre">StreamBufferHandlingMode</span></code> node found on the        stream node map <code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code>. Setting the        buffer handling mode configures what the streaming engine        does with buffers as they are filled and moved between        queues. There are three modes to choose from:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OldestFirst</span></code> node is the default buffer handling mode.        As buffers are filled with data, they get pushed to the back        of the output queue. When a buffer is requested        <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code>, the buffer at the front of the queue is        returned. If there are no input buffers available, the next        incoming buffer is dropped and the lost frame count        <code class="docutils literal notranslate"><span class="pre">StreamLostFrameCount</span></code> node value is incremented.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OldestFirstOverwrite</span></code> node is similar to <code class="docutils literal notranslate"><span class="pre">OldestFirst</span></code>        except for what happens when there are no input buffers.        Instead of dropping a buffer, the oldest buffer in the        output queue gets returned to the input queue so that its data        can be overwritten.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NewestOnly</span></code> node only ever has a single buffer in the output        queue. If a second buffer gets placed into the output        queue, the older buffer gets returned to the back of the input        queue. If there are no input buffers available, the next image        is dropped and the lost frame count <code class="docutils literal notranslate"><span class="pre">StreamLostFrameCount</span></code>        node value is incremented.</p></li>
+</ul>
+<p>There are three ways to start and stop stream:</p>
+<blockquote>
+<div><ul>
+<li><dl>
+<dt>As a regular function call:</dt><dd><p>With this way, the user has control over when to call                <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code>. For example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">start_stream</span><span class="p">()</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># do something like grab a buffer</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="n">buffer</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># do more stuff</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">stop_stream</span><span class="p">()</span>
+</span></code></pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><p>As a context manager:</p>
+<blockquote>
+<div><p>This will call <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code> automatically                when the context manager exits. For example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">device</span><span class="o">.</span><span class="n">start_stream</span><span class="p">():</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># do something like grab a buffer</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">buffer</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># do more stuff</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># device.stop_stream() is already called at this point</span>
+</span></code></pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>As a regular function call but without calling a stop on the            stream:</p>
+<blockquote>
+<div><p>This will call <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code>                automatically when <code class="docutils literal notranslate"><span class="pre">system.destroy_device()</span></code> is called.                For example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arena_api.system</span><span class="w"> </span><span class="kn">import</span> <span class="n">system</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">devices</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">create_device</span><span class="p">()</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="n">my_device</span> <span class="o">=</span> <span class="n">devices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">start_stream</span><span class="p">()</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># do something like grab a buffer</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="n">buffer</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-7"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+</span><span id="line-8"><span class="gp">&gt;&gt;&gt; </span><span class="n">system</span><span class="o">.</span><span class="n">destory_device</span><span class="p">(</span><span class="n">my_device</span><span class="p">)</span>
+</span><span id="line-9"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># device.stop_stream() is already called at this point</span>
+</span></code></pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Stream must already be configured prior to call.</p></li>
+<li><p>Updates write access to certain nodes.</p></li>
+<li><p>May only be called once per stream without stopping.</p></li>
+<li><p>Minimum number of buffers is <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.stop_stream">
+<span class="sig-name descname"><span class="pre">stop_stream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.stop_stream"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.stop_stream" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.stop_stream'"><span>#</span></a></dt>
+<dd><p>Stops the device from streaming image/chunk data buffers and
+cleans up the stream. Reverses the set up of the stream:</p>
+<ul class="simple">
+<li><p>Stops the worker thread.</p></li>
+<li><p>Shuts down the stream channel socket.</p></li>
+<li><p>Executes the <code class="docutils literal notranslate"><span class="pre">AcquisitionStop</span></code> feature in order to stop        the device from sending packets.</p></li>
+<li><p>Has the device unlock features that had been locked        for streaming (e.g. <code class="docutils literal notranslate"><span class="pre">Width</span></code>, <code class="docutils literal notranslate"><span class="pre">Height</span></code>).</p></li>
+<li><p>Revokes all buffers and cleans up their allocated memory</p></li>
+</ul>
+<dl class="simple">
+<dt><strong>Args</strong>:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<p>Buffers used internally are allocated when the stream has
+started <code class="docutils literal notranslate"><span class="pre">device.start_stream()</span></code> and deallocated when it
+has stopped <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code>. If an image has been
+retrieved <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code>, it can be copied
+<code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code> or saved before stopping the
+stream. If image data were accessed after stopping the
+stream, the memory would be deallocated and the behavior
+undefined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Is an optional to call. Check <code class="docutils literal notranslate"><span class="pre">device.start_stream()</span></code>        documentation.</p></li>
+<li><p>Updates write access to certain nodes.</p></li>
+<li><p>Disallows retrieval of image/chunk data from device.</p></li>
+<li><p>Deallocates image/chunk data that has not been copied to        memory or disk.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.get_buffer">
+<span class="sig-name descname"><span class="pre">get_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">number_of_buffers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.get_buffer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.get_buffer" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.get_buffer'"><span>#</span></a></dt>
+<dd><p>Retrieves, from the device, a <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instance from the        buffer output queue. The function must be called after the        stream has started <code class="docutils literal notranslate"><span class="pre">device.start_stream()</span></code>        and before the stream has stopped <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code>.        Retrieved buffers must be requeued <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>number_of_buffers:</p>
+<blockquote>
+<div><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> value that represents the number of                <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instances to retrieve. The default value                is <code class="docutils literal notranslate"><span class="pre">1</span></code>. Zero or a negative integer will cause a                 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> to throw.</p>
+</div></blockquote>
+<p>timeout: can be</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A positive <code class="docutils literal notranslate"><span class="pre">int</span></code> value that represents                the maximum time, in millisec, to wait for a buffer.                 The value zero will return a buffer(s) if there is a                ready buffer(s) in the output queue, otherwise, a                 <code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code> will be raised.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>. This is the parameter’s default value. The                function will use <code class="docutils literal notranslate"><span class="pre">device.GET_BUFFER_TIMEOUT_MILLISEC</span></code>                value instead –which has a default value of <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code> parameter is less than <code class="docutils literal notranslate"><span class="pre">1</span></code>             or greater than the number of buffers with which the stream            has started.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> is a negative integer.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code> type is not <code class="docutils literal notranslate"><span class="pre">int</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> type is not <code class="docutils literal notranslate"><span class="pre">int</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ArenaSDK</span></code> is not able to get a buffer(s) before             the timeout expiration.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BaseException</span></code> :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code> is called before starting the            stream <code class="docutils literal notranslate"><span class="pre">device.start_stream()</span></code>.</p></li>
+<li><p>if the returned buffer list size is &lt; <code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instance to manage the next buffer in the        output queue, if <code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code> is <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p>A list of <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instances, to manage the next buffers        in the output queue, The list size is equal to        <code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code>.</p></li>
+</ul>
+<p>Retrieving multiple buffers by setting <code class="docutils literal notranslate"><span class="pre">number_of_buffers</span></code>        to &gt; <code class="docutils literal notranslate"><span class="pre">1</span></code>, is the same as calling <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code>        in a for loop and getting one buffer in each iteration.</p>
+<p>Retrieving multiple buffers will use the same timeout to wait        for each buffer.</p>
+<p>The data returned may represent different payload types:</p>
+<ul class="simple">
+<li><p>an image without chunk,</p></li>
+<li><p>an image with chunk, or</p></li>
+<li><p>just chunk data.</p></li>
+</ul>
+<p>Note that a buffer of chunk data payload type may contain        image data, but cannot be cast to an image because the image        data is treated as a chunk.</p>
+<p>The payload type can be retrieved via <code class="docutils literal notranslate"><span class="pre">Buffer.payload_type</span></code>,        which returns an enum <code class="docutils literal notranslate"><span class="pre">enums.PayloadType</span></code>.</p>
+<p>When called, <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code> checks the output queue        for image/chunk data, grabbing the first buffer(s) in the queue.        If nothing is in the output queue, the call will wait        until something arrives. If nothing arrives before expiration        of the timeout, a <code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code> is thrown.</p>
+<p>This method is a blocking call. If it is called with a timeout of        20 seconds and nothing arrives in the output queue, then        its thread will be blocked for the full 20 seconds.        However, as the timeout is a maximum, as soon as        something arrives in the output queue, it will be returned,        not waiting for the full timeout. A timeout         value of <code class="docutils literal notranslate"><span class="pre">0</span></code> ensures the call will not block, throwing instead        of waiting if nothing is in the output queue.</p>
+<p>It is a best practice to requeue buffers with         <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code> as soon as they are no longer needed.        If image data is needed for longer         (i.e. for processing), it is recommended to copy         the data <code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code> and requeue the buffer.</p>
+<p>** ————————————————-</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">Device.start_stream()</span></code> number of buffers parameter</dt><dd><p>VS</p>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">Device.get_buffer()</span></code> number of buffers parameter</p>
+<p>————————————————- **</p>
+<p>You can start stream with 30 buffers:</p>
+<blockquote>
+<div><p>Buffer available without requeue           = 30 buffers</p>
+<p>Buffers taken out and needs to be requeued = 0 buffers</p>
+</div></blockquote>
+<ul>
+<li><p>If you call <code class="docutils literal notranslate"><span class="pre">Device.get_buffer()</span></code> with no arguments to get one buffer:</p>
+<blockquote>
+<div><p>Buffer available without requeue           = 29 buffers</p>
+<p>Buffers taken out and needs to be requeued = 1 buffers</p>
+</div></blockquote>
+</li>
+<li><p>If you call <code class="docutils literal notranslate"><span class="pre">Device.requeue_buffer(buffer)</span></code> passing one buffer:</p>
+<blockquote>
+<div><p>Buffer available without requeue           = 30 buffers</p>
+<p>Buffers taken out and needs to be requeued = 0 buffers</p>
+</div></blockquote>
+</li>
+<li><p>If you call <code class="docutils literal notranslate"><span class="pre">Device.get_buffer(5)</span></code> to get 5 buffers then:</p>
+<blockquote>
+<div><p>Buffer available without requeue           = 25 buffers</p>
+<p>Buffers taken out and needs to be requeued = 5 buffers</p>
+</div></blockquote>
+</li>
+<li><p>If you call <code class="docutils literal notranslate"><span class="pre">Device.requeue_buffer(list_of_4_buffers)</span></code> then:</p>
+<blockquote>
+<div><p>Buffer available without requeue           = 29 buffers</p>
+<p>Buffers taken out and needs to be requeued = 1 buffers</p>
+</div></blockquote>
+</li>
+<li><p>If you call``Device.get_buffer(29)`` to get 29 buffers then:</p>
+<blockquote>
+<div><p>Buffer available without requeue           = 0 buffers</p>
+<p>Buffers taken out and needs to be requeued = 30 buffers</p>
+</div></blockquote>
+</li>
+<li><p>If you call <code class="docutils literal notranslate"><span class="pre">Device.get_buffer(_)</span></code> with any number of buffers then:</p>
+<blockquote>
+<div><p>The call to to the function will wait forever for a
+buffer to be requeued :(</p>
+</div></blockquote>
+</li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Does not guarantee valid data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instance(s) should be requeued        <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+</ul>
+<p><strong>—————————————————————–</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.requeue_buffer">
+<span class="sig-name descname"><span class="pre">requeue_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.requeue_buffer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.requeue_buffer" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.requeue_buffer'"><span>#</span></a></dt>
+<dd><p>Relinquishes control of a buffer(s) back to Arena.         It must be called after a buffer(s) has been retrieved         <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code>.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p>buffers:</p>
+<blockquote>
+<div><p>The buffer(s) to requeue. It can be:</p>
+<ul class="simple">
+<li><p>A list of <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instances</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+<p><strong>Raises</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffers</span></code> is an empty list.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffers</span></code> is not a list of <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> nor a <code class="docutils literal notranslate"><span class="pre">Buffer</span></code>             instance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffers</span></code> is a list but one or more element is not            of <code class="docutils literal notranslate"><span class="pre">Buffer</span></code> type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>When called, <code class="docutils literal notranslate"><span class="pre">device.get_buffer()</span></code> deallocates any lazily        instantiated memory and returns the internal buffer        to the acquisition engine’s input queue, where it can be        filled with new data. If enough buffers have been removed from        the acquisition engine (i.e. not requeued), it is possible to
+starve the acquisition engine. If this happens and depending        on the buffer handling mode <code class="docutils literal notranslate"><span class="pre">StreamBufferHandlingMode</span></code> node,        data may start being dropped or buffers may start being recycled.</p>
+<p>Best practices recommends that buffers be requeued as soon        as they are no longer needed. If image data is needed for        longer (i.e. for processing), it is         recommended to copy the data <code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code>         and requeue the buffer.</p>
+<p>It is important to only call <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>         on buffers retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance , and        not on images created through <code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Used only on buffers retrieved from a device, not on         buffers created through the buffer factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.initialize_events">
+<span class="sig-name descname"><span class="pre">initialize_events</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.initialize_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.initialize_events" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.initialize_events'"><span>#</span></a></dt>
+<dd><p>Causes the underlying events engine to start listening for        events. It must be called before waiting on events        <code class="docutils literal notranslate"><span class="pre">device.wait_on_event()</span></code>. The event infrastructure must be        turned off <code class="docutils literal notranslate"><span class="pre">device.deinitialize_events()</span></code> when no longer needed.</p>
+<p><strong>Args</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>The underlying events engine works very similarly to the         acquisition engine, except that event data is processed         instead of image data. It consists of 100 buffers, an input         and an output queue, and event registration information.         When an event fires, the events engine takes an event buffer        from the input queue, stores all relevant data, and        places it in the output queue. When <code class="docutils literal notranslate"><span class="pre">device.wait_on_event()</span></code>         is called, the engine takes the buffer from the output queue,         processes its data, and returns it to the input queue.</p>
+<p>More specifically, <code class="docutils literal notranslate"><span class="pre">device.initialize_events()</span></code>:</p>
+<ul class="simple">
+<li><p>Allocates and registers 100 buffers for the events engine.</p></li>
+<li><p>Places all buffers into the input queue.</p></li>
+<li><p>Opens a message channel socket.</p></li>
+<li><p>Configures the IP and port, and sets the packet size.</p></li>
+<li><p>Fires a dummy packet to help with firewalls.</p></li>
+<li><p>Starts the worker thread listening for event packets.</p></li>
+</ul>
+<p>Events are transmitted from the device through the         <code class="docutils literal notranslate"><span class="pre">GigE</span> <span class="pre">Vision</span></code> message channel. Arena processes event data        internally, which it attaches to <code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code>         using a <code class="docutils literal notranslate"><span class="pre">GenApi::EventAdapter</span></code>. The appropriate nodes are         then updated in the node map. It can be helpful to incorporate        callbacks to be notified when these events occur.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Event infrastructure must be deinitialized via         <code class="docutils literal notranslate"><span class="pre">device.deinitialize_events</span></code></p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.deinitialize_events">
+<span class="sig-name descname"><span class="pre">deinitialize_events</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.deinitialize_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.deinitialize_events" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.deinitialize_events'"><span>#</span></a></dt>
+<dd><p>Stops the underlying events engine from listening for         messages, shutting it down and cleaning it up.        It should be called only after the events infrastructure         has been initialized with <code class="docutils literal notranslate"><span class="pre">device.initialize_events()</span></code> and after        all events have been processed with <code class="docutils literal notranslate"><span class="pre">device.wait_on_event()</span></code>.</p>
+<p><strong>Args</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>Roughly speaking, <code class="docutils literal notranslate"><span class="pre">device.deinitialize_events()</span></code> takes all         necessary steps to undoing and cleaning up the event        infrastructure’s initialization. It does the following:</p>
+<ul class="simple">
+<li><p>Stops the listening thread.</p></li>
+<li><p>Closes the message channel socket.</p></li>
+<li><p>Unregisters all event buffers and deallocates their memory.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Event infrastructure must be deinitialized.</p></li>
+<li><p>Stops events processing.</p></li>
+<li><p>Deallocates event data that has not yet been processed.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.wait_on_event">
+<span class="sig-name descname"><span class="pre">wait_on_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.wait_on_event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.wait_on_event" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.wait_on_event'"><span>#</span></a></dt>
+<dd><p>Waits for an event to occur in order to process its
+data. It must be called after the event infrastructure has been
+initialized <code class="docutils literal notranslate"><span class="pre">device.initialize_events()</span></code> and before it is
+deinitialized <code class="docutils literal notranslate"><span class="pre">device.deinitialize_events()</span></code></p>
+<p><strong>Args</strong>:</p>
+<ul>
+<li><p>timeout: can be</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A positive <code class="docutils literal notranslate"><span class="pre">int</span></code> value that represents            the maximum time, in millisec, to wait for an event.            The value zero will return an event if there is a            ready event in the output queue, otherwise, a             <code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code> will be raised.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>. This is the parameter’s default value. The            function will use <code class="docutils literal notranslate"><span class="pre">device.WAIT_ON_EVENT_TIMEOUT_MILLISEC</span></code>            value instead –which has a default value of <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Raises</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ArenaSDK</span></code> is not able to get an event before             the timeout expiration</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>Event processing has been designed to largely abstract away its
+complexities. When an event occurs, the data is stored        in an event buffer and placed on the output queue. This        method causes the data to be processed, updating all relevant        nodes appropriately. This is why <code class="docutils literal notranslate"><span class="pre">device.wait_on_event()</span></code>         does not return any event data; when the data is processed,         nodes are updated, which can then be queried for        information through the node map. This is also why callbacks        work so well with the events infrastructure; they provide a        method of accessing nodes of interest as they change.</p>
+<p>When called, <code class="docutils literal notranslate"><span class="pre">device.wait_on_event()</span></code> checks the output         queue for event data to process, grabbing the first buffer         from the queue. If nothing is in the output queue, the call         will wait until an event arrives. If nothing arrives before         expiration of the timeout, a GenICam::TimeoutException is thrown.</p>
+<p>This method is a blocking call. If it is called with a        timeout of 20 seconds and nothing arrives in the output queue,         then its thread will  be blocked for the full 20 seconds.         However, as the timeout is a maximum, when an event arrives in        the output queue, the event will process, not waiting for the         full timeout. A timeout value of 0 ensures the call will not        block, throwing instead of waiting if nothing is in the        output queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Event data processed internally.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.nodemap">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nodemap</span></span><a class="headerlink" href="#arena_api._device.Device.nodemap" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.nodemap'"><span>#</span></a></dt>
+<dd><p>Used to access a device’s complete feature set of nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns main node map for the device.</p>
+</dd>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">arena_api._nodemap.Nodemap</span></code> instance.</p>
+</dd>
+</dl>
+<p>The node map is built from XMLs stored on the device itself.     The XML is downloaded and parsed before constructing and     initializing the node map. This node map describes and provides    access to all device features, and may vary from device to    device. LUCID products conform to the SFNC 2.3 specification.    Note that both chunk data and event data are updated on    this node map.</p>
+<p><code class="docutils literal notranslate"><span class="pre">arena_api</span></code> package provides access to five different node maps that    can be split into two groups:</p>
+<blockquote>
+<div><ul>
+<li><p>Software:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access            to information and settings through the software rather            than the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_system_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_interface_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_interface_nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>Device:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access to            information and settings through the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>device.tl_device_nodemap vs device.nodemap</strong>:</p>
+<blockquote>
+<div><p>The most noticeable difference between the two device node maps        is that the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> device node map <code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code>         has only a small set of features compared to the main node map         <code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code>. There are a few features that overlap.         For example, the difference between retrieving the serial number        <code class="docutils literal notranslate"><span class="pre">DeviceSerialNumber</span></code> is that using the main node map queries        the camera directly whereas the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map queries a set of         information cached at device creation. The result, however,         should be the same. Basically, the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map queries the         software for information whereas the main node map queries        the device.</p>
+</div></blockquote>
+<hr class="docutils"/>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Provides access to main node map <code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code>, which is not to be     confused with the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> device node map <code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code>.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.tl_device_nodemap">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tl_device_nodemap</span></span><a class="headerlink" href="#arena_api._device.Device.tl_device_nodemap" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.tl_device_nodemap'"><span>#</span></a></dt>
+<dd><p>Used to access a subset of cached device related nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map for the device</p>
+</dd>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">arean_api._nodemap.Nodemap</span></code> instance.</p>
+</dd>
+</dl>
+<p>Nodes in this node map include nodes related to:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Device discovery information.</p></li>
+<li><p>GigE Vision IP configuration information.</p></li>
+<li><p>The ability to select streams.</p></li>
+</ul>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">arena_api</span></code> package provides access to five different node maps that    can be split into two groups:</p>
+<blockquote>
+<div><ul>
+<li><p>Software:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access            to information and settings through the software rather            than the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_system_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_interface_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_interface_nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>Device:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access to            information and settings through the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>device.tl_device_nodemap vs device.nodemap</strong>:</p>
+<blockquote>
+<div><p>The most noticeable difference between the two device node maps        is that the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> device node map <code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code>         has only a small set of features compared to the main node map         <code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code>. There are a few features that overlap.         For example, the difference between retrieving the serial number        <code class="docutils literal notranslate"><span class="pre">DeviceSerialNumber</span></code> is that using the main node map queries        the camera directly whereas the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map queries a set of         information cached at device creation. The result, however,         should be the same. Basically, the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map queries the         software for information whereas the main node map queries        the device.</p>
+</div></blockquote>
+<hr class="docutils"/>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Provides access to the <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> device node map, not to be confused with</dt><dd><p>the main device node map <code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code>.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.tl_stream_nodemap">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tl_stream_nodemap</span></span><a class="headerlink" href="#arena_api._device.Device.tl_stream_nodemap" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.tl_stream_nodemap'"><span>#</span></a></dt>
+<dd><p>Used to access stream related nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map for the stream</p>
+</dd>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">arena_api._nodemap.Nodemap</span></code> instance.</p>
+</dd>
+</dl>
+<p>Nodes in this node map include nodes related to:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Stream ID and type.</p></li>
+<li><p>Buffer handling mode.</p></li>
+<li><p>Stream information such as the payload size or whether        the device is currently streaming.</p></li>
+<li><p>Stream statistics such as lost frames, announced buffers,        or missed packets.</p></li>
+</ul>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">arena_api</span></code> package provides access to five different node maps that    can be split into two groups:</p>
+<blockquote>
+<div><ul>
+<li><p>Software:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access            to information and settings through the software rather            than the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_system_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_interface_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_interface_nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>Device:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access to            information and settings through the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<hr class="docutils"/>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="arena_api._device.Device.tl_interface_nodemap">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tl_interface_nodemap</span></span><a class="headerlink" href="#arena_api._device.Device.tl_interface_nodemap" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.tl_interface_nodemap'"><span>#</span></a></dt>
+<dd><p>Used to access interface related nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map for the interface</p>
+</dd>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">arena_api._nodemap.Nodemap</span></code> instance.</p>
+</dd>
+</dl>
+<p>Nodes in this node map include nodes related to:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Interface discovery information</p></li>
+<li><p>Interface IP configuration information</p></li>
+<li><p>Ability to update and select devices</p></li>
+<li><p>Device discovery and IP configuration information</p></li>
+</ul>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">ArenaView</span></code> software or run <code class="docutils literal notranslate"><span class="pre">py_nodemaps_exploration.py</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">arena_api</span></code> package provides access to five different node maps that    can be split into two groups:</p>
+<blockquote>
+<div><ul>
+<li><p>Software:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access            to information and settings through the software rather            than the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_system_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_interface_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_interface_nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>Device:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access to            information and settings through the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<hr class="docutils"/>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.wait_for_next_leader">
+<span class="sig-name descname"><span class="pre">wait_for_next_leader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout_millisec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.wait_for_next_leader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.wait_for_next_leader" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.wait_for_next_leader'"><span>#</span></a></dt>
+<dd><p>Will wait until the leader for the next image buffer
+has arrived. It must be called after the stream has started
+and before the stream has stopped.
+This function can be used to determine when the host has received the
+leader for the next image buffer. Note that if the time that the camera has
+finished the exposure for the next buffer is desired, it is
+recommended to use the GenICam ExposureEnd Event instead.</p>
+<p><strong>Args</strong>:
+- timeout_millisec: can be</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A positive <code class="docutils literal notranslate"><span class="pre">int</span></code> value that represents</p></li>
+</ul>
+<p>the maximum time, in millisec, to wait for next buffer.
+The value zero will return a buffer if there is a
+ready buffer in the output queue, otherwise, a
+<code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code> will be raised.</p>
+</div></blockquote>
+<p><strong>Raises</strong>:
+- <code class="docutils literal notranslate"><span class="pre">TimeoutError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ArenaSDK</span></code> is not able to get next leader before</p></li>
+</ul>
+<p>the timeout expiration</p>
+</div></blockquote>
+<p><strong>Returns</strong>:
+- <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.reset_wait_for_next_leader">
+<span class="sig-name descname"><span class="pre">reset_wait_for_next_leader</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.reset_wait_for_next_leader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.reset_wait_for_next_leader" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.reset_wait_for_next_leader'"><span>#</span></a></dt>
+<dd><p>Clears any pending flag for a received
+leader event.</p>
+<p><strong>Returns</strong>:
+- <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api._device.Device.is_connected">
+<span class="sig-name descname"><span class="pre">is_connected</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/_device.html#Device.is_connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api._device.Device.is_connected" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api._device.Device.is_connected'"><span>#</span></a></dt>
+<dd><p>Returns true if a device has been opened and
+maintains a valid communication socket. The device is opened when
+system.create_device() is called. If the connection to the device
+is lost this will return false.</p>
+<p><strong>Returns</strong>:
+- <code class="docutils literal notranslate"><span class="pre">True</span></code> or <cite>False`</cite></p>
+</dd></dl>
+</dd></dl>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#arena_api._device.Device'" class="reference internal" href="#arena_api._device.Device"><code class="docutils literal notranslate"><span class="pre">Device</span></code></a><ul>
+<li><a :data-current="activeSection === '#arena_api._device.Device.__init__'" class="reference internal" href="#arena_api._device.Device.__init__"><code class="docutils literal notranslate"><span class="pre">Device.__init__()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.DEFAULT_NUM_BUFFERS'" class="reference internal" href="#arena_api._device.Device.DEFAULT_NUM_BUFFERS"><code class="docutils literal notranslate"><span class="pre">Device.DEFAULT_NUM_BUFFERS</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.GET_BUFFER_TIMEOUT_MILLISEC'" class="reference internal" href="#arena_api._device.Device.GET_BUFFER_TIMEOUT_MILLISEC"><code class="docutils literal notranslate"><span class="pre">Device.GET_BUFFER_TIMEOUT_MILLISEC</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.WAIT_ON_EVENT_TIMEOUT_MILLISEC'" class="reference internal" href="#arena_api._device.Device.WAIT_ON_EVENT_TIMEOUT_MILLISEC"><code class="docutils literal notranslate"><span class="pre">Device.WAIT_ON_EVENT_TIMEOUT_MILLISEC</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.start_stream'" class="reference internal" href="#arena_api._device.Device.start_stream"><code class="docutils literal notranslate"><span class="pre">Device.start_stream()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.stop_stream'" class="reference internal" href="#arena_api._device.Device.stop_stream"><code class="docutils literal notranslate"><span class="pre">Device.stop_stream()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.get_buffer'" class="reference internal" href="#arena_api._device.Device.get_buffer"><code class="docutils literal notranslate"><span class="pre">Device.get_buffer()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.requeue_buffer'" class="reference internal" href="#arena_api._device.Device.requeue_buffer"><code class="docutils literal notranslate"><span class="pre">Device.requeue_buffer()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.initialize_events'" class="reference internal" href="#arena_api._device.Device.initialize_events"><code class="docutils literal notranslate"><span class="pre">Device.initialize_events()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.deinitialize_events'" class="reference internal" href="#arena_api._device.Device.deinitialize_events"><code class="docutils literal notranslate"><span class="pre">Device.deinitialize_events()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.wait_on_event'" class="reference internal" href="#arena_api._device.Device.wait_on_event"><code class="docutils literal notranslate"><span class="pre">Device.wait_on_event()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.nodemap'" class="reference internal" href="#arena_api._device.Device.nodemap"><code class="docutils literal notranslate"><span class="pre">Device.nodemap</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.tl_device_nodemap'" class="reference internal" href="#arena_api._device.Device.tl_device_nodemap"><code class="docutils literal notranslate"><span class="pre">Device.tl_device_nodemap</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.tl_stream_nodemap'" class="reference internal" href="#arena_api._device.Device.tl_stream_nodemap"><code class="docutils literal notranslate"><span class="pre">Device.tl_stream_nodemap</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.tl_interface_nodemap'" class="reference internal" href="#arena_api._device.Device.tl_interface_nodemap"><code class="docutils literal notranslate"><span class="pre">Device.tl_interface_nodemap</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.wait_for_next_leader'" class="reference internal" href="#arena_api._device.Device.wait_for_next_leader"><code class="docutils literal notranslate"><span class="pre">Device.wait_for_next_leader()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.reset_wait_for_next_leader'" class="reference internal" href="#arena_api._device.Device.reset_wait_for_next_leader"><code class="docutils literal notranslate"><span class="pre">Device.reset_wait_for_next_leader()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api._device.Device.is_connected'" class="reference internal" href="#arena_api._device.Device.is_connected"><code class="docutils literal notranslate"><span class="pre">Device.is_connected()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>
