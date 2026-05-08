@@ -198,11 +198,17 @@ class HumInt(object):
 
     def disp_initialize_shm_cam_view(self):
         """
-        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR camera images.
-            - buffer_im; (frame shape); Infrared camera view of the latest readout. 
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
+            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout. 
+            - buffer_im_VIS_pup; (VIS pupil frame shape); Pupil plane visible camera view of the latest readout.
+            - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout. 
         """
-        self.buffer_im = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
+        self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
                                         shape=self.dark.master_full[0].shape)
+        self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
+                                        shape=)
+        self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
+                                        shape=)
 
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
