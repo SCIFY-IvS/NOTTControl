@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>system module | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="system module | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="system module | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="arena_api__device.html" rel="next" title="_device module"/>
+<link href="arena_api_enums.html" rel="prev" title="enums module"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="py.html">Arena Python API</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="arena_api.html">arena_api package</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">system module</span>
+</nav>
+<div id="content" role="main">
+<section id="module-arena_api.system">
+<span id="system-module"></span><h1>system module<a class="headerlink" href="#module-arena_api.system" title="Link to this heading"><span>#</span></a></h1>
+<p class="rubric">Constants</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system</span> <span class="pre">=</span> <span class="pre">_System()</span></code></p></li>
+</ul>
+<p class="rubric">Classes</p>
+<section id="system">
+<h2>_System<a class="headerlink" href="#system" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#system'"><span>#</span></a></h2>
+<blockquote>
+<div><p>The System is the entry point to the <code class="docutils literal notranslate"><span class="pre">Arena</span> <span class="pre">SDK</span></code>. The class
+is a singleton and an instance gets created when
+<code class="docutils literal notranslate"><span class="pre">arena_api</span></code> module is imported. Use
+<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">arena_api.system</span> <span class="pre">import</span> <span class="pre">system</span></code> to import the system instance.</p>
+<p>The class manages devices <code class="docutils literal notranslate"><span class="pre">Device</span></code> and the Transport Layer
+System node map <code class="docutils literal notranslate"><span class="pre">system.tl_system_nodemap</span></code> by :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Maintaing a list of enumerated devices <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code>,</p></li>
+<li><p>creating and destroying devices <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code> and    <code class="docutils literal notranslate"><span class="pre">system.destroy_device()</span></code>,</p></li>
+<li><p>and providing access to its node map <code class="docutils literal notranslate"><span class="pre">tl_system_nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>The instance of <code class="docutils literal notranslate"><span class="pre">System</span></code>, <code class="docutils literal notranslate"><span class="pre">system</span></code> is created when     <code class="docutils literal notranslate"><span class="pre">arena_api.system</span></code> module is imported the first time. Every     other import after that returns the same instance.</p></li>
+<li><p>You may not import <code class="docutils literal notranslate"><span class="pre">_System</span></code> nor create it directly. Instead, Import     the system instance as follows <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">arena_api.system</span> <span class="pre">import</span> <span class="pre">system</span></code>.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+<p>Properties:</p>
+<ul>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">DEVICE_INFOS_TIMEOUT_MILLISEC</span></code></dt><dd><dl>
+<dt>Time to wait for connected devices to respond. The default value</dt><dd><p>is <code class="docutils literal notranslate"><span class="pre">100</span></code> millisec.</p>
+<dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns the current timeout.</p>
+</dd>
+<dt class="field-even">setter<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sets the timeout. expects int or float.</p>
+</dd>
+<dt class="field-odd">type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+<p>When <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code> is called, the system broadcasts a discovery
+packet to all interfaces, waiting until the end of the timeout for any
+responses from enumerated devices.</p>
+<p>The GigE Vision spec requires devices respond to a broadcast discovery
+packet within one second unless set
+otherwise <code class="docutils literal notranslate"><span class="pre">device.get_node('DiscoveryAckDelay')</span></code>.</p>
+<p>LUCID devices are set to respond within 100 ms. Therefore, 100 works
+as an appropriate timeout value in many use cases.This response
+time can be customized through the <code class="docutils literal notranslate"><span class="pre">DiscoveryAckDelay</span></code> feature, if
+supported. The timeout value should reflect any such changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Slightly affects bandwidth usage due to the broadcasting of
+discovery packets.</p></li>
+<li><p>Discovers devices on all subnets, even when unable to communicate
+with them due to IP configuration.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">interface_infos</span></code></dt><dd><dl>
+<dt>A list of dictionaries that informs about interfaces.</dt><dd><p>Each dictionary represents an interface on the host.
+An interface info dictionary has the following keys: <code class="docutils literal notranslate"><span class="pre">ip</span></code>,     <code class="docutils literal notranslate"><span class="pre">subnetmask</span></code>, and <code class="docutils literal notranslate"><span class="pre">mac</span></code>. User changes to the    values of the dictionary will not reflect on the device.</p>
+<p><strong>ip</strong>: A string value that represets the IP address, in
+dot-decimal notation, of the interface on the host.
+An interface has its IP address, subnet mask, and MAC address checked
+through the Transport Layer Interface node map:
+<code class="docutils literal notranslate"><span class="pre">GevInterfaceIPAddress</span></code>, <code class="docutils literal notranslate"><span class="pre">GevInterfaceSubnetMask</span></code>,
+<code class="docutils literal notranslate"><span class="pre">GevInterfaceMACAddress</span></code>.</p>
+<p><strong>subnetmask</strong>: A string value that represets the subnet mask, in
+dot-decimal notation, of the interface on the host.
+An interface has its IP address, subnet mask, and MAC address checked
+through the Transport Layer Interface node map:
+<code class="docutils literal notranslate"><span class="pre">GevInterfaceIPAddress</span></code>, <code class="docutils literal notranslate"><span class="pre">GevInterfaceSubnetMask</span></code>,
+<code class="docutils literal notranslate"><span class="pre">GevInterfaceMACAddress</span></code>.</p>
+<p><strong>mac</strong>: A string value that represents the MAC address of the
+interface on the host.
+An interface has its IP address, subnet mask, and MAC address checked
+through the Transport Layer Interface node map:
+<code class="docutils literal notranslate"><span class="pre">GevInterfaceIPAddress</span></code>, <code class="docutils literal notranslate"><span class="pre">GevInterfaceSubnetMask</span></code>,
+<code class="docutils literal notranslate"><span class="pre">GevInterfaceMACAddress</span></code>.</p>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">device_infos</span></code></dt><dd><dl>
+<dt>A list of dictionaries used to create devices. Each dictionary</dt><dd><p>represents a discovered device on the network.
+A device info dictionary has the following keys: <code class="docutils literal notranslate"><span class="pre">model</span></code>,
+<code class="docutils literal notranslate"><span class="pre">vendor</span></code>, <code class="docutils literal notranslate"><span class="pre">serial</span></code>, <code class="docutils literal notranslate"><span class="pre">ip</span></code>, <code class="docutils literal notranslate"><span class="pre">subnetmask</span></code>,
+<code class="docutils literal notranslate"><span class="pre">defaultgateway</span></code>, <code class="docutils literal notranslate"><span class="pre">mac</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">dhcp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">persistentip</span></code>, <code class="docutils literal notranslate"><span class="pre">lla</span></code>, and <code class="docutils literal notranslate"><span class="pre">version</span></code>. User changes  the
+values of the dictionary will not reflect on the device.</p>
+<p><strong>model</strong>: A string value that represents the model name of the
+discovered device. Model names are used to differentiate
+between products. LUCID Vision model names: PHX050S-MC, PHX032S-CC,
+TRI032S-MC. The model name is the same as the one received
+in the GigE Vision discovery acknowledgement.</p>
+<p><strong>vendor</strong>: A string value that represents the vendor/manufacturer
+name of the discovered device.
+Vendor names differentiate between device vendors/manufacturers.
+LUCID devices return ‘LUCID Vision Labs’.
+The vendor name is the same as the one received
+in the GigE Vision discovery acknowledgement.</p>
+<p><strong>serial</strong>: A string value that represents the serial number of the
+discovered device.
+A serial number differentiates between devices.
+Each LUCID device has a unique serial number. LUCID serial numbers are
+numeric, but the serial numbers of other vendors may be alphanumeric.
+The serial number is the same as the one received in the GigE Vision
+discovery acknowledgement.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Serial numbers from different manufacturers may overlap.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>ip</strong>: A string value that represets the discovered device
+IP address on the network in dot-decimal notation. This IP
+address is the same as the one received in the GigE Vision
+discovery acknowledgement, but as a dot-separated string.
+The GigE Vision specification only allows for IPv4 IP addresses.
+A device may have its IP address, subnet mask, and default gateway
+assigned by LLA or DHCP, set as persistent, or temporarily forced.
+They can be checked through the main node map nodes:
+<code class="docutils literal notranslate"><span class="pre">GevCurrentIPAddress</span></code>, <code class="docutils literal notranslate"><span class="pre">GevCurrentSubnetMask</span></code>,
+<code class="docutils literal notranslate"><span class="pre">GevCurrentDefaultGateway</span></code>.</p>
+<ul class="simple">
+<li><p>DHCP <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationDHCP</span></code> and IP persistence    <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationPersistentIP</span></code> can be enabled/disabled    through the node map. If both are enabled, a device will default    to its persistent IP settings. If neither, it will default to LLA    <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationLLA</span></code>, which cannot be disabled.</p></li>
+<li><p>In order to configure a device to use a persistent IP    configuration, not only must IP persistence be enabled    <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationPersistentIP</span></code>, but    the IP address <code class="docutils literal notranslate"><span class="pre">GevPersistentIPAddress</span></code>,    subnet mask <code class="docutils literal notranslate"><span class="pre">GevPersistentSubnetMask</span></code>, and    default gateway <code class="docutils literal notranslate"><span class="pre">GevPersistentDefaultGateway</span></code> must be set.</p></li>
+<li><p>Forcing an IP  temporarily changes an IP address, subnet mask,    and default gateway of a device.    A forced IP configuration will reset on a device reboot    <code class="docutils literal notranslate"><span class="pre">DeviceReset</span></code>.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which    should be faster than LLA</p></li>
+</ul>
+<p><strong>subnetmask</strong>: a string value that represets the discovered device
+subnet mask on the network in dot-decimal notation. This subnet
+mask is the same as the one received in the GigE Vision
+discovery acknowledgement, but as a dot-separated string.
+The GigE Vision specification only allows for IPv4 subnet masks.
+A device may have its IP address, subnet mask, and
+default gateway assigned by LLA or DHCP, set as persistent,
+or temporarily forced. They can be checked through the
+main node map <code class="docutils literal notranslate"><span class="pre">GevCurrentIPAddress</span></code>, <code class="docutils literal notranslate"><span class="pre">GevCurrentSubnetMask</span></code>,
+<code class="docutils literal notranslate"><span class="pre">GevCurrentDefaultGateway</span></code>.</p>
+<ul class="simple">
+<li><p>DHCP <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationDHCP</span></code> and IP persistence    <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationPersistentIP</span></code> can be     enabled/disabled through the node map. If both are enabled, a    device will default to its persistent IP settings.    If neither, it will default to LLA <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationLLA</span></code>,    which cannot be disabled.</p></li>
+<li><p>In order to configure a device to use a persistent IP    configuration, not only must IP persistence be enabled     <code class="docutils literal notranslate"><span class="pre">GevCurrentIPConfigurationPersistentIP</span></code>,     but the IP address <code class="docutils literal notranslate"><span class="pre">GevPersistentIPAddress</span></code>,    subnet mask <code class="docutils literal notranslate"><span class="pre">GevPersistentSubnetMask</span></code>,     and default gateway <code class="docutils literal notranslate"><span class="pre">GevPersistentDefaultGateway</span></code> must be set.</p></li>
+<li><p>Forcing an IP temporarily changes an IP address,     subnet mask, and default gateway of a device. A forced IP     configuration will reset on a device reboot <code class="docutils literal notranslate"><span class="pre">DeviceReset</span></code>.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which     should be faster than LLA.</p></li>
+</ul>
+<p><strong>defaultgateway</strong>: A string value represents the default gateway    of the discovered device.</p>
+<p><strong>name</strong>: A string value that represents User-defined name of
+a device. If supported, it is a customizable string with a maximum
+of 16 bytes that can be used to identify a device <code class="docutils literal notranslate"><span class="pre">DeviceUserID</span></code>.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Not necessarily supported.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>dhcp</strong>: A bool value that represents whether DHCP is enabled
+on the discovered device. True if DHCP enabled Otherwise, false.</p>
+<p><strong>persistentip</strong>: A bool value that represents whether
+persistent IP is enabled on the discovered device. True if persistent
+IP enabled otherwise, false.</p>
+<p><strong>lla</strong>: A bool value that represents whether LLA is enabled on
+the device. True if LLA enabled  Otherwise, false.</p>
+<p><strong>version</strong>: A string value that represents the version of the device
+currently running on the device. For LUCID devices, this refers
+to firmware version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>This is not guaranteed to keep the order of device infos in the     list even if there is no change in the number of devices.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">tl_system_nodemap</span></code></dt><dd><p>Used to access system related node.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns <code class="docutils literal notranslate"><span class="pre">GenTL</span></code> node map for the system</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">arean_api.nodemap.Nodemap</span></code> instance.</p>
+</dd>
+</dl>
+<p>Nodes in this node map include nodes related to:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Arena</span> <span class="pre">SDK</span></code> information</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GenTL</span></code> and GEV versioning information</p></li>
+<li><p>The ability to update and select interfaces</p></li>
+<li><p>Interface discovery and IP configuration information</p></li>
+</ul>
+<p>Retrieves this node map without doing anything to initialize,     manage, or maintain it. This node map is initialized when     <code class="docutils literal notranslate"><span class="pre">arena_api</span></code> package is imported and deinitialized when the
+package is unloads. All available nodes can be viewed in
+<code class="docutils literal notranslate"><span class="pre">ArenaView</span></code> software or run <code class="docutils literal notranslate"><span class="pre">py_nodemaps_exploration.py</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">arena_api</span></code> package provides access to five different node maps that    can be splitted into two groups:</p>
+<blockquote>
+<div><ul>
+<li><p>Software:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access            to information and settings through the software rather            than the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_system_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system.tl_interface_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device.tl_interface_nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>Device:</p>
+<blockquote>
+<div><p>The following node maps describe and provide access to            information and settings through the device:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code></p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Methods:</p>
+<ul>
+<li><dl>
+<dt>create_device(self, device_infos)</dt><dd><p>Creates and initializes <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instance(s)        from device_infos argument. The device(s) must be destroyed        using <code class="docutils literal notranslate"><span class="pre">arena_api.system.destroy_device()</span></code> when no longer needed.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p>device_infos : can be</p>
+<blockquote>
+<div><ul>
+<li><p>A list of device info dicts which is obtained from                <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code>. Also, it can be a sliced list from                the full list returned from <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code>.</p></li>
+<li><p>A device info dict is acceptable in case the user                 wants to create one device from <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code>                 list.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>. This is the default value. The system                calls <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code> and create all of the                devices in the returned list.                 in other words, if these calls as the same:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system.create_device(system.device_infos)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</dt><dd><ul>
+<li><p>device_infos is an empty list.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</dt><dd><ul>
+<li><p>device_infos type is not a list of dicts, a dict, nor None.</p></li>
+<li><p>device_infos is a dict with MAC Address of a device                that is not on the network.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>BaseException :</dt><dd><ul>
+<li><p>device_info is a dict and <code class="docutils literal notranslate"><span class="pre">system.device_infos</span></code>                was not called.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p>A list of <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instances.</p></li>
+</ul>
+</dd>
+</dl>
+<p>When called, prepares each device for user interaction,
+opening the control channel socket and initializing all node
+maps. The returned device(s) are ready to stream images,
+send events, and read or customize features.</p>
+<p>A single process may only create a single device once, but a
+single device may be opened on multiple processes.
+The first process to create the device is given read-write
+access. Additional processes are given read-only access.
+With read-only access, processes can read features and
+receive images and events; they cannot, however, write
+values, start the image stream or initialize events.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>This is the only way <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code>        instances are created.</p></li>
+<li><p>Provides read-write access only to initial process that creates        the device; following processes given read-only access.</p></li>
+<li><p>Devices must be destroyed.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>select_device(self, devices)</dt><dd><p>Selects one <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instance        from devices list argument.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p>devices : can be</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A list of <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code></p></li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</dt><dd><ul>
+<li><p>devices is an empty list.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</dt><dd><ul>
+<li><p>devices type is not a list of <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instance.</p></li>
+</ul>
+</dd>
+</dl>
+<p>The returned device is ready to stream images,
+send events, and read or customize features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instance(s) in the devices list        have to be created by calling <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code>.</p></li>
+<li><p>Devices must be destroyed.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>destroy_device(self, device)</dt><dd><p>Destroys and cleans up the internal memory of a <code class="docutils literal notranslate"><span class="pre">Device</span></code>        instance(s). Devices that have been created         <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code> must be destroyed. If not called,        the system will called it when the module unloads.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p>device: can be</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>List of <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instances                obtained from <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code>.                 Also, it can be a sliced list from the full list                returned from <code class="docutils literal notranslate"><span class="pre">system.create_device()</span></code>.</p></li>
+<li><p>An <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instance is                acceptable in case the user wants to destroy one device.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>. This is the default value. The system                destroys all of the created devices. Any device                reference can not be used after calling this function</p></li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</dt><dd><ul>
+<li><p>Device is an empty list.</p></li>
+<li><p>A device is not found in the internal connected devices                internal list.</p></li>
+<li><p>This function is called with a device instance                but the internal connected devices list is empty.</p></li>
+<li><p>the device internal C pointer has changed from Python.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</dt><dd><ul>
+<li><p>Device type is not a list of                <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code>, an                 <code class="docutils literal notranslate"><span class="pre">arena_api._device.Device</span></code> instance, nor None.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p>None</p></li>
+</ul>
+</dd>
+</dl>
+<p>When called, it deletes all internal memory associated with a        a device: if a stream has been left open, it is closed; all         node maps and chunk data adapters are deallocated;         events are unregistered and the message channel closed;        finally, the control channel socket is closed, allowing         the device to be opened in read-write mode again.</p>
+<p>Destroying a device does not reset device settings, and will        not return a camera to a stable state. To reset settings or         return to a stable state, power-cycle a device         (unplug and plug back in) or reset it using <code class="docutils literal notranslate"><span class="pre">DeviceReset</span></code> node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Devices must be destroyed.</p></li>
+<li><p>Does not affect device settings.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>force_ip(self, device_info)</dt><dd><p>Forces the device that matches the MAC address to a temporary new
+ip address, subnet mask and default gateway.
+The function will send a ForceIP command out on all the
+interfaces. This call also updates the internal list of interfaces
+in case that has not been done yet. The ForceIP command will be a
+network-wide broadcast <code class="docutils literal notranslate"><span class="pre">255.255.255.255</span></code> and will request
+an acknowledgment to be broadcast back to the host. The information
+needed to force the new ip are: MAC address of the device, ip, subnet mask,
+and default gateway.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p>device_infos : can be</p>
+<ul>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">dict</span></code> that has the following keys: <code class="docutils literal notranslate"><span class="pre">mac</span></code>,            <code class="docutils literal notranslate"><span class="pre">ip</span></code>, <code class="docutils literal notranslate"><span class="pre">subnetmask</span></code>, <code class="docutils literal notranslate"><span class="pre">defaultgateway</span></code>.</dt><dd><p><strong>mac</strong>: A string value that represents MAC address of the                device to change the ip for.</p>
+<p><strong>ip</strong>: A string value that represets the new IP address in
+dot-decimal notation.</p>
+<p><strong>subnetmask</strong>: A string value that represets the new
+subnet mask in dot-decimal notation.</p>
+<p><strong>defaultgateway</strong>: A string value that represets the new
+default gateway in dot-decimal notation.</p>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">list</span></code> of the formentioned dicts.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>add_unicast_discovery_device(self, ip)</dt><dd><p>Registers an IP address for a device on a different subnet than the
+host. Registered devices will be enumerated using unicast discovery
+messages. The list of remote devices will persist until they are
+removed using RemoveUnicastDiscoveryDevice() or until the application
+terminates. Unicast discovery’s will be sent when UpdateDevices() is
+called.</p>
+<dl>
+<dt><strong>Args</strong>:</dt><dd><p><strong>ip</strong>: a string value that represents the IP address in dot-</p>
+<p>decimal notation.</p>
+</dd>
+</dl>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>remove_unicast_discovery_device(self, ip)</dt><dd><p>Unregisters an IP address for a device on a different subnet than the
+host. To remove all registered devices, pass None for the IP address
+argument.</p>
+<blockquote>
+<div><dl class="simple">
+<dt><strong>Args</strong>:</dt><dd><p><strong>ip</strong>: A string value that represents the IP address in dot-            decimal notation, or None.</p>
+</dd>
+</dl>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#system'" class="reference internal" href="#system">_System</a></li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Arena SDK: C++ Programmer’s Guide | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="Arena SDK: C++ Programmer’s Guide | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="Arena SDK: C++ Programmer’s Guide | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="cs_guide.html" rel="next" title="Arena SDK: C# Programmer’s Guide"/>
+<link href="arena_sdk_overview.html" rel="prev" title="Arena SDK: Overview"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">Arena SDK: C++ Programmer’s Guide</span>
+</nav>
+<div id="content" role="main">
+<section id="arena-sdk-c-programmer-s-guide">
+<h1>Arena SDK: C++ Programmer’s Guide<a class="headerlink" href="#arena-sdk-c-programmer-s-guide" title="Link to this heading"><span>#</span></a></h1>
+<p>This guide outlines how to create applications using the C++ API in the Arena SDK.
+See the <a class="reference internal" href="arena_sdk_overview.html"><span class="doc">Arena SDK Overview</span></a> for more general information.
+This document is intended for developers creating applications for LUCID cameras.</p>
+<section id="namespaces">
+<h2>Namespaces<a class="headerlink" href="#namespaces" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#namespaces'"><span>#</span></a></h2>
+<p>The following namespaces are relevant to C++ applications created with the Arena SDK:</p>
+<ul class="simple">
+<li><p><strong>GenTL</strong>: GenTL is a low-level API that defines a standard interface to a camera.
+It defines five layers of abstraction for a camera system: System, Interface, Device,
+Stream, and Buffer. LUCID has implemented GenTL modules for System, Interface, Device,
+and Stream. This means that you can configure settings for these modules through the SDK
+and through ArenaView.</p></li>
+<li><p><strong>GenAPI</strong>: GenAPI is an even lower-level API that defines how requests from an application
+are translated into specific instructions performed on the camera’s register. It is defined
+by the GenICam standard.</p></li>
+<li><p><strong>Arena</strong>: The C++ library of the Arena SDK.</p></li>
+<li><p><strong>Save C++</strong>: A LUCID library used for saving images in a desired format.</p></li>
+</ul>
+</section>
+<section id="gentl-layers">
+<h2>GenTL layers<a class="headerlink" href="#gentl-layers" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#gentl-layers'"><span>#</span></a></h2>
+<p>To help reduce complexity, the GenTL standard has a layered structure for libraries implementing
+the standard.
+Each layer, referred to as a “GenTL layer”, abstracts specific aspects of the communication and
+data handling between a software application and the camera.</p>
+<p>In the Arena SDK implementation, the GenTL layers for System, Interface, Device, and Stream
+have a corresponding GenTL module, but the Buffer layer does not.
+(GenTL parameters related to the Buffer layer are available in the <a class="reference internal" href="gentl_stream.html"><span class="doc">Stream</span></a> node map.)</p>
+</section>
+<section id="getting-an-image-file">
+<h2>Getting an image file<a class="headerlink" href="#getting-an-image-file" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#getting-an-image-file'"><span>#</span></a></h2>
+<p>To obtain an image file via the SDK, you need to open the system and create a device;
+create node maps and use the nodes; acquire an image; and save the image.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_images/cpp_guide_intro.png"><img alt="_images/cpp_guide_intro.png" src="_images/cpp_guide_intro.png" style="width: 750px;"/>
+</a>
+<figcaption>
+<p><span class="caption-text">The process of creating an image file via the Arena SDK, shown organized by GenTL layer.</span><a class="headerlink" href="#id1" title="Link to this image"><span>#</span></a></p>
+</figcaption>
+</figure>
+<section id="instantiating-the-system-object">
+<h3>Instantiating the system object<a class="headerlink" href="#instantiating-the-system-object" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#instantiating-the-system-object'"><span>#</span></a></h3>
+<p>Instantiate the system object (⭐1) with the <a class="reference internal" href="cpp_arena_global.html#cpp-opensystem"><span class="std std-ref">OpenSystem()</span></a> global function. The system object is
+the entry point into the Arena C++ SDK. Next, enumerate the devices using the <span class="xref std std-ref">UpdateDevices()</span> and
+<a class="reference internal" href="cpp_arena_isystem.html#cpp-getdevices"><span class="std std-ref">GetDevices()</span></a> functions of ISystem, which is the interface to the system object.
+You can then use this vector to create a device using the <a class="reference internal" href="cpp_arena_isystem.html#cpp-createdevice"><span class="std std-ref">CreateDevice()</span></a> function (⭐2).</p>
+<p>What this looks like in code:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// initializing example </span>
+</span><span id="line-2"><span class="n">Arena</span><span class="o">::</span><span class="n">ISystem</span><span class="o">*</span><span class="w"> </span><span class="n">pSystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arena</span><span class="o">::</span><span class="n">OpenSystem</span><span class="p">();</span>
+</span><span id="line-3"><span class="n">pSystem</span><span class="o">-&gt;</span><span class="n">UpdateDevices</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+</span><span id="line-4"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Arena</span><span class="o">::</span><span class="n">DeviceInfo</span><span class="o">&gt;</span><span class="w"> </span><span class="n">deviceInfos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pSystem</span><span class="o">-&gt;</span><span class="n">GetDevices</span><span class="p">();</span>
+</span><span id="line-5"><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">deviceInfos</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+</span><span id="line-6"><span class="p">{</span>
+</span><span id="line-7"><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">No camera connected</span><span class="se">\n</span><span class="s">Press enter to complete</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-8"><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">getchar</span><span class="p">();</span>
+</span><span id="line-9"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span><span id="line-10"><span class="p">}</span>
+</span><span id="line-11"><span class="n">Arena</span><span class="o">::</span><span class="n">IDevice</span><span class="o">*</span><span class="w"> </span><span class="n">pDevice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pSystem</span><span class="o">-&gt;</span><span class="n">CreateDevice</span><span class="p">(</span><span class="n">deviceInfos</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span></code></pre></div>
+</div>
+</section>
+<section id="creating-node-maps-and-using-nodes">
+<h3>Creating node maps and using nodes<a class="headerlink" href="#creating-node-maps-and-using-nodes" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#creating-node-maps-and-using-nodes'"><span>#</span></a></h3>
+<p>Node maps are collections of nodes. A node is a feature or command related to a camera function.
+You use nodes to get and configure camera settings, and to initiate commands.
+There are two types of node maps: the main node map, which is obtained directly from the XML file
+on the camera, and the GenTL node maps, which access features through the software.
+The main node map is the most commonly used node map.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Number on diagram</p></th>
+<th class="head"><p>Node map</p></th>
+<th class="head"><p>Interface</p></th>
+<th class="head"><p>Function</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>⭐3</p></td>
+<td><p>GenTL system node map</p></td>
+<td><p>ISystem</p></td>
+<td><p><a class="reference internal" href="cpp_arena_isystem.html#cpp-gettlsystemnodemap"><span class="std std-ref">GetTLSystemNodeMap()</span></a></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>⭐4</p></td>
+<td><p>GenTL device node map</p></td>
+<td><p>IDevice</p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-gettldevicenodemap"><span class="std std-ref">GetTLDeviceNodeMap()</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>GenTL interface node map</p></td>
+<td><p>IDevice</p></td>
+<td><p><a class="reference internal" href="cpp_arena_isystem.html#cpp-gettlinterfacenodemap"><span class="std std-ref">GetTLInterfaceNodeMap()</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>GenTL stream node map</p></td>
+<td><p>IDevice</p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-gettlstreamnodemap"><span class="std std-ref">GetTLStreamNodeMap()</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Main node map</p></td>
+<td><p>IDevice</p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-getnodemap"><span class="std std-ref">GetNodeMap()</span></a></p></td>
+</tr>
+</tbody>
+</table>
+<p>Through these node maps, you get, set, or activate the desired nodes.
+Use the global functions <a class="reference internal" href="cpp_arena_global.html#cpp-getnodevalue"><span class="std std-ref">GetNodeValue()</span></a> and <a class="reference internal" href="cpp_arena_global.html#cpp-setnodevalue"><span class="std std-ref">SetNodeValue()</span></a> (⭐5)
+to get and set node values.</p>
+<p>Examples of getting/setting node values:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// Getting the acquisition mode</span>
+</span><span id="line-2"><span class="n">GenICam</span><span class="o">::</span><span class="n">gcstring</span><span class="w"> </span><span class="n">acquisitionModeInitial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arena</span><span class="o">::</span><span class="n">GetNodeValue</span><span class="o">&lt;</span><span class="n">GenICam</span><span class="o">::</span><span class="n">gcstring</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetNodeMap</span><span class="p">(),</span><span class="w"> </span><span class="s">"AcquisitionMode"</span><span class="p">);</span>
+</span></code></pre></div>
+</div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// Setting the acquisition mode</span>
+</span><span id="line-2"><span class="n">Arena</span><span class="o">::</span><span class="n">SetNodeValue</span><span class="o">&lt;</span><span class="n">GenICam</span><span class="o">::</span><span class="n">gcstring</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetNodeMap</span><span class="p">(),</span><span class="s">"AcquisitionMode"</span><span class="p">,</span><span class="w"> </span><span class="s">"Continuous"</span><span class="p">);</span>
+</span></code></pre></div>
+</div>
+<p>The firmware documentation on the camera contains information on the nodes used for that particular camera.</p>
+<p>To access the firmware documentation from ArenaView:</p>
+<ol class="arabic simple">
+<li><p>In ArenaView, ensure that the Start pane is open.</p></li>
+<li><p>Under the desired camera, select “Documentation”. The documentation opens in your browser.</p></li>
+</ol>
+</section>
+<section id="node-types">
+<h3>Node types<a class="headerlink" href="#node-types" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#node-types'"><span>#</span></a></h3>
+<p>Each node described above has a defined type (e.g., IString, IFloat, IEnumeration).
+These types are defined in the GenICam standard.</p>
+</section>
+<section id="acquiring-an-image">
+<h3>Acquiring an image<a class="headerlink" href="#acquiring-an-image" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#acquiring-an-image'"><span>#</span></a></h3>
+<p>The first step to acquiring an image is to run <a class="reference internal" href="cpp_arena_idevice.html#cpp-startstream"><span class="std std-ref">StartStream()</span></a>,
+which starts the internal streaming engine.</p>
+<p>Next, there are several ways to obtain an image from the camera. You can use the
+<a class="reference internal" href="cpp_arena_idevice.html#cpp-getbuffer"><span class="std std-ref">GetBuffer()</span></a> (⭐6) method of IDevice, which is the interface to a device object,
+to create a buffer object from the streaming engine. IBuffer is the interface to this buffer object.
+You can then cast the buffer object as an image object (⭐7).</p>
+<p>Alternatively, you can also use the <a class="reference internal" href="cpp_arena_idevice.html#cpp-getimage"><span class="std std-ref">GetImage()</span></a> function, which combines
+the two steps above.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_acquisition.html"><span class="doc">Acquisition, Introduction</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_acquisition_rdma.html"><span class="doc">Acquisition, RDMA</span></a> (Atlas10 only)</p></li>
+<li><p><a class="reference internal" href="cpp_examples_acquisition_tcp.html"><span class="doc">Acquisition, TCP</span></a> (Atlas10 only)</p></li>
+</ul>
+</section>
+<section id="obtaining-an-image-file">
+<h3>Obtaining an image file<a class="headerlink" href="#obtaining-an-image-file" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#obtaining-an-image-file'"><span>#</span></a></h3>
+<p>From the IImage interface (⭐7, ⭐8), you can obtain an image file using the SaveC++ library, or the ImageFactory class.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="_images/cpp_guide_intro_save_image.png"><img alt="_images/cpp_guide_intro_save_image.png" src="_images/cpp_guide_intro_save_image.png" style="width: 350px;"/>
+</a>
+<figcaption>
+<p><span class="caption-text">Obtaining an image file from the IImage interface.</span><a class="headerlink" href="#id2" title="Link to this image"><span>#</span></a></p>
+</figcaption>
+</figure>
+<p><strong>Save C++</strong></p>
+<p>Once an image object has been created, it typically needs to be saved as a file.
+To obtain an image object as an image file, you use the <a class="reference internal" href="cpp_save_imagewriter.html"><span class="doc">ImageWriter</span></a> class of
+the Save C++ library.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_save.html"><span class="doc">Save, Introduction</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_bmp.html"><span class="doc">Save, Bmp</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_jpeg.html"><span class="doc">Save, Jpeg</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_ply.html"><span class="doc">Save, Ply</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_png.html"><span class="doc">Save, Png</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_raw.html"><span class="doc">Save, Raw</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_tiff.html"><span class="doc">Save, Tiff</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_save_filenamepattern.html"><span class="doc">Save, File Name Pattern</span></a></p></li>
+</ul>
+<p><strong>ImageFactory</strong></p>
+<p>Alternatively, you can also use the <a class="reference internal" href="cpp_arena_imagefactory.html"><span class="doc">ImageFactory class</span></a>
+of the Arena C++ library to create image files.
+To do this, you use the GetData() function on the image object to obtain a pointer to
+the image data, and then use the ImageFactory class’s Create() function to
+obtain an image file.</p>
+<p>The ImageFactory class also has the following functions:</p>
+<ul class="simple">
+<li><p>Convert(): This function converts images. Unlike GetImage() or GetBuffer(), this function also
+performs debayering.</p></li>
+<li><p>Copy(): Copies an image to a new buffer.</p></li>
+<li><p>Destroy(): Destroys the independently created or copied image. This is required for cleanup.</p></li>
+</ul>
+</section>
+</section>
+<section id="working-with-the-arena-sdk">
+<h2>Working with the Arena SDK<a class="headerlink" href="#working-with-the-arena-sdk" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#working-with-the-arena-sdk'"><span>#</span></a></h2>
+<p>This section shows useful things your application can do with the SDK. Some features are for
+specific camera models or camera families.</p>
+<section id="callbacks">
+<h3>Callbacks<a class="headerlink" href="#callbacks" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#callbacks'"><span>#</span></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For information on callbacks as they are used with events, see <a class="reference internal" href="#cpp-events-explanation"><span class="std std-ref">Events</span></a>.</p>
+</div>
+<p>When registering a callback, you must specify a specific event cause that will trigger the callback
+function in addition to the callback function itself.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// register callback</span>
+</span><span id="line-2"><span class="n">GenApi</span><span class="o">::</span><span class="n">CallbackHandleType</span><span class="w"> </span><span class="n">hCallback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GenApi</span><span class="o">::</span><span class="n">Register</span><span class="p">(</span><span class="n">pPayloadSize</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(),</span><span class="w"> </span><span class="n">PrintNodeValue</span><span class="p">);</span>
+</span></code></pre></div>
+</div>
+<p>In the example <a class="reference internal" href="cpp_examples_callbacks_onnodechange.html"><span class="doc">Callbacks, On Node Change</span></a>, the callback
+is invoked when the node value for the height is changed/invalidated because
+the payload size depends the height.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="o">:</span><span class="n">nosearch</span><span class="o">:</span>
+</span><span id="line-2">
+</span><span id="line-3"><span class="c1">// Modify Height to invoke callback on PayloadSize</span>
+</span><span id="line-4"><span class="c1">//    The value of PayloadSize depends on several other nodes. This</span>
+</span><span id="line-5"><span class="c1">//    includes Height. Therefore, changing the value of Height changes the</span>
+</span><span id="line-6"><span class="c1">//    value of and invalidates PayloadSize, which then invokes the callback.</span>
+</span><span id="line-7"><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">TAB2</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Change height</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-8">
+</span><span id="line-9"><span class="n">Arena</span><span class="o">::</span><span class="n">SetNodeValue</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="p">(</span>
+</span><span id="line-10"><span class="w">	</span><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetNodeMap</span><span class="p">(),</span>
+</span><span id="line-11"><span class="w">	</span><span class="s">"Height"</span><span class="p">,</span>
+</span><span id="line-12"><span class="w">	</span><span class="n">HEIGHT_ONE</span><span class="p">);</span>
+</span><span id="line-13">
+</span><span id="line-14"><span class="c1">// Manually invalidate PayloadSize for callback</span>
+</span><span id="line-15"><span class="c1">//    Apart from changing the value of a node, nodes can be invalidated</span>
+</span><span id="line-16"><span class="c1">//    manually by calling InvalidateNode. This also invokes the callback.</span>
+</span><span id="line-17"><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">TAB2</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Invalidate PayloadSize</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-18">
+</span><span id="line-19"><span class="n">pDevice</span><span class="o">-&gt;</span><span class="n">GetNodeMap</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">GetNode</span><span class="p">(</span><span class="s">"PayloadSize"</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">InvalidateNode</span><span class="p">();</span>
+</span></code></pre></div>
+</div>
+<p>When the callback is invoked, the program flow goes to the callback function below.
+Once the program flow goes through the function, the it returns to the point where the callback function
+was triggered.</p>
+<p>Once you no longer require the callback, be sure to use the Deregister() function to prevent
+memory leaks.</p>
+<p>The Arena SDK documentation has several examples of invoking callback functions.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_callbacks_onnodechange.html"><span class="doc">Callbacks, On Node Change</span></a> (described above)</p></li>
+<li><p><a class="reference internal" href="cpp_examples_callbacks_polling.html"><span class="doc">Callbacks, Polling</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_callbacks_imagecallbacks.html"><span class="doc">Callbacks, Image Callbacks</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_callbacks_multithreadedimagecallbacks.html"><span class="doc">Callbacks, Multithreaded Image Callbacks</span></a></p></li>
+</ul>
+</section>
+<section id="chunks">
+<h3>Chunks<a class="headerlink" href="#chunks" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#chunks'"><span>#</span></a></h3>
+<p>A chunk is a fragment of metadata appended to raw images. Examples of chunks that may be available on
+your camera include the following: CRC, histogram stats, timestamp, line status, sequencer set,
+pixel format, width/height, offset X/Y, pixel dynamic range min/max, gain, black level, exposure time.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Q: You can get the exposure time from the device.
+Why would you use chunk data instead?</p>
+<p>A: The chunk data is particular to the image. If the camera has autoexposure control enabled and you
+run the camera at a high frame rate, the exposure time changes
+rapidly. As a result, there may be a discrepancy in the exposure time that you determine through the device
+and the actual exposure time for a given image. Under these conditions, it is better to use the chunk data.</p>
+</div>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_chunkdata.html"><span class="doc">Chunk Data, Introduction</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_chunkdata_crcvalidation.html"><span class="doc">Chunk Data, CRC Validation</span></a></p></li>
+</ul>
+</section>
+<section id="events">
+<span id="cpp-events-explanation"></span><h3>Events<a class="headerlink" href="#events" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#events'"><span>#</span></a></h3>
+<p>LUCID cameras can deliver events to inform the host system of the current operation of the camera.
+For instance, an event can be generated when the exposure starts, which is then sent to the host before the end of exposure.
+Events are asynchronous with the image acquisition and data transfer and can be sent at any time by the camera.</p>
+<p>Defined by the GenICam standard, these events from the camera are generated and processed using the sequence below, which is from
+the example <a class="reference internal" href="cpp_examples_callbacks_onevent.html"><span class="doc">Callbacks, On Event</span></a>.</p>
+<ol class="arabic simple">
+<li><p>Get the event node.</p></li>
+<li><p>Initialize the events engine.</p></li>
+<li><p>Register the callback using the event node. This step is similar to the example covered in the <span class="xref std std-ref">callbacks</span> section.</p></li>
+<li><p>The camera generates an event.</p></li>
+<li><p>The program flow comes to the WaitOnEvent() function.
+The documentation for this function contains more details on event processing.
+It is only at this function that the event is processed, and a callback is invoked.</p></li>
+<li><p>Deregister the callback and deinitialize the event to prevent memory leaks.</p></li>
+</ol>
+<p>Example:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_callbacks_onevent.html"><span class="doc">Callbacks, On Event</span></a></p></li>
+</ul>
+</section>
+<section id="cleanup">
+<h3>Cleanup<a class="headerlink" href="#cleanup" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#cleanup'"><span>#</span></a></h3>
+<p>Remember to perform the following cleanup steps to prevent memory leaks.</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>Item</p></td>
+<td><p>Active function</p></td>
+<td><p>Cleanup</p></td>
+<td><p>Notes</p></td>
+</tr>
+<tr class="row-even"><td><p>System object</p></td>
+<td><p><a class="reference internal" href="cpp_arena_global.html#cpp-opensystem"><span class="std std-ref">OpenSystem()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_global.html#cpp-closesystem"><span class="std std-ref">CloseSystem()</span></a></p></td>
+<td><p>Closing the system is the last
+cleanup action your application takes
+through the SDK.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Device object</p></td>
+<td><p><a class="reference internal" href="cpp_arena_isystem.html#cpp-createdevice"><span class="std std-ref">CreateDevice()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_isystem.html#cpp-destroydevice"><span class="std std-ref">DestroyDevice()</span></a></p></td>
+<td><p>When a device becomes unneeded,
+destroy it to release the memory
+allocated to it. For a single-camera
+application, you often destroy the
+camera right before running
+CloseSystem().</p></td>
+</tr>
+<tr class="row-even"><td><p>Buffer object</p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-getbuffer"><span class="std std-ref">GetBuffer()</span></a>,
+<a class="reference internal" href="cpp_arena_idevice.html#cpp-getimage"><span class="std std-ref">GetImage()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-requeuebuffer"><span class="std std-ref">RequeueBuffer()</span></a></p></td>
+<td><p>Requeue the buffer before running
+StopStream() and every time a buffer
+is retrieved.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ImageFactory
+image</p></td>
+<td><p><a class="reference internal" href="cpp_arena_imagefactory.html#cpp-create"><span class="std std-ref">ImageFactory::Create()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_imagefactory.html#cpp-destroy"><span class="std std-ref">ImageFactory::Destroy()</span></a></p></td>
+<td><p>Destroy the image when it has been
+saved or otherwise no longer needed.</p></td>
+</tr>
+<tr class="row-even"><td><p>Stream</p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-startstream"><span class="std std-ref">StartStream()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-stopstream"><span class="std std-ref">StopStream()</span></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Events</p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-initializeevents"><span class="std std-ref">InitializeEvents()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-deinitializeevents"><span class="std std-ref">DeinitializeEvents()</span></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>Callbacks</p></td>
+<td><p>GenApi::Register()</p></td>
+<td><p>GenApi::Deregister()</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="cpp_arena_isystem.html#cpp-registerdevicedisconnectcallback"><span class="std std-ref">RegisterDeviceDisconnectCallback()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_isystem.html#cpp-deregisterdevicedisconnectcallback"><span class="std std-ref">DeregisterDeviceDisconnectCallback()</span></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-registerimagecallback"><span class="std std-ref">RegisterImageCallback()</span></a></p></td>
+<td><p><a class="reference internal" href="cpp_arena_idevice.html#cpp-deregisterimagecallback"><span class="std std-ref">DeregisterImageCallback()</span></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="xref std std-ref">RegisterCallback()</span></p></td>
+<td><p><span class="xref std std-ref">DeregisterCallback()</span></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="streamables-files">
+<h3>Streamables files<a class="headerlink" href="#streamables-files" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#streamables-files'"><span>#</span></a></h3>
+<p>A camera feature marked as streamable can have its current value stored to and loaded from a file,
+called a streamables file. Streamables files can be downloaded from the camera and uploaded to
+the camera (or another camera) using ArenaView or the Arena SDK.
+Like user sets, streamables offer a method of saving a camera’s settings, but unlike user sets,
+streamable files can be used to apply settings to another camera.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The term “streamable” means that the feature can be streamed to a file. It is unrelated to video streaming.</p>
+</div>
+<p>Example:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_streamables.html"><span class="doc">Streamables</span></a></p></li>
+</ul>
+</section>
+<section id="triggering">
+<h3>Triggering<a class="headerlink" href="#triggering" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#triggering'"><span>#</span></a></h3>
+<p>The most common example of triggering a camera is when a software event or hardware signal initiates
+the acquisition of a single image, which is what happens when the trigger selector is set to Frame Start.</p>
+<p>Other trigger selectors are shown below.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Trigger selector</p></th>
+<th class="head"><p>Description of initiated action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Acquisition Start</p></td>
+<td><p>Capture images at the free running frame rate.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Frame Start</p></td>
+<td><p>Capture a single image.</p></td>
+</tr>
+<tr class="row-even"><td><p>Frame Burst Start</p></td>
+<td><p>Capture a configurable number of images.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exposure Active</p></td>
+<td><p>Expose the image sensor for as long as there is a high signal.</p></td>
+</tr>
+<tr class="row-even"><td><p>Frame Burst Active</p></td>
+<td><p>Triggers images for as long as there is a high signal.</p></td>
+</tr>
+</tbody>
+</table>
+<p>For more information, see the on-camera documentation under <em>Device Nodes &gt; Acquisition Control</em>.</p>
+<p><strong>Software triggering</strong></p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_trigger.html"><span class="doc">Trigger, Introduction</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_trigger_nextleader.html"><span class="doc">Trigger, NextLeader</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_trigger_overlappingtrigger.html"><span class="doc">Trigger, Overlapping Trigger</span></a></p></li>
+</ul>
+<p><strong>Hardware triggering</strong></p>
+<p>Although the hardware trigger to a camera does not come in through the API, there are
+related settings that can be configured through the C++ API. Examples of this for the GPIO include
+LineMode and LineSelector. For more information on GPIO, see the related
+<a class="reference external" href="https://support.thinklucid.com/app-note-using-gpio-on-lucid-cameras/">App Note</a> on our website.</p>
+</section>
+<section id="handling-exceptions">
+<h3>Handling exceptions<a class="headerlink" href="#handling-exceptions" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#handling-exceptions'"><span>#</span></a></h3>
+<p>You can use a try-catch block in the main function of the code. The excerpt below shows
+different catch statements for the GenICam namespace and the standard namespace.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// initializing example </span>
+</span><span id="line-2"><span class="k">try</span>
+</span><span id="line-3"><span class="w">	</span><span class="p">{</span>
+</span><span id="line-4"><span class="w">		</span><span class="c1">// Various code        </span>
+</span><span id="line-5"><span class="w">	</span><span class="p">}</span>
+</span><span id="line-6"><span class="w">	</span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">GenICam</span><span class="o">::</span><span class="n">GenericException</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ge</span><span class="p">)</span>
+</span><span id="line-7"><span class="w">	</span><span class="p">{</span>
+</span><span id="line-8"><span class="w">		</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">GenICam exception thrown: "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ge</span><span class="p">.</span><span class="n">what</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-9"><span class="w">		</span><span class="n">exceptionThrown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+</span><span id="line-10"><span class="w">	</span><span class="p">}</span>
+</span><span id="line-11"><span class="w">	</span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">exception</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ex</span><span class="p">)</span>
+</span><span id="line-12"><span class="w">	</span><span class="p">{</span>
+</span><span id="line-13"><span class="w">		</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">Standard exception thrown: "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ex</span><span class="p">.</span><span class="n">what</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-14"><span class="w">		</span><span class="n">exceptionThrown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+</span><span id="line-15"><span class="w">	</span><span class="p">}</span>
+</span><span id="line-16"><span class="w">	</span><span class="k">catch</span><span class="w"> </span><span class="p">(...)</span>
+</span><span id="line-17"><span class="w">	</span><span class="p">{</span>
+</span><span id="line-18"><span class="w">		</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">Unexpected exception thrown</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-19"><span class="w">		</span><span class="n">exceptionThrown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+</span><span id="line-20"><span class="w">	</span><span class="p">}</span>
+</span><span id="line-21">
+</span><span id="line-22"><span class="w">	</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"Press enter to complete</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</span><span id="line-23"><span class="w">	</span><span class="n">std</span><span class="o">::</span><span class="n">getchar</span><span class="p">();</span>
+</span><span id="line-24">
+</span><span id="line-25"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">exceptionThrown</span><span class="p">)</span>
+</span><span id="line-26"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+</span><span id="line-27"><span class="w">	</span><span class="k">else</span>
+</span><span id="line-28"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</section>
+<section id="building-applications-with-the-arena-c-api">
+<h3>Building applications with the Arena C++ API<a class="headerlink" href="#building-applications-with-the-arena-c-api" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#building-applications-with-the-arena-c-api'"><span>#</span></a></h3>
+<p>The easiest way to start exploring how the API works is to first ensure that the code samples included with
+the Arena SDK installation compiles and executes correctly on your system. Next, take the take an existing code
+snippet and modify it to suit your needs.</p>
+<p><strong>Windows</strong></p>
+<p>Ensure that you have configured your Windows system to use the Arena SDK.
+The Windows installation includes example files and settings files for Visual Studio 2015 and
+Visual Studio 2019.</p>
+<p>The code samples available <a class="reference internal" href="cpp_examples.html"><span class="doc">in this documentation</span></a> are also included in the Arena SDK installation.
+The default location for the installed code samples is shown below.</p>
+<p>C:\ProgramData\Lucid Vision Labs\Examples\src\C++ Source Code Examples</p>
+<p>The recommended project properties files for Visual Studio (cpp_examples.props and cpp_ui_examples.props)
+are available in this folder as well.</p>
+<p><strong>Linux</strong></p>
+<p>Ensure that you have configured your Linux system to use the Arena SDK.
+Use your preferred IDE to develop Arena SDK applications on Linux.
+The recommended compiler is G++.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Turn off the screensaver and auto-sleep on your host to prevent unexpected results from your
+applications, especially those used in production.</p>
+</div>
+</section>
+<section id="useful-libraries-and-frameworks">
+<h3>Useful libraries and frameworks<a class="headerlink" href="#useful-libraries-and-frameworks" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#useful-libraries-and-frameworks'"><span>#</span></a></h3>
+<p><strong>OpenCV</strong></p>
+<p>OpenCV is an open-source library for computer vision and image processing.
+How to configure Lucid Vision GigE cameras with OpenCV on Windows is shown
+<a class="reference external" href="https://support.thinklucid.com/using-opencv-with-arena-sdk-on-windows/">here</a> on our website.</p>
+<p>Examples that use OpenCV:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cpp_examples_hltrgb_1_calibration.html"><span class="doc">HLTRGB, Step 1: Calibration</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_hltrgb_2_orientation.html"><span class="doc">HLTRGB, Step 2: Orientation</span></a></p></li>
+<li><p><a class="reference internal" href="cpp_examples_hltrgb_3_overlay.html"><span class="doc">HLTRGB, Step 3: Overlay</span></a></p></li>
+</ul>
+<p><strong>ROS</strong></p>
+<p>ROS is a collection of libraries for the development of software for robots.
+LUCID makes libraries available <a class="reference external" href="https://github.com/lucidvisionlabs/">in GitHub</a> for use by developers using ROS and ROS2.</p>
+</section>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#namespaces'" class="reference internal" href="#namespaces">Namespaces</a></li>
+<li><a :data-current="activeSection === '#gentl-layers'" class="reference internal" href="#gentl-layers">GenTL layers</a></li>
+<li><a :data-current="activeSection === '#getting-an-image-file'" class="reference internal" href="#getting-an-image-file">Getting an image file</a><ul>
+<li><a :data-current="activeSection === '#instantiating-the-system-object'" class="reference internal" href="#instantiating-the-system-object">Instantiating the system object</a></li>
+<li><a :data-current="activeSection === '#creating-node-maps-and-using-nodes'" class="reference internal" href="#creating-node-maps-and-using-nodes">Creating node maps and using nodes</a></li>
+<li><a :data-current="activeSection === '#node-types'" class="reference internal" href="#node-types">Node types</a></li>
+<li><a :data-current="activeSection === '#acquiring-an-image'" class="reference internal" href="#acquiring-an-image">Acquiring an image</a></li>
+<li><a :data-current="activeSection === '#obtaining-an-image-file'" class="reference internal" href="#obtaining-an-image-file">Obtaining an image file</a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#working-with-the-arena-sdk'" class="reference internal" href="#working-with-the-arena-sdk">Working with the Arena SDK</a><ul>
+<li><a :data-current="activeSection === '#callbacks'" class="reference internal" href="#callbacks">Callbacks</a></li>
+<li><a :data-current="activeSection === '#chunks'" class="reference internal" href="#chunks">Chunks</a></li>
+<li><a :data-current="activeSection === '#events'" class="reference internal" href="#events">Events</a></li>
+<li><a :data-current="activeSection === '#cleanup'" class="reference internal" href="#cleanup">Cleanup</a></li>
+<li><a :data-current="activeSection === '#streamables-files'" class="reference internal" href="#streamables-files">Streamables files</a></li>
+<li><a :data-current="activeSection === '#triggering'" class="reference internal" href="#triggering">Triggering</a></li>
+<li><a :data-current="activeSection === '#handling-exceptions'" class="reference internal" href="#handling-exceptions">Handling exceptions</a></li>
+<li><a :data-current="activeSection === '#building-applications-with-the-arena-c-api'" class="reference internal" href="#building-applications-with-the-arena-c-api">Building applications with the Arena C++ API</a></li>
+<li><a :data-current="activeSection === '#useful-libraries-and-frameworks'" class="reference internal" href="#useful-libraries-and-frameworks">Useful libraries and frameworks</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>
