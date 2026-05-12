@@ -27,6 +27,8 @@ from nottcontrol import config
 
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
+# Time stamping functions
+
 def unix_to_datetime(unix_stamp):
     # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
     epoch = datetime.fromtimestamp(0,timezone.utc)
@@ -40,6 +42,8 @@ def datetime_to_id(utc_stamp):
     HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
     frame_id = Ymd+"_"+HMS
     return frame_id
+
+# Classes for transfer to shm object, wrapping shmlib.py
 
 class RollingShm(object):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
@@ -177,8 +181,9 @@ class HumInt(object):
         self.disp_depth = 30
         self.disp_calls = []
         
-
-    # Auxiliary functions
+    #---------------------#
+    # Auxiliary functions |
+    # --------------------#
     
     def __del__(self):
         self.opcua_conn.disconnect()
@@ -205,6 +210,8 @@ class HumInt(object):
         if hasattr(self, "buffer_disp_null_last"):
             self.buffer_disp_null_last.close()
 
+    # Initialization of shm buffers
+
     def disp_initialize_shm_cam_view(self):
         """
         Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
@@ -215,9 +222,9 @@ class HumInt(object):
         self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
                                         shape=self.dark.master_full[0].shape)
         self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
-                                        shape=self.frame_vis_pup.shape)
+                                        shape=self.frame_VIS_pup.shape)
         self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
-                                        shape=self.frame_vis_im.shape)
+                                        shape=self.frame_VIS_im.shape)
 
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
@@ -275,6 +282,8 @@ class HumInt(object):
         spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
 
+    # Wavelength calibration
+
     def solve_spectral_cal_linear(self):
         """
             This simple spectral calibration writes to `self.lambs` the 
@@ -303,9 +312,13 @@ class HumInt(object):
         """
         return self.lambs[self.sc_mask]
 
+    # Time stamping
+
     def db_time(self):
         aresp = self.ts.ts.get(f"cam_integtime")
         return aresp[0]
+
+    # Piezo control
 
     def four2three(self, position):
         return position - position[self.non_motorized]
@@ -317,7 +330,9 @@ class HumInt(object):
         p = lam_micron /(2*np.pi) * np.arcsin(inner)
         return p
 
-    # Shutter control functions
+    #---------------------------#
+    # Shutter control functions |
+    # --------------------------#
     
     class ShutterError(OSError):
         pass
@@ -373,7 +388,15 @@ class HumInt(object):
             for i, ashutter in enumerate(self.shutters):
                 print(i, ashutter.getStatusInformation()[1], ashutter.getPositionAndSpeed()[0])
 
-    # Piezo control functions
+    #------------------------------#
+    # Delay line control functions |
+    # -----------------------------#
+
+    # WIP
+
+    #-------------------------#
+    # Piezo control functions |
+    #-------------------------#
 
     def get_position(self):
         pos = self.interf.values.copy()
@@ -390,7 +413,9 @@ class HumInt(object):
         thepos[self.act_index] += motion 
         self.interf.send(any_values=thepos)
 
-    # Sample functions
+    #------------------#
+    # Sample functions |
+    # -----------------#
 
     def sample(self):
         mes = np.array([self.ts.ts.get(akey) for akey in self.rois])
@@ -430,7 +455,9 @@ class HumInt(object):
             sleep(self.pad)
         return res, std
 
-    # Image calibration functions 
+    #-----------------------------#
+    # Image calibration functions |
+    #-----------------------------#
 
     def get_dark(self, dt):
         print("Taking darks")
@@ -565,7 +592,9 @@ class HumInt(object):
             
         return outputs_pos
 
-    # Surface level functions
+    #-------------------------#
+    # Surface level functions |
+    #-------------------------#
 
     def characterize_null(self, dt, dark=None, sequence=False, frames=None):
         """
