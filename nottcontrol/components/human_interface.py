@@ -160,6 +160,8 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
+        self.frame_VIS_pup = None
+        self.frame_VIS_im = None
 
         # Getting link between outputs and ROI indices from config
         channel_labels = config.getarray('CAMERA', 'channel_labels', str)
@@ -174,11 +176,7 @@ class HumInt(object):
         self.disp_waterfall_dispersed = False
         self.disp_depth = 30
         self.disp_calls = []
-
-        # Snapping a frame of both visible cameras for reference
-        with LucidUtils() as utils:
-            self.frame_vis_pup = utils.snap("pup_cam")
-            self.frame_vis_im = utils.snap("im_cam")
+        
 
     # Auxiliary functions
     
