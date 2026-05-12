@@ -419,19 +419,39 @@ class HumInt(object):
     
     # WIP
 
-    def get_image_view(self, refresh):
-        with LucidUtils() as ut:
+    def get_image_view(self, ut=None, refresh=False):
+        if ut is None:
+            with LucidUtils() as ut:
+                frame_im = ut.snap("im_cam")
+        else:
             frame_im = ut.snap("im_cam")
+
         if refresh:
             self.frame_VIS_im = frame_im
         return frame_im
 
-    def get_pupil_view(self, refresh):
-        with LucidUtils() as ut:
+    def get_pupil_view(self, ut=None, refresh=False):
+        if ut is None:
+            with LucidUtils() as ut:
+                frame_pup = ut.snap("pup_cam")
+        else:
             frame_pup = ut.snap("pup_cam")
+            
         if refresh:
             self.frame_VIS_pup = frame_pup
         return frame_pup
+
+    def configure_vis_cam_readout(self, name, params):
+        with LucidUtils() as ut:
+            ut.configure_camera_readout(name, params)
+            if name == "im_cam":
+                _ = self.get_image_view(ut, True)
+            elif name == "pup_cam":
+                _ = self.get_pupil_view(ut, True)
+
+    def configure_vis_cam_stream(self, name, params):
+        with LucidUtils() as ut:
+            ut.configure_camera_stream(name, params)
 
     #------------------#
     # Sample functions |
