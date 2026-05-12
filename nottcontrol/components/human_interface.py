@@ -688,6 +688,11 @@ class HumInt(object):
 
         return broad_null, disp_null, disp_null_err
 
+    def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
+        broad_null, disp_null, disp_null_err = self.characterize_null(dt, dark, sequence, frames)
+
+        # WIP
+
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
         default_params = np.array([100,50,1900,2000])
         if isinstance(parameters, str):
