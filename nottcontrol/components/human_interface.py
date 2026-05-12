@@ -413,6 +413,26 @@ class HumInt(object):
         thepos[self.act_index] += motion 
         self.interf.send(any_values=thepos)
 
+    #--------------------------------------#
+    # Visible camera interfacing functions |
+    # -------------------------------------#
+    
+    # WIP
+
+    def get_image_view(self, refresh):
+        with LucidUtils() as ut:
+            frame_im = ut.snap("im_cam")
+        if refresh:
+            self.frame_VIS_im = frame_im
+        return frame_im
+
+    def get_pupil_view(self, refresh):
+        with LucidUtils() as ut:
+            frame_pup = ut.snap("pup_cam")
+        if refresh:
+            self.frame_VIS_pup = frame_pup
+        return frame_pup
+
     #------------------#
     # Sample functions |
     # -----------------#
