@@ -89,7 +89,7 @@ class RollingShm(object):
         """
         self.shm.close()
 
-class SimpleShm(object):
+class SimpleShm(object, dtype=float):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
                     shape=None):
         """
@@ -98,7 +98,7 @@ class SimpleShm(object):
         if shape is None:
             shape = (10,10)
         self.shape = shape
-        self.buffer = np.zeros(shape=self.shape, dtype=float)
+        self.buffer = np.zeros(shape=self.shape, dtype)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
 
 
