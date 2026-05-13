@@ -28,6 +28,8 @@ from nottcontrol import config
 
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
+# Time stamping functions
+
 def unix_to_datetime(unix_stamp):
     # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object (time in UTC)
     epoch = datetime.fromtimestamp(0,timezone.utc)
@@ -42,17 +44,26 @@ def datetime_to_id(utc_stamp):
     frame_id = Ymd+"_"+HMS
     return frame_id
 
+# Classes for transfer to shm object, wrapping shmlib.py
+
 class RollingShm(object):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
-                    depth=10, width=8, wls=None):
+                    depth=10, width=8, dim=None):
         """
-        Only use wls for separate plotting of outputs. For dispersed
-        waterfall, reshape to width * nwls instead.
+        Dimension "depth" should be set to span the amount of entries that are simultaneously kept in the buffer.
+        Dimensions "width" and "dim" should be set depending on the use case, i.e. what data is transferred. Examples include:
+            - To offer separate plotting of the dispersed readout of each output (ROI), set "width" to an amount of ROIs and "dim" to "nwls", an amount of wavelength bins.
+            - To offer a waterfall plot of dispersed readouts instead, leave "dim" as None and reshape "width" to # ROIs * nwls
+            - To offer errors with passed values (flux/null), set "dim" to 2; index 0 of dimension "dim" will then be the value, index 1 its error.
+            Note: Currently not supporting transferring errors for separated dispersed readout, as this would constitute a 4D (# readouts, # ROIs, # wls, 2) array (not supported by shmlib)
+                  Passing such dataframes by two buffers instead (see disp_initialize)
+            TBD: Alternatively, could double the size of the # wls dimension to include both the value and error (wl1, wl1_err, ..., wlN, wlN_err)
+            - ...
         """
-        if wls is None:
+        if dim is None:
             self.shape = (depth, width)
         else:
-            self.shape = (depth, wls, width)
+            self.shape = (depth, dim, width)
         self.buffer = np.zeros(shape=self.shape, dtype=float)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
 
@@ -79,17 +90,16 @@ class RollingShm(object):
         """
         self.shm.close()
 
-class SimpleShm(object):
+class SimpleShm(object, dtype=float):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
                     shape=None):
         """
-        Only use wls for separate plotting of outputs. For dispersed
-        waterfall, reshape to width * nwls instead.
+        Non-rolling, simple shm. Shape should be set depending on the use case.
         """
         if shape is None:
             shape = (10,10)
         self.shape = shape
-        self.buffer = np.zeros(shape=self.shape, dtype=float)
+        self.buffer = np.zeros(shape=self.shape, dtype)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
 
 
@@ -198,7 +208,14 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
-        self.verbose=verbose
+        self.frame_VIS_pup = None
+        self.frame_VIS_im = None
+
+        # Getting link between outputs and ROI indices from config
+        channel_labels = config.getarray('CAMERA', 'channel_labels', str)
+        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32)
+        self.channel_roi_link = dict(zip(channel_labels,roi_indices))
+        
         self.move(np.array([0., 0., 0., 0.]))
         self.auto_display = False
 
@@ -207,25 +224,78 @@ class HumInt(object):
         self.disp_waterfall_dispersed = False
         self.disp_depth = 30
         self.disp_calls = []
-
-    # Auxiliary functions
+        
+    #---------------------#
+    # Auxiliary functions |
+    # --------------------#
     
     def __del__(self):
         self.opcua_conn.disconnect()
+        if hasattr(self, "buffer_im_IR"):
+            self.buffer_im_IR.close()
+        if hasattr(self, "buffer_im_VIS_pup"):
+            self.buffer_im_VIS_pup.close()
+        if hasattr(self, "buffer_im_VIS_im"):
+            self.buffer_im_VIS_im.close()
         if hasattr(self, "buffer_broad"):
             self.buffer_broad.close()
+        if hasattr(self, "buffer_broad_null"):
+            self.buffer_broad_null.close()
+        if hasattr(self, "buffer_disp"):
+            self.buffer_disp.close()
+        if hasattr(self, "buffer_disp_err"):
+            self.buffer_disp_err.close()
+        if hasattr(self, "buffer_disp_last"):
+            self.buffer_disp_last.close()
+        if hasattr(self, "buffer_disp_null"):
+            self.buffer_disp_null.close()
+        if hasattr(self, "buffer_disp_null_err"):
+            self.buffer_disp_null_err.close()
+        if hasattr(self, "buffer_disp_null_last"):
+            self.buffer_disp_null_last.close()
+
+    # Initialization of shm buffers
+
+    def disp_initialize_shm_cam_view(self):
+        """
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
+            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout. 
+            - buffer_im_VIS_pup; (VIS pupil frame shape); Pupil plane visible camera view of the latest readout.
+            - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout. 
+        """
+        self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
+                                        shape=self.dark.master_full[0].shape)
+        self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
+                                        shape=self.frame_VIS_pup.shape)
+        self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
+                                        shape=self.frame_VIS_im.shape)
 
     def disp_initialize_shm_broadband(self, depth=30, width=None):
+        """
+        Function that initializes buffers for real-time transfer (shm) and display (shmview) of broadband data, deduced from the ROIs defined on the IR camera frame.
+            - buffer_broad; (depth, 2, width); Broadband flux and error in selected ROIs (# ROIs = "width"), for the latest "depth" amount of readouts.
+            - buffer_broad_null; (depth, 2, 3); Broadband null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
+        
+        """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
-        dummy_data = np.nan * np.zeros((depth, width), dtype=float)
+        dummy_data = np.nan * np.zeros((depth, width, 2), dtype=float)
         self.buffer_broad = RollingShm("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
-                                        depth=depth, width=width)
+                                        depth=depth, width=width, dim=2)
+
+        dummy_data_null = np.nan * np.zeros((depth, 3, 2), dtype=float)
+        self.buffer_broad_null = RollingShm("/dev/shm/rtdisp/nott_buffer_broad_null.im.shm",
+                                        depth=depth, width=3, dim=2)
 
     def disp_initialize_shm_dispersed(self, depth=30, width=None,
                                         nwls=None):
         """
-            Now also initializes an image buffer
+        Function that initializes buffers for real-time transfer (shm) and display (shmview) of dispersed data, deduced from the ROIs defined on the IR camera frame.
+                buffer name           buffer dim.          buffer content
+            - buffer_disp; (depth, 2, width*nwls); Dispersed flux and errors in selected ROIs, for the latest "depth" amount of readouts. Waterfall style, ROIs and wavelengths are glued together ("width" = # ROIs * nwls) 
+            - buffer_disp_null(_err); (depth, nwls, 3);  Dispersed null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
+            - buffer_disp_last; (width, nwls); Buffer to store and visualize latest entry of buffer_disp
+            - buffer_disp_null_last; (3, nwls);  Buffer to store and visualize latest entry of buffer_disp_null
         """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
@@ -233,17 +303,30 @@ class HumInt(object):
             nwls = np.count_nonzero(self.sc_mask)
         initial_shape = (depth, width, nwls)
         dummy_raw = np.nan * np.zeros(initial_shape, dtype=float)
-        dummy_data_reshaped = dummy_raw.reshape(depth, width * nwls)
+        dummy_data_reshaped = dummy_raw.reshape(depth, width * nwls, 2)
         self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
                                         depth=dummy_data_reshaped.shape[0],
-                                        width=dummy_data_reshaped.shape[1])
-        self.buffer_im = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
-                                        shape=self.dark.master_full[0].shape)
+                                        width=dummy_data_reshaped.shape[1],
+                                        dim=dummy_data_reshaped.shape[2])
+
+        # To be added: buffer to pass ROI-specific flux values and errors
+        
+        null_shape = (depth, 3, nwls)
+        dummy_data_null = np.nan * np.zeros(null_shape, dtype=float)
+        dummy_data_null_err = np.nan * np.zeros(null_shape, dtype=float)
+        self.buffer_disp_null = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null.im.shm",
+                                        depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
+        self.buffer_disp_null_err = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null_err.im.shm",
+                                        depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
+
+        # Buffers with latest entries
+        self.buffer_disp_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_disp_last.im.shm", shape=(width,nwls))
+        self.buffer_disp_null_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_null_last.im.shm", shape=(3,nwls))
+        
         spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
 
-
-
+    # Wavelength calibration
 
     def solve_spectral_cal_linear(self):
         """
@@ -273,9 +356,13 @@ class HumInt(object):
         """
         return self.lambs[self.sc_mask]
 
+    # Time stamping
+
     def db_time(self):
         aresp = self.ts.ts.get(f"cam_integtime")
         return aresp[0]
+
+    # Piezo control
 
     def four2three(self, position):
         return position - position[self.non_motorized]
@@ -287,7 +374,9 @@ class HumInt(object):
         p = lam_micron /(2*np.pi) * np.arcsin(inner)
         return p
 
-    # Shutter control functions
+    #---------------------------#
+    # Shutter control functions |
+    # --------------------------#
     
     class ShutterError(OSError):
         pass
@@ -343,7 +432,15 @@ class HumInt(object):
             for i, ashutter in enumerate(self.shutters):
                 print(i, ashutter.getStatusInformation()[1], ashutter.getPositionAndSpeed()[0])
 
-    # Piezo control functions
+    #------------------------------#
+    # Delay line control functions |
+    # -----------------------------#
+
+    # WIP
+
+    #-------------------------#
+    # Piezo control functions |
+    #-------------------------#
 
     def get_position(self):
         pos = self.interf.values.copy()
@@ -360,7 +457,49 @@ class HumInt(object):
         thepos[self.act_index] += motion 
         self.interf.send(any_values=thepos)
 
-    # Sample functions
+    #--------------------------------------#
+    # Visible camera interfacing functions |
+    # -------------------------------------#
+    
+    # WIP
+
+    def get_image_view(self, ut=None, refresh=False):
+        if ut is None:
+            with LucidUtils() as ut:
+                frame_im = ut.snap("im_cam")
+        else:
+            frame_im = ut.snap("im_cam")
+
+        if refresh:
+            self.frame_VIS_im = frame_im
+        return frame_im
+
+    def get_pupil_view(self, ut=None, refresh=False):
+        if ut is None:
+            with LucidUtils() as ut:
+                frame_pup = ut.snap("pup_cam")
+        else:
+            frame_pup = ut.snap("pup_cam")
+            
+        if refresh:
+            self.frame_VIS_pup = frame_pup
+        return frame_pup
+
+    def configure_vis_cam_readout(self, name, params):
+        with LucidUtils() as ut:
+            ut.configure_camera_readout(name, params)
+            if name == "im_cam":
+                _ = self.get_image_view(ut, True)
+            elif name == "pup_cam":
+                _ = self.get_pupil_view(ut, True)
+
+    def configure_vis_cam_stream(self, name, params):
+        with LucidUtils() as ut:
+            ut.configure_camera_stream(name, params)
+
+    #------------------#
+    # Sample functions |
+    # -----------------#
 
     def sample(self):
         mes = np.array([self.ts.ts.get(akey) for akey in self.rois])
@@ -392,14 +531,17 @@ class HumInt(object):
             # res = self.sample_cal()
         else:
             # res = self.sample_long_cal(dt)
-            res, std = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
+            res, std = cal_disp_stack[0], cal_disp_stack[1]
         if move_back:
             print(f"moving_back to {orig_pos}")
             self.move(orig_pos)
             sleep(self.pad)
         return res, std
 
-    # Image calibration functions 
+    #-----------------------------#
+    # Image calibration functions |
+    #-----------------------------#
 
     def get_dark(self, dt):
         print("Taking darks")
@@ -450,25 +592,46 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False,):
+    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None):
+        """
+        Gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+        Returns:
+            1) cal_disp_stack; (2, nwls, nROIs); value and error (axis 1) of/on the dispersed readout (axis 2) in all ROIs (axis 3)
+            2) cal_broad_stack; (2, nROIs); value and error (axis 1) of/on the broadband readout in all ROIs (axis 2)
+        """
         if dark is None:
             dark = self.dark
-        frames = self.get_frames(dt)
+        if frames is None:
+            frames = self.get_frames(dt)
         if not sequence:
+            # Get calibrated master science frame
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
+            # Calculate broadband values and errors
+            cal_broad = cal_mean[self.sc_mask,:].sum(axis=0)
+            cal_broad_std = np.linalg.norm(cal_mean_std[self.sc_mask,:], axis=0) / len(self.sc_mask)
+            # Stack values and errors
+            cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
+            cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
+            
             if self.auto_display is not False:
-                self.buffer_broad.push(cal_mean[self.sc_mask,:].sum(axis=0))
-                self.buffer_disp.push(cal_mean[self.sc_mask,:].T.flatten())
-                self.buffer_im.push(frames.master_full[0] - dark.master_full[0])
-            return cal_mean, cal_mean_std
+                # Push data to corresponding buffers
+                self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
+                self.buffer_broad.push(cal_broad_stack)
+                # Dispersed data in waterfall format
+                cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
+                self.buffer_disp.push(cal_disp_stack_waterfall)
+                self.buffer_disp_last.push(cal_mean.transpose((1,0)))
+            return cal_disp_stack, cal_broad_stack
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
             return cal_seq, cal_seq_std
 
     def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
-        cal,cal_std = self.get_frames_cal(dt, dark, sequence)
-        np.save("cal",cal)
-        np.save("cal_std",cal_std)
+        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
+        np.save("cal_disp", cal_disp_stack[0])
+        np.save("cal_disp_err", cal_disp_stack[1])
+        np.save("cal_broad", cal_broad_stack[0])
+        np.save("cal_broad_err", cal_broad_stack[1])
         return
 
     def science_frame_sequence(self, dt, verbose=False):
@@ -513,8 +676,67 @@ class HumInt(object):
             
         return outputs_pos
 
-    # Surface level functions
-    
+    #-------------------------#
+    # Surface level functions |
+    #-------------------------#
+
+    def characterize_null(self, dt, dark=None, sequence=False, frames=None):
+        """
+        This function calculates the broadband & dispersed null depths N2, N3 (bright outputs) and Ndiff (differential). Corresponding errors are also calculated.
+        Calculated dataframes are pushed to the corresponding buffers for visualization (shmview).
+                              are returned by this function.
+        If "frames" is left unspecified, the function will fetch frames for this characterization.
+        This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
+        """
+        # Fetch data products of a master science frame
+        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt, dark, sequence, frames)
+        broad, broad_err = cal_broad_stack[0], cal_broad_stack[1]
+        disp, disp_err = cal_disp_stack[0], cal_disp_stack[1]
+        # Fetching ROI indices of interferometric outputs
+        roi_idx = np.zeros(4)
+        for i in range(0,4):
+            roi_idx[i] = self.channel_roi_link["I"+str(i+1)]
+        idx_I1, idx_I2, idx_I3, idx_I4 = roi_idx[0], roi_idx[1], roi_idx[2], roi_idx[3]
+
+        # Calculating null depths and propagating errors
+        # 1) Summing the bright outputs (I1, I4):
+        brightsum_broad = broad[idx_I1] + broad[idx_I4]
+        brightsum_broad_err = np.hypot(broad_err[idx_I1], broad_err[idx_I4])
+        brightsum_disp = disp[:,idx_I1] + disp[:,idx_I4]
+        brightsum_disp_err = np.hypot(disp_err[:,idx_I1], disp_err[:,idx_I4])
+        # 2) Calculating relative errors
+        # a) Relative error sum of brights
+        brightsum_broad_rel_err = np.divide(brightsum_broad_err, brightsum_broad)
+        brightsum_disp_rel_err = np.divide(brightsum_disp_err, brightsum_disp)
+        # b) Relative error individual outputs
+        broad_rel_err = np.divide(broad_err, broad)
+        disp_rel_err = np.divide(disp_err, disp)
+        # 3) Calculating null depths, propagating errors
+        N2_broad, N2_disp = np.divide(broad[idx_I2], brightsum_broad), np.divide(disp[:,idx_I2], brightsum_disp)
+        N2_broad_err, N2_disp_err = np.multiply(N2_broad, np.hypot(broad_rel_err[idx_I2], brightsum_broad_rel_err)), np.multiply(N2_disp, np.hypot(disp_rel_err[idx_I2], brightsum_disp_rel_err))
+        N3_broad, N3_disp = np.divide(broad[idx_I3], brightsum_broad), np.divide(disp[:,idx_I3], brightsum_disp)
+        N3_broad_err, N3_disp_err = np.multiply(N3_broad, np.hypot(broad_rel_err[idx_I3], brightsum_broad_rel_err)), np.multiply(N3_disp, np.hypot(disp_rel_err[idx_I3], brightsum_disp_rel_err))
+        Ndiff_broad, Ndiff_broad_err = N3_broad - N2_broad, np.hypot(N2_broad_err, N3_broad_err)
+        Ndiff_disp, Ndiff_disp_err = N3_disp - N2_disp, np.hypot(N2_disp_err, N3_disp_err)
+
+        # Bundling data
+        broad_null = np.stack([N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err], axis=0)
+        disp_null = np.stack([N2_disp, N3_disp, Ndiff_disp], axis=1)
+        disp_null_err = np.stack([N2_disp_err, N3_disp_err, Ndiff_disp_err], axis=1)
+
+        # Pushing to buffers
+        self.buffer_broad_null.push(broad_null)
+        self.buffer_disp_null.push(disp_null)
+        self.buffer_disp_null_err.push(disp_null_err)
+        self.buffer_disp_null_last.push(disp_null.transpose((1,0)))
+
+        return broad_null, disp_null, disp_null_err
+
+    def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
+        broad_null, disp_null, disp_null_err = self.characterize_null(dt, dark, sequence, frames)
+
+        # WIP
+
     def modulate_piezo(self, beam_index=None, beam=None, parameters=None):
         default_params = np.array([100,50,1900,2000])
         if isinstance(parameters, str):
@@ -668,7 +890,8 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            test_sample, rms = self.get_frames_cal(1.0)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
+            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
 
         if kappa is None:
             inherit_kappa = False
@@ -682,7 +905,8 @@ class HumInt(object):
             for beam in myprobe:
                 shutter_state = np.abs(beam).astype(bool)
                 self.shutter_set(shutter_state)
-                a, a_std = self.get_frames_cal(dt)
+                cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
+                a, a_std = cal_disp_stack[0], cal_disp_stack[1]
                 kappa.append(a)
                 if dt is not None:
                     std_kappa.append(a_std)
@@ -809,14 +1033,16 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            test_sample, rms = self.get_frames_cal(1.0)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
+            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
 
         kappa = []
         std_kappa = []
         for beam in myprobe:
             shutter_state = np.abs(beam).astype(bool)
             self.shutter_set(shutter_state)
-            a, a_std = self.get_frames_cal(dt)
+            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
+            a, a_std = cal_disp_stack[0], cal_disp_stack[1]
             kappa.append(a)
             if dt is not None:
                 std_kappa.append(a_std)
