@@ -289,11 +289,9 @@ class HumInt(object):
         """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
-        dummy_data = np.nan * np.zeros((depth, width, 2), dtype=float)
         self.buffer_broad = RollingShm("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
                                         depth=depth, width=width, dim=2)
 
-        dummy_data_null = np.nan * np.zeros((depth, 3, 2), dtype=float)
         self.buffer_broad_null = RollingShm("/dev/shm/rtdisp/nott_buffer_broad_null.im.shm",
                                         depth=depth, width=3, dim=2)
 
@@ -311,17 +309,14 @@ class HumInt(object):
             width = np.count_nonzero(self.disp_roi_mask)
         if nwls is None:
             nwls = np.count_nonzero(self.sc_mask)
-        dummy_data = np.nan * np.zeros((depth, width * nwls, 2), dtype=float)
+        disp_shape = (depth, width * nwls)
         self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
-                                        depth=dummy_data.shape[0],
-                                        width=dummy_data.shape[1],
-                                        dim=dummy_data.shape[2])
+                                        depth=disp_shape[0],
+                                        width=disp_shape[1])
 
         # To be added: buffer to pass ROI-specific flux values and errors
         
         null_shape = (depth, 3, nwls)
-        dummy_data_null = np.nan * np.zeros(null_shape, dtype=float)
-        dummy_data_null_err = np.nan * np.zeros(null_shape, dtype=float)
         self.buffer_disp_null = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null.im.shm",
                                         depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
         self.buffer_disp_null_err = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null_err.im.shm",
