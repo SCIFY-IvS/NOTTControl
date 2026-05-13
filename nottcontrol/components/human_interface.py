@@ -99,7 +99,7 @@ class SimpleShm(object):
         if shape is None:
             shape = (10,10)
         self.shape = shape
-        self.buffer = np.zeros(shape=self.shape, dtype)
+        self.buffer = np.zeros(shape=self.shape, dtype=dtype)
         self.shm = shm(fname, data=self.buffer, verbose=False,)
 
 
@@ -517,6 +517,7 @@ class HumInt(object):
 
         # Based on camera name {name}, push the frame data {frame} to the right buffer.
         # return nothing
+        return
         
 
     def start_stream_vis_cam(self, name, ut):
@@ -530,7 +531,7 @@ class HumInt(object):
         # 3) Complete documentation: "call stop_streaming_callback" to stop the stream. Or wrap it in a method, your call.
         # 4) ! Note: the callback function, passed to start_thread and thus called "inside lucid_utils", remembers where it comes from - where it is defined (here).
         # hence you can call functions/fields/whatever defined in this script on it.
-        
+        return
 
     #------------------#
     # Sample functions |
