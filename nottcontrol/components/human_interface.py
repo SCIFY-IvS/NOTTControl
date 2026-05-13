@@ -311,13 +311,11 @@ class HumInt(object):
             width = np.count_nonzero(self.disp_roi_mask)
         if nwls is None:
             nwls = np.count_nonzero(self.sc_mask)
-        initial_shape = (depth, width, nwls)
-        dummy_raw = np.nan * np.zeros(initial_shape, dtype=float)
-        dummy_data_reshaped = dummy_raw.reshape(depth, width * nwls, 2)
+        dummy_data = np.nan * np.zeros((depth, width * nwls, 2), dtype=float)
         self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
-                                        depth=dummy_data_reshaped.shape[0],
-                                        width=dummy_data_reshaped.shape[1],
-                                        dim=dummy_data_reshaped.shape[2])
+                                        depth=dummy_data.shape[0],
+                                        width=dummy_data.shape[1],
+                                        dim=dummy_data.shape[2])
 
         # To be added: buffer to pass ROI-specific flux values and errors
         
@@ -647,7 +645,7 @@ class HumInt(object):
             cal_broad_std = np.linalg.norm(cal_mean_std[self.sc_mask,:], axis=0) / len(self.sc_mask)
             # Stack values and errors
             cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
-            cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
+            cal_disp_stack = np.stack((cal_mean[self.sc_mask,:],cal_mean_std[self.sc_mask,:]),axis=0)
             
             if self.auto_display is not False:
                 # Push data to corresponding buffers
@@ -655,7 +653,7 @@ class HumInt(object):
                 self.buffer_broad.push(cal_broad_stack)
                 # Dispersed data in waterfall format
                 cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
-                self.buffer_disp.push(cal_disp_stack_waterfall)
+                self.buffer_disp.push(cal_disp_stack_waterfall[0])
                 self.buffer_disp_last.push(cal_mean.transpose((1,0)))
             return cal_disp_stack, cal_broad_stack
         else:
