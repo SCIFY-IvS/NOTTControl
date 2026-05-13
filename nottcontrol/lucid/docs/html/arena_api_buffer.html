@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>buffer module | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="buffer module | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="buffer module | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="arena_api_callback.html" rel="next" title="callback module"/>
+<link href="arena_api_arena_api_config.html" rel="prev" title="arena_api_config module"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="py.html">Arena Python API</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="arena_api.html">arena_api package</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">buffer module</span>
+</nav>
+<div id="content" role="main">
+<section id="module-arena_api.buffer">
+<span id="buffer-module"></span><h1>buffer module<a class="headerlink" href="#module-arena_api.buffer" title="Link to this heading"><span>#</span></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">arena_api.buffer.</span></span><span class="sig-name descname"><span class="pre">BufferFactory</span></span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory'"><span>#</span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A static class responsible for the copying, conversion,     and destruction of buffers with image data –Image buffers.</p>
+<p>The factory allocates and deallocates memory for its images.    Memory is allocated when an image is copied <code class="docutils literal notranslate"><span class="pre">BufferFactory.Copy()``or</span>     <span class="pre">converted</span> <span class="pre">``BufferFactory.Convert()</span></code>. To clean up memory, all images    created by <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> must be destroyed via    <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p>Images from this factory are treated noticeably differently than those    from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance. Retrieving an image from a device grabs a    buffer that had its memory preallocated when the device started streaming;    retrieving and requeuing does not allocate or deallocate memory, but    simply moves buffers around the acquisition engine. Copying, and
+converting an image with this factory allocates and deallocates memory
+as needed. This is why images from a device must be requeued with    <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code> while images from the image     factory must be destroyed via <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.create">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_format</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.create" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.create'"><span>#</span></a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.create_empty">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_format</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.create_empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.create_empty" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.create_empty'"><span>#</span></a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.create_compressed_image">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_compressed_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_format</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.create_compressed_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.create_compressed_image" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.create_compressed_image'"><span>#</span></a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.shallow">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shallow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_format</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.shallow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.shallow" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.shallow'"><span>#</span></a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.copy">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.copy" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.copy'"><span>#</span></a></dt>
+<dd><p>Creates a deep copy of an image buffer from another image buffer.
+<strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to copy.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p>When copying an image, the <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> allocates memory         for the new image. As such, images created by copying an image        with the image factory must be destroyed; otherwise, memory will leak.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">image_copy</span> <span class="o">=</span> <span class="n">BufferFactory</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># must use requeue_buffer for image from device</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># process image_copy, and then destroy image from factory</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="n">BufferFactory</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="n">image_copy</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+<li><p>Instantiates all lazy properties of the original image.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.copy_compressed_image">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">copy_compressed_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.copy_compressed_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.copy_compressed_image" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.copy_compressed_image'"><span>#</span></a></dt>
+<dd><p>Creates a deep copy of a compressed image buffer from another         compressed image buffer.
+<strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to copy.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of compressed image type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Compressed images from this method factory must be destroyed via         <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+<li><p>Instantiates all lazy properties of the original image.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.decompress_image">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">decompress_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.decompress_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.decompress_image" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.decompress_image'"><span>#</span></a></dt>
+<dd><p>Decompresses compressed image data.
+<strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to copy.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of compressed image type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Decompressed images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.convert">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_pixel_format</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bayer_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.convert" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.convert'"><span>#</span></a></dt>
+<dd><p>Converts an image buffer to the selected pixel format. In doing        so, it creates a completely new image, similar to a deep        copy but with a different pixel format.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p>buffer:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to convert.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>new_pixel_format:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PixelFormat</span></code> to convert to.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>bayer_algorithm:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.BayerAlgorithm</span></code> type. This is the Bayer                conversion algorithm to use. Only applicable when                converting from bayer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> for no conversion algorithm.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">new_pixel_format</span></code> type is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, nor                 <code class="docutils literal notranslate"><span class="pre">enum.PixelFormat</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bayer_algorithm</span></code> type is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, nor                 <code class="docutils literal notranslate"><span class="pre">enum.BayerAlgorithm</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with new pixel format. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">image_BGRa8</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">pixel_format</span> <span class="o">!=</span> <span class="n">enums</span><span class="o">.</span><span class="n">PixelFormat</span><span class="o">.</span><span class="n">BGRa8</span><span class="p">:</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">image_BGRa8</span> <span class="o">=</span> <span class="n">BufferFactory</span><span class="o">.</span><span class="n">covert</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">enums</span><span class="o">.</span><span class="n">PixelFormat</span><span class="o">.</span><span class="n">BGRa8</span><span class="p">)</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="k">else</span><span class="p">:</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">image_BGRa8</span> <span class="o">=</span> <span class="n">BufferFactory</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-7"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-8"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># process image_BRGa8, and then destroy image from factory</span>
+</span><span id="line-9"><span class="gp">&gt;&gt;&gt; </span><span class="n">BufferFactory</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="n">image_BGRa8</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<p>The list of supported pixel formats can be found in        <code class="docutils literal notranslate"><span class="pre">enums.PixelFormat</span></code>. The list of supported conversion
+pixel formats differs from a device’s pixel formats
+<code class="docutils literal notranslate"><span class="pre">PixelFormat</span></code> node. In order for the conversion to succeed,         both the source and destination pixel formats must be        supported. Bayer formats are supported as source formats only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+<li><p>Cannot convert to Bayer formats.</p></li>
+<li><p>Bayer conversion algorithm is only necessary when converting from Bayer</p></li>
+</ul>
+<p>formats.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.destroy">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">destroy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.destroy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.destroy" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.destroy'"><span>#</span></a></dt>
+<dd><p>Destroyes an image buffer.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. it must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p>Cleans up an image buffer and deallocates its        memory. It must be called on any image created by        the buffer factory function <code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code> <code class="docutils literal notranslate"><span class="pre">BufferFactory.convert()</span></code>.</p>
+<blockquote>
+<div><p>Images from the buffer factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+</div></blockquote>
+<p>All images from the buffer factory, whether copied or converted,        must be destroyed to deallocate their memory; otherwise,         memory will leak. It is important that this method only be        called on image buffers from the image factory, and not on        those retrieved from a device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.destroy_compressed_image">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">destroy_compressed_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.destroy_compressed_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.destroy_compressed_image" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.destroy_compressed_image'"><span>#</span></a></dt>
+<dd><p>Destroyes a compressed image buffer.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. it must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of compressed image type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.select_bits">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">select_bits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.select_bits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.select_bits" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.select_bits'"><span>#</span></a></dt>
+<dd><p>Creates a copy of an image buffer from another image buffer while selecting bits.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>numBits:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Number of bits to scale to. It must be &lt;8&gt;</p></li>
+</ul>
+</div></blockquote>
+<p>offset:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Offset to scale to.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with new scale. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.select_bits_and_scale">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">select_bits_and_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.select_bits_and_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.select_bits_and_scale" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.select_bits_and_scale'"><span>#</span></a></dt>
+<dd><p>Creates a scaled copy of an image buffer from another image buffer.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>numBits:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Number of bits to scale to. It must be &lt;8&gt;</p></li>
+</ul>
+</div></blockquote>
+<p>offset:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Offset to scale to.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with new scale. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.process_software_lut">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">process_software_lut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">len</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.process_software_lut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.process_software_lut" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.process_software_lut'"><span>#</span></a></dt>
+<dd><p>Runs an image through a lookup table, allowing for a redefinition of values.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>plut:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Pointer to the beginning of the lookup table</p></li>
+</ul>
+</div></blockquote>
+<p>len:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Length of buffer</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance processed with lookup table. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.deinterleave_channels">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">deinterleave_channels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.deinterleave_channels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.deinterleave_channels" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.deinterleave_channels'"><span>#</span></a></dt>
+<dd><p>Separates interleaved channels into a planar image.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to separate. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with a planar image. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.deinterleave_channels_shallow">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">deinterleave_channels_shallow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">len</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.deinterleave_channels_shallow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.deinterleave_channels_shallow" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.deinterleave_channels_shallow'"><span>#</span></a></dt>
+<dd><p>Separates interleaved channels into a planar image.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to separate. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>pdata:</p>
+<ul class="simple">
+<li><p>Data of the image in a form of a pointer to ctypes.c_uint8 or ctypes.c_ubyte.</p></li>
+</ul>
+<p>len:</p>
+<ul class="simple">
+<li><p>Length of buffer that needed for a planar image.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with a planar image. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.deinterleave_channels_len">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">deinterleave_channels_len</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.deinterleave_channels_len"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.deinterleave_channels_len" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.deinterleave_channels_len'"><span>#</span></a></dt>
+<dd><p>Return length of buffer that needed for a planar image.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to calculate a separated image. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Length (size_t) of buffer that needed for a planar image.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="arena_api.buffer.BufferFactory.split_channels">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">split_channels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arena_api/buffer.html#BufferFactory.split_channels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arena_api.buffer.BufferFactory.split_channels" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.buffer.BufferFactory.split_channels'"><span>#</span></a></dt>
+<dd><p>Takes an interleaved image and separates the channels into multiple images.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to split. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance in a vector with split images. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd></dl>
+</dd></dl>
+<p class="rubric">Classes</p>
+<section id="buffer">
+<h2>_Buffer<a class="headerlink" href="#buffer" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#buffer'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Buffers are the most generic form of acquisition engine data     retrieved from a device. They are acquired and requeued     via <code class="docutils literal notranslate"><span class="pre">Device</span></code> instances. Buffers with image data are referred     to as image, image data, image buffer.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># retrieving a buffer after starting the stream</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># requeuing it before stopping the stream</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">start_stream</span><span class="p">()</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="n">buffer</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">stop_stream</span><span class="p">()</span>
+</span></code></pre></div>
+</div>
+<p>Buffers can hold image data, chunk data or both. buffer class provides:</p>
+<ul class="simple">
+<li><p>Buffer and payload information like     payload <code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,    payload and buffer size <code class="docutils literal notranslate"><span class="pre">buffer.size_filled</span></code>,    <code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code>, and    frame ID <code class="docutils literal notranslate"><span class="pre">buffer.frame_id</span></code>.</p></li>
+<li><p>Type information like payload type <code class="docutils literal notranslate"><span class="pre">buffer.payload_type</span></code> and    whether the payload has image and/or chunk data    <code class="docutils literal notranslate"><span class="pre">buffer.has_imagedata</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.has_chunkdata</span></code>.</p></li>
+<li><p>Error information <code class="docutils literal notranslate"><span class="pre">buffer.is_incomplete</span></code> and     <code class="docutils literal notranslate"><span class="pre">buffer.is_data_larger_than_buffer</span></code>.</p></li>
+<li><p>Size information <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.offset_x</span></code>, and <code class="docutils literal notranslate"><span class="pre">buffer.offset_y</span></code>.</p></li>
+<li><p>Padding <code class="docutils literal notranslate"><span class="pre">buffer.padding_x</span></code> and <code class="docutils literal notranslate"><span class="pre">buffer.padding_y</span></code>.</p></li>
+<li><p>Pixel information <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_endianness</span></code>    , and <code class="docutils literal notranslate"><span class="pre">buffer.timestamp_ns</span></code>.</p></li>
+</ul>
+<p># images:
+Image buffers are the most common form of data     retrieved in <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.    Image data can be copied, and converted via the <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.    It is important to note that images retrieved from the camera must be    requeued <code class="docutils literal notranslate"><span class="pre">buffer.requeue_buffer()</span></code> whereas images created using the    image factory must be destroyed <code class="docutils literal notranslate"><span class="pre">BufferFactory.destroy()</span></code>.</p>
+<p># chunk:
+The concept of chunk data is a method of adding extra data (such as CRC,    width, height, etc.) to an image. A nuance of this concept is whether the    additional information is appended to the back of the image or the image is    treated as part of the chunk data. This is important for parsing the data.    LUCID devices create chunk data by appending it to the payload.    In order to receive chunk data with an image, chunk data must be enabled    and configured on node map <code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code>.    Chunk data must first be activated via <code class="docutils literal notranslate"><span class="pre">ChunkModeActive</span></code>. Each specific    chunk must then be selected and enabled via <code class="docutils literal notranslate"><span class="pre">ChunkSelector</span></code>    and <code class="docutils literal notranslate"><span class="pre">ChunkEnable</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># enabling pixel format chunk data</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkModeActive'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkSelector'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s1">'PixelFormat'</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># another syntax for get_node is []</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">nodemap</span><span class="p">[</span><span class="s1">'ChunkEnable'</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">True</span>
+</span></code></pre></div>
+</div>
+<p>Chunk data objects provide the ability to get chunks    <code class="docutils literal notranslate"><span class="pre">buffer.get_chunk()</span></code>. Otherwise a exception will be raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul>
+<li><p>Should be requeued; otherwise, acquisition engine may starve.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>Chunk buffers:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Should be requeued; same as other buffers        <code class="docutils literal notranslate"><span class="pre">buffer.requeue_buffer()</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Image buffers:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Should be requeued if retrieved from the device.</p></li>
+<li><p>Must be destroyed if created by the image factory.</p></li>
+<li><p>Properties of images from the image factory may be unavailable.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+<p>Properties:</p>
+<ul>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">size_filled</span></code></dt><dd><p>Size of the received payload.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Size of the received payload.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bytes</p>
+</dd>
+</dl>
+<p>Retrieves the size of the payload data, excluding transport layer    protocol leaders. The payload data may include image data,    chunk data, or both.</p>
+<p><strong>size_filled vs buffer_size</strong></p>
+<blockquote>
+<div><p>The size filled is often same as the size of the buffer        <code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code>, but not because they are one and the        same. <code class="docutils literal notranslate"><span class="pre">buffer.size_filled</span></code> returns the number of bytes        received whereas <code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code> returns the size of the        buffer, which can either be allocated by the user or calculated        by Arena <code class="docutils literal notranslate"><span class="pre">nodemap.get_node('PayloadSize')</span></code>.</p>
+</div></blockquote>
+<p><strong>size_filled vs payload_size</strong></p>
+<blockquote>
+<div><p>Retrieves the intended size of the payload. This is similar        to the retrieved payload size <code class="docutils literal notranslate"><span class="pre">buffer.size_filled</span></code> but         different in that missed data is included. This returns the same        as the SFNC feature by the same name (‘PayloadSize’).</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">payload_size</span></code></dt><dd><p>Size of the intended payload.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Size of the intended payload.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bytes.</p>
+</dd>
+</dl>
+<p><strong>payload_size vs size_filled</strong></p>
+<blockquote>
+<div><p>Retrieves the intended size of the payload. This is similar        to the retrieved payload size <code class="docutils literal notranslate"><span class="pre">buffer.size_filled</span></code> but         different in that missed data is included. This returns the same        as the SFNC feature by the same name (‘PayloadSize’).</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">buffer_size</span></code></dt><dd><p>Retrieves the size of a buffer.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Retrieves the size of a buffer.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bytes</p>
+</dd>
+</dl>
+<p>The payload size is calculated at the beginning of the stream    <code class="docutils literal notranslate"><span class="pre">device.start_stream()</span></code> and cannot be recalculated until    the stream has stopped <code class="docutils literal notranslate"><span class="pre">device.stop_stream()</span></code>. Because of this,    features that can affect payload size (<code class="docutils literal notranslate"><span class="pre">Width</span></code>, <code class="docutils literal notranslate"><span class="pre">Height</span></code>,    <code class="docutils literal notranslate"><span class="pre">PixelFormat</span></code>) become unwritable when the stream has started.</p>
+<p><strong>buffer_size vs size_filled</strong></p>
+<blockquote>
+<div><p>The size filled is often same as the size of the buffer        (<code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code>), but not because they are one and the        same. <code class="docutils literal notranslate"><span class="pre">buffer.size_filled</span></code> returns the number of bytes        received whereas <code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code> returns the size of the        buffer, which can either be allocated by the user or calculated        by Arena.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">frame_id</span></code></dt><dd><p>Gets the frame ID, a sequential identifier for buffers.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the frame ID.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+</dl>
+<p>Frame IDs start at <code class="docutils literal notranslate"><span class="pre">1</span></code> and continue until    <code class="docutils literal notranslate"><span class="pre">2^64-1</span></code> (64-bit), at which point they roll over back to <code class="docutils literal notranslate"><span class="pre">1</span></code>.    The frame ID should never be <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">payload_type</span></code></dt><dd><p>The buffer’s payload type as an enum, as defined by the    GigE Vision specification.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The buffer’s payload.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p>enums.PayloadType</p>
+</dd>
+</dl>
+<p>The payload type indicates how to interpret the data stored    in the buffer <code class="docutils literal notranslate"><span class="pre">buffer.data</span></code> or <code class="docutils literal notranslate"><span class="pre">buffer.pdata</span></code>. Lucid     devices may provide three ways to interpret the data:</p>
+<ul class="simple">
+<li><p>As an image <code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE</span></code>.</p></li>
+<li><p>As an image with chunk data appended to the end    <code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+<li><p>As chunk data, which may or may not include image data as    a chunk <code class="docutils literal notranslate"><span class="pre">enums.PayloadType.CHUNKDATA</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">has_chunkdata</span></code></dt><dd><p>Returns whether or not a buffer’s payload has data that may be     interpreted as chunk data. <code class="docutils literal notranslate"><span class="pre">True</span></code> if the payload has     chunk data otherwise, <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns whether or not a buffer’s payload has data that may be     interpreted as chunk data.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>.</p>
+</dd>
+</dl>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the payload type is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.CHUNKDATA</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.COMPRESSED_IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+</ul>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">False</span></code> if the payload type is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.COMPRESSED_IMAGE</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">has_imagedata</span></code></dt><dd><p>Returns whether or not a buffer’s payload has data that may     be interpreted as image data. <code class="docutils literal notranslate"><span class="pre">True</span></code> if the payload has     image data otherwise, <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns whether or not a buffer’s payload has data that may be     interpreted as image data.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>.</p>
+</dd>
+</dl>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the payload type is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+</ul>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">False</span></code> if the payload type is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.CHUNKDATA</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.COMPRESSED_IMAGE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.COMPRESSED_IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">is_compressedimage</span></code></dt><dd><p>Returns whether or not a buffer’s payload has data that may     be interpreted as compressed image data. <code class="docutils literal notranslate"><span class="pre">True</span></code> if the payload has     compressed image data otherwise, <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns whether or not a buffer’s payload has data that may be     interpreted as compressed image data.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>.</p>
+</dd>
+</dl>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the payload type is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.COMPRESSED_IMAGE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.COMPRESSED_IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+</ul>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">False</span></code> if the payload type is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.CHUNKDATA</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PayloadType.IMAGE_EXTENDED_CHUNK</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">is_incomplete</span></code></dt><dd><p>Returns whether or not the payload is complete.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns whether or not the payload is complete.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>.</p>
+</dd>
+</dl>
+<p>Error handling may be required in the case that the data is     incomplete. An incomplete image signifies that the data size    <code class="docutils literal notranslate"><span class="pre">buffer.size_filled</span></code> does not match the expected data size    <code class="docutils literal notranslate"><span class="pre">PayloadSize</span></code>. This is either due to missed packets    or a small buffer.</p>
+<p>The number of missed packets may be discovered through the     stream node map <code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code>. The missed    packet count feature <code class="docutils literal notranslate"><span class="pre">StreamMissedPacketCount</span></code> is a    cumulative count of all missed packets, and does not     necessarily reflect the number of missed packets for     any given buffer.</p>
+<p>A buffer may be missing data if the buffer to hold the data    is too small. This happens when the size of the buffer     <code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code> does not match the expected data size    <code class="docutils literal notranslate"><span class="pre">PayloadSize</span></code>. This will also return <code class="docutils literal notranslate"><span class="pre">True</span></code> when     checking whether the data is larger than the buffer     <code class="docutils literal notranslate"><span class="pre">buffer.is_data_larger_than_buffer</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">is_data_larger_than_buffer</span></code></dt><dd><p>Returns whether or not a buffer’s payload data is larger    than the buffer.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns whether or not a buffer’s payload data is    too large for the buffer.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>.</p>
+</dd>
+</dl>
+<p>A buffer may be missing data if the buffer to hold the data    is too small. This happens when the size of the buffer     <code class="docutils literal notranslate"><span class="pre">buffer.buffer_size</span></code> does not match the expected data size    <code class="docutils literal notranslate"><span class="pre">PayloadSize</span></code>. This will also return <code class="docutils literal notranslate"><span class="pre">True</span></code> when     checking whether the data is larger than the buffer     <code class="docutils literal notranslate"><span class="pre">buffer.is_data_larger_than_buffer</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">is_valid_crc</span></code></dt><dd><p>Returns whether or not a buffer data has a matching crc value    as that which was received from the device.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns whether or not a buffer data has a matching</p>
+</dd>
+</dl>
+<p>crc value as that which was received from the device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>.</p>
+</dd>
+</dl>
+<p>Returns  <code class="docutils literal notranslate"><span class="pre">True</span></code> if the calculated CRC value equals the one     sent from the device, otherwise, <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<p>Calculates the CRC of a buffer’s data and verifies it    against the CRC value sent from the device. This helps verify    that no data has been changed or missed during a transmission.    This calls a global helper function to calculate the CRC.    A CRC is performed by running a set of calculations on a     dataset both before and after a transmission.     The two calculated values are then compared for equality.    If the values are the same, then the transmission is deemed     successful; if different, then something in the transmission    went wrong.</p>
+<p>A device can be set to send a CRC value by enabling its     chunk data setting.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkModeActive'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">True</span>
+</span></code></pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkSelector'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s1">'CRC'</span>
+</span></code></pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkEnable'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">True</span>
+</span></code></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+<li><p>If CRC chunk is not enabled, calling <code class="docutils literal notranslate"><span class="pre">buffer.is_valid_crc</span></code>    will raise an exception.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">width</span></code></dt><dd><p>Width of the image buffer.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the width of the image buffer.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels.</p>
+</dd>
+</dl>
+<p>Gets the width of the image buffer in pixels. Images are     self-describing, so the device does not need to be queried to    get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the width is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the width is populated by the arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">height</span></code></dt><dd><p>Height of the image.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the height of the image buffer.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels</p>
+</dd>
+</dl>
+<p>Gets the height of the image buffer in pixels. Images are     self-describing, so the device does not need to be queried to    get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">offset_x</span></code></dt><dd><p>Offset X of the image buffer.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the offset X of the image buffer.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels</p>
+</dd>
+</dl>
+<p>Gets the offset of the image along the X-axis. Images are     self-describing, so the device does not need to be queried to    get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an image buffer from another image buffer    or from a minimal set of parameters (<code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>).    If the image buffer is created from parameters, the offset X will    be set to <code class="docutils literal notranslate"><span class="pre">0</span></code>, no matter its original value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">offset_y</span></code></dt><dd><p>Offset Y of the image buffer.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the offset Y of the image buffer.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels</p>
+</dd>
+</dl>
+<p>Gets the offset of the image along the Y-axis. Images are     self-describing, so the device does not need to be queried to    get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image buffer was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an image buffer from another image buffer    or from a minimal set of parameters (<code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>).    If the image buffer is created from parameters, the offset Y will    be set to <code class="docutils literal notranslate"><span class="pre">0</span></code>, no matter its original value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">padding_x</span></code></dt><dd><p>Padding X of the image.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the padding of the image along the X-axis.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels</p>
+</dd>
+</dl>
+<p>Gets the padding of the image along the X-axis. Images are     self-describing, so the device does not need to be queried to    get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image buffer was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an image buffer from another image buffer    or from a minimal set of parameters (<code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>).    If the image buffer is created from parameters, the padding X will    be set to <code class="docutils literal notranslate"><span class="pre">0</span></code>, no matter its original value.</p>
+<p>Padding X specifically refers to the number of bytes padding the end of    each line. This number will affect the pitch/stride/step of an image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">padding_y</span></code></dt><dd><p>Padding Y of the image.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the padding of the image along the Y-axis.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels</p>
+</dd>
+</dl>
+<p>Gets the padding of the image along the Y-axis. Images are     self-describing, so the device does not need to be queried to    get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image buffer was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an image buffer from another image buffer    or from a minimal set of parameters (<code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>).    If the image buffer is created from parameters, the padding Y will    be set to <code class="docutils literal notranslate"><span class="pre">0</span></code>, no matter its original value.</p>
+<p>Padding Y specifically refers to the number of bytes padding the end of    each line. This number will affect the pitch/stride/step of an image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">pixel_format</span></code></dt><dd><p>The buffer’s pixel format as an enum, as defined by the    PFNC specification.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The buffer’s pixel format.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p>enums.PixelFormat</p>
+</dd>
+</dl>
+<p>Gets the pixel format (PfncFormat) of the image, as defined by the     PFNC (Pixel Format Naming Convention). Images are self-describing,     so the device does not need to be queried to get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image buffer was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>Pixel format value are determined by the PFNC (Pixel Format Naming    Convention) specification. The PFNC assigns a name and number to each    pixel format helping to standardize pixel formats. The number of bits per    pixel can be found in each integer at bytes 5 and 6 (mask 0x00FF0000). The    pixel format can be determined by the integer using the GetPixelFormatName    function provided by the PFNC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">bits_per_pixel</span></code></dt><dd><p>Bits per pixel of the image.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the number of bits per pixel of the image buffer    from the integer value of the <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code> (PfncFormat).</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pixels</p>
+</dd>
+</dl>
+<p>Gets the number of bits per pixel of the image buffer    from the integer value of the <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code> (PfncFormat).    Internally, a public helper function is called <code class="docutils literal notranslate"><span class="pre">get_bits_per_pixel()</span></code>.
+Pixel format values are determined by the PFNC (Pixel Format Naming    Convention) specification. The PFNC assigns a name and number to each    pixel format, helping to standardize pixel formats. The number of bits per    pixel can be found in each integer at bytes 5 and 6
+(mask 0x00FF0000).</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">pixel_endianness</span></code></dt><dd><p>Endianness of the pixels of the image.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the pixel endianness of the image data.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p>enums.PixelEndianness</p>
+</dd>
+</dl>
+<p>Gets the pixel endianness of the image data. Images are self-describing,     so the device does not need to be queried to get this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image buffer was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an image buffer from another image buffer    or from a minimal set of parameters <code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>.    If the image buffer is created from parameters, the pixel endianness will    be set to <code class="docutils literal notranslate"><span class="pre">0</span></code> which is enums.PixelEndianness.UNKNOWN , no matter its     original value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">timestamp_ns</span></code></dt><dd><p>Timestamp of the image buffer in nanoseconds.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the timestamp of the image in nanoseconds.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nanoseconds/</p>
+</dd>
+</dl>
+<p>Gets the timestamp of the image in nanoseconds. Images are    self-describing, so the device does not need to be queried to get    this information.</p>
+<p>Image buffers are either retrieved from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance or created    by the factory <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>. If the image was retrieved     from a device, the height is populated by the acquisition engine    payload leader. The device itself is not queried as this data    is present in the image data. If the image buffer was created by the    <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>, the height is populated by the arguments.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an image buffer from another image buffer    or from a minimal set of parameters <code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>.    If the image buffer is created from parameters, the timetamp will    be set to <code class="docutils literal notranslate"><span class="pre">0</span></code> which is enums.PixelEndianness.UNKNOWN , no matter its     original value.</p>
+<p>This is the same as the nanosecond timestamp property    <code class="docutils literal notranslate"><span class="pre">buffer.timestamp</span></code> (deprecated in 2.0.0).</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pbytes</span></code></p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">pdata</span></code></dt><dd><p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">data</span></code></dt><dd><p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">compressed_image_pixel_format</span></code></dt><dd><p>The compressed buffer’s pixel format as an enum, as defined by the    PFNC specification.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The compressed buffer’s pixel format.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p>enums.PixelFormat</p>
+</dd>
+</dl>
+<p>Gets the pixel format (PfncFormat) of the image, as defined by the     PFNC (Pixel Format Naming Convention). Images are self-describing,     so the device does not need to be queried to get this information.</p>
+<p>Pixel format value are determined by the PFNC (Pixel Format Naming    Convention) specification. The PFNC assigns a name and number to each    pixel format helping to standardize pixel formats. The number of bits per    pixel can be found in each integer at bytes 5 and 6 (mask 0x00FF0000). The    pixel format can be determined by the integer using the GetPixelFormatName    function provided by the PFNC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">compressed_image_timestamp_ns</span></code></dt><dd><p>Timestamp of the compressed image buffer in nanoseconds.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">getter<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Gets the timestamp of the compressed image in nanoseconds.</p>
+</dd>
+<dt class="field-even">type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+</dd>
+<dt class="field-odd">unit<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nanoseconds/</p>
+</dd>
+</dl>
+<p>Gets the timestamp of the compressed image in nanoseconds. Images are    self-describing, so the device does not need to be queried to get    this information.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> can create an compressed image buffer from     another compressed image buffer or from a minimal set of parameters     <code class="docutils literal notranslate"><span class="pre">buffer.data</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.width</span></code>, <code class="docutils literal notranslate"><span class="pre">buffer.height</span></code>,     <code class="docutils literal notranslate"><span class="pre">buffer.pixel_format</span></code>. If the image buffer is created from parameters,     the timetamp will be set to <code class="docutils literal notranslate"><span class="pre">0</span></code>, no matter its original value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued     <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">compressed_image_pbytes</span></code></dt><dd><p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">compressed_image_pdata</span></code></dt><dd><p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">compressed_image_data</span></code></dt><dd><p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Methods:</p>
+<ul>
+<li><dl>
+<dt>get_chunk(self, chunk_names)</dt><dd><p>Gets a specified chunk or multiple chunks, returning it as a node(s)         in order to preserve metadata related to the chunk.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>chunk_names: it can be:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">list</span></code> of <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">tuple</span></code> of <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>The str’s value represents the name of the chunk to retrieve as a node.            the name is prefixed with ‘Chunk’. for example the name of the CRC            chunk is ‘ChunkCRC’</p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunk_names</span></code> is a <code class="docutils literal notranslate"><span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">tuple</span></code> but has an                    element that is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunk_names</span></code> value does not match a valid chunk name.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunk_names</span></code> type is not <code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">tuple</span></code> nor <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">dict</span></code>, that has chunk name as a key and the node            is the value, if <code class="docutils literal notranslate"><span class="pre">chunk_names</span></code> is a <code class="docutils literal notranslate"><span class="pre">list</span></code>.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">node</span></code> instance when <code class="docutils literal notranslate"><span class="pre">chunk_names</span></code> is a str.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Internally, chunk data objects have an internal node map and         a chunk adapter. These allow chunk information to be processed        and read as <code class="docutils literal notranslate"><span class="pre">Node</span></code> instances.</p>
+<p>There is a chance that incomplete images have garbage data in         place of expected chunk data. If this is the case, it is still        possible to attempt chunk retrieval. Invalid chunks raise a        <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># enabling timestamp chunk data</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkModeActive'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkSelector'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="s1">'CRC'</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">nodemap</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s1">'ChunkEnable'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">start_stream</span><span class="p">()</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="n">buffer_with_chunk_data</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-7"><span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">buffer_with_chunk_data</span><span class="o">.</span><span class="n">is_incomplete</span><span class="p">:</span>
+</span><span id="line-8"><span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="s1">'Chunks might contain garbage values'</span><span class="p">)</span>
+</span><span id="line-9"><span class="gp">&gt;&gt;&gt; </span><span class="k">else</span><span class="p">:</span>
+</span><span id="line-10"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">chunk_crc_node</span> <span class="o">=</span> <span class="n">buffer_with_chunk_data</span><span class="o">.</span><span class="n">get_chunk</span><span class="p">(</span><span class="s1">'ChunkCRC'</span><span class="p">)</span>
+</span><span id="line-11"><span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">chunk_crc_node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</span><span id="line-12"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">stop_stream</span><span class="p">()</span>
+</span></code></pre></div>
+</div>
+<p>Chunk data must meet three criteria to provide relevant data.        Chunk mode must be activated <code class="docutils literal notranslate"><span class="pre">ChunkModeActive</span></code>, the chunk must        be enabled <code class="docutils literal notranslate"><span class="pre">ChunkSelector</span></code> value is <code class="docutils literal notranslate"><span class="pre">ChunkEnable</span></code>, and the node        must exist:</p>
+<ul class="simple">
+<li><p>If chunk mode is inactive, the buffer will not contain chunk data.        - If chunk does not exist, returns null.         - If chunk is not enabled, returned node will be unavailable.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Causes undefined behavior if buffer requeued         <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code>.</p></li>
+<li><p>Properties lazily instantiated if buffer retrieved from device.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</section>
+<section id="bufferfactory">
+<h2>BufferFactory<a class="headerlink" href="#bufferfactory" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#bufferfactory'"><span>#</span></a></h2>
+<blockquote>
+<div><p>A static class responsible for the copying, conversion,     and destruction of buffers with image data –Image buffers.</p>
+<p>The factory allocates and deallocates memory for its images.    Memory is allocated when an image is copied <code class="docutils literal notranslate"><span class="pre">BufferFactory.Copy()``or</span>     <span class="pre">converted</span> <span class="pre">``BufferFactory.Convert()</span></code>. To clean up memory, all images    created by <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> must be destroyed via    <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p>Images from this factory are treated noticeably differently than those    from a <code class="docutils literal notranslate"><span class="pre">Device</span></code> instance. Retrieving an image from a device grabs a    buffer that had its memory preallocated when the device started streaming;    retrieving and requeuing does not allocate or deallocate memory, but    simply moves buffers around the acquisition engine. Copying, and
+converting an image with this factory allocates and deallocates memory
+as needed. This is why images from a device must be requeued with    <code class="docutils literal notranslate"><span class="pre">device.requeue_buffer()</span></code> while images from the image     factory must be destroyed via <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+<p>Methods:</p>
+<ul>
+<li><p>create(pdata, data_size, width, height, pixel_format)</p></li>
+<li><p>create_empty(data_size, width, height, pixel_format)</p></li>
+<li><p>create_compressed_image(pdata, data_size, pixel_format)</p></li>
+<li><p>shallow(pdata, data_size, width, height, pixel_format)</p></li>
+<li><dl>
+<dt>copy(buffer)</dt><dd><p>Creates a deep copy of an image buffer from another image buffer.
+<strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to copy.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p>When copying an image, the <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code> allocates memory         for the new image. As such, images created by copying an image        with the image factory must be destroyed; otherwise, memory will leak.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">image_copy</span> <span class="o">=</span> <span class="n">BufferFactory</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># must use requeue_buffer for image from device</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># process image_copy, and then destroy image from factory</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="n">BufferFactory</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="n">image_copy</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+<li><p>Instantiates all lazy properties of the original image.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>copy_compressed_image(buffer)</dt><dd><p>Creates a deep copy of a compressed image buffer from another         compressed image buffer.
+<strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to copy.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of compressed image type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Compressed images from this method factory must be destroyed via         <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+<li><p>Instantiates all lazy properties of the original image.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>decompress_image(buffer)</dt><dd><p>Decompresses compressed image data.
+<strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to copy.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of compressed image type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Decompressed images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>convert(buffer, new_pixel_format, bayer_algorithm)</dt><dd><p>Converts an image buffer to the selected pixel format. In doing        so, it creates a completely new image, similar to a deep        copy but with a different pixel format.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p>buffer:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to convert.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>new_pixel_format:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.PixelFormat</span></code> to convert to.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>bayer_algorithm:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enums.BayerAlgorithm</span></code> type. This is the Bayer                conversion algorithm to use. Only applicable when                converting from bayer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> for no conversion algorithm.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">new_pixel_format</span></code> type is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, nor                 <code class="docutils literal notranslate"><span class="pre">enum.PixelFormat</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bayer_algorithm</span></code> type is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, nor                 <code class="docutils literal notranslate"><span class="pre">enum.BayerAlgorithm</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with new pixel format. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="n">image_BGRa8</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">pixel_format</span> <span class="o">!=</span> <span class="n">enums</span><span class="o">.</span><span class="n">PixelFormat</span><span class="o">.</span><span class="n">BGRa8</span><span class="p">:</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">image_BGRa8</span> <span class="o">=</span> <span class="n">BufferFactory</span><span class="o">.</span><span class="n">covert</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">enums</span><span class="o">.</span><span class="n">PixelFormat</span><span class="o">.</span><span class="n">BGRa8</span><span class="p">)</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="k">else</span><span class="p">:</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span>    <span class="n">image_BGRa8</span> <span class="o">=</span> <span class="n">BufferFactory</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-7"><span class="gp">&gt;&gt;&gt; </span><span class="n">device</span><span class="o">.</span><span class="n">requeue_buffer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="line-8"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># process image_BRGa8, and then destroy image from factory</span>
+</span><span id="line-9"><span class="gp">&gt;&gt;&gt; </span><span class="n">BufferFactory</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="n">image_BGRa8</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<p>The list of supported pixel formats can be found in        <code class="docutils literal notranslate"><span class="pre">enums.PixelFormat</span></code>. The list of supported conversion
+pixel formats differs from a device’s pixel formats
+<code class="docutils literal notranslate"><span class="pre">PixelFormat</span></code> node. In order for the conversion to succeed,         both the source and destination pixel formats must be        supported. Bayer formats are supported as source formats only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+<li><p>Cannot convert to Bayer formats.</p></li>
+<li><p>Bayer conversion algorithm is only necessary when converting from Bayer</p></li>
+</ul>
+<p>formats.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>destroy(buffer)</dt><dd><p>Destroyes an image buffer.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. it must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p>Cleans up an image buffer and deallocates its        memory. It must be called on any image created by        the buffer factory function <code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code> <code class="docutils literal notranslate"><span class="pre">BufferFactory.convert()</span></code>.</p>
+<blockquote>
+<div><p>Images from the buffer factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+</div></blockquote>
+<p>All images from the buffer factory, whether copied or converted,        must be destroyed to deallocate their memory; otherwise,         memory will leak. It is important that this method only be        called on image buffers from the image factory, and not on        those retrieved from a device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>destroy_compressed_image(buffer)</dt><dd><p>Destroyes a compressed image buffer.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. it must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of compressed image type.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Images from the image factory must be destroyed.</p></li>
+<li><p>Images from a device should be requeued.</p></li>
+</ul>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>select_bits(buffer, num_bits, offset)</dt><dd><p>Creates a copy of an image buffer from another image buffer while selecting bits.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>numBits:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Number of bits to scale to. It must be &lt;8&gt;</p></li>
+</ul>
+</div></blockquote>
+<p>offset:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Offset to scale to.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with new scale. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>select_bits_and_scale(buffer, num_bits, offset)</dt><dd><p>Creates a scaled copy of an image buffer from another image buffer.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>numBits:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Number of bits to scale to. It must be &lt;8&gt;</p></li>
+</ul>
+</div></blockquote>
+<p>offset:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Offset to scale to.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with new scale. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>process_software_lut(buffer, plut, len)</dt><dd><p>Runs an image through a lookup table, allowing for a redefinition of values.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to destroy. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>plut:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Pointer to the beginning of the lookup table</p></li>
+</ul>
+</div></blockquote>
+<p>len:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Length of buffer</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Raises</strong>:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buffer</span></code> is not of type <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance processed with lookup table. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>deinterleave_channels(buffer)</dt><dd><p>Separates interleaved channels into a planar image.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to separate. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with a planar image. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>deinterleave_channels_shallow(buffer, pdata, len)</dt><dd><p>Separates interleaved channels into a planar image.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to separate. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p>pdata:</p>
+<ul class="simple">
+<li><p>Data of the image in a form of a pointer to ctypes.c_uint8 or ctypes.c_ubyte.</p></li>
+</ul>
+<p>len:</p>
+<ul class="simple">
+<li><p>Length of buffer that needed for a planar image.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance with a planar image. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>deinterleave_channels_len(buffer)</dt><dd><p>Return length of buffer that needed for a planar image.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to calculate a separated image. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Returns</strong>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Length (size_t) of buffer that needed for a planar image.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>split_channels(buffer)</dt><dd><p>Takes an interleaved image and separates the channels into multiple images.</p>
+<p><strong>Args</strong>:</p>
+<blockquote>
+<div><p>buffer:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance to split. It must be created by            <code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code>.</p></li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_Buffer</span></code> instance in a vector with split images. This is a new            instance.</p></li>
+</ul>
+</div></blockquote>
+<p>Images from this method factory must be destroyed via        <code class="docutils literal notranslate"><span class="pre">BufferFactory.Destroy()</span></code>.</p>
+<p><strong>————————————————————–</strong> <strong>—————————————————————</strong></p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory'" class="reference internal" href="#arena_api.buffer.BufferFactory"><code class="docutils literal notranslate"><span class="pre">BufferFactory</span></code></a><ul>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.create'" class="reference internal" href="#arena_api.buffer.BufferFactory.create"><code class="docutils literal notranslate"><span class="pre">BufferFactory.create()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.create_empty'" class="reference internal" href="#arena_api.buffer.BufferFactory.create_empty"><code class="docutils literal notranslate"><span class="pre">BufferFactory.create_empty()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.create_compressed_image'" class="reference internal" href="#arena_api.buffer.BufferFactory.create_compressed_image"><code class="docutils literal notranslate"><span class="pre">BufferFactory.create_compressed_image()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.shallow'" class="reference internal" href="#arena_api.buffer.BufferFactory.shallow"><code class="docutils literal notranslate"><span class="pre">BufferFactory.shallow()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.copy'" class="reference internal" href="#arena_api.buffer.BufferFactory.copy"><code class="docutils literal notranslate"><span class="pre">BufferFactory.copy()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.copy_compressed_image'" class="reference internal" href="#arena_api.buffer.BufferFactory.copy_compressed_image"><code class="docutils literal notranslate"><span class="pre">BufferFactory.copy_compressed_image()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.decompress_image'" class="reference internal" href="#arena_api.buffer.BufferFactory.decompress_image"><code class="docutils literal notranslate"><span class="pre">BufferFactory.decompress_image()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.convert'" class="reference internal" href="#arena_api.buffer.BufferFactory.convert"><code class="docutils literal notranslate"><span class="pre">BufferFactory.convert()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.destroy'" class="reference internal" href="#arena_api.buffer.BufferFactory.destroy"><code class="docutils literal notranslate"><span class="pre">BufferFactory.destroy()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.destroy_compressed_image'" class="reference internal" href="#arena_api.buffer.BufferFactory.destroy_compressed_image"><code class="docutils literal notranslate"><span class="pre">BufferFactory.destroy_compressed_image()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.select_bits'" class="reference internal" href="#arena_api.buffer.BufferFactory.select_bits"><code class="docutils literal notranslate"><span class="pre">BufferFactory.select_bits()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.select_bits_and_scale'" class="reference internal" href="#arena_api.buffer.BufferFactory.select_bits_and_scale"><code class="docutils literal notranslate"><span class="pre">BufferFactory.select_bits_and_scale()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.process_software_lut'" class="reference internal" href="#arena_api.buffer.BufferFactory.process_software_lut"><code class="docutils literal notranslate"><span class="pre">BufferFactory.process_software_lut()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.deinterleave_channels'" class="reference internal" href="#arena_api.buffer.BufferFactory.deinterleave_channels"><code class="docutils literal notranslate"><span class="pre">BufferFactory.deinterleave_channels()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.deinterleave_channels_shallow'" class="reference internal" href="#arena_api.buffer.BufferFactory.deinterleave_channels_shallow"><code class="docutils literal notranslate"><span class="pre">BufferFactory.deinterleave_channels_shallow()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.deinterleave_channels_len'" class="reference internal" href="#arena_api.buffer.BufferFactory.deinterleave_channels_len"><code class="docutils literal notranslate"><span class="pre">BufferFactory.deinterleave_channels_len()</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.buffer.BufferFactory.split_channels'" class="reference internal" href="#arena_api.buffer.BufferFactory.split_channels"><code class="docutils literal notranslate"><span class="pre">BufferFactory.split_channels()</span></code></a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#buffer'" class="reference internal" href="#buffer">_Buffer</a></li>
+<li><a :data-current="activeSection === '#bufferfactory'" class="reference internal" href="#bufferfactory">BufferFactory</a></li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>

@@ -21,6 +21,7 @@ mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.camera.frame import Frame
+from nottcontrol.lucid.lib.lucid_utils import LucidUtils
 from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
 from nottcontrol import config 
@@ -158,16 +159,18 @@ def randomized_probe(n, ntel=4, scale=1.0e-6, func=np.random.normal):
 
 class HumInt(object):
     def __init__(self, lam_mean=mean_wl,
-                pad=0.15, interf=None,
-                act_index=0,
-                rois_interest=np.arange(1,10),
-                verbose=False,
-                db_server=None,
-                opcuad=opcuad,
-                nb_beams=4,
+                pad=0.15,
                 shutter_pad=5.5,
+                interf=None,
+                act_index=0,
                 non_motorized=0,
-                offset = 8.0,snr_thresh=5):
+                nb_beams=4,
+                offset=8.0,
+                db_server=None,
+                rois_interest=np.arange(1,10),
+                opcuad=opcuad,
+                snr_thresh=5,
+                verbose=False):
         # self.lamb_min = lam_range[0]
         # self.lamb_max = lam_range[-1]
         self.lam_mean = lam_mean
@@ -179,7 +182,6 @@ class HumInt(object):
         self.nb_beams = nb_beams
         self.offset = offset * np.ones(self.nb_beams)
         self.offset[self.non_motorized] = 0
-        self.verbose = verbose
         self.ts = db_server
         self.rois_old = [f"roi{n}_sum" for n in rois_interest]
         self.rois = rois_interest
@@ -196,6 +198,7 @@ class HumInt(object):
                 close_pos=35.0)\
              for shutterid in range(4)
         ]
+        self.verbose=verbose
         self.move(np.array([0., 0., 0., 0.]))
         self.auto_display = False
 
