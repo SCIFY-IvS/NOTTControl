@@ -89,9 +89,9 @@ class RollingShm(object):
         """
         self.shm.close()
 
-class SimpleShm(object, dtype=float):
+class SimpleShm(object):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
-                    shape=None):
+                    shape=None, dtype=float):
         """
         Non-rolling, simple shm. Shape should be set depending on the use case.
         """
@@ -212,19 +212,29 @@ class HumInt(object):
 
     # Initialization of shm buffers
 
-    def disp_initialize_shm_cam_view(self):
+    def disp_initialize_shm_IR_cam(self):
         """
         Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
             - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout. 
-            - buffer_im_VIS_pup; (VIS pupil frame shape); Pupil plane visible camera view of the latest readout.
-            - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout. 
         """
         self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
                                         shape=self.dark.master_full[0].shape)
+        
+    def disp_initialize_shm_VIS_cam(self):
+        """
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
+            - buffer_im_VIS_pup; (VIS pupil frame shape); Pupil plane visible camera view of the latest readout.
+            - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout. 
+        """
+        # Snapping camera views
+        with LucidUtils() as myut:
+            frame_pup = self.get_pupil_view(ut=myut, refresh=True)
+            frame_im = self.get_image_view(ut=myut, refresh=True)
+         
         self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
-                                        shape=self.frame_VIS_pup.shape)
+                                        shape=self.frame_VIS_pup.shape, dtype=frame_pup.dtype)
         self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
-                                        shape=self.frame_VIS_im.shape)
+                                        shape=self.frame_VIS_im.shape, dtype=frame_im.dtype)
 
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
@@ -449,9 +459,34 @@ class HumInt(object):
             elif name == "pup_cam":
                 _ = self.get_pupil_view(ut, True)
 
+        # WIP: Upon change of camera pixelformat/datatype, refresh VIS_cam buffer dtypes
+        #      and find a way to propagate the new dtype to the shm level (see shmlib methods)
+
     def configure_vis_cam_stream(self, name, params):
         with LucidUtils() as ut:
             ut.configure_camera_stream(name, params)
+
+    def push_to_shm(self, name, frame):
+        # Callback function passed to lucid_utils.start_thread() for visible camera streaming
+
+        # WIP
+
+        # Based on camera name {name}, push the frame data {frame} to the right buffer.
+        # return nothing
+        
+
+    def start_stream_vis_cam(self, name, ut):
+        # Visible camera streaming, on camera {name}
+
+        # WIP
+
+        # Pass ut as parameter so you can call stop_streaming_callback on it from outside!!
+        # 1) Create a thread, passing the camera name and above callback function
+        # 2) Deprecate w,h in start_thread
+        # 3) Complete documentation: "call stop_streaming_callback" to stop the stream. Or wrap it in a method, your call.
+        # 4) ! Note: the callback function, passed to start_thread and thus called "inside lucid_utils", remembers where it comes from - where it is defined (here).
+        # hence you can call functions/fields/whatever defined in this script on it.
+        
 
     #------------------#
     # Sample functions |
