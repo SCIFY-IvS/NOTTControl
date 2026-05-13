@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal, QSize
 from PyQt5.uic import loadUi
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
 from nottcontrol.components.shutter import Shutter
+from nottcontrol.gui_style import polish_secondary_main_window
 
 class ShutterWindow(QMainWindow):
     closing = pyqtSignal()
@@ -27,6 +28,13 @@ class ShutterWindow(QMainWindow):
         self.redis_client = redis_client
 
         self.ui = loadUi('shutters.ui', self)
+        self.setWindowTitle("NOTT — Shutters")
+        self.statusBar().showMessage("Shutter states from OPC UA")
+        polish_secondary_main_window(
+            self,
+            subtitle="Shutters • beam path per output",
+            min_size=QSize(920, 640),
+        )
 
         self.ui.shutter_widget_1.setup(self.opcua_conn, self.redis_client, self._shutter1)
         self.ui.shutter_widget_2.setup(self.opcua_conn, self.redis_client, self._shutter2)

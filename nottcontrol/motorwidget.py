@@ -1,7 +1,7 @@
 from nottcontrol.commands.scan_fringes_command import ScanFringesCommand
 
 from PyQt5.QtWidgets import QWidget, QMenu
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.uic import loadUi
 
 from datetime import datetime, timezone
@@ -18,6 +18,9 @@ class MotorWidget(QWidget):
         self._motor = motor
         self.redis_client = redis_client
         self.timestamp = None
+
+        self.setObjectName("motorPanel")
+        self.setAttribute(Qt.WA_StyledBackground, True)
 
         self.ui = loadUi('motorwidget.ui', self)
 
@@ -38,6 +41,7 @@ class MotorWidget(QWidget):
         self.ui.pb_moverel_pos.clicked.connect(self.move_rel_motor_pos)
         self.ui.pb_moverel_neg.clicked.connect(self.move_rel_motor_neg)
         self.ui.pb_move_abs.clicked.connect(self.move_abs_motor)
+        self.ui.pb_move_rel.clicked.connect(self.move_rel_motor_pos)
 
         self.ui.label_name.setText(self._motor.name)
 
