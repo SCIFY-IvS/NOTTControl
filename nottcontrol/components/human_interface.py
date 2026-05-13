@@ -6,6 +6,7 @@ from tqdm import tqdm
 from copy import copy
 from datetime import datetime,timedelta,timezone
 from xaosim.shmlib import shm
+from scipy.linalg import hadamard
 
 import sys
 sys.path.append("/home/labo/src/NOTTControl/")
@@ -121,6 +122,49 @@ class SimpleShm(object, dtype=float):
             Is used to remove the shm
         """
         self.shm.close()
+
+# Functions to construct probes:
+
+
+def full_hadamard_probe(ntel, amp, steps=5, bidir=False):
+    mod_shutters = shutter_probe(ntel)
+    base_probe = hadamard_modulation(ntel, amp)
+    grad_probe = graduify(base_probe, steps, bidir=bidir)
+    return mod_shutters, grad_probe
+
+
+def hadamard_modulation(ntel, amp, drop_common=True):
+    """
+    Returns a hadamard matrix of given
+    """
+    mat = hadamard(4)
+    if drop_common:
+        mat = mat[1:,:]
+    return mat*amp
+
+
+def shutter_probe(ntel):
+    mod_shutters = np.eye(ntel+1, ntel)
+    mod_shutters = np.roll(mod_shutters, 1, axis=0)
+    return mod_shutters
+
+
+def graduify(matrix, nsteps, bidir=False, append_zeros=0):
+    if bidir:
+        multipliers = np.linspace(-1, 1, nsteps)
+    else:
+        multipliers = np.linspace(0, 1, nsteps)
+    newrows = []
+    for arow in matrix:
+        for amult in multipliers:
+            newrow = amult * arow
+            newrows.append(newrow)
+    return np.array(newrows)
+
+
+def randomized_probe(n, ntel=4, scale=1.0e-6, func=np.random.normal):
+    mat = func(size=(n, ntel), scale=scale)
+    return mat
 
 
 class HumInt(object):
@@ -820,7 +864,6 @@ class HumInt(object):
                     overwrite=True,
                     dn_object=None, bidir=True, verbose=False,
                     kappa_threshold = 1e-2):
-        import dnull as dn
         from astropy.time import Time
         if saveto is not None:
             prefix = "HIERARCH NOTT "
@@ -852,13 +895,14 @@ class HumInt(object):
 
         if kappa is None:
             inherit_kappa = False
-            if verbose: print("Making a new kappa matrix")
-            shutter_probe = dn.dnull.shutter_probe(ntel)
-            shutter_state = np.abs(shutter_probe[0]).astype(bool)
+            if verbose:
+                print("Making a new kappa matrix")
+            myprobe = shutter_probe(ntel)
+            shutter_state = np.abs(myprobe[0]).astype(bool)
             self.shutter_set(shutter_state)
             kappa = []
             std_kappa = []
-            for beam in shutter_probe:
+            for beam in myprobe:
                 shutter_state = np.abs(beam).astype(bool)
                 self.shutter_set(shutter_state)
                 cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
@@ -960,7 +1004,6 @@ class HumInt(object):
                     overwrite=True,
                     dn_object=None, bidir=True, verbose=False,
                     kappa_threshold = 1e-2):
-        import dnull as dn
         from astropy.time import Time
         if saveto is not None:
             prefix = "HIERARCH NOTT "
@@ -984,8 +1027,8 @@ class HumInt(object):
         }
         ntel = 4
         print("Kappa matrix")
-        shutter_probe = dn.dnull.shutter_probe(ntel)
-        shutter_state = np.abs(shutter_probe[0]).astype(bool)
+        myprobe = shutter_probe(ntel)
+        shutter_state = np.abs(myprobe[0]).astype(bool)
         self.shutter_set(shutter_state)
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
@@ -995,7 +1038,7 @@ class HumInt(object):
 
         kappa = []
         std_kappa = []
-        for beam in shutter_probe:
+        for beam in myprobe:
             shutter_state = np.abs(beam).astype(bool)
             self.shutter_set(shutter_state)
             cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
@@ -1149,8 +1192,6 @@ class HumInt(object):
 
     def chip_calib(self, amp, steps=10, dt=0.5,
                     dn_object=None, bidir=True):
-        import dnull as dn
-        import jax.numpy as jp
         test_conditions = {
             "co2_ppm": 1e6,
             "temp": 25.0,
@@ -1159,13 +1200,13 @@ class HumInt(object):
             "co2" : 450,
         }
         ntel = 4
-        shutter_probe, piston_probe = dn.dnull.full_hadamard_probe(ntel, amp, steps=steps, bidir=True)
-        # shutter_probe = dn.dnull.shutter_probe(ntel)
-        shutter_phasor = jp.ones_like(self.sc_lambs)[None,:,None] * shutter_probe[:,None,:]
-        hadamard_phasor = jp.exp(1j*2*np.pi/self.sc_lambs[None,:,None] * 1e-6*piston_probe[:,None,:])
-        probe_series = jp.concatenate((shutter_phasor, hadamard_phasor), axis=0)
-        amplitude_full = np.ones((shutter_probe.shape[0] + piston_probe.shape[0], shutter_probe.shape[1]))
-        amplitude_full[:shutter_probe.shape[0], :] *= shutter_probe
+        myprobe, piston_probe = full_hadamard_probe(ntel, amp, steps=steps, bidir=True)
+        # myprobe = shutter_probe(ntel)
+        shutter_phasor = np.ones_like(self.sc_lambs)[None,:,None] * myprobe[:,None,:]
+        hadamard_phasor = np.exp(1j*2*np.pi/self.sc_lambs[None,:,None] * 1e-6*piston_probe[:,None,:])
+        probe_series = np.concatenate((shutter_phasor, hadamard_phasor), axis=0)
+        amplitude_full = np.ones((myprobe.shape[0] + piston_probe.shape[0], myprobe.shape[1]))
+        amplitude_full[:myprobe.shape[0], :] *= myprobe
         piston_full = np.ones_like(amplitude_full)
         piston_full[-piston_probe.shape[0]:, :] = piston_probe
         test_conditions["amplitude_full"] = amplitude_full
@@ -1181,7 +1222,7 @@ class HumInt(object):
         measurements = []
         stds = []
         beam_state = np.ones(ntel, dtype=bool)
-        for aprobe in shutter_probe.astype(bool):
+        for aprobe in myprobe.astype(bool):
             print("aprobe:", aprobe, "beam_state", beam_state)
             for i, (astate, target_state) in enumerate(zip(beam_state, aprobe)):
                 beam_id = i
