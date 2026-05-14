@@ -288,14 +288,10 @@ class HumInt(object):
             self.buffer_broad_null.close()
         if hasattr(self, "buffer_disp"):
             self.buffer_disp.close()
-        if hasattr(self, "buffer_disp_err"):
-            self.buffer_disp_err.close()
         if hasattr(self, "buffer_disp_last"):
             self.buffer_disp_last.close()
         if hasattr(self, "buffer_disp_null"):
             self.buffer_disp_null.close()
-        if hasattr(self, "buffer_disp_null_err"):
-            self.buffer_disp_null_err.close()
         if hasattr(self, "buffer_disp_null_last"):
             self.buffer_disp_null_last.close()
 
@@ -328,48 +324,41 @@ class HumInt(object):
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of broadband data, deduced from the ROIs defined on the IR camera frame.
-            - buffer_broad; (depth, 2, width); Broadband flux and error in selected ROIs (# ROIs = "width"), for the latest "depth" amount of readouts.
-            - buffer_broad_null; (depth, 2, 3); Broadband null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
+            - buffer_broad; (2, depth, width); Broadband flux and error for the latest "depth" amount of readouts, in selected ROIs (# nROIs = "width")
+            - buffer_broad_null; (2, depth, 3); Broadband null depth and error for the latest "depth" amount of readouts and null depths N2, N3 and Ndiff.
         
         """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
-        self.buffer_broad = RollingShm("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
-                                        depth=depth, width=width, dim=2)
+        self.buffer_broad = RollingShm3D("/dev/shm/rtdisp/nott_buffer_broad.im.shm",
+                                        depth=depth, nax_2=width)
 
-        self.buffer_broad_null = RollingShm("/dev/shm/rtdisp/nott_buffer_broad_null.im.shm",
-                                        depth=depth, width=3, dim=2)
+        self.buffer_broad_null = RollingShm3D("/dev/shm/rtdisp/nott_buffer_broad_null.im.shm",
+                                        depth=depth, nax_2=3)
 
     def disp_initialize_shm_dispersed(self, depth=30, width=None,
                                         nwls=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of dispersed data, deduced from the ROIs defined on the IR camera frame.
                 buffer name           buffer dim.          buffer content
-            - buffer_disp; (depth, 2, width*nwls); Dispersed flux and errors in selected ROIs, for the latest "depth" amount of readouts. Waterfall style, ROIs and wavelengths are glued together ("width" = # ROIs * nwls) 
-            - buffer_disp_null(_err); (depth, nwls, 3);  Dispersed null depths (N2, N3, Ndiff) and errors, for the latest "depth" amount of readouts.
-            - buffer_disp_last; (width, nwls); Buffer to store and visualize latest entry of buffer_disp
-            - buffer_disp_null_last; (3, nwls);  Buffer to store and visualize latest entry of buffer_disp_null
+            - buffer_disp; (depth, width * nwls); Dispersed flux for the latest "depth" amount of readouts, collapsed to waterfall style. The spectra of all ROIs are sequentially glued along axis 1.
+            - buffer_disp_null; (depth, 3 * nwls); Dispersed null for the latest "depth" amount of readouts, collapsed to waterfall style. The spectra of all three null depths are sequentially glued along axis 1.
+            - buffer_disp_last; (2, width * nwls); Dispersed flux and error for the latest readout, collapsed to waterfall style.
+            - buffer_disp_null_last; (2, 3 * nwls);  Dispersed null and error for the latest readout, collapsed to waterfall style.
         """
         if width is None:
             width = np.count_nonzero(self.disp_roi_mask)
         if nwls is None:
             nwls = np.count_nonzero(self.sc_mask)
-        disp_shape = (depth, width * nwls)
-        self.buffer_disp = RollingShm("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
-                                        depth=disp_shape[0],
-                                        width=disp_shape[1])
 
-        # To be added: buffer to pass ROI-specific flux values and errors
-        
-        null_shape = (depth, 3, nwls)
-        self.buffer_disp_null = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null.im.shm",
-                                        depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
-        self.buffer_disp_null_err = RollingShm("/dev/shm/rtdisp/nott_buffer_disp_null_err.im.shm",
-                                        depth=null_shape[0], width=null_shape[1], dim=null_shape[2])
-
-        # Buffers with latest entries
-        self.buffer_disp_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_disp_last.im.shm", shape=(width,nwls))
-        self.buffer_disp_null_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_null_last.im.shm", shape=(3,nwls))
+        # Buffers with latest "depth" entries
+        self.buffer_disp = RollingShm2D("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
+                                        depth=depth, nax_1=width*nwls)        
+        self.buffer_disp_null = RollingShm2D("/dev/shm/rtdisp/nott_buffer_disp_null.im.shm",
+                                        depth=depth, nax_1=3*nwls)
+        # Buffers with latest entry
+        self.buffer_disp_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_disp_last.im.shm", shape=(2, width*nwls))
+        self.buffer_disp_null_last = SimpleShm("/dev/shm/rtdisp/nott_buffer_null_last.im.shm", shape=(2, 3*nwls))
         
         spacers = nwls * np.arange(width+1)
         np.save("/dev/shm/spacers.npy", spacers)
