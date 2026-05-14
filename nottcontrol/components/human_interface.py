@@ -494,6 +494,12 @@ class HumInt(object):
         thepos[self.act_index] += motion 
         self.interf.send(any_values=thepos)
 
+    #----------------------------#
+    # Tip-tilt control functions |
+    # ---------------------------#
+    
+    # WIP 
+
     #--------------------------------------#
     # Visible camera interfacing functions |
     # -------------------------------------#
@@ -683,7 +689,7 @@ class HumInt(object):
                 # Dispersed data in waterfall format
                 cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall[0])
-                self.buffer_disp_last.push(cal_mean.transpose((1,0)))
+                self.buffer_disp_last.push(cal_disp_stack_waterfall)
             return cal_disp_stack, cal_broad_stack
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
@@ -783,17 +789,19 @@ class HumInt(object):
         Ndiff_disp, Ndiff_disp_err = N3_disp - N2_disp, np.hypot(N2_disp_err, N3_disp_err)
 
         # Bundling data
-        broad_null = np.stack([N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err], axis=0)
-        disp_null = np.stack([N2_disp, N3_disp, Ndiff_disp], axis=1)
-        disp_null_err = np.stack([N2_disp_err, N3_disp_err, Ndiff_disp_err], axis=1)
+        broad_null_stack = np.stack([N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err], axis=0)
+        disp_null = np.stack([N2_disp, N3_disp, Ndiff_disp], axis=0)
+        disp_null_err = np.stack([N2_disp_err, N3_disp_err, Ndiff_disp_err], axis=0)
+        disp_null_stack = np.stack(disp_null, disp_null_err)
 
-        # Pushing to buffers
-        self.buffer_broad_null.push(broad_null)
-        self.buffer_disp_null.push(disp_null)
-        self.buffer_disp_null_err.push(disp_null_err)
-        self.buffer_disp_null_last.push(disp_null.transpose((1,0)))
+        # Pushing data to corresponding buffers
+        self.buffer_broad_null.push(broad_null_stack)
+        # Dispersed data in waterfall format
+        disp_null_stack_waterfall = disp_null_stack.reshape(disp_null.shape[0]*disp_null.shape[1])
+        self.buffer_disp_null.push(disp_null_stack_waterfall[0])
+        self.buffer_disp_null_last.push(disp_null_stack_waterfall)
 
-        return broad_null, disp_null, disp_null_err
+        return disp_null_stack, broad_null_stack
 
     def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
         broad_null, disp_null, disp_null_err = self.characterize_null(dt, dark, sequence, frames)
