@@ -661,7 +661,7 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None):
+    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None, crop_sci_mask=False):
         """
         Gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
         Returns:
@@ -675,12 +675,15 @@ class HumInt(object):
         if not sequence:
             # Get calibrated master science frame
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
+            if crop_sci_mask:
+                # Crop to science mask
+                cal_mean, cal_mean_std = cal_mean[self.sc_mask,:], cal_mean_std[self.sc_mask,:]
             # Calculate broadband values and errors
-            cal_broad = cal_mean[self.sc_mask,:].sum(axis=0)
-            cal_broad_std = np.linalg.norm(cal_mean_std[self.sc_mask,:], axis=0) / len(self.sc_mask)
+            cal_broad = cal_mean.sum(axis=0)
+            cal_broad_std = np.linalg.norm(cal_mean_std, axis=0) / len(cal_mean_std)
             # Stack values and errors
             cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
-            cal_disp_stack = np.stack((cal_mean[self.sc_mask,:],cal_mean_std[self.sc_mask,:]),axis=0)
+            cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
             
             if self.auto_display is not False:
                 # Push data to corresponding buffers
