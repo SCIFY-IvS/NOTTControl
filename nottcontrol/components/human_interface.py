@@ -48,7 +48,7 @@ def datetime_to_id(utc_stamp):
 
 class RollingShm2D(object):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
-                    depth, nax_1):
+                    depth=10, nax_1=100):
         """
             Wrapper of shm to harbour a rolling buffer of 2D data, used for plotting time series
             of dispersed flux / null readouts side-by-side ("waterfall plot") by shmview.
@@ -87,7 +87,7 @@ class RollingShm2D(object):
 
 class RollingShm3D(object):
     def __init__(self, fname="/dev/shm/rtdisp/default.plt.shm",
-                    depth, nax_2):
+                    depth=10, nax_2=10):
         """
             Wrapper of shm to harbour a rolling buffer of 3D data, used for plotting time series
             of broadband flux / null readouts separately by shmplot.
@@ -360,9 +360,9 @@ class HumInt(object):
             - buffer_disp_null_last; (2, 3 * nwls);  Dispersed null and error for the latest readout, collapsed to waterfall style.
         """
         if width is None:
-            width = np.count_nonzero(self.disp_roi_mask)
+            width = int(np.count_nonzero(self.disp_roi_mask))
         if nwls is None:
-            nwls = np.count_nonzero(self.sc_mask)
+            nwls = int(np.count_nonzero(self.sc_mask))
 
         # Buffers with latest "depth" entries
         self.buffer_disp = RollingShm2D("/dev/shm/rtdisp/nott_buffer_disp.im.shm",
@@ -674,7 +674,7 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None, crop_sci_mask=False):
+    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None, crop_sci_mask=True):
         """
         Gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
         Returns:
@@ -778,7 +778,7 @@ class HumInt(object):
         broad, broad_err = cal_broad_stack[0], cal_broad_stack[1]
         disp, disp_err = cal_disp_stack[0], cal_disp_stack[1]
         # Fetching ROI indices of interferometric outputs
-        roi_idx = np.zeros(4)
+        roi_idx = np.zeros(4, dtype=np.int32)
         for i in range(0,4):
             roi_idx[i] = self.channel_roi_link["I"+str(i+1)]
         idx_I1, idx_I2, idx_I3, idx_I4 = roi_idx[0], roi_idx[1], roi_idx[2], roi_idx[3]
@@ -798,22 +798,22 @@ class HumInt(object):
         disp_rel_err = np.divide(disp_err, disp)
         # 3) Calculating null depths, propagating errors
         N2_broad, N2_disp = np.divide(broad[idx_I2], brightsum_broad), np.divide(disp[:,idx_I2], brightsum_disp)
-        N2_broad_err, N2_disp_err = np.multiply(N2_broad, np.hypot(broad_rel_err[idx_I2], brightsum_broad_rel_err)), np.multiply(N2_disp, np.hypot(disp_rel_err[idx_I2], brightsum_disp_rel_err))
+        N2_broad_err, N2_disp_err = np.multiply(N2_broad, np.hypot(broad_rel_err[idx_I2], brightsum_broad_rel_err)), np.multiply(N2_disp, np.hypot(disp_rel_err[:,idx_I2], brightsum_disp_rel_err))
         N3_broad, N3_disp = np.divide(broad[idx_I3], brightsum_broad), np.divide(disp[:,idx_I3], brightsum_disp)
-        N3_broad_err, N3_disp_err = np.multiply(N3_broad, np.hypot(broad_rel_err[idx_I3], brightsum_broad_rel_err)), np.multiply(N3_disp, np.hypot(disp_rel_err[idx_I3], brightsum_disp_rel_err))
+        N3_broad_err, N3_disp_err = np.multiply(N3_broad, np.hypot(broad_rel_err[idx_I3], brightsum_broad_rel_err)), np.multiply(N3_disp, np.hypot(disp_rel_err[:,idx_I3], brightsum_disp_rel_err))
         Ndiff_broad, Ndiff_broad_err = N3_broad - N2_broad, np.hypot(N2_broad_err, N3_broad_err)
         Ndiff_disp, Ndiff_disp_err = N3_disp - N2_disp, np.hypot(N2_disp_err, N3_disp_err)
 
         # Bundling data
-        broad_null_stack = np.stack([N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err], axis=0)
+        broad_null_stack = np.stack([[N2_broad, N3_broad, Ndiff_broad], [N2_broad_err, N3_broad_err, Ndiff_broad_err]], axis=0)
         disp_null = np.stack([N2_disp, N3_disp, Ndiff_disp], axis=0)
         disp_null_err = np.stack([N2_disp_err, N3_disp_err, Ndiff_disp_err], axis=0)
-        disp_null_stack = np.stack(disp_null, disp_null_err)
+        disp_null_stack = np.stack([disp_null, disp_null_err], axis=0)
 
         # Pushing data to corresponding buffers
         self.buffer_broad_null.push(broad_null_stack)
         # Dispersed data in waterfall format
-        disp_null_stack_waterfall = disp_null_stack.reshape(disp_null.shape[0]*disp_null.shape[1])
+        disp_null_stack_waterfall = disp_null_stack.reshape(disp_null_stack.shape[0], disp_null_stack.shape[1]*disp_null_stack.shape[2])
         self.buffer_disp_null.push(disp_null_stack_waterfall[0])
         self.buffer_disp_null_last.push(disp_null_stack_waterfall)
 
@@ -1071,14 +1071,14 @@ class HumInt(object):
                 hdulist.append(fits.hdu.ImageHDU(data=kappa, name="KAPPA", header=None))
                 hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
             else:
-                hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
-                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[:,self.sc_mask,:], name="KAPPAE", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T, name="KAPPAE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,-2:], name="BG", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,-2:], name="BGE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,-2:], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
@@ -1203,13 +1203,13 @@ class HumInt(object):
         phases = 2*np.pi / (self.sc_lambs[None,None,:,None]*1.0e6) * all_pistons[:,:,None,:]
 
         if saveto is not None:
-            hdulist.append(fits.hdu.ImageHDU(data=kappa.T[:,self.sc_mask,:], name="KAPPA", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[:,self.sc_mask,:], name="KAPPAE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T, name="KAPPAE", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,:-2], name="FRINGES", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,:-2], name="FRINGESE", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,self.sc_mask,-2:], name="BG", header=None))
-            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,self.sc_mask,-2:], name="BGE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,:-2], name="FRINGESE", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,-2:], name="BG", header=None))
+            hdulist.append(fits.hdu.ImageHDU(data=all_fringes_std[:,:,:,-2:], name="BGE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=PHI_dft, name="PHI", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=all_pistons, name="PISTONS", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=self.sc_lambs, name="WAVELENGTHS", header=None))
