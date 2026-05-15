@@ -119,7 +119,20 @@ class RollingShm3D(object):
         self.buffer = np.roll(self.buffer, -1, axis=0)
         self.buffer[-1] = data
         self.buffer = self.buffer.transpose((1,0,2))
+        std = self.get_std()
+        # Push buffer data and std to shm
         self.shm.set_data(self.buffer)
+        self.shm.mtdata["rolling_std"] = std
+
+    def get_std(self):
+        """
+           Computes the standard deviation of the dataframe's "value" field (index 0 on axis 0) across the frames kept in the buffer (axis 1).
+        Only non-zero values, i.e. portions of the dataframe that have been filled with data, are taken into account in this calculation.
+        Zero values are masked for that purpose. 
+        """
+        vals = self.buffer[0]
+        vals_masked = np.where(vals == 0.0, np.nan, vals)
+        return np.nanstd(vals_masked, axis=0)
 
     def close(self):
         """
