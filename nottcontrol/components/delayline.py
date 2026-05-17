@@ -12,7 +12,7 @@ class DelayLine(Motor):
     """
 
     def __init__(self, opcua_conn, opcua_prefix: str, name: str,
-                 speed: float = None, pos_min: float = 0.0, pos_max: float = 6.0):
+                 speed: float = None, pos_min: float = 0.0, pos_max: float = 6000.0):
         """
         Params
         ------
@@ -50,9 +50,11 @@ class DelayLine(Motor):
         # Motor sState == 'OPERATIONAL'?
         return self.getStatusInformation()[1] == 'OPERATIONAL'
 
-    def is_in_travel_range(self, target_pos: float = self.position):
+    def is_in_travel_range(self, target_pos: float = None):
         # Target position within [pos_min, pos_max]?
         # If no target specified, use current position
+        if target_pos is None:
+            target_pos = self.position
         return self.pos_min <= target_pos <= self.pos_max
 
     # Motion control
@@ -60,8 +62,8 @@ class DelayLine(Motor):
     def _valid_move(self, target_pos: float):
         # Is the imposed target position valid, i.e. within the travel range?
         if not self.is_in_travel_range(target_pos):
-            raise ValueError(f"Target position {target_pos} um on {self.name} is
-                             out of the travel range [{self.pos_min, self.pos_max}] um.")
+            raise ValueError(f"Target position {target_pos} um on {self.name} is"
+                             f"out of the travel range [{self.pos_min, self.pos_max}] um.")
 
     def move_abs(self, target_pos: float, check_valid: bool= True):
         """
@@ -69,7 +71,7 @@ class DelayLine(Motor):
         """
         if check_valid:
             self._valid_move(target_pos)
-        self.command_move_absolute(target_pos).execute()
+        self.command_move_absolute(target_pos*10**(-3)).execute()
 
     def move_rel(self, delta_pos: float, check_valid: bool= True):
         """
@@ -78,6 +80,6 @@ class DelayLine(Motor):
         target_pos = self.position + delta_pos
         if check_valid:
             self._valid_move(target_pos)
-        self.command_move_relative(delta_pos).execute()
+        self.command_move_relative(delta_pos*10**(-3)).execute()
 
     

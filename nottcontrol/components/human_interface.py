@@ -492,8 +492,122 @@ class HumInt(object):
     # Delay line control functions |
     # -----------------------------#
 
-    # WIP
+    class DelayLineError(OSError):
+        pass
 
+    @property
+    def dl_state(self):
+        """
+            Return an array of floats with the current delay line positions (um).
+        Raises a DelayLineError if any delay line is not OPERATIONAL or not STANDING. 
+        """
+        positions = np.nan * np.zeros(len(self.delay_lines))
+
+        for i, dl in enumerate(self.delay_lines):
+            if not dl.is_operational:
+                raise self.DelayLineError(f"Delay line {dl.name} is not in OPERATIONAL state.")
+            if not dl.is_standing:
+                raise self.DelayLineError(f"Delay line {dl.name} is not in STANDING status.")
+            positions[i] = dl.position
+
+        return positions
+
+    def dl_set_abs(self, target_pos, verbose=False):
+        """
+            Move delay lines to the target positions target_pos (um).
+        Params
+        ------
+        target_pos : array of floats (um)
+            - Pass np.nan to ignore a DL
+        verbose : whether to print position and status, boolean
+
+        Raises
+        ------
+        DelayLineError: if a DL is not operational | standing before the move
+                        or fails to return to an operational | standing state after certain timeout
+        ValueError: if the target position is outside the travel range
+
+        """
+        target_pos = np.asarray(target_pos, dtype=float)
+        if not len(target_pos) == len(self.delay_lines):
+            raise self.DelayLineError(f"Target positions (length {len(target_pos)}) must match the amount of available delay lines {len(self.delay_lines)}.")
+        move_mask = np.logical_not(np.isnan(target_pos))
+
+        for i, dl in enumerate(self.delay_lines):
+            # Pre-move checks
+            if not move_mask[i]:
+                continue
+            if not dl.is_operational:
+                raise self.DelayLineError(f"pre-move: {dl.name} is not in OPERATIONAL state.")
+            if not dl.is_standing:
+                raise self.DelayLineError(f"pre-move: {dl.name} is not in STANDING status.")
+
+            # Delay line specific timeout
+            distance = abs(target_pos[i] - dl.position)
+            speed = dl._speed # um/s
+            dt_expected = np.abs(distance / speed)
+            # Taking minimum timeout of 5s for small motions
+            timeout = max(3.0*dt_expected, 5.0)
+
+            # Move
+            dl.move_abs(target_pos[i])
+            if verbose:
+                print(f"Moving delay line {dl.name}...")
+
+            # Wait until either in valid state or timeout
+            t_start = time()
+            while True:
+                if not dl.is_operational:
+                    raise self.DelayLineError(f"in-move: {dl.name} became NOT OPERATIONAL through move.")
+                if dl.is_standing:
+                    break
+
+                dt = time()-t_start
+                if dt > timeout:
+                    raise self.DelayLineError(f"Timeout: {dl.name} did not reach STANDING status within {timeout} s.")
+                sleep(0.05)
+
+            # Post-move checks & reporting
+            if not dl.is_operational:
+                raise self.DelayLineError(f"post-move: {dl.name} is not OPERATIONAL after move.")
+            if verbose:
+                curr_pos = dl.position
+                print(f"Delay line {dl.name} settled at position {curr_pos} um,"
+                    f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
+
+    def dl_set_rel(self, delta_pos, verbose=False):
+        """
+           Move delay lines by relative distance delta_pos (um).
+        Params
+        ------
+        delta_pos : array of floats (um)
+            - Pass 0.0 or np.nan to skip a DL 
+        """
+        delta_pos = np.asarray(delta_pos, dtype=float)
+           
+        if not len(delta_pos) == len(self.delay_lines):
+            raise self.DelayLineError(f"Input position offsets (length {len(delta_pos)}) must match the amount of available delay lines {len(self.delay_lines)}.")
+
+        target_pos = np.nan * np.zeros(len(self.delay_lines))
+        for i, dl in enumerate(self.delay_lines):
+            if not np.isnan(delta_pos[i]) and not delta_pos[i] == 0.0:
+                target_pos[i] = dl.position + delta_pos[i]
+
+        self.dl_set_abs(target_pos, verbose=verbose)
+
+    def dl_set_single(self, index, pos, relative=False, verbose=False):
+        """
+           Wrapper to only move a single delay line {index}.
+        If relative True: treat pos as a delta_pos (rel)
+        If relative False: treat pos as a target_pos (abs) 
+        """
+        target_pos = np.nan * np.zeros(len(self.delay_lines))
+        if relative:
+            target_pos[index] = self.delay_lines[index].position + pos
+        else:
+            target_pos[index] = pos
+        self.dl_set_abs(target_pos, verbose=verbose)
+            
     #-------------------------#
     # Piezo control functions |
     #-------------------------#
