@@ -20,6 +20,7 @@ mean_wl = np.sum(x_filter*y_filter) / np.sum(y_filter)
 
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
+from nottcontrol.components.delayline import DelayLine
 from nottcontrol.camera.frame import Frame
 from nottcontrol.lucid.lib.lucid_utils import LucidUtils
 from nottcontrol.script.lib.nott_database import get_field
@@ -265,6 +266,11 @@ class HumInt(object):
                 open_pos=5.0,
                 close_pos=35.0)\
              for shutterid in range(4)
+        ]
+        self.delay_lines = [
+            DelayLine(self.opcua_conn,
+                f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{dlid+1}",
+                f"NDL{dlid+1}") for dlid in range(4)
         ]
         self.frame_VIS_pup = None
         self.frame_VIS_im = None
