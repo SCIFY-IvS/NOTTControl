@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from nottcontrol.opcua import OPCUAConnection
+from nottcontrol.gui_style import apply_main_window_dashboard, polish_delay_lines_window
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
@@ -49,6 +50,9 @@ class MainWindow(QMainWindow):
 
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
+        self.setWindowTitle("NOTT — Instrument Control")
+        self.statusBar().showMessage("Ready")
+        apply_main_window_dashboard(self)
 
         # print("self.opcua_conn in MainWindow", self.opcua_conn)
         # Show Delay line window
@@ -209,7 +213,9 @@ class DelayLinesWindow(QMainWindow):
 
         # set up the delay lines window
         self.ui = loadUi('delay_lines.ui', self)
-        # Dl statuses
+        self.setWindowTitle("NOTT — Delay lines")
+        self.statusBar().showMessage("Motor positions from OPC UA")
+        polish_delay_lines_window(self)
         #self.dl1_status()
 
         self.ui.motor_widget_1.setup(self.opcua_conn, self.redis_client, self._motor1)

@@ -45,9 +45,6 @@
      <pointsize>12</pointsize>
     </font>
    </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(202, 202, 151);</string>
-   </property>
    <property name="text">
     <string>MOVE ABSOLUTE</string>
    </property>
@@ -69,10 +66,6 @@
      <italic>false</italic>
      <bold>false</bold>
     </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">font: 12pt &quot;Segoe UI&quot;;
-background-color: rgb(202, 202, 151);</string>
    </property>
    <property name="text">
     <string>MOVE RELATIVE</string>
@@ -109,11 +102,6 @@ background-color: rgb(202, 202, 151);</string>
      <width>361</width>
      <height>16</height>
     </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">font:  14pt &quot;Segoe UI&quot;;
-color: rgb(255, 38, 0);
-border-color: rgb(0, 0, 0);</string>
    </property>
    <property name="text">
     <string/>

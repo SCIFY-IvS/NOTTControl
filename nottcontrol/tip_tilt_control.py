@@ -1,10 +1,9 @@
 from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QSize
 from PyQt5.uic import loadUi
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
-from nottcontrol.components.shutter import Shutter
-from nottcontrol.script.lib.nott_TTM_alignment import alignment
+from nottcontrol.gui_style import polish_secondary_main_window
 
 class TipTiltControl(QMainWindow):
     closing = pyqtSignal()
@@ -23,6 +22,15 @@ class TipTiltControl(QMainWindow):
         self.redis_client = redis_client
 
         self.ui = loadUi('tip_tilt_control.ui', self)
+        self.setWindowTitle("NOTT — Tip / tilt")
+        self.statusBar().showMessage("Piezo tip/tilt mirrors")
+        polish_secondary_main_window(
+            self,
+            subtitle="Tip/tilt • piezo mirrors",
+            min_size=QSize(1100, 720),
+        )
+
+        from nottcontrol.script.lib.nott_TTM_alignment import alignment
 
         tt_interface = alignment()
 

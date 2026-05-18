@@ -27,6 +27,7 @@ from collections import deque
 from enum import Enum
 from nottcontrol.camera.roi import Roi
 from nottcontrol.camera.roiwidget import RoiWidget
+from nottcontrol.gui_style import apply_application_style
 import queue
 from pathlib import Path
 import zmq
@@ -75,6 +76,7 @@ class MainWindow(QMainWindow):
         pg.setConfigOption('foreground', 'k')
         
         self.ui = loadUi('camera/mainwindow.ui', self)
+        self.setWindowTitle("NOTT — Camera")
 
         self.roi_widgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
                            RoiWidget(self, 4, QColorConstants.Blue), RoiWidget(self, 5, QColorConstants.Magenta), RoiWidget(self, 6, QColorConstants.DarkGreen),
@@ -568,6 +570,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    apply_application_style(app)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
