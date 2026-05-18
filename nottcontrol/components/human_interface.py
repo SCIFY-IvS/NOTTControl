@@ -1182,7 +1182,6 @@ class HumInt(object):
             for apos in amodesteps:
                 a, a_std = self.move_and_sample(apos, dt=dt, move_back=False)
                 fringes.append(a)
-                fringes_std.append(a_std)
                 if dt is not None:
                     fringes_std.append(a_std)
                 else:
@@ -1208,7 +1207,7 @@ class HumInt(object):
                 hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
             else:
                 hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
-                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T, name="KAPPAE", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[1:,:,:-2], name="KAPPAE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
