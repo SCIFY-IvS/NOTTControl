@@ -275,6 +275,7 @@ class Frame(object):
         # Compute the calibrated (dark-subtracted, also background-subtracted if not full) master frame and calculate the corresponding std map
         # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
         # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
+        # Output is in (ROI, pixel row, pixel column) format.
               
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
@@ -308,11 +309,13 @@ class Frame(object):
 
     def calib_seq_nifits_format(self, dark, flat=None):
         cal_seq, cal_seq_std = self.calib_seq(dark, flat=flat)
-        return cal_seq.sum(axis=-1).transpose((1,2,0)), cal_seq_std.sum(axis=-1).transpose((1,2,0))
+        return cal_seq.sum(axis=-1).transpose((1,2,0)), np.linalg.norm(cal_seq_std, axis=-1).transpose((1,2,0)) / np.size(cal_seq_std, -1)
 
     def calib_master_nifits_format(self, dark, flat=None):
         cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
-        return cal_mean.sum(axis=-1).transpose((1,0)), cal_mean_std.sum(axis=-1).transpose((1,0))
+        # Sum over pixel columns (axis=-1) to get the total flux per pixel row / wavelength bin (axis=1).
+        # Transpose to get (wavelength, ROI) index numbering; i.e. NIFITS format.
+        return cal_mean.sum(axis=-1).transpose((1,0)), np.linalg.norm(cal_mean_std, axis=-1).transpose((1,0)) / np.size(cal_mean_std, -1)
 
     def calib(self, dark, flat=None, full=False):
         # Function that combines above two into one.

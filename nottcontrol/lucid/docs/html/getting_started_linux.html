@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Installing the Arena SDK for Linux | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="Installing the Arena SDK for Linux | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="Installing the Arena SDK for Linux | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">Installing the Arena SDK for Linux</span>
+</nav>
+<div id="content" role="main">
+<section id="installing-the-arena-sdk-for-linux">
+<span id="install-arena-sdk-linux"></span><h1>Installing the Arena SDK for Linux<a class="headerlink" href="#installing-the-arena-sdk-for-linux" title="Link to this heading"><span>#</span></a></h1>
+<p>Go to the LUCID <a href="#id1"><span class="problematic" id="id2">`Downloads hub&lt;https://thinklucid.com/downloads-hub/&gt;`_</span></a> to find the latest version of
+the Arena SDK for Linux, and follow the documentation inside.</p>
+<section id="upgrading-the-arena-sdk-for-linux">
+<h2>Upgrading the Arena SDK for Linux<a class="headerlink" href="#upgrading-the-arena-sdk-for-linux" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#upgrading-the-arena-sdk-for-linux'"><span>#</span></a></h2>
+<p>If you are upgrading to a newer version of the Arena SDK, we recommend that you uninstall the older version first.</p>
+</section>
+<section id="uninstalling-the-arena-sdk-for-linux">
+<h2>Uninstalling the Arena SDK for Linux<a class="headerlink" href="#uninstalling-the-arena-sdk-for-linux" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#uninstalling-the-arena-sdk-for-linux'"><span>#</span></a></h2>
+<p>To uninstall ArenaView MP, follow the instructions in the readme that accompanies the installation files.</p>
+</section>
+</section>
+<section id="initial-configuration-in-linux">
+<span id="initial-config-linux"></span><h1>Initial Configuration in Linux<a class="headerlink" href="#initial-configuration-in-linux" title="Link to this heading"><span>#</span></a></h1>
+<section id="installing-the-ethernet-driver">
+<h2>Installing the Ethernet Driver<a class="headerlink" href="#installing-the-ethernet-driver" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#installing-the-ethernet-driver'"><span>#</span></a></h2>
+<p>LUCID recommends updating the Ethernet driver on your Ethernet adapter to the latest driver available before connecting your camera.
+You may need to update your kernel to get the latest version of the Ethernet driver.</p>
+</section>
+<section id="jumbo-frames">
+<span id="jumbo-frames-linux"></span><h2>Jumbo Frames<a class="headerlink" href="#jumbo-frames" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#jumbo-frames'"><span>#</span></a></h2>
+<p>LUCID recommends enabling jumbo frames on your Ethernet adapter. A jumbo frame is an Ethernet frame that is larger than 1500 bytes. Most Ethernet adapters support jumbo frames, but it is usually turned off by default.</p>
+<p>Enabling jumbo frames on the Ethernet adapter allows a packet size of 9000 bytes and higher to be set on the camera. The larger packet size enables optimal performance on high-bandwidth cameras, and it usually reduces CPU load on the host system. To set a larger (e.g., 9000-byte) packet size on the camera, the Ethernet adapter must support the larger jumbo frame size.</p>
+<p>Using Ubuntu System Settings -&gt; Network:</p>
+<blockquote>
+<div><img alt="_images/ubuntu_adapter_jumbo_frames.png" src="_images/ubuntu_adapter_jumbo_frames.png"/>
+</div></blockquote>
+<p>Using the terminal:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>sudo<span class="w"> </span>ip<span class="w"> </span>link<span class="w"> </span><span class="nb">set</span><span class="w"> </span>enp0s8<span class="w"> </span>mtu<span class="w"> </span><span class="m">9000</span>
+</span></code></pre></div>
+</div>
+<p>The above command sets enp0s8 to an MTU size of 9000 to enable jumbo frames.</p>
+</section>
+<section id="receive-buffers">
+<h2>Receive Buffers<a class="headerlink" href="#receive-buffers" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#receive-buffers'"><span>#</span></a></h2>
+<p>A receive buffer is the area in system memory that can be used by the Ethernet adapter to receive packets. Some network adapter drivers or the operating system itself may set the receive buffer value to a low value by default, which may result in decreased performance. Increasing the receive buffer size, however, will also result in increased system memory usage. On Linux, you can use the utility ethtool to adjust the receive buffer size.</p>
+<p>Using the terminal:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>sudo<span class="w"> </span>ethtool<span class="w"> </span>-g<span class="w"> </span>enp0s8
+</span><span id="line-2"><span class="go">Ring parameters for enp0s8:</span>
+</span><span id="line-3"><span class="go">Pre-set maximums:</span>
+</span><span id="line-4"><span class="go">RX:         4096</span>
+</span><span id="line-5"><span class="go">RX Mini:    0</span>
+</span><span id="line-6"><span class="go">RX Jumbo:   0</span>
+</span><span id="line-7"><span class="go">TX:         4096</span>
+</span><span id="line-8"><span class="go">Current hardware settings:</span>
+</span><span id="line-9"><span class="go">RX:         256</span>
+</span><span id="line-10"><span class="go">RX Mini:    0</span>
+</span><span id="line-11"><span class="go">RX Jumbo:   0</span>
+</span><span id="line-12"><span class="go">TX:         256</span>
+</span><span id="line-13">
+</span><span id="line-14"><span class="gp">$ </span>sudo<span class="w"> </span>ethtool<span class="w"> </span>-G<span class="w"> </span>enp0s8<span class="w"> </span>rx<span class="w"> </span><span class="m">4096</span>
+</span></code></pre></div>
+</div>
+<p>The above commands query and set the maximum receive buffer size on enp0s8.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Using your Ethernet adapter’s maximum supported receive buffer size is recommended.</p>
+</div>
+</section>
+<section id="socket-buffer">
+<h2>Socket Buffer<a class="headerlink" href="#socket-buffer" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#socket-buffer'"><span>#</span></a></h2>
+<p>On most standard Linux installations, the default maximum socket buffer size is small, which may result in decreased streaming performance.
+LUCID also recommends that you set the socket buffer size. Using the terminal:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">"echo 'net.core.rmem_default=33554432' &gt;&gt; /etc/sysctl.conf"</span>
+</span><span id="line-2"><span class="gp">$ </span>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">"echo 'net.core.rmem_max=33554432' &gt;&gt; /etc/sysctl.conf"</span>
+</span><span id="line-3"><span class="gp">$ </span>sudo<span class="w"> </span>sysctl<span class="w"> </span>-p
+</span></code></pre></div>
+</div>
+<p>The above commands set the socket buffer size to 32 MB.</p>
+</section>
+</section>
+<section id="ip-address-assignment">
+<h1>IP Address Assignment<a class="headerlink" href="#ip-address-assignment" title="Link to this heading"><span>#</span></a></h1>
+<p>There are three methods used by LUCID cameras to obtain an IP address:</p>
+<ul class="simple">
+<li><p>Persistent - The camera uses a fixed IP address.</p></li>
+<li><p>Dynamic Host Configuration Protocol (DHCP) - The camera is assigned an address from a DHCP server.</p></li>
+<li><p>Link-Local Address (LLA) - The camera obtains an address in the Link-Local address range from 169.254.1.0 to 169.254.254.255.</p></li>
+</ul>
+<p>Persistent IP and DHCP configurations can be disabled on the camera. Out of the box, persistent IP is disabled and DHCP is enabled. LLA is always enabled.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A Link-Local address is selected with a pseudo-random number generator, so an LLA address cannot be reliably predicted.
+If you require a consistent IP address, you should set up a persistent IP on the camera.
+For more information on Link-Local Address selection, refer to <a class="reference external" href="https://tools.ietf.org/html/rfc3927#section-2.1">Section 2.1 in RFC 3927</a>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The camera must be on the same subnet as the Ethernet adapter and have a valid IP address before use.</p>
+</div>
+<section id="camera-ip-setup">
+<h2>Camera IP Setup<a class="headerlink" href="#camera-ip-setup" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#camera-ip-setup'"><span>#</span></a></h2>
+<p>Persistent IP and DHCP configurations can be disabled on the camera. The default camera configuration is as follows:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>Persistent IP</strong></p></td>
+<td><p>Disabled</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>DHCP</strong></p></td>
+<td><p>Enabled</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>LLA</strong></p></td>
+<td><p>Enabled (always enabled)</p></td>
+</tr>
+</tbody>
+</table>
+<p>Out of the box, the camera first attempts to connect using DHCP. If the camera is unable to connect using DHCP, it will use Link-Local addressing.</p>
+</section>
+<section id="reverse-path-filtering">
+<h2>Reverse Path Filtering<a class="headerlink" href="#reverse-path-filtering" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#reverse-path-filtering'"><span>#</span></a></h2>
+<p>Most Linux systems check whether a packet can be received through the Ethernet interface as configured. A device can be ignored if its IP address conflicts with the Ethernet adapter.</p>
+<p>Disabling reverse path filtering skips this check. The following command disables reverse path filtering on enp0s8 and any new Ethernet interfaces:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>sudo<span class="w"> </span>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.conf.default.rp_filter<span class="o">=</span><span class="m">0</span>
+</span><span id="line-2"><span class="gp">$ </span>sudo<span class="w"> </span>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.conf.all.rp_filter<span class="o">=</span><span class="m">0</span>
+</span><span id="line-3"><span class="gp">$ </span>sudo<span class="w"> </span>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.conf.enp0s8.rp_filter<span class="o">=</span><span class="m">0</span>
+</span></code></pre></div>
+</div>
+<p>The above commands are not retained when the system reboots. You can also permanently disable reverse path filtering by commenting out or removing any lines mentioning the following in /etc/sysctl.d/10-network-security.conf:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="go">net.ipv4.conf.default.rp_filter=1</span>
+</span><span id="line-2"><span class="go">net.ipv4.conf.all.rp_filter=1</span>
+</span></code></pre></div>
+</div>
+</section>
+<section id="setting-up-persistent-ip-or-dhcp-on-the-camera-with-ip-config-utility">
+<h2>Setting Up Persistent IP or DHCP on the Camera with IP Config Utility<a class="headerlink" href="#setting-up-persistent-ip-or-dhcp-on-the-camera-with-ip-config-utility" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#setting-up-persistent-ip-or-dhcp-on-the-camera-with-ip-config-utility'"><span>#</span></a></h2>
+<p>Arena SDK provides a small command-line utility called IP Config Utility to configure your camera’s IP address.</p>
+<p>The following command shows all connected cameras:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/list
+</span><span id="line-2">
+</span><span id="line-3"><span class="go">[index] MAC             IP              SUBNET          GATEWAY                 IP CONFIG</span>
+</span><span id="line-4"><span class="go">[0]     1C0FAF000001    169.254.101.0   255.255.0.0     0.0.0.0                 DHCP= 1 Persistent Ip= 1 LLA = 1</span>
+</span></code></pre></div>
+</div>
+<p>The following commands show how to enable and set a persistent IP address on a camera with the MAC address of 1C:0F:AF:00:00:01:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/persist<span class="w"> </span>-m<span class="w"> </span>1C0FAF000001<span class="w"> </span>-p<span class="w"> </span><span class="nb">true</span><span class="w"> </span>-a<span class="w"> </span><span class="m">192</span>.168.0.10<span class="w"> </span>-s<span class="w"> </span><span class="m">255</span>.255.255.0<span class="w"> </span>-g<span class="w"> </span><span class="m">0</span>.0.0.0
+</span><span id="line-2"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/config<span class="w"> </span>-m<span class="w"> </span>1C0FAF000001<span class="w"> </span>-p<span class="w"> </span><span class="nb">true</span>
+</span></code></pre></div>
+</div>
+<p>The following commands show how to enable persistent IP and set a persistent IP address on a camera listed at index 0:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/persist<span class="w"> </span>-i<span class="w"> </span><span class="m">0</span><span class="w"> </span>-p<span class="w"> </span><span class="nb">true</span><span class="w"> </span>-a<span class="w"> </span><span class="m">192</span>.168.0.10<span class="w"> </span>-s<span class="w"> </span><span class="m">255</span>.255.255.0<span class="w"> </span>-g<span class="w"> </span><span class="m">0</span>.0.0.0
+</span><span id="line-2"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/config<span class="w"> </span>-i<span class="w"> </span><span class="m">0</span><span class="w"> </span>-p<span class="w"> </span><span class="nb">true</span>
+</span></code></pre></div>
+</div>
+<p>The following command shows how to enable DHCP on a camera listed at index 0:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/config<span class="w"> </span>-i<span class="w"> </span><span class="m">0</span><span class="w"> </span>-d<span class="w"> </span><span class="nb">true</span>
+</span></code></pre></div>
+</div>
+<p>The following commands show how to enable persistent IP and DHCP and set a persistent IP address on a camera listed at index 0:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/persist<span class="w"> </span>-i<span class="w"> </span><span class="m">0</span><span class="w"> </span>-p<span class="w"> </span><span class="nb">true</span><span class="w"> </span>-a<span class="w"> </span><span class="m">192</span>.168.0.10<span class="w"> </span>-s<span class="w"> </span><span class="m">255</span>.255.255.0<span class="w"> </span>-g<span class="w"> </span><span class="m">0</span>.0.0.0
+</span><span id="line-2"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/config<span class="w"> </span>-i<span class="w"> </span><span class="m">0</span><span class="w"> </span>-p<span class="w"> </span><span class="nb">true</span><span class="w"> </span>-d<span class="w"> </span><span class="nb">true</span>
+</span></code></pre></div>
+</div>
+</section>
+<section id="forcing-an-ip-address-on-the-camera-with-ip-config-utility">
+<h2>Forcing an IP Address on the Camera with IP Config Utility<a class="headerlink" href="#forcing-an-ip-address-on-the-camera-with-ip-config-utility" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forcing-an-ip-address-on-the-camera-with-ip-config-utility'"><span>#</span></a></h2>
+<p>The following command shows how to force an IP address on a camera with the MAC address of 1C:0F:AF:00:00:01:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>./IpConfigUtility<span class="w"> </span>/force<span class="w"> </span>-m<span class="w"> </span>1C0FAF000001<span class="w"> </span>-a<span class="w"> </span><span class="m">192</span>.168.0.10<span class="w"> </span>-s<span class="w"> </span><span class="m">255</span>.255.0.0<span class="w"> </span>-g<span class="w"> </span><span class="m">0</span>.0.0.0
+</span></code></pre></div>
+</div>
+</section>
+<section id="setting-up-lla-on-the-ethernet-adapter">
+<h2>Setting Up LLA on the Ethernet Adapter<a class="headerlink" href="#setting-up-lla-on-the-ethernet-adapter" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#setting-up-lla-on-the-ethernet-adapter'"><span>#</span></a></h2>
+<p>The following steps illustrate an example configuration for one Ethernet adapter to use the LLA space.</p>
+<ol class="arabic">
+<li><p>Navigate to System -&gt; System Settings -&gt; Network</p></li>
+<li><p>Click on your Ethernet adapter and click <strong>Options</strong></p>
+<img alt="_images/ubuntu_edit_properties.png" src="_images/ubuntu_edit_properties.png"/>
+</li>
+<li><p>Select the <strong>IPv4 Settings</strong> tab, choose <strong>Manual</strong> for Method. In the Addresses heading, click <strong>Add</strong> and enter the following details:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>IP address</strong></p></td>
+<td><p>169.254.0.1</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Subnet mask</strong></p></td>
+<td><p>255.255.0.0</p></td>
+</tr>
+</tbody>
+</table>
+<img alt="_images/ubuntu_ipv4_properties.png" src="_images/ubuntu_ipv4_properties.png"/>
+<p>Gateway, DNS servers, and Search domain details can be left blank.</p>
+</li>
+</ol>
+<p>You can also set up your Ethernet adapter to use the LLA space using the terminal:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">$ </span>sudo<span class="w"> </span>ip<span class="w"> </span>addr<span class="w"> </span>add<span class="w"> </span><span class="m">169</span>.254.0.1/16<span class="w"> </span>dev<span class="w"> </span>enp0s8
+</span></code></pre></div>
+</div>
+<p>The above command sets enp0s8 to the IP address of 169.254.0.1 with the subnet mask 255.255.0.0.</p>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><ul>
+<li><a :data-current="activeSection === '#upgrading-the-arena-sdk-for-linux'" class="reference internal" href="#upgrading-the-arena-sdk-for-linux">Upgrading the Arena SDK for Linux</a></li>
+<li><a :data-current="activeSection === '#uninstalling-the-arena-sdk-for-linux'" class="reference internal" href="#uninstalling-the-arena-sdk-for-linux">Uninstalling the Arena SDK for Linux</a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#initial-configuration-in-linux'" class="reference internal" href="#initial-configuration-in-linux">Initial Configuration in Linux</a><ul>
+<li><a :data-current="activeSection === '#installing-the-ethernet-driver'" class="reference internal" href="#installing-the-ethernet-driver">Installing the Ethernet Driver</a></li>
+<li><a :data-current="activeSection === '#jumbo-frames'" class="reference internal" href="#jumbo-frames">Jumbo Frames</a></li>
+<li><a :data-current="activeSection === '#receive-buffers'" class="reference internal" href="#receive-buffers">Receive Buffers</a></li>
+<li><a :data-current="activeSection === '#socket-buffer'" class="reference internal" href="#socket-buffer">Socket Buffer</a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#ip-address-assignment'" class="reference internal" href="#ip-address-assignment">IP Address Assignment</a><ul>
+<li><a :data-current="activeSection === '#camera-ip-setup'" class="reference internal" href="#camera-ip-setup">Camera IP Setup</a></li>
+<li><a :data-current="activeSection === '#reverse-path-filtering'" class="reference internal" href="#reverse-path-filtering">Reverse Path Filtering</a></li>
+<li><a :data-current="activeSection === '#setting-up-persistent-ip-or-dhcp-on-the-camera-with-ip-config-utility'" class="reference internal" href="#setting-up-persistent-ip-or-dhcp-on-the-camera-with-ip-config-utility">Setting Up Persistent IP or DHCP on the Camera with IP Config Utility</a></li>
+<li><a :data-current="activeSection === '#forcing-an-ip-address-on-the-camera-with-ip-config-utility'" class="reference internal" href="#forcing-an-ip-address-on-the-camera-with-ip-config-utility">Forcing an IP Address on the Camera with IP Config Utility</a></li>
+<li><a :data-current="activeSection === '#setting-up-lla-on-the-ethernet-adapter'" class="reference internal" href="#setting-up-lla-on-the-ethernet-adapter">Setting Up LLA on the Ethernet Adapter</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>
