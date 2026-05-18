@@ -796,37 +796,53 @@ class HumInt(object):
     
     def get_frames_cal(self, dt, dark=None, sequence=False, frames=None, crop_sci_mask=True):
         """
-        Gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+        # WIP : Handling of sequence=True case.
+
+        If no dark specified, uses self.dark
+        If sequence=False: gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
         Returns:
             1) cal_disp_stack; (2, nwls, nROIs); value and error (axis 1) of/on the dispersed readout (axis 2) in all ROIs (axis 3)
             2) cal_broad_stack; (2, nROIs); value and error (axis 1) of/on the broadband readout in all ROIs (axis 2)
+        If sequence=True: ...
+        If no frames passed, fetches frames
+        If crop_sci_mask=True: outputs dataframes cropped to the science wavelength mask
+                        =False: outputs uncropped dataframes
+        Note: buffers always get updated with the cropped data!
         """
         if dark is None:
             dark = self.dark
         if frames is None:
             frames = self.get_frames(dt)
         if not sequence:
-            # Get calibrated master science frame
+            # Get uncropped, calibrated master science frame
             cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
-            if crop_sci_mask:
-                # Crop to science mask
-                cal_mean, cal_mean_std = cal_mean[self.sc_mask,:], cal_mean_std[self.sc_mask,:]
-            # Calculate broadband values and errors
+            # Cet wavelength cropped, calibrated master science frame
+            cal_mean_crop, cal_mean_std_crop = cal_mean[self.sc_mask,:], cal_mean_std[self.sc_mask,:]
+
+            # Calculate broadband values and errors, for both full and cropped frames.
             cal_broad = cal_mean.sum(axis=0)
+            cal_broad_crop = cal_mean_crop.sum(axis=0)
             cal_broad_std = np.linalg.norm(cal_mean_std, axis=0) / len(cal_mean_std)
+            cal_broad_std_crop = np.linalg.norm(cal_mean_std_crop, axis=0) / len(cal_mean_std_crop)
             # Stack values and errors
             cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
+            cal_broad_crop_stack = np.stack((cal_broad_crop,cal_broad_std_crop),axis=0)
             cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
+            cal_disp_crop_stack = np.stack((cal_mean_crop,cal_mean_std_crop),axis=0)
             
             if self.auto_display is not False:
-                # Push data to corresponding buffers
+                # Push data to corresponding buffers, always wavelength cropped
                 self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
-                self.buffer_broad.push(cal_broad_stack)
+                self.buffer_broad.push(cal_broad_crop_stack)
                 # Dispersed data in waterfall format
-                cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
+                cal_disp_stack_waterfall= cal_disp_crop_stack.transpose((0,2,1)).reshape(cal_disp_crop_stack.shape[0],cal_disp_crop_stack.shape[1]*cal_disp_crop_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall[0])
                 self.buffer_disp_last.push(cal_disp_stack_waterfall)
-            return cal_disp_stack, cal_broad_stack
+
+            if crop_sci_mask:
+                return cal_disp_crop_stack, cal_broad_crop_stack
+            else:
+                return cal_disp_stack, cal_broad_stack
         else:
             cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
             return cal_seq, cal_seq_std
