@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QMenu
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 
 class MotorWidget(QWidget):
@@ -99,8 +99,9 @@ class MotorWidget(QWidget):
         self.current_pos = current_pos * 1000
         self.current_speed = current_speed * 1000
         
-        timestamp_plc = datetime.strptime(timestamp, '%Y-%m-%d-%H:%M:%S.%f')        
-        self.redis_client.add_dl_position(self._motor.name, timestamp_plc, self.current_pos)
+        #timestamp_plc = datetime.strptime(timestamp, '%Y-%m-%d-%H:%M:%S.%f')
+        timestamp = datetime.utcnow()
+        self.redis_client.add_dl_position(self._motor.name, timestamp, self.current_pos)
 
     # Reset motor
     def reset_motor(self):

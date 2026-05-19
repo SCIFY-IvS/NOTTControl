@@ -199,7 +199,8 @@ class MainWindow(QMainWindow):
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
             timestamp_str = timestamp.strftime("%H%M%S%f")
-            timestamp_str_round = str(round((int(timestamp_str)/1000)))
+            # timestamp_str_round = str(round((int(timestamp_str)/1000)))
+            timestamp_str_round = f"{round(int(timestamp_str) / 1000):09d}"
             filename = timestamp_str_round + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
@@ -251,7 +252,7 @@ class MainWindow(QMainWindow):
         roi_dimensions = roi_string.split(',')
         if len(roi_dimensions) != 4:
             raise Exception('Invalid Roi config')
-        return Roi(roi_dimensions[0], roi_dimensions[1], roi_dimensions[2], roi_dimensions[3])
+        return Roi(int(roi_dimensions[0])-config['CAMERA'].getint('window_x'), int(roi_dimensions[1])-config['CAMERA'].getint('window_y'), roi_dimensions[2], roi_dimensions[3])
     
     def load_roi_positions_from_config(self):
         self.load_roi_config(config)
@@ -478,12 +479,11 @@ class MainWindow(QMainWindow):
         self.pw_roi.setMinimumWidth(self.ui.frame_roi_graph.width())
         self.pw_roi.setMinimumHeight(self.ui.frame_roi_graph.height())
         self.pw_roi.addLegend()
-        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness')
-
+        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness [ADU]')
         
         self.pw_roi.show()
         self.plot_data_item_roi = self.pw_roi.plot()
-        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time')
+        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time [UTC]')
 
         #Now safe to start processing the frames
         threading.Thread(target=self.process_frame, daemon=True).start()

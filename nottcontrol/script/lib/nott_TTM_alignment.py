@@ -57,9 +57,6 @@ import sys
 import time
 import logging
 
-# Arena API (Visible cameras)
-import arena_api
-from arena_api.system import system
 # Scipy/Astropy (visible camera beam fitting)
 from astropy.modeling import models, fitting
 import scipy

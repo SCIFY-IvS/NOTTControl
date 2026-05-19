@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>callback module | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="callback module | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="callback module | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="arena_api_enums.html" rel="next" title="enums module"/>
+<link href="arena_api_buffer.html" rel="prev" title="buffer module"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="py.html">Arena Python API</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="arena_api.html">arena_api package</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">callback module</span>
+</nav>
+<div id="content" role="main">
+<section id="module-arena_api.callback">
+<span id="callback-module"></span><h1>callback module<a class="headerlink" href="#module-arena_api.callback" title="Link to this heading"><span>#</span></a></h1>
+<section id="id1">
+<h2>Callback module<a class="headerlink" href="#id1" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id1'"><span>#</span></a></h2>
+<p>This module provides callback registration and management
+for devices, nodes, and systems in Arena API.</p>
+<ul class="simple">
+<li><p>Use <code class="xref py py-class docutils literal notranslate"><span class="pre">arena_api.callback._Callback</span></code> via the singleton
+instance <a class="reference internal" href="#arena_api.callback.callback" title="arena_api.callback.callback"><code class="xref py py-data docutils literal notranslate"><span class="pre">arena_api.callback.callback</span></code></a>.</p></li>
+<li><p>Use <code class="xref py py-class docutils literal notranslate"><span class="pre">arena_api.callback._CallbackFunction</span></code> via the
+instance <a class="reference internal" href="#arena_api.callback.callback_function" title="arena_api.callback.callback_function"><code class="xref py py-data docutils literal notranslate"><span class="pre">arena_api.callback.callback_function</span></code></a> to
+decorate Python functions for events.</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arena_api.callback</span><span class="w"> </span><span class="kn">import</span> <span class="n">callback</span><span class="p">,</span> <span class="n">callback_function</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="nd">@callback_function</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">on_update</span>
+</span><span id="line-3"><span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">cb</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span id="line-4"><span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</section>
+<dl class="py data">
+<dt class="sig sig-object py" id="arena_api.callback.callback">
+<span class="sig-prename descclassname"><span class="pre">arena_api.callback.</span></span><span class="sig-name descname"><span class="pre">callback</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;arena_api.callback._Callback</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#arena_api.callback.callback" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.callback.callback'"><span>#</span></a></dt>
+<dd><p>Singleton instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">_Callback</span></code> for registering/deregistering callbacks.</p>
+</dd></dl>
+<dl class="py data">
+<dt class="sig sig-object py" id="arena_api.callback.callback_function">
+<span class="sig-prename descclassname"><span class="pre">arena_api.callback.</span></span><span class="sig-name descname"><span class="pre">callback_function</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;arena_api.callback._CallbackFunction</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#arena_api.callback.callback_function" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#arena_api.callback.callback_function'"><span>#</span></a></dt>
+<dd><p>Singleton instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">_CallbackFunction</span></code> providing decorators.</p>
+</dd></dl>
+<p class="rubric">Module Description</p>
+<pre class="literal-block">Callback module
+===============
+
+This module provides callback registration and management
+for devices, nodes, and systems in Arena API.
+
+- Use <code class="xref py py-class docutils literal notranslate"><span class="pre">arena_api.callback._Callback</span></code> via the singleton
+  instance <a class="reference internal" href="#arena_api.callback.callback" title="arena_api.callback.callback"><code class="xref py py-data docutils literal notranslate"><span class="pre">arena_api.callback.callback</span></code></a>.
+- Use <code class="xref py py-class docutils literal notranslate"><span class="pre">arena_api.callback._CallbackFunction</span></code> via the
+  instance <a class="reference internal" href="#arena_api.callback.callback_function" title="arena_api.callback.callback_function"><code class="xref py py-data docutils literal notranslate"><span class="pre">arena_api.callback.callback_function</span></code></a> to
+  decorate Python functions for events.
+
+Examples:
+    &gt;&gt;&gt; from arena_api.callback import callback, callback_function
+    &gt;&gt;&gt; @callback_function.node.on_update
+    ... def cb(node, <a href="#id2"><span class="problematic" id="id3">*</span></a>args, <a href="#id4"><span class="problematic" id="id5">**</span></a>kwargs):
+    ...     print(node.name, node.value)</pre>
+<p class="rubric">Constants</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">callback</span> <span class="pre">=</span> <span class="pre">_Callback()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">callback_function</span> <span class="pre">=</span> <span class="pre">_CallbackFunction()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__all__</span> <span class="pre">=</span> <span class="pre">['callback',</span> <span class="pre">'callback_function']</span></code></p></li>
+</ul>
+<p class="rubric">Classes</p>
+<section id="callback">
+<h2>_Callback<a class="headerlink" href="#callback" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#callback'"><span>#</span></a></h2>
+<blockquote>
+<div><p>This class registers, deregisters, and maintain a record of all callbacks.
+The class is a singleton, and an instance gets created when arena_api
+module is imported. Use <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">arena_api.callback</span> <span class="pre">import</span>
+<span class="pre">callback</span></code> to import the _Callback instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>The instance of the class <code class="docutils literal notranslate"><span class="pre">_Callback</span></code>, <code class="docutils literal notranslate"><span class="pre">callback</span></code> is     created when <code class="docutils literal notranslate"><span class="pre">arena_api.callback</span></code> module is imported the first time.     Every other import after that returns the same instance.</p></li>
+<li><p>Deregister handles before destroying it or memory will leak.</p></li>
+<li><p>Import the instance <code class="docutils literal notranslate"><span class="pre">callback</span></code> not the class it self as this class     is not be instantiated by the user.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+<p>Methods:</p>
+<ul>
+<li><dl>
+<dt>register(self, obj, callback_function, <a href="#id6"><span class="problematic" id="id7">*</span></a>args, <a href="#id8"><span class="problematic" id="id9">**</span></a>kwargs)</dt><dd><dl>
+<dt>Registers a Python function as a callback function to an <code class="docutils literal notranslate"><span class="pre">arena_api</span></code>         object. The supported objects are:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">Device</span></code></dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">on_buffer</span></code> event</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">Node</span></code></dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">on_update</span></code> event</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">System</span></code></dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">on_device_disconnected</span></code> event</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Args</strong>:</dt><dd><dl>
+<dt>obj :</dt><dd><ul class="simple">
+<li><p>Must be an instance of <code class="docutils literal notranslate"><span class="pre">_Device</span></code>, <code class="docutils literal notranslate"><span class="pre">_Node</span></code> or <code class="docutils literal notranslate"><span class="pre">_System</span></code>.</p></li>
+</ul>
+</dd>
+<dt>callback_function :</dt><dd><ul class="simple">
+<li><p>A Python function to callback.</p></li>
+<li><p>A callback function must be decorated, and based on the                 decorator it would have a specific signature that has                 mandatory and optional parameters.</p></li>
+</ul>
+<p>For decorator <code class="docutils literal notranslate"><span class="pre">@callback.device.on_buffer</span></code>, the                 signature is <code class="docutils literal notranslate"><span class="pre">callback_func(buffer</span> <span class="pre">,</span> <span class="pre">*args,</span> <span class="pre">**kwargs</span> <span class="pre">)</span></code></p>
+<p>For decorator  <code class="docutils literal notranslate"><span class="pre">@callback.node.on_update</span></code>, the                 signature is <code class="docutils literal notranslate"><span class="pre">callback_func(node</span> <span class="pre">,</span> <span class="pre">*args,</span> <span class="pre">**kwargs</span> <span class="pre">)</span></code></p>
+<p>For decorator  <code class="docutils literal notranslate"><span class="pre">@callback.system.on_device_disconnected</span></code>, the                 signature is <code class="docutils literal notranslate"><span class="pre">callback_func(device)</span></code></p>
+<p>Buffer, node, and device will be passed to the callback function when                 the event happens. The user should pass the optional arguments                when registering the callback function on the object so                 the user will receive them at the callback later</p>
+<p>Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arena_api.callback</span><span class="w"> </span><span class="kn">import</span> <span class="n">callback</span>
+</span><span id="line-2"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arena_api.callback</span><span class="w"> </span><span class="kn">import</span> <span class="n">callback_function</span>
+</span><span id="line-3"><span class="gp">&gt;&gt;&gt;</span>
+</span><span id="line-4"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># create a callback function</span>
+</span><span id="line-5"><span class="gp">&gt;&gt;&gt; </span><span class="nd">@callback_function</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">on_update</span>
+</span><span id="line-6"><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">callback_print_node_value</span><span class="p">(</span><span class="n">node</span> <span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span id="line-7"><span class="gp">&gt;&gt;&gt; </span>   <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> node value = </span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</span><span id="line-8"><span class="gp">&gt;&gt;&gt;</span>
+</span><span id="line-9"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># create a device and get a node</span>
+</span><span id="line-10"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># &lt;code here&gt;</span>
+</span><span id="line-11"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># -------------------------------</span>
+</span><span id="line-12"><span class="gp">&gt;&gt;&gt;</span>
+</span><span id="line-13"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># register the callback on the node object</span>
+</span><span id="line-14"><span class="gp">&gt;&gt;&gt; </span><span class="n">handle</span> <span class="o">=</span> <span class="n">callback</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">my_node</span> <span class="p">,</span> <span class="n">callback_print_node_value</span><span class="p">,</span> <span class="n">my_optional_argument</span><span class="p">)</span>
+</span><span id="line-15"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># no every time the node gets invalidated by modification or by parents and child nodes</span>
+</span><span id="line-16"><span class="gp">&gt;&gt;&gt; </span><span class="c1"># the callback will ba called.</span>
+</span><span id="line-17"><span class="gp">&gt;&gt;&gt; </span><span class="n">my_node</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">10000</span>
+</span><span id="line-18"><span class="gp">&gt;&gt;&gt; </span><span class="n">callback</span><span class="o">.</span><span class="n">deregister</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+</span><span id="line-19"><span class="gp">&gt;&gt;&gt; </span><span class="n">system</span><span class="o">.</span><span class="n">destroy_device</span><span class="p">()</span>
+</span><span id="line-20"><span class="gp">&gt;&gt;&gt;</span>
+</span></code></pre></div>
+</div>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">*args</span></code> :</dt><dd><p>Optional positional arguments for the callback function.
+in the signature they are after the mandatory arg(s)</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> :</dt><dd><p>Optional positional arguments for the callback function.
+in the signature they are after the mandatory arg(s)</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code> :</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Obj</span></code> is not an instance of <code class="docutils literal notranslate"><span class="pre">_Device</span></code> or <code class="docutils literal notranslate"><span class="pre">_Node</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code>:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">callback_function</span></code> is not decorated or decorated with unsupported decorator</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">obj</span></code> instance  and <a href="#id10"><span class="problematic" id="id11">``</span></a>callback_function``combination is already registered</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p>A handle to the callback which is used to deregister the            callback later via <code class="docutils literal notranslate"><span class="pre">callback.deregister()</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Node registration:</dt><dd><ul>
+<li><p>Register only on nodes from <code class="docutils literal notranslate"><span class="pre">device.nodemap</span></code>.                 <code class="docutils literal notranslate"><span class="pre">device.tl_device_nodemap</span></code>, <code class="docutils literal notranslate"><span class="pre">device.tl_stream_nodemap</span></code>,                     and <code class="docutils literal notranslate"><span class="pre">device.tl_interface_nodemap</span></code> nodes are                     not supported.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>All callback function handles must be deregistered via         <code class="docutils literal notranslate"><span class="pre">callback.deregister()</span></code> or memory will leak.</p></li>
+<li><p>The callback_function must be decorated.</p></li>
+</ul>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>deregister(self, callback_handle)</dt><dd><p>Deregisters the callback function using the handle         returned form when the calls <code class="docutils literal notranslate"><span class="pre">callback.register()</span></code>.</p>
+<dl class="simple">
+<dt><strong>Args</strong>:</dt><dd><dl class="simple">
+<dt>callback_handle :</dt><dd><p>The value returned from <code class="docutils literal notranslate"><span class="pre">callback.register()</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ValueError</span></code> :</dt><dd><ul>
+<li><p>callback_handle is already deregistered or never been                     associated with a callback.</p></li>
+<li><p>callback_handle is not int or list/tuple of int</p></li>
+<li><p>callback_handle is registered for a destroyed obj.                 <code class="docutils literal notranslate"><span class="pre">callback.deregister()</span></code> should be called                     before destroying the obj instance.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>handle_info(self, handle)</dt><dd><p>In case of a big collection of handles, it is useful to have
+information about the handles of the registered callbacks.            The returned dictionary has the following public keys:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">obj</span></code> the instance object that the callback function is registered on.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">callback_function</span></code> the callback function to call.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">args_and_kwargs</span></code> the optional arguments that was passed to <code class="docutils literal notranslate"><span class="pre">callback.register()</span></code></p></li>
+</ul>
+<dl class="simple">
+<dt><strong>Args</strong>:</dt><dd><dl class="simple">
+<dt>handle:</dt><dd><p>The value returned from <code class="docutils literal notranslate"><span class="pre">callback.register()</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>Raises</strong>:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>:</dt><dd><ul>
+<li><p>Handle is not of type int.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>Returns</strong>:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if handle is not in <code class="docutils literal notranslate"><span class="pre">callback.registry</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dict</span></code> if the handle is in <code class="docutils literal notranslate"><span class="pre">callback.registry</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>——————————————————————</strong> <strong>——————————————————————-</strong></p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</section>
+<section id="devicecallback">
+<h2>_DeviceCallback<a class="headerlink" href="#devicecallback" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicecallback'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Methods:</p>
+<ul class="simple">
+<li><p>register(device, callback_function, <a href="#id12"><span class="problematic" id="id13">*</span></a>args, <a href="#id14"><span class="problematic" id="id15">**</span></a>kwargs)</p></li>
+<li><p>deregister(device, callback_handle)</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="systemcallback">
+<h2>_SystemCallback<a class="headerlink" href="#systemcallback" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#systemcallback'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Methods:</p>
+<ul class="simple">
+<li><p>register(system, callback_function, <a href="#id16"><span class="problematic" id="id17">*</span></a>args, <a href="#id18"><span class="problematic" id="id19">**</span></a>kwargs)</p></li>
+<li><p>deregister(system, callback_handle)</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="nodecallback">
+<h2>_NodeCallback<a class="headerlink" href="#nodecallback" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#nodecallback'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Methods:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>register(self, node, callback_function, <a href="#id20"><span class="problematic" id="id21">*</span></a>args, <a href="#id22"><span class="problematic" id="id23">**</span></a>kwargs)</dt><dd><p># c callback and arguments are saved to keep a reference
+# (reference count &gt; 0 ) so the data exists when the callback is
+# made and is not overwritten when the user registers a second callback.</p>
+</dd>
+</dl>
+</li>
+<li><p>deregister(self, callback_handle)</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="callbackfunction">
+<h2>_CallbackFunction<a class="headerlink" href="#callbackfunction" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#callbackfunction'"><span>#</span></a></h2>
+<blockquote>
+<div><p>A decorator to convert a function to a recognizable arena_api
+callback function. A function decorated with this can be used
+with <code class="docutils literal notranslate"><span class="pre">callback_register()</span></code>. The available decorators are:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">Device</span></code> callbacks:</dt><dd><ul>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">@callback_function.device.on_buffer</span></code> :</dt><dd><p>Decorates a function to be used for a callback when a buffer
+arrives at the device. A function decorated with this must have
+the following signature <code class="docutils literal notranslate"><span class="pre">my_callback(buffer</span> <span class="pre">,</span> <span class="pre">*args,</span> <span class="pre">**kwargs)</span></code>
+where buffer is mandatory parameter.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">Node</span></code> callbacks:</dt><dd><ul>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">@callback_function.node.on_update</span></code> :</dt><dd><p>Decorates a function to be used for a callback when the node
+–which callback is registered on– gets invalidated. A function
+decorated with this must have the signature
+<code class="docutils literal notranslate"><span class="pre">my_callback(node</span> <span class="pre">,</span> <span class="pre">*args,</span> <span class="pre">**kwargs)</span></code>, where node
+is a mandatory parameter.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Warning<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>Import the instance <code class="docutils literal notranslate"><span class="pre">callback_function</span></code> not the class it self.</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="devicecallbackfunctiondecorator">
+<h2>_DeviceCallbackFunctionDecorator<a class="headerlink" href="#devicecallbackfunctiondecorator" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicecallbackfunctiondecorator'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Methods:</p>
+<ul class="simple">
+<li><p>on_buffer(callback_function)</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="systemcallbackfunctiondecorator">
+<h2>_SystemCallbackFunctionDecorator<a class="headerlink" href="#systemcallbackfunctiondecorator" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#systemcallbackfunctiondecorator'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Methods:</p>
+<ul class="simple">
+<li><p>on_device_disconnected(callback_function)</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="nodecallbackfunctiondecorator">
+<h2>_NodeCallbackFunctionDecorator<a class="headerlink" href="#nodecallbackfunctiondecorator" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#nodecallbackfunctiondecorator'"><span>#</span></a></h2>
+<blockquote>
+<div><p>Methods:</p>
+<ul class="simple">
+<li><p>on_update(callback_function)</p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#id1'" class="reference internal" href="#id1">Callback module</a></li>
+<li><a :data-current="activeSection === '#arena_api.callback.callback'" class="reference internal" href="#arena_api.callback.callback"><code class="docutils literal notranslate"><span class="pre">callback</span></code></a></li>
+<li><a :data-current="activeSection === '#arena_api.callback.callback_function'" class="reference internal" href="#arena_api.callback.callback_function"><code class="docutils literal notranslate"><span class="pre">callback_function</span></code></a></li>
+<li><a :data-current="activeSection === '#callback'" class="reference internal" href="#callback">_Callback</a></li>
+<li><a :data-current="activeSection === '#devicecallback'" class="reference internal" href="#devicecallback">_DeviceCallback</a></li>
+<li><a :data-current="activeSection === '#systemcallback'" class="reference internal" href="#systemcallback">_SystemCallback</a></li>
+<li><a :data-current="activeSection === '#nodecallback'" class="reference internal" href="#nodecallback">_NodeCallback</a></li>
+<li><a :data-current="activeSection === '#callbackfunction'" class="reference internal" href="#callbackfunction">_CallbackFunction</a></li>
+<li><a :data-current="activeSection === '#devicecallbackfunctiondecorator'" class="reference internal" href="#devicecallbackfunctiondecorator">_DeviceCallbackFunctionDecorator</a></li>
+<li><a :data-current="activeSection === '#systemcallbackfunctiondecorator'" class="reference internal" href="#systemcallbackfunctiondecorator">_SystemCallbackFunctionDecorator</a></li>
+<li><a :data-current="activeSection === '#nodecallbackfunctiondecorator'" class="reference internal" href="#nodecallbackfunctiondecorator">_NodeCallbackFunctionDecorator</a></li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>
