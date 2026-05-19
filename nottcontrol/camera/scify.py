@@ -193,15 +193,21 @@ class MainWindow(QMainWindow):
         while True:
             item = self.roi_queue.get()
             img = item[0]
-
+            # Timestamp is a datetime.utc object
             timestamp = item[1]
+            # Getting remaining amount of microseconds in the millisecond
+            remaining_us = timestamp.microsecond % 1000
+            # Rounding
+            if remaining_us >= 500:
+                timestamp = timestamp + timedelta(microseconds=(1000-remaining_us))
+            else:
+                timestamp = timestamp - timedelta(microseconds=remaining_us)
             #base_path = r"Y:\Documents\Scify\Frames\frame_"
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
-            timestamp_str = timestamp.strftime("%H%M%S%f")
-            # timestamp_str_round = str(round((int(timestamp_str)/1000)))
-            timestamp_str_round = f"{round(int(timestamp_str) / 1000):09d}"
-            filename = timestamp_str_round + ".png"
+            # Already rounded to the nearest ms earlier, just drop the "000" at the end.
+            timestamp_str = timestamp.strftime("%H%M%S%f")[:-3]
+            filename = timestamp_str + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
             recording = self.recording
