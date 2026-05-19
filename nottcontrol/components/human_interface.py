@@ -512,13 +512,14 @@ class HumInt(object):
 
         return positions
 
-    def dl_set_abs(self, target_pos, verbose=False):
+    def dl_set_abs(self, target_pos, timeout_min=10.0, verbose=False):
         """
             Move delay lines to the target positions target_pos (um).
         Params
         ------
         target_pos : array of floats (um)
             - Pass np.nan to ignore a DL
+        timeout_min : minimum timeout for the move, in seconds. Default 10s.
         verbose : whether to print position and status, boolean
 
         Raises
@@ -533,47 +534,79 @@ class HumInt(object):
             raise self.DelayLineError(f"Target positions (length {len(target_pos)}) must match the amount of available delay lines {len(self.delay_lines)}.")
         move_mask = np.logical_not(np.isnan(target_pos))
 
+        # Pre-move checks and timeout calculation
+        timeouts = np.zeros(len(self.delay_lines))
         for i, dl in enumerate(self.delay_lines):
-            # Pre-move checks
+            # Checks
             if not move_mask[i]:
                 continue
             if not dl.is_operational:
                 raise self.DelayLineError(f"pre-move: {dl.name} is not in OPERATIONAL state.")
             if not dl.is_standing:
                 raise self.DelayLineError(f"pre-move: {dl.name} is not in STANDING status.")
-
             # Delay line specific timeout
             distance = abs(target_pos[i] - dl.position)
             speed = dl._speed # um/s
             dt_expected = np.abs(distance / speed)
-            # Taking minimum timeout of 5s for small motions
-            timeout = max(3.0*dt_expected, 5.0)
+            # Taking floor timeout of 10s for small motions
+            timeouts[i] = max(5.0*dt_expected, timeout_min)
 
-            # Move
+        # Motion calls
+        for i, dl in enumerate(self.delay_lines):
+            if not move_mask[i]:
+                continue
             dl.move_abs(target_pos[i])
             if verbose:
                 print(f"Moving delay line {dl.name}...")
 
-            # Wait until either in valid state or timeout
-            t_start = time()
-            while True:
-                if not dl.is_operational:
-                    raise self.DelayLineError(f"in-move: {dl.name} became NOT OPERATIONAL through move.")
-                if dl.is_standing:
-                    break
+        # Poll until either in valid state (post-move) or timeout
+        t_start = time()
+        pending = {i for i in range(len(self.delay_lines)) if move_mask[i]}
+        errors = []
 
-                dt = time()-t_start
-                if dt > timeout:
-                    raise self.DelayLineError(f"Timeout: {dl.name} did not reach STANDING status within {timeout} s.")
+        # Keep polling as long as there are still delay lines pending (i.e. pending dictionary is not empty)
+        while pending:
+            dt = time()-t_start
+            # DLs end up in finished if motion complete or if errored.
+            finished = set()
+
+            for i in list(pending):
+                dl = self.delay_lines[i]
+                if not dl.is_operational:
+                    errors.append(f"in-move: {dl.name} became NOT OPERATIONAL through move.")
+                    finished.add(i)
+                    continue
+
+                if dl.is_standing and dt > 0.1*timeouts[i]:
+                    finished.add(i)
+                    continue
+                
+                if dt > timeouts[i]:
+                    errors.append(f"Timeout: {dl.name} did not reach STANDING status within {timeouts[i]} s.")
+                    finished.add(i)
+                    continue
+
+            pending -= finished
+            if pending:
                 sleep(0.05)
 
-            # Post-move checks & reporting
+        if errors:
+            raise self.DelayLineError(" | ".join(errors))
+
+        # Post-move checks & reporting
+        for i, dl in enumerate(self.delay_lines):
+            if not move_mask[i]:
+                continue
             if not dl.is_operational:
-                raise self.DelayLineError(f"post-move: {dl.name} is not OPERATIONAL after move.")
-            if verbose:
+                errors.append(f"post-move: {dl.name} is not OPERATIONAL after move.")
+            elif verbose:
+                sleep(2) # to ensure correct position readout
                 curr_pos = dl.position
                 print(f"Delay line {dl.name} settled at position {curr_pos} um,"
-                    f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
+                      f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
+                
+        if errors:
+            raise self.DelayLineError(" | ".join(errors))
 
     def dl_set_rel(self, delta_pos, verbose=False):
         """

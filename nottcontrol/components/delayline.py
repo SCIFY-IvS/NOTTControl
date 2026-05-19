@@ -63,7 +63,7 @@ class DelayLine(Motor):
         # Is the imposed target position valid, i.e. within the travel range?
         if not self.is_in_travel_range(target_pos):
             raise ValueError(f"Target position {target_pos} um on {self.name} is"
-                             f"out of the travel range [{self.pos_min, self.pos_max}] um.")
+                             f" out of the travel range [{self.pos_min, self.pos_max}] um.")
 
     def move_abs(self, target_pos: float, check_valid: bool= True):
         """
