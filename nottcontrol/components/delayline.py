@@ -12,7 +12,7 @@ class DelayLine(Motor):
     """
 
     def __init__(self, opcua_conn, opcua_prefix: str, name: str,
-                 speed: float = None, pos_min: float = 0.0, pos_max: float = 6000.0):
+                 speed: float = None, pos_min: float = 0.0, pos_max: float = 12500.0):
         """
         Params
         ------
@@ -25,10 +25,10 @@ class DelayLine(Motor):
         pos_min : lower bound of travel range (um)
                 - defaults to 0.0
         pos_max : upper bound of travel range (um)
-                - defaults to 6000.0 
+                - defaults to 12500.0 (CMA12PP open-loop stepper CMA actuator)
         """
         if speed is None:
-            speed = config.getint('DL', 'default_speed')
+            speed = float(config.getint('DL', 'default_speed'))
         super().__init__(opcua_conn, opcua_prefix, name, speed)
         self.pos_min = pos_min
         self.pos_max = pos_max
