@@ -1,4 +1,4 @@
-from macie_interface import MacieInterface
+from nottcontrol.camera.macie.macie_interface import MacieInterface
 
 interface = MacieInterface(offline_mode = True)
 interface.init_camera()
