@@ -1156,7 +1156,7 @@ class HumInt(object):
                 if kappa_new[k] <= kappa_threshold:
                     kappa_new[k] = 0.
             kappa_old = np.copy(kappa)
-            kappa = np.copy(kappa_new)
+            kappa_reduced = np.copy(kappa_new)
         else: # kappa is provided
             inherit_kappa = True
             if verbose: print("Reusing kappa")
@@ -1206,8 +1206,10 @@ class HumInt(object):
                 hdulist.append(fits.hdu.ImageHDU(data=kappa, name="KAPPA", header=None))
                 hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
             else:
-                hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_reduced.T, name="KAPPA", header=None))
                 hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[1:,:,:-2], name="KAPPAE", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa[:,:,:,:-2], name="RAW_KAP"), header=None)
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_std[:,:,:,:-2], name="RAW_KAPE"), header=None)
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
