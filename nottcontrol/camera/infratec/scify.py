@@ -183,9 +183,7 @@ class MainWindow(QMainWindow):
         return int(s)
 
     def save_frame_write_redis(self, filepath, img, timestamp):
-        print(f"Saving {filepath} ...")
         cv2.imwrite(filepath, img)
-        print(f"Writing integration time ...")
         self.store_integtime_to_db(timestamp, self.integtime)
 
     def process_frame(self):
@@ -195,14 +193,21 @@ class MainWindow(QMainWindow):
         while True:
             item = self.roi_queue.get()
             img = item[0]
-
+            # Timestamp is a datetime.utc object
             timestamp = item[1]
+            # Getting remaining amount of microseconds in the millisecond
+            remaining_us = timestamp.microsecond % 1000
+            # Rounding
+            if remaining_us >= 500:
+                timestamp = timestamp + timedelta(microseconds=(1000-remaining_us))
+            else:
+                timestamp = timestamp - timedelta(microseconds=remaining_us)
             #base_path = r"Y:\Documents\Scify\Frames\frame_"
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
             directory.mkdir(parents=True, exist_ok=True)
-            timestamp_str = timestamp.strftime("%H%M%S%f")
-            timestamp_str_round = str(round((int(timestamp_str)/1000)))
-            filename = timestamp_str_round + ".png"
+            # Already rounded to the nearest ms earlier, just drop the "000" at the end.
+            timestamp_str = timestamp.strftime("%H%M%S%f")[:-3]
+            filename = timestamp_str + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
             recording = self.recording
@@ -253,7 +258,7 @@ class MainWindow(QMainWindow):
         roi_dimensions = roi_string.split(',')
         if len(roi_dimensions) != 4:
             raise Exception('Invalid Roi config')
-        return Roi(roi_dimensions[0], roi_dimensions[1], roi_dimensions[2], roi_dimensions[3])
+        return Roi(int(roi_dimensions[0])-config['CAMERA'].getint('window_x'), int(roi_dimensions[1])-config['CAMERA'].getint('window_y'), roi_dimensions[2], roi_dimensions[3])
     
     def load_roi_positions_from_config(self):
         self.load_roi_config(config)
@@ -480,12 +485,11 @@ class MainWindow(QMainWindow):
         self.pw_roi.setMinimumWidth(self.ui.frame_roi_graph.width())
         self.pw_roi.setMinimumHeight(self.ui.frame_roi_graph.height())
         self.pw_roi.addLegend()
-        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness')
-
+        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness [ADU]')
         
         self.pw_roi.show()
         self.plot_data_item_roi = self.pw_roi.plot()
-        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time')
+        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time [UTC]')
 
         #Now safe to start processing the frames
         threading.Thread(target=self.process_frame, daemon=True).start()

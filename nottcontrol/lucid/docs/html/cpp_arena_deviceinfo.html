@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+
+<html :class="{'dark': darkMode === 'dark' || (darkMode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)}" class="scroll-smooth" data-content_root="./" lang="en" x-data="{ darkMode: localStorage.getItem('darkMode') || localStorage.setItem('darkMode', 'system'), activeSection: '' }" x-init="$watch('darkMode', val =&gt; localStorage.setItem('darkMode', val))">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="white" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="black" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>DeviceInfo | Arena SDK 0.1.105.0 Documentation</title>
+<meta content="DeviceInfo | Arena SDK 0.1.105.0 Documentation" property="og:title"/>
+<meta content="DeviceInfo | Arena SDK 0.1.105.0 Documentation" name="twitter:title"/>
+<link href="_static/pygments.css?v=f5d2605c" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=cf707b80" rel="stylesheet" type="text/css"/>
+<link href="search.html" rel="search" title="Search"/>
+<link href="genindex.html" rel="index" title="Index"/>
+<link href="cpp_arena_iimage.html" rel="next" title="IImage"/>
+<link href="cpp_arena_global.html" rel="prev" title="Global Functions"/>
+<script>
+    <!-- Prevent Flash of wrong theme -->
+      const userPreference = localStorage.getItem('darkMode');
+      let mode;
+      if (userPreference === 'dark' || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        mode = 'dark';
+        document.documentElement.classList.add('dark');
+      } else {
+        mode = 'light';
+      }
+      if (!userPreference) {localStorage.setItem('darkMode', mode)}
+    </script>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-sm border-border supports-backdrop-blur:bg-background/60 bg-background/95 backdrop-blur header-div"><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a class="flex items-center mr-6" href="welcome.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="24" src="_static/lucid-white.svg" width="24"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="24" src="_static/lucid-white.svg" width="24"/><span class="hidden font-bold sm:inline-block text-clip whitespace-nowrap title-text">Arena SDK 0.1.105.0 Documentation</span>
+</a></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" class="header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 space-x-2 sm:space-x-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+
+</form>
+</div>
+<nav class="flex items-center space-x-1">
+<button @click="darkMode = darkMode === 'light' ? 'dark' : 'light'" aria-label="Color theme switcher" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent-header-icon hover:text-accent-foreground h-9 w-9" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100 header-icon-color" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full shrink-0 overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="!justify-start text-sm md:!hidden bg-background" href="index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="_static/lucid-white.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="_static/lucid-white.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">Arena SDK 0.1.105.0 Documentation</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0 h-[calc(100vh-8rem)] md:h-auto">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="table w-full min-w-full my-6 lg:my-8">
+<p class="caption" role="heading"><span class="caption-text">INTRODUCTION</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Welcome</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contact_us.html">Contact Us</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SETUP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="windows_setup.html">Installation &amp; Configuration: Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_linux.html">Installation &amp; Configuration: Linux</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Optimizing System Performance</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SOFTWARE</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_windows.html">Using ArenaView</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_arenaview_mp.html">Using ArenaView MP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupyter_guide.html">Using ArenaView with Jupyter Notebooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Arena SDK</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="arena_sdk_overview.html">Arena SDK: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp_guide.html">Arena SDK: C++ Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_guide.html">Arena SDK: C# Programmer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arena_api_guide.html">Arena SDK: Arena Python API</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="sdk.html">Code Reference &amp; Samples<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="gentl.html">GenTL Features</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="cpp.html">Arena C++</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c.html">Arena C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="py.html">Arena Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qt.html">Qt</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="index.html">
+<span class="hidden md:inline">Arena SDK 0.1.105.0 Documentation</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="sdk.html">Code Reference &amp; Samples</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="cpp.html">Arena C++</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="cpp_arena.html">Arena C++</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">DeviceInfo</span>
+</nav>
+<div id="content" role="main">
+<section id="deviceinfo">
+<h1>DeviceInfo<a class="headerlink" href="#deviceinfo" title="Link to this heading"><span>#</span></a></h1>
+
+<section id="cpp-deviceinfo">
+<span id="id1"></span><h2>DeviceInfo<a class="headerlink" href="#cpp-deviceinfo" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#cpp-deviceinfo'"><span>#</span></a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfoE">
+<span id="_CPPv3N5Arena10DeviceInfoE"></span><span id="_CPPv2N5Arena10DeviceInfoE"></span><span id="Arena::DeviceInfo"></span><span class="target" id="class_arena_1_1_device_info"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceInfo</span></span></span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfoE" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfoE'"><span>#</span></a><br/></dt>
+<dd><p>Device information objects contain device discovery information used to find, filter, and create devices.</p>
+<p>A list of device information objects is retrieved and maintained in the system (<a class="reference internal" href="cpp_arena_isystem.html#class_arena_1_1_i_system"><span class="std std-ref">Arena::ISystem</span></a>). A device information object provides a device’s discovery information:<ul class="simple">
+<li><p>Model and vendor names</p></li>
+<li><p>Serial number</p></li>
+<li><p>IP and MAC addresses</p></li>
+<li><p>Subnet mask</p></li>
+</ul>
+</p>
+<p>Discovery information is acquired prior to device creation and used primarily to filter and find specific devices. A std::vector of <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">Arena::DeviceInfo</span></a> objects is retrieved from the system (via Arena::ISystem::GetDevices). They are then individually passed back to the system to create devices (via Arena::ISystem::CreateDevice).</p>
+<p>The list of DeviceInfos is returned as a std::vector in order to make use of STL filter and search tools. The following code snippet demonstrates searching for a device with a specific serial number:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="c1">// searching for a specific device</span>
+</span><span id="line-2"><span class="p">{</span>
+</span><span id="line-3"><span class="w">    </span><span class="n">GenICam</span><span class="o">::</span><span class="n">gcstring</span><span class="w"> </span><span class="n">serialToFind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"12345"</span><span class="p">;</span>
+</span><span id="line-4"><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Arena</span><span class="o">::</span><span class="n">DeviceInfo</span><span class="o">&gt;</span><span class="w"> </span><span class="n">devs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pSystem</span><span class="o">-&gt;</span><span class="n">GetDevices</span><span class="p">();</span>
+</span><span id="line-5"><span class="w">    </span>
+</span><span id="line-6"><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">find_if</span><span class="p">(</span><span class="n">begin</span><span class="p">(</span><span class="n">devs</span><span class="p">),</span><span class="w"> </span><span class="n">end</span><span class="p">(</span><span class="n">devs</span><span class="p">),</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">serialToFind</span><span class="p">](</span><span class="n">Arena</span><span class="o">::</span><span class="n">DeviceInfo</span><span class="w"> </span><span class="n">deviceInfo</span><span class="p">)</span>
+</span><span id="line-7"><span class="w">    </span><span class="p">{</span>
+</span><span id="line-8"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">deviceInfo</span><span class="p">.</span><span class="n">SerialNumber</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">serialToFind</span><span class="p">;</span>
+</span><span id="line-9"><span class="w">    </span><span class="p">});</span>
+</span><span id="line-10"><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p><a class="reference internal" href="cpp_arena_isystem.html#class_arena_1_1_i_system"><span class="std std-ref">Arena::ISystem</span></a></p></li>
+<li><p><a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">Arena::DeviceInfo</span></a></p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo9ModelNameEv">
+<span id="_CPPv3N5Arena10DeviceInfo9ModelNameEv"></span><span id="_CPPv2N5Arena10DeviceInfo9ModelNameEv"></span><span id="Arena::DeviceInfo::ModelName"></span><span class="target" id="class_arena_1_1_device_info_1a3ff3a8a010e12dcc8a8d33b26c7f97f2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ModelName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo9ModelNameEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo9ModelNameEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> ModelName </strong> gets the model name of a device.</p>
+<p>Model names are used to differentiate between products. Below are a few examples of Lucid Vision model names:<ul class="simple">
+<li><p>PHX050S-MC</p></li>
+<li><p>PHX032S-CC</p></li>
+<li><p>TRI032S-MC</p></li>
+</ul>
+</p>
+<p>The model name returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Model name of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo10VendorNameEv">
+<span id="_CPPv3N5Arena10DeviceInfo10VendorNameEv"></span><span id="_CPPv2N5Arena10DeviceInfo10VendorNameEv"></span><span id="Arena::DeviceInfo::VendorName"></span><span class="target" id="class_arena_1_1_device_info_1a574adc5535c25152875ef524c752ba4a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VendorName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo10VendorNameEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo10VendorNameEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> VendorName </strong> gets the vendor/manufacturer name of a device. Vendor names differentiate between device vendors/manufacturers. Lucid devices return ‘Lucid Vision Labs’.</p>
+<p>The vendor name returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Vendor name of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo12SerialNumberEv">
+<span id="_CPPv3N5Arena10DeviceInfo12SerialNumberEv"></span><span id="_CPPv2N5Arena10DeviceInfo12SerialNumberEv"></span><span id="Arena::DeviceInfo::SerialNumber"></span><span class="target" id="class_arena_1_1_device_info_1afebee210f5821e7716f6ae5df68153af"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SerialNumber</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo12SerialNumberEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo12SerialNumberEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> SerialNumber </strong> gets the serial number of a device. A serial number differentiates between devices. Each LUCID device has a unique serial number. Lucid serial numbers are numeric, but the serial numbers of other vendors may be alphanumeric.</p>
+<p>The serial number returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Serial numbers from different manufacturers may overlap </p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Serial number of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo9IpAddressEv">
+<span id="_CPPv3N5Arena10DeviceInfo9IpAddressEv"></span><span id="_CPPv2N5Arena10DeviceInfo9IpAddressEv"></span><span id="Arena::DeviceInfo::IpAddress"></span><span class="target" id="class_arena_1_1_device_info_1a6cfc67e7a9fc8e33f67776e2c5ffe1d1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IpAddress</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo9IpAddressEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo9IpAddressEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> IpAddress </strong> gets the IP address of a device on the network, returning it as its raw integer value.</p>
+<p>The GigE Vision specification only allows for IPv4 IP addresses. The IP address is represented by the lower 32 bits of the integer returned. Both <strong> IpAddress </strong> and <strong> IpAddressStr </strong> represent the same IP address. Where <strong> IpAddress </strong> returns the value in its raw integer format, <strong> IpAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> IpAddress </strong>: 0xA9FE0101</p></li>
+<li><p><strong> IpAddressStr </strong>: 169.254.1.1</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The IP address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::IpAddressStr</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::IpAddressStr.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint32_t</p></li>
+<li><p>IP address of the device as an integer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo12IpAddressStrEv">
+<span id="_CPPv3N5Arena10DeviceInfo12IpAddressStrEv"></span><span id="_CPPv2N5Arena10DeviceInfo12IpAddressStrEv"></span><span id="Arena::DeviceInfo::IpAddressStr"></span><span class="target" id="class_arena_1_1_device_info_1a9acfaa6ab613e0372d91d6615d367ad9"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IpAddressStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo12IpAddressStrEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo12IpAddressStrEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> IpAddressStr </strong> gets the IP address of a device on the network, returning it as a string.</p>
+<p>The GigE Vision specification only allows for IPv4 IP addresses. Both <strong> IpAddress </strong> and <strong> IpAddressStr </strong> represent the same IP address. Where <strong> IpAddress </strong> returns the value in its raw integer format, <strong> IpAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> IpAddress </strong>: 0xA9FE0101</p></li>
+<li><p><strong> IpAddressStr </strong>: 169.254.1.1</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The IP address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement, but as a dot-separated string.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::IpAddress</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::IpAddress.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>IP address of the device as a string</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo10SubnetMaskEv">
+<span id="_CPPv3N5Arena10DeviceInfo10SubnetMaskEv"></span><span id="_CPPv2N5Arena10DeviceInfo10SubnetMaskEv"></span><span id="Arena::DeviceInfo::SubnetMask"></span><span class="target" id="class_arena_1_1_device_info_1a3dc361cbfa1332de0463b0d7063f8513"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubnetMask</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo10SubnetMaskEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo10SubnetMaskEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> SubnetMask </strong> gets the subnet mask of a device on the network, returning it as its raw integer value.</p>
+<p>The GigE Vision specification only allows for IPv4 subnet masks. The subnet mask is represented by the lower 32 bits of the integer returned. Both <strong> SubnetMask </strong> and <strong> SubnetMaskStr </strong> represent the same subnet mask. Where <strong> SubnetMask </strong> returns the value in its raw integer format, <strong> SubnetMaskStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> SubnetMask </strong>: 0xFFFF0000</p></li>
+<li><p><strong> SubnetMaskStr </strong>: 255.255.0.0</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The subnet mask returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::SubnetMaskStr</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::SubnetMaskStr.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint32_t</p></li>
+<li><p>Subnet mask of the device as an integer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo13SubnetMaskStrEv">
+<span id="_CPPv3N5Arena10DeviceInfo13SubnetMaskStrEv"></span><span id="_CPPv2N5Arena10DeviceInfo13SubnetMaskStrEv"></span><span id="Arena::DeviceInfo::SubnetMaskStr"></span><span class="target" id="class_arena_1_1_device_info_1a9e9a768abe05ef99b380bbaad6b38de2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubnetMaskStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo13SubnetMaskStrEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo13SubnetMaskStrEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> SubnetMaskStr </strong> gets the subnet mask of a device on the network, returning it as a string.</p>
+<p>The GigE Vision specification only allows for IPv4 subnet masks. Both <strong> SubnetMask </strong> and <strong> SubnetMaskStr </strong> represent the same subnet mask. Where <strong> SubnetMask </strong> returns the value in its raw integer format, <strong> SubnetMaskStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> SubnetMask </strong>: 0xFFFF0000</p></li>
+<li><p><strong> SUbnetMaskStr </strong>: 255.255.0.0</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The subnet mask returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement, but as a dot-separated string.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::SubnetMask</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::SubnetMask.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Subnet mask of the device as a string</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo14DefaultGatewayEv">
+<span id="_CPPv3N5Arena10DeviceInfo14DefaultGatewayEv"></span><span id="_CPPv2N5Arena10DeviceInfo14DefaultGatewayEv"></span><span id="Arena::DeviceInfo::DefaultGateway"></span><span class="target" id="class_arena_1_1_device_info_1ad6954355a74b3f85f9642a5fed576a3f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DefaultGateway</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo14DefaultGatewayEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo14DefaultGatewayEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DefaultGateway </strong> retrieves the default gateway of the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint32_t</p></li>
+<li><p>The default gateway</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo17DefaultGatewayStrEv">
+<span id="_CPPv3N5Arena10DeviceInfo17DefaultGatewayStrEv"></span><span id="_CPPv2N5Arena10DeviceInfo17DefaultGatewayStrEv"></span><span id="Arena::DeviceInfo::DefaultGatewayStr"></span><span class="target" id="class_arena_1_1_device_info_1aa47304e9dfe006b171fec99914cce1ae"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DefaultGatewayStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo17DefaultGatewayStrEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo17DefaultGatewayStrEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DefaultGateway </strong> retrieves the default gateway of the device as a string. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>The default gateway</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo10MacAddressEv">
+<span id="_CPPv3N5Arena10DeviceInfo10MacAddressEv"></span><span id="_CPPv2N5Arena10DeviceInfo10MacAddressEv"></span><span id="Arena::DeviceInfo::MacAddress"></span><span class="target" id="class_arena_1_1_device_info_1a692e891070e6cb916092115980395f93"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MacAddress</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo10MacAddressEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo10MacAddressEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> MacAddress </strong> gets the MAC address of a device on the network, returning it as its raw integer value.</p>
+<p>Both <strong> MacAddress </strong> and <strong> MacAddressStr </strong> represent the same MAC address. Where <strong> MacAddress </strong> returns the value in its raw integer format, <strong> MacAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> MacAddress </strong>: 0x1C0FAF010101</p></li>
+<li><p><strong> MacAddressStr </strong>: 1C:0F:AF:01:01:01</p></li>
+</ul>
+</p>
+<p>The MAC address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::DeviceInfo::MacAddressStr</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::MacAddressStr.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>MAC address of the device as an integer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo13MacAddressStrEv">
+<span id="_CPPv3N5Arena10DeviceInfo13MacAddressStrEv"></span><span id="_CPPv2N5Arena10DeviceInfo13MacAddressStrEv"></span><span id="Arena::DeviceInfo::MacAddressStr"></span><span class="target" id="class_arena_1_1_device_info_1a77d200d2934507b24a2552d6fe3316a3"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MacAddressStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo13MacAddressStrEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo13MacAddressStrEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> MacAddressStr </strong> gets the MAC address of a device on the network, returning it as a string.</p>
+<p>Both <strong> MacAddress </strong> and <strong> MacAddressStr </strong> represent the same MAC address. Where <strong> MacAddress </strong> returns the value in its raw integer format, <strong> MacAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> MacAddress </strong>: 0x1C0FAF010101</p></li>
+<li><p><strong> MacAddressStr </strong>: 1C:0F:AF:01:01:01</p></li>
+</ul>
+</p>
+<p>The MAC address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::DeviceInfo::MacAddress</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::MacAddress.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>MAC address of the device as a string</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo15UserDefinedNameEv">
+<span id="_CPPv3N5Arena10DeviceInfo15UserDefinedNameEv"></span><span id="_CPPv2N5Arena10DeviceInfo15UserDefinedNameEv"></span><span id="Arena::DeviceInfo::UserDefinedName"></span><span class="target" id="class_arena_1_1_device_info_1a3cb9dec2f731a5bd906e262d264d1284"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UserDefinedName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo15UserDefinedNameEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo15UserDefinedNameEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> UserDefinedName </strong> gets the user-defined name of a device. If supported, it is a customizable string with a maximum of 16 bytes that can be used to identify a device (Arena::IDevice::GetNodeMap, ‘DeviceUserID’).</p>
+<p>The user-defined name returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Not necessarily supported</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>User-defined name of a device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv">
+<span id="_CPPv3N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv"></span><span id="_CPPv2N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv"></span><span id="Arena::DeviceInfo::IsDHCPConfigurationEnabled"></span><span class="target" id="class_arena_1_1_device_info_1a0cd76b68de7bda3606ec7f5448041b79"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsDHCPConfigurationEnabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> IsDHCPConfigurationEnabled </strong> retrieves whether DHCP is enabled on the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if DHCP enabled</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv">
+<span id="_CPPv3N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv"></span><span id="_CPPv2N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv"></span><span id="Arena::DeviceInfo::IsPersistentIpConfigurationEnabled"></span><span class="target" id="class_arena_1_1_device_info_1aa2bb26d124d5e900888fc9bf0b9c1063"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsPersistentIpConfigurationEnabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> IsPersistentIpConfigurationEnabled </strong> retrieves whether persistent IP is enabled on the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if persistent IP enabled</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv">
+<span id="_CPPv3N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv"></span><span id="_CPPv2N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv"></span><span id="Arena::DeviceInfo::IsLLAConfigurationEnabled"></span><span class="target" id="class_arena_1_1_device_info_1a610033c90258f6d789dc81fc06bff16a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IsLLAConfigurationEnabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> IsLLAConfigurationEnabled </strong> retrieves whether LLA is enabled on the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if LLA enabled</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo13DeviceVersionEv">
+<span id="_CPPv3N5Arena10DeviceInfo13DeviceVersionEv"></span><span id="_CPPv2N5Arena10DeviceInfo13DeviceVersionEv"></span><span id="Arena::DeviceInfo::DeviceVersion"></span><span class="target" id="class_arena_1_1_device_info_1a3b2fcc280a886b4ad312af6024d52b10"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceVersion</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo13DeviceVersionEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo13DeviceVersionEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceVersion</strong> retrieves the version of the device currently running on the device. For LUCID devices, this refers to firmware version. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Firmware version of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMajorEv">
+<span id="_CPPv3N5Arena10DeviceInfo23DeviceGroupVersionMajorEv"></span><span id="_CPPv2N5Arena10DeviceInfo23DeviceGroupVersionMajorEv"></span><span id="Arena::DeviceInfo::DeviceGroupVersionMajor"></span><span class="target" id="class_arena_1_1_device_info_1a3244b7f99ef8be887d3ddacb84dfb525"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupVersionMajor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMajorEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMajorEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceGroupVersionMajor </strong> retrieves the major version of the bootstrap register layout for Device Groups. This will be set to 0 for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Major Version of the bootstrap register layout for Device Groups</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMinorEv">
+<span id="_CPPv3N5Arena10DeviceInfo23DeviceGroupVersionMinorEv"></span><span id="_CPPv2N5Arena10DeviceInfo23DeviceGroupVersionMinorEv"></span><span id="Arena::DeviceInfo::DeviceGroupVersionMinor"></span><span class="target" id="class_arena_1_1_device_info_1ab016231cc5066ba487ede2768dc76a78"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupVersionMinor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMinorEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMinorEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceGroupVersionMinor </strong> retrieves the minor version of the bootstrap register layout for Device Groups. This will be set to 0 for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Minor Version of the bootstrap register layout for Device Groups</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo17DeviceGroupEnableEv">
+<span id="_CPPv3N5Arena10DeviceInfo17DeviceGroupEnableEv"></span><span id="_CPPv2N5Arena10DeviceInfo17DeviceGroupEnableEv"></span><span id="Arena::DeviceInfo::DeviceGroupEnable"></span><span class="target" id="class_arena_1_1_device_info_1ac0ee28ffb57da3500d49e3c1958fde39"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupEnable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo17DeviceGroupEnableEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo17DeviceGroupEnableEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceGroupEnable </strong> returns the status of the device group membership. If this is True then the device is a member of a device group currently. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the device is part of a device group</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo17DeviceGroupSerialEv">
+<span id="_CPPv3N5Arena10DeviceInfo17DeviceGroupSerialEv"></span><span id="_CPPv2N5Arena10DeviceInfo17DeviceGroupSerialEv"></span><span id="Arena::DeviceInfo::DeviceGroupSerial"></span><span class="target" id="class_arena_1_1_device_info_1a505a2c38db15058e8b54b0a302a34a14"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupSerial</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo17DeviceGroupSerialEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo17DeviceGroupSerialEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceGroupSerial </strong> retrieves the common serial number for all devices in this Device Group. This will be set to an empty string for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Serial number for Device Groups members</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo22DeviceGroupMemberCountEv">
+<span id="_CPPv3N5Arena10DeviceInfo22DeviceGroupMemberCountEv"></span><span id="_CPPv2N5Arena10DeviceInfo22DeviceGroupMemberCountEv"></span><span id="Arena::DeviceInfo::DeviceGroupMemberCount"></span><span class="target" id="class_arena_1_1_device_info_1a68af08f990889beb575fad341337fcdb"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupMemberCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo22DeviceGroupMemberCountEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo22DeviceGroupMemberCountEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceGroupMemberCount </strong> retrieves the number of member devices in this Device Group. This will be set to 0 for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Number of members in the Device Group</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo15DeviceGroupNameEv">
+<span id="_CPPv3N5Arena10DeviceInfo15DeviceGroupNameEv"></span><span id="_CPPv2N5Arena10DeviceInfo15DeviceGroupNameEv"></span><span id="Arena::DeviceInfo::DeviceGroupName"></span><span class="target" id="class_arena_1_1_device_info_1a4c1aa480ff83964d92468115605e0dff"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo15DeviceGroupNameEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo15DeviceGroupNameEv'"><span>#</span></a><br/></dt>
+<dd><p><strong> DeviceGroupName </strong> retrieves the shared name of the device that is in a Device Group. This will be set to an empty string for devices that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Shared name for devices in the Device Group</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo10DeviceInfoEv">
+<span id="_CPPv3N5Arena10DeviceInfo10DeviceInfoEv"></span><span id="_CPPv2N5Arena10DeviceInfo10DeviceInfoEv"></span><span id="Arena::DeviceInfo::DeviceInfo"></span><span class="target" id="class_arena_1_1_device_info_1a0d60d517bd8a6b520adf232ddbb71253"></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo10DeviceInfoEv" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo10DeviceInfoEv'"><span>#</span></a><br/></dt>
+<dd><p>An empty constructor</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Does not sufficiently initialize <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a></p></li>
+</ul>
+</p>
+</div>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo">
+<span id="_CPPv3N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo"></span><span id="_CPPv2N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo"></span><span id="Arena::DeviceInfo::DeviceInfo__DeviceInfoCR"></span><span class="target" id="class_arena_1_1_device_info_1a1286eb44788823d05da4f9d72170843a"></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo" title="Arena::DeviceInfo::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">deviceInfo</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo'"><span>#</span></a><br/></dt>
+<dd><p>A copy constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>deviceInfo</strong> – <ul class="simple">
+<li><p>Type: const <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a>&amp;</p></li>
+<li><p>Device information object to copy </p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfoD0Ev">
+<span id="_CPPv3N5Arena10DeviceInfoD0Ev"></span><span id="_CPPv2N5Arena10DeviceInfoD0Ev"></span><span id="Arena::DeviceInfo::~DeviceInfo"></span><span class="target" id="class_arena_1_1_device_info_1a081f23847d4338d3d0dbf38666d066ce"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~DeviceInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfoD0Ev" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfoD0Ev'"><span>#</span></a><br/></dt>
+<dd><p>A destructor </p>
+</dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5Arena10DeviceInfoaSE10DeviceInfo">
+<span id="_CPPv3N5Arena10DeviceInfoaSE10DeviceInfo"></span><span id="_CPPv2N5Arena10DeviceInfoaSE10DeviceInfo"></span><span id="Arena::DeviceInfo::assign-operator__DeviceInfo"></span><span class="target" id="class_arena_1_1_device_info_1af6cb899c74e4c12cfe2d3c495c57d418"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">deviceInfo</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5Arena10DeviceInfoaSE10DeviceInfo" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#_CPPv4N5Arena10DeviceInfoaSE10DeviceInfo'"><span>#</span></a><br/></dt>
+<dd><p>A copy assignment operator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>deviceInfo</strong> – <ul class="simple">
+<li><p>Type: <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a></p></li>
+<li><p>Device information object to copy</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>Type: <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a>&amp;</p></li>
+<li><p>Copied device information object </p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</div>
+</dd></dl>
+</section>
+<section id="modelname">
+<span id="cpp-modelname"></span><h2>ModelName<a class="headerlink" href="#modelname" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#modelname'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a3ff3a8a010e12dcc8a8d33b26c7f97f2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ModelName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> ModelName </strong> gets the model name of a device.</p>
+<p>Model names are used to differentiate between products. Below are a few examples of Lucid Vision model names:<ul class="simple">
+<li><p>PHX050S-MC</p></li>
+<li><p>PHX032S-CC</p></li>
+<li><p>TRI032S-MC</p></li>
+</ul>
+</p>
+<p>The model name returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Model name of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="vendorname">
+<span id="cpp-vendorname"></span><h2>VendorName<a class="headerlink" href="#vendorname" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#vendorname'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a574adc5535c25152875ef524c752ba4a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">VendorName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> VendorName </strong> gets the vendor/manufacturer name of a device. Vendor names differentiate between device vendors/manufacturers. Lucid devices return ‘Lucid Vision Labs’.</p>
+<p>The vendor name returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Vendor name of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="serialnumber">
+<span id="cpp-serialnumber"></span><h2>SerialNumber<a class="headerlink" href="#serialnumber" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#serialnumber'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1afebee210f5821e7716f6ae5df68153af"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">SerialNumber</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> SerialNumber </strong> gets the serial number of a device. A serial number differentiates between devices. Each LUCID device has a unique serial number. Lucid serial numbers are numeric, but the serial numbers of other vendors may be alphanumeric.</p>
+<p>The serial number returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Serial numbers from different manufacturers may overlap </p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Serial number of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="ipaddress">
+<span id="cpp-ipaddress"></span><h2>IpAddress<a class="headerlink" href="#ipaddress" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ipaddress'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a6cfc67e7a9fc8e33f67776e2c5ffe1d1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IpAddress</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> IpAddress </strong> gets the IP address of a device on the network, returning it as its raw integer value.</p>
+<p>The GigE Vision specification only allows for IPv4 IP addresses. The IP address is represented by the lower 32 bits of the integer returned. Both <strong> IpAddress </strong> and <strong> IpAddressStr </strong> represent the same IP address. Where <strong> IpAddress </strong> returns the value in its raw integer format, <strong> IpAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> IpAddress </strong>: 0xA9FE0101</p></li>
+<li><p><strong> IpAddressStr </strong>: 169.254.1.1</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The IP address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::IpAddressStr</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::IpAddressStr.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint32_t</p></li>
+<li><p>IP address of the device as an integer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="ipaddressstr">
+<span id="cpp-ipaddressstr"></span><h2>IpAddressStr<a class="headerlink" href="#ipaddressstr" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ipaddressstr'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a9acfaa6ab613e0372d91d6615d367ad9"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IpAddressStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> IpAddressStr </strong> gets the IP address of a device on the network, returning it as a string.</p>
+<p>The GigE Vision specification only allows for IPv4 IP addresses. Both <strong> IpAddress </strong> and <strong> IpAddressStr </strong> represent the same IP address. Where <strong> IpAddress </strong> returns the value in its raw integer format, <strong> IpAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> IpAddress </strong>: 0xA9FE0101</p></li>
+<li><p><strong> IpAddressStr </strong>: 169.254.1.1</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The IP address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement, but as a dot-separated string.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::IpAddress</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::IpAddress.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>IP address of the device as a string</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="subnetmask">
+<span id="cpp-subnetmask"></span><h2>SubnetMask<a class="headerlink" href="#subnetmask" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#subnetmask'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a3dc361cbfa1332de0463b0d7063f8513"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">SubnetMask</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> SubnetMask </strong> gets the subnet mask of a device on the network, returning it as its raw integer value.</p>
+<p>The GigE Vision specification only allows for IPv4 subnet masks. The subnet mask is represented by the lower 32 bits of the integer returned. Both <strong> SubnetMask </strong> and <strong> SubnetMaskStr </strong> represent the same subnet mask. Where <strong> SubnetMask </strong> returns the value in its raw integer format, <strong> SubnetMaskStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> SubnetMask </strong>: 0xFFFF0000</p></li>
+<li><p><strong> SubnetMaskStr </strong>: 255.255.0.0</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The subnet mask returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::SubnetMaskStr</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::SubnetMaskStr.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint32_t</p></li>
+<li><p>Subnet mask of the device as an integer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="subnetmaskstr">
+<span id="cpp-subnetmaskstr"></span><h2>SubnetMaskStr<a class="headerlink" href="#subnetmaskstr" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#subnetmaskstr'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a9e9a768abe05ef99b380bbaad6b38de2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">SubnetMaskStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> SubnetMaskStr </strong> gets the subnet mask of a device on the network, returning it as a string.</p>
+<p>The GigE Vision specification only allows for IPv4 subnet masks. Both <strong> SubnetMask </strong> and <strong> SubnetMaskStr </strong> represent the same subnet mask. Where <strong> SubnetMask </strong> returns the value in its raw integer format, <strong> SubnetMaskStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> SubnetMask </strong>: 0xFFFF0000</p></li>
+<li><p><strong> SUbnetMaskStr </strong>: 255.255.0.0</p></li>
+</ul>
+</p>
+<p>A device may have its IP address, subnet mask, and default gateway assigned by LLA or DHCP, set as persistent, or temporarily forced. They can be checked through the main node map (Arena::IDevice::GetNodeMap, ‘GevCurrentIPAddress’, ‘GevCurrentSubnetMask’, ‘GevCurrentDefaultGateway’).</p>
+<p>DHCP (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationDHCP’) and IP persistence (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’) can be enabled/disabled through the node map. If both are enabled, a device will default to its persistent IP settings. If neither, it will default to LLA (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationLLA’), which cannot be disabled.</p>
+<p>In order to configure a device to use a persistent IP configuration, not only must IP persistence be enabled (Arena::IDevice::GetNodeMap, ‘GevCurrentIPConfigurationPersistentIP’), but the IP address (Arena::IDevice::GetNodeMap, ‘GevPersistentIPAddress’), subnet mask (Arena::IDevice::GetNodeMap, ‘GevPersistentSubnetMask’), and default gateway (Arena::IDevice::GetNodeMap, ‘GevPersistentDefaultGateway’) must be set.</p>
+<p>Forcing an IP (Arena::IDevice::ForceIP) temporarily changes an IP address, subnet mask, and default gateway of a device. A forced IP configuration will reset on a device reboot (Arena::IDevice::GetNodeMap, ‘DeviceReset’).</p>
+<p>The subnet mask returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement, but as a dot-separated string.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+<li><p>Arena::IDevice::ForceIP</p></li>
+<li><p>Arena::DeviceInfo::SubnetMask</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::SubnetMask.</p></li>
+<li><p>A persistent IP may be quicker to enumerate than DHCP, which should be faster than LLA.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Subnet mask of the device as a string</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="defaultgateway">
+<span id="cpp-defaultgateway"></span><h2>DefaultGateway<a class="headerlink" href="#defaultgateway" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#defaultgateway'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1ad6954355a74b3f85f9642a5fed576a3f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DefaultGateway</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DefaultGateway </strong> retrieves the default gateway of the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint32_t</p></li>
+<li><p>The default gateway</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="defaultgatewaystr">
+<span id="cpp-defaultgatewaystr"></span><h2>DefaultGatewayStr<a class="headerlink" href="#defaultgatewaystr" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#defaultgatewaystr'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1aa47304e9dfe006b171fec99914cce1ae"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DefaultGatewayStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DefaultGateway </strong> retrieves the default gateway of the device as a string. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>The default gateway</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="macaddress">
+<span id="cpp-macaddress"></span><h2>MacAddress<a class="headerlink" href="#macaddress" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#macaddress'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a692e891070e6cb916092115980395f93"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">MacAddress</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> MacAddress </strong> gets the MAC address of a device on the network, returning it as its raw integer value.</p>
+<p>Both <strong> MacAddress </strong> and <strong> MacAddressStr </strong> represent the same MAC address. Where <strong> MacAddress </strong> returns the value in its raw integer format, <strong> MacAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> MacAddress </strong>: 0x1C0FAF010101</p></li>
+<li><p><strong> MacAddressStr </strong>: 1C:0F:AF:01:01:01</p></li>
+</ul>
+</p>
+<p>The MAC address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::DeviceInfo::MacAddressStr</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::MacAddressStr.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: uint64_t</p></li>
+<li><p>MAC address of the device as an integer</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="macaddressstr">
+<span id="cpp-macaddressstr"></span><h2>MacAddressStr<a class="headerlink" href="#macaddressstr" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#macaddressstr'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a77d200d2934507b24a2552d6fe3316a3"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">MacAddressStr</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> MacAddressStr </strong> gets the MAC address of a device on the network, returning it as a string.</p>
+<p>Both <strong> MacAddress </strong> and <strong> MacAddressStr </strong> represent the same MAC address. Where <strong> MacAddress </strong> returns the value in its raw integer format, <strong> MacAddressStr </strong> returns it as a more human-readable string:<ul class="simple">
+<li><p><strong> MacAddress </strong>: 0x1C0FAF010101</p></li>
+<li><p><strong> MacAddressStr </strong>: 1C:0F:AF:01:01:01</p></li>
+</ul>
+</p>
+<p>The MAC address returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::DeviceInfo::MacAddress</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Represents the same information as Arena::DeviceInfo::MacAddress.</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>MAC address of the device as a string</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="userdefinedname">
+<span id="cpp-userdefinedname"></span><h2>UserDefinedName<a class="headerlink" href="#userdefinedname" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#userdefinedname'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a3cb9dec2f731a5bd906e262d264d1284"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">UserDefinedName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> UserDefinedName </strong> gets the user-defined name of a device. If supported, it is a customizable string with a maximum of 16 bytes that can be used to identify a device (Arena::IDevice::GetNodeMap, ‘DeviceUserID’).</p>
+<p>The user-defined name returned by this getter is the same as the one received in the GigE Vision discovery acknowledgement.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><ul class="simple">
+<li><p>Arena::IDevice::GetNodeMap</p></li>
+</ul>
+</p>
+</div>
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Not necessarily supported</p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>User-defined name of a device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="isdhcpconfigurationenabled">
+<span id="cpp-isdhcpconfigurationenabled"></span><h2>IsDHCPConfigurationEnabled<a class="headerlink" href="#isdhcpconfigurationenabled" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#isdhcpconfigurationenabled'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a0cd76b68de7bda3606ec7f5448041b79"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IsDHCPConfigurationEnabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> IsDHCPConfigurationEnabled </strong> retrieves whether DHCP is enabled on the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if DHCP enabled</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="ispersistentipconfigurationenabled">
+<span id="cpp-ispersistentipconfigurationenabled"></span><h2>IsPersistentIpConfigurationEnabled<a class="headerlink" href="#ispersistentipconfigurationenabled" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ispersistentipconfigurationenabled'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1aa2bb26d124d5e900888fc9bf0b9c1063"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IsPersistentIpConfigurationEnabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> IsPersistentIpConfigurationEnabled </strong> retrieves whether persistent IP is enabled on the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if persistent IP enabled</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="isllaconfigurationenabled">
+<span id="cpp-isllaconfigurationenabled"></span><h2>IsLLAConfigurationEnabled<a class="headerlink" href="#isllaconfigurationenabled" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#isllaconfigurationenabled'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a610033c90258f6d789dc81fc06bff16a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IsLLAConfigurationEnabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> IsLLAConfigurationEnabled </strong> retrieves whether LLA is enabled on the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if LLA enabled</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="deviceversion">
+<span id="cpp-deviceversion"></span><h2>DeviceVersion<a class="headerlink" href="#deviceversion" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#deviceversion'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a3b2fcc280a886b4ad312af6024d52b10"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceVersion</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceVersion</strong> retrieves the version of the device currently running on the device. For LUCID devices, this refers to firmware version. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Firmware version of the device</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="devicegroupversionmajor">
+<span id="cpp-devicegroupversionmajor"></span><h2>DeviceGroupVersionMajor<a class="headerlink" href="#devicegroupversionmajor" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicegroupversionmajor'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a3244b7f99ef8be887d3ddacb84dfb525"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupVersionMajor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceGroupVersionMajor </strong> retrieves the major version of the bootstrap register layout for Device Groups. This will be set to 0 for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Major Version of the bootstrap register layout for Device Groups</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="devicegroupversionminor">
+<span id="cpp-devicegroupversionminor"></span><h2>DeviceGroupVersionMinor<a class="headerlink" href="#devicegroupversionminor" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicegroupversionminor'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1ab016231cc5066ba487ede2768dc76a78"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupVersionMinor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceGroupVersionMinor </strong> retrieves the minor version of the bootstrap register layout for Device Groups. This will be set to 0 for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Minor Version of the bootstrap register layout for Device Groups</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="devicegroupenable">
+<span id="cpp-devicegroupenable"></span><h2>DeviceGroupEnable<a class="headerlink" href="#devicegroupenable" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicegroupenable'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1ac0ee28ffb57da3500d49e3c1958fde39"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupEnable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceGroupEnable </strong> returns the status of the device group membership. If this is True then the device is a member of a device group currently. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: bool</p></li>
+<li><p>True if the device is part of a device group</p></li>
+<li><p>Otherwise, false</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="devicegroupserial">
+<span id="cpp-devicegroupserial"></span><h2>DeviceGroupSerial<a class="headerlink" href="#devicegroupserial" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicegroupserial'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a505a2c38db15058e8b54b0a302a34a14"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupSerial</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceGroupSerial </strong> retrieves the common serial number for all devices in this Device Group. This will be set to an empty string for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Serial number for Device Groups members</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="devicegroupmembercount">
+<span id="cpp-devicegroupmembercount"></span><h2>DeviceGroupMemberCount<a class="headerlink" href="#devicegroupmembercount" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicegroupmembercount'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a68af08f990889beb575fad341337fcdb"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupMemberCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceGroupMemberCount </strong> retrieves the number of member devices in this Device Group. This will be set to 0 for device that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: int64_t</p></li>
+<li><p>Number of members in the Device Group</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="devicegroupname">
+<span id="cpp-devicegroupname"></span><h2>DeviceGroupName<a class="headerlink" href="#devicegroupname" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#devicegroupname'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a4c1aa480ff83964d92468115605e0dff"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">GenICam</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">gcstring</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceGroupName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p><strong> DeviceGroupName </strong> retrieves the shared name of the device that is in a Device Group. This will be set to an empty string for devices that do not support device grouping features. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Type: GenICam::gcstring</p></li>
+<li><p>Shared name for devices in the Device Group</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="id2">
+<span id="id3"></span><h2>DeviceInfo<a class="headerlink" href="#id2" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id2'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a0d60d517bd8a6b520adf232ddbb71253"></span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p>An empty constructor</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><ul class="simple">
+<li><p>Does not sufficiently initialize <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a></p></li>
+</ul>
+</p>
+</div>
+</dd></dl>
+</section>
+<section id="id4">
+<span id="id5"></span><h2>DeviceInfo<a class="headerlink" href="#id4" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id4'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a1286eb44788823d05da4f9d72170843a"></span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeviceInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo" title="Arena::DeviceInfo::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">deviceInfo</span></span><span class="sig-paren">)</span><br/></dt>
+<dd><p>A copy constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>deviceInfo</strong> – <ul class="simple">
+<li><p>Type: const <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a>&amp;</p></li>
+<li><p>Device information object to copy </p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="id6">
+<span id="id7"></span><h2>~DeviceInfo<a class="headerlink" href="#id6" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id6'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1a081f23847d4338d3d0dbf38666d066ce"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">~DeviceInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><br/></dt>
+<dd><p>A destructor </p>
+</dd></dl>
+</section>
+<section id="operator">
+<span id="cpp-operator"></span><h2>Operator =<a class="headerlink" href="#operator" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#operator'"><span>#</span></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="class_arena_1_1_device_info_1af6cb899c74e4c12cfe2d3c495c57d418"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-prename descclassname"><span class="n"><span class="pre">Arena</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE" title="Arena::DeviceInfo"><span class="n"><span class="pre">DeviceInfo</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">deviceInfo</span></span><span class="sig-paren">)</span><br/></dt>
+<dd><p>A copy assignment operator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>deviceInfo</strong> – <ul class="simple">
+<li><p>Type: <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a></p></li>
+<li><p>Device information object to copy</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>Type: <a class="reference internal" href="#class_arena_1_1_device_info"><span class="std std-ref">DeviceInfo</span></a>&amp;</p></li>
+<li><p>Copied device information object </p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#cpp-deviceinfo'" class="reference internal" href="#cpp-deviceinfo">DeviceInfo</a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfoE'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfoE"><code class="docutils literal notranslate"><span class="pre">Arena::DeviceInfo</span></code></a><ul>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo9ModelNameEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo9ModelNameEv"><code class="docutils literal notranslate"><span class="pre">ModelName()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo10VendorNameEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10VendorNameEv"><code class="docutils literal notranslate"><span class="pre">VendorName()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo12SerialNumberEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo12SerialNumberEv"><code class="docutils literal notranslate"><span class="pre">SerialNumber()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo9IpAddressEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo9IpAddressEv"><code class="docutils literal notranslate"><span class="pre">IpAddress()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo12IpAddressStrEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo12IpAddressStrEv"><code class="docutils literal notranslate"><span class="pre">IpAddressStr()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo10SubnetMaskEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10SubnetMaskEv"><code class="docutils literal notranslate"><span class="pre">SubnetMask()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo13SubnetMaskStrEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo13SubnetMaskStrEv"><code class="docutils literal notranslate"><span class="pre">SubnetMaskStr()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo14DefaultGatewayEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo14DefaultGatewayEv"><code class="docutils literal notranslate"><span class="pre">DefaultGateway()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo17DefaultGatewayStrEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo17DefaultGatewayStrEv"><code class="docutils literal notranslate"><span class="pre">DefaultGatewayStr()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo10MacAddressEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10MacAddressEv"><code class="docutils literal notranslate"><span class="pre">MacAddress()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo13MacAddressStrEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo13MacAddressStrEv"><code class="docutils literal notranslate"><span class="pre">MacAddressStr()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo15UserDefinedNameEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo15UserDefinedNameEv"><code class="docutils literal notranslate"><span class="pre">UserDefinedName()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo26IsDHCPConfigurationEnabledEv"><code class="docutils literal notranslate"><span class="pre">IsDHCPConfigurationEnabled()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo34IsPersistentIpConfigurationEnabledEv"><code class="docutils literal notranslate"><span class="pre">IsPersistentIpConfigurationEnabled()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo25IsLLAConfigurationEnabledEv"><code class="docutils literal notranslate"><span class="pre">IsLLAConfigurationEnabled()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo13DeviceVersionEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo13DeviceVersionEv"><code class="docutils literal notranslate"><span class="pre">DeviceVersion()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMajorEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMajorEv"><code class="docutils literal notranslate"><span class="pre">DeviceGroupVersionMajor()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMinorEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo23DeviceGroupVersionMinorEv"><code class="docutils literal notranslate"><span class="pre">DeviceGroupVersionMinor()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo17DeviceGroupEnableEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo17DeviceGroupEnableEv"><code class="docutils literal notranslate"><span class="pre">DeviceGroupEnable()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo17DeviceGroupSerialEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo17DeviceGroupSerialEv"><code class="docutils literal notranslate"><span class="pre">DeviceGroupSerial()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo22DeviceGroupMemberCountEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo22DeviceGroupMemberCountEv"><code class="docutils literal notranslate"><span class="pre">DeviceGroupMemberCount()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo15DeviceGroupNameEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo15DeviceGroupNameEv"><code class="docutils literal notranslate"><span class="pre">DeviceGroupName()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo10DeviceInfoEv'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10DeviceInfoEv"><code class="docutils literal notranslate"><span class="pre">DeviceInfo()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfo10DeviceInfoERK10DeviceInfo"><code class="docutils literal notranslate"><span class="pre">DeviceInfo()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfoD0Ev'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfoD0Ev"><code class="docutils literal notranslate"><span class="pre">~DeviceInfo()</span></code></a></li>
+<li><a :data-current="activeSection === '#_CPPv4N5Arena10DeviceInfoaSE10DeviceInfo'" class="reference internal" href="#_CPPv4N5Arena10DeviceInfoaSE10DeviceInfo"><code class="docutils literal notranslate"><span class="pre">operator=()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#modelname'" class="reference internal" href="#modelname">ModelName</a></li>
+<li><a :data-current="activeSection === '#vendorname'" class="reference internal" href="#vendorname">VendorName</a></li>
+<li><a :data-current="activeSection === '#serialnumber'" class="reference internal" href="#serialnumber">SerialNumber</a></li>
+<li><a :data-current="activeSection === '#ipaddress'" class="reference internal" href="#ipaddress">IpAddress</a></li>
+<li><a :data-current="activeSection === '#ipaddressstr'" class="reference internal" href="#ipaddressstr">IpAddressStr</a></li>
+<li><a :data-current="activeSection === '#subnetmask'" class="reference internal" href="#subnetmask">SubnetMask</a></li>
+<li><a :data-current="activeSection === '#subnetmaskstr'" class="reference internal" href="#subnetmaskstr">SubnetMaskStr</a></li>
+<li><a :data-current="activeSection === '#defaultgateway'" class="reference internal" href="#defaultgateway">DefaultGateway</a></li>
+<li><a :data-current="activeSection === '#defaultgatewaystr'" class="reference internal" href="#defaultgatewaystr">DefaultGatewayStr</a></li>
+<li><a :data-current="activeSection === '#macaddress'" class="reference internal" href="#macaddress">MacAddress</a></li>
+<li><a :data-current="activeSection === '#macaddressstr'" class="reference internal" href="#macaddressstr">MacAddressStr</a></li>
+<li><a :data-current="activeSection === '#userdefinedname'" class="reference internal" href="#userdefinedname">UserDefinedName</a></li>
+<li><a :data-current="activeSection === '#isdhcpconfigurationenabled'" class="reference internal" href="#isdhcpconfigurationenabled">IsDHCPConfigurationEnabled</a></li>
+<li><a :data-current="activeSection === '#ispersistentipconfigurationenabled'" class="reference internal" href="#ispersistentipconfigurationenabled">IsPersistentIpConfigurationEnabled</a></li>
+<li><a :data-current="activeSection === '#isllaconfigurationenabled'" class="reference internal" href="#isllaconfigurationenabled">IsLLAConfigurationEnabled</a></li>
+<li><a :data-current="activeSection === '#deviceversion'" class="reference internal" href="#deviceversion">DeviceVersion</a></li>
+<li><a :data-current="activeSection === '#devicegroupversionmajor'" class="reference internal" href="#devicegroupversionmajor">DeviceGroupVersionMajor</a></li>
+<li><a :data-current="activeSection === '#devicegroupversionminor'" class="reference internal" href="#devicegroupversionminor">DeviceGroupVersionMinor</a></li>
+<li><a :data-current="activeSection === '#devicegroupenable'" class="reference internal" href="#devicegroupenable">DeviceGroupEnable</a></li>
+<li><a :data-current="activeSection === '#devicegroupserial'" class="reference internal" href="#devicegroupserial">DeviceGroupSerial</a></li>
+<li><a :data-current="activeSection === '#devicegroupmembercount'" class="reference internal" href="#devicegroupmembercount">DeviceGroupMemberCount</a></li>
+<li><a :data-current="activeSection === '#devicegroupname'" class="reference internal" href="#devicegroupname">DeviceGroupName</a></li>
+<li><a :data-current="activeSection === '#id2'" class="reference internal" href="#id2">DeviceInfo</a></li>
+<li><a :data-current="activeSection === '#id4'" class="reference internal" href="#id4">DeviceInfo</a></li>
+<li><a :data-current="activeSection === '#id6'" class="reference internal" href="#id6">~DeviceInfo</a></li>
+<li><a :data-current="activeSection === '#operator'" class="reference internal" href="#operator">Operator =</a></li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</div><footer class="py-6 border-t border-border md:py-0">
+<div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
+<div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© Copyright 2025 LUCID Vision Labs, Inc. </p>
+</div>
+</div>
+</footer>
+</div>
+<script src="_static/documentation_options.js?v=f9c1cb62"></script>
+<script src="_static/doctools.js?v=9bcbadda"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script defer="defer" src="_static/theme.js?v=073f68d9"></script>
+</body>
+</html>

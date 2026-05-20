@@ -37,7 +37,7 @@ class Shutter_Old():
         return (hwStatus, timestamp)
     
 class Shutter(Motor):
-    def __init__(self, opcua_conn, opcua_prefix: str, name: str, speed:float, open_pos:float, close_pos:float, rtol=0.02):
+    def __init__(self, opcua_conn, opcua_prefix: str, name: str, speed:float = 15.0*1e3, open_pos:float = 5.0, close_pos:float = 35.0, rtol=0.02):
         super().__init__(opcua_conn, opcua_prefix, name, speed)
         self._open_pos = open_pos
         self._close_pos = close_pos
