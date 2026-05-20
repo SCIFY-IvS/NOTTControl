@@ -25,4 +25,8 @@ dependencies = [
   "redis",
   "pyzmq",
   "sympy",
-  "matplotlib"]
+  "matplotlib",
+  "astropy",
+  "pyserial",
+  "scikit-learn",
+]
