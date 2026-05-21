@@ -11,7 +11,7 @@ class RoiWidget(QWidget):
     def __init__(self, parent, index: int, color : QColor, deque_length = 6000):
         QWidget.__init__(self, parent)
 
-        self.ui = loadUi('camera/roiwidget.ui', self)
+        self.ui = loadUi('camera/infratec/roiwidget.ui', self)
         self.name = f'ROI {index}'
         self.db_key = f'roi{index}'
         self.ui.label.setText(self.name)

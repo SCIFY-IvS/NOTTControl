@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         
-        self.ui = loadUi('camera/mainwindow.ui', self)
+        self.ui = loadUi('camera/infratec/mainwindow.ui', self)
 
         self.roi_widgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
                            RoiWidget(self, 4, QColorConstants.Blue), RoiWidget(self, 5, QColorConstants.Magenta), RoiWidget(self, 6, QColorConstants.DarkGreen),
