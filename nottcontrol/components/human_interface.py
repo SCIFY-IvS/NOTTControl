@@ -827,65 +827,117 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None, crop_sci_mask=True):
+    def get_frames_cal(self, dt=10., dark=None, frames=None, sequence=False, crop_sci_mask=True):
         """
-        # WIP : Handling of sequence=True case.
+        Calibrates frames (dark- and background-subtraction) and collapses pixel columns to return dispersed readouts and associated errors in each ROI.
 
-        If no dark specified, uses self.dark
-        If sequence=False: gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+        Parameters:
+        -----------
+        dt : timespan over which to acquire frames in seconds (float)
+        dark : sequence of dark frames (Frame object).
+            ! If no dark specified, uses self.dark
+        frames : sequence of science frames (Frame object)
+            ! If no frames passed, function will fetch frames
+        sequence : calibrated master frame / calibrated sequence of frames (boolean)
+            If False: gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+            If True: gets a sequence of calibrated frames (dark- and background-subtracted) and calculates broadband and dispersed data for each
+        crop_sci_mask : whether to crop wavelength dimension to the science mask (boolean)
+            ! Buffer always gets updated with the cropped data
+            
         Returns:
-            1) cal_disp_stack; (2, nwls, nROIs); value and error (axis 1) of/on the dispersed readout (axis 2) in all ROIs (axis 3)
-            2) cal_broad_stack; (2, nROIs); value and error (axis 1) of/on the broadband readout in all ROIs (axis 2)
-        If sequence=True: ...
-        If no frames passed, fetches frames
-        If crop_sci_mask=True: outputs dataframes cropped to the science wavelength mask
-                        =False: outputs uncropped dataframes
-        Note: buffers always get updated with the cropped data!
+        --------
+        cal_disp, cal_disp_std; If not sequence (nwls, nROIs) each; value and error of/on the dispersed readout (axis 1) in all ROIs (axis 2)
+                                If sequence (nframes, nwls, nROIs) each
         """
         if dark is None:
             dark = self.dark
         if frames is None:
             frames = self.get_frames(dt)
-        if not sequence:
-            # Get uncropped, calibrated master science frame
-            cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
-            # Cet wavelength cropped, calibrated master science frame
-            cal_mean_crop, cal_mean_std_crop = cal_mean[self.sc_mask,:], cal_mean_std[self.sc_mask,:]
 
-            # Calculate broadband values and errors, for both full and cropped frames.
-            cal_broad = cal_mean.sum(axis=0)
-            cal_broad_crop = cal_mean_crop.sum(axis=0)
-            cal_broad_std = np.linalg.norm(cal_mean_std, axis=0) / len(cal_mean_std)
-            cal_broad_std_crop = np.linalg.norm(cal_mean_std_crop, axis=0) / len(cal_mean_std_crop)
-            # Stack values and errors
-            cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
-            cal_broad_crop_stack = np.stack((cal_broad_crop,cal_broad_std_crop),axis=0)
-            cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
-            cal_disp_crop_stack = np.stack((cal_mean_crop,cal_mean_std_crop),axis=0)
-            
-            if self.auto_display is not False:
-                # Push data to corresponding buffers, always wavelength cropped
-                self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
-                self.buffer_broad.push(cal_broad_crop_stack)
+        if not sequence:
+            # Get calibrated master science frame
+            if not crop_sci_mask:            
+                cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
+            else:
+                cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
+                cal_disp, cal_disp_std = cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:]
+                
+            def push_disp(self, cal_disp, cal_disp_std, crop_sci_mask):
+                # Stack values and errors
+                cal_disp_stack = np.stack((cal_disp, cal_disp_std),axis=0)
                 # Dispersed data in waterfall format
-                cal_disp_stack_waterfall= cal_disp_crop_stack.transpose((0,2,1)).reshape(cal_disp_crop_stack.shape[0],cal_disp_crop_stack.shape[1]*cal_disp_crop_stack.shape[2])
+                if not crop_sci_mask:
+                    cal_disp_stack = cal_disp_stack[:,self.sc_mask,:]
+                cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall[0])
                 self.buffer_disp_last.push(cal_disp_stack_waterfall)
 
-            if crop_sci_mask:
-                return cal_disp_crop_stack, cal_broad_crop_stack
-            else:
-                return cal_disp_stack, cal_broad_stack
+            # Push to buffers
+            if self.auto_display:
+                self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
+                self.push_disp(cal_disp, cal_disp_std, crop_sci_mask)
+        
         else:
-            cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
-            return cal_seq, cal_seq_std
+            if not crop_sci_mask:
+                cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
+            else:
+                cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
+                cal_disp, cal_disp_std = cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:]
 
+        return cal_disp, cal_disp_std
+
+
+    def get_frames_cal_broad(self, dt, dark=None, frames=None, sequence=False, crop_sci_mask=True):
+        """
+        Calibrates frames (dark- and background-subtraction) and collapses all pixels to return broadband readouts in each ROI.
+        
+        Parameters:
+        -----------
+        see get_frames_cal
+
+        Returns:
+        --------
+        cal_broad, cal_broad_std; If not sequence (nROIs) each; value and error of/on the broadband readout in all ROIs (axis 1)
+                                  If sequence (nframes, nROIs) each
+        """
+
+        def calc_broad(cal_disp, cal_disp_std):        
+            # Calculate broadband readouts and errors
+            cal_broad = cal_disp.sum(axis=-2)
+            cal_broad_std = np.linalg.norm(cal_disp_std, axis=-2) / len(cal_mean_std)
+            return cal_broad, cal_broad_std
+
+        def push_broad(cal_broad, cal_broad_std):
+            # Stack values and errors
+            cal_broad_stack = np.stack((cal_broad, cal_broad_std), axis=0)
+            # Push to buffer
+            self.buffer_broad.push(cal_broad_stack)
+
+        # Get dispersed readout
+        cal_disp, cal_disp_std = self.get_frames_cal(dt, dark, frames, sequence, crop_sci_mask)
+        # Collapse to broadband
+        cal_broad, cal_broad_std = calc_broad(cal_disp, cal_disp_std)
+        # Push to buffers
+        if self.auto_display:
+            if not crop_sci_mask:
+                # Crop
+                cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:])    
+                self.push_broad(cal_broad_crop, cal_broad_std_crop)
+            else:
+                self.push_broad(cal_broad, cal_broad_std)
+
+        return cal_broad, cal_broad_std
+            
     def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
-        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
-        np.save("cal_disp", cal_disp_stack[0])
-        np.save("cal_disp_err", cal_disp_stack[1])
-        np.save("cal_broad", cal_broad_stack[0])
-        np.save("cal_broad_err", cal_broad_stack[1])
+        cal_disp, cal_disp_std = self.get_frames_cal(dt=dt, dark=dark, sequence=sequence)
+        np.save("cal_disp", cal_disp)
+        np.save("cal_disp_std", cal_disp_std)
+        return
+
+    def get_frames_cal_broad_to_np(self, dt, dark=None, sequence=False):
+        cal_broad, cal_broad_std = self.get_frames_cal_broad(dt=dt, dark=dark, sequence=sequence)
+        np.save("cal_broad", cal_broad)
+        np.save("cal_broad_std", cal_broad_std)
         return
 
     def science_frame_sequence(self, dt, verbose=False):
