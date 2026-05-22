@@ -766,8 +766,7 @@ class HumInt(object):
             # res = self.sample_cal()
         else:
             # res = self.sample_long_cal(dt)
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
-            res, std = cal_disp_stack[0], cal_disp_stack[1]
+            res, std = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
         if move_back:
             print(f"moving_back to {orig_pos}")
             self.move(orig_pos)
@@ -856,13 +855,11 @@ class HumInt(object):
 
         if not sequence:
             # Get calibrated master science frame
-            if not crop_sci_mask:            
-                cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
-            else:
-                cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
+            cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
+            if crop_sci_mask:            
                 cal_disp, cal_disp_std = cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:]
                 
-            def push_disp(self, cal_disp, cal_disp_std, crop_sci_mask):
+            def push_disp(cal_disp, cal_disp_std, crop_sci_mask):
                 # Stack values and errors
                 cal_disp_stack = np.stack((cal_disp, cal_disp_std),axis=0)
                 # Dispersed data in waterfall format
@@ -875,13 +872,11 @@ class HumInt(object):
             # Push to buffers
             if self.auto_display:
                 self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
-                self.push_disp(cal_disp, cal_disp_std, crop_sci_mask)
+                push_disp(cal_disp, cal_disp_std, crop_sci_mask)
         
         else:
-            if not crop_sci_mask:
-                cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
-            else:
-                cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
+            cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
+            if crop_sci_mask:
                 cal_disp, cal_disp_std = cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:]
 
         return cal_disp, cal_disp_std
@@ -889,7 +884,7 @@ class HumInt(object):
 
     def get_frames_cal_broad(self, dt, dark=None, frames=None, sequence=False, crop_sci_mask=True):
         """
-        Calibrates frames (dark- and background-subtraction) and collapses all pixels to return broadband readouts in each ROI.
+        Calibrates frames (dark- and background-subtraction) and also collapses all pixels to return broadband readouts in each ROI.
         
         Parameters:
         -----------
@@ -897,6 +892,7 @@ class HumInt(object):
 
         Returns:
         --------
+        cal_disp, cal_disp_std; see get_frames_cal
         cal_broad, cal_broad_std; If not sequence (nROIs) each; value and error of/on the broadband readout in all ROIs (axis 1)
                                   If sequence (nframes, nROIs) each
         """
@@ -904,7 +900,7 @@ class HumInt(object):
         def calc_broad(cal_disp, cal_disp_std):        
             # Calculate broadband readouts and errors
             cal_broad = cal_disp.sum(axis=-2)
-            cal_broad_std = np.linalg.norm(cal_disp_std, axis=-2) / len(cal_mean_std)
+            cal_broad_std = np.linalg.norm(cal_disp_std, axis=-2)
             return cal_broad, cal_broad_std
 
         def push_broad(cal_broad, cal_broad_std):
@@ -921,12 +917,15 @@ class HumInt(object):
         if self.auto_display:
             if not crop_sci_mask:
                 # Crop
-                cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:])    
-                self.push_broad(cal_broad_crop, cal_broad_std_crop)
+                if sequence:
+                    cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:])    
+                else:
+                    cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:])    
+                push_broad(cal_broad_crop, cal_broad_std_crop)
             else:
-                self.push_broad(cal_broad, cal_broad_std)
+                push_broad(cal_broad, cal_broad_std)
 
-        return cal_broad, cal_broad_std
+        return cal_disp, cal_disp_std, cal_broad, cal_broad_std
             
     def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
         cal_disp, cal_disp_std = self.get_frames_cal(dt=dt, dark=dark, sequence=sequence)
@@ -935,7 +934,9 @@ class HumInt(object):
         return
 
     def get_frames_cal_broad_to_np(self, dt, dark=None, sequence=False):
-        cal_broad, cal_broad_std = self.get_frames_cal_broad(dt=dt, dark=dark, sequence=sequence)
+        cal_disp, cal_disp_std, cal_broad, cal_broad_std = self.get_frames_cal_broad(dt=dt, dark=dark, sequence=sequence)
+        np.save("cal_disp", cal_disp)
+        np.save("cal_disp_std", cal_disp_std)
         np.save("cal_broad", cal_broad)
         np.save("cal_broad_std", cal_broad_std)
         return
@@ -986,7 +987,7 @@ class HumInt(object):
     # Surface level functions |
     #-------------------------#
 
-    def characterize_null(self, dt, dark=None, sequence=False, frames=None):
+    def characterize_null(self, dt, dark=None, frames=None, sequence=False):
         """
         This function calculates the broadband & dispersed null depths N2, N3 (bright outputs) and Ndiff (differential). Corresponding errors are also calculated.
         Calculated dataframes are pushed to the corresponding buffers for visualization (shmview).
@@ -995,9 +996,7 @@ class HumInt(object):
         This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
         """
         # Fetch data products of a master science frame
-        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt, dark, sequence, frames)
-        broad, broad_err = cal_broad_stack[0], cal_broad_stack[1]
-        disp, disp_err = cal_disp_stack[0], cal_disp_stack[1]
+        disp, disp_err, broad, broad_err = self.get_frames_broad(dt, dark, frames, sequence)
         # Fetching ROI indices of interferometric outputs
         roi_idx = np.zeros(4, dtype=np.int32)
         for i in range(0,4):
@@ -1198,8 +1197,7 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
-            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
+            test_sample, rms = self.get_frames_cal(1.0)
 
         if kappa is None:
             inherit_kappa = False
@@ -1213,8 +1211,7 @@ class HumInt(object):
             for beam in myprobe:
                 shutter_state = np.abs(beam).astype(bool)
                 self.shutter_set(shutter_state)
-                cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
-                a, a_std = cal_disp_stack[0], cal_disp_stack[1]
+                a, a_std = self.get_frames_cal(dt)
                 kappa.append(a)
                 if dt is not None:
                     std_kappa.append(a_std)
@@ -1340,16 +1337,14 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
-            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
+            test_sample, rms = self.get_frames_cal(dt=1.0)
 
         kappa = []
         std_kappa = []
         for beam in myprobe:
             shutter_state = np.abs(beam).astype(bool)
             self.shutter_set(shutter_state)
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
-            a, a_std = cal_disp_stack[0], cal_disp_stack[1]
+            a, a_std = self.get_frames_cal(dt)
             kappa.append(a)
             if dt is not None:
                 std_kappa.append(a_std)
