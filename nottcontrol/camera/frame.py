@@ -241,10 +241,21 @@ class Frame(object):
         return master_frame,master_frame_std
       
     def calib_seq(self, dark, flat=None, full=False, dark_mean=None, dark_mean_std=None):
-        # Compute a sequence of calibrated (dark-subtracted, also background-subtracted if not full) individual frames and calculate the corresponding std map for each
-        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
-        # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
+        """
+            Compute a sequence of calibrated (dark-subtracted, also background-subtracted if not full) individual frames and corresponding std maps.
+        ! If not full, the average of the two background ROIs is subtracted from each ROI (see config.ini).
+        Parameters:
+        -----------
+        dark : series of dark frames (Frame object)
+        flat : series of flat frames (Frame object)
+        full : whether to return full or roi-cropped output
 
+        Returns:
+        --------
+        cal_seq, cal_seq_std; (ROI, frame, px row, px col) if not full
+                              (frame, px row, px col) if full
+        """
+      
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
             if not full:
@@ -272,11 +283,21 @@ class Frame(object):
         return cal_seq, cal_seq_std
 
     def calib_master(self, dark, flat=None, full=False, dark_mean=None, dark_mean_std=None):
-        # Compute the calibrated (dark-subtracted, also background-subtracted if not full) master frame and calculate the corresponding std map
-        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
-        # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
-        # Output is in (ROI, pixel row, pixel column) format.
-              
+        """
+            Compute a calibrated (dark-subtracted, also background-subtracted if not full) master frame and corresponding std map.
+        ! If not full, the average of the two background ROIs is subtracted from each ROI (see config.ini).
+        Parameters:
+        -----------
+        dark : series of dark frames (Frame object)
+        flat : series of flat frames (Frame object)
+        full : whether to return full or roi-cropped output
+
+        Returns:
+        --------
+        cal_mean, cal_mean_std; (ROI, px row, px col) if not full
+                                (px row, px col) if full
+        """
+        
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
             if not full:
@@ -309,6 +330,8 @@ class Frame(object):
 
     def calib_seq_nifits_format(self, dark, flat=None):
         cal_seq, cal_seq_std = self.calib_seq(dark, flat=flat)
+        # Sum over pixel columns (axis=-1) to get the total flux per pixel row / wavelength bin (axis=2)
+        # Transpose to get (frame, wavelength, ROI) index numbering; i.e. NIFITS format.
         return cal_seq.sum(axis=-1).transpose((1,2,0)), np.linalg.norm(cal_seq_std, axis=-1).transpose((1,2,0)) / np.size(cal_seq_std, -1)
 
     def calib_master_nifits_format(self, dark, flat=None):
