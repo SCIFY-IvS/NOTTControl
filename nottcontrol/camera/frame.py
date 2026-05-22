@@ -332,13 +332,13 @@ class Frame(object):
         cal_seq, cal_seq_std = self.calib_seq(dark, flat=flat)
         # Sum over pixel columns (axis=-1) to get the total flux per pixel row / wavelength bin (axis=2)
         # Transpose to get (frame, wavelength, ROI) index numbering; i.e. NIFITS format.
-        return cal_seq.sum(axis=-1).transpose((1,2,0)), np.linalg.norm(cal_seq_std, axis=-1).transpose((1,2,0)) / np.size(cal_seq_std, -1)
+        return cal_seq.sum(axis=-1).transpose((1,2,0)), np.linalg.norm(cal_seq_std, axis=-1).transpose((1,2,0)) 
 
     def calib_master_nifits_format(self, dark, flat=None):
         cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
         # Sum over pixel columns (axis=-1) to get the total flux per pixel row / wavelength bin (axis=1).
         # Transpose to get (wavelength, ROI) index numbering; i.e. NIFITS format.
-        return cal_mean.sum(axis=-1).transpose((1,0)), np.linalg.norm(cal_mean_std, axis=-1).transpose((1,0)) / np.size(cal_mean_std, -1)
+        return cal_mean.sum(axis=-1).transpose((1,0)), np.linalg.norm(cal_mean_std, axis=-1).transpose((1,0))
 
     def calib(self, dark, flat=None, full=False):
         # Function that combines above two into one.
