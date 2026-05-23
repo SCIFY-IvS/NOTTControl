@@ -882,7 +882,7 @@ class HumInt(object):
         return cal_disp, cal_disp_std
 
 
-    def get_frames_cal_broad(self, dt, dark=None, frames=None, sequence=False, crop_sci_mask=True):
+    def get_frames_cal_broad(self, dt=10., dark=None, frames=None, sequence=False, crop_sci_mask=True):
         """
         Calibrates frames (dark- and background-subtraction) and also collapses all pixels to return broadband readouts in each ROI.
         
@@ -996,7 +996,7 @@ class HumInt(object):
         This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
         """
         # Fetch data products of a master science frame
-        disp, disp_err, broad, broad_err = self.get_frames_broad(dt, dark, frames, sequence)
+        disp, disp_err, broad, broad_err = self.get_frames_cal_broad(dt, dark, frames, sequence)
         # Fetching ROI indices of interferometric outputs
         roi_idx = np.zeros(4, dtype=np.int32)
         for i in range(0,4):
@@ -1040,7 +1040,7 @@ class HumInt(object):
         return disp_null_stack, broad_null_stack
 
     def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
-        broad_null, disp_null, disp_null_err = self.characterize_null(dt, dark, sequence, frames)
+        disp_null_stack, broad_null_stack = self.characterize_null(dt, dark, sequence, frames)
 
         # WIP
 
