@@ -82,7 +82,7 @@ print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nst
 
 class alignment:
      
-    def __init__(self):
+    def __init__(self, ts):
         """    
         Terminology
         ----------
@@ -116,6 +116,13 @@ class alignment:
                 These evaluators are then called in the framework evaluation methods.
                 Pre-computing them minimizes Sympy overhead in these methods. 
             (8) Define the actuator positions, corresponding to a state of optimized injection, globally.
+            (9) Open an OPCUA connection and initialise actuator Motor objects for all configurations.
+
+        Parameters
+        ----------
+        ts : redis Timeseries client, reference to the redis database client
+             Used for timestamping actuator position readouts by redis database time
+             Client should be the same one as the one used in the HumInt object
                    
         Defines
         -------
@@ -130,8 +137,14 @@ class alignment:
         self._eval_sky : list of 3 callables (index = wavelength)
                          f(dTTM1X,dTTM1Y, ...) > (Minv, a2X, a2Y)
         self.act_pos_align : (4,4) numpy array (config, actuator) of actuator positions in aligned state
+        self.opcua_conn : OPCUAconnection
+        self.actuators : (4,4) numpy array (config, actuator) of Motor objects
+        self.ts : redis client reference for timestamping  
             
         """
+
+        self.ts = ts
+        
         print("Defining symbolic framework ...")
         #---------------------------#
         # (1) Symbols and constants #
@@ -307,6 +320,35 @@ class alignment:
                                        [3.6502095,3.4818495,4.5511795,3.8486425],
                                        [4.3360325,4.716886,4.754462,3.167242],
                                        [4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
+
+        # OPCUA connection
+        print("Opening OPCUA connection ...")
+        self.opcua_conn = OPCUAConnection(url)
+        self.opcua_conn.connect()
+        print("OPCUA connection established.")
+        print("Initializing actuator Motor objects ...")
+        # Actuator Motor objects
+        self.actuators = []
+        for i in range(1, 5):
+            act_names = ['NTTA'+str(i), 'NTPA'+str(i), 'NTTB'+str(i), 'NTPB'+str(i)]
+            acts = [Motor(self.opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name, name) for name in act_names]
+            self.actuators.append(acts)
+        print("Actuator Motor objects initialized.")
+
+        def __del__(self):
+            # Disconnect from OPCUA
+            if hasattr(self, 'opcua_conn'):
+                try:
+                    self.opcua_conn.disconnect()
+                except Exception:
+                    pass
+
+        def close(self):
+            # Manual wrapper to close the OPCUA connection
+            if hasattr(self, 'opcua_conn'):
+                self.opcua_conn.disconnect()
+            
+        
         
     #-------------------------------#
     # Numeric Framework Evaluations #
