@@ -82,7 +82,7 @@ print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nst
 
 class alignment:
      
-    def __init__(self, ts):
+    def __init__(self, ts, humint):
         """    
         Terminology
         ----------
@@ -123,6 +123,7 @@ class alignment:
         ts : redis Timeseries client, reference to the redis database client
              Used for timestamping actuator position readouts by redis database time
              Client should be the same one as the one used in the HumInt object
+        humint : human interface for frame acquisition, instance of the HumInt class (see human_interface.py)
                    
         Defines
         -------
@@ -144,6 +145,7 @@ class alignment:
         """
 
         self.ts = ts
+        self.humint = humint
         
         print("Defining symbolic framework ...")
         #---------------------------#
@@ -945,76 +947,6 @@ class alignment:
             accur_snap = np.zeros(4,dtype=np.float64)
         
         return accur_snap
-
-    def _get_delay(self,N,average): 
-        '''
-        Description
-        -----------
-        The Infratec camera registers average ROI (region of interest) output values and writes them to redis with an associated timestamp, based on its internal clock.
-        There is a delay between the latest of such timestamps, registered in redis, and the Windows lab pc time.
-        This delay is believed to be twofold in nature:
-            1) The camera takes some time to write its ROI values to redis : on the order of 10 ms.
-            2) The internal Infratec camera drifts with time. It seems to tick slower than the Windows lab pc time.
-        This function quantifies the delay time, originating from a combination of 1) and 2).
-        
-        Parameters
-        ----------
-        N : single integer
-            Amount of samples to perform.
-        average : single boolean
-            If True : return the average delay of N samples.
-            If False : return the maximum delay of N samples.
-    
-        Returns
-        -------
-        t_delay : single integer, globally defined (ms)
-            Delay.
-
-        '''
-        
-        delays = []
-        for i in range(0, N):
-            # Defining a python timeframe (1 second back in time)
-            t_start,t_stop = define_time(1)
-            # Retrieving the timestamps of redis data registered within this timeframe
-            t_redis = get_field("cam_integtime",t_start,t_stop,False)[:,0]
-            # Calculating the time delay (difference between requested end of timeframe and redis-registered end of timeframe)
-            t_delay_iter = t_stop - t_redis[-1]
-            # Append to list
-            delays.append(t_delay_iter)
-        if average:
-            # Average
-            t_delay = np.average(delays)
-        else:
-            # Maximum
-            t_delay = np.max(delays)
-            
-        return t_delay
-    
-    def _get_time(self,t,t_delay):
-        """
-        Description
-        -----------
-        This function converts a given timestamp (Windows lab pc python time) to the timestamp that is to be queried in the
-        redis database (stamped by Infratec internal camera time).
-        
-        Parameters
-        ----------
-        t : single integer (ms)
-            Input time.
-        t_delay : single integer (ms)
-            Delay time.
-        
-        Returns
-        -------
-        t_conv : single integer (ms)
-            Converted time.
-
-        """
-        
-        t_conv = round(t - t_delay)
-        
-        return t_conv
 
     def _get_noise(self,N,t,dt):
         '''
