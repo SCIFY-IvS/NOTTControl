@@ -170,12 +170,12 @@ class alignment:
         dinj = 10 
         dcryo = 4
         # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
+        niarr = np.array([2.4189, 2.4176, 2.4168], dtype=np.float64) 
+        ncarr = np.array([1.4140, 1.4115, 1.4096], dtype=np.float64)
         # Injection lens curvature radius (front surface)
         Rinj = 28.195
         # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
+        Parr = (niarr - np.ones(3, dtype=np.float64)) / Rinj
         
         #-------------------------------#
         # (2) Component transformations #
@@ -1207,7 +1207,7 @@ class alignment:
             if disp > 0:
                 valid3 = (act_range - act_pos[j] >= disp)
             else:
-                valid3 = (act_pos[j] >= disp)
+                valid3 = (act_pos[j] + disp >= 0)
     
             if not valid3:
                 i[2] = 1
