@@ -90,8 +90,8 @@ class alignment:
         Y = Shift in the y-direction, in the pupil plane (cold stop)
         x = Shift in the x-direction, in the image plane (chip input)
         y = Shift in the y-direction, in the image plane (chip input)
-        (a1X,a2X) = TTM1 X and TTM2 X angular offsets.
-        (a1Y,a2Y) = TTM1 Y and TTM2 Y angular offsets.
+        (a1X,a2X) = TTM1 X and TTM2 X angular offsets (tip).
+        (a1Y,a2Y) = TTM1 Y and TTM2 Y angular offsets (tilt).
         Note : A TTM X angle should be interpreted as an angle about the X-axis.
                Therefore, a TTM X angle induces a positional Y shift & vice versa.
         (D1,...,D8) = Distances traveled by the beam throughout the system, between components.
@@ -111,25 +111,58 @@ class alignment:
             (4) Define vector N globally, comprising the four symbolic equations.
             (5) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
             (6) Define matrix M and vector of symbolic shifts b globally. 
-            (7) Define the actuator positions, corresponding to a state of optimized injection, globally.
-            (8) Prepare all actuators for use.
+            (7) Construct lambdified evaluators for the internal forward (_int), reverse (_int_reverse) and sky framework.
+                One lambdify is constructed per wavelength channel.
+                These evaluators are then called in the framework evaluation methods.
+                Pre-computing them minimizes Sympy overhead in these methods. 
+            (8) Define the actuator positions, corresponding to a state of optimized injection, globally.
                    
         Defines
         -------
         The function initializes global variables M, N and b, which are then used in numeric framework evaluations.
-        M : (4,4) matrix of symbolic Sympy expressions
-        N : (1,4) matrix of symbolic Sympy expressions
-        b : (4,1) matrix of symbolic Sympy expressions
-                   
+        self.M : (4,4) matrix of symbolic Sympy expressions (stored for reference)
+        self.N : (1,4) matrix of symbolic Sympy expressions (stored for reference)
+        self.b : (4,1) matrix of symbolic Sympy expressions (stored for reference)
+        self._eval_int : list of 3 callables (index = wavelength)
+                         f(X,Y,x,y, ...) > ttm_offsets
+        self._eval_rev : list of 3 callables (index = wavelength)
+                         f(a1X,a1Y,a2X,a2Y, ...) > shifts
+        self._eval_sky : list of 3 callables (index = wavelength)
+                         f(dTTM1X,dTTM1Y, ...) > (Minv, a2X, a2Y)
+        self.act_pos_align : (4,4) numpy array (config, actuator) of actuator positions in aligned state
+            
         """
-        print("Defining symbolic framework...")
-        #-------------#
-        # (1) Symbols #
-        #-------------#
+        print("Defining symbolic framework ...")
+        #---------------------------#
+        # (1) Symbols and constants #
+        #---------------------------#
+        # Symbols and optical constants are defined locally in initialisation, become redundant once the lambdified callables are built
+
+        # Symbols
+        # -------
         X,x,Y,y = symbols("X x Y y")
         a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
         D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
         di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
+
+        # Optical constants
+        #------------------
+        # Slicer quantities (mm) (Zemax)
+        Rsli = 96.644
+        fsli = -Rsli / 2
+        # OAP focal lengths (mm) (Garreau et al. 2024)
+        fOAP1 = 629.2 
+        fOAP2 = 262.17
+        # Lens thicknesses (mm) (Zemax)
+        dinj = 10 
+        dcryo = 4
+        # Lens refractive indices in wavelength channels (Literature)
+        niarr = [2.4189, 2.4176, 2.4168] 
+        ncarr = [1.4140, 1.4115, 1.4096]
+        # Injection lens curvature radius (front surface)
+        Rinj = 28.195
+        # Optical power front injection lens surface (1/mm)
+        Parr = (niarr - np.ones(3)) / Rinj
         
         #-------------------------------#
         # (2) Component transformations #
@@ -219,49 +252,62 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
+
+        #-------------------------------------------------------------#
+        # 5) Build lambdified callable for each wavelength            |
+        #    Inter-component distances remain as free symbols         |
+        #    Other optical constants are common among all evaluations |
+        # ------------------------------------------------------------#
+        # Optical parameter substitution build
+        def _optical_subspar(lam):
+            return [(di, dinj), (dc, dcryo), (ni, niarr[lam]), (nc, ncarr[lam]), (P1, Parr[lam]), (f1, fOAP1), (f2, fOAP2), (fsl, fsli)]
+
+        D_syms = (D1, D2, D3, D4, D5, D6, D7, D8)
+        D_names = "D1,D2,D3,D4,D5,D6,D7,D8"
+
+        def _build_eval_int(lam):
+            # Substitute optical constants
+            Msub = self.M.subs(_optical_subspar(lam))
+            bsub = self.b.subs(_optical_subspar(lam))
+            # Construct framework - (4,1) Sympy matrix
+            Minv = Msub.inv()
+            frame = Minv * bsub
+            # Lambdify to evaluator
+            f = lambdify((X, Y, x, y) + D_syms, frame.T.tolist()[0], modules="numpy")
+            return f
+            
+        def _build_eval_rev(lam):
+            # Substitute optical constants
+            Nsub = [expr.subs(_optical_subspar(lam)) for expr in self.N]
+            # Lambdify to evaluator
+            f = lambdify((a1X, a1Y, a2X, a2Y) + D_syms, Nsub, modules="numpy")
+            return f
+
+        def _build_eval_sky(lam):
+            # Substitute optical constants
+            Msub = self.M.subs(_optical_subspar(lam))
+            Minv = Msub.inv()
+            # Lambdify to evaluator (a2X, a2Y deliberately survive as sympy symbols, since they are unknowns determined in a solveset call)
+            f = lambdify(D_syms, Minv, modules="sympy")
+            return f
+
+        print("Building lambdified framework evaluators ...")
+        self._eval_int = [_build_eval_int(lam) for lam in range(3)]
+        self._eval_rev = [_build_eval_rev(lam) for lam in range(3)]
+        self._eval_sky = [_build_eval_sky(lam) for lam in range(3)]
+
+        # Define a2X and a2Y symbols outside of __init__, for use in solveset
+        self._a2X = a2X
+        self._a2Y = a2Y
+
+        print("Framework ready.")
         
         # Defining actuator positions corresponding to an aligned & injecting state.
-        self.act_pos_align = np.array([[4.1507145,4.6841595,4.8155535,3.714595],[3.6502095,3.4818495,4.5511795,3.8486425],[4.3360325,4.716886,4.754462,3.167242],[4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
+        self.act_pos_align = np.array([[4.1507145,4.6841595,4.8155535,3.714595],
+                                       [3.6502095,3.4818495,4.5511795,3.8486425],
+                                       [4.3360325,4.716886,4.754462,3.167242],
+                                       [4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
         
-        '''
-        # Opening all shutters
-        all_shutters_open(4)
-        
-        # Preparing actuators for use
-        print("Preparing actuators...")
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
-        
-        # Looping over all configurations
-        for j in range(1, 5):
-            # Actuator names
-            act_names = ['NTTA'+str(j),'NTPA'+str(j),'NTTB'+str(j),'NTPB'+str(j)]
-            # Actuator motor objects
-            act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[0],act_names[0])
-            act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[1],act_names[1])
-            act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[2],act_names[2])
-            act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[3],act_names[3])
-            actuators = np.array([act1,act2,act3,act4])
-            # Resetting, initializing and enabling each actuator
-            for i in range(0,4):
-                actuators[i].reset()
-                time.sleep(1)
-                actuators[i].init()
-                # Wait for the actuator to be ready
-                ready = False
-                while not ready:
-                    time.sleep(0.01)
-                    substatus = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sSubstate'])
-                    ready = (substatus[0] == 'READY')
-                actuators[i].enable()
-                time.sleep(0.050)
-        
-        self.align()
-        
-        # Closing OPCUA connection
-        opcua_conn.disconnect()
-        '''        
     #-------------------------------#
     # Numeric Framework Evaluations #
     #-------------------------------#
@@ -275,6 +321,7 @@ class alignment:
         Context
         -------
         The function is called in the context of internal NOTT alignment, f.e. scanning the image plane for beam injection.
+        This is a pure numpy evaluation, leveraging the lambdified evaluator constructed in class init
         
         Parameters
         ----------
@@ -288,61 +335,15 @@ class alignment:
             
         Returns
         -------
-        ttm_offsets_flip : (1,4) numpy array of floats (radian)
+        ttm_offsets : (1,4) numpy array of floats (radian)
         The angular TTM offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) necessary to achieve the input shifts 
             
         """
-        # Symbols
-        X,x,Y,y = symbols("X x Y y")
-        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
-        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
-        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
-        
-        #------------------------#
-        # Zemax parameter values #
-        #------------------------#
-        
-        # Slicer quantities (mm) (Zemax)
-        Rsli = 96.644
-        fsli = -Rsli / 2
-        # OAP focal lengths (mm) (Garreau et al. 2024)
-        fOAP1 = 629.2 
-        fOAP2 = 262.17
-        # Lens thicknesses (mm) (Zemax)
-        dinj = 10 
-        dcryo = 4
-        # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
-        # Injection lens curvature radius (front surface)
-        Rinj = 28.195
-        # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
-        
-        # Copy of symbolic framework
-        Mcopy = self.M.copy()
-        bcopy = self.b.copy()
-        # Substituting parameter values into the symbolic matrix
-        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)]
-        Mcopy = Mcopy.subs(subspar)
-        
-        # Inverting the (now numeric) matrix 
-        Minv = Mcopy.inv()
-        
-        # Multiplying by symbolic shifts 
-        frame = Minv*bcopy
-        
-        # Parameters
-        params = (X,Y,x,y)
-        
-        # Lambdify
-        f = lambdify(params,frame.T.tolist()[0], modules="numpy")
         
         # Numeric evaluation
-        ttm_offsets = f(shifts[0],shifts[1],shifts[2],shifts[3])
-        
+        result = self._eval_int[lam](shifts[0], shifts[1], shifts[2], shifts[3], D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7])
         # Flipping X and Y angles to comply with function output
-        ttm_offsets_flip = np.array([ttm_offsets[1],ttm_offsets[0],ttm_offsets[3],ttm_offsets[2]],dtype=np.float64)
+        ttm_offsets = np.array([result[1],result[0],result[3],result[2]],dtype=np.float64)
         
         return ttm_offsets_flip
     
@@ -352,6 +353,7 @@ class alignment:
         -----------
         The function numerically evaluates the symbolic framework by input TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y),
         returning the positional shifts (X,Y,x,y) that the offsets induce.
+        This is a pure numpy evaluation, leveraging the lambdified evaluator constructed in class init
 
         Parameters
         ----------
@@ -369,40 +371,8 @@ class alignment:
             Induced positional shifts in CS/IM planes (X,Y,x,y).
 
         """
-        # Symbols
-        X,x,Y,y = symbols("X x Y y")
-        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
-        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
-        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
-        
-        #------------------------#
-        # Zemax parameter values #
-        #------------------------#
-        
-        # Slicer quantities (mm) (Zemax)
-        Rsli = 96.644
-        fsli = -Rsli / 2
-        # OAP focal lengths (mm) (Garreau et al. 2024)
-        fOAP1 = 629.2 
-        fOAP2 = 262.17
-        # Lens thicknesses (mm) (Zemax)
-        dinj = 10 
-        dcryo = 4
-        # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
-        # Injection lens curvature radius (front surface)
-        Rinj = 28.195
-        # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
-        
-        # Copy of symbolic framework
-        Ncopy = self.N.copy()
-        
-        # Substituting parameter values into the symbolic matrix
-        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_offsets[0]),(a1Y,ttm_offsets[1]),(a2X,ttm_offsets[2]),(a2Y,ttm_offsets[3])]
-        shifts = np.array([Ncopy[0].subs(subspar),Ncopy[1].subs(subspar),Ncopy[2].subs(subspar),Ncopy[3].subs(subspar)],dtype=np.float64)
-        
+        result = self._eval_rev[lam](ttm_offsets[0], ttm_offsets[1], ttm_offsets[2], ttm_offsets[3], D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7])
+        shifts = np.array(result, dtype=np.float64)
         return shifts
     
     def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam=1,CS=True):
@@ -414,7 +384,10 @@ class alignment:
         Based on parameter CS, a choice is made : if True, (dTTM2X,dTTM2Y) are determined such that (X,Y)=(0,0) - fixed pupil position.
                                                   if False, (dTTM2X,dTTM2Y) are determined such that (x,y)=(0,0) - fixed image position.
                                                   No non-trivial combination of (dTTM2X,dTTM2Y) exists that guarantees both.
-                                                  
+        Inversion of matrix M and substitution of optical constants has been done in class init.
+        Only remaining Sympy work is in the solveset call, for two linear expressions in a2X and a2Y.
+        Remaining work is pure numpy evaluation.
+                                             
         Context
         -------
         The function is relevant in the context of on-sky scanning. There, TTM1 takes the role of the scanner; a TTM1 angular offset changes the on-sky angle of the picked up FOV.
@@ -443,67 +416,33 @@ class alignment:
             The shifts that come at the cost of inducing the TTM angles.
             
         """
-        # Symbols
-        X,x,Y,y = symbols("X x Y y")
-        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
-        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
-        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
-        
-        #------------------------#
-        # Zemax parameter values #
-        #------------------------#
-        
-        # Slicer quantities (mm) (Zemax)
-        Rsli = 96.644
-        fsli = -Rsli / 2
-        # OAP focal lengths (mm) (Garreau et al. 2024)
-        fOAP1 = 629.2 
-        fOAP2 = 262.17
-        # Lens thicknesses (mm) (Zemax)
-        dinj = 10 
-        dcryo = 4
-        # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
-        # Injection lens curvature radius (front surface)
-        Rinj = 28.195
-        # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
-        
-        # Copy of symbolic framework
-        Mcopy = self.M.copy()
-        
-        # Substituting parameter values into the symbolic matrix
-        subspar = np.array([(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)])
-        Mcopy = Mcopy.subs(subspar)
-        
-        # Inverting the (now numeric) matrix
-        frame = Mcopy.inv()
-        
+        # Loading a2X, a2Y symbols
+        a2X = self._a2X
+        a2Y = self._a2Y
+        # Loading Minv from lambdified evaluator
+        Minv = self._eval_sky[lam](D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7])
         # Evaluating
         c = Matrix([dTTM1Y,dTTM1X,a2Y,a2X])
-        
-        # Sol contains (X,Y,x,y) pupil and image plane positions as a function of TTM2X and TTM2Y offsets
-        sol = frame.solve(c)
+        sol = Minv * c # contains (X,Y,x,y) as linear expressions of (a2X, a2Y)
         
         if CS:
             dTTM2X = list(solveset(sol[1],a2X).args)[0]
             dTTM2Y = list(solveset(sol[0],a2Y).args)[0]
-            x = sol[2].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
-            y = sol[3].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            x = float(sol[2].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            y = float(sol[3].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
                             
-            ttm_offsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
-            shifts = np.array([0,0,x,y],dtype=np.float64)
+            ttm_offsets = np.array([dTTM1X,dTTM1Y,float(dTTM2X),float(dTTM2Y)],dtype=np.float64)
+            shifts = np.array([0.0,0.0,x,y],dtype=np.float64)
             
             return ttm_offsets,shifts
         else:
             dTTM2X = list(solveset(sol[3],a2X).args)[0]
             dTTM2Y = list(solveset(sol[2],a2Y).args)[0]
-            X = sol[0].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
-            Y = sol[1].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            X = float(sol[0].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            Y = float(sol[1].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
                             
-            ttm_offsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
-            shifts = np.array([X,Y,0,0],dtype=np.float64)
+            ttm_offsets = np.array([dTTM1X,dTTM1Y,float(dTTM2X),float(dTTM2Y)],dtype=np.float64)
+            shifts = np.array([X,Y,0.0,0.0],dtype=np.float64)
             
             return ttm_offsets,shifts
         
