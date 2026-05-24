@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image
 from nottcontrol.camera.infratec.roi import Roi
 from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
-from nottcontrol import config as nott_config
+from nottcontrol import config 
 from pathlib import Path
 from platform import system
 from time import sleep
@@ -20,9 +20,9 @@ from time import sleep
 
 # Location of frames on the machine
 if system() == "Windows":
-    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+    frame_directory = str(config['DEFAULT']['frame_directory'])
 else:
-    frame_directory = str(nott_config['DEFAULT']['linux_frame_directory'])
+    frame_directory = str(config['DEFAULT']['linux_frame_directory'])
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
@@ -32,7 +32,7 @@ class Frame(object):
     # Camera window position and size (dictionary format)
     window_cfg = dict.fromkeys(["w","h","x","y"])
     for key in window_cfg.keys():
-        window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
+        window_cfg[key] = config.getint('CAMERA', 'window_'+key)
             
     # Camera ROIs' positions and sizes : not linked to outputs (list format)
     rois_cfg = []
@@ -42,7 +42,7 @@ class Frame(object):
     stop = False
     while not stop:
         try:
-            roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
+            roi = config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
         except:
             stop = True
         else:
@@ -148,8 +148,8 @@ class Frame(object):
                            (2) data registered in matching ROI (numpy array)
         """
         # Camera ROIs' positions and sizes : matched to outputs (dictionary format)
-        channel_labels = nott_config.getarray('CAMERA', 'channel_labels', str) # np array of strings
-        roi_indices = nott_config.getarray('CAMERA', 'roi_indices', np.int32) # np array of ints
+        channel_labels = config.getarray('CAMERA', 'channel_labels', str) # np array of strings
+        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32) # np array of ints
         channels_roi = dict.fromkeys(channel_labels)
         channels_data = dict.fromkeys(channel_labels)
         for i,channel_label in enumerate(channels_data):

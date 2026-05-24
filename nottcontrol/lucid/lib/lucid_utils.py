@@ -38,10 +38,10 @@ from astropy.modeling import models, fitting
 #---------------#
 
 # Loading config
-from nottcontrol import config as nott_config
-nott_config = nott_config.config_parser._sections
+from nottcontrol import config
+config = nott_config.config_parser._sections
 # Dictionary for type conversions
-convert_dict = dict(nott_config['convert_dict'])
+convert_dict = dict(config['convert_dict'])
 
 def convert(dic,conversion_dic):
     """
@@ -63,22 +63,22 @@ def convert(dic,conversion_dic):
     return dic
 
 # Connectivity parameters
-im_ip = str(nott_config['connection']['im_ip'])
-pup_ip = str(nott_config['connection']['pup_ip'])
+im_ip = str(config['connection']['im_ip'])
+pup_ip = str(config['connection']['pup_ip'])
 # Camera parameters
-stream_im = convert(dict(nott_config['stream_im']),convert_dict)
-stream_pup = convert(dict(nott_config['stream_pup']),convert_dict)
-readout_im = convert(dict(nott_config['readout_im']),convert_dict)
-readout_pup = convert(dict(nott_config['readout_pup']),convert_dict)
+stream_im = convert(dict(config['stream_im']),convert_dict)
+stream_pup = convert(dict(config['stream_pup']),convert_dict)
+readout_im = convert(dict(config['readout_im']),convert_dict)
+readout_pup = convert(dict(config['readout_pup']),convert_dict)
 stream_params = {"im_cam":stream_im, "pup_cam":stream_pup}
 readout_params = {"im_cam":readout_im, "pup_cam":readout_pup}
 # Fitting parameters
-fit_im = convert(dict(nott_config['fit_im']),convert_dict)
-fit_pup = convert(dict(nott_config['fit_pup']),convert_dict)
+fit_im = convert(dict(config['fit_im']),convert_dict)
+fit_pup = convert(dict(config['fit_pup']),convert_dict)
 fit_params = {"im_cam":fit_im, "pup_cam":fit_pup}
 # Beam centroid positions and radius in reference, injecting state
-ref_im = convert(dict(nott_config['ref_im']),convert_dict)
-ref_pup = convert(dict(nott_config['ref_pup']),convert_dict)
+ref_im = convert(dict(config['ref_im']),convert_dict)
+ref_pup = convert(dict(config['ref_pup']),convert_dict)
 ref_state = {"im_cam":ref_im, "pup_cam":ref_pup}
 
 class LucidUtils:

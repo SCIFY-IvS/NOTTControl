@@ -392,10 +392,10 @@ class HumInt(object):
         range based on these values for basic correspondance to pixels.
             Also creates a mask corresponding to the science wavelengths.
         """
-        lamb_low =   config.config_parser.getfloat("CAMERA","low_lamb")
-        lamb_high =  config.config_parser.getfloat("CAMERA","up_lamb")
-        index_low =  config.config_parser.getfloat("CAMERA","low_index")
-        index_high = config.config_parser.getfloat("CAMERA","up_index")
+        lamb_low =   config.getfloat("CAMERA","low_lamb")
+        lamb_high =  config.getfloat("CAMERA","up_lamb")
+        index_low =  config.getfloat("CAMERA","low_index")
+        index_high = config.getfloat("CAMERA","up_index")
         roi_len = int(round(config.getarray("CAMERA","ROI 1")[3]))
         lamb_per_pix = (lamb_high-lamb_low) / (index_high - index_low)
         lamb_0 = lamb_low - index_low * lamb_per_pix
