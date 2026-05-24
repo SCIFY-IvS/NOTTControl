@@ -12,36 +12,26 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 #-------#
 
 # ! A) Complete act_pos_align, the actuator positions in a state of alignment, for each configuration.
-# --> Motorize all four beams
 # --> First positions after manual optimization of injection
-# --> Second positions once flexure mounts are in & localization/optimization algorithms are (hopefully) fully functional and performant.
+# --> Second positions after localization/optimization algorithms
 
 # ! B) Add tool to align the beams on the visible cameras
-# --> Implement Arena_API functionalities: connecting to cameras, streaming frames and fitting centroids
-# --> Implement visual feedback: beam position and size in state of optimal injection vs. current beam position and size
-# --> Implement motion control: generalize TTM control functions to all four beams
 # --> Implement optimization algorithm
 
-# ! C) Add tool to calculate dispersed null depths
-# --> Change ROIs accordingly
-# --> Output data frames
-
-# D) Add a function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames. 
+# C) Add a function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames. 
 # --> Got VLTI maps from M.A.M., still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
 
-# E) Revise the actuator-angle relations once flexure mounts are in.
-
-# F) Check symbolic & numeric framework setup. 
+# D) Check symbolic & numeric framework setup. 
 # --> What changes were made to the bench in the past year? How to change the framework to account for this?
 # --> Translation distances changed? Effect of flexure mounts on distances? Need re-simulation in Zemax?
 # --> Specifications of any optics changed? OAP2: Horizontal diameter increased but shape and focal length should be unchanged.
 
-# G) Improve general code efficiency. 
-# H) Complete documentation. 
+# E) Improve general code efficiency. 
+# F) Complete documentation. 
 
-# I) Re-run framework performance with the flexure mounts. Compare to thesis results.
-# J) Optimize the efficiency of localization & optimization algorithms - i.e., decide on spiral steps and speeds.
-# K) Write and run algorithm performance.
+# G) Re-run framework performance with the flexure mounts. Compare to thesis results.
+# H) Optimize the efficiency of localization & optimization algorithms - i.e., decide on spiral steps and speeds.
+# I) Write and run algorithm performance.
 
 #---------#
 # Imports #
