@@ -146,6 +146,12 @@ class alignment:
 
         self.ts = ts
         self.humint = humint
+
+        # Identify photometric output ROI indices
+        photo_idx = np.zeros(4, dtype=np.int32)
+        for i in range(0, 4):
+            photo_idx[i] = humint.channel_roi_link["P"+str(i+1)]
+        self.photo_idx = photo_idx
         
         print("Defining symbolic framework ...")
         #---------------------------#
@@ -948,92 +954,31 @@ class alignment:
         
         return accur_snap
 
-    def _get_noise(self,N,t,dt):
-        '''
+    def _get_photo_broad(self, dt, config):
+        """
         Description
         -----------
-        Function returns the average background and noise values (=ROI9), derived as the average of "N" exposures of duration "dt" each.
-        
+        Function returns the total, calibrated broadband flux and error as measured in the ROI that is matched to the photometric chip output of the beam in channel {config}.
+        Flux and error are calculated from a master frame - obtained by averaging all acquired frames in time interval {dt} - see get_frames_cal(_broad).
+
         Parameters
         ----------
-        t : single integer (ms)
-            Start of timeframe.
-        dt : single integer (ms)
-            Duration of timeframe.
-        N : single integer
-            Amount of exposures.
-
-        Returns
-        -------
-        noise : single float
-            Noise value (standard deviation of ROI9 output)
-        mean: single float
-            ROI9 mean output value
-
-        '''
-        # Background measurements
-        exps = []
-        # Noise measurements
-        noises = []
-        # Gathering five exposures
-        for j in range(0, N):
-            if (j!=0):
-                time.sleep(dt)
-            t_start,t_stop = t+j*dt,t+(j+1)*dt
-            # Retrieving REDIS data 
-            exp_av = get_field("roi9_avg",t_start,t_stop,True)
-            exp_full = get_field("roi9_avg",t_start,t_stop,False) 
-            exps.append(exp_av[1])
-            noises.append(exp_full.std(0)[1])
-            
-        # Taking the mean 
-        mean = np.mean(exps)
-        noise = np.mean(noises)
-        
-        return mean,noise
-
-    def _get_photo(self,N,t,dt,config):
-        '''
-        Description
-        -----------
-        Function returns the photometric output value, for a certain beam channel (config), derived as the average of "N" exposures of duration "dt" each.
-        
-        
-        Parameters
-        ----------
-        t : single integer (ms)
-            Start of timeframe.
-        dt : single integer (ms)
-            Duration of timeframe.
-        N : single integer
-            Amount of exposures.
+        dt : single float (s)
+            Total frame acquisition time
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-            
+
         Returns
         -------
-        photo : single float
-            Photometric output average value
+        cal_broad, cal_broad_std : single float each ; broadband flux and error in photometric output channel
 
-        '''
-        # REDIS field names of photometric outputs' ROIs
-        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
-        fieldname = names[config]
-        
-        # Background measurements
-        exps = []
-        # Gathering five photometric exposures
-        for j in range(0, N):
-            if (j!=0):
-                time.sleep(dt)
-            t_start,t_stop = t+j*dt,t+(j+1)*dt
-            # Retrieving REDIS data
-            exps.append(get_field(fieldname,t_start,t_stop,True)[1])
-        # Taking the mean
-        photo = np.mean(exps)
-        
-        return photo
+        """
+
+        cal_disp, cal_disp_std, cal_broad, cal_broad_std = self.humint.get_frames_cal_broad(dt)
+        idx = self.photo_idx[config]
+        cal_broad, cal_broad_std = cal_broad[idx], cal_broad_std[idx]
+        return cal_broad, cal_broad_std
 
     def _valid_state(self,bool_slicer,ttm_angles_final,act_displacements,act_pos,config):
         """
