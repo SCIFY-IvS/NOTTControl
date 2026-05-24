@@ -58,26 +58,26 @@ from nottcontrol.lucid.lib.lucid_utils import LucidUtils
 from nottcontrol.script.lib.nott_database import define_time
 from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
-from nottcontrol import config
+from nottcontrol import config as nott_config
 from nottcontrol.script import data_files
 
 #-----------------------------#
 # Parameters from config file #
 #-----------------------------#
 # Opcua address
-url = config['DEFAULT']['opcuaaddress']
+url = nott_config['DEFAULT']['opcuaaddress']
 # Global parameters
-t_write = config.getint('redis', 't_write')
-bool_UT = config.getboolean('injection', 'bool_UT')
-bool_offset = config.getboolean('injection', 'bool_offset')
-fac_loc = config.getint('injection', 'fac_loc')
-SNR_inj = config.getint('injection', 'SNR_inj')
-Ncrit = config.getint('injection', 'Ncrit')
-Nsteps_skyb = config.getint('injection', 'Nsteps_skyb')
-Nexp = config.getint('injection', 'Nexp')
-disp_double = config.getfloat('injection', 'disp_double')
-step_double = config.getfloat('injection', 'step_double')
-speed_double = config.getfloat('injection', 'speed_double')
+t_write = nott_config.getint('redis', 't_write')
+bool_UT = nott_config.getboolean('injection', 'bool_UT')
+bool_offset = nott_config.getboolean('injection', 'bool_offset')
+fac_loc = nott_config.getint('injection', 'fac_loc')
+SNR_inj = nott_config.getint('injection', 'SNR_inj')
+Ncrit = nott_config.getint('injection', 'Ncrit')
+Nsteps_skyb = nott_config.getint('injection', 'Nsteps_skyb')
+Nexp = nott_config.getint('injection', 'Nexp')
+disp_double = nott_config.getfloat('injection', 'disp_double')
+step_double = nott_config.getfloat('injection', 'step_double')
+speed_double = nott_config.getfloat('injection', 'speed_double')
 print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
 class alignment:
