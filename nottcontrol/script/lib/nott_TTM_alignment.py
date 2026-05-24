@@ -335,20 +335,18 @@ class alignment:
             self.actuators.append(acts)
         print("Actuator Motor objects initialized.")
 
-        def __del__(self):
-            # Disconnect from OPCUA
-            if hasattr(self, 'opcua_conn'):
-                try:
-                    self.opcua_conn.disconnect()
-                except Exception:
-                    pass
-
-        def close(self):
-            # Manual wrapper to close the OPCUA connection
-            if hasattr(self, 'opcua_conn'):
+    def __del__(self):
+        # Disconnect from OPCUA
+        if hasattr(self, 'opcua_conn'):
+            try:
                 self.opcua_conn.disconnect()
-            
-        
+            except Exception:
+                pass
+
+    def close(self):
+        # Manual wrapper to close the OPCUA connection
+        if hasattr(self, 'opcua_conn'):
+            self.opcua_conn.disconnect()
         
     #-------------------------------#
     # Numeric Framework Evaluations #
@@ -387,7 +385,7 @@ class alignment:
         # Flipping X and Y angles to comply with function output
         ttm_offsets = np.array([result[1],result[0],result[3],result[2]],dtype=np.float64)
         
-        return ttm_offsets_flip
+        return ttm_offsets
     
     def _framework_numeric_int_reverse(self,ttm_offsets,D,lam=1):
         """
@@ -711,6 +709,10 @@ class alignment:
         Description
         -----------
         The function retrieves the current absolute on-bench actuator positions, for the specified configuration, by communication with opcua.
+        The corresponding timestamp is fetched from the redis database, querying the "cam_integtime" field.
+        This is purposely done to sync with the timestamps associated to acquired IR camera frames
+        (see frame acquisition methods in human_interface.py)
+        That way, read frames can be unambiguously linked to associated actuator positions in localization / optimization spirals.
         
         Parameters
         ----------
@@ -723,25 +725,17 @@ class alignment:
         pos : (1,4) numpy array of float values (mm)
             Current actuator positions for the specified configuration (=beam)
         time : single integer (ms)
-            Timestamp at which the actuator positions were read out.
+            Redis database timestamp at which the actuator positions were read out.
 
         """
-    
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-    
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
-        # Retrieving actuator positions via OPCUA 
-        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
-        node_ids = ['ns=4;s=MAIN.nott_ics.TipTilt.'+name+'.stat.lrPosActual' for name in act_names]
-        pos = np.array(opcua_conn.read_nodes(node_ids),dtype=np.float64)
-        timestamp = round(1000*time.time())
-        # Closing OPCUA connection
-        opcua_conn.disconnect()
+
+        acts = self.actuators[config]
+        pos = np.array([acts[i].getPositionAndSpeed()[0] for i in range(0, 4)], dtype=np.float64)
+        timestamp = self.ts.ts.get("cam_integtime")[0]
         
-        return [pos,timestamp]
+        return [pos, timestamp]
     
     def _actuator_position_to_ttm_angle(self,pos,config):
         """
@@ -1174,9 +1168,9 @@ class alignment:
         
         if (config == 0):
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-459*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+541*10**(-6))
-        if (config == 1):
+        elif (config == 1):
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-587*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+508*10**(-6))
-        if (config == 2):
+        elif (config == 2):
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-243*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+655*10**(-6))
         else:
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-507*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+443*10**(-6))
