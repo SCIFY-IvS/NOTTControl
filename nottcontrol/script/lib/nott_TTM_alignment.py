@@ -1477,12 +1477,26 @@ class alignment:
     # Scanning #
     #----------#    
 
-    def localization_spiral(self,sky,step,speed,config,dt_sample):
+    def localization_spiral(self,sky,step,speed,config,dt_base=0.5):
         """
         Description
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane) to locate the internal beam / on-sky source.
-        Once a point in the spiral yields an improvement in the registered camera ROI average > loc_fac * Noise, the spiral is stopped.
+        The spiral stops once more than "Ncrit" frames - within a single step - exceed "SNR_inj" sigma's above the pre-spiral baseline broadband photometric output flux.
+        The global SNR maximum - across all samples throughout the step - is then determined and the bench is pushed to the associated sampled actuator positions.
+
+        Sampling specifics:        
+        With each step, pairs of actuator positions and redis timestamps are sampled (move_abs_ttm_act).
+        The sequence of frames - recorded within the time window of the step's motion - is fetched (_timestamps_to_frames).
+        The resulting Frame object is used to obtain frame-per-frame broadband flux (human_interface.get_frames_cal_broad).
+
+        For internal alignment, the stepsize is fixed to 20 um (waveguide diameter) and "step" is a dummy parameter.
+
+        A maximum value for the actuator speed is derived from the camera frame rate and a chosen tolerance on the positional mismatch of
+        associated (via redis timestamps) and truly synchronous actuator positions related to a camera frame.
+        This upper boundary is meant to guarantee that the beam moves no more than a distance "tolerance" per camera frame.
+        (! see Note2 in _timestamp_to_frames for reference.)
+        
         For on-sky spiralling, a time out is incorporated. Once the spiral arm reaches a dimension of Nstep_sky*step, the spiralling procedure is quit.
         The purpose of this time out is to not allow for endless spiralling in an on-sky region that is nowhere near a source.
         
@@ -1500,51 +1514,56 @@ class alignment:
         speed : single float value (mm/s)
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
+            Note2: bound by upper_speed, derived from positional mismatch tolerance
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        dt_sample : single float (s)
-            Amount of time a sample should span.
+        dt_base : single float (s)
+            Time window span across which a baseline photometry measurement is made before spiraling.
             
         Returns
         -------
         None.
         
         """
-        print("----------------------------------")
-        print("Spiraling for localization...")
-        print("----------------------------------")
-        if sky:
-            sky = 1
-        else:
-            sky = 0
+        sky = int(bool(sky))
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-        
-        if (speed > 30*10**(-3) or speed <= 0):
-            raise ValueError("Given actuator speed is beyond the accepted range (0,30] um/s")
+        if (speed <= 0):
+            raise ValueError("Given actuator speed cannot be negative.")
         
         if sky : 
             d = step
         else:
             d = 20*10**(-3) #(mm)
+
+        # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
+        #---------------------------------------------------------------------------------------
+        # Tolerance (half of waveguide diameter)
+        tol_loc = 10**(-3) # mm
+        # Estimating camera frame rate from a sequence of redis timestamps
+        pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
+        frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
+        # Cropping upper speed boundary to TwinCat boundary (30 um/s)
+        upper_speed = min(tol_loc / frame_period, 30*10**(-3))
+        # Cropping user input speed 
+        spd = min(speed, upper_speed)
+
+        # Baseline photometric broadband flux measurement
+        # -----------------------------------------------
+        photo_init, noise = self._get_photo_broad(dt_base, config)
+        print(f"Baseline flux: {photo_init:.4f} with noise: {noise:.4f}")
+
+        if photo_init > fac_loc * noise:
+            raise Exception("Localization spiral not started. Initial configuration is likely already in a state of injection.")
         
-        # Delay time (total delay minus writing time)
-        t_delay = self._get_delay(100,True)-t_write 
-        # Exposure time for first exposure (ms)
-        dt_exp_loc = 200
-        # Start time for initial exposure
-        t_start = self._get_time(1000*time.time(),t_delay)
-        # Sleep
-        time.sleep((dt_exp_loc+t_write)*10**(-3)) 
-        # Initial position noise measurement
-        mean,noise = self._get_noise(Nexp,t_start,dt_exp_loc)
-        print("Initial noise level (ROI9) : ", noise)
-        # Initial position photometric output measurement 
-        photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config)
-        print("Initial photometric output : ", photo_init)
-    
+        print("----------------------------------")
+        print(f"Spiraling for localization at actuator speed {spd} mm/s ...")
+        print("----------------------------------")
+
+        # Visualization # TBD
+        # -------------------
         # Container for average SNR values (for spiraling plot)
         dim = 11
         SNR_av = -10*np.ones((dim,dim))
@@ -1552,9 +1571,6 @@ class alignment:
         indplot = np.array([dim//2,dim//2])
         SNR_av[indplot[0]][indplot[1]] = 0
     
-        if (photo_init-mean > fac_loc*noise):
-            raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
-        
         # Initializing Plot
         fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111)
@@ -1626,87 +1642,68 @@ class alignment:
         # How much consequent moves are being made in a direction at the moment?
         Nsteps = 1
         
-        # Containers for actuator positions and times
+        # Containers for actuator positions and paired broadband flux values
         ACT = []
-        ACT_times = []
+        ACT_flux = []
         
         while not stop:
         
             # Initializing err_prev
             err_prev = np.zeros(4,dtype=np.float64)  
-            # Initializing act_disp_prev
-            act_disp_prev = np.zeros(4,dtype=np.float64)
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
                 speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev) 
+                _,_,acts,act_times,frames,err,_ = self.individual_step(True,sky,moves[move],speeds,config,True,err_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
-                # Saving actuator steps for next step
-                act_disp_prev = act_disp
-                
-                # Container for sampled ROI exposures
-                exps = []
-                
-                # Storing camera values and actuator configurations
-                # 1) Saving photometric readout values (SNR) sampled throughout the step
-                for j in range(0, len(rois)):
-                    exps.append((rois[j]-photo_init)/noise)
-                # 2) Saving the actuator configurations and times sampled throughout the step
-                for j in range(0, len(acts)):
+
+                # Evaluate photometric readout over motion time window
+                if (frames is not None and len(acts) > 0):
+                    _,_,flux_seq,_ = self.humint.get_frames_cal_broad(frames=frames, sequence=True)
+                    flux_step = flux_seq[:, self.photo_idx[config]]
+                else:
+                    flux_step = np.array([photo_init])
+                snr_step = (flux_step - photo_init) / noise
+
+                # Pair each actuator position set to the nearest camera frame
+                n_act, n_frame = len(acts), len(flux_step)
+                for j in range(0, n_act):
+                    # calculate the proportional index in the photometric readout array
+                    k = int(round(j * (n_frame-1) / max(n_act-1, 1)))
+                    k = min(k, n_frame-1)
                     ACT.append(acts[j])
-                    ACT_times.append(act_times[j])
-        
-                # Injection is reached if more than "Ncrit" independent sub-timeframes show a SNR improvement larger than "SNR_inj" compared to "photo_init"
-                exps_arr = np.array(exps,dtype=np.float64)
-                if ((exps_arr > SNR_inj).sum() > Ncrit):
-                    print("A state of injection has been reached.")
-                    print("Average SNR improvement value : ", np.average(exps_arr[exps_arr>SNR_inj]))
-                    # Update plot
-                    indplot = _update_plot(indplot,np.max(exps))
-                    
-                    # Safety sleep
-                    time.sleep(10*t_write*10**(-3)) # TBD
-                    # Find optimal injection found along spiral (performed once more, post-movement, to eliminate possible time sync issues during sampling)
-                    # Re-reading the photometric outputs (timeframe of dt_sample around each actuator timestamp)
-                    SNR_samples = np.array([self._get_photo(Nexp,round(timestamp-(1000*dt_sample/2)),round(1000*dt_sample),config)-photo_init for timestamp in ACT_times] / noise,dtype=np.float64)
-                    # Finding optimal injection index
-                    i_max = np.argmax(SNR_samples)
-                    #print("Index, SNR and actuator configuration of found injecting state :", i_max, SNR_samples[i_max], ACT[i_max])
-                    # Corresponding actuator positions
+                    ACT_flux.append(flux_step[k])
+
+                # Injection criterion
+                if (snr_step > SNR_inj).sum() > Ncrit:
+                    print("Injecting state found!")
+                    print(f"Mean SNR above imposed threshold {SNR_inj}: {np.mean(snr_step[snr_step > SNR_inj]):.2f}")
+
+                    indplot = _update_plot(indplot, float(np.max(snr_step)))
+
+                    # Push bench to global flux maximum, sampled across the spiral
+                    ACT_flux_arr = np.array(ACT_flux, dtype=np.float64)
+                    i_max = np.argmax(ACT_flux_arr)
                     ACT_final = ACT[i_max]
-                    # Current configuration
                     act_curr = self._get_actuator_pos(config)[0]
-                    # Necessary displacements
-                    act_disp = ACT_final-act_curr
-                    #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                    pos_offset = self._actoffset(speeds,act_disp) 
-                    print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
-                    # Push bench to configuration of optimal found injection.
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,self._get_delay(100,True)-t_write)            
-                    return
-                
-                # Update plot
-                indplot = _update_plot(indplot,np.average(exps))
-                # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
-                # Re-measure it with each step.
-                t_start = self._get_time(1000*(time.time()),t_delay)
-                # Sleep
-                time.sleep((dt_exp_loc+t_write)*10**(-3)) # TBC
-                photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
+                    act_disp = ACT_final - act_curr
+                    spd_push = np.full(4, speed_double, dtype=np.float64)
+                    pos_off = self._actoffset(spd_push, act_disp)
+                    print(f"Bringing bench to injecting actuator positions at {act_curr+act_disp} mm")
+                    self._move_abs_ttm_act(act_curr, act_disp, spd_push, pos_off, config, sample=False)
+                    plt.close(fig)
+                    return 
+
+                indplot = _update_plot(indplot, float(np.mean(snr_step)))
+                # Refresh photometric baseline with each step (countering camera drift)
+                photo_init, noise = self._get_photo_broad(dt_base, config)
                 
             # Setting up next move
-            if move < 3:
-                move += 1
-            else:
-                move = 0
-            
+            move = (move+1) % 4
             # Counting the amount of performed move type switches
             Nswitch += 1
-        
             if (Nswitch % 2 == 0):
                 Nsteps += 1
             
