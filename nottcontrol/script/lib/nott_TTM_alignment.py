@@ -2317,6 +2317,9 @@ class alignment:
                 if not np.all(np.diff(win_av) > 0):
                     stop = True
 
+                # Refresh photometric baseline with each step
+                photo_init, noise = self._get_photo_broad(dt_base, config)    
+
             # Bring the bench to the configuration corresponding to maximum flux along this direction's arm
             ARM_flux_arr = np.array(ARM_flux, dtype=np.float64)
             i_max = np.argmax(ARM_flux_arr)
@@ -2328,8 +2331,6 @@ class alignment:
             snr_best = (ARM_flux_arr[i_max] - photo_init) / noise
             print(f"Best SNR along this direction: {snr_best:.2f} - pushing actuators to {act_curr + act_disp} mm")
             self._move_abs_ttm_act(act_curr, act_disp, spd_push, pos_off, config, sample=False)
-            # Refresh photometric baseline with each direction
-            photo_init, noise = self._get_photo_broad(dt_sample, config)    
             return
     
     ##########################################
