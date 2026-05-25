@@ -73,6 +73,7 @@ bool_UT = nott_config.getboolean('injection', 'bool_UT')
 bool_offset = nott_config.getboolean('injection', 'bool_offset')
 fac_loc = nott_config.getint('injection', 'fac_loc')
 SNR_inj = nott_config.getint('injection', 'SNR_inj')
+acq_time = nott_config.getfloat('injection', 'acq_time')
 Ncrit = nott_config.getint('injection', 'Ncrit')
 Nsteps_skyb = nott_config.getint('injection', 'Nsteps_skyb')
 Nexp = nott_config.getint('injection', 'Nexp')
@@ -1482,7 +1483,7 @@ class alignment:
         Description
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane) to locate the internal beam / on-sky source.
-        The spiral stops once more than "Ncrit" frames - within a single step - exceed "SNR_inj" sigma's above the pre-spiral baseline broadband photometric output flux.
+        The spiral stops once a co-added frame, sampled throughout the last step, exceeds "SNR_inj" sigma's above the pre-spiral baseline broadband photometric output flux.
         The global SNR maximum - across all samples throughout the step - is then determined and the bench is pushed to the associated sampled actuator positions.
 
         Sampling specifics:        
@@ -1661,11 +1662,22 @@ class alignment:
 
                 # Evaluate photometric readout over motion time window
                 if (frames is not None and len(acts) > 0):
+                    # Fetching individual frames for linking to actuator positions
                     _,_,flux_seq,_ = self.humint.get_frames_cal_broad(frames=frames, sequence=True)
                     flux_step = flux_seq[:, self.photo_idx[config]]
+                    # Fetching co-added frames for injection detection
+                    # How much frames amount to {acq_time} seconds
+                    n_frames = acq_time // frame_period
+                    # How much bins do we thus need
+                    n_bins = len(flux_seq) // n_frames
+                    # Floor to min 1 bin
+                    n_part = max(n_bins, 1)
+                    children_frames = frames.partition(n_part)
+                    flux_bin = np.array[self.humint.get_frames_cal_broad(frames=child, sequence=False)[2][self.photo_idx[config]] for child in children_frames])
                 else:
                     flux_step = np.array([photo_init])
                 snr_step = (flux_step - photo_init) / noise
+                snr_bin = (flux_bin - photo_init) / noise
 
                 # Pair each actuator position set to the nearest camera frame
                 n_act, n_frame = len(acts), len(flux_step)
@@ -1677,11 +1689,11 @@ class alignment:
                     ACT_flux.append(flux_step[k])
 
                 # Injection criterion
-                if (snr_step > SNR_inj).sum() > Ncrit:
+                if (snr_bin > SNR_inj).any():
                     print("Injecting state found!")
-                    print(f"Mean SNR above imposed threshold {SNR_inj}: {np.mean(snr_step[snr_step > SNR_inj]):.2f}")
+                    print(f"Mean SNR of co-added frames ({acq_time} s each) that are above imposed threshold {SNR_inj}: {np.mean(snr_bin[snr_bin > SNR_inj]):.2f}")
 
-                    indplot = _update_plot(indplot, float(np.max(snr_step)))
+                    indplot = _update_plot(indplot, float(np.max(snr_bin)))
 
                     # Push bench to global flux maximum, sampled across the spiral
                     ACT_flux_arr = np.array(ACT_flux, dtype=np.float64)
@@ -1696,7 +1708,7 @@ class alignment:
                     plt.close(fig)
                     return 
 
-                indplot = _update_plot(indplot, float(np.mean(snr_step)))
+                indplot = _update_plot(indplot, float(np.mean(snr_bin)))
                 # Refresh photometric baseline with each step (countering camera drift)
                 photo_init, noise = self._get_photo_broad(dt_base, config)
                 
