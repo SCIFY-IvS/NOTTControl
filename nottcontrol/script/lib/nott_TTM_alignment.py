@@ -1368,7 +1368,7 @@ class alignment:
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1379,6 +1379,9 @@ class alignment:
             (4) The framework is used to evaluate the necessary TTM offsets for the user-defined purpose.
             (5) The actuator displacements, necessary to achieve the TTM offsets, are calculated.
             (6) The necessary actuator movements are imposed to the bench via OPC UA.
+
+        If sample = True, the function returns a Frame object containing IR camera frames that are recorded during the time window of motion.
+        These frames are timestamped by the same clock (redis database clock) as the actuator positions.
 
         Parameters
         ----------
@@ -1399,10 +1402,6 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         sample : single boolean
             Whether to sample photometric ROI averages throughout the motion.
-        dt_sample : single float (s)
-            Amount of time a sample should span.
-        t_delay : single float (ms) 
-            Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
         err_prev : numpy array of float values (mm)
             Actuator errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
         act_disp_prev : numpy array of float values (mm)
@@ -1412,15 +1411,16 @@ class alignment:
         Returns
         -------
         t_start : single integer (ms)
-            Time at which the actuator motions commenced.
+            Redis time at which the actuator motions commenced.
         t_spent : single integer (ms)
             Time spent for moving all four actuators.
-        act : matrix of floats (mm)
-            Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
-        act_times : list of floats (ms)
-            Times at which the actuator positions were read out. Follow lab Windows machine time.
-        roi : list of floats
-            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == True).
+        act : list of (4,1) numpy arrays (mm)
+            Actuator positions, for the specified config, sampled throughout the actuator motion.
+        act_times : list of int (ms)
+            Redis timestamps corresponding to each sample of actuator positions.
+        frames : Frame object / None
+            IR camera frames that were recorded during the actuator motion window (if sample=True)
+            None (if sample = False)
         err : List of floats (mm)
             Errors made upon actuator motions. Positive values indicate overshoot.
         act_disp : numpy array of floats (mm)
@@ -1431,7 +1431,7 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
-        # Register current actuator displacements
+        # Register current actuator positions
         act_curr = self._get_actuator_pos(config)[0]
         
         # Is there a previous step given (i.e., is there an actuator displacement different than zero)?
@@ -1484,9 +1484,9 @@ class alignment:
             
 
         # Only push actuator motion if it would yield a valid state
-        t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay,err_prev) 
+        t_start,t_spent,act,act_times,frames,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,err_prev) 
         
-        return t_start,t_spent,act,act_times,roi,err,act_disp
+        return t_start,t_spent,act,act_times,frames,err,act_disp
    
     #----------#
     # InfraTec #
