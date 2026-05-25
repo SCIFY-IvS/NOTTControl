@@ -355,7 +355,7 @@ class alignment:
         self.actuators = []
         for i in range(1, 5):
             act_names = ['NTTA'+str(i), 'NTPA'+str(i), 'NTTB'+str(i), 'NTPB'+str(i)]
-            acts = [Motor(self.opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name, name) for name in act_names]
+            acts = [Motor(self.opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name, name, 0.020) for name in act_names]
             self.actuators.append(acts)
         print("Actuator Motor objects initialized.")
 
@@ -1165,20 +1165,22 @@ class alignment:
         frames = Frame(ids, integtimes)
         return frames
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64)): 
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,err_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
         The function moves all actuators (1,2,3,4) in a configuration "config" (=beam), initially at positions "init_pos",
         by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
-        Actuator positions are sampled during the motion, by timestep "dt_sample". The timestamps at which they were read out are also registered.
-        If "sample" is True, real-time photometric ROI values are also sampled, the timestamps of which lack behind by t_delay.
+        Actuator positions are sampled during the motion and the associated redis timestamps are registered.
+        If "sample" is True, those redis timestamps are used - after the actuator motion - to fetch the IR camera frames that were
+        recorded during the time window of actuator motion.
+        Those IR camera frames can then be passed to the human_interface calibration methods (get_frames_cal(_broad)) to get photometric readouts.
         In the context of spiraling, actuator errors "err_prev" of the previous step can be taken into account.
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
-            3 : TTM2 actuator whose motion is in the X plane, thus inducing TTM2 Y angles.
-            4 : TTM2 actuator whose motion is in the Y plane, thus inducing TTM2 X angles.
+            3 : TTM2 actuator whose motion is in the XZ plane, thus inducing TTM2 Y angles.
+            4 : TTM2 actuator whose motion is in the YZ plane, thus inducing TTM2 X angles.
     
         Parameters
         ----------
@@ -1189,32 +1191,29 @@ class alignment:
         speeds : (1,4) numpy array of float values (mm/s)
             Speeds by which the actuators should move.
         pos_offset : (1,4) numpy array of float values (mm)
-            offsets to be accounted for when moving.
+            offsets to be accounted for when moving (deduced empirically)
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).     
         sample : single boolean
-            Whether to sample photometric ROI values throughout the motion.
-        dt_sample : single float (s)
-            Amount of time a sample should span.
-        t_delay : single float (ms) 
-            Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
+            If True, the function returns IR camera frames - recorded in the time window of actuator motion - as a Frame object
         err_prev : list of float values (mm)
             Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
             
         Returns
         -------
         t_start_loop : single integer value (ms)
-            Time at which the movements started.
+            Redis time at which the movements started.
         t_spent_loop : single integer value (ms)
             Time spent for moving all four actuators.
-        act : matrix of floats (mm)
-            Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
-        act_times : list of floats (ms)
-            Times at which the actuator positions were read out. Follow lab Windows machine time.
-        roi : list of floats
-            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == true).
-        err : List of floats (mm)
+        act : list of (4,1) numpy arrays (mm)
+            Actuator positions, for the specified config, sampled throughout the actuator motion.
+        act_times : list of int (ms)
+            Redis timestamps corresponding to each sample of actuator positions.
+        frames : Frame object / None
+            IR camera frames that were recorded during the actuator motion window (if sample=True)
+            None (if sample = False)
+        err : (4,1) numpy array of floats (mm)
             Actuator errors made upon actuator motions. Positive values indicate overshoot.
 
         """
@@ -1222,122 +1221,93 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
 
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
         # Desired final positions
         final_pos = init_pos + (disp)#-err_prev) #TBD
         
-        # Sampled actuator positions and ROI values
+        # Containers for samples of actuator position and positional errors
         act = []
         act_times = []
-        roi = []
         err = np.zeros(4,dtype=np.float64)
-        
+
+        # Auxiliary functions
+        def _wait_for_arrival(act_idx):
+            # Poll until the actuator report a STANDING/OPERATIONAL state.
+            on_destination = False
+            while not on_destination:
+                time.sleep(0.005)
+                status, state, _ = self.actuators[config][act_idx].getStatusInformation()
+                on_destination = (status == "STANDING" and state == "OPERATIONAL")
+            
+        def _fire_move(act_idx, target_pos, speed):
+            # Fire a MoveAbsolute command through OPCUA
+            self.actuators[config][act_idx].command_move_absolute(target_pos, speed).execute()
+            
         # Move functions
         def move_single(double):
-            '''
+            """
+            Execute one move on an actuator and sample positions throughout that move.
+            
             Parameters
             ----------
             double : single boolean
-                True : this function is called in the context of a double actuator motion.
-                False : this function is not called in the context of a double actuator motion.
-
-            '''
-            
-            # Executing move
-            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-            method = parent.get_child("4:RPC_MoveAbs")
-            arguments = [final_pos_off[i], speeds[i]]
-            #t_start_iter = time.time()
-            parent.call_method(method, *arguments)
-            
-            # Wait for the actuator to be ready
+                True : this function is called as the first step a double actuator motion, overshooting the target position.
+                        sample positions until target position is passed; don't sample in overshoot phase
+                False : this function is called as a standalone, single move
+                        sample positions until arrival at target position
+            """
+            # Execute move
+            _fire_move(i, final_pos_off[i], speeds[i])
+            # Poll
             on_destination = False
-            
-            # Define start of sample timeframe for which to read out ROI values from redis.
-            if sample:
-                # Start time, incorporating delay time.
-                t_start_sample = self._get_time(1000*time.time(),t_delay)
-                # Camera-to-redis writing time
-                time.sleep((t_write)*10**(-3)) 
-                # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
-                    
-                # Boolean checking whether the ROI sampling has caught up with the camera-redis delay
-                caught_up = False
-            else:
-                caught_up = True
-              
-            # Boolean that is True, throughout a double actuator motion, when sampling should be performed.
             sample_double = True
-            while not (on_destination and caught_up):
-            
+            while not on_destination:
+                # If double motion, evaluate whether to sample first
                 if double:
                     act_pos = self._get_actuator_pos(config)[0]
                     if disp[i] > 0:
                         sample_double = (act_pos[i] < final_pos[i])
                     else:
                         sample_double = (act_pos[i] > final_pos[i])
-                        
+                # Sample
                 if sample_double:
-                    # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
-                    time.sleep(dt_sample/2)
                     act_samp = self._get_actuator_pos(config)
                     act.append(act_samp[0])
-                    act_times.append(self._get_time(act_samp[1],t_delay))
-                    time.sleep(dt_sample/2)
-                
-                    if sample:
-                        # Safety sleep
-                        time.sleep(2*t_write*10**(-3))
-                        # Readout photometric ROI average of sample timeframe.
-                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
-                        # Push sample start time forward for next sample.
-                        t_start_sample = round(self._get_time(1000*time.time(),t_delay)-t_write)
-                        
-                # Check whether actuator has finished motion
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                if not on_destination:
-                    t_act_arrival = round(1000*time.time())
-                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-                # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
-                # We have to make the sampling catchup (i.e. register the final samples of the actuator motion) before exiting the while loop
-                if (on_destination and sample):
-                    caught_up = (round(1000*time.time())-t_act_arrival > t_write)
-                  
+                    act_times.append(act_samp[1])
+
+                status, state, _ = self.actuators[config][act_idx].getStatusInformation()
+                on_destination = (status == "STANDING" and state == "OPERATIONAL")
+
+            # Arrived at destination
             ach_pos = self._get_actuator_pos(config)[0][i]
             if not double:
-                err[i] = ach_pos-final_pos[i]
+                err[i] = ach_pos - final_pos[i]
                 print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
-            return
-        
+
         def move_double():
+            """
+            Sequence of three separate moves for displacements that are sub-actuator-resolution
+                1) Overshoot the target. Sampling happens during this phase, as long as target is not overshot
+                2) Neutralize backlash by retracing 0.5 um
+                3) Accurate approach to final position 
+            """
             
-            # 1) Move 1 : Deliberately overshooting and sampling until the desired position is reached.
+            # 1) Move 1 : Deliberately overshooting and sampling until the target is overshot
             move_single(True)
-            
-            # 2) Move 2 : Neutralizing the backlash by moving a small amount (0.5 um) in the opposite direction.
+
+            # 2) Move 2 : Neutralize backlash
             # Current actuator positions
             act_curr_temp = self._get_actuator_pos(config)[0]
-            disp_back = sign*0.0005
             # Backlash-neutralized position
+            disp_back = sign*0.0005
             pos_back = act_curr_temp[i] + disp_back
-            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-            method = parent.get_child("4:RPC_MoveAbs")
-            arguments = [pos_back, 0.0005]
-            parent.call_method(method, *arguments)
-            # Wait for the actuator to be ready
-            on_destination = False
-            while not on_destination:
-                time.sleep(0.01)
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+            # Fire move and await completion
+            _fire_move(i, pos_back, 0.0005)
+            _wait_for_arrival(i)
             
-            # 2.5) Updating offset for the second move, which need be accurate.
-            
+            # 2.5) Update the offset required to reach the final position
             # Current actuator positions
             act_curr_temp = self._get_actuator_pos(config)[0]
             # Necessary displacements
@@ -1345,30 +1315,23 @@ class alignment:
             # Update speed
             speeds[i] = speed_double
             # Offsets from accuracy grid
-            pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
+            pos_offset_return = self._actoffset(speeds, act_disp_temp)
+            # Final target position
+            final_pos_off[i] = final_pos[i] - pos_offset_return[i]
             
-            # Update final_pos_off
-            final_pos_off[i] = final_pos[i] - pos_offset_temp[i]
-            
-            # 3) Move 3 : Returning to get to the desired position in accurate fashion. No sampling required # TBD : Incorporate backlash?
-            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-            method = parent.get_child("4:RPC_MoveAbs")
-            arguments = [final_pos_off[i], speeds[i]]
-            parent.call_method(method, *arguments)
-            # Wait for the actuator to be ready
-            on_destination = False
-            while not on_destination:
-                time.sleep(0.01)
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-              
+            # 3) Move 3 : Returning to get to the desired position in accurate fashion.
+            # Fire move and await completion
+            _fire_move(i, final_pos_off[i], speeds[i])
+            _wait_for_arrival(i)
+            # Evaluate error              
             ach_pos = self._get_actuator_pos(config)[0][i]
             err[i] = ach_pos-final_pos[i]
             print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
-            return
-        
+
+        #---------------------
+        # MAIN ACTUATOR LOOP
         # Looping over all four actuators
-        t_start_loop = round(1000*time.time())
+        t_start_loop = self.ts.ts.get("cam_integtime")[0]
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (disp[i] != 0):
@@ -1390,11 +1353,16 @@ class alignment:
                     final_pos_off[i] = init_pos[i] + sign*step_over
                     move_double()
         
-        t_end_loop = round(1000*time.time()) 
+        t_end_loop = self.ts.ts.get("cam_integtime")[0]
         t_spent_loop = round(t_end_loop-t_start_loop)
-        # Close OPCUA connection
-        opcua_conn.disconnect()
-        return t_start_loop,t_spent_loop,act,act_times,roi,err
+
+        # Retrospectively acquire the frames recorded during the motion time window
+        if (sample and len(act_times) > 0):
+            frames = self._timestamps_to_frames(act_times)
+        else:
+            frames = None
+
+        return t_start_loop,t_spent_loop,act,act_times,frames,err
 
     #-----------------#
     # Individual Step #
