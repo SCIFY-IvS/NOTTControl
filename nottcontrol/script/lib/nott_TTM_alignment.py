@@ -1655,7 +1655,7 @@ class alignment:
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
+                speeds = np.full(4, spd, dtype=np.float64)
                 _,_,acts,act_times,frames,err,_ = self.individual_step(True,sky,moves[move],speeds,config,True,err_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
@@ -1667,15 +1667,16 @@ class alignment:
                     flux_step = flux_seq[:, self.photo_idx[config]]
                     # Fetching co-added frames for injection detection
                     # How much frames amount to {acq_time} seconds
-                    n_frames = acq_time // frame_period
+                    n_frames = int(acq_time // frame_period)
                     # How much bins do we thus need
                     n_bins = len(flux_seq) // n_frames
                     # Floor to min 1 bin
                     n_part = max(n_bins, 1)
                     children_frames = frames.partition(n_part)
-                    flux_bin = np.array[self.humint.get_frames_cal_broad(frames=child, sequence=False)[2][self.photo_idx[config]] for child in children_frames])
+                    flux_bin = np.array(self.humint.get_frames_cal_broad(frames=child, sequence=False)[2][self.photo_idx[config]] for child in children_frames])
                 else:
                     flux_step = np.array([photo_init])
+                    flux_bin = np.array([photo_init])
                 snr_step = (flux_step - photo_init) / noise
                 snr_bin = (flux_bin - photo_init) / noise
 
@@ -2230,7 +2231,7 @@ class alignment:
         # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
         #---------------------------------------------------------------------------------------
         # Tolerance
-        tol_opt = 0.5**(-3) # mm
+        tol_opt = 0.5*10**(-3) # mm
         # Estimating camera frame rate from a sequence of redis timestamps
         pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
         frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
@@ -2287,7 +2288,7 @@ class alignment:
                 print("Step")
                 
                 # Step
-                speeds = np.full(4, speed, dtype=np.float64)
+                speeds = np.full(4, spd, dtype=np.float64)
                 _,_,acts,act_times,frames,_,_ = self.individual_step(False,sky,moves[i],speeds,config,True)
 
                 # Evaluate photometry over window spanning the motion timeframe
@@ -2331,7 +2332,6 @@ class alignment:
             snr_best = (ARM_flux_arr[i_max] - photo_init) / noise
             print(f"Best SNR along this direction: {snr_best:.2f} - pushing actuators to {act_curr + act_disp} mm")
             self._move_abs_ttm_act(act_curr, act_disp, spd_push, pos_off, config, sample=False)
-            return
     
     ##########################################
     # Performance characterization / Testing #

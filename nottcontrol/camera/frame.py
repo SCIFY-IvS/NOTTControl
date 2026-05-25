@@ -192,7 +192,8 @@ class Frame(object):
         if N <= 0:
             raise ValueError("Cannot partition the Frame object into a negative amount of children.")
         id_chunks = np.array_split(self.ids, N)
-        return [Frame(np.copy(id_chunk)) for id_chunk in id_chunks]
+        integtime_chunks = np.array_split(self.integtimes, N)
+        return [Frame(np.array(np.copy(ids)), np.copy(its)) for ids, its in zip(id_chunks, integtime_chunks)]
         
     def av_full(self):
         # Averaging the full frames, over all DITs
