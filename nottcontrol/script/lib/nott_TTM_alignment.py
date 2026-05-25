@@ -2161,15 +2161,18 @@ class alignment:
         plt.close(fig)
         return
     
-    def optimization_cross(self,sky,CS,d,speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
+    def optimization_cross(self,sky,CS,d,speed=1.1*10**(-3),config=1,dt_base=0.050,k=10,l=5):
         """
         Description
         -----------
         This function brings the beam centroid to a state of optimized injection by shaping a cross in the pupil or image plane, controlled by parameter "CS". 
-        Motion is continued in each of the four cartesian directions as long as there is monotonuous improvement in sampled ROI values.
-        The sampled ROI values are averaged by a sliding window approach, with size k and stepsize l between subsequent windows.
-        This sliding window approach is adopted to robustly probe the general ROI trend.
-        When a step does not show monotonuous improvement, the actuator configuration, sampled along the step, corresponding to maximal ROI readout is pushed to the bench.
+        Motion is continued in each of the four cartesian directions as long as there is monotonuous improvement in sampled broadband flux.
+        The sampled flux values are averaged by a sliding window approach, with size k and stepsize l between subsequent windows.
+        When a step no longer shows monotonuous improvement, the bench is pushed back to the actuator configuration - sampled along the step - that yielded the maximum flux along all steps in the ongoing direction.
+
+        For sampling specifics: see localization_spiral documentation
+
+        Actuator speed is cropped to an upper boundary, calculated by a positional tolerance. For specifics, see localization_spiral documentation.
         
         Parameters
         ----------
@@ -2188,12 +2191,12 @@ class alignment:
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        dt_sample : single float (s)
-            Amount of time a sample, made along a step, should span.
+        dt_base : single float (s)
+            Timespan of window for baseline photometric output measurement
         k : single integer
-            Window size for sample averaging
+            Window size for flux sample averaging
         l : single integer
-            Step size between windows
+            Step size between consecutive windows
             
         Remarks
         -------
@@ -2211,9 +2214,23 @@ class alignment:
         print("----------------------------------")
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
+        
+        # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
+        #---------------------------------------------------------------------------------------
+        # Tolerance
+        tol_opt = 0.5**(-3) # mm
+        # Estimating camera frame rate from a sequence of redis timestamps
+        pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
+        frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
+        # Cropping upper speed boundary to TwinCat boundary (30 um/s)
+        upper_speed = min(tol_opt / frame_period, 30*10**(-3))
+        # Cropping user input speed 
+        spd = min(speed, upper_speed)
 
-        # Delay time (total delay minus writing time)
-        t_delay = self._get_delay(100,True)-t_write
+        # Baseline photometric broadband flux measurement
+        # -----------------------------------------------
+        photo_init, noise = self._get_photo_broad(dt_base, config)
+        print(f"Baseline flux: {photo_init:.4f} with noise: {noise:.4f}")
 
         # Possible moves
         if sky:
@@ -2239,70 +2256,69 @@ class alignment:
                 down=np.array([0,-d,0,0],dtype=np.float64)
                 right=np.array([d,0,0,0],dtype=np.float64)
             moves = np.array([up,left,down,right])
-        
-        # A) Storing characteristics of initial configuration
-
-        # Exposure time for first exposure (ms)
-        dt_exp_opt = 1000
-        # Start time for initial exposure
-        t_start = self._get_time(1000*time.time(),t_delay)
-        # Sleep
-        time.sleep((dt_exp_opt+t_write)*10**(-3))
-        # Initial position noise measurement
-        _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
-        # Initial position photometric output measurement
-        photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
-        print("Initial noise level : ", noise)
-        # B) Probe all four cartesian directions
         dirs = ["up","left","down","right"]
-        for i in range(0,4):
-            
-            print(dirs[i])
+        
+        # Probe all four cartesian directions
+        for i in range(0,4):            
+            print(f"Probing direction {dirs[i]}")
+
+            # Bins for actuator position and flux samples across this direction
+            ARM_act = []
+            ARM_flux = []
+
+            # Record starting position
+            ARM_act.append(self._get_actuator_pos(config)[0])
+            ARM_flux.append(photo_init)
             
             stop = False
-            
             while not stop:
                 print("Step")
                 
                 # Step
-                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-                _,_,acts,_,rois,_,_ = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
-                # Registering post-motion actuator configuration
-                act_post = self._get_actuator_pos(config)[0]
-                
-                # Set stop to True
-                stop = True
-                
-                # Take an average for each sliding window of size k
-                
-                n_windows = (len(rois)-k)//l + 1
+                speeds = np.full(4, speed, dtype=np.float64)
+                _,_,acts,act_times,frames,_,_ = self.individual_step(False,sky,moves[i],speeds,config,True)
 
-                rois_slide = np.array([rois[i:i+k] for i in range(0,n_windows*l,l)])
-                rois_slide_av = np.mean(rois_slide,axis=1)
-            
-                i_max_av = np.argmax(rois_slide_av)
-                
-                # snr
-                snr = (rois_slide_av-photo_init)/noise
-                print(rois)
-                print(rois_slide_av)
-                
-                # State of optimal injection
-                i_max = np.argmax(snr[i_max_av:i_max_av+k])
-                act_max = acts[i_max]
-                
-                # Only continue when there is improvement in the ROI sampled readouts.
-                if (np.all(np.diff(rois_slide_av) > 0)):
-                    stop = False
-                    
-                if stop:
-                    # If no improvement, stop is True, push back to the state of optimal injection sampled throughout the motion.
-                    act_disp = act_max-act_post
-                    speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                    pos_offset = self._actoffset(speeds_return,act_disp) 
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_post,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write)
-        
-        return
+                # Evaluate photometry over window spanning the motion timeframe
+                if (frames is not None and len(acts) > 0):
+                    _,_,flux_seq,_ = self.humint.get_frames_cal_broad(frames=frames, sequence=True)
+                    flux_step = flux_seq[:, self.photo_idx[config]]
+                else:
+                    flux_step = np.array([photo_init])
+
+                # Pair each actuator position set to the nearest camera frame
+                n_act, n_frame = len(acts), len(flux_step)
+                for j in range(0, n_act):
+                    # calculate the proportional index in the photometric readout array
+                    b = int(round(j * (n_frame-1) / max(n_act-1, 1)))
+                    b = min(b, n_frame-1)
+                    ARM_act.append(acts[j])
+                    ARM_flux.append(flux_step[b])
+
+                # Assess increasing trend over sliding window
+                n_windows = max((len(ARM_flux) - k) // l + 1, 1)
+                windows = np.array([ARM_flux[w*l : w*l+k] for w in range(0, n_windows) if w*l+k <= len(ARM_flux)])
+                if len(windows)==0:
+                    continue
+                win_av = np.mean(windows, axis=1)
+
+                # Evaluate if the flux is monotonically increasing and stop if that is not the case
+                if not np.all(np.diff(win_av) > 0):
+                    stop = True
+
+            # Bring the bench to the configuration corresponding to maximum flux along this direction's arm
+            ARM_flux_arr = np.array(ARM_flux, dtype=np.float64)
+            i_max = np.argmax(ARM_flux_arr)
+            act_best = ARM_act[i_max]
+            act_curr = self._get_actuator_pos(config)[0]
+            act_disp = act_best - act_curr
+            spd_push = np.full(4, speed_double, dtype=np.float64)
+            pos_off = self._actoffset(spd_push, act_disp)
+            snr_best = (ARM_flux_arr[i_max] - photo_init) / noise
+            print(f"Best SNR along this direction: {snr_best:.2f} - pushing actuators to {act_curr + act_disp} mm")
+            self._move_abs_ttm_act(act_curr, act_disp, spd_push, pos_off, config, sample=False)
+            # Refresh photometric baseline with each direction
+            photo_init, noise = self._get_photo_broad(dt_sample, config)    
+            return
     
     ##########################################
     # Performance characterization / Testing #
