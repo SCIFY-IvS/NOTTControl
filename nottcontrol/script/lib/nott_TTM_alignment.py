@@ -80,6 +80,22 @@ step_double = nott_config.getfloat('injection', 'step_double')
 speed_double = nott_config.getfloat('injection', 'speed_double')
 print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
+# Time stamping functions
+
+def unix_to_datetime(unix_stamp):
+    # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object
+    epoch = datetime.fromtimestamp(0,timezone.utc)
+    dt = timedelta(milliseconds=unix_stamp)
+    utc_stamp = epoch + dt
+    return utc_stamp
+    
+def datetime_to_id(utc_stamp):
+    # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+    Ymd = utc_stamp.strftime("%Y%m%d")
+    HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
+    frame_id = Ymd+"_"+HMS
+    return frame_id
+    
 class alignment:
      
     def __init__(self, ts, humint):
@@ -1105,6 +1121,49 @@ class alignment:
             Valid = valid4
     
         return Valid,i
+
+    def _timestamps_to_frames(self, act_times):
+        """
+        Description
+        -----------
+        This function takes a list of redis unix timestamps (ms), returned by _get_actuator_pos, converts
+        it to a list of IDs and creates a Frame object from those IDs.
+        This Frame object contains all camera frames whose timestamps fall within the time window
+        throughout which the sampled actuator motion was carried out.
+        Note1: Timestamping of actuator positions and IR camera frames (and thus photometric readouts)
+               is performed by the same clock, the one of the redis database. This largely removes the need for any empirical time delay correction.
+        Note2: A small nuance on time synchronization of actuator positions and IR camera frames.
+               The timestamps - associated with actuator positions - are determined by querying the timestamp of
+               the last-recorded redis entry (and therefore camera frame, as frame recording & redis writing are intertwined, see scify.py).
+               The actuator position timestamp is therefore the time of the last frame that finished exposing.
+               For low camera sample rates and large actuator speeds, this could induce a large mismatch in the link between
+               actuator positions and IR camera frames.
+               The actuator speeds in the spiral methods are determined with this in mind;
+               given the camera sample rate, the actuator speed is taken such that this temporal mismatch
+               does not induce a positional mismatch larger than an imposed threshold.
+
+        Parameters
+        ----------
+        act_times : list of int (ms)
+                Redis unix timestamps at which the actuator positions were sampled.
+
+        Returns
+        -------
+        frames : object of the Frame class
+                The IR camera frames that were acquired during the window of actuator motion.
+                Passed to get_frames_cal(_broad) later for retrieval of associated photometric output fluxes.
+        """
+        # Temporal window of actuator motion
+        t_start = act_times[0]
+        t_end = act_times[-1]
+        # Fetch recorded redis stamps (unix, ms) in the window
+        pairs = get_field("cam_integtime", t_start, t_end, False)
+        unix_stamps = pairs[:,0]
+        integtimes = pairs[:,1]
+        # Convert unix stamps to frame IDs and construct Frame object
+        ids = [datetime_to_id(unix_to_datetime(stamp)) for stamp in unix_stamps]
+        frames = Frame(ids, integtimes)
+        return frames
 
     def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64)): 
         """
