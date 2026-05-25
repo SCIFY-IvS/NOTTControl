@@ -185,6 +185,14 @@ class Frame(object):
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
         return
+
+    def partition(self, N):
+        # Partition the Frame object into N children, splitting the underlying data into equal parts.
+        # Returns a list of Frame objects, each containing a subset of the data.
+        if N <= 0:
+            raise ValueError("Cannot partition the Frame object into a negative amount of children.")
+        id_chunks = np.array_split(self.ids, N)
+        return [Frame(np.copy(id_chunk)) for id_chunk in id_chunks]
         
     def av_full(self):
         # Averaging the full frames, over all DITs
