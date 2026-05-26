@@ -330,7 +330,7 @@ class alignment:
         self._eval_rev = []
         self._eval_sky = []
         for lam in range(0, 3):
-            print("Wavelength channel {lam}")
+            print(f"Wavelength channel {lam}")
             Msub = self.M.subs(_optical_subspar(lam))
             Minv = Msub.inv(method="LU")
             self._eval_int.append(_build_eval_int(lam, Minv))
