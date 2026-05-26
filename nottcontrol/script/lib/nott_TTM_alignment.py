@@ -80,7 +80,7 @@ Nexp = nott_config.getint('injection', 'Nexp')
 disp_double = nott_config.getfloat('injection', 'disp_double')
 step_double = nott_config.getfloat('injection', 'step_double')
 speed_double = nott_config.getfloat('injection', 'speed_double')
-print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
+print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
 # Time stamping functions
 
