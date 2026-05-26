@@ -16,7 +16,7 @@ class Motor():
         #Unit conversion as the PLC expects mm/s
         return MoveAbsCommand(self._opcua_conn, self._prefix, pos, spd * 10**(-3))
     
-    def command_move_relative(self, rel_pos) -> MoveRelCommand:
+    def command_move_relative(self, rel_pos, speed=None) -> MoveRelCommand:
         if speed is not None:
             spd = speed
         else:
