@@ -1675,7 +1675,7 @@ class alignment:
                     # Floor to min 1 bin
                     n_part = max(n_bins, 1)
                     children_frames = frames.partition(n_part)
-                    flux_bin = np.array(self.humint.get_frames_cal_broad(frames=child, sequence=False)[2][self.photo_idx[config]] for child in children_frames])
+                    flux_bin = np.array([self.humint.get_frames_cal_broad(frames=child, sequence=False)[2][self.photo_idx[config]] for child in children_frames])
                 else:
                     flux_step = np.array([photo_init])
                     flux_bin = np.array([photo_init])
