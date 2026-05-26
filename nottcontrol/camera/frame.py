@@ -276,7 +276,8 @@ class Frame(object):
             # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std + mean background error)
             # Dark subtract
             cal_seq = self.rois_data - dark_mean[:, np.newaxis, :, :]
-            cal_seq_std = np.hypot(self.std_rois(), dark_mean_std)
+            cal_seq_std = np.hypot(self.std_rois()[:,np.newaxis,:,:], dark_mean_std[:,np.newaxis,:,:])
+            cal_seq_std = cal_seq_std * np.ones(cal_seq.shape[1])[np.newaxis,:, np.newaxis, np.newaxis]
             # Calculate mean dark-subtracted background from background ROIs, for each individual frame in the sequence.
             N = len(self.bg_roi_idx)
             cal_meanbg_seq = np.average(cal_seq[self.bg_roi_idx],axis=0)

@@ -1548,12 +1548,12 @@ class alignment:
         # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
         #---------------------------------------------------------------------------------------
         # Tolerance (half of waveguide diameter)
-        tol_loc = 10**(-3) # mm
+        tol_loc = 10**(-6) # um
         # Estimating camera frame rate from a sequence of redis timestamps
         pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
         frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
         # Cropping upper speed boundary to TwinCat boundary (30 um/s)
-        upper_speed = min(tol_loc / frame_period, 30*10**(-3))
+        upper_speed = min(tol_loc / frame_period, 30.)
         # Cropping user input speed 
         spd = min(speed, upper_speed)
 
