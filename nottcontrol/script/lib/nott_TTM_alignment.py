@@ -304,12 +304,10 @@ class alignment:
         D_syms = (D1, D2, D3, D4, D5, D6, D7, D8)
         D_names = "D1,D2,D3,D4,D5,D6,D7,D8"
 
-        def _build_eval_int(lam):
+        def _build_eval_int(lam, Minv):
             # Substitute optical constants
-            Msub = self.M.subs(_optical_subspar(lam))
             bsub = self.b.subs(_optical_subspar(lam))
             # Construct framework - (4,1) Sympy matrix
-            Minv = Msub.inv()
             frame = Minv * bsub
             # Lambdify to evaluator
             f = lambdify((X, Y, x, y) + D_syms, frame.T.tolist()[0], modules="numpy")
@@ -322,18 +320,22 @@ class alignment:
             f = lambdify((a1X, a1Y, a2X, a2Y) + D_syms, Nsub, modules="numpy")
             return f
 
-        def _build_eval_sky(lam):
-            # Substitute optical constants
-            Msub = self.M.subs(_optical_subspar(lam))
-            Minv = Msub.inv()
+        def _build_eval_sky(Minv):
             # Lambdify to evaluator (a2X, a2Y deliberately survive as sympy symbols, since they are unknowns determined in a solveset call)
             f = lambdify(D_syms, Minv, modules="sympy")
             return f
 
         print("Building lambdified framework evaluators ...")
-        self._eval_int = [_build_eval_int(lam) for lam in range(3)]
-        self._eval_rev = [_build_eval_rev(lam) for lam in range(3)]
-        self._eval_sky = [_build_eval_sky(lam) for lam in range(3)]
+        self._eval_int = []
+        self._eval_rev = []
+        self._eval_sky = []
+        for lam in range(0, 3):
+            print("Wavelength channel {lam}")
+            Msub = self.M.subs(_optical_subspar(lam))
+            Minv = Msub.inv(method="LU")
+            self._eval_int.append(_build_eval_int(lam, Minv))
+            self._eval_rev.append(_build_eval_rev(lam))
+            self._eval_sky.append(_build_eval_sky(Minv))
 
         # Define a2X and a2Y symbols outside of __init__, for use in solveset
         self._a2X = a2X
