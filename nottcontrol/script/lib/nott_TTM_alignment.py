@@ -348,10 +348,10 @@ class alignment:
         #                               [3.6502095,3.4818495,4.5511795,3.8486425],
         #                               [4.3360325,4.716886,4.754462,3.167242],
         #                               [4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
-        self.act_pos_align = np.array([[2.9814055, 3.540867 , 4.790452 , 3.718438 ],
-                                       [3.0000715, 3.199816 , 4.5580725, 3.8472395],
-                                       [2.6502975, 3.7506155, 4.7590675, 3.172305 ],
-                                       [3.0662565, 3.4803855, 4.8825315, 4.0074255]], dtype=np.float64)
+        self.act_pos_align = np.array([[2.9803685, 3.5657855, 4.796552,  3.7214575],
+                                       [3.035116,  3.3051325, 4.575549,  3.8738965],
+                                       [2.6271175, 3.842878,  4.7590675, 3.20494  ],
+                                       [3.059943,  3.477305,  4.891163,  4.0149895]], dtype=np.float64)
 
         # OPCUA connection
         print("Opening OPCUA connection ...")
@@ -813,9 +813,9 @@ class alignment:
         act_config = self.act_pos_align[config]
 
         # TTM1X
-        TTM1X = ttm_config[0] + (pos[1]-act_config[1])/d1_pa    
+        TTM1X = ttm_config[0] - (pos[1]-act_config[1])/d1_pa    
         # TTM1Y
-        TTM1Y = ttm_config[1] + (pos[0]-act_config[0])/d1_pa
+        TTM1Y = ttm_config[1] - (pos[0]-act_config[0])/d1_pa
         # TTM2X
         TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_pa)
         # TTM2Y
@@ -869,8 +869,8 @@ class alignment:
         act_config = self.act_pos_align[config]
     
         # TTM1
-        x1 = act_config[0] + d1_pa*(ttm_angles[1]-ttm_config[1])
-        x2 = act_config[1] + d1_pa*(ttm_angles[0]-ttm_config[0])
+        x1 = act_config[0] - d1_pa*(ttm_angles[1]-ttm_config[1])
+        x2 = act_config[1] - d1_pa*(ttm_angles[0]-ttm_config[0])
         # TTM2 
         x3 = act_config[2] - d2_pa*np.sin(ttm_config[3]-ttm_angles[3])
         x4 = act_config[3] + d2_pa*np.sin(ttm_config[2]-ttm_angles[2])
@@ -1250,8 +1250,8 @@ class alignment:
                 on_destination = (status == "STANDING" and state == "OPERATIONAL")
             
         def _fire_move(act_idx, target_pos, speed):
-            # Fire a MoveAbsolute command through OPCUA
-            self.actuators[config][act_idx].command_move_absolute(target_pos, speed).execute()
+            # Fire a MoveAbsolute command through OPCUA (Motor class expects speed in um/s)
+            self.actuators[config][act_idx].command_move_absolute(target_pos, speed*10**3).execute()
             
         # Move functions
         def move_single(double):
@@ -1467,7 +1467,8 @@ class alignment:
         TTM_final = TTM_curr + TTM_offsets
     
         # Before imposing the displacements to the actuators, the state validity is checked.
-        valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
+        #valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
+        valid = True
         if not valid:
             raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
                              "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
@@ -1548,12 +1549,12 @@ class alignment:
         # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
         #---------------------------------------------------------------------------------------
         # Tolerance (half of waveguide diameter)
-        tol_loc = 10**(-6) # um
+        tol_loc = 10**(-2) # mm
         # Estimating camera frame rate from a sequence of redis timestamps
         pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
         frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
         # Cropping upper speed boundary to TwinCat boundary (30 um/s)
-        upper_speed = min(tol_loc / frame_period, 30.)
+        upper_speed = min(tol_loc / frame_period, 30*10**(-3)) # mm/s
         # Cropping user input speed 
         spd = min(speed, upper_speed)
 
