@@ -1250,8 +1250,8 @@ class alignment:
                 on_destination = (status == "STANDING" and state == "OPERATIONAL")
             
         def _fire_move(act_idx, target_pos, speed):
-            # Fire a MoveAbsolute command through OPCUA
-            self.actuators[config][act_idx].command_move_absolute(target_pos, speed).execute()
+            # Fire a MoveAbsolute command through OPCUA (Motor class expects speed in um/s)
+            self.actuators[config][act_idx].command_move_absolute(target_pos, speed*10**3).execute()
             
         # Move functions
         def move_single(double):
@@ -1548,12 +1548,12 @@ class alignment:
         # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
         #---------------------------------------------------------------------------------------
         # Tolerance (half of waveguide diameter)
-        tol_loc = 10**(-6) # um
+        tol_loc = 10**(-2) # mm
         # Estimating camera frame rate from a sequence of redis timestamps
         pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
         frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
         # Cropping upper speed boundary to TwinCat boundary (30 um/s)
-        upper_speed = min(tol_loc / frame_period, 30.)
+        upper_speed = min(tol_loc / frame_period, 30*10**(-3)) # mm/s
         # Cropping user input speed 
         spd = min(speed, upper_speed)
 
