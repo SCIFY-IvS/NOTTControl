@@ -344,10 +344,14 @@ class alignment:
         print("Framework ready.")
         
         # Defining actuator positions corresponding to an aligned & injecting state.
-        self.act_pos_align = np.array([[4.1507145,4.6841595,4.8155535,3.714595],
-                                       [3.6502095,3.4818495,4.5511795,3.8486425],
-                                       [4.3360325,4.716886,4.754462,3.167242],
-                                       [4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
+        #self.act_pos_align = np.array([[4.1507145,4.6841595,4.8155535,3.714595],
+        #                               [3.6502095,3.4818495,4.5511795,3.8486425],
+        #                               [4.3360325,4.716886,4.754462,3.167242],
+        #                               [4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
+        self.act_pos_align = np.array([[2.9814055, 3.540867 , 4.790452 , 3.718438 ],
+                                       [3.0000715, 3.199816 , 4.5580725, 3.8472395],
+                                       [2.6502975, 3.7506155, 4.7590675, 3.172305 ],
+                                       [3.0662565, 3.4803855, 4.8825315, 4.0074255]], dtype=np.float64)
 
         # OPCUA connection
         print("Opening OPCUA connection ...")
@@ -1544,12 +1548,12 @@ class alignment:
         # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
         #---------------------------------------------------------------------------------------
         # Tolerance (half of waveguide diameter)
-        tol_loc = 10**(-3) # mm
+        tol_loc = 10**(-6) # um
         # Estimating camera frame rate from a sequence of redis timestamps
         pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
         frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
         # Cropping upper speed boundary to TwinCat boundary (30 um/s)
-        upper_speed = min(tol_loc / frame_period, 30*10**(-3))
+        upper_speed = min(tol_loc / frame_period, 30.)
         # Cropping user input speed 
         spd = min(speed, upper_speed)
 

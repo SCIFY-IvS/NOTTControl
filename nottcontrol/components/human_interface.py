@@ -921,9 +921,10 @@ class HumInt(object):
                     cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:])    
                 else:
                     cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:])    
-                push_broad(cal_broad_crop, cal_broad_std_crop)
+                    push_broad(cal_broad_crop, cal_broad_std_crop)
             else:
-                push_broad(cal_broad, cal_broad_std)
+                if not sequence:
+                    push_broad(cal_broad, cal_broad_std)
 
         return cal_disp, cal_disp_std, cal_broad, cal_broad_std
             
