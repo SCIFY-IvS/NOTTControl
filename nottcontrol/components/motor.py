@@ -8,13 +8,21 @@ class Motor():
         self.name = name
         self._speed = speed
     
-    def command_move_absolute(self, pos) -> MoveAbsCommand:
+    def command_move_absolute(self, pos, speed=None) -> MoveAbsCommand:
+        if speed is not None:
+            spd = speed
+        else:
+            spd = self._speed
         #Unit conversion as the PLC expects mm/s
-        return MoveAbsCommand(self._opcua_conn, self._prefix, pos, self._speed * 10**(-3))
+        return MoveAbsCommand(self._opcua_conn, self._prefix, pos, spd * 10**(-3))
     
-    def command_move_relative(self, rel_pos) -> MoveRelCommand:
+    def command_move_relative(self, rel_pos, speed=None) -> MoveRelCommand:
+        if speed is not None:
+            spd = speed
+        else:
+            spd = self._speed
         #Unit conversion as the PLC expects mm/s
-        return MoveRelCommand(self._opcua_conn, self._prefix, rel_pos, self._speed * 10**(-3))
+        return MoveRelCommand(self._opcua_conn, self._prefix, rel_pos, spd * 10**(-3))
     
     def reset(self):
         return self._opcua_conn.execute_rpc(self._prefix, "4:RPC_Reset", [])

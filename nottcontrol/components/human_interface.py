@@ -392,10 +392,10 @@ class HumInt(object):
         range based on these values for basic correspondance to pixels.
             Also creates a mask corresponding to the science wavelengths.
         """
-        lamb_low =   config.config_parser.getfloat("CAMERA","low_lamb")
-        lamb_high =  config.config_parser.getfloat("CAMERA","up_lamb")
-        index_low =  config.config_parser.getfloat("CAMERA","low_index")
-        index_high = config.config_parser.getfloat("CAMERA","up_index")
+        lamb_low = config.getfloat("CAMERA","low_lamb")
+        lamb_high = config.getfloat("CAMERA","up_lamb")
+        index_low = config.getfloat("CAMERA","low_index")
+        index_high =config.getfloat("CAMERA","up_index")
         roi_len = int(round(config.getarray("CAMERA","ROI 1")[3]))
         lamb_per_pix = (lamb_high-lamb_low) / (index_high - index_low)
         lamb_0 = lamb_low - index_low * lamb_per_pix
@@ -512,13 +512,14 @@ class HumInt(object):
 
         return positions
 
-    def dl_set_abs(self, target_pos, verbose=False):
+    def dl_set_abs(self, target_pos, timeout_min=10.0, verbose=False):
         """
             Move delay lines to the target positions target_pos (um).
         Params
         ------
         target_pos : array of floats (um)
             - Pass np.nan to ignore a DL
+        timeout_min : minimum timeout for the move, in seconds. Default 10s.
         verbose : whether to print position and status, boolean
 
         Raises
@@ -533,47 +534,79 @@ class HumInt(object):
             raise self.DelayLineError(f"Target positions (length {len(target_pos)}) must match the amount of available delay lines {len(self.delay_lines)}.")
         move_mask = np.logical_not(np.isnan(target_pos))
 
+        # Pre-move checks and timeout calculation
+        timeouts = np.zeros(len(self.delay_lines))
         for i, dl in enumerate(self.delay_lines):
-            # Pre-move checks
+            # Checks
             if not move_mask[i]:
                 continue
             if not dl.is_operational:
                 raise self.DelayLineError(f"pre-move: {dl.name} is not in OPERATIONAL state.")
             if not dl.is_standing:
                 raise self.DelayLineError(f"pre-move: {dl.name} is not in STANDING status.")
-
             # Delay line specific timeout
             distance = abs(target_pos[i] - dl.position)
             speed = dl._speed # um/s
             dt_expected = np.abs(distance / speed)
-            # Taking minimum timeout of 5s for small motions
-            timeout = max(3.0*dt_expected, 5.0)
+            # Taking floor timeout of 10s for small motions
+            timeouts[i] = max(5.0*dt_expected, timeout_min)
 
-            # Move
+        # Motion calls
+        for i, dl in enumerate(self.delay_lines):
+            if not move_mask[i]:
+                continue
             dl.move_abs(target_pos[i])
             if verbose:
                 print(f"Moving delay line {dl.name}...")
 
-            # Wait until either in valid state or timeout
-            t_start = time()
-            while True:
-                if not dl.is_operational:
-                    raise self.DelayLineError(f"in-move: {dl.name} became NOT OPERATIONAL through move.")
-                if dl.is_standing:
-                    break
+        # Poll until either in valid state (post-move) or timeout
+        t_start = time()
+        pending = {i for i in range(len(self.delay_lines)) if move_mask[i]}
+        errors = []
 
-                dt = time()-t_start
-                if dt > timeout:
-                    raise self.DelayLineError(f"Timeout: {dl.name} did not reach STANDING status within {timeout} s.")
+        # Keep polling as long as there are still delay lines pending (i.e. pending dictionary is not empty)
+        while pending:
+            dt = time()-t_start
+            # DLs end up in finished if motion complete or if errored.
+            finished = set()
+
+            for i in list(pending):
+                dl = self.delay_lines[i]
+                if not dl.is_operational:
+                    errors.append(f"in-move: {dl.name} became NOT OPERATIONAL through move.")
+                    finished.add(i)
+                    continue
+
+                if dl.is_standing and dt > 0.1*timeouts[i]:
+                    finished.add(i)
+                    continue
+                
+                if dt > timeouts[i]:
+                    errors.append(f"Timeout: {dl.name} did not reach STANDING status within {timeouts[i]} s.")
+                    finished.add(i)
+                    continue
+
+            pending -= finished
+            if pending:
                 sleep(0.05)
 
-            # Post-move checks & reporting
+        if errors:
+            raise self.DelayLineError(" | ".join(errors))
+
+        # Post-move checks & reporting
+        for i, dl in enumerate(self.delay_lines):
+            if not move_mask[i]:
+                continue
             if not dl.is_operational:
-                raise self.DelayLineError(f"post-move: {dl.name} is not OPERATIONAL after move.")
-            if verbose:
+                errors.append(f"post-move: {dl.name} is not OPERATIONAL after move.")
+            elif verbose:
+                sleep(2) # to ensure correct position readout
                 curr_pos = dl.position
                 print(f"Delay line {dl.name} settled at position {curr_pos} um,"
-                    f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
+                      f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
+                
+        if errors:
+            raise self.DelayLineError(" | ".join(errors))
 
     def dl_set_rel(self, delta_pos, verbose=False):
         """
@@ -733,8 +766,7 @@ class HumInt(object):
             # res = self.sample_cal()
         else:
             # res = self.sample_long_cal(dt)
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
-            res, std = cal_disp_stack[0], cal_disp_stack[1]
+            res, std = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
         if move_back:
             print(f"moving_back to {orig_pos}")
             self.move(orig_pos)
@@ -794,65 +826,120 @@ class HumInt(object):
             self.shutter_set(shutter_state_pre, wait=True, verbose=verbose)
             return frames
     
-    def get_frames_cal(self, dt, dark=None, sequence=False, frames=None, crop_sci_mask=True):
+    def get_frames_cal(self, dt=10., dark=None, frames=None, sequence=False, crop_sci_mask=True):
         """
-        # WIP : Handling of sequence=True case.
+        Calibrates frames (dark- and background-subtraction) and collapses pixel columns to return dispersed readouts and associated errors in each ROI.
 
-        If no dark specified, uses self.dark
-        If sequence=False: gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+        Parameters:
+        -----------
+        dt : timespan over which to acquire frames in seconds (float)
+        dark : sequence of dark frames (Frame object).
+            ! If no dark specified, uses self.dark
+        frames : sequence of science frames (Frame object)
+            ! If no frames passed, function will fetch frames
+        sequence : calibrated master frame / calibrated sequence of frames (boolean)
+            If False: gets a calibrated master science frame (dark- and background-subtracted) and calculates broadband and dispersed data from that.
+            If True: gets a sequence of calibrated frames (dark- and background-subtracted) and calculates broadband and dispersed data for each
+        crop_sci_mask : whether to crop wavelength dimension to the science mask (boolean)
+            ! Buffer always gets updated with the cropped data
+            
         Returns:
-            1) cal_disp_stack; (2, nwls, nROIs); value and error (axis 1) of/on the dispersed readout (axis 2) in all ROIs (axis 3)
-            2) cal_broad_stack; (2, nROIs); value and error (axis 1) of/on the broadband readout in all ROIs (axis 2)
-        If sequence=True: ...
-        If no frames passed, fetches frames
-        If crop_sci_mask=True: outputs dataframes cropped to the science wavelength mask
-                        =False: outputs uncropped dataframes
-        Note: buffers always get updated with the cropped data!
+        --------
+        cal_disp, cal_disp_std; If not sequence (nwls, nROIs) each; value and error of/on the dispersed readout (axis 1) in all ROIs (axis 2)
+                                If sequence (nframes, nwls, nROIs) each
         """
         if dark is None:
             dark = self.dark
         if frames is None:
             frames = self.get_frames(dt)
-        if not sequence:
-            # Get uncropped, calibrated master science frame
-            cal_mean, cal_mean_std = frames.calib_master_nifits_format(dark)
-            # Cet wavelength cropped, calibrated master science frame
-            cal_mean_crop, cal_mean_std_crop = cal_mean[self.sc_mask,:], cal_mean_std[self.sc_mask,:]
 
-            # Calculate broadband values and errors, for both full and cropped frames.
-            cal_broad = cal_mean.sum(axis=0)
-            cal_broad_crop = cal_mean_crop.sum(axis=0)
-            cal_broad_std = np.linalg.norm(cal_mean_std, axis=0) / len(cal_mean_std)
-            cal_broad_std_crop = np.linalg.norm(cal_mean_std_crop, axis=0) / len(cal_mean_std_crop)
-            # Stack values and errors
-            cal_broad_stack = np.stack((cal_broad,cal_broad_std),axis=0)
-            cal_broad_crop_stack = np.stack((cal_broad_crop,cal_broad_std_crop),axis=0)
-            cal_disp_stack = np.stack((cal_mean,cal_mean_std),axis=0)
-            cal_disp_crop_stack = np.stack((cal_mean_crop,cal_mean_std_crop),axis=0)
-            
-            if self.auto_display is not False:
-                # Push data to corresponding buffers, always wavelength cropped
-                self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
-                self.buffer_broad.push(cal_broad_crop_stack)
+        if not sequence:
+            # Get calibrated master science frame
+            cal_disp, cal_disp_std = frames.calib_master_nifits_format(dark)
+            if crop_sci_mask:            
+                cal_disp, cal_disp_std = cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:]
+                
+            def push_disp(cal_disp, cal_disp_std, crop_sci_mask):
+                # Stack values and errors
+                cal_disp_stack = np.stack((cal_disp, cal_disp_std),axis=0)
                 # Dispersed data in waterfall format
-                cal_disp_stack_waterfall= cal_disp_crop_stack.transpose((0,2,1)).reshape(cal_disp_crop_stack.shape[0],cal_disp_crop_stack.shape[1]*cal_disp_crop_stack.shape[2])
+                if not crop_sci_mask:
+                    cal_disp_stack = cal_disp_stack[:,self.sc_mask,:]
+                cal_disp_stack_waterfall= cal_disp_stack.transpose((0,2,1)).reshape(cal_disp_stack.shape[0],cal_disp_stack.shape[1]*cal_disp_stack.shape[2])
                 self.buffer_disp.push(cal_disp_stack_waterfall[0])
                 self.buffer_disp_last.push(cal_disp_stack_waterfall)
 
-            if crop_sci_mask:
-                return cal_disp_crop_stack, cal_broad_crop_stack
-            else:
-                return cal_disp_stack, cal_broad_stack
+            # Push to buffers
+            if self.auto_display:
+                self.buffer_im_IR.push(frames.master_full[0] - dark.master_full[0])
+                push_disp(cal_disp, cal_disp_std, crop_sci_mask)
+        
         else:
-            cal_seq, cal_seq_std = frames.calib_seq_nifits_format(dark)
-            return cal_seq, cal_seq_std
+            cal_disp, cal_disp_std = frames.calib_seq_nifits_format(dark)
+            if crop_sci_mask:
+                cal_disp, cal_disp_std = cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:]
 
+        return cal_disp, cal_disp_std
+
+
+    def get_frames_cal_broad(self, dt=10., dark=None, frames=None, sequence=False, crop_sci_mask=True):
+        """
+        Calibrates frames (dark- and background-subtraction) and also collapses all pixels to return broadband readouts in each ROI.
+        
+        Parameters:
+        -----------
+        see get_frames_cal
+
+        Returns:
+        --------
+        cal_disp, cal_disp_std; see get_frames_cal
+        cal_broad, cal_broad_std; If not sequence (nROIs) each; value and error of/on the broadband readout in all ROIs (axis 1)
+                                  If sequence (nframes, nROIs) each
+        """
+
+        def calc_broad(cal_disp, cal_disp_std):        
+            # Calculate broadband readouts and errors
+            cal_broad = cal_disp.sum(axis=-2)
+            cal_broad_std = np.linalg.norm(cal_disp_std, axis=-2)
+            return cal_broad, cal_broad_std
+
+        def push_broad(cal_broad, cal_broad_std):
+            # Stack values and errors
+            cal_broad_stack = np.stack((cal_broad, cal_broad_std), axis=0)
+            # Push to buffer
+            self.buffer_broad.push(cal_broad_stack)
+
+        # Get dispersed readout
+        cal_disp, cal_disp_std = self.get_frames_cal(dt, dark, frames, sequence, crop_sci_mask)
+        # Collapse to broadband
+        cal_broad, cal_broad_std = calc_broad(cal_disp, cal_disp_std)
+        # Push to buffers
+        if self.auto_display:
+            if not crop_sci_mask:
+                # Crop
+                if sequence:
+                    cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[:,self.sc_mask,:], cal_disp_std[:,self.sc_mask,:])    
+                else:
+                    cal_broad_crop, cal_broad_std_crop = calc_broad(cal_disp[self.sc_mask,:], cal_disp_std[self.sc_mask,:])    
+                    push_broad(cal_broad_crop, cal_broad_std_crop)
+            else:
+                if not sequence:
+                    push_broad(cal_broad, cal_broad_std)
+
+        return cal_disp, cal_disp_std, cal_broad, cal_broad_std
+            
     def get_frames_cal_to_np(self, dt, dark=None, sequence=False):
-        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt=dt, dark=dark, sequence=False)
-        np.save("cal_disp", cal_disp_stack[0])
-        np.save("cal_disp_err", cal_disp_stack[1])
-        np.save("cal_broad", cal_broad_stack[0])
-        np.save("cal_broad_err", cal_broad_stack[1])
+        cal_disp, cal_disp_std = self.get_frames_cal(dt=dt, dark=dark, sequence=sequence)
+        np.save("cal_disp", cal_disp)
+        np.save("cal_disp_std", cal_disp_std)
+        return
+
+    def get_frames_cal_broad_to_np(self, dt, dark=None, sequence=False):
+        cal_disp, cal_disp_std, cal_broad, cal_broad_std = self.get_frames_cal_broad(dt=dt, dark=dark, sequence=sequence)
+        np.save("cal_disp", cal_disp)
+        np.save("cal_disp_std", cal_disp_std)
+        np.save("cal_broad", cal_broad)
+        np.save("cal_broad_std", cal_broad_std)
         return
 
     def science_frame_sequence(self, dt, verbose=False):
@@ -901,7 +988,7 @@ class HumInt(object):
     # Surface level functions |
     #-------------------------#
 
-    def characterize_null(self, dt, dark=None, sequence=False, frames=None):
+    def characterize_null(self, dt, dark=None, frames=None, sequence=False):
         """
         This function calculates the broadband & dispersed null depths N2, N3 (bright outputs) and Ndiff (differential). Corresponding errors are also calculated.
         Calculated dataframes are pushed to the corresponding buffers for visualization (shmview).
@@ -910,9 +997,7 @@ class HumInt(object):
         This function does not control any hardware (shutters, DLs, piezos, TTMs ...) on the bench.
         """
         # Fetch data products of a master science frame
-        cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt, dark, sequence, frames)
-        broad, broad_err = cal_broad_stack[0], cal_broad_stack[1]
-        disp, disp_err = cal_disp_stack[0], cal_disp_stack[1]
+        disp, disp_err, broad, broad_err = self.get_frames_cal_broad(dt, dark, frames, sequence)
         # Fetching ROI indices of interferometric outputs
         roi_idx = np.zeros(4, dtype=np.int32)
         for i in range(0,4):
@@ -956,7 +1041,7 @@ class HumInt(object):
         return disp_null_stack, broad_null_stack
 
     def characterize_null_nifits_format(self, dt, dark=None, sequence=False, frames=None):
-        broad_null, disp_null, disp_null_err = self.characterize_null(dt, dark, sequence, frames)
+        disp_null_stack, broad_null_stack = self.characterize_null(dt, dark, sequence, frames)
 
         # WIP
 
@@ -1113,8 +1198,7 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
-            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
+            test_sample, rms = self.get_frames_cal(1.0)
 
         if kappa is None:
             inherit_kappa = False
@@ -1128,8 +1212,7 @@ class HumInt(object):
             for beam in myprobe:
                 shutter_state = np.abs(beam).astype(bool)
                 self.shutter_set(shutter_state)
-                cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
-                a, a_std = cal_disp_stack[0], cal_disp_stack[1]
+                a, a_std = self.get_frames_cal(dt)
                 kappa.append(a)
                 if dt is not None:
                     std_kappa.append(a_std)
@@ -1257,16 +1340,14 @@ class HumInt(object):
         #m = self.get_dark(dt)   #Darks are defined at the beginning (to check)
 
         if dt is None:
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(1.0)
-            test_sample, rms = cal_disp_stack[0], cal_disp_stack[1] 
+            test_sample, rms = self.get_frames_cal(dt=1.0)
 
         kappa = []
         std_kappa = []
         for beam in myprobe:
             shutter_state = np.abs(beam).astype(bool)
             self.shutter_set(shutter_state)
-            cal_disp_stack, cal_broad_stack = self.get_frames_cal(dt)
-            a, a_std = cal_disp_stack[0], cal_disp_stack[1]
+            a, a_std = self.get_frames_cal(dt)
             kappa.append(a)
             if dt is not None:
                 std_kappa.append(a_std)

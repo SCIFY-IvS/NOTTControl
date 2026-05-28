@@ -12,36 +12,26 @@ Collection of functions created to facilitate NOTT alignment through mirror tip/
 #-------#
 
 # ! A) Complete act_pos_align, the actuator positions in a state of alignment, for each configuration.
-# --> Motorize all four beams
 # --> First positions after manual optimization of injection
-# --> Second positions once flexure mounts are in & localization/optimization algorithms are (hopefully) fully functional and performant.
+# --> Second positions after localization/optimization algorithms
 
 # ! B) Add tool to align the beams on the visible cameras
-# --> Implement Arena_API functionalities: connecting to cameras, streaming frames and fitting centroids
-# --> Implement visual feedback: beam position and size in state of optimal injection vs. current beam position and size
-# --> Implement motion control: generalize TTM control functions to all four beams
 # --> Implement optimization algorithm
 
-# ! C) Add tool to calculate dispersed null depths
-# --> Change ROIs accordingly
-# --> Output data frames
-
-# D) Add a function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames. 
+# C) Add a function that calculates the rotation angle between on-sky cartesian and NOTT image/pupil plane cartesian frames. 
 # --> Got VLTI maps from M.A.M., still need Asgard 3D models to have a grasp of the complete sequence of passed mirrors from post-switchyard to NOTT image plane.
 
-# E) Revise the actuator-angle relations once flexure mounts are in.
-
-# F) Check symbolic & numeric framework setup. 
+# D) Check symbolic & numeric framework setup. 
 # --> What changes were made to the bench in the past year? How to change the framework to account for this?
 # --> Translation distances changed? Effect of flexure mounts on distances? Need re-simulation in Zemax?
 # --> Specifications of any optics changed? OAP2: Horizontal diameter increased but shape and focal length should be unchanged.
 
-# G) Improve general code efficiency. 
-# H) Complete documentation. 
+# E) Improve general code efficiency. 
+# F) Complete documentation. 
 
-# I) Re-run framework performance with the flexure mounts. Compare to thesis results.
-# J) Optimize the efficiency of localization & optimization algorithms - i.e., decide on spiral steps and speeds.
-# K) Write and run algorithm performance.
+# G) Re-run framework performance with the flexure mounts. Compare to thesis results.
+# H) Optimize the efficiency of localization & optimization algorithms - i.e., decide on spiral steps and speeds.
+# I) Write and run algorithm performance.
 
 #---------#
 # Imports #
@@ -55,26 +45,20 @@ import random
 
 import sys
 import time
+from datetime import datetime,timedelta,timezone
 import logging
 
-# Scipy/Astropy (visible camera beam fitting)
-from astropy.modeling import models, fitting
-import scipy
-
-# OPCUA / redis
-import redis
+# OPCUA
 from nottcontrol.opcua import OPCUAConnection
 # Silent messages from opcua every time a command is sent
 logger = logging.getLogger("asyncua")
 logger.setLevel(logging.WARNING)
-# Motors
 from nottcontrol.components.motor import Motor
-# Functions for retrieving data from REDIS
+from nottcontrol.camera.frame import Frame
+from nottcontrol.lucid.lib.lucid_utils import LucidUtils
 from nottcontrol.script.lib.nott_database import define_time
 from nottcontrol.script.lib.nott_database import get_field
-# Shutter control
-from nottcontrol.script.lib.nott_control import all_shutters_close
-from nottcontrol.script.lib.nott_control import all_shutters_open
+from configparser import ConfigParser
 from nottcontrol import config as nott_config
 from nottcontrol.script import data_files
 
@@ -82,24 +66,41 @@ from nottcontrol.script import data_files
 # Parameters from config file #
 #-----------------------------#
 # Opcua address
-url =  nott_config['DEFAULT']['opcuaaddress']
+url = nott_config['DEFAULT']['opcuaaddress']
 # Global parameters
-t_write = int(nott_config['redis']['t_write'])
-bool_UT = (nott_config['injection']['bool_UT'] == "True")
-bool_offset = (nott_config['injection']['bool_offset'] == "True")
-fac_loc = int(nott_config['injection']['fac_loc'])
-SNR_inj = int(nott_config['injection']['SNR_inj'])
-Ncrit = int(nott_config['injection']['Ncrit'])
-Nsteps_skyb = int(nott_config['injection']['Nsteps_skyb'])
-Nexp = int(nott_config['injection']['Nexp'])
-disp_double = float(nott_config['injection']['disp_double'])
-step_double = float(nott_config['injection']['step_double'])
-speed_double = float(nott_config['injection']['speed_double'])
-print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
+t_write = nott_config.getint('redis', 't_write')
+bool_UT = nott_config.getboolean('injection', 'bool_UT')
+bool_offset = nott_config.getboolean('injection', 'bool_offset')
+fac_loc = nott_config.getint('injection', 'fac_loc')
+SNR_inj = nott_config.getint('injection', 'SNR_inj')
+acq_time = nott_config.getfloat('injection', 'acq_time')
+Ncrit = nott_config.getint('injection', 'Ncrit')
+Nsteps_skyb = nott_config.getint('injection', 'Nsteps_skyb')
+Nexp = nott_config.getint('injection', 'Nexp')
+disp_double = nott_config.getfloat('injection', 'disp_double')
+step_double = nott_config.getfloat('injection', 'step_double')
+speed_double = nott_config.getfloat('injection', 'speed_double')
+print("Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double] : ",[t_write,bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double])
 
+# Time stamping functions
+
+def unix_to_datetime(unix_stamp):
+    # Converting unix_stamp (milliseconds since 01/01/1970 00:00:00) to a datetime object
+    epoch = datetime.fromtimestamp(0,timezone.utc)
+    dt = timedelta(milliseconds=unix_stamp)
+    utc_stamp = epoch + dt
+    return utc_stamp
+    
+def datetime_to_id(utc_stamp):
+    # Converting datetime object utc_stamp to frame_id (Y%m%d_H%M%S formatted string, date and time separated by an underscore)
+    Ymd = utc_stamp.strftime("%Y%m%d")
+    HMS = utc_stamp.strftime("%H%M%S%f")[:-3]
+    frame_id = Ymd+"_"+HMS
+    return frame_id
+    
 class alignment:
      
-    def __init__(self):
+    def __init__(self, ts, humint):
         """    
         Terminology
         ----------
@@ -107,8 +108,8 @@ class alignment:
         Y = Shift in the y-direction, in the pupil plane (cold stop)
         x = Shift in the x-direction, in the image plane (chip input)
         y = Shift in the y-direction, in the image plane (chip input)
-        (a1X,a2X) = TTM1 X and TTM2 X angular offsets.
-        (a1Y,a2Y) = TTM1 Y and TTM2 Y angular offsets.
+        (a1X,a2X) = TTM1 X and TTM2 X angular offsets (tip).
+        (a1Y,a2Y) = TTM1 Y and TTM2 Y angular offsets (tilt).
         Note : A TTM X angle should be interpreted as an angle about the X-axis.
                Therefore, a TTM X angle induces a positional Y shift & vice versa.
         (D1,...,D8) = Distances traveled by the beam throughout the system, between components.
@@ -128,25 +129,79 @@ class alignment:
             (4) Define vector N globally, comprising the four symbolic equations.
             (5) Translate the obtained four equations into one single matrix equation b=Ma, with b the shifts and a the angular offsets.
             (6) Define matrix M and vector of symbolic shifts b globally. 
-            (7) Define the actuator positions, corresponding to a state of optimized injection, globally.
-            (8) Prepare all actuators for use.
+            (7) Construct lambdified evaluators for the internal forward (_int), reverse (_int_reverse) and sky framework.
+                One lambdify is constructed per wavelength channel.
+                These evaluators are then called in the framework evaluation methods.
+                Pre-computing them minimizes Sympy overhead in these methods. 
+            (8) Define the actuator positions, corresponding to a state of optimized injection, globally.
+            (9) Open an OPCUA connection and initialise actuator Motor objects for all configurations.
+
+        Parameters
+        ----------
+        ts : redis Timeseries client, reference to the redis database client
+             Used for timestamping actuator position readouts by redis database time
+             Client should be the same one as the one used in the HumInt object
+        humint : human interface for frame acquisition, instance of the HumInt class (see human_interface.py)
                    
         Defines
         -------
         The function initializes global variables M, N and b, which are then used in numeric framework evaluations.
-        M : (4,4) matrix of symbolic Sympy expressions
-        N : (1,4) matrix of symbolic Sympy expressions
-        b : (4,1) matrix of symbolic Sympy expressions
-                   
+        self.M : (4,4) matrix of symbolic Sympy expressions (stored for reference)
+        self.N : (1,4) matrix of symbolic Sympy expressions (stored for reference)
+        self.b : (4,1) matrix of symbolic Sympy expressions (stored for reference)
+        self._eval_int : list of 3 callables (index = wavelength)
+                         f(X,Y,x,y, ...) > ttm_offsets
+        self._eval_rev : list of 3 callables (index = wavelength)
+                         f(a1X,a1Y,a2X,a2Y, ...) > shifts
+        self._eval_sky : list of 3 callables (index = wavelength)
+                         f(dTTM1X,dTTM1Y, ...) > (Minv, a2X, a2Y)
+        self.act_pos_align : (4,4) numpy array (config, actuator) of actuator positions in aligned state
+        self.opcua_conn : OPCUAconnection
+        self.actuators : (4,4) numpy array (config, actuator) of Motor objects
+        self.ts : redis client reference for timestamping  
+            
         """
-        print("Defining symbolic framework...")
-        #-------------#
-        # (1) Symbols #
-        #-------------#
+
+        self.ts = ts
+        self.humint = humint
+
+        # Identify photometric output ROI indices
+        photo_idx = np.zeros(4, dtype=np.int32)
+        for i in range(0, 4):
+            photo_idx[i] = humint.channel_roi_link["P"+str(i+1)]
+        self.photo_idx = photo_idx
+        
+        print("Defining symbolic framework ...")
+        #---------------------------#
+        # (1) Symbols and constants #
+        #---------------------------#
+        # Symbols and optical constants are defined locally in initialisation, become redundant once the lambdified callables are built
+
+        # Symbols
+        # -------
         X,x,Y,y = symbols("X x Y y")
         a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
         D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
         di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
+
+        # Optical constants
+        #------------------
+        # Slicer quantities (mm) (Zemax)
+        Rsli = 96.644
+        fsli = -Rsli / 2
+        # OAP focal lengths (mm) (Garreau et al. 2024)
+        fOAP1 = 629.2 
+        fOAP2 = 262.17
+        # Lens thicknesses (mm) (Zemax)
+        dinj = 10 
+        dcryo = 4
+        # Lens refractive indices in wavelength channels (Literature)
+        niarr = np.array([2.4189, 2.4176, 2.4168], dtype=np.float64) 
+        ncarr = np.array([1.4140, 1.4115, 1.4096], dtype=np.float64)
+        # Injection lens curvature radius (front surface)
+        Rinj = 28.195
+        # Optical power front injection lens surface (1/mm)
+        Parr = (niarr - np.ones(3, dtype=np.float64)) / Rinj
         
         #-------------------------------#
         # (2) Component transformations #
@@ -236,49 +291,95 @@ class alignment:
         self.M = Mloc.copy()
         self.b = bloc.copy()
         self.N = eqns_.copy()
+
+        #-------------------------------------------------------------#
+        # 5) Build lambdified callable for each wavelength            |
+        #    Inter-component distances remain as free symbols         |
+        #    Other optical constants are common among all evaluations |
+        # ------------------------------------------------------------#
+        # Optical parameter substitution build
+        def _optical_subspar(lam):
+            return [(di, dinj), (dc, dcryo), (ni, niarr[lam]), (nc, ncarr[lam]), (P1, Parr[lam]), (f1, fOAP1), (f2, fOAP2), (fsl, fsli)]
+
+        D_syms = (D1, D2, D3, D4, D5, D6, D7, D8)
+        D_names = "D1,D2,D3,D4,D5,D6,D7,D8"
+
+        def _build_eval_int(lam, Minv):
+            # Substitute optical constants
+            bsub = self.b.subs(_optical_subspar(lam))
+            # Construct framework - (4,1) Sympy matrix
+            frame = Minv * bsub
+            # Lambdify to evaluator
+            f = lambdify((X, Y, x, y) + D_syms, frame.T.tolist()[0], modules="numpy")
+            return f
+            
+        def _build_eval_rev(lam):
+            # Substitute optical constants
+            Nsub = [expr.subs(_optical_subspar(lam)) for expr in self.N]
+            # Lambdify to evaluator
+            f = lambdify((a1X, a1Y, a2X, a2Y) + D_syms, Nsub, modules="numpy")
+            return f
+
+        def _build_eval_sky(Minv):
+            # Lambdify to evaluator (a2X, a2Y deliberately survive as sympy symbols, since they are unknowns determined in a solveset call)
+            f = lambdify(D_syms, Minv, modules="sympy")
+            return f
+
+        print("Building lambdified framework evaluators ...")
+        self._eval_int = []
+        self._eval_rev = []
+        self._eval_sky = []
+        for lam in range(0, 3):
+            print("Wavelength channel {lam}")
+            Msub = self.M.subs(_optical_subspar(lam))
+            Minv = Msub.inv(method="LU")
+            self._eval_int.append(_build_eval_int(lam, Minv))
+            self._eval_rev.append(_build_eval_rev(lam))
+            self._eval_sky.append(_build_eval_sky(Minv))
+
+        # Define a2X and a2Y symbols outside of __init__, for use in solveset
+        self._a2X = a2X
+        self._a2Y = a2Y
+
+        print("Framework ready.")
         
         # Defining actuator positions corresponding to an aligned & injecting state.
-        self.act_pos_align = np.array([[4.1507145,4.6841595,4.8155535,3.714595],[3.6502095,3.4818495,4.5511795,3.8486425],[4.3360325,4.716886,4.754462,3.167242],[4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
+        #self.act_pos_align = np.array([[4.1507145,4.6841595,4.8155535,3.714595],
+        #                               [3.6502095,3.4818495,4.5511795,3.8486425],
+        #                               [4.3360325,4.716886,4.754462,3.167242],
+        #                               [4.8310475,4.6418865,4.88122,4.0027285]],dtype=np.float64)
+        self.act_pos_align = np.array([[2.9803685, 3.5657855, 4.796552,  3.7214575],
+                                       [3.035116,  3.3051325, 4.575549,  3.8738965],
+                                       [2.6271175, 3.842878,  4.7590675, 3.20494  ],
+                                       [3.059943,  3.477305,  4.891163,  4.0149895]], dtype=np.float64)
+
+        # OPCUA connection
+        print("Opening OPCUA connection ...")
+        self.opcua_conn = OPCUAConnection(url)
+        self.opcua_conn.connect()
+        print("OPCUA connection established.")
+        print("Initializing actuator Motor objects ...")
+        # Actuator Motor objects
+        self.actuators = []
+        for i in range(1, 5):
+            act_names = ['NTTA'+str(i), 'NTPA'+str(i), 'NTTB'+str(i), 'NTPB'+str(i)]
+            acts = [Motor(self.opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+name, name, 0.020) for name in act_names]
+            self.actuators.append(acts)
+        print("Actuator Motor objects initialized.")
+
+    def __del__(self):
+        # Disconnect from OPCUA
+        if hasattr(self, 'opcua_conn'):
+            try:
+                self.opcua_conn.disconnect()
+            except Exception:
+                pass
+
+    def close(self):
+        # Manual wrapper to close the OPCUA connection
+        if hasattr(self, 'opcua_conn'):
+            self.opcua_conn.disconnect()
         
-        '''
-        # Opening all shutters
-        all_shutters_open(4)
-        
-        # Preparing actuators for use
-        print("Preparing actuators...")
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
-        
-        # Looping over all configurations
-        for j in range(1, 5):
-            # Actuator names
-            act_names = ['NTTA'+str(j),'NTPA'+str(j),'NTTB'+str(j),'NTPB'+str(j)]
-            # Actuator motor objects
-            act1 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[0],act_names[0])
-            act2 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[1],act_names[1])
-            act3 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[2],act_names[2])
-            act4 = Motor(opcua_conn, 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[3],act_names[3])
-            actuators = np.array([act1,act2,act3,act4])
-            # Resetting, initializing and enabling each actuator
-            for i in range(0,4):
-                actuators[i].reset()
-                time.sleep(1)
-                actuators[i].init()
-                # Wait for the actuator to be ready
-                ready = False
-                while not ready:
-                    time.sleep(0.01)
-                    substatus = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sSubstate'])
-                    ready = (substatus[0] == 'READY')
-                actuators[i].enable()
-                time.sleep(0.050)
-        
-        self.align()
-        
-        # Closing OPCUA connection
-        opcua_conn.disconnect()
-        '''
     #-------------------------------#
     # Numeric Framework Evaluations #
     #-------------------------------#
@@ -292,6 +393,7 @@ class alignment:
         Context
         -------
         The function is called in the context of internal NOTT alignment, f.e. scanning the image plane for beam injection.
+        This is a pure numpy evaluation, leveraging the lambdified evaluator constructed in class init
         
         Parameters
         ----------
@@ -305,63 +407,17 @@ class alignment:
             
         Returns
         -------
-        ttm_offsets_flip : (1,4) numpy array of floats (radian)
+        ttm_offsets : (1,4) numpy array of floats (radian)
         The angular TTM offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y) necessary to achieve the input shifts 
             
         """
-        # Symbols
-        X,x,Y,y = symbols("X x Y y")
-        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
-        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
-        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
-        
-        #------------------------#
-        # Zemax parameter values #
-        #------------------------#
-        
-        # Slicer quantities (mm) (Zemax)
-        Rsli = 96.644
-        fsli = -Rsli / 2
-        # OAP focal lengths (mm) (Garreau et al. 2024)
-        fOAP1 = 629.2 
-        fOAP2 = 262.17
-        # Lens thicknesses (mm) (Zemax)
-        dinj = 10 
-        dcryo = 4
-        # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
-        # Injection lens curvature radius (front surface)
-        Rinj = 28.195
-        # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
-        
-        # Copy of symbolic framework
-        Mcopy = self.M.copy()
-        bcopy = self.b.copy()
-        # Substituting parameter values into the symbolic matrix
-        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)]
-        Mcopy = Mcopy.subs(subspar)
-        
-        # Inverting the (now numeric) matrix 
-        Minv = Mcopy.inv()
-        
-        # Multiplying by symbolic shifts 
-        frame = Minv*bcopy
-        
-        # Parameters
-        params = (X,Y,x,y)
-        
-        # Lambdify
-        f = lambdify(params,frame.T.tolist()[0], modules="numpy")
         
         # Numeric evaluation
-        ttm_offsets = f(shifts[0],shifts[1],shifts[2],shifts[3])
-        
+        result = self._eval_int[lam](shifts[0], shifts[1], shifts[2], shifts[3], D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7])
         # Flipping X and Y angles to comply with function output
-        ttm_offsets_flip = np.array([ttm_offsets[1],ttm_offsets[0],ttm_offsets[3],ttm_offsets[2]],dtype=np.float64)
+        ttm_offsets = np.array([result[1],result[0],result[3],result[2]],dtype=np.float64)
         
-        return ttm_offsets_flip
+        return ttm_offsets
     
     def _framework_numeric_int_reverse(self,ttm_offsets,D,lam=1):
         """
@@ -369,6 +425,7 @@ class alignment:
         -----------
         The function numerically evaluates the symbolic framework by input TTM angular offsets (dTTM1X,dTTM1Y,dTTM2X,dTTM2Y),
         returning the positional shifts (X,Y,x,y) that the offsets induce.
+        This is a pure numpy evaluation, leveraging the lambdified evaluator constructed in class init
 
         Parameters
         ----------
@@ -386,40 +443,8 @@ class alignment:
             Induced positional shifts in CS/IM planes (X,Y,x,y).
 
         """
-        # Symbols
-        X,x,Y,y = symbols("X x Y y")
-        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
-        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
-        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
-        
-        #------------------------#
-        # Zemax parameter values #
-        #------------------------#
-        
-        # Slicer quantities (mm) (Zemax)
-        Rsli = 96.644
-        fsli = -Rsli / 2
-        # OAP focal lengths (mm) (Garreau et al. 2024)
-        fOAP1 = 629.2 
-        fOAP2 = 262.17
-        # Lens thicknesses (mm) (Zemax)
-        dinj = 10 
-        dcryo = 4
-        # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
-        # Injection lens curvature radius (front surface)
-        Rinj = 28.195
-        # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
-        
-        # Copy of symbolic framework
-        Ncopy = self.N.copy()
-        
-        # Substituting parameter values into the symbolic matrix
-        subspar = [(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli),(a1X,ttm_offsets[0]),(a1Y,ttm_offsets[1]),(a2X,ttm_offsets[2]),(a2Y,ttm_offsets[3])]
-        shifts = np.array([Ncopy[0].subs(subspar),Ncopy[1].subs(subspar),Ncopy[2].subs(subspar),Ncopy[3].subs(subspar)],dtype=np.float64)
-        
+        result = self._eval_rev[lam](ttm_offsets[0], ttm_offsets[1], ttm_offsets[2], ttm_offsets[3], D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7])
+        shifts = np.array(result, dtype=np.float64)
         return shifts
     
     def _framework_numeric_sky(self,dTTM1X,dTTM1Y,D,lam=1,CS=True):
@@ -431,7 +456,10 @@ class alignment:
         Based on parameter CS, a choice is made : if True, (dTTM2X,dTTM2Y) are determined such that (X,Y)=(0,0) - fixed pupil position.
                                                   if False, (dTTM2X,dTTM2Y) are determined such that (x,y)=(0,0) - fixed image position.
                                                   No non-trivial combination of (dTTM2X,dTTM2Y) exists that guarantees both.
-                                                  
+        Inversion of matrix M and substitution of optical constants has been done in class init.
+        Only remaining Sympy work is in the solveset call, for two linear expressions in a2X and a2Y.
+        Remaining work is pure numpy evaluation.
+                                             
         Context
         -------
         The function is relevant in the context of on-sky scanning. There, TTM1 takes the role of the scanner; a TTM1 angular offset changes the on-sky angle of the picked up FOV.
@@ -460,67 +488,33 @@ class alignment:
             The shifts that come at the cost of inducing the TTM angles.
             
         """
-        # Symbols
-        X,x,Y,y = symbols("X x Y y")
-        a1X,a2X,a1Y,a2Y = symbols("a_1^X a_2^X a_1^Y a_2^Y") 
-        D1, D2, D3, D4, D5, D6, D7, D8 = symbols("D_1 D_2 D_3 D_4 D_5 D_6 D_7 D_8")
-        di, dc, ni, nc, P1, f1, f2, fsl = symbols("d_i d_c n_i n_c P_1 f_{OAP_1} f_{OAP_2} f_{sl}")
-        
-        #------------------------#
-        # Zemax parameter values #
-        #------------------------#
-        
-        # Slicer quantities (mm) (Zemax)
-        Rsli = 96.644
-        fsli = -Rsli / 2
-        # OAP focal lengths (mm) (Garreau et al. 2024)
-        fOAP1 = 629.2 
-        fOAP2 = 262.17
-        # Lens thicknesses (mm) (Zemax)
-        dinj = 10 
-        dcryo = 4
-        # Lens refractive indices in wavelength channels (Literature)
-        niarr = [2.4189, 2.4176, 2.4168] 
-        ncarr = [1.4140, 1.4115, 1.4096]
-        # Injection lens curvature radius (front surface)
-        Rinj = 28.195
-        # Optical power front injection lens surface (1/mm)
-        Parr = (niarr - np.ones(3)) / Rinj
-        
-        # Copy of symbolic framework
-        Mcopy = self.M.copy()
-        
-        # Substituting parameter values into the symbolic matrix
-        subspar = np.array([(D1,D[0]),(D2,D[1]),(D3,D[2]),(D4,D[3]),(D5,D[4]),(D6,D[5]),(D7,D[6]),(D8,D[7]),(di,dinj),(dc,dcryo),(ni,niarr[lam]),(nc,ncarr[lam]),(P1,Parr[lam]),(f1,fOAP1),(f2,fOAP2),(fsl,fsli)])
-        Mcopy = Mcopy.subs(subspar)
-        
-        # Inverting the (now numeric) matrix
-        frame = Mcopy.inv()
-        
+        # Loading a2X, a2Y symbols
+        a2X = self._a2X
+        a2Y = self._a2Y
+        # Loading Minv from lambdified evaluator
+        Minv = self._eval_sky[lam](D[0], D[1], D[2], D[3], D[4], D[5], D[6], D[7])
         # Evaluating
         c = Matrix([dTTM1Y,dTTM1X,a2Y,a2X])
-        
-        # Sol contains (X,Y,x,y) pupil and image plane positions as a function of TTM2X and TTM2Y offsets
-        sol = frame.solve(c)
+        sol = Minv * c # contains (X,Y,x,y) as linear expressions of (a2X, a2Y)
         
         if CS:
             dTTM2X = list(solveset(sol[1],a2X).args)[0]
             dTTM2Y = list(solveset(sol[0],a2Y).args)[0]
-            x = sol[2].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
-            y = sol[3].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            x = float(sol[2].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            y = float(sol[3].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
                             
-            ttm_offsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
-            shifts = np.array([0,0,x,y],dtype=np.float64)
+            ttm_offsets = np.array([dTTM1X,dTTM1Y,float(dTTM2X),float(dTTM2Y)],dtype=np.float64)
+            shifts = np.array([0.0,0.0,x,y],dtype=np.float64)
             
             return ttm_offsets,shifts
         else:
             dTTM2X = list(solveset(sol[3],a2X).args)[0]
             dTTM2Y = list(solveset(sol[2],a2Y).args)[0]
-            X = sol[0].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
-            Y = sol[1].subs(np.array([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            X = float(sol[0].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
+            Y = float(sol[1].subs([(a2X,dTTM2X),(a2Y,dTTM2Y)]))
                             
-            ttm_offsets = np.array([dTTM1X,dTTM1Y,dTTM2X,dTTM2Y],dtype=np.float64)
-            shifts = np.array([X,Y,0,0],dtype=np.float64)
+            ttm_offsets = np.array([dTTM1X,dTTM1Y,float(dTTM2X),float(dTTM2Y)],dtype=np.float64)
+            shifts = np.array([X,Y,0.0,0.0],dtype=np.float64)
             
             return ttm_offsets,shifts
         
@@ -747,6 +741,10 @@ class alignment:
         Description
         -----------
         The function retrieves the current absolute on-bench actuator positions, for the specified configuration, by communication with opcua.
+        The corresponding timestamp is fetched from the redis database, querying the "cam_integtime" field.
+        This is purposely done to sync with the timestamps associated to acquired IR camera frames
+        (see frame acquisition methods in human_interface.py)
+        That way, read frames can be unambiguously linked to associated actuator positions in localization / optimization spirals.
         
         Parameters
         ----------
@@ -759,27 +757,19 @@ class alignment:
         pos : (1,4) numpy array of float values (mm)
             Current actuator positions for the specified configuration (=beam)
         time : single integer (ms)
-            Timestamp at which the actuator positions were read out.
+            Redis database timestamp at which the actuator positions were read out.
 
         """
-    
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-    
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
-        # Retrieving actuator positions via OPCUA 
-        act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
-        node_ids = ['ns=4;s=MAIN.nott_ics.TipTilt.'+name+'.stat.lrPosActual' for name in act_names]
-        pos = np.array(opcua_conn.read_nodes(node_ids),dtype=np.float64)
-        timestamp = round(1000*time.time())
-        # Closing OPCUA connection
-        opcua_conn.disconnect()
+
+        acts = self.actuators[config]
+        pos = np.array([acts[i].getPositionAndSpeed()[0] for i in range(0, 4)], dtype=np.float64)
+        timestamp = self.ts.ts.get("cam_integtime")[0]
         
-        return [pos,timestamp]
+        return [pos, timestamp]
     
-    def _actuator_position_to_ttm_angle(self,pos,config): # TBC
+    def _actuator_position_to_ttm_angle(self,pos,config):
         """
         Description
         -----------
@@ -792,15 +782,20 @@ class alignment:
             
         Constants 
         ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
+        d1_pa : TTM1 (Siskyou IXF2.0a M flexure mount) pivot-to-actuator distance (mm) 
+        d2_pa : TTM2 (Newport U200-G2K Ultima gimbal mount) pivot-to-actuator distance (mm)
 
         Remarks
         -------
-        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
-                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
-        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
-                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
+        For both sets of TTMs : The two actuators are installed in agreement with the transverse X/Y dimensions.
+                                To achieve a TTMX/TTMY (tip/tilt) angular offset, the corresponding actuator can act independently.
+        For the set of TTM1s : The pivot point is located at the bottom of the flexure ridge and it remains fixed (to fair approximation) through tip/tilt motion, as confirmed by Siskyou.
+                               The lever arm stretches from this pivot to the point where the actuator holder clamps the actuator.
+                               Motorized tip-tilt motion is induced thanks to the actuator - affirmed to the mount sub-part that is to be tipped/tilted via an actuator holder - pushing against a driver block on the adjacent sub-part.
+                               Lever arm distance deduced from CAD models provided by Siskyou.
+        For the set of TTM2s : The pivot point is located at the center of the front optical cavity, by gimbal design.
+                               The lever arm stretches from this pivot to the contact point of the actuator and the mount.
+                               Lever arm distance measured on-bench. 
 
         Returns
         -------
@@ -808,33 +803,29 @@ class alignment:
             The TTM (TTM1X,TTM1Y,TTM2X,TTM2Y) angles.
 
         """
-        # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
+        # Lever arm distances
+        d1_pa = 71.566060392 
+        d2_pa = 1.375*25.4
         # Zemax optimal coupling angles (rad)
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
         # Actuator positions in a state of alignment (mm)
         act_config = self.act_pos_align[config]
-    
+
         # TTM1X
-        xsum_align = act_config[0]+act_config[1]
-        xsum_input = pos[0]+pos[1]
-        TTM1X = ttm_config[0] - np.arcsin((xsum_align-xsum_input)/(2*d1_ca)) 
+        TTM1X = ttm_config[0] - (pos[1]-act_config[1])/d1_pa    
         # TTM1Y
-        xdiff_align = act_config[1]-act_config[0]
-        xdiff_input = pos[1]-pos[0]
-        TTM1Y = +ttm_config[1] + np.arcsin((xdiff_input-xdiff_align)/(2*d1_ca)) 
+        TTM1Y = ttm_config[1] - (pos[0]-act_config[0])/d1_pa
         # TTM2X
-        TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_ca)
+        TTM2X = ttm_config[2] - np.arcsin((pos[3]-act_config[3])/d2_pa)
         # TTM2Y
-        TTM2Y = +ttm_config[3] + np.arcsin((pos[2]-act_config[2])/d2_ca)
+        TTM2Y = +ttm_config[3] + np.arcsin((pos[2]-act_config[2])/d2_pa)
         
         ttm_angles = np.array([TTM1X,TTM1Y,TTM2X,TTM2Y],dtype=np.float64)
         
         return ttm_angles
     
-    def _ttm_angle_to_actuator_position(self,ttm_angles,config): # TBC 
+    def _ttm_angle_to_actuator_position(self,ttm_angles,config):
         """
         Description
         -----------
@@ -847,24 +838,30 @@ class alignment:
             
         Constants 
         ---------
-        d1_ca : TTM1 center-to-actuator distance (mm)
-        d2_ca : TTM2 center-to-actuator distance (mm)
+        d1_pa : TTM1 (Siskyou IXF2.0a M flexure mount) pivot-to-actuator distance (mm) 
+        d2_pa : TTM2 (Newport U200-G2K Ultima gimbal mount) pivot-to-actuator distance (mm)
 
         Remarks
         -------
-        For the set of TTM1s : The two actuators are installed at 45° angles to the transverse X/Y dimensions.
-                               Hence, to achieve TTM1X/TTM1Y angular offsets, the motion of the two actuators is necessarily coupled.
-        For the set of TTM2s : The two actuators are installed in agreement with the transverse X/Y dimensions.
-                               To achieve a TTM2X/TTM2Y angular offset, the corresponding actuator can act independently.
+        For both sets of TTMs : The two actuators are installed in agreement with the transverse X/Y dimensions.
+                                To achieve a TTMX/TTMY (tip/tilt) angular offset, the corresponding actuator can act independently.
+        For the set of TTM1s : The pivot point is located at the bottom of the flexure ridge and it remains fixed (to fair approximation) through tip/tilt motion, as confirmed by Siskyou.
+                               The lever arm stretches from this pivot to the point where the actuator holder clamps the actuator.
+                               Motorized tip-tilt motion is induced thanks to the actuator - affirmed to the mount sub-part that is to be tipped/tilted via an actuator holder - pushing against a driver block on the adjacent sub-part.
+                               Lever arm distance deduced from CAD models provided by Siskyou.
+        For the set of TTM2s : The pivot point is located at the center of the front optical cavity, by gimbal design.
+                               The lever arm stretches from this pivot to the contact point of the actuator and the mount.
+                               Lever arm distance measured on-bench.   
 
         Returns
         -------
         pos : (1,4) numpy array of floats (mm)
             The actuator (x1,x2,x3,x4) positions.
         """
+
         # Center-to-actuator distances
-        d1_ca = 2.5*25.4 
-        d2_ca = 1.375*25.4
+        d1_pa = 71.566060392 
+        d2_pa = 1.375*25.4
         # Zemax optimal coupling angles (rad)
         ttm_angles_optim = np.array([[0.10,32,-0.11,-41],[4.7,-98,4.9,30],[-2.9,134,-3.1,-107],[3.7,115,3.3,-141]],dtype=np.float64)*10**(-6)
         ttm_config = ttm_angles_optim[config]
@@ -872,16 +869,11 @@ class alignment:
         act_config = self.act_pos_align[config]
     
         # TTM1
-        xsum_align = (act_config[0]+act_config[1])/2
-        xdiff_align = (act_config[1]-act_config[0])/2
-        xsum = xsum_align - d1_ca*np.sin(ttm_config[0]-ttm_angles[0])
-        xdiff = xdiff_align - d1_ca*np.sin(ttm_config[1]-ttm_angles[1]) 
-        x1 = xsum-xdiff #TBD
-        x2 = xsum+xdiff #TBD
-        
+        x1 = act_config[0] - d1_pa*(ttm_angles[1]-ttm_config[1])
+        x2 = act_config[1] - d1_pa*(ttm_angles[0]-ttm_config[0])
         # TTM2 
-        x3 = act_config[2] - d2_ca*np.sin(ttm_config[3]-ttm_angles[3])
-        x4 = act_config[3] + d2_ca*np.sin(ttm_config[2]-ttm_angles[2])
+        x3 = act_config[2] - d2_pa*np.sin(ttm_config[3]-ttm_angles[3])
+        x4 = act_config[3] + d2_pa*np.sin(ttm_config[2]-ttm_angles[2])
         
         pos = np.array([x1,x2,x3,x4],dtype=np.float64)
         
@@ -905,10 +897,10 @@ class alignment:
         -------
         displacements : (1,4) numpy array of float values (mm)
             The actuator displacements (dx1,dx2,dx3,dx4) necessary to achieve the demanded angular offsets.
-            dx1 : Displacement of the TTM1 actuator that is closest to the bench edge
-            dx2 : Displacement of the TTM1 actuator that is furthest from the bench edge
-            dx3 : Displacement of the TTM2 actuator whose motion is in the X plane, thus inducing TTM2 Y angles.
-            dx4 : Displacement of the TTM2 actuator whose motion is in the Y plane, thus inducing TTM2 X angles.
+            dx1 : Displacement of the TTM1 actuator whose motion is in the XZ plane, thus inducing TTM1 Y (tilt) angles.
+            dx2 : Displacement of the TTM1 actuator whose motion is in the YZ plane, thus inducing TTM1 X (tip) angles. 
+            dx3 : Displacement of the TTM2 actuator whose motion is in the XZ plane, thus inducing TTM2 Y (tilt) angles.
+            dx4 : Displacement of the TTM2 actuator whose motion is in the YZ plane, thus inducing TTM2 X (tip) angles.
             Sign convention : A positive displacement is away from the actuator
     
         """
@@ -986,162 +978,31 @@ class alignment:
         
         return accur_snap
 
-    def _get_delay(self,N,average): 
-        '''
-        Description
-        -----------
-        The Infratec camera registers average ROI (region of interest) output values and writes them to redis with an associated timestamp, based on its internal clock.
-        There is a delay between the latest of such timestamps, registered in redis, and the Windows lab pc time.
-        This delay is believed to be twofold in nature:
-            1) The camera takes some time to write its ROI values to redis : on the order of 10 ms.
-            2) The internal Infratec camera drifts with time. It seems to tick slower than the Windows lab pc time.
-        This function quantifies the delay time, originating from a combination of 1) and 2).
-        
-        Parameters
-        ----------
-        N : single integer
-            Amount of samples to perform.
-        average : single boolean
-            If True : return the average delay of N samples.
-            If False : return the maximum delay of N samples.
-    
-        Returns
-        -------
-        t_delay : single integer, globally defined (ms)
-            Delay.
-
-        '''
-        
-        delays = []
-        for i in range(0, N):
-            # Defining a python timeframe (1 second back in time)
-            t_start,t_stop = define_time(1)
-            # Retrieving the timestamps of redis data registered within this timeframe
-            t_redis = get_field("cam_integtime",t_start,t_stop,False)[:,0]
-            # Calculating the time delay (difference between requested end of timeframe and redis-registered end of timeframe)
-            t_delay_iter = t_stop - t_redis[-1]
-            # Append to list
-            delays.append(t_delay_iter)
-        if average:
-            # Average
-            t_delay = np.average(delays)
-        else:
-            # Maximum
-            t_delay = np.max(delays)
-            
-        return t_delay
-    
-    def _get_time(self,t,t_delay):
+    def _get_photo_broad(self, dt, config):
         """
         Description
         -----------
-        This function converts a given timestamp (Windows lab pc python time) to the timestamp that is to be queried in the
-        redis database (stamped by Infratec internal camera time).
-        
+        Function returns the total, calibrated broadband flux and error as measured in the ROI that is matched to the photometric chip output of the beam in channel {config}.
+        Flux and error are calculated from a master frame - obtained by averaging all acquired frames in time interval {dt} - see get_frames_cal(_broad).
+
         Parameters
         ----------
-        t : single integer (ms)
-            Input time.
-        t_delay : single integer (ms)
-            Delay time.
-        
-        Returns
-        -------
-        t_conv : single integer (ms)
-            Converted time.
-
-        """
-        
-        t_conv = round(t - t_delay)
-        
-        return t_conv
-
-    def _get_noise(self,N,t,dt):
-        '''
-        Description
-        -----------
-        Function returns the average background and noise values (=ROI9), derived as the average of "N" exposures of duration "dt" each.
-        
-        Parameters
-        ----------
-        t : single integer (ms)
-            Start of timeframe.
-        dt : single integer (ms)
-            Duration of timeframe.
-        N : single integer
-            Amount of exposures.
-
-        Returns
-        -------
-        noise : single float
-            Noise value (standard deviation of ROI9 output)
-        mean: single float
-            ROI9 mean output value
-
-        '''
-        # Background measurements
-        exps = []
-        # Noise measurements
-        noises = []
-        # Gathering five exposures
-        for j in range(0, N):
-            if (j!=0):
-                time.sleep(dt)
-            t_start,t_stop = t+j*dt,t+(j+1)*dt
-            # Retrieving REDIS data 
-            exp_av = get_field("roi9_avg",t_start,t_stop,True)
-            exp_full = get_field("roi9_avg",t_start,t_stop,False) 
-            exps.append(exp_av[1])
-            noises.append(exp_full.std(0)[1])
-            
-        # Taking the mean 
-        mean = np.mean(exps)
-        noise = np.mean(noises)
-        
-        return mean,noise
-
-    def _get_photo(self,N,t,dt,config):
-        '''
-        Description
-        -----------
-        Function returns the photometric output value, for a certain beam channel (config), derived as the average of "N" exposures of duration "dt" each.
-        
-        
-        Parameters
-        ----------
-        t : single integer (ms)
-            Start of timeframe.
-        dt : single integer (ms)
-            Duration of timeframe.
-        N : single integer
-            Amount of exposures.
+        dt : single float (s)
+            Total frame acquisition time
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-            
+
         Returns
         -------
-        photo : single float
-            Photometric output average value
+        cal_broad, cal_broad_std : single float each ; broadband flux and error in photometric output channel
 
-        '''
-        # REDIS field names of photometric outputs' ROIs
-        names = ["roi8_avg","roi7_avg","roi2_avg","roi1_avg"]
-        fieldname = names[config]
-        
-        # Background measurements
-        exps = []
-        # Gathering five photometric exposures
-        for j in range(0, N):
-            if (j!=0):
-                time.sleep(dt)
-            t_start,t_stop = t+j*dt,t+(j+1)*dt
-            # Retrieving REDIS data
-            exps.append(get_field(fieldname,t_start,t_stop,True)[1])
-        # Taking the mean
-        photo = np.mean(exps)
-        
-        return photo
+        """
+
+        cal_disp, cal_disp_std, cal_broad, cal_broad_std = self.humint.get_frames_cal_broad(dt)
+        idx = self.photo_idx[config]
+        cal_broad, cal_broad_std = cal_broad[idx], cal_broad_std[idx]
+        return cal_broad, cal_broad_std
 
     def _valid_state(self,bool_slicer,ttm_angles_final,act_displacements,act_pos,config):
         """
@@ -1208,9 +1069,9 @@ class alignment:
         
         if (config == 0):
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-459*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+541*10**(-6))
-        if (config == 1):
+        elif (config == 1):
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-587*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+508*10**(-6))
-        if (config == 2):
+        elif (config == 2):
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-243*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+655*10**(-6))
         else:
             valid1 = (TTM2Y_shift >= -TTM1Y_shift-507*10**(-6) and TTM2Y_shift <= -TTM1Y_shift+443*10**(-6))
@@ -1247,7 +1108,7 @@ class alignment:
             if disp > 0:
                 valid3 = (act_range - act_pos[j] >= disp)
             else:
-                valid3 = (act_pos[j] >= disp)
+                valid3 = (act_pos[j] + disp >= 0)
     
             if not valid3:
                 i[2] = 1
@@ -1269,20 +1130,65 @@ class alignment:
     
         return Valid,i
 
-    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64)): 
+    def _timestamps_to_frames(self, act_times):
+        """
+        Description
+        -----------
+        This function takes a list of redis unix timestamps (ms), returned by _get_actuator_pos, converts
+        it to a list of IDs and creates a Frame object from those IDs.
+        This Frame object contains all camera frames whose timestamps fall within the time window
+        throughout which the sampled actuator motion was carried out.
+        Note1: Timestamping of actuator positions and IR camera frames (and thus photometric readouts)
+               is performed by the same clock, the one of the redis database. This largely removes the need for any empirical time delay correction.
+        Note2: A small nuance on time synchronization of actuator positions and IR camera frames.
+               The timestamps - associated with actuator positions - are determined by querying the timestamp of
+               the last-recorded redis entry (and therefore camera frame, as frame recording & redis writing are intertwined, see scify.py).
+               The actuator position timestamp is therefore the time of the last frame that finished exposing.
+               For low camera sample rates and large actuator speeds, this could induce a large mismatch in the link between
+               actuator positions and IR camera frames.
+               The actuator speeds in the spiral methods are determined with this in mind;
+               given the camera sample rate, the actuator speed is taken such that this temporal mismatch
+               does not induce a positional mismatch larger than an imposed threshold.
+
+        Parameters
+        ----------
+        act_times : list of int (ms)
+                Redis unix timestamps at which the actuator positions were sampled.
+
+        Returns
+        -------
+        frames : object of the Frame class
+                The IR camera frames that were acquired during the window of actuator motion.
+                Passed to get_frames_cal(_broad) later for retrieval of associated photometric output fluxes.
+        """
+        # Temporal window of actuator motion
+        t_start = act_times[0]
+        t_end = act_times[-1]
+        # Fetch recorded redis stamps (unix, ms) in the window
+        pairs = get_field("cam_integtime", t_start, t_end, False)
+        unix_stamps = pairs[:,0]
+        integtimes = pairs[:,1]
+        # Convert unix stamps to frame IDs and construct Frame object
+        ids = [datetime_to_id(unix_to_datetime(stamp)) for stamp in unix_stamps]
+        frames = Frame(ids, integtimes)
+        return frames
+
+    def _move_abs_ttm_act(self,init_pos,disp,speeds,pos_offset,config,sample=False,err_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
         The function moves all actuators (1,2,3,4) in a configuration "config" (=beam), initially at positions "init_pos",
         by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
-        Actuator positions are sampled during the motion, by timestep "dt_sample". The timestamps at which they were read out are also registered.
-        If "sample" is True, real-time photometric ROI values are also sampled, the timestamps of which lack behind by t_delay.
+        Actuator positions are sampled during the motion and the associated redis timestamps are registered.
+        If "sample" is True, those redis timestamps are used - after the actuator motion - to fetch the IR camera frames that were
+        recorded during the time window of actuator motion.
+        Those IR camera frames can then be passed to the human_interface calibration methods (get_frames_cal(_broad)) to get photometric readouts.
         In the context of spiraling, actuator errors "err_prev" of the previous step can be taken into account.
         Actuator naming convention within a configuration : 
             1 : TTM1 actuator that is closest to the bench edge
             2 : TTM1 actuator that is furthest from the bench edge
-            3 : TTM2 actuator whose motion is in the X plane, thus inducing TTM2 Y angles.
-            4 : TTM2 actuator whose motion is in the Y plane, thus inducing TTM2 X angles.
+            3 : TTM2 actuator whose motion is in the XZ plane, thus inducing TTM2 Y angles.
+            4 : TTM2 actuator whose motion is in the YZ plane, thus inducing TTM2 X angles.
     
         Parameters
         ----------
@@ -1293,32 +1199,29 @@ class alignment:
         speeds : (1,4) numpy array of float values (mm/s)
             Speeds by which the actuators should move.
         pos_offset : (1,4) numpy array of float values (mm)
-            offsets to be accounted for when moving.
+            offsets to be accounted for when moving (deduced empirically)
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).     
         sample : single boolean
-            Whether to sample photometric ROI values throughout the motion.
-        dt_sample : single float (s)
-            Amount of time a sample should span.
-        t_delay : single float (ms) 
-            Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
+            If True, the function returns IR camera frames - recorded in the time window of actuator motion - as a Frame object
         err_prev : list of float values (mm)
             Errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
             
         Returns
         -------
         t_start_loop : single integer value (ms)
-            Time at which the movements started.
+            Redis time at which the movements started.
         t_spent_loop : single integer value (ms)
             Time spent for moving all four actuators.
-        act : matrix of floats (mm)
-            Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
-        act_times : list of floats (ms)
-            Times at which the actuator positions were read out. Follow lab Windows machine time.
-        roi : list of floats
-            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == true).
-        err : List of floats (mm)
+        act : list of (4,1) numpy arrays (mm)
+            Actuator positions, for the specified config, sampled throughout the actuator motion.
+        act_times : list of int (ms)
+            Redis timestamps corresponding to each sample of actuator positions.
+        frames : Frame object / None
+            IR camera frames that were recorded during the actuator motion window (if sample=True)
+            None (if sample = False)
+        err : (4,1) numpy array of floats (mm)
             Actuator errors made upon actuator motions. Positive values indicate overshoot.
 
         """
@@ -1326,122 +1229,93 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
 
-        # Opening OPCUA connection
-        opcua_conn = OPCUAConnection(url)
-        opcua_conn.connect()
         # Actuator names 
         act_names = ['NTTA'+str(config+1),'NTPA'+str(config+1),'NTTB'+str(config+1),'NTPB'+str(config+1)]
         
         # Desired final positions
         final_pos = init_pos + (disp)#-err_prev) #TBD
         
-        # Sampled actuator positions and ROI values
+        # Containers for samples of actuator position and positional errors
         act = []
         act_times = []
-        roi = []
         err = np.zeros(4,dtype=np.float64)
-        
+
+        # Auxiliary functions
+        def _wait_for_arrival(act_idx):
+            # Poll until the actuator report a STANDING/OPERATIONAL state.
+            on_destination = False
+            while not on_destination:
+                time.sleep(0.005)
+                status, state, _ = self.actuators[config][act_idx].getStatusInformation()
+                on_destination = (status == "STANDING" and state == "OPERATIONAL")
+            
+        def _fire_move(act_idx, target_pos, speed):
+            # Fire a MoveAbsolute command through OPCUA (Motor class expects speed in um/s)
+            self.actuators[config][act_idx].command_move_absolute(target_pos, speed*10**3).execute()
+            
         # Move functions
         def move_single(double):
-            '''
+            """
+            Execute one move on an actuator and sample positions throughout that move.
+            
             Parameters
             ----------
             double : single boolean
-                True : this function is called in the context of a double actuator motion.
-                False : this function is not called in the context of a double actuator motion.
-
-            '''
-            
-            # Executing move
-            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-            method = parent.get_child("4:RPC_MoveAbs")
-            arguments = [final_pos_off[i], speeds[i]]
-            #t_start_iter = time.time()
-            parent.call_method(method, *arguments)
-            
-            # Wait for the actuator to be ready
+                True : this function is called as the first step a double actuator motion, overshooting the target position.
+                        sample positions until target position is passed; don't sample in overshoot phase
+                False : this function is called as a standalone, single move
+                        sample positions until arrival at target position
+            """
+            # Execute move
+            _fire_move(i, final_pos_off[i], speeds[i])
+            # Poll
             on_destination = False
-            
-            # Define start of sample timeframe for which to read out ROI values from redis.
-            if sample:
-                # Start time, incorporating delay time.
-                t_start_sample = self._get_time(1000*time.time(),t_delay)
-                # Camera-to-redis writing time
-                time.sleep((t_write)*10**(-3)) 
-                # After this sleep, the roi value at timestamp t_start_sample has just been registered in the redis database.
-                    
-                # Boolean checking whether the ROI sampling has caught up with the camera-redis delay
-                caught_up = False
-            else:
-                caught_up = True
-              
-            # Boolean that is True, throughout a double actuator motion, when sampling should be performed.
             sample_double = True
-            while not (on_destination and caught_up):
-            
+            while not on_destination:
+                # If double motion, evaluate whether to sample first
                 if double:
                     act_pos = self._get_actuator_pos(config)[0]
                     if disp[i] > 0:
                         sample_double = (act_pos[i] < final_pos[i])
                     else:
                         sample_double = (act_pos[i] > final_pos[i])
-                        
+                # Sample
                 if sample_double:
-                    # Register actuator position at the middle of the sample timeframe, as well as the timestamp.
-                    time.sleep(dt_sample/2)
                     act_samp = self._get_actuator_pos(config)
                     act.append(act_samp[0])
-                    act_times.append(self._get_time(act_samp[1],t_delay))
-                    time.sleep(dt_sample/2)
-                
-                    if sample:
-                        # Safety sleep
-                        time.sleep(2*t_write*10**(-3))
-                        # Readout photometric ROI average of sample timeframe.
-                        roi.append(self._get_photo(Nexp,t_start_sample,round(1000*dt_sample),config))
-                        # Push sample start time forward for next sample.
-                        t_start_sample = round(self._get_time(1000*time.time(),t_delay)-t_write)
-                        
-                # Check whether actuator has finished motion
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                if not on_destination:
-                    t_act_arrival = round(1000*time.time())
-                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-                # When on_destination == True, the sampling hasn't caught up yet due to the camera-redis time lag.
-                # We have to make the sampling catchup (i.e. register the final samples of the actuator motion) before exiting the while loop
-                if (on_destination and sample):
-                    caught_up = (round(1000*time.time())-t_act_arrival > t_write)
-                  
+                    act_times.append(act_samp[1])
+
+                status, state, _ = self.actuators[config][i].getStatusInformation()
+                on_destination = (status == "STANDING" and state == "OPERATIONAL")
+
+            # Arrived at destination
             ach_pos = self._get_actuator_pos(config)[0][i]
             if not double:
-                err[i] = ach_pos-final_pos[i]
+                err[i] = ach_pos - final_pos[i]
                 print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
-            return
-        
+
         def move_double():
+            """
+            Sequence of three separate moves for displacements that are sub-actuator-resolution
+                1) Overshoot the target. Sampling happens during this phase, as long as target is not overshot
+                2) Neutralize backlash by retracing 0.5 um
+                3) Accurate approach to final position 
+            """
             
-            # 1) Move 1 : Deliberately overshooting and sampling until the desired position is reached.
+            # 1) Move 1 : Deliberately overshooting and sampling until the target is overshot
             move_single(True)
-            
-            # 2) Move 2 : Neutralizing the backlash by moving a small amount (0.5 um) in the opposite direction.
+
+            # 2) Move 2 : Neutralize backlash
             # Current actuator positions
             act_curr_temp = self._get_actuator_pos(config)[0]
-            disp_back = sign*0.0005
             # Backlash-neutralized position
+            disp_back = sign*0.0005
             pos_back = act_curr_temp[i] + disp_back
-            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-            method = parent.get_child("4:RPC_MoveAbs")
-            arguments = [pos_back, 0.0005]
-            parent.call_method(method, *arguments)
-            # Wait for the actuator to be ready
-            on_destination = False
-            while not on_destination:
-                time.sleep(0.01)
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
+            # Fire move and await completion
+            _fire_move(i, pos_back, 0.0005)
+            _wait_for_arrival(i)
             
-            # 2.5) Updating offset for the second move, which need be accurate.
-            
+            # 2.5) Update the offset required to reach the final position
             # Current actuator positions
             act_curr_temp = self._get_actuator_pos(config)[0]
             # Necessary displacements
@@ -1449,30 +1323,23 @@ class alignment:
             # Update speed
             speeds[i] = speed_double
             # Offsets from accuracy grid
-            pos_offset_temp = self._actoffset(speeds,act_disp_temp) 
+            pos_offset_return = self._actoffset(speeds, act_disp_temp)
+            # Final target position
+            final_pos_off[i] = final_pos[i] - pos_offset_return[i]
             
-            # Update final_pos_off
-            final_pos_off[i] = final_pos[i] - pos_offset_temp[i]
-            
-            # 3) Move 3 : Returning to get to the desired position in accurate fashion. No sampling required # TBD : Incorporate backlash?
-            parent = opcua_conn.client.get_node('ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i])
-            method = parent.get_child("4:RPC_MoveAbs")
-            arguments = [final_pos_off[i], speeds[i]]
-            parent.call_method(method, *arguments)
-            # Wait for the actuator to be ready
-            on_destination = False
-            while not on_destination:
-                time.sleep(0.01)
-                status, state = opcua_conn.read_nodes(['ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sStatus', 'ns=4;s=MAIN.nott_ics.TipTilt.'+act_names[i]+'.stat.sState'])
-                on_destination = (status == 'STANDING' and state == 'OPERATIONAL')
-              
+            # 3) Move 3 : Returning to get to the desired position in accurate fashion.
+            # Fire move and await completion
+            _fire_move(i, final_pos_off[i], speeds[i])
+            _wait_for_arrival(i)
+            # Evaluate error              
             ach_pos = self._get_actuator_pos(config)[0][i]
             err[i] = ach_pos-final_pos[i]
             print("Moved actuator "+act_names[i]+" by a displacement "+str(disp[i]*1000)+ " um with an error "+ str(1000*(ach_pos-final_pos[i]))+" um. This required an offset-incorporated displacement of "+ str(1000*disp_off)+" um.")
-            return
-        
+
+        #---------------------
+        # MAIN ACTUATOR LOOP
         # Looping over all four actuators
-        t_start_loop = round(1000*time.time())
+        t_start_loop = self.ts.ts.get("cam_integtime")[0]
         for i in range(0,4):
             # Only continue for actuators upon which displacement is imposed
             if (disp[i] != 0):
@@ -1494,17 +1361,22 @@ class alignment:
                     final_pos_off[i] = init_pos[i] + sign*step_over
                     move_double()
         
-        t_end_loop = round(1000*time.time()) 
+        t_end_loop = self.ts.ts.get("cam_integtime")[0]
         t_spent_loop = round(t_end_loop-t_start_loop)
-        # Close OPCUA connection
-        opcua_conn.disconnect()
-        return t_start_loop,t_spent_loop,act,act_times,roi,err
+
+        # Retrospectively acquire the frames recorded during the motion time window
+        if (sample and len(act_times) > 0):
+            frames = self._timestamps_to_frames(act_times)
+        else:
+            frames = None
+
+        return t_start_loop,t_spent_loop,act,act_times,frames,err
 
     #-----------------#
     # Individual Step #
     #-----------------#
 
-    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,dt_sample=0.010,t_delay=t_write,err_prev=np.zeros(4,dtype=np.float64),act_disp_prev=np.zeros(4,dtype=np.float64)): 
+    def individual_step(self,bool_slicer,sky,steps,speeds,config,sample,err_prev=np.zeros(4,dtype=np.float64)): 
         """
         Description
         -----------
@@ -1515,6 +1387,9 @@ class alignment:
             (4) The framework is used to evaluate the necessary TTM offsets for the user-defined purpose.
             (5) The actuator displacements, necessary to achieve the TTM offsets, are calculated.
             (6) The necessary actuator movements are imposed to the bench via OPC UA.
+
+        If sample = True, the function returns a Frame object containing IR camera frames that are recorded during the time window of motion.
+        These frames are timestamped by the same clock (redis database clock) as the actuator positions.
 
         Parameters
         ----------
@@ -1535,28 +1410,22 @@ class alignment:
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
         sample : single boolean
             Whether to sample photometric ROI averages throughout the motion.
-        dt_sample : single float (s)
-            Amount of time a sample should span.
-        t_delay : single float (ms) 
-            Amount of time that the internal Infratec clock lacks behind the Windows lab pc clock.
         err_prev : numpy array of float values (mm)
             Actuator errors made upon a previous spiral step, to be carried over to the next one for purpose of accuracy.
-        act_disp_prev : numpy array of float values (mm)
-            Actuator motions made in a previous step. In the context of spiraling, it is often useful (efficiency-wise) to not explicitly recompute 
-            actuator motions that are similar to the previous step.    
         
         Returns
         -------
         t_start : single integer (ms)
-            Time at which the actuator motions commenced.
+            Redis time at which the actuator motions commenced.
         t_spent : single integer (ms)
             Time spent for moving all four actuators.
-        act : matrix of floats (mm)
-            Matrix of actuator configurations (=4 positions), for the specified config, sampled throughout the actuator motion.
-        act_times : list of floats (ms)
-            Times at which the actuator positions were read out. Follow lab Windows machine time.
-        roi : list of floats
-            List of ROI photometric output values, for the specified config, sampled throughout the actuator motion (if sample == True).
+        act : list of (4,1) numpy arrays (mm)
+            Actuator positions, for the specified config, sampled throughout the actuator motion.
+        act_times : list of int (ms)
+            Redis timestamps corresponding to each sample of actuator positions.
+        frames : Frame object / None
+            IR camera frames that were recorded during the actuator motion window (if sample=True)
+            None (if sample = False)
         err : List of floats (mm)
             Errors made upon actuator motions. Positive values indicate overshoot.
         act_disp : numpy array of floats (mm)
@@ -1567,90 +1436,75 @@ class alignment:
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
     
-        # Register current actuator displacements
+        # Register current actuator positions
         act_curr = self._get_actuator_pos(config)[0]
         
-        # Is there a previous step given (i.e., is there an actuator displacement different than zero)?
-        prev = np.any(act_disp_prev)
-        
-        # Only explicitly re-evaluate framework if no previous step is given.
-        if not prev:
-        
-            # Translate to current TTM angular configuration
-            TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
-        
-            # Couple the configuration to the nearest grid point & retrieve the Zemax-simulated distances
-            D_arr = self._snap_distance_grid(TTM_curr, config)
-        
-            # Numerically evaluate framework
-            if (sky != 0):
-                TTM_angles = self._sky_to_ttm(np.array([steps[0],steps[1],0,0],dtype=np.float64))
-                dTTM1X = TTM_angles[0]
-                dTTM1Y = TTM_angles[1]
-                CSbool = (sky==1)
-                TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
-                #print("Step : (dX,dY,dx,dy) = ",shifts_par)
-            else:
-                TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
-                #print("Step :  (dX,dY,dx,dy) = ",steps)
-        
-            # Calculating the necessary actuator displacements
-            act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
-        
-            # Offsets from accuracy grid
-            pos_offset = self._actoffset(speeds,act_disp) 
-        
-            # Final TTM configuration
-            TTM_final = TTM_curr + TTM_offsets
-    
-            # Before imposing the displacements to the actuators, the state validity is checked.
-            valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
-            if not valid:
-                raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
-                                 "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
-                                 "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
-                                 "\n (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
-                                 "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
-    
-        else:
-            # Impose actuator motions of previous step.
-            act_disp = act_disp_prev
-            # Offsets from accuracy grid
-            pos_offset = self._actoffset(speeds,act_disp) 
-            
+        # Translate to current TTM angular configuration
+        TTM_curr = self._actuator_position_to_ttm_angle(act_curr,config)
 
+        # Couple the configuration to the nearest grid point & retrieve the Zemax-simulated distances
+        D_arr = self._snap_distance_grid(TTM_curr, config)
+        
+        # Numerically evaluate framework
+        if (sky != 0):
+            TTM_angles = self._sky_to_ttm(np.array([steps[0],steps[1],0,0],dtype=np.float64))
+            dTTM1X = TTM_angles[0]
+            dTTM1Y = TTM_angles[1]
+            CSbool = (sky==1)
+            TTM_offsets,shifts_par = self._framework_numeric_sky(dTTM1X,dTTM1Y,D_arr,1,CSbool) 
+            #print("Step : (dX,dY,dx,dy) = ",shifts_par)
+        else:
+            TTM_offsets = self._framework_numeric_int(steps,D_arr,1) # Current Dgrid only supports central wavelength
+            #print("Step :  (dX,dY,dx,dy) = ",steps)
+        
+        # Calculating the necessary actuator displacements
+        act_disp = self._ttm_shift_to_actuator_displacement(TTM_curr,TTM_offsets,config)
+        
+        # Offsets from accuracy grid
+        pos_offset = self._actoffset(speeds,act_disp) 
+        
+        # Final TTM configuration
+        TTM_final = TTM_curr + TTM_offsets
+    
+        # Before imposing the displacements to the actuators, the state validity is checked.
+        #valid,cond = self._valid_state(bool_slicer,TTM_final,act_disp-pos_offset,act_curr,config)
+        valid = True
+        if not valid:
+            raise ValueError("The requested change does not yield a valid configuration. Out of conditions (1,2,3,4) the ones in following array indicate what conditions were violated : "+str(cond)+
+                             "\n Conditions :\n (1) The final configuration would displace the beam off the slicer."+
+                             "\n (2) The requested angular TTM offset is lower than what is achievable by the TTM resolution."+
+                             "\n (3) The requested final TTM configuration is beyond the limits of what the actuator travel ranges can achieve."+
+                             "\n (4) The requested final TTM configuration is beyond the current range supported by Dgrid (pm 1000 microrad for TTM1, pm 500 microrad for TTM2).")
+                
         # Only push actuator motion if it would yield a valid state
-        t_start,t_spent,act,act_times,roi,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,dt_sample,t_delay,err_prev) 
+        t_start,t_spent,act,act_times,frames,err = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,sample,err_prev) 
         
-        return t_start,t_spent,act,act_times,roi,err,act_disp
-   
-    #----------#
-    # InfraTec #
-    #----------#
-    
-    def cam_read(self,dt):
-    # Function that retrieves the average ROI values - registered in the REDIS database - from the past dt seconds.
-    
-        # REDIS field names
-        names = ["roi1_avg","roi2_avg","roi3_avg","roi4_avg","roi5_avg","roi6_avg","roi7_avg","roi8_avg","roi9_avg","roi10_avg"]
-        
-        # Readout "dt" seconds back in time
-        t_start,t_stop = define_time(dt)
-        
-        output = [get_field(names[i],t_start,t_stop,False) for i in range(0,len(names))]
-        
-        return output
+        return t_start,t_spent,act,act_times,frames,err,act_disp
     
     #----------#
     # Scanning #
     #----------#    
 
-    def localization_spiral(self,sky,step,speed,config,dt_sample):
+    def localization_spiral(self,sky,step,speed,config,dt_base=0.5):
         """
         Description
         -----------
         The function traces a square spiral in the user-specified plane (either image or on-sky plane) to locate the internal beam / on-sky source.
-        Once a point in the spiral yields an improvement in the registered camera ROI average > loc_fac * Noise, the spiral is stopped.
+        The spiral stops once a co-added frame, sampled throughout the last step, exceeds "SNR_inj" sigma's above the pre-spiral baseline broadband photometric output flux.
+        The global SNR maximum - across all samples throughout the step - is then determined and the bench is pushed to the associated sampled actuator positions.
+
+        Sampling specifics:        
+        With each step, pairs of actuator positions and redis timestamps are sampled (move_abs_ttm_act).
+        The sequence of frames - recorded within the time window of the step's motion - is fetched (_timestamps_to_frames).
+        The resulting Frame object is used to obtain frame-per-frame broadband flux (human_interface.get_frames_cal_broad).
+
+        For internal alignment, the stepsize is fixed to 20 um (waveguide diameter) and "step" is a dummy parameter.
+
+        A maximum value for the actuator speed is derived from the camera frame rate and a chosen tolerance on the positional mismatch of
+        associated (via redis timestamps) and truly synchronous actuator positions related to a camera frame.
+        This upper boundary is meant to guarantee that the beam moves no more than a distance "tolerance" per camera frame.
+        (! see Note2 in _timestamp_to_frames for reference.)
+        
         For on-sky spiralling, a time out is incorporated. Once the spiral arm reaches a dimension of Nstep_sky*step, the spiralling procedure is quit.
         The purpose of this time out is to not allow for endless spiralling in an on-sky region that is nowhere near a source.
         
@@ -1668,51 +1522,56 @@ class alignment:
         speed : single float value (mm/s)
             Actuator speed by which a spiral step should occur
             Note: Parameter to be removed once an optimal speed is recovered (which balances efficiency and accuracy)
+            Note2: bound by upper_speed, derived from positional mismatch tolerance
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        dt_sample : single float (s)
-            Amount of time a sample should span.
+        dt_base : single float (s)
+            Time window span across which a baseline photometry measurement is made before spiraling.
             
         Returns
         -------
         None.
         
         """
-        print("----------------------------------")
-        print("Spiraling for localization...")
-        print("----------------------------------")
-        if sky:
-            sky = 1
-        else:
-            sky = 0
+        sky = int(bool(sky))
         
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-        
-        if (speed > 30*10**(-3) or speed <= 0):
-            raise ValueError("Given actuator speed is beyond the accepted range (0,30] um/s")
+        if (speed <= 0):
+            raise ValueError("Given actuator speed cannot be negative.")
         
         if sky : 
             d = step
         else:
             d = 20*10**(-3) #(mm)
+
+        # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
+        #---------------------------------------------------------------------------------------
+        # Tolerance (half of waveguide diameter)
+        tol_loc = 10**(-2) # mm
+        # Estimating camera frame rate from a sequence of redis timestamps
+        pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
+        frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
+        # Cropping upper speed boundary to TwinCat boundary (30 um/s)
+        upper_speed = min(tol_loc / frame_period, 30*10**(-3)) # mm/s
+        # Cropping user input speed 
+        spd = min(speed, upper_speed)
+
+        # Baseline photometric broadband flux measurement
+        # -----------------------------------------------
+        photo_init, noise = self._get_photo_broad(dt_base, config)
+        print(f"Baseline flux: {photo_init:.4f} with noise: {noise:.4f}")
+
+        if photo_init > fac_loc * noise:
+            raise Exception("Localization spiral not started. Initial configuration is likely already in a state of injection.")
         
-        # Delay time (total delay minus writing time)
-        t_delay = self._get_delay(100,True)-t_write 
-        # Exposure time for first exposure (ms)
-        dt_exp_loc = 200
-        # Start time for initial exposure
-        t_start = self._get_time(1000*time.time(),t_delay)
-        # Sleep
-        time.sleep((dt_exp_loc+t_write)*10**(-3)) 
-        # Initial position noise measurement
-        mean,noise = self._get_noise(Nexp,t_start,dt_exp_loc)
-        print("Initial noise level (ROI9) : ", noise)
-        # Initial position photometric output measurement 
-        photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config)
-        print("Initial photometric output : ", photo_init)
-    
+        print("----------------------------------")
+        print(f"Spiraling for localization at actuator speed {spd} mm/s ...")
+        print("----------------------------------")
+
+        # Visualization # TBD
+        # -------------------
         # Container for average SNR values (for spiraling plot)
         dim = 11
         SNR_av = -10*np.ones((dim,dim))
@@ -1720,9 +1579,6 @@ class alignment:
         indplot = np.array([dim//2,dim//2])
         SNR_av[indplot[0]][indplot[1]] = 0
     
-        if (photo_init-mean > fac_loc*noise):
-            raise Exception("Localization spiral not started. Initial configuration likely to already be in a state of injection.")
-        
         # Initializing Plot
         fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111)
@@ -1794,87 +1650,80 @@ class alignment:
         # How much consequent moves are being made in a direction at the moment?
         Nsteps = 1
         
-        # Containers for actuator positions and times
+        # Containers for actuator positions and paired broadband flux values
         ACT = []
-        ACT_times = []
+        ACT_flux = []
         
         while not stop:
         
             # Initializing err_prev
             err_prev = np.zeros(4,dtype=np.float64)  
-            # Initializing act_disp_prev
-            act_disp_prev = np.zeros(4,dtype=np.float64)
         
             # Carrying out step(s)
             for i in range(0,Nsteps):
                 # Step
-                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-                _,_,acts,act_times,rois,err,act_disp = self.individual_step(True,sky,moves[move],speeds,config,True,dt_sample,t_delay,err_prev,act_disp_prev) 
+                speeds = np.full(4, spd, dtype=np.float64)
+                _,_,acts,act_times,frames,err,_ = self.individual_step(True,sky,moves[move],speeds,config,True,err_prev) 
                 # Saving errors for next step
                 err_prev = np.array(err,dtype=np.float64)
-                # Saving actuator steps for next step
-                act_disp_prev = act_disp
-                
-                # Container for sampled ROI exposures
-                exps = []
-                
-                # Storing camera values and actuator configurations
-                # 1) Saving photometric readout values (SNR) sampled throughout the step
-                for j in range(0, len(rois)):
-                    exps.append((rois[j]-photo_init)/noise)
-                # 2) Saving the actuator configurations and times sampled throughout the step
-                for j in range(0, len(acts)):
+
+                # Evaluate photometric readout over motion time window
+                if (frames is not None and len(acts) > 0):
+                    # Fetching individual frames for linking to actuator positions
+                    _,_,flux_seq,_ = self.humint.get_frames_cal_broad(frames=frames, sequence=True)
+                    flux_step = flux_seq[:, self.photo_idx[config]]
+                    # Fetching co-added frames for injection detection
+                    # How much frames amount to {acq_time} seconds
+                    n_frames = int(acq_time // frame_period)
+                    # How much bins do we thus need
+                    n_bins = len(flux_seq) // n_frames
+                    # Floor to min 1 bin
+                    n_part = max(n_bins, 1)
+                    children_frames = frames.partition(n_part)
+                    flux_bin = np.array([self.humint.get_frames_cal_broad(frames=child, sequence=False)[2][self.photo_idx[config]] for child in children_frames])
+                else:
+                    flux_step = np.array([photo_init])
+                    flux_bin = np.array([photo_init])
+                snr_step = (flux_step - photo_init) / noise
+                snr_bin = (flux_bin - photo_init) / noise
+
+                # Pair each actuator position set to the nearest camera frame
+                n_act, n_frame = len(acts), len(flux_step)
+                for j in range(0, n_act):
+                    # calculate the proportional index in the photometric readout array
+                    k = int(round(j * (n_frame-1) / max(n_act-1, 1)))
+                    k = min(k, n_frame-1)
                     ACT.append(acts[j])
-                    ACT_times.append(act_times[j])
-        
-                # Injection is reached if more than "Ncrit" independent sub-timeframes show a SNR improvement larger than "SNR_inj" compared to "photo_init"
-                exps_arr = np.array(exps,dtype=np.float64)
-                if ((exps_arr > SNR_inj).sum() > Ncrit):
-                    print("A state of injection has been reached.")
-                    print("Average SNR improvement value : ", np.average(exps_arr[exps_arr>SNR_inj]))
-                    # Update plot
-                    indplot = _update_plot(indplot,np.max(exps))
-                    
-                    # Safety sleep
-                    time.sleep(10*t_write*10**(-3)) # TBD
-                    # Find optimal injection found along spiral (performed once more, post-movement, to eliminate possible time sync issues during sampling)
-                    # Re-reading the photometric outputs (timeframe of dt_sample around each actuator timestamp)
-                    SNR_samples = np.array([self._get_photo(Nexp,round(timestamp-(1000*dt_sample/2)),round(1000*dt_sample),config)-photo_init for timestamp in ACT_times] / noise,dtype=np.float64)
-                    # Finding optimal injection index
-                    i_max = np.argmax(SNR_samples)
-                    #print("Index, SNR and actuator configuration of found injecting state :", i_max, SNR_samples[i_max], ACT[i_max])
-                    # Corresponding actuator positions
+                    ACT_flux.append(flux_step[k])
+
+                # Injection criterion
+                if (snr_bin > SNR_inj).any():
+                    print("Injecting state found!")
+                    print(f"Mean SNR of co-added frames ({acq_time} s each) that are above imposed threshold {SNR_inj}: {np.mean(snr_bin[snr_bin > SNR_inj]):.2f}")
+
+                    indplot = _update_plot(indplot, float(np.max(snr_bin)))
+
+                    # Push bench to global flux maximum, sampled across the spiral
+                    ACT_flux_arr = np.array(ACT_flux, dtype=np.float64)
+                    i_max = np.argmax(ACT_flux_arr)
                     ACT_final = ACT[i_max]
-                    # Current configuration
                     act_curr = self._get_actuator_pos(config)[0]
-                    # Necessary displacements
-                    act_disp = ACT_final-act_curr
-                    #print("Necessary displacements to bring the bench to injecting state : ", act_disp, " mm.")
-                    speeds = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                    pos_offset = self._actoffset(speeds,act_disp) 
-                    print("Bringing to injecting actuator position at ", act_curr+act_disp, " mm.")
-                    # Push bench to configuration of optimal found injection.
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_curr,act_disp,speeds,pos_offset,config,False,0.010,self._get_delay(100,True)-t_write)            
-                    return
-                
-                # Update plot
-                indplot = _update_plot(indplot,np.average(exps))
-                # Photometric output can increase with time (as camera warms up), leading to false claims of injection. 
-                # Re-measure it with each step.
-                t_start = self._get_time(1000*(time.time()),t_delay)
-                # Sleep
-                time.sleep((dt_exp_loc+t_write)*10**(-3)) # TBC
-                photo_init = self._get_photo(Nexp,t_start,dt_exp_loc,config) 
+                    act_disp = ACT_final - act_curr
+                    spd_push = np.full(4, speed_double, dtype=np.float64)
+                    pos_off = self._actoffset(spd_push, act_disp)
+                    print(f"Bringing bench to injecting actuator positions at {act_curr+act_disp} mm")
+                    self._move_abs_ttm_act(act_curr, act_disp, spd_push, pos_off, config, sample=False)
+                    plt.close(fig)
+                    return 
+
+                indplot = _update_plot(indplot, float(np.mean(snr_bin)))
+                # Refresh photometric baseline with each step (countering camera drift)
+                photo_init, noise = self._get_photo_broad(dt_base, config)
                 
             # Setting up next move
-            if move < 3:
-                move += 1
-            else:
-                move = 0
-            
+            move = (move+1) % 4
             # Counting the amount of performed move type switches
             Nswitch += 1
-        
             if (Nswitch % 2 == 0):
                 Nsteps += 1
             
@@ -2332,15 +2181,18 @@ class alignment:
         plt.close(fig)
         return
     
-    def optimization_cross(self,sky,CS,d,speed=1.1*10**(-3),config=1,dt_sample=0.050,k=10,l=5):
+    def optimization_cross(self,sky,CS,d,speed=1.1*10**(-3),config=1,dt_base=0.050,k=10,l=5):
         """
         Description
         -----------
         This function brings the beam centroid to a state of optimized injection by shaping a cross in the pupil or image plane, controlled by parameter "CS". 
-        Motion is continued in each of the four cartesian directions as long as there is monotonuous improvement in sampled ROI values.
-        The sampled ROI values are averaged by a sliding window approach, with size k and stepsize l between subsequent windows.
-        This sliding window approach is adopted to robustly probe the general ROI trend.
-        When a step does not show monotonuous improvement, the actuator configuration, sampled along the step, corresponding to maximal ROI readout is pushed to the bench.
+        Motion is continued in each of the four cartesian directions as long as there is monotonuous improvement in sampled broadband flux.
+        The sampled flux values are averaged by a sliding window approach, with size k and stepsize l between subsequent windows.
+        When a step no longer shows monotonuous improvement, the bench is pushed back to the actuator configuration - sampled along the step - that yielded the maximum flux along all steps in the ongoing direction.
+
+        For sampling specifics: see localization_spiral documentation
+
+        Actuator speed is cropped to an upper boundary, calculated by a positional tolerance. For specifics, see localization_spiral documentation.
         
         Parameters
         ----------
@@ -2359,12 +2211,12 @@ class alignment:
         config : single integer
             Configuration number (= VLTI input beam) (0,1,2,3).
             Nr. 0 corresponds to the innermost beam, Nr. 3 to the outermost one (see figure 3 in Garreau et al. 2024 for reference).
-        dt_sample : single float (s)
-            Amount of time a sample, made along a step, should span.
+        dt_base : single float (s)
+            Timespan of window for baseline photometric output measurement
         k : single integer
-            Window size for sample averaging
+            Window size for flux sample averaging
         l : single integer
-            Step size between windows
+            Step size between consecutive windows
             
         Remarks
         -------
@@ -2382,9 +2234,23 @@ class alignment:
         print("----------------------------------")
         if (config < 0 or config > 3):
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
+        
+        # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
+        #---------------------------------------------------------------------------------------
+        # Tolerance
+        tol_opt = 0.5*10**(-3) # mm
+        # Estimating camera frame rate from a sequence of redis timestamps
+        pairs = get_field("cam_integtime", self.ts.ts.get("cam_integtime")[0]-5000, self.ts.ts.get("cam_integtime")[0], False)
+        frame_period = 10**(-3) * np.median(np.diff(pairs[:,0])) # seconds
+        # Cropping upper speed boundary to TwinCat boundary (30 um/s)
+        upper_speed = min(tol_opt / frame_period, 30*10**(-3))
+        # Cropping user input speed 
+        spd = min(speed, upper_speed)
 
-        # Delay time (total delay minus writing time)
-        t_delay = self._get_delay(100,True)-t_write
+        # Baseline photometric broadband flux measurement
+        # -----------------------------------------------
+        photo_init, noise = self._get_photo_broad(dt_base, config)
+        print(f"Baseline flux: {photo_init:.4f} with noise: {noise:.4f}")
 
         # Possible moves
         if sky:
@@ -2410,70 +2276,69 @@ class alignment:
                 down=np.array([0,-d,0,0],dtype=np.float64)
                 right=np.array([d,0,0,0],dtype=np.float64)
             moves = np.array([up,left,down,right])
-        
-        # A) Storing characteristics of initial configuration
-
-        # Exposure time for first exposure (ms)
-        dt_exp_opt = 1000
-        # Start time for initial exposure
-        t_start = self._get_time(1000*time.time(),t_delay)
-        # Sleep
-        time.sleep((dt_exp_opt+t_write)*10**(-3))
-        # Initial position noise measurement
-        _,noise = self._get_noise(Nexp,t_start,dt_exp_opt)
-        # Initial position photometric output measurement
-        photo_init = self._get_photo(Nexp,t_start,dt_exp_opt,config)
-        print("Initial noise level : ", noise)
-        # B) Probe all four cartesian directions
         dirs = ["up","left","down","right"]
-        for i in range(0,4):
-            
-            print(dirs[i])
+        
+        # Probe all four cartesian directions
+        for i in range(0,4):            
+            print(f"Probing direction {dirs[i]}")
+
+            # Bins for actuator position and flux samples across this direction
+            ARM_act = []
+            ARM_flux = []
+
+            # Record starting position
+            ARM_act.append(self._get_actuator_pos(config)[0])
+            ARM_flux.append(photo_init)
             
             stop = False
-            
             while not stop:
                 print("Step")
                 
                 # Step
-                speeds = np.array([speed,speed,speed,speed], dtype=np.float64) # TBD
-                _,_,acts,_,rois,_,_ = self.individual_step(True,sky,moves[i],speeds,config,True,dt_sample,t_delay)
-                # Registering post-motion actuator configuration
-                act_post = self._get_actuator_pos(config)[0]
-                
-                # Set stop to True
-                stop = True
-                
-                # Take an average for each sliding window of size k
-                
-                n_windows = (len(rois)-k)//l + 1
+                speeds = np.full(4, spd, dtype=np.float64)
+                _,_,acts,act_times,frames,_,_ = self.individual_step(False,sky,moves[i],speeds,config,True)
 
-                rois_slide = np.array([rois[i:i+k] for i in range(0,n_windows*l,l)])
-                rois_slide_av = np.mean(rois_slide,axis=1)
-            
-                i_max_av = np.argmax(rois_slide_av)
-                
-                # snr
-                snr = (rois_slide_av-photo_init)/noise
-                print(rois)
-                print(rois_slide_av)
-                
-                # State of optimal injection
-                i_max = np.argmax(snr[i_max_av:i_max_av+k])
-                act_max = acts[i_max]
-                
-                # Only continue when there is improvement in the ROI sampled readouts.
-                if (np.all(np.diff(rois_slide_av) > 0)):
-                    stop = False
-                    
-                if stop:
-                    # If no improvement, stop is True, push back to the state of optimal injection sampled throughout the motion.
-                    act_disp = act_max-act_post
-                    speeds_return = np.array([0.0011,0.0011,0.0011,0.0011],dtype=np.float64) #TBD
-                    pos_offset = self._actoffset(speeds_return,act_disp) 
-                    _,_,_,_,_,_ = self._move_abs_ttm_act(act_post,act_disp,speeds_return,pos_offset,config,False,0.010,t_delay-t_write)
-        
-        return
+                # Evaluate photometry over window spanning the motion timeframe
+                if (frames is not None and len(acts) > 0):
+                    _,_,flux_seq,_ = self.humint.get_frames_cal_broad(frames=frames, sequence=True)
+                    flux_step = flux_seq[:, self.photo_idx[config]]
+                else:
+                    flux_step = np.array([photo_init])
+
+                # Pair each actuator position set to the nearest camera frame
+                n_act, n_frame = len(acts), len(flux_step)
+                for j in range(0, n_act):
+                    # calculate the proportional index in the photometric readout array
+                    b = int(round(j * (n_frame-1) / max(n_act-1, 1)))
+                    b = min(b, n_frame-1)
+                    ARM_act.append(acts[j])
+                    ARM_flux.append(flux_step[b])
+
+                # Assess increasing trend over sliding window
+                n_windows = max((len(ARM_flux) - k) // l + 1, 1)
+                windows = np.array([ARM_flux[w*l : w*l+k] for w in range(0, n_windows) if w*l+k <= len(ARM_flux)])
+                if len(windows)==0:
+                    continue
+                win_av = np.mean(windows, axis=1)
+
+                # Evaluate if the flux is monotonically increasing and stop if that is not the case
+                if not np.all(np.diff(win_av) > 0):
+                    stop = True
+
+                # Refresh photometric baseline with each step
+                photo_init, noise = self._get_photo_broad(dt_base, config)    
+
+            # Bring the bench to the configuration corresponding to maximum flux along this direction's arm
+            ARM_flux_arr = np.array(ARM_flux, dtype=np.float64)
+            i_max = np.argmax(ARM_flux_arr)
+            act_best = ARM_act[i_max]
+            act_curr = self._get_actuator_pos(config)[0]
+            act_disp = act_best - act_curr
+            spd_push = np.full(4, speed_double, dtype=np.float64)
+            pos_off = self._actoffset(spd_push, act_disp)
+            snr_best = (ARM_flux_arr[i_max] - photo_init) / noise
+            print(f"Best SNR along this direction: {snr_best:.2f} - pushing actuators to {act_curr + act_disp} mm")
+            self._move_abs_ttm_act(act_curr, act_disp, spd_push, pos_off, config, sample=False)
     
     ##########################################
     # Performance characterization / Testing #

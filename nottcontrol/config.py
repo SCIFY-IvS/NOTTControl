@@ -61,6 +61,10 @@ class Config:
     
     def getint(self, section, key):
         return self.config_parser.getint(section, key)
+    def getfloat(self, section, key):
+        return self.config_parser.getfloat(section, key)
+    def getboolean(self, section, key):
+        return self.config_parser.getboolean(section, key)
     
     def write(self):
         with open(self._path, 'w') as configfile:

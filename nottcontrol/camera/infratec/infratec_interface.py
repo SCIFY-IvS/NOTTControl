@@ -20,8 +20,8 @@ except (ImportError, ModuleNotFoundError):
     # old syspath.append version
     sys.path.append(r'D:\Python_Entwicklertools\IRBGrab')
     sys.path.append(r'D:\Python_Entwicklertools\analyseFunctions') 
-    import nottcontrol.camera.irbgrab as irbg
-    import nottcontrol.camera.hirbgrab as hirb
+    import nottcontrol.camera.infratec.irbgrab as irbg
+    import nottcontrol.camera.infratec.hirbgrab as hirb
 
 class InfratecInterface:
     def __init__(self):

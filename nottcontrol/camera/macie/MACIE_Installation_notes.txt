@@ -1,0 +1,108 @@
+MACIE Installation Notes
+========================
+
+Install readline required for macie_exe command line program:
+	- sudo apt-get install libreadline6 libreadline6-dev
+
+
+Linux - Software v4.0/5.0
+-------------------------
+
+Program directory:
+	/home/observer/macie_linux will be symlink to latest version
+	ln -s macie_v5.1_ubuntu macie_linux
+	In macie_v5.1_ubuntu: ln -s MacieApp msac
+	
+Macie library files
+	sudo cp -r /home/observer/macie_linux/MacieApp /usr/local/lib/macie_lib_v5.1
+	ln -s /usr/local/lib/macie_lib_v5.1 /home/observer/macie_v5.1_ubuntu/macie_lib
+	sudo ln -s /usr/local/lib/macie_lib_v5.1 /usr/local/lib/macie_lib
+	Run "sudo ldconfig -nN ." in /usr/local/lib/macie_lib folder
+	Make symlinks libcfitsio.so, libMACIE.so, libmil.so, and libQt5SerialPort.so in /usr/local/lib/macie_lib/
+		sudo ln -s libcfitsio.so.2.3.37 libcfitsio.so
+		sudo ln -s libmil.so.10.20.517 libmil.so
+		sudo ln -s libQt5SerialPort.so.5.10.1 libQt5SerialPort.so
+		
+
+In .bashrc:
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/macie_lib
+	export CPATH=$CPATH:/usr/local/lib/macie_lib
+
+Sym links of programs somewhere in $PATH:
+	Make sure to chmod +x ds9 in msac/
+	sudo ln -s /home/observer/macie_linux/MacieApp/msac /usr/local/bin/
+	sudo ln -s /home/observer/macie_linux/MacieApp/ds9 /usr/local/bin/  [optional]
+
+Disable ibus language: 
+	Switch System Setting > Language to none rather than ibus.
+	Otherwise, large CPU usage for no apparent reason?
+
+Rules file:
+	sudo cp 51-ftd3xx.rules /etc/udev/rules.d
+	sudo udevadm control --reload-rules
+
+=======================================================================
+
+To create rules file:
+
+$ lsusb
+Bus 003 Device 008: ID 0403:601f Future Technology Devices International, Ltd
+
+Indicates MACIE mounted at: /dev/bus/usb/003/008
+
+Look at device info:
+
+	$ udevadm info -a -p $(udevadm info -q path -n /dev/bus/usb/003/008)
+
+Create a rules document (NOTE: it is ATTRS in the rules file, not ATTR)
+Make sure observer is part of users group:
+
+	$ sudo adduser observer users
+
+In file 51-ftd3xx.rules:
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601e", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601f", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602a", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602b", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602c", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602d", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602f", MODE="0666"
+
+or
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601[e-f]", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602[a-f]", MODE="0666"
+
+or
+
+SUBSYSTEMS!="usb", ACTION!="add", GOTO="macie_rules_end"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601e", MODE="0666"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601f", MODE="0666"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602a", MODE="0666"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602b", MODE="0666"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602c", MODE="0666"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602d", MODE="0666"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602f", MODE="0666"
+LABEL="macie_rules_end"
+
+or
+
+SUBSYSTEMS!="usb", ACTION!="add", GOTO="macie_rules_end"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601e", GROUP="users", MODE="0660"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="601f", GROUP="users", MODE="0660"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602a", GROUP="users", MODE="0660"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602b", GROUP="users", MODE="0660"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602c", GROUP="users", MODE="0660"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602d", GROUP="users", MODE="0660"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="602f", GROUP="users", MODE="0660"
+LABEL="macie_rules_end"
+
+
+
+Then run: 
+	sudo cp 51-ftd3xx.rules /etc/udev/rules.d
+	sudo udevadm control --reload-rules
+	#sudo udevadm trigger
+
+
+
