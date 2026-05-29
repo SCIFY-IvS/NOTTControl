@@ -3,6 +3,8 @@ from time import sleep, time
 from nottcontrol.components.motor import Motor
 from nottcontrol import config
 
+
+
 class DelayLine(Motor):
     """
        Wrapper of the Motor class for delay lines.
@@ -12,7 +14,9 @@ class DelayLine(Motor):
     """
 
     def __init__(self, opcua_conn, opcua_prefix: str, name: str,
-                 speed: float = None, pos_min: float = 0.0, pos_max: float = 12500.0):
+                 speed: float = None, pos_min: float = 0.0,
+                 pos_max: float = 12500.0,
+                 backlash=4.0):
         """
         Params
         ------
@@ -22,9 +26,9 @@ class DelayLine(Motor):
         speed : Travel speed (um/s)
                 - converted to mm/s upon move calls
                 - defaults to value in config.ini
-        pos_min : lower bound of travel range (um)
+        pos_min : lower bound of travel range (µm)
                 - defaults to 0.0
-        pos_max : upper bound of travel range (um)
+        pos_max : upper bound of travel range (µm)
                 - defaults to 12500.0 (CMA12PP open-loop stepper CMA actuator)
         """
         if speed is None:
@@ -32,18 +36,50 @@ class DelayLine(Motor):
         super().__init__(opcua_conn, opcua_prefix, name, speed)
         self.pos_min = pos_min
         self.pos_max = pos_max
+        self.backlash = backlash
+        self.ongoing_sequence = False
 
     # Status checks
 
     @property
-    def position(self):
+    def position_mircrons(self):
         # Current position in um.
-        return self.getPositionAndSpeed()[0]*1000
+        return self.getPositionAndSpeed()[0]*1000.
 
     @property
     def is_standing(self):
         # Motor sStatus == 'STANDING'?
         return self.getStatusInformation()[0] == 'STANDING'
+
+    def await_motor(self, dt=0.1, timeout=10., initial=None, verbose=True):
+        if self.is_standing:
+            return
+        thetarget = self.target_microns
+        wait_start = time()
+        while time() < wait_start + timeout:
+            if self.is_standing:
+                return
+            else:
+                if verbose:
+                    position = self.position_mircrons
+                    distance_to_go = self.target_microns - position
+                    message = f"Waiting for {self.name} : {time() - wait_start :.1f}, {distance_to_go:.3f}: "
+                    print("                                    ", end="\r")
+                    print(message, end="\r", flush=True)
+                sleep(dt)
+
+    @property
+    def target_microns(self):
+        return self.getTargetPosition() * 1000.
+
+    @property
+    def time_to_target(self):
+        if self.is_standing:
+            est = 0.
+        else :
+            dist_to_go = self.target_microns - self.position_mircrons
+            est = np.abs(dist_to_go) / self._speed
+        return est
 
     @property
     def is_operational(self):
@@ -54,7 +90,7 @@ class DelayLine(Motor):
         # Target position within [pos_min, pos_max]?
         # If no target specified, use current position
         if target_pos is None:
-            target_pos = self.position
+            target_pos = self.position_mircrons
         return self.pos_min <= target_pos <= self.pos_max
 
     # Motion control
@@ -65,21 +101,118 @@ class DelayLine(Motor):
             raise ValueError(f"Target position {target_pos} um on {self.name} is"
                              f" out of the travel range [{self.pos_min, self.pos_max}] um.")
 
+    def move_sequence(self, target_pos: float, check_valid: bool= True,
+                    cp_backlash=True,
+                    dt=0.1, timeout=10., initial=None, verbose=False):
+        self.ongoing_sequence = True
+        need_cp = (self.target_pos - self.getPositionAndSpeed()[0]) > 0
+        if need_cp and cp_backlash:
+            self.move_abs(self.position_mircrons - self.backlash)
+            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+        self.move_abs(target_pos)
+        self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+
+        self.ongoing_sequence = False
+
+    def move_sequence_rel(self, rel_pos: float, check_valid: bool= True,
+                    cp_backlash=True):
+        target_pos = self.positio_microns + rel_pos
+        
+        
+
     def move_abs(self, target_pos: float, check_valid: bool= True):
         """
-           Move to absolute position target_pos (um). 
+        Move to absolute position target_pos (um). 
+
+        Args:
+            target_pos : [µm]
+            check_valid : (True) Verify validity of the command (bool)
+            cp_backlash : (True) Compensate the backlash (bool)
+        
         """
         if check_valid:
             self._valid_move(target_pos)
-        self.command_move_absolute(target_pos*10**(-3)).execute()
+        self.command_move_absolute(target_pos * 1e-3).execute()
 
     def move_rel(self, delta_pos: float, check_valid: bool= True):
         """
             Move by a relative distance delta_pos (um).
         """
-        target_pos = self.position + delta_pos
+        target_pos = self.position_mircrons + delta_pos
         if check_valid:
             self._valid_move(target_pos)
-        self.command_move_relative(delta_pos*10**(-3)).execute()
+        self.command_move_relative(delta_pos * 1e-3).execute()
 
-    
+def DL_args(i):
+    output = {
+        "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
+        "name":f"NDL{i+1}",
+        "speed": config.getfloat("cophasing", "dl_speed"),
+        "pos_min":0.,
+        "pos_max":12500.,
+        "backlash":4.0
+    }
+    return output
+
+def CO2_args(i):
+    output = {
+        "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
+        "name":f"NDL{i+1}",
+        "speed": config.getfloat("cophasing", "dl_speed"),
+        "pos_min":0.,
+        "pos_max":12500.,
+        "backlash":4.0
+    }
+    return output
+
+def CO2_args(i):
+    output = {
+        "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
+        "name":f"NDL{i+1}",
+        "speed": config.getfloat("cophasing", "dl_speed"),
+        "pos_min":0.,
+        "pos_max":12500.,
+        "backlash":4.0
+    }
+    return output
+
+import threading
+from numpy.typing import ArrayLike
+class ActuatorCluster(object):
+    def __init__(self, opcua_conn, init_strings,
+                ):
+        self.opcua_conn = opcua_conn
+        self.motors = [
+            DelayLine(self.opcua_conn, *init_strings(i)
+                        ) for i in range(4)
+        ]
+        self.threads = []
+
+    @property
+    def position_microns(self):
+        return np.array([amotor.mosition_microns for amotor in self.motors])
+
+    def move_abs_all(self, target_pos: ArrayLike, check_valid: bool= True,
+                    cp_backlash=True,
+                    dt=0.1, timeout=10., initial=None, verbose=False):
+        assert self.threads == [], "The threads were not finished"
+        for i, amotor in enumerate(self.motors):
+            kwargs = {"target_pos":target_pos[i],
+                    "check_valid":check_valid,
+                    "dt":dt,
+                    "timeout":timeout,
+                    "verbose=":verbose
+                    }
+            t = threading.Thread(target=amotor.move, kwargs=kwargs)
+            self.threads.append(t)
+        for t in self.threads:
+            t.start()
+
+    def await_all(self):
+        for t in self.threads():
+            t.join()
+        self.threads = []
+        
+    def move_abs_one(self, target, cp_backlash=True):
+        pass
+
