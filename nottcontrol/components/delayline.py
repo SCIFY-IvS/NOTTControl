@@ -53,9 +53,10 @@ class DelayLine(Motor):
         # Motor sStatus == 'STANDING'?
         return self.getStatusInformation()[0] == 'STANDING'
 
-    def await_motor(self, dt=0.1, timeout=10., initial=None, verbose=True):
+    def await_motor(self, dt=0.1, timeout=30., initial=None, verbose=True):
         if self.is_standing:
             return
+        sleep(0.2)
         thetarget = self.target_microns
         wait_start = time()
         while time() < wait_start + timeout:
@@ -76,11 +77,8 @@ class DelayLine(Motor):
 
     @property
     def time_to_target(self):
-        if self.is_standing:
-            est = 0.
-        else:
-            dist_to_go = self.target_microns - self.position_microns
-            est = np.abs(dist_to_go) / self._speed
+        dist_to_go = self.target_microns - self.position_microns
+        est = np.abs(dist_to_go) / self._speed
         return est
 
     @property
@@ -105,14 +103,28 @@ class DelayLine(Motor):
 
     def move_sequence(self, target_pos: float, check_valid: bool= True,
                     cp_backlash=True,
-                    dt=0.1, timeout=10., initial=None, verbose=False):
+                    dt=0.1, timeout=30., initial=None, verbose=False):
         self.ongoing_sequence = True
-        need_cp = not (target_pos - self.getPositionAndSpeed()[0]) > 0
+        need_cp = not (target_pos - self.position_microns) > 0
         if need_cp and cp_backlash:
             self.move_abs(self.position_microns - self.backlash)
-            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+            sleep(0.2)
+            if verbose:
+                print(self.position_microns, self.target_microns)
+                print(f"Backlash correction {self.position_microns:.2f} - {self.target_microns:.2f}")
+            t_est = self.time_to_target
+            if verbose:
+                print(f"t_est = {t_est}")
+            self.await_motor(dt=dt, timeout=t_est+10., verbose=verbose)
         self.move_abs(target_pos)
-        self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+        sleep(0.2)
+        if verbose:
+            print(self.position_microns, self.target_microns)
+            print(f"Actual motion {self.position_microns:.1f} - {self.target_microns:.1f}")
+        t_est = self.time_to_target
+        if verbose:
+            print(t_est)
+        self.await_motor(dt=dt, timeout=t_est+10., verbose=verbose)
 
         self.ongoing_sequence = False
 
@@ -196,9 +208,9 @@ def get_motor_args(prefix, i):
     opcua_prefix = config.config_parser.get("ldc", prefix+"_address")
     basename = config.config_parser.get("ldc", prefix+"_name")
     output = {
-        "opcua_prefix": f"ns=4;s={opcua_prefix}.{basename}",
+        "opcua_prefix": f"ns=4;s={opcua_prefix}.{basename}{i+1}",
         "name":f"{basename}{i+1}",
-        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),# speed in mm/s in config
+        "speed": config.getfloat("ldc", prefix+"_speed"),# speed in mm/s in config
         "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
         "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
         "backlash": config.getfloat("ldc", prefix+"_backlash"),
@@ -212,12 +224,8 @@ class ActuatorCluster(object):
     def __init__(self, opcua_conn, prefix,
                 ):
         self.opcua_conn = opcua_conn
-        available = config.getarray("ldc", prefix+"_idx_available", dtype=int),
-        self.motors = [
-            DelayLine(self.opcua_conn,
-                      get_motor_args(prefix, i))
-                                for i in available
-        ]
+        available = config.getarray("ldc", prefix+"_idx_available", dtype=int)
+        self.motors = [DelayLine(self.opcua_conn, **get_motor_args(prefix, i)) for i in available ]
         self.threads = []
 
     def __getitem__(self, key):
@@ -228,7 +236,7 @@ class ActuatorCluster(object):
 
     @property
     def position_microns(self):
-        return np.array([amotor.mosition_microns for amotor in self.motors])
+        return np.array([amotor.position_microns for amotor in self.motors])
 
     @property
     def is_standing(self):
@@ -236,7 +244,7 @@ class ActuatorCluster(object):
 
     @property
     def state(self):
-        positions = np.nan * np.zeros(len(self.delay_lines))
+        positions = np.nan * np.zeros(len(self.motors))
 
         for i, amotor in enumerate(self.motors):
             if not amotor.is_operational:
@@ -244,14 +252,15 @@ class ActuatorCluster(object):
             if not amotor.is_standing:
                 raise MotorError(f"Delay line {amotor.name} is not in STANDING status.")
             positions[i] = amotor.position_microns
+        return positions
 
     @property
     def is_operational(self):
         return np.array([amotor.is_operational for amotor in self.motors])
 
     def is_valid(self, target_pos: float):
-        return np.array([amotor._valid_move(apos)\
-                             for amotor, apos in zip(self.motors, target_pos)])
+        for amotor, apos in zip(self.motors, target_pos):
+            amotor._valid_move(apos)
 
     @property
     def target_microns(self):
@@ -262,7 +271,7 @@ class ActuatorCluster(object):
                     check_valid: bool= True,
                     cp_backlash=True,
                     dt=0.1,
-                    timeout=10.,
+                    timeout=30.,
                     initial=None,
                     verbose=False):
         assert self.threads == [], "The threads were not finished"
@@ -271,15 +280,15 @@ class ActuatorCluster(object):
                         "check_valid":check_valid,
                         "dt":dt,
                         "timeout":timeout,
-                        "verbose=":verbose
+                        "verbose":verbose
                     }
-            t = threading.Thread(target=amotor.move_abs, kwargs=kwargs)
+            t = threading.Thread(target=amotor.move_sequence, kwargs=kwargs)
             self.threads.append(t)
         for t in self.threads:
             t.start()
 
     def await_all(self):
-        for t in self.threads():
+        for t in self.threads:
             t.join()
         self.threads = []
 

@@ -1331,7 +1331,7 @@ def autocreate(wl_ft=None, wl_science=None):
         wl_ft = np.linspace(2.0e-6, 2.5e-6)
     myair = n_air.wet_atmo(config=sf_config.config_parser)
     mymodel = deepcopy(myair)
-    acor = corrector(config=sf_config)
+    acor = corrector(config=sf_config, lambs=wl_science)
     aft = offband_ft(wl_ft, wl_science,
                      wa_true=myair,
                      wa_model=mymodel,
