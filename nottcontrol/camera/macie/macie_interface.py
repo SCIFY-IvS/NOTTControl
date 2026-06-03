@@ -86,6 +86,12 @@ class MacieInterface():
         reply = self._socket.recv_string()
         print (f"Received reply {reply}")
     
+    def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
+        message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
+        self._socket.send_string(message)
+        reply = self._socket.recv_string()
+        print (f"Received reply {reply}")
+    
     def start_continuous_acquisition(self):
         self._acquiring.set()
     

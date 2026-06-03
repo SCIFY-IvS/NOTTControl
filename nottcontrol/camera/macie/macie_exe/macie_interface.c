@@ -85,6 +85,12 @@ extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroup
                                       ngroups, nreads, ndrops, nresets);
 }
 
+extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2)
+{
+    printf("Calling frame_settings, xWindowing %d, yWindowing %d, x1 %d, x2 %d, y1 %d, y2 %d\n", xWindowing, yWindowing, x1, x2, y1, y2);
+    return set_frame_settings(_ptUserData, xWindowing, yWindowing, x1, x2, y1, y2);
+}
+
 //  Receive 0MQ string from socket and convert into string
 inline static std::string
 s_recv (zmq::socket_t & socket, zmq::recv_flags flags = zmq::recv_flags::none) {
@@ -230,6 +236,25 @@ int main () {
                 {
                     kReplyString = "nok";
                 }            
+            }
+            else if (command == "framesettings")
+            {
+                bool xWindow = tokens[1] == "true";
+                bool yWindow = tokens[2] == "true";
+                int x1 = std::stoi(tokens[3]);
+                int x2 = std::stoi(tokens[4]);
+                int y1 = std::stoi(tokens[5]);
+                int y2 = std::stoi(tokens[6]);
+
+                bool ret = M_frame_settings(xWindow, yWindow, x1, x2, y1, y2);
+                if(ret)
+                {
+                    kReplyString = "ok";
+                }
+                else
+                {
+                    kReplyString = "nok";
+                }
             }
         }
         catch (const std::exception& e)
