@@ -2,6 +2,8 @@ import numpy as np
 from time import sleep, time
 from nottcontrol.components.motor import Motor
 from nottcontrol import config
+import threading
+from numpy.typing import ArrayLike
 
 
 
@@ -42,7 +44,7 @@ class DelayLine(Motor):
     # Status checks
 
     @property
-    def position_mircrons(self):
+    def position_microns(self):
         # Current position in um.
         return self.getPositionAndSpeed()[0]*1000.
 
@@ -61,7 +63,7 @@ class DelayLine(Motor):
                 return
             else:
                 if verbose:
-                    position = self.position_mircrons
+                    position = self.position_microns
                     distance_to_go = self.target_microns - position
                     message = f"Waiting for {self.name} : {time() - wait_start :.1f}, {distance_to_go:.3f}: "
                     print("                                    ", end="\r")
@@ -77,7 +79,7 @@ class DelayLine(Motor):
         if self.is_standing:
             est = 0.
         else:
-            dist_to_go = self.target_microns - self.position_mircrons
+            dist_to_go = self.target_microns - self.position_microns
             est = np.abs(dist_to_go) / self._speed
         return est
 
@@ -90,7 +92,7 @@ class DelayLine(Motor):
         # Target position within [pos_min, pos_max]?
         # If no target specified, use current position
         if target_pos is None:
-            target_pos = self.position_mircrons
+            target_pos = self.position_microns
         return self.pos_min <= target_pos <= self.pos_max
 
     # Motion control
@@ -107,7 +109,7 @@ class DelayLine(Motor):
         self.ongoing_sequence = True
         need_cp = (self.target_pos - self.getPositionAndSpeed()[0]) > 0
         if need_cp and cp_backlash:
-            self.move_abs(self.position_mircrons - self.backlash)
+            self.move_abs(self.position_microns - self.backlash)
             self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
         self.move_abs(target_pos)
         self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
@@ -138,61 +140,91 @@ class DelayLine(Motor):
         """
             Move by a relative distance delta_pos (um).
         """
-        target_pos = self.position_mircrons + delta_pos
+        target_pos = self.position_microns + delta_pos
         if check_valid:
             self._valid_move(target_pos)
         self.command_move_relative(delta_pos * 1e-3).execute()
 
-def DL_args(i):
-    prefix = "air"
+# def DL_args(i):
+#     prefix = "air"
+#     output = {
+#         "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
+#         "name":f"NDL{i+1}",
+#         "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+#         "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
+#         "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
+#         "backlash": config.getfloat("ldc", prefix+"_backlash"),
+#         "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
+#     }
+#     return output
+
+# def CO2_args(i):
+#     prefix = "co2"
+#     opcua_prefix = config.get("ldc", prefix+"_address")
+#     basename = config.get("ldc", prefix+"_name")
+#     output = {
+#         "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
+#         "opcua_prefix": f"ns=4;s={opcua_prefix}.{basename}",
+#         "name":f"NDL{i+1}",
+#         "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+#         "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
+#         "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
+#         "backlash": config.getfloat("ldc", prefix+"_backlash"),
+#         "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
+#     }
+#     return output
+
+# def glass_args(i):
+#     prefix = "glass"
+#     output = {
+#         "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
+#         "name":f"NDL{i+1}",
+#         "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+#         "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
+#         "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
+#         "backlash": config.getfloat("ldc", prefix+"_backlash"),
+#         "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
+#     }
+#     return output
+
+def get_motor_args(prefix, i):
+    """
+    Args:
+        prefix : either co2, glass, air
+        i : index starting at 0
+    """
+    opcua_prefix = config.config_parser.get("ldc", prefix+"_address")
+    basename = config.config_parser.get("ldc", prefix+"_name")
     output = {
-        "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
-        "name":f"NDL{i+1}",
-        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+        "opcua_prefix": f"ns=4;s={opcua_prefix}.{basename}",
+        "name":f"{basename}{i+1}",
+        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),# speed in mm/s in config
         "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
         "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
         "backlash": config.getfloat("ldc", prefix+"_backlash"),
-        "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
     }
     return output
 
-def CO2_args(i):
-    prefix = "co2"
-    output = {
-        "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
-        "name":f"NDL{i+1}",
-        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
-        "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
-        "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
-        "backlash": config.getfloat("ldc", prefix+"_backlash"),
-        "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
-    }
-    return output
+class MotorError(OSError):
+    pass
 
-def glass_args(i):
-    prefix = "glass"
-    output = {
-        "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
-        "name":f"NDL{i+1}",
-        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
-        "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
-        "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
-        "backlash": config.getfloat("ldc", prefix+"_backlash"),
-        "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
-    }
-    return output
-
-import threading
-from numpy.typing import ArrayLike
 class ActuatorCluster(object):
-    def __init__(self, opcua_conn, init_params,
+    def __init__(self, opcua_conn, prefix,
                 ):
         self.opcua_conn = opcua_conn
+        available = config.getarray("ldc", prefix+"_idx_available", dtype=int),
         self.motors = [
-            DelayLine(self.opcua_conn, **init_params(i)
-                        ) for i in range(init_params["available"])
+            DelayLine(self.opcua_conn,
+                      get_motor_args(prefix, i))
+                                for i in available
         ]
         self.threads = []
+
+    def __getitem__(self, key):
+        return self.motors[key]
+
+    def __len__(self):
+        return len(self.motors)
 
     @property
     def position_microns(self):
@@ -201,23 +233,38 @@ class ActuatorCluster(object):
     @property
     def is_standing(self):
         return np.array([amotor.is_standing for amotor in self.motors])
-    
+
+    @property
+    def state(self):
+        positions = np.nan * np.zeros(len(self.delay_lines))
+
+        for i, amotor in enumerate(self.motors):
+            if not amotor.is_operational:
+                raise MotorError(f"Delay line {amotor.name} is not in OPERATIONAL state.")
+            if not amotor.is_standing:
+                raise MotorError(f"Delay line {amotor.name} is not in STANDING status.")
+            positions[i] = amotor.position_microns
+
     @property
     def is_operational(self):
         return np.array([amotor.is_operational for amotor in self.motors])
 
     def is_valid(self, target_pos: float):
         return np.array([amotor._valid_move(apos)\
-                                for amotor, apos in zip(self.motors, target_pos)])
-    
+                             for amotor, apos in zip(self.motors, target_pos)])
+
     @property
     def target_microns(self):
         return np.array([amotor.target_microns for amotor in self.motors])
 
 
-    def move_abs_all(self, target_pos: ArrayLike, check_valid: bool= True,
+    def move_abs_all(self, target_pos: ArrayLike,
+                    check_valid: bool= True,
                     cp_backlash=True,
-                    dt=0.1, timeout=10., initial=None, verbose=False):
+                    dt=0.1,
+                    timeout=10.,
+                    initial=None,
+                    verbose=False):
         assert self.threads == [], "The threads were not finished"
         for i, amotor in enumerate(self.motors):
             kwargs = {"target_pos":target_pos[i],
