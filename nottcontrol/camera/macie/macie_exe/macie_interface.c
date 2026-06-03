@@ -78,6 +78,13 @@ extern "C" void M_close()
     free_resources(_ptUserData);
 }
 
+extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroups, int nreads, int ndrops, int nresets)
+{
+    printf("Calling exposure_settings, save %d, ncoadds %d, nseq %d, ngroups %d, nreads %d, ndrops %d, nresets %d \n", save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);
+    return set_exposure_settings(_ptUserData, save, ncoadds, nseq,
+                                      ngroups, nreads, ndrops, nresets);
+}
+
 //  Receive 0MQ string from socket and convert into string
 inline static std::string
 s_recv (zmq::socket_t & socket, zmq::recv_flags flags = zmq::recv_flags::none) {
@@ -201,6 +208,28 @@ int main () {
             {
                 M_close();
                 kReplyString = "ok";
+            }
+            else if (command == "expsettings")
+            {
+                std::string save_str = tokens[1];
+                bool save = save_str == "true";
+                int ncoadds = std::stoi(tokens[2]);
+                int nseq = std::stoi(tokens[3]);
+                int ngroups = std::stoi(tokens[4]);
+                int nreads = std::stoi(tokens[5]);
+                int ndrops = std::stoi(tokens[6]);
+                int nresets = std::stoi(tokens[7]);
+
+                bool ret = M_exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);
+
+                if(ret)
+                {
+                    kReplyString = "ok";
+                }
+                else
+                {
+                    kReplyString = "nok";
+                }            
             }
         }
         catch (const std::exception& e)

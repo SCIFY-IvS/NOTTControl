@@ -80,6 +80,12 @@ class MacieInterface():
         message = self._socket.recv_string()
         print (f"Received reply {message}")
     
+    def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
+        message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
+        self._socket.send_string(message)
+        reply = self._socket.recv_string()
+        print (f"Received reply {reply}")
+    
     def start_continuous_acquisition(self):
         self._acquiring.set()
     
