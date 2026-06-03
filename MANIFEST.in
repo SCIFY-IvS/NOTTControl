@@ -5,3 +5,9 @@ graft nottcontrol/script/data
 include nottcontrol/config.ini
 include nottcontrol/script/config/config.cfg
 include nottcontrol/script/cfg/config.cfg
+include nottcontrol/data/n_mathar_co2.dat
+include nottcontrol/data/n_mathar_h2o.dat
+include nottcontrol/data/n_mathar_air_370co2.dat
+include nottcontrol/data/znse_index.csv
+include nottcontrol/data/znse_Connoly.csv
+include nottcontrol/data/caf2_index.csv

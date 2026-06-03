@@ -107,7 +107,7 @@ class DelayLine(Motor):
                     cp_backlash=True,
                     dt=0.1, timeout=10., initial=None, verbose=False):
         self.ongoing_sequence = True
-        need_cp = (self.target_pos - self.getPositionAndSpeed()[0]) > 0
+        need_cp = not (target_pos - self.getPositionAndSpeed()[0]) > 0
         if need_cp and cp_backlash:
             self.move_abs(self.position_microns - self.backlash)
             self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
@@ -286,4 +286,15 @@ class ActuatorCluster(object):
     def move_abs_one(self, target, cp_backlash=True):
         pass
 
+
+class NOTT_LDC(object):
+    def __init__(self):
+        self.air_length
+        self.air_eq_index
+        self.co2_ppm
+        self.co2_length
+        self.co2_eq_index
+        self.glass_length
+        self.glass_eq_index
+    
 
