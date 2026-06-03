@@ -76,7 +76,7 @@ class DelayLine(Motor):
     def time_to_target(self):
         if self.is_standing:
             est = 0.
-        else :
+        else:
             dist_to_go = self.target_microns - self.position_mircrons
             est = np.abs(dist_to_go) / self._speed
         return est
@@ -144,47 +144,53 @@ class DelayLine(Motor):
         self.command_move_relative(delta_pos * 1e-3).execute()
 
 def DL_args(i):
+    prefix = "air"
     output = {
         "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
         "name":f"NDL{i+1}",
-        "speed": config.getfloat("cophasing", "dl_speed"),
-        "pos_min":0.,
-        "pos_max":12500.,
-        "backlash":4.0
+        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+        "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
+        "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
+        "backlash": config.getfloat("ldc", prefix+"_backlash"),
+        "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
     }
     return output
 
 def CO2_args(i):
+    prefix = "co2"
     output = {
         "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
         "name":f"NDL{i+1}",
-        "speed": config.getfloat("cophasing", "dl_speed"),
-        "pos_min":0.,
-        "pos_max":12500.,
-        "backlash":4.0
+        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+        "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
+        "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
+        "backlash": config.getfloat("ldc", prefix+"_backlash"),
+        "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
     }
     return output
 
-def CO2_args(i):
+def glass_args(i):
+    prefix = "glass"
     output = {
         "opcua_prefix": f"ns=4;s=MAIN.nott_ics.Delay_Lines.NDL{i+1}",
         "name":f"NDL{i+1}",
-        "speed": config.getfloat("cophasing", "dl_speed"),
-        "pos_min":0.,
-        "pos_max":12500.,
-        "backlash":4.0
+        "speed": 1e-3 * config.getfloat("ldc", prefix+"_speed"),
+        "pos_min": config.getfloat("ldc", prefix+"_pos_min"),
+        "pos_max": config.getfloat("ldc", prefix+"_pos_max"),
+        "backlash": config.getfloat("ldc", prefix+"_backlash"),
+        "available": config.getarray("ldc", prefix+"_idx_available", dtype=int),
     }
     return output
 
 import threading
 from numpy.typing import ArrayLike
 class ActuatorCluster(object):
-    def __init__(self, opcua_conn, init_strings,
+    def __init__(self, opcua_conn, init_params,
                 ):
         self.opcua_conn = opcua_conn
         self.motors = [
-            DelayLine(self.opcua_conn, *init_strings(i)
-                        ) for i in range(4)
+            DelayLine(self.opcua_conn, **init_params(i)
+                        ) for i in range(init_params["available"])
         ]
         self.threads = []
 
@@ -192,18 +198,35 @@ class ActuatorCluster(object):
     def position_microns(self):
         return np.array([amotor.mosition_microns for amotor in self.motors])
 
+    @property
+    def is_standing(self):
+        return np.array([amotor.is_standing for amotor in self.motors])
+    
+    @property
+    def is_operational(self):
+        return np.array([amotor.is_operational for amotor in self.motors])
+
+    def is_valid(self, target_pos: float):
+        return np.array([amotor._valid_move(apos)\
+                                for amotor, apos in zip(self.motors, target_pos)])
+    
+    @property
+    def target_microns(self):
+        return np.array([amotor.target_microns for amotor in self.motors])
+
+
     def move_abs_all(self, target_pos: ArrayLike, check_valid: bool= True,
                     cp_backlash=True,
                     dt=0.1, timeout=10., initial=None, verbose=False):
         assert self.threads == [], "The threads were not finished"
         for i, amotor in enumerate(self.motors):
             kwargs = {"target_pos":target_pos[i],
-                    "check_valid":check_valid,
-                    "dt":dt,
-                    "timeout":timeout,
-                    "verbose=":verbose
+                        "check_valid":check_valid,
+                        "dt":dt,
+                        "timeout":timeout,
+                        "verbose=":verbose
                     }
-            t = threading.Thread(target=amotor.move, kwargs=kwargs)
+            t = threading.Thread(target=amotor.move_abs, kwargs=kwargs)
             self.threads.append(t)
         for t in self.threads:
             t.start()
@@ -212,7 +235,8 @@ class ActuatorCluster(object):
         for t in self.threads():
             t.join()
         self.threads = []
-        
+
     def move_abs_one(self, target, cp_backlash=True):
         pass
+
 
