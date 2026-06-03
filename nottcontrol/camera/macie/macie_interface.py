@@ -27,7 +27,7 @@ class MacieInterface():
         self.init_camera()
         return self
     
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.close()
     
     def initialize(self, config_file, offline_mode):
