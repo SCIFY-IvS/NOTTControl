@@ -28,19 +28,17 @@ extern "C" int M_initialize(const char* configFile, bool offline_mode)
     }
     return ret;
 }
-extern "C" void M_acquire(const bool no_recon)
+extern "C" bool M_acquire(const bool no_recon)
 {
     std::cout << "Calling acquire" << std::endl;;
     std::cout << no_recon;
-    acquire(no_recon, _ptUserData);
-    return;
+    return acquire(no_recon, _ptUserData);
 }
 
-extern "C" void M_halt_acquisition()
+extern "C" bool M_halt_acquisition()
 {
     std::cout << "Calling halt" << std::endl;;
-    halt_acquisition(_ptUserData);
-    return;
+    return halt_acquisition(_ptUserData);
 }
 
 extern "C" bool M_initCamera()
@@ -173,13 +171,11 @@ int main () {
                 {
                     norecon = true;
                 }
-                M_acquire(norecon);
-                result = true; //TODO
+                result = M_acquire(norecon);
             }
             else if (command == "halt")
             {
-                M_halt_acquisition();
-                result = true;
+                result = M_halt_acquisition();
             }
             else if (command == "poweron")
             {

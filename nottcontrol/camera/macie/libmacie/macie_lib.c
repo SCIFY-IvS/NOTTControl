@@ -1704,23 +1704,25 @@ bool CloseGigEScienceInterface(MACIE_Settings *ptUserData)
     return true;
 }
 
-void HaltCameraAcq(MACIE_Settings *ptUserData)
+bool HaltCameraAcq(MACIE_Settings *ptUserData)
 {
     verbose_printf(LOG_INFO, ptUserData, "Halting data acquisition...\n");
     // verbose_printf(LOG_INFO, ptUserData, "Waiting for last ramp to complete...\n");
 
     if (ptUserData->DetectorMode == CAMERA_MODE_FAST)
     {
-        WriteASICReg(ptUserData, 0x6900, 0x8000);
+        bool ret = WriteASICReg(ptUserData, 0x6900, 0x8000);
         delay(100);
+        return ret;
     }
     else
     {
-        WriteASICReg(ptUserData, 0x6900, 0x8000);
+        bool ret = WriteASICReg(ptUserData, 0x6900, 0x8000);
         // TODO: Is this delay necessary? Frame boundary?
         // int tframe_ms = (int)exposure_frametime_ms(ptUserData);
         // delay(tframe_ms);
         delay(100);
+        return ret;
     }
 }
 
