@@ -53,29 +53,30 @@ extern "C" bool M_initCamera()
     return InitCamera(_configFile, MACIE_GigE, _ptUserData);
 }
 
-extern "C" void M_powerOff()
+extern "C" bool M_powerOff()
 {
     std::cout << "Calling powerOff" << std::endl;;
-    SetPowerASIC(_ptUserData, false);
+    return SetPowerASIC(_ptUserData, false);
 }
-extern "C" void M_powerOn()
+extern "C" bool M_powerOn()
 {
     std::cout << "Calling powerOn" << std::endl;;
-    SetPowerASIC(_ptUserData, true);
+    return SetPowerASIC(_ptUserData, true);
 }
 
-extern "C" void M_getPower()
+extern "C" bool M_getPower()
 {
     std::cout << "Calling getPower" << std::endl;
     bool pArr[MACIE_PWR_CTRL_SIZE];
-    GetPower(_ptUserData, pArr);
+    return GetPower(_ptUserData, pArr);
 }
 
-extern "C" void M_close()
+extern "C" bool M_close()
 {
     std::cout << "Calling close" << std::endl;
-    SetPowerASIC(_ptUserData, false);
-    free_resources(_ptUserData);
+    bool ret1 = SetPowerASIC(_ptUserData, false);
+    bool ret2 = free_resources(_ptUserData);
+    return ret1 && ret2;
 }
 
 extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroups, int nreads, int ndrops, int nresets)
@@ -182,24 +183,19 @@ int main () {
             }
             else if (command == "poweron")
             {
-                M_powerOn();
-                result = true;
+                result = M_powerOn();
             }
             else if (command == "poweroff")
             {
-                M_powerOff();
-                result = true;
+                result = M_powerOff();
             }
             else if (command == "getpower")
             {
-                //TODO reply value
-                M_getPower();
-                result = true;
+                result = M_getPower();
             }
             else if (command == "close")
             {
-                M_close();
-                result = true;
+                result = M_close();
             }
             else if (command == "expsettings")
             {
