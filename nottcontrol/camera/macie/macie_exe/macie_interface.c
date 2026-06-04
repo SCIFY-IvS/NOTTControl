@@ -132,7 +132,10 @@ int main () {
         std::string request = s_recv(socket);
         std::cout << "Received request " << request << std::endl;
 
-        std::string kReplyString;
+        //Did the operation succeed?
+        bool result;
+        //What is the answer?
+        std::string answer = "";
 
         try{
             auto tokens = split(request, ";");
@@ -154,29 +157,12 @@ int main () {
 
                 int ret = M_initialize(configFile.c_str(), offlineMode);
 
-                if(ret == 0)
-                {
-                    kReplyString = "ok";
-                }
-                else
-                {
-                    kReplyString = "nok";
-                }
-
-                kReplyString += ";" + std::to_string(ret);
+                result = ret == 0;
+                answer = std::to_string(ret);
             }
             else if (command == "initcamera")
             {
-                bool ret = M_initCamera();
-
-                if(ret)
-                {
-                    kReplyString = "ok";
-                }
-                else
-                {
-                    kReplyString = "nok";
-                }
+                result = M_initCamera();
             }
             else if (command == "acquire")
             {
@@ -187,33 +173,33 @@ int main () {
                     norecon = true;
                 }
                 M_acquire(norecon);
-                kReplyString = "ok";
+                result = true; //TODO
             }
             else if (command == "halt")
             {
                 M_halt_acquisition();
-                kReplyString = "ok";
+                result = true;
             }
             else if (command == "poweron")
             {
                 M_powerOn();
-                kReplyString = "ok";
+                result = true;
             }
             else if (command == "poweroff")
             {
                 M_powerOff();
-                kReplyString = "ok";
+                result = true;
             }
             else if (command == "getpower")
             {
                 //TODO reply value
                 M_getPower();
-                kReplyString = "ok";
+                result = true;
             }
             else if (command == "close")
             {
                 M_close();
-                kReplyString = "ok";
+                result = true;
             }
             else if (command == "expsettings")
             {
@@ -226,16 +212,7 @@ int main () {
                 int ndrops = std::stoi(tokens[6]);
                 int nresets = std::stoi(tokens[7]);
 
-                bool ret = M_exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);
-
-                if(ret)
-                {
-                    kReplyString = "ok";
-                }
-                else
-                {
-                    kReplyString = "nok";
-                }            
+                result = M_exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);          
             }
             else if (command == "framesettings")
             {
@@ -246,21 +223,22 @@ int main () {
                 int y1 = std::stoi(tokens[5]);
                 int y2 = std::stoi(tokens[6]);
 
-                bool ret = M_frame_settings(xWindow, yWindow, x1, x2, y1, y2);
-                if(ret)
-                {
-                    kReplyString = "ok";
-                }
-                else
-                {
-                    kReplyString = "nok";
-                }
+                result = M_frame_settings(xWindow, yWindow, x1, x2, y1, y2);
+            }
+            else 
+            {
+                result = false;
+                answer = "unknown command";
             }
         }
         catch (const std::exception& e)
         {
-            kReplyString = std::string("nok;" + std::string(e.what()));
+            result = false;
+            answer = std::string(e.what());
         }
+
+        std::string resultString = result ? "ok" : "nok";
+        std::string kReplyString = resultString + ";" + answer;
 
         //  Send reply back to client
         zmq::message_t reply (kReplyString.length());

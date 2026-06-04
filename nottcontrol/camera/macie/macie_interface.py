@@ -32,24 +32,20 @@ class MacieInterface():
     
     def initialize(self, config_file, offline_mode):
         self._socket.send_string(f"init;{config_file};{str(offline_mode).lower()}")
-        message = self._socket.recv_string()
-        #TODO: process reply properly
-        print (f"Received reply {message}")
+        return self._receive_and_parse_reply()
     
     def power_off(self):
         self._socket.send_string("poweroff")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        return self._receive_and_parse_reply()
     
     def power_on(self):
         self._socket.send_string("poweron")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        return self._receive_and_parse_reply()
 
     def init_camera(self):
         self._socket.send_string("initcamera")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        
+        self._receive_and_parse_reply()
 
         #Start the thread for continuous acquisition - it won't execute anything until start_continuous_acquisition is called
         thread = Thread(target = self.continuous_acquisition)
@@ -57,40 +53,38 @@ class MacieInterface():
     
     def acquire(self, no_recon = False):
         self._socket.send_string(f"acquire;{str(no_recon).lower()}")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        return self._receive_and_parse_reply()
     
     def get_power(self):
         self._socket.send_string("getpower")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        return self._receive_and_parse_reply()
     
     def close(self):
         self._closing.set()
 
         self._socket.send_string("close")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        try:
+            self._receive_and_parse_reply()
+        except Exception as e:
+            print(e)
+            pass #Best effort, clean up resources on our end anyway
 
         self._socket.close()
         self._context.term()
     
     def halt_acquisition(self):
         self._socket.send_string("halt")
-        message = self._socket.recv_string()
-        print (f"Received reply {message}")
+        return self._receive_and_parse_reply()
     
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
         self._socket.send_string(message)
-        reply = self._socket.recv_string()
-        print (f"Received reply {reply}")
+        return self._receive_and_parse_reply()
     
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
         message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
         self._socket.send_string(message)
-        reply = self._socket.recv_string()
-        print (f"Received reply {reply}")
+        return self._receive_and_parse_reply()
     
     def start_continuous_acquisition(self):
         self._acquiring.set()
@@ -103,3 +97,16 @@ class MacieInterface():
         while not self._closing.is_set():
             if (self._acquiring.wait(0.1)):
                 self.acquire()
+    
+    def _receive_and_parse_reply(self):
+        reply = self._socket.recv_string()
+        print (f"Received reply {reply}")
+        tokens = reply.split(";")
+
+        if tokens[0] == "ok":
+            if len(tokens) == 1:
+                return
+            else:
+                return tokens[1]
+        else:
+            raise Exception(f"Operation failed: {tokens[1]}")
