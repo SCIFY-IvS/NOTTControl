@@ -404,6 +404,51 @@ class HumInt(object):
         self.lambs = 1.0e-6 * calibration
         self.sc_mask = np.logical_and(self.lambs >= 1.0e-6 * lamb_low,
                                             self.lambs <= 1.0e-6 * lamb_high)
+        
+
+    def solve_spectral_cal_prism(
+        self,
+        label="wav_test",
+        roi_indices=[0, 1, 6, 7],
+        dt=8.0,
+        n=1,
+        setup_dt=5.0,
+        lamb_low=3.5,
+        lamb_high=4.0,
+    ):
+    
+        import numpy as np
+        from nottcontrol.script.wav_calib.wavelength_calib import run_wavelength_calibration
+    
+        fit_out = run_wavelength_calibration(
+            label=label,
+            roi_indices=roi_indices,
+            dt=dt,
+            n=n,
+            setup_dt=setup_dt,
+            use_geom=True,
+        )
+
+        output_height = fit_out["output_height"]
+        pixel_indices = np.arange(output_height)
+
+        lambs_um = fit_out["pixel_to_lambda"](pixel_indices)
+
+        self.lambs = 1.0e-6 * lambs_um
+
+        self.sc_mask = np.logical_and(
+        self.lambs >= 1.0e-6 * lamb_low,
+        self.lambs <= 1.0e-6 * lamb_high,
+        )
+
+        self.wavelength_calibration = fit_out
+
+        print("Prism wavelength calibration done.")
+        print("lambda range [um]:", np.nanmin(lambs_um), np.nanmax(lambs_um))
+        print("science pixels:", np.where(self.sc_mask)[0])
+        print("number of science pixels:", np.sum(self.sc_mask))
+
+        return fit_out
 
     @property
     def sc_lambs(self):
