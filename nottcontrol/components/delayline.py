@@ -5,7 +5,9 @@ from nottcontrol import config
 import threading
 from numpy.typing import ArrayLike
 
-
+simulation = False
+if simulation:
+    from nottcontrol.components.motor import MotorSim as Motor
 
 class DelayLine(Motor):
     """
@@ -18,7 +20,7 @@ class DelayLine(Motor):
     def __init__(self, opcua_conn, opcua_prefix: str, name: str,
                  speed: float = None, pos_min: float = 0.0,
                  pos_max: float = 12500.0,
-                 backlash=4.0):
+                 backlash=4.0, deadband=0.02):
         """
         Params
         ------
@@ -40,6 +42,7 @@ class DelayLine(Motor):
         self.pos_max = pos_max
         self.backlash = backlash
         self.ongoing_sequence = False
+        self.deadband = deadband
 
     # Status checks
 
@@ -103,9 +106,11 @@ class DelayLine(Motor):
 
     def move_sequence(self, target_pos: float, check_valid: bool= True,
                     cp_backlash=True,
-                    dt=0.1, timeout=30., initial=None, verbose=False):
+                    dt=0.1, timeout=30.,
+                    initial=None, verbose=False):
         self.ongoing_sequence = True
-        need_cp = not (target_pos - self.position_microns) > 0
+        distance = target_pos - self.position_microns
+        need_cp = (not distance  >= 0.) and np.abs(distance) >= self.deadband 
         if need_cp and cp_backlash:
             self.move_abs(self.position_microns - self.backlash)
             sleep(0.2)
@@ -305,5 +310,44 @@ class NOTT_LDC(object):
         self.co2_eq_index
         self.glass_length
         self.glass_eq_index
-    
+
+
+import astropy.units as u
+class GazLines(ActuatorCluster):
+    @classmethod
+    def from_d_stroke(cls, opcua_conn, prefix,
+                      diameter=45.0e-3, stroke=40.0e-3):
+        mylines = cls(opcua_conn, prefix)
+        mylines.diameter = diameter
+        mylines.stroke = stroke
+        mylines.section = np.pi*mylines.diameter**2 / 4.
+        mylines.vmax = mylines.stroke * mylines.section
+        mylines.vmin = 0.
+        mylines.vcenter = (mylines.vmax - mylines.vmin)/2
+        mylines.vwork = mylines.get_volume()
+
+    @property
+    def gaz_lengths_m(self):
+        self.stroke - self.position_microns*u.micron.to(u.m)
+
+    @property
+    def volumes(self):
+        pos_m = self.position_microns * u.micron.to(u.m)
+        volumes = self.stroke * self.section - (pos_m * self.section)
+        return volumes
+
+    def get_volume(self):
+        return np.sum(self.volumes)
+
+    def move_length_isovol(self, positions_m):
+        centered_pos = positions_m - np.mean(positions_m)
+        volume_defined_center = (self.vmax - self.vwork)\
+                                / (len(self) * self.section)
+        target_pos_m = volume_defined_center + centered_pos
+        self.move_abs_all(target_pos_m*u.m.to(u.micron))
+
+    def set_volume(self, volume):
+        self.working_volume = volume
+        poss = self.position_microns
+        self.move_isovol(poss)
 

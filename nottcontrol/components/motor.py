@@ -1,5 +1,5 @@
-from nottcontrol.commands.move_abs_command import MoveAbsCommand
-from nottcontrol.commands.move_rel_command import MoveRelCommand
+from nottcontrol.commands.move_abs_command import MoveAbsCommand, MoveAbsCommandSim
+from nottcontrol.commands.move_rel_command import MoveRelCommand, MoveRelCommandSim
 
 class Motor():
     def __init__(self, opcua_conn, opcua_prefix: str, name: str, speed: int):
@@ -55,3 +55,54 @@ class Motor():
     def getInitialized(self):
         init = self._opcua_conn.read_node(f"{self._prefix}.stat.bInitialised")
         return init
+
+class MotorSim(Motor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_pos = 0.
+        self.current_speed = 0.
+        self.timestamp = 0.
+        self.status = "STANDING"
+        self.state = "OPERATIONAL"
+
+    def command_move_absolute(self, pos, speed=None) -> MoveAbsCommand:
+        self.pos
+        if speed is not None:
+            spd = speed
+        else:
+            spd = self._speed
+        #Unit conversion as the PLC expects mm/s
+        return MoveAbsCommandSim(self._opcua_conn, self._prefix, pos, spd * 10**(-3))
+    
+    def command_move_relative(self, rel_pos, speed=None) -> MoveRelCommandSim:
+        if speed is not None:
+            spd = speed
+        else:
+            spd = self._speed
+        #Unit conversion as the PLC expects mm/s
+        return MoveRelCommandSim(self._opcua_conn, self._prefix, rel_pos, spd * 10**(-3))
+    
+    def reset(self):
+        pass
+    def init(self):
+        pass
+    def enable(self):
+        pass
+
+    
+    def disable(self):
+        pass
+    def stop(self):
+        pass
+    
+    def getPositionAndSpeed(self):
+        return self.current_pos, self.current_speed, self.timestamp
+    
+    def getStatusInformation(self):
+        return self.status, self.state, None
+    
+    def getTargetPosition(self):
+        return self.current_pos
+    
+    def getInitialized(self):
+        return True
