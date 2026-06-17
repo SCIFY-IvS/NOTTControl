@@ -11,6 +11,7 @@ import logging
 logit = logging.getLogger(__name__)
 from copy import deepcopy
 
+ArrayLike = np.typing.ArrayLike
 # import pdb
 
 # from pdb import set_trace
@@ -296,10 +297,10 @@ class corrector(object):
         return cls(self, config, lambs, file=None, order=3,
                 model_comp=None, model_material2=None)
 
-    def update(self, model_comp:wet_atmo = None,
-               model_material2:wet_atml = None,
+    def update(self, model_comp:n_air.wet_atmo = None,
+               model_material2:n_air.wet_atmo = None,
                order:int = 3,
-               prediction_model:wet_atmo = None,
+               prediction_model:n_air.wet_atmo = None,
                file_nplate:str = None,
                lambs:ArrayLike = None):
         """
@@ -843,7 +844,7 @@ class corrector(object):
 
 class offband_ft(object):
     def __init__(self, wl_ft, wl_science, wa_true,
-                     wa_model: wet_atmo = None,
+                     wa_model: n_air.wet_atmo = None,
                      mycorrector: corrector = None):
         """
         Builds a fringe tracker object that handles the problems of dispersion
@@ -883,9 +884,17 @@ class offband_ft(object):
         self.phase_correction_ft_science = None
 
     @classmethod
-    def from_nott_config(cls, config, wl_science):
-        wl_ft =
-        acorrector =
+    def from_nott_config(cls, config, asgard,
+                         wl_science, wa_true=None,
+                         wa_model=None):
+        ft_wl = asgard.getarray("asgard", "wl_ft")
+        wl_ft = np.linspace(ft_wl[0], ft_wl[-1], 6)
+        # TODO : pick correct
+        # * wa_true
+        # * wa_model
+        # * wl_science
+        # * corrector
+        acorrector = None
         return cls(wl_ft, wl_science, wa_true, wa_model,
                     mycorrecor=acorrector)
 

@@ -17,6 +17,8 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun
 
 from itertools import combinations
 
+from kernuller.interferometers import get_list2layout
+
 import logging
 
 logit = logging.getLogger(__name__)
@@ -40,7 +42,10 @@ class Observatory(object):
     """
     This class help define the properties of the observatory infrastructure, especially the uv coverage.
     """
-    def __init__(self, statlocs=None, location=None, verbose=False, multi_dish=True, config=None, order=None):
+    def __init__(self, statnames=None, location=None,
+                 verbose=False, multi_dish=True,
+                 pdiams=None,
+                 config=None, order=None):
         """
         
         Parameters:
@@ -63,19 +68,23 @@ class Observatory(object):
         self.observatory_location = astroplan.Observer.at_site(location, timezone="UTC")
         # self.array_config = self.config.get("configuration", "config")
         # raw_array, array_config = utilities.get_raw_array(self.config)
-        self.statlocs = statlocs
-        if order = None:
-            self.order = np.arange(0,4, dtype=int)
+        if order is None:
+            self.order = np.arange(0, len(statnames), dtype=int)
         else:
             self.order = order
+        self.statnames = statnames[self.order]
         # self.array_config = array_config; del array_config
         # raw_array = eval("kernuller.%s"%(self.array_config))
-        if statlocs is None:
-            self.statlocs = raw_array[self.order]
-        else:
-            self.statlocs = statlocs
+        self.statlocs = get_list2layout(self.statnames)
+        if verbose:
+            print(statnames)
+            print(self.statnames)
+            print(self.statlocs)
         
-        self.pdiams = self.config.getarray("configuration","diam")
+        if pdiams is None:
+            self.pdiams = self.config.getarray("configuration","diam")
+        else:
+            self.pdiams = pdiams
         
         self.theta = sp.symbols("self.theta")
         #R handles the azimuthal rotation
@@ -102,6 +111,18 @@ class Observatory(object):
         self.bl_mat = bl_mat
         del bl_mat
         del bl_list
+
+    @classmethod
+    def from_asgard_link(cls, asgard_link, verbose=False):
+        order = asgard_link.getarray("vlti", "order", dtype=int)
+        stat_names = asgard_link.getarray("vlti", "conf_string",
+                                              dtype=str)
+        location = "Paranal"
+        pdiams = asgard_link.getarray("vlti", "diam")
+        return cls(statnames=stat_names, location=location,
+                   pdiams=pdiams,
+                   verbose=verbose, multi_dish=True, config=None,
+               order=order)
         
         
     def point(self, obstime, target):
@@ -275,7 +296,7 @@ class Observatory(object):
             logit.debug("new array "+ str(pistons))
         return pistons
 
-class ObservatoryAltAz(observatory):
+class ObservatoryAltAz(Observatory):
     """
     For observatories that are mounted on a single alt-az mount.
         
@@ -345,7 +366,7 @@ class ObservatoryAltAz(observatory):
             logit.debug("new array "+ str(pistons))
         return pistons
 
-class SpaceObservatory(observatory):
+class SpaceObservatory(Observatory):
     def __init__(self, statlocs=None, location=None,
             verbose=False, multi_dish=True, config=None):
         """

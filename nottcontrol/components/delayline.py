@@ -351,3 +351,17 @@ class GazLines(ActuatorCluster):
         poss = self.position_microns
         self.move_isovol(poss)
 
+
+def create_nott_co2_lines(opcua_conn, myconfig):
+    co2_pos_min = myconfig.getfloat("ldc", "co2_pos_min")
+    co2_pos_max = myconfig.getfloat("ldc", "co2_pos_max")
+    co2_stroke = co2_pos_max - co2_pos_min
+    co2_diameter = myconfig.getfloat("ldc", "co2_meandiameter")
+    myobj = GazLines(opcua_conn, prefix="co2",
+                    diameter=co2_diameter,
+                    stroke=co2_stroke)
+    return myobj
+
+
+
+
