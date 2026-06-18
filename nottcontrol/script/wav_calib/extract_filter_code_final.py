@@ -23,6 +23,10 @@ SAVGOL_WINDOW = 9                 # must be odd; keep small (7,9,11)
 SAVGOL_POLY = 2
 MOVAVG_WINDOW = 7                 # odd recommended
 DO_PLOTS = True
+
+# TODO Put these values in config file.
+LAMBDA_HP1_UM = 3.46252
+LAMBDA_HP2_UM = 4.07477
 # ==============================
 
 
@@ -127,6 +131,8 @@ def extract_filter_edges_from_arrays(
     movavg_window=7,
     source_name=None,
     run_key=None,
+    lambda_hp1_um=LAMBDA_HP1_UM,
+    lambda_hp2_um=LAMBDA_HP2_UM,
 ):
     spectra = np.asarray(spectra, dtype=float)
     Nroi = spectra.shape[0]
@@ -196,8 +202,8 @@ def extract_filter_edges_from_arrays(
         "Nroi": Nroi,
         "summed_spectrum": summed_spectrum,
         "result": result,
-        "lambda_hp1_um": 3.46252,
-        "lambda_hp2_um": 4.07477,
+        "lambda_hp1_um": lambda_hp1_um,
+        "lambda_hp2_um": lambda_hp2_um,
     } 
 
 
@@ -214,6 +220,8 @@ def extract_filter_edges(
     savgol_window=9,
     savgol_poly=2,
     movavg_window=7,
+    lambda_hp1_um=LAMBDA_HP1_UM,
+    lambda_hp2_um=LAMBDA_HP2_UM,
 ):
     npz_path = Path(npz_path)
     if not npz_path.exists():
@@ -236,6 +244,8 @@ def extract_filter_edges(
         movavg_window=movavg_window,
         source_name=str(npz_path),
         run_key=run_key,
+        lambda_hp1_um=lambda_hp1_um,
+        lambda_hp2_um=lambda_hp2_um,
     )
 
     # Keep backward compatible key name for file based workflow
@@ -259,6 +269,8 @@ if __name__ == "__main__":
         savgol_window=SAVGOL_WINDOW,
         savgol_poly=SAVGOL_POLY,
         movavg_window=MOVAVG_WINDOW,
+        lambda_hp1_um=LAMBDA_HP1_UM,
+        lambda_hp2_um=LAMBDA_HP2_UM,
     )
 
     print("Loaded:", Path(out["npz_path"]).name)

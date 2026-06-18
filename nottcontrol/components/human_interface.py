@@ -406,20 +406,39 @@ class HumInt(object):
                                             self.lambs <= 1.0e-6 * lamb_high)
         
 
+    
+
+    @property
+    def sc_lambs(self):
+        """
+            This is the array of wavelengths limited to the science mask.
+        """
+        return self.lambs[self.sc_mask]
+    
     def solve_spectral_cal_prism(
         self,
-        label="wav_test",
+        label="quick_wav_test",
         roi_indices=[0, 1, 6, 7],
-        dt=8.0,
+        dt=8.0,   #  exposure/integration time
         n=1,
         setup_dt=5.0,
-        lamb_low=3.5,
+        lamb_low=3.5, #science wavelength range we want to keep after calibration
         lamb_high=4.0,
+        lambda_hp1_um=3.46252,  #filter edges/edges of source
+        lambda_hp2_um=4.07477,
+        save_fits=True,
+        save_hist="/data/bench_data", # TODO : use config file
+        save_latest="/data/bench_data",
     ):
-    
+        """
+        Run the prism-based wavelength calibration and update self.lambs and self.sc_mask
+        """
+
         import numpy as np
+        from pathlib import Path
+        from astropy.io import fits
         from nottcontrol.script.wav_calib.wavelength_calib import run_wavelength_calibration
-    
+
         fit_out = run_wavelength_calibration(
             label=label,
             roi_indices=roi_indices,
@@ -427,6 +446,8 @@ class HumInt(object):
             n=n,
             setup_dt=setup_dt,
             use_geom=True,
+            lambda_hp1_um=lambda_hp1_um,
+            lambda_hp2_um=lambda_hp2_um,
         )
 
         output_height = fit_out["output_height"]
@@ -434,14 +455,51 @@ class HumInt(object):
 
         lambs_um = fit_out["pixel_to_lambda"](pixel_indices)
 
-        self.lambs = 1.0e-6 * lambs_um
+        self.lambs = lambs_um
 
-        self.sc_mask = np.logical_and(
-        self.lambs >= 1.0e-6 * lamb_low,
-        self.lambs <= 1.0e-6 * lamb_high,
-        )
+        self.sc_mask = (self.lambs >= lamb_low) & (self.lambs <= lamb_high)
 
         self.wavelength_calibration = fit_out
+
+
+        if save_fits:
+            save_hist = Path(save_hist)
+            save_latest = Path(save_latest)
+
+            save_hist.mkdir(exist_ok=True)
+            save_latest.mkdir(exist_ok=True)
+
+            calibration_time = fit_out["calibration_time"]
+            time_tag = calibration_time.replace("-", "").replace(":", "").replace("T", "_").replace(".", "")
+
+            # TODO used config file
+            hist_path = save_hist / f"wav_cal_{time_tag}.fits"
+            latest_path = save_latest / "wav_cal_latest.fits"
+
+            hdr = fits.Header()
+            hdr["DATETIME"] = calibration_time        #time
+            hdr["LAMEDG1"] = fit_out["lambda_hp1_um"]  #edge 1 of filtr or source
+            hdr["LAMEDG2"] = fit_out["lambda_hp2_um"]   #edge 2 of filter or source
+            hdr["YEDGE1"] = fit_out["y_hp1_obs"] #observed pixel position of the edge
+            hdr["YEDGE2"] = fit_out["y_hp2_obs"]
+            hdr["OUTTOP"] = fit_out["output_top_idx"]   # the top row index of the extracted spectral output region.
+            hdr["OUTHT"] = fit_out["output_height"]   # sthe vertical height
+            hdr["LSCILOW"] = lamb_low    # low science wavelength value, science mask is/will be based on this
+            hdr["LSCIHI"] = lamb_high   # high science wavelength value
+
+            hdul = fits.HDUList([
+                fits.PrimaryHDU(header=hdr),
+                fits.ImageHDU(data=lambs_um, name="WAVELENGTH_UM"),
+                fits.ImageHDU(data=self.sc_mask.astype(np.uint8), name="SCI_MASK"),
+                fits.ImageHDU(data=fit_out["flux_disp"], name="FLUX_DISP"),
+                fits.ImageHDU(data=fit_out["summed_spectrum"], name="SUMMED_SPEC"),
+                # fits.ImageHDU(data=fit_out["lam_fit"], name="MODEL_LAM_UM"),
+                # fits.ImageHDU(data=fit_out["pixel_fit"], name="MODEL_PIXEL"),
+            ])
+
+
+            hdul.writeto(hist_path, overwrite=False)
+            hdul.writeto(latest_path, overwrite=True)
 
         print("Prism wavelength calibration done.")
         print("lambda range [um]:", np.nanmin(lambs_um), np.nanmax(lambs_um))
@@ -450,12 +508,27 @@ class HumInt(object):
 
         return fit_out
 
-    @property
-    def sc_lambs(self):
-        """
-            This is the array of wavelengths limited to the science mask.
-        """
-        return self.lambs[self.sc_mask]
+    def load_spectral_cal(
+            self,
+            cal_file= "/data/filepath2/wav_cal_latest.fits",
+    ):
+
+        from astropy.io import fits
+
+        hdul = fits.open(cal_file)
+
+        lambs_um = hdul["WAVELENGTH_UM"].data
+        sc_mask = hdul["SCI_MASK"].data.astype(bool)
+
+        self.lambs = lambs_um          # in microns
+        self.sc_mask = sc_mask         #science mask
+
+        hdul.close()
+
+        print("Loaded prism wavelength calibration:", cal_file)
+        print("lambda range [um]:", lambs_um.min(), lambs_um.max())
+        print("science pixels:", np.where(self.sc_mask)[0])
+        print("number of science pixels:", np.sum(self.sc_mask))
 
     # Time stamping
 

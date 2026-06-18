@@ -19,7 +19,7 @@ Main outputs per acquisition:
 """
 from __future__ import annotations
 
-from datetime import datetime
+from astropy.time import Time
 from platform import system
 
 import time
@@ -201,7 +201,7 @@ class FrameSpectrumExporter:
 def _build_meta(diag, label, dt, n, use_geom, snr_thresh):
     meta = {
         "label": label,
-        "created_local": datetime.now().strftime("%Y%m%d_%H%M%S"),
+        "calibration_time": Time.now().isot,
         "dt_diagnose": float(dt),
         "n_repeats": int(n),
         "use_geom": bool(use_geom),

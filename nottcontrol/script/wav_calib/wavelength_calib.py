@@ -27,13 +27,17 @@ SAVGOL_WINDOW = 9
 SAVGOL_POLY = 2
 MOVAVG_WINDOW = 7
 
+# TODO Put these values in config file.
+LAMBDA_HP1_UM = 3.46252  #default value, can be changed or passed on
+LAMBDA_HP2_UM = 4.07477
+
 
 # ---------------------------------------------------------
 # Analytical model settings (i1 and cam angle varied)
 # ----------------------------------------------------------
 
-LAM_MIN = 3.440
-LAM_MAX = 4.075
+LAM_MIN = 2.50
+LAM_MAX = 5.00
 N_POINTS = 2000
 
 A_DEG = 60.0
@@ -310,7 +314,6 @@ def run_wavelength_calibration(
     n=1,
     snr_thresh=5.0,
     use_geom=True,
-    custom_lambs=False,
     pad_seconds=0.0,
     setup_dt=SETUP_DT,
     baseline_n=BASELINE_N,
@@ -318,6 +321,8 @@ def run_wavelength_calibration(
     savgol_window=SAVGOL_WINDOW,
     savgol_poly=SAVGOL_POLY,
     movavg_window=MOVAVG_WINDOW,
+    lambda_hp1_um=LAMBDA_HP1_UM,
+    lambda_hp2_um=LAMBDA_HP2_UM,
     fit_i1=FIT_I1,
     fit_theta_cam=FIT_THETA_CAM,
     p0_initial=P0_INITIAL,
@@ -341,7 +346,6 @@ def run_wavelength_calibration(
         n=n,
         snr_thresh=snr_thresh,
         use_geom=use_geom,
-        custom_lambs=custom_lambs,
         pad_seconds=pad_seconds,
         setup_dt=setup_dt,
         baseline_n=baseline_n,
@@ -349,10 +353,9 @@ def run_wavelength_calibration(
         savgol_window=savgol_window,
         savgol_poly=savgol_poly,
         movavg_window=movavg_window,
+        lambda_hp1_um=lambda_hp1_um,
+        lambda_hp2_um=lambda_hp2_um,
     )
-    print("obs edges debug")
-    print(obs)
-
 
     fit_out = fit_prism_model(
         obs=obs,
@@ -372,6 +375,9 @@ def run_wavelength_calibration(
         pixel_pitch_um=pixel_pitch_um,
         sign_out=sign_out,
     )
+
+    fit_out["flux_disp"] = all_runs[0]["flux_disp"]
+    fit_out["summed_spectrum"] = edge_out["summed_spectrum"]
 
     return fit_out
 

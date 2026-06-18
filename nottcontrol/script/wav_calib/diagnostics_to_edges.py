@@ -17,7 +17,6 @@ def get_observed_edges_from_diagnostics(
     n=1,
     snr_thresh=5.0,
     use_geom=True,
-    custom_lambs=False,
     pad_seconds=0.0,
     setup_dt=5.0,
     baseline_n=12,
@@ -25,6 +24,9 @@ def get_observed_edges_from_diagnostics(
     savgol_window=9,
     savgol_poly=2,
     movavg_window=7,
+    lambda_hp1_um=3.46252,
+    lambda_hp2_um=4.07477,
+
 ):
     # run diagnostics
     meta, all_runs = run_diagnostics_export(
@@ -56,6 +58,8 @@ def get_observed_edges_from_diagnostics(
         movavg_window=movavg_window,
         source_name=label,
         run_key="run000_flux_disp",
+        lambda_hp1_um=lambda_hp1_um,
+        lambda_hp2_um=lambda_hp2_um,
     )
 
     row = out["result"]
@@ -71,7 +75,7 @@ def get_observed_edges_from_diagnostics(
         "width_obs": row["width_pix"],
         "lambda_hp1_um": out["lambda_hp1_um"],
         "lambda_hp2_um": out["lambda_hp2_um"],
-        "calibration_time": meta.get("created_local"),
+        "calibration_time": meta.get("calibration_time"),
         "label": meta.get("label"),
         "dt_diagnose": meta.get("dt_diagnose"),
         "n_repeats": meta.get("n_repeats"),
