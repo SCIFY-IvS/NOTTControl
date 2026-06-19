@@ -1,0 +1,655 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_CTRL_TEMPERATURE" Id="{dc6b135c-7f3c-45da-822c-0c2b8b9f4d2c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CTRL_TEMPERATURE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sName : STRING;   // name of the controller
+	{attribute 'OPC.UA.DA' := '0'}
+    in_tCycleTime : TIME := T#10ms;
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+    temperatures : FB_NOTT_TEMPERATURES;  // all temperatures
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+    // configuration
+	{attribute 'OPC.UA.DA' := '0'}
+	{attribute 'TcHmiSymbol.Show'}
+	fbTcConfig : FB_READ_WRITE_METIS_CTRL_DT670_CFG;
+    
+    // standard objects
+	{attribute 'TcHmiSymbol.Show'}
+    stat : T_METIS_CTRL_LOOP_STAT;
+	{attribute 'TcHmiSymbol.Show'}
+    ctrl : T_NOTT_CTRL_LOOP_CTRL;
+	{attribute 'TcHmiSymbol.Show'}
+    cfg  : T_METIS_CTRL_LOOP_CFG;
+    
+    
+	{attribute 'OPC.UA.DA' := '0'}
+		{attribute 'TcHmiSymbol.Show'}
+    pInputTemp : POINTER TO FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '0'}
+		{attribute 'TcHmiSymbol.Show'}
+    pSetpointTemp : POINTER TO FB_METIS_TEMPERATURE;
+    
+    // Beckhoff controller
+	{attribute 'OPC.UA.DA' := '0'}
+	{attribute 'TcHmiSymbol.Show'}
+	fbCtrlPid       : FB_CTRL_PID;
+	{attribute 'OPC.UA.DA' := '0'}
+	{attribute 'TcHmiSymbol.Show'}
+	stCtrlPidParams : ST_CTRL_PID_PARAMS;
+    
+	// ramp generator
+	ramp: FB_METIS_CTRL_RAMP_GENERATOR;
+    
+    // array for setpoint selection, used by the HMI
+	{attribute 'OPC.UA.DA' := '0'}
+		{attribute 'TcHmiSymbol.Show'}
+    aSetpointSwitchNames : ARRAY[0..1] OF STRING := [ 'Fixed', 'Variable' ]; 
+	
+	
+				// Alarm handling
+	// List of alarms to be handled by Temperature
+	arrEventEntry : ARRAY [0..4] OF TcEventEntry;
+	// Alarm handler FB
+	fbAlarmHandler : FB_AlarmHandler;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	sInstanceName : T_MaxString;
+	{attribute 'TcHmiSymbol.Show'}
+	bConfirmAllAlarms : BOOL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	sEventClassName : T_MaxString;
+	
+	// Logs logs
+	logs:	FB_CRYO_FUNCTION_LOG;
+    
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// to avoid any problem of invalid pointers, set them right away
+M_UpdateTempPointers(temperatures := temperatures);
+
+// Read/write configuration
+fbTcConfig(in_sTempCtrlName:= in_sName, Temp_Ctrl_Config:= cfg);
+
+// configure during the first cycles
+IF NOT stat.bConfigured THEN
+    M_Configure(temperatures := temperatures);
+    RETURN;
+END_IF
+
+// read/write the config (if needed)
+M_Read_Write_Config(temperatures := temperatures);
+
+
+IF stat.bStarted THEN
+    M_ExecuteModes();
+    M_ExecuteController();
+ELSE
+    M_Startup();
+END_IF
+
+M_UpdateStatus();
+
+IF ctrl.bClearForcedManualDiag THEN
+    stat.sLastForcedManualTime := '';
+    stat.sLastForcedManualCause := '';
+    ctrl.bClearForcedManualDiag := FALSE;
+END_IF
+
+// Handle alarms
+M_UpdateAlarms();
+
+
+// Setting Power to the heater
+//IF bEngMode AND (NOT ctrl.bEnable) THEN
+//	lrControllerOut := lrManualOut; // set manual power
+//ELSE
+//	lrManualOut := lrControllerOut; // Bumpless transition
+//END_IF
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ConfigReadingFinished" Id="{34068447-238f-4462-b0cb-50d7d42b11bd}">
+      <Declaration><![CDATA[METHOD M_ConfigReadingFinished
+VAR_INPUT
+    bError : BOOL;
+END_VAR
+VAR_IN_OUT
+    temperatures : FB_NOTT_TEMPERATURES;
+END_VAR
+VAR
+    i : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bError THEN
+    // ERROR! Just put the indexes to 0
+    ctrl.nInputTempIndex    := 0;
+    ctrl.nSetpointTempIndex := 0;
+    //ctrl.lrOutMaxLimit              := 100.0;    // TODO
+    //ctrl.lrOutMinLimit              := 0.0;      // TODO
+
+ELSE
+    // success!
+    // update some level-based ctrl variables
+    ctrl.nInputTempIndex     := temperatures.M_GetTempSensorIndex(cfg.sInputTempName);
+    ctrl.nSetpointTempIndex  := temperatures.M_GetTempSensorIndex(cfg.sSetpointTempName);
+    ctrl.lrFixedSetpoint     := cfg.lrFixedSetpoint;
+    ctrl.lrSetpointOffset    := cfg.lrSetpointOffset;
+    ctrl.lrManualOut         := cfg.lrManualOut;
+    // edge-based ctrl variables are better directly updated in stat
+    stat.eCtrlMode           := cfg.eStartupCtrlMode;
+    //ctrl.lrOutMaxLimit := cfg.lrOutMaxLimit;    // TODO
+    //ctrl.lrOutMinLimit := cfg.lrOutMinLimit;    // TODO
+END_IF
+
+M_UpdateTempPointers(temperatures := temperatures);
+
+// clear the flag
+fbTcConfig.M_ClearReadingDoneFlag();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{d87c615f-9883-40d3-bdd6-c5587c340003}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nConfigureState : INT;
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+    temperatures : FB_NOTT_TEMPERATURES;
+END_VAR
+VAR
+    i : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[arrEventEntry[0] := Tc_Events.METISCryoPIDCtrlEventClass.InputTemperatureInvalid;
+arrEventEntry[1] := Tc_Events.METISCryoPIDCtrlEventClass.VariableSetpointInvalid;
+arrEventEntry[2] := Tc_Events.METISCryoPIDCtrlEventClass.ControllerForcedManual;
+arrEventEntry[3] := Tc_Events.METISCryoPIDCtrlEventClass.PidBlockError;
+arrEventEntry[4] := Tc_Events.METISCryoPIDCtrlEventClass.RampBlockError;
+
+
+CASE nConfigureState OF
+    0:  
+        // configure the base PID controller
+        // init parameter struct
+        stCtrlPidParams.tCtrlCycleTime	:= in_tCycleTime;
+        stCtrlPidParams.tTaskCycleTime	:= in_tCycleTime;
+        stCtrlPidParams.fOutMaxLimit    := 100.0;
+        stCtrlPidParams.fOutMinLimit    := 0.0;
+        // use the name of the control loop as the default description
+        cfg.sDescription                := in_sName;
+        // ensure some more default settings
+        cfg.bEnabled                    := FALSE;
+        stat.eCtrlMode                  := E_METIS_CTRL_MODE.MANUAL; 
+        // start reading the config
+        fbTcConfig.M_ReadConfiguration();
+        nConfigureState := 1;
+    1:
+        IF fbTcConfig.bReadingDoneFlag THEN
+            M_ConfigReadingFinished(
+                bError       := fbTcConfig.bReadError,
+                temperatures := temperatures);
+            
+            stat.bConfigured := TRUE;
+        END_IF
+END_CASE
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteController" Id="{605fe590-ee84-4117-9079-80db68aef879}">
+      <Declaration><![CDATA[METHOD M_ExecuteController
+VAR_INPUT
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	eCtrlMode       : E_CTRL_MODE;
+    
+	{attribute 'OPC.UA.DA' := '0'}
+    bEnableRamp : BOOL;
+    
+	{attribute 'OPC.UA.DA' := '0'}
+    lrActualValue : LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// set the raw control mode
+IF NOT cfg.bEnabled THEN
+    stat.lrControllerOut := 0.0;
+    stat.bError := FALSE;
+    stat.bWarning := FALSE;
+    stat.bValid := FALSE;
+    RETURN;
+
+ELSIF stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL THEN
+    eCtrlMode := E_CTRL_MODE.eCTRL_MODE_MANUAL;
+    // ramp generator should not be running
+    bEnableRamp := FALSE;
+ELSE
+    eCtrlMode := E_CTRL_MODE.eCTRL_MODE_ACTIVE;
+    // ramp generator should be running
+    bEnableRamp := TRUE;
+END_IF
+
+// update the internal control params
+stCtrlPidParams.fKp := cfg.lrKp;
+stCtrlPidParams.tTn := LREAL_TO_TIME(cfg.lrTn * 1000.0);
+stCtrlPidParams.tTd := LREAL_TO_TIME(cfg.lrTd * 1000.0);
+stCtrlPidParams.tTv := LREAL_TO_TIME(cfg.lrTv * 1000.0);
+
+// update more stat values
+IF ctrl.nSetpointTempIndex <> 0 THEN
+    stat.lrActVariableSetpoint := pSetpointTemp^.stat.lrTempK;
+ELSE
+    stat.lrActVariableSetpoint := 0.0;
+END_IF
+
+// calculate the input for the ramp
+IF cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.FIXED THEN
+    stat.lrTargetSetpoint := ctrl.lrFixedSetpoint + ctrl.lrSetpointOffset;
+ELSE 
+    stat.lrTargetSetpoint := stat.lrActVariableSetpoint + ctrl.lrSetpointOffset;
+END_IF
+
+// update the input
+stat.lrActInput := pInputTemp^.stat.lrTempK;
+
+// execute the ramp
+ramp(
+    in_bEnable          := bEnableRamp,
+	in_fRampSetPoint	:= stat.lrTargetSetpoint,
+    in_fStartPoint      := stat.lrActInput,
+ 	in_fRampUp_Rate	    := cfg.lrRampUpRate,
+ 	in_fRampDown_Rate   := cfg.lrRampDownRate,
+ 	out_fRampValue      => stat.lrRampValue);
+
+// execute the PID algorithm
+fbCtrlPid(
+    fSetpointValue  := stat.lrRampValue,
+    fActualValue    := stat.lrActInput,
+    fManSyncValue   := ctrl.lrManualOut,
+    bSync           := FALSE,
+    eMode           := eCtrlMode,
+    bHold           := ctrl.bHold,
+    stParams        := stCtrlPidParams,
+    fOut            => stat.lrControllerOut,
+    bARWactive      => stat.bARWactive,
+    bError          => stat.bError);
+
+stat.nErrorId := TO_INT(fbCtrlPid.eErrorId);
+
+// Enable a smooth transition from AUTO to MANUAL mode if needed
+IF stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO AND cfg.bSyncManualOut THEN
+    ctrl.lrManualOut := stat.lrControllerOut;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteModes" Id="{6943f930-a44d-4a4e-a8e2-4b26c4efb028}">
+      <Declaration><![CDATA[METHOD M_ExecuteModes
+VAR_INPUT
+END_VAR
+VAR_INST
+    {attribute 'OPC.UA.DA' := '0'}
+    fbInputTimer    : TON;
+    {attribute 'OPC.UA.DA' := '0'}
+    fbSetpointTimer : TON;
+    {attribute 'OPC.UA.DA' := '0'}
+    fbGetSystemTime : GETSYSTEMTIME;
+    {attribute 'OPC.UA.DA' := '0'}
+    fileTime        : T_FILETIME;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[If stat.eCtrlMode = E_METIS_CTRL_MODE.NONE THEN
+    // typical behavior when e.g. a config file did not contain a valid entry
+    // To avoid problems, force MANUAL in this case
+    stat.eCtrlMode := E_METIS_CTRL_MODE.MANUAL;
+END_IF
+
+// check which mode switches are accepted
+// (currently very simple, but can be made more complex if needed)
+stat.bAcceptCtrlMode_Auto := stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL
+                             AND NOT stat.bError;
+stat.bAcceptCtrlMode_Manual := stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO ;
+
+// switch to AUTO / MANUAL mode if acceptable
+IF ctrl.eCtrlMode = E_METIS_CTRL_MODE.AUTO AND stat.bAcceptCtrlMode_Auto THEN
+    stat.eCtrlMode := E_METIS_CTRL_MODE.AUTO;
+ELSIF ctrl.eCtrlMode = E_METIS_CTRL_MODE.MANUAL AND stat.bAcceptCtrlMode_Manual THEN
+    stat.eCtrlMode := E_METIS_CTRL_MODE.MANUAL;
+END_IF
+
+// switch to engineering ON / OFF mode if acceptable
+stat.bEngMode := ctrl.bEngMode;
+
+// switch to manual in any case if the input value is invalid
+fbInputTimer(
+    IN := (stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO)
+          AND (NOT pInputTemp^.stat.bValid),
+    PT := DINT_TO_TIME(cfg.nInputTempTimeout));
+fbSetpointTimer(
+    IN := (stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO)
+           AND (NOT pSetpointTemp^.stat.bValid)
+           AND cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE,
+    PT := DINT_TO_TIME(cfg.nSetpointTempTimeout)); 
+
+IF fbInputTimer.Q OR fbSetpointTimer.Q THEN
+    // calculate current time here, to avoid dependencies to MAIN.fbServices
+    fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
+    stat.sLastForcedManualTime := SYSTEMTIME_TO_STRING(FILETIME_TO_SYSTEMTIME(fileTime));
+    IF fbInputTimer.Q THEN
+        stat.sLastForcedManualCause := 'Invalid input temperature';
+    ELSIF fbSetpointTimer.Q THEN
+        stat.sLastForcedManualCause := 'Invalid setpoint temperature';
+    ELSE
+        stat.sLastForcedManualCause := 'UNKNOWN';
+	END_IF
+    
+    stat.eCtrlMode := E_METIS_CTRL_MODE.MANUAL;
+END_IF
+
+// reset any request
+ctrl.eCtrlMode := E_METIS_CTRL_MODE.NONE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Read_Write_Config" Id="{ba1cb41a-4c04-4f81-ab52-459a22fde2dc}">
+      <Declaration><![CDATA[METHOD M_Read_Write_Config
+VAR_IN_OUT
+    temperatures : FB_NOTT_TEMPERATURES;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stat.bEngMode THEN
+    IF ctrl.bWriteConfig THEN
+        
+        // update the cfg object
+        cfg.sInputTempName      := pInputTemp^.in_sName;
+        cfg.sSetpointTempName   := pSetpointTemp^.in_sName;
+        cfg.lrFixedSetpoint     := ctrl.lrFixedSetpoint;
+        cfg.lrSetpointOffset    := ctrl.lrSetpointOffset; 
+        cfg.lrManualOut         := ctrl.lrManualOut;
+        
+        // write the cfg object
+        fbTcConfig.M_WriteConfiguration();
+        ctrl.bWriteConfig := FALSE;
+                
+    ELSIF ctrl.bReadConfig THEN
+	
+        fbTcConfig.M_ReadConfiguration();
+        ctrl.bReadConfig := FALSE;
+        
+    END_IF
+		
+END_IF
+
+IF fbTcConfig.bReadingDoneFlag THEN
+	M_ConfigReadingFinished(
+        bError := fbTcConfig.bReadError,
+        temperatures := temperatures);
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Set_SetPoint" Id="{e8d14491-d7f3-4c09-90f8-1d181cf8df4f}">
+      <Declaration><![CDATA[METHOD M_Set_SetPoint
+VAR_INPUT
+	m_eSetpointType:		E_METIS_CTRL_SETPOINT_SWITCH:=E_METIS_CTRL_SETPOINT_SWITCH.FIXED;
+	m_pSetpointTemp: 		POINTER TO FB_METIS_TEMPERATURE;
+	m_lrSetpointOffset: 	LREAL := 0.0;
+	m_lrFixedSetpoint:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Set point type 
+cfg.eSetpointSwitch := m_eSetpointType;
+// Variable setpoint
+stat.lrActVariableSetpoint := m_pSetpointTemp^.stat.lrTempK;
+ctrl.lrSetpointOffset:= m_lrSetpointOffset;
+// Fixed setpoint
+ctrl.lrFixedSetpoint := m_lrFixedSetpoint;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetDisable" Id="{05b7d259-a0a2-46ee-91de-3642c327eb8a}">
+      <Declaration><![CDATA[METHOD M_SetDisable
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+cfg.bEnabled := FALSE;
+ctrl.eCtrlMode := E_METIS_CTRL_MODE.MANUAL;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetEnable" Id="{57139a10-1bfe-4dc6-a774-97707bc1700b}">
+      <Declaration><![CDATA[METHOD M_SetEnable
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+cfg.bEnabled := TRUE;
+ctrl.eCtrlMode := E_METIS_CTRL_MODE.AUTO;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Startup" Id="{3b2659d4-7268-40e4-b9b4-bcf01e9a67c6}">
+      <Declaration><![CDATA[METHOD M_Startup : BOOL
+VAR_INPUT
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    startupTimer : TON;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[startupTimer(IN := TRUE, PT := DINT_TO_TIME(cfg.nStartupTimeout));
+
+IF NOT stat.bStarted THEN
+    
+    IF startupTimer.Q 
+       OR (pInputTemp^.stat.bValid
+           AND (pSetpointTemp^.stat.bValid 
+                OR cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.FIXED)) THEN
+        stat.bStarted := TRUE; 
+    END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateAlarms" Id="{81668af3-188d-4d32-ba1b-0813df300249}">
+      <Declaration><![CDATA[METHOD M_UpdateAlarms
+VAR_INPUT
+END_VAR
+VAR
+	stEventEntry : TcEventEntry;
+	sText : STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Set / clear alarms
+//
+
+// Input temperature / process variable is invalid.
+fbAlarmHandler.M_UpdateAlarm(
+    in_bCondition    := cfg.bEnabled
+                        AND stat.bStarted
+                        AND (ctrl.nInputTempIndex <> 0)
+                        AND (NOT stat.bActInputValid),
+    in_nIndex        := 0,
+    in_strEventEntry := Tc_Events.METISCryoPIDCtrlEventClass.InputTemperatureInvalid
+);
+
+
+// Variable setpoint temperature is invalid.
+fbAlarmHandler.M_UpdateAlarm(
+    in_bCondition    := cfg.bEnabled
+                        AND stat.bStarted
+                        AND (cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE)
+                        AND (ctrl.nSetpointTempIndex <> 0)
+                        AND (NOT stat.bActVariableSetpointValid),
+    in_nIndex        := 1,
+    in_strEventEntry := Tc_Events.METISCryoPIDCtrlEventClass.VariableSetpointInvalid
+);
+
+
+// Controller was forced to manual mode.
+fbAlarmHandler.M_UpdateAlarm(
+    in_bCondition    := cfg.bEnabled
+                        AND stat.bStarted
+                        AND stat.bCtrlModeIsManual
+                        AND (stat.sLastForcedManualCause <> ''),
+    in_nIndex        := 2,
+    in_strEventEntry := Tc_Events.METISCryoPIDCtrlEventClass.ControllerForcedManual
+);
+
+
+// PID function block error.
+fbAlarmHandler.M_UpdateAlarm(
+    in_bCondition    := cfg.bEnabled
+                        AND stat.bStarted
+                        AND fbCtrlPid.bError,
+    in_nIndex        := 3,
+    in_strEventEntry := Tc_Events.METISCryoPIDCtrlEventClass.PidBlockError
+);
+
+
+// Ramp function block error.
+fbAlarmHandler.M_UpdateAlarm(
+    in_bCondition    := cfg.bEnabled
+                        AND stat.bStarted
+                        AND ramp.stat.bError,
+    in_nIndex        := 4,
+    in_strEventEntry := Tc_Events.METISCryoPIDCtrlEventClass.RampBlockError
+);
+
+
+//
+// Handle alarms
+//
+fbAlarmHandler(stAlarms := stat.stAlarms);
+
+fbAlarmHandler.M_ProcessAlarms(
+    arrEventEntry := arrEventEntry,
+    sEventString  := in_sName
+);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{72fc0968-9441-4317-bc3d-81f98f6f47b4}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ctrl.nInputTempIndex := TO_INT(ctrl.eInputTempIndex);
+ctrl.nSetpointTempIndex := TO_INT(ctrl.eVariableSetpointIndex);
+
+// Alarm Handeling
+sInstanceName := fbAlarmHandler.sInstanceName;
+sEventClassName := fbAlarmHandler.sEventClassName;
+IF bConfirmAllAlarms THEN
+	bConfirmAllAlarms := FALSE;
+	fbAlarmHandler.M_ConfirmAllAlarms();
+END_IF
+
+// update some more stat variables
+stat.bSetpointSwitchIsFixed := cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.FIXED;
+stat.bSetpointSwitchIsVariable := cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE;
+stat.bCtrlModeIsAuto := stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO;
+stat.bCtrlModeIsManual := stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL;
+stat.bActInputValid := (ctrl.nInputTempIndex <> 0) AND pInputTemp^.stat.bValid;
+stat.bActVariableSetpointValid := (ctrl.nSetpointTempIndex <> 0) AND pSetpointTemp^.stat.bValid;
+
+// update the textual status, and the bError and bWarning flags
+IF NOT cfg.bEnabled THEN
+    stat.sStatus := 'Disabled';
+    stat.bError := FALSE;
+ELSIF NOT stat.bStarted THEN
+    stat.sStatus := 'Initializing';
+ELSIF ctrl.nInputTempIndex = 0 THEN
+    stat.sStatus := 'No input temperature configured';
+    stat.bError := TRUE;
+ELSIF NOT pInputTemp^.stat.bValid THEN
+    stat.sStatus := 'Invalid input temperature';
+    stat.bError := TRUE;
+ELSIF      cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE 
+       AND ctrl.nSetpointTempIndex = 0 THEN
+    stat.sStatus := 'No variable setpoint configured';
+    stat.bError := TRUE;
+ELSIF      cfg.eSetpointSwitch = E_METIS_CTRL_SETPOINT_SWITCH.VARIABLE 
+       AND NOT pSetpointTemp^.stat.bValid THEN
+    stat.sStatus := 'Invalid variable setpoint';
+    stat.bError := TRUE;
+ELSIF fbCtrlPid.bError THEN
+    stat.sStatus := CONCAT('PID block error ', INT_TO_STRING(TO_INT(fbCtrlPid.eErrorId)));
+    stat.bError := TRUE;
+ELSIF ramp.stat.bError THEN
+    stat.sStatus := CONCAT('Ramp block error ', INT_TO_STRING(TO_INT(ramp.stat.eErrorId)));
+    stat.bError := TRUE;
+ELSIF stat.eCtrlMode = E_METIS_CTRL_MODE.MANUAL THEN
+    stat.bError := FALSE;
+    stat.bWarning := FALSE;
+    IF stat.bEngMode THEN
+        stat.sStatus := 'MANUAL (ENG MODE)';
+    ELSE
+        stat.sStatus := 'MANUAL';
+	END_IF
+ELSIF stat.eCtrlMode = E_METIS_CTRL_MODE.AUTO THEN
+    stat.bError := FALSE;
+    stat.bWarning := FALSE;
+    IF stat.bEngMode THEN
+        stat.sStatus := 'AUTO (ENG MODE)';
+    ELSE
+        stat.sStatus := 'AUTO';
+	END_IF
+ELSE
+    stat.bError := FALSE;
+    stat.bWarning := TRUE;
+    stat.sStatus := 'UNKNOWN STATUS';
+END_IF
+
+stat.bValid := NOT (stat.bError OR stat.bWarning);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateTempPointers" Id="{8dfdbaec-e010-4d4d-936b-9f0ddefd48aa}">
+      <Declaration><![CDATA[METHOD M_UpdateTempPointers
+VAR_INPUT
+END_VAR
+VAR_IN_OUT
+    temperatures : FB_NOTT_TEMPERATURES;
+END_VAR
+VAR 
+    i : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pInputTemp    := temperatures.all_temperatures[ctrl.nInputTempIndex];
+pSetpointTemp := temperatures.all_temperatures[ctrl.nSetpointTempIndex];]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_VOTERS" Id="{4aa1254b-433d-4458-89a1-557811ca5a87}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_VOTERS
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+    nott_temp : FB_NOTT_TEMPERATURES;
+END_VAR
+VAR
+	ctrl		: T_METIS_TEMP_VOTERS_CTRL;
+	
+	// SideCar  
+	{attribute 'TcHmiSymbol.Show'}
+    vote_sidecar  : FB_NOTT_VOTER;
+
+	// Photonic Chip 
+	{attribute 'TcHmiSymbol.Show'}
+    vote_photonic_chip  : FB_NOTT_VOTER;	
+	
+	// Base Plate
+	{attribute 'TcHmiSymbol.Show'}
+    vote_base_plate  : FB_NOTT_VOTER;	
+	
+	// Shield
+	{attribute 'TcHmiSymbol.Show'}
+    vote_shield  : FB_NOTT_VOTER;	
+	
+	// Detector 
+	{attribute 'TcHmiSymbol.Show'}
+    vote_detector  : FB_NOTT_VOTER;
+		
+	// System temperatures
+		{attribute 'TcHmiSymbol.Show'}
+	vote_master_temp	: FB_NOTT_VOTER;
+		{attribute 'TcHmiSymbol.Show'}
+	vote_master_1		: FB_NOTT_VOTER;
+		{attribute 'TcHmiSymbol.Show'}
+	vote_master_2		: FB_NOTT_VOTER;
+	
+// Flat Field
+		{attribute 'TcHmiSymbol.Show'}
+	vote_flat_field:				FB_NOTT_VOTER;
+		
+// Thermal Box
+	{attribute 'TcHmiSymbol.Show'}
+	vote_thermal_box:				FB_NOTT_VOTER;	
+
+// Cabinet
+	{attribute 'TcHmiSymbol.Show'}
+	vote_cabinet:					FB_NOTT_VOTER;	
+
+//////////////////////////////////////////////////////////
+// temperature Overide
+
+    tor_vote_sidecar  :				FB_CRYO_CMD_OVERRIDE;
+	bSim_Temp_vote_sidecar  :		BOOL := FALSE;	
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[	// SideCar  
+vote_sidecar		(in_sName  := 'vote_sidecar', 		nott_temp := nott_temp);
+	// Photonic Chip
+vote_photonic_chip	(in_sName  := 'vote_photonic_chip', nott_temp := nott_temp);
+	// Base Plate
+vote_base_plate		(in_sName  := 'vote_base_plate', 	nott_temp := nott_temp);
+	// Shield
+vote_shield			(in_sName  := 'vote_shield', 		nott_temp := nott_temp);
+	// Detector 
+vote_detector(		in_sName  := 'vote_detector', 		nott_temp := nott_temp);
+
+	// System temperatures
+vote_master_temp(in_sName := 'MASTER_TEMP',   nott_temp := nott_temp);
+vote_master_1(in_sName    := 'VOTE_MASTER_1', nott_temp := nott_temp);
+vote_master_2(in_sName    := 'VOTE_MASTER_2', nott_temp := nott_temp);//, aTempIndexes := aVoteCry1TempIndexes, nVoteMethod := eVoteCry1Method, bEnabled := bEnableVoteCry1);
+
+// Flat Field
+
+vote_flat_field(in_sName    := 'vote_flat_field', nott_temp := nott_temp);
+
+// Thermal Box
+
+vote_thermal_box(in_sName    := 'vote_thermal_box', nott_temp := nott_temp);
+
+// Cabinet
+
+vote_cabinet(in_sName    := 'vote_cabinet', nott_temp := nott_temp);
+
+
+M_ReadSensors();
+
+M_ProcessHmi();
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ProcessHmi" Id="{585a3449-604e-4cf6-8c48-2d895ee17b5a}">
+      <Declaration><![CDATA[METHOD M_ProcessHmi : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// hmi_temp_vote_cry_1(
+// 	inout_sTemperatureStatRef 	:= vote_cry_1.stat,
+// 	inout_sCmdOver 				:= ctrl.tor_vote_cry_1,
+// 	inout_fbAlarmHandlerRef 	:= vote_cry_1.fbAlarmHandler,
+// //	TestIndexes := TestIndexes, TestMethod := TestMethod
+// );]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{8c410261-272e-4653-9dd7-51a613f675e8}">
+      <Declaration><![CDATA[METHOD M_ReadSensors : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Read temperature votes.
+//
+// Execute Temperature Override (tor) of simulation flags.
+tor_vote_sidecar(in_bEnable:=bSim_Temp_vote_sidecar);]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

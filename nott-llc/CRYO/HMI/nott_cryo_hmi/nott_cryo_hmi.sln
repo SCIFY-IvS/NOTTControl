@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# TcXaeShell Solution File, Format Version 11.00
+VisualStudioVersion = 17.10.35827.194
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FE7A1B72-C5B7-4D7C-BB7D-76384D4DE8E1}") = "nott_cryo_hmi", "nott_cryo_hmi\nott_cryo_hmi.hmiproj", "{4CD6F035-8A9F-42E8-9D15-1C7F369338F5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|TwinCAT HMI = Debug|TwinCAT HMI
+		Release|TwinCAT HMI = Release|TwinCAT HMI
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4CD6F035-8A9F-42E8-9D15-1C7F369338F5}.Debug|TwinCAT HMI.ActiveCfg = Debug|TwinCAT HMI
+		{4CD6F035-8A9F-42E8-9D15-1C7F369338F5}.Debug|TwinCAT HMI.Build.0 = Debug|TwinCAT HMI
+		{4CD6F035-8A9F-42E8-9D15-1C7F369338F5}.Release|TwinCAT HMI.ActiveCfg = Release|TwinCAT HMI
+		{4CD6F035-8A9F-42E8-9D15-1C7F369338F5}.Release|TwinCAT HMI.Build.0 = Release|TwinCAT HMI
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {69AD7D95-944D-4E06-93BA-C8436B646589}
+	EndGlobalSection
+EndGlobal

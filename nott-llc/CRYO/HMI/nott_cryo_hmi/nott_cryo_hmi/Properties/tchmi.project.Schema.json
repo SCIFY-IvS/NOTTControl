@@ -1,0 +1,665 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "definitions": {
+    "NavigationButton": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NavigationButton.usercontrol.json",
+      "id": "tchmi:project#/definitions/NavigationButton",
+      "type": "object"
+    },
+    "PumpFaceplateServiceTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\FaceplateServiceTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplateServiceTab"
+    },
+    "PumpFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Pump\\PumpFaceplateOperateTab.usercontrol.json",
+      "id": "tchmi:project#/definitions/PumpFaceplateOperateTab",
+      "type": "object"
+    },
+    "PumpFaceplateMessagesTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\FaceplateMessagesTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplateMessagesTab"
+    },
+    "PumpFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Pump\\PumpFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/PumpFaceplate",
+      "type": "object"
+    },
+    "StateAndRequestButton": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\StateAndRequestButton.usercontrol.json",
+      "id": "tchmi:project#/definitions/StateAndRequestButton",
+      "type": "object"
+    },
+    "PumpOnOffAutomaticManual": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\PumpOnOffAutomaticManual.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpOnOffAutomaticManual"
+    },
+    "PrevacPressure": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\PrevacPressure.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PrevacPressure"
+    },
+    "NoAlarmWarningReset": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\NoAlarmWarningConfirm.usercontrol.json",
+      "id": "tchmi:project#/definitions/NoAlarmWarningReset",
+      "type": "object"
+    },
+    "InterlockPermissions": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\InterlockPermissions.usercontrol.json",
+      "id": "tchmi:project#/definitions/InterlockPermissions",
+      "type": "object"
+    },
+    "EngineeringMode": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\EngineeringMode.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/EngineeringMode"
+    },
+    "ValveUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\ValveUserControl.usercontrol.json",
+      "id": "tchmi:project#/definitions/ValveUserControl",
+      "type": "object"
+    },
+    "ValveUserControl_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\PumpUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/ValveUserControl_-_Copy"
+    },
+    "PumpUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\PumpUserControl.usercontrol.json",
+      "id": "tchmi:project#/definitions/PumpUserControl",
+      "type": "object"
+    },
+    "AnalogSensorUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\AnalogSensorUserControl.usercontrol.json",
+      "id": "tchmi:project#/definitions/AnalogSensorUserControl",
+      "type": "object"
+    },
+    "HeaterUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\HeaterUserControl.usercontrol.json",
+      "id": "tchmi:project#/definitions/HeaterUserControl",
+      "type": "object"
+    },
+    "LakeshoreControllerUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\LakeshoreControllerUserControl.usercontrol.json",
+      "id": "tchmi:project#/definitions/LakeshoreControllerUserControl",
+      "type": "object"
+    },
+    "StirlingCoolerUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\StirlingCoolerUserControl.usercontrol.json",
+      "id": "tchmi:project#/definitions/StirlingCoolerUserControl",
+      "type": "object"
+    },
+    "InMaintenanceModePopupUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\InMaintenanceModePopupUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/InMaintenanceModePopupUserControl"
+    },
+    "FaceplateMessagesTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\FaceplateMessagesTab.usercontrol.json",
+      "id": "tchmi:project#/definitions/FaceplateMessagesTab",
+      "type": "object"
+    },
+    "PumpFaceplate_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Valve\\ValveFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplate_0"
+    },
+    "PumpFaceplateOperateTab_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Valve\\ValveFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplateOperateTab_0"
+    },
+    "PumpOnOffAutomaticManual_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\ValveOpenCloseAutomaticManual.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpOnOffAutomaticManual_-_Copy"
+    },
+    "PumpFaceplate_1": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Heater\\HeaterFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplate_1"
+    },
+    "PumpFaceplateOperateTab_1": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Heater\\HeaterFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplateOperateTab_1"
+    },
+    "PrevacPressure_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\PumpTemperature.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PrevacPressure_-_Copy"
+    },
+    "PumpTemperature": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\PumpTemperature.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpTemperature"
+    },
+    "HeaterFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Heater\\HeaterFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/HeaterFaceplate",
+      "type": "object"
+    },
+    "CoolerFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Cooler\\CoolerFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/CoolerFaceplate",
+      "type": "object"
+    },
+    "CoolerFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Cooler\\CoolerFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/CoolerFaceplateOperateTab"
+    },
+    "BinaryActuatorType": {
+      "type": "string",
+      "enum": [
+        "OnOff",
+        "OpenClose"
+      ],
+      "id": "tchmi:project#/definitions/BinaryActuatorType"
+    },
+    "FaceplateServiceTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\FaceplateServiceTab.usercontrol.json",
+      "id": "tchmi:project#/definitions/FaceplateServiceTab",
+      "type": "object"
+    },
+    "NoAlarmWarningConfirm": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\NoAlarmWarningConfirm.usercontrol.json",
+      "id": "tchmi:project#/definitions/NoAlarmWarningConfirm",
+      "type": "object"
+    },
+    "ValveFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Valve\\ValveFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/ValveFaceplate"
+    },
+    "OnOffOpenCloseAutomaticManual": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\OnOffOpenCloseAutomaticManual.usercontrol.json",
+      "id": "tchmi:project#/definitions/OnOffOpenCloseAutomaticManual",
+      "type": "object"
+    },
+    "CoolerOnOffAutomaticManual": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\CoolerOnOffAutomaticManual.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/CoolerOnOffAutomaticManual"
+    },
+    "ValveOpenCloseAutomaticManual": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\ValveOpenCloseAutomaticManual.usercontrol.json",
+      "id": "tchmi:project#/definitions/ValveOpenCloseAutomaticManual",
+      "type": "object"
+    },
+    "SequenceControlFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Sequence\\SequenceControlFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/SequenceControlFaceplate",
+      "type": "object"
+    },
+    "CoolerFaceplate_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Lakeshore\\LakeshoreFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/CoolerFaceplate_0"
+    },
+    "CoolerFaceplate_1": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Lakeshore\\CoolerFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/CoolerFaceplate_1",
+      "type": "object"
+    },
+    "CoolerFaceplateOperateTab_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Lakeshore\\LakeshoreFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/CoolerFaceplateOperateTab_0"
+    },
+    "LakeshoreFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Lakeshore\\LakeshoreFaceplateOperateTab.usercontrol.json",
+      "id": "tchmi:project#/definitions/LakeshoreFaceplateOperateTab",
+      "type": "object"
+    },
+    "LakeshoreStatus": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Lakeshore\\LakeshoreStatus.usercontrol.json",
+      "id": "tchmi:project#/definitions/LakeshoreStatus",
+      "type": "object"
+    },
+    "LakeshoreFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Lakeshore\\LakeshoreFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/LakeshoreFaceplate",
+      "type": "object"
+    },
+    "HeliumCompressor": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\HeliumCompressor.usercontrol.json",
+      "id": "tchmi:project#/definitions/HeliumCompressor",
+      "type": "object"
+    },
+    "PumpFaceplateOperateTab_2": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\HeliumCompressor\\HeliumCompressorFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpFaceplateOperateTab_2"
+    },
+    "HeliumCompressorOnOffAutomaticManual": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\HeliumCompressorOnOffAutomaticManual.usercontrol.json",
+      "id": "tchmi:project#/definitions/HeliumCompressorOnOffAutomaticManual",
+      "type": "object"
+    },
+    "PumpOnOffAutomaticManual_-_Copy_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\HeliumCompressorOnOffAutomaticManual.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PumpOnOffAutomaticManual_-_Copy_0"
+    },
+    "HeliumCompressorStatusTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\HeliumCompressor\\HeliumCompressorStatusTab.usercontrol.json",
+      "id": "tchmi:project#/definitions/HeliumCompressorStatusTab",
+      "type": "object"
+    },
+    "PumpFaceplateStatusTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Pump\\PumpFaceplateStatusTab.usercontrol.json",
+      "id": "tchmi:project#/definitions/PumpFaceplateStatusTab",
+      "type": "object"
+    },
+    "HeaterFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Heater\\HeaterFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/HeaterFaceplateOperateTab"
+    },
+    "HeaterOnOffAutomaticManual": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Common\\HeaterOnOffAutomaticManual.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/HeaterOnOffAutomaticManual"
+    },
+    "LakeshoreFaceplate_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Pressure\\PressureFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/LakeshoreFaceplate_0"
+    },
+    "PressureFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Pressure\\PressureFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PressureFaceplateOperateTab"
+    },
+    "LakeshoreStatus_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Pressure\\PressureFaceplateStatus.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/LakeshoreStatus_0"
+    },
+    "PressureFaceplateStatus_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Pressure\\PressureFaceplateSimulation.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PressureFaceplateStatus_-_Copy"
+    },
+    "TemperatureFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Temperature\\TemperatureFaceplate.usercontrol.json",
+      "id": "tchmi:project#/definitions/TemperatureFaceplate",
+      "type": "object"
+    },
+    "PressureFaceplateOperateTab_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Temperature\\TemperatureFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PressureFaceplateOperateTab_0"
+    },
+    "PressureFaceplateSimulation": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Temperature\\TemperatureFaceplateSimulation.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PressureFaceplateSimulation"
+    },
+    "PressureFaceplateStatus": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Temperature\\TemperatureFaceplateStatus.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PressureFaceplateStatus"
+    },
+    "TemperatureFaceplateStatus": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Temperature\\TemperatureFaceplateStatus.usercontrol.json",
+      "id": "tchmi:project#/definitions/TemperatureFaceplateStatus",
+      "type": "object"
+    },
+    "PressureUserControl_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\TemperatureUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PressureUserControl_-_Copy"
+    },
+    "TemperatureUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\TemperatureUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/TemperatureUserControl"
+    },
+    "PressureFaceplateStatus_0": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\AnalogSensors\\Pressure\\PressureFaceplateStatus.usercontrol.json",
+      "id": "tchmi:project#/definitions/PressureFaceplateStatus_0",
+      "type": "object"
+    },
+    "HeaterFaceplateOperateTab_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\Heater\\PdsHeaterFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/HeaterFaceplateOperateTab_-_Copy"
+    },
+    "HeaterUserControl_-_Copy": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\PdsHeaterUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/HeaterUserControl_-_Copy"
+    },
+    "PdsHeaterUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\PdsHeaterUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/PdsHeaterUserControl"
+    },
+    "PageIdentity": {
+      "type": "string",
+      "enum": [
+        "MainPage",
+        "Events",
+        "Settings",
+        "CryogenicController",
+        "EvacuateSequence",
+        "ContentTest"
+      ],
+      "id": "tchmi:project#/definitions/PageIdentity"
+    },
+    "SectionA": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\SectionA.usercontrol.json",
+      "id": "tchmi:project#/definitions/SectionA",
+      "type": "object"
+    },
+    "SectionB": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\SectionB.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/SectionB"
+    },
+    "SectionC": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\SectionC.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/SectionC"
+    },
+    "METISAnalogSensorUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\METISAnalogSensorUserControl\\METISAnalogSensorUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISAnalogSensorUserControl"
+    },
+    "NottHeater": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\NOTT\\Heater\\NottHeater.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NottHeater"
+    },
+    "METISHeaterFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\METIS\\Heaters\\METISHeaterFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISHeaterFaceplateOperateTab"
+    },
+    "METISHeaterFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Faceplates\\METIS\\Heaters\\METISHeaterFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISHeaterFaceplate"
+    },
+    "NOTTTemperatureVoterFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\FaceplateVoter\\NOTTTemperatureVoterFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTemperatureVoterFaceplate"
+    },
+    "NOTTTemperatureVoterUserControl": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\NOTT\\Voter\\NOTTTemperatureVoterUserControl.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTemperatureVoterUserControl"
+    },
+    "NOTTTemperatureVoterFaceplateOperateTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\FaceplateVoter\\NOTTTemperatureVoterFaceplateOperateTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTemperatureVoterFaceplateOperateTab"
+    },
+    "NOTTTempCtrlFaceplateStatus": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\TemperatureControl\\NOTTTempCtrlFaceplateStatus.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTempCtrlFaceplateStatus"
+    },
+    "NOTTTempCtrlFaceplateServiceTab": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\TemperatureControl\\NOTTTempCtrlFaceplateServiceTab.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTempCtrlFaceplateServiceTab"
+    },
+    "NOTTTempCtrlFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\TemperatureControl\\NOTTTempCtrlFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTempCtrlFaceplate"
+    },
+    "NOTTTemperatureController": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\Controls\\NOTT\\TempController\\NOTTTemperatureController.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/NOTTTemperatureController"
+    }
+  }
+}

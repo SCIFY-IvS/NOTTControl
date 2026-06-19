@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CTRL_LOOP_CTRL" Id="{aa1bc4ee-5e7a-4bb9-9be5-47e346886445}">
+    <Declaration><![CDATA[{attribute 'TcHmiSymbol.Show'}
+TYPE T_NOTT_CTRL_LOOP_CTRL :
+STRUCT
+	    // general
+   	{attribute 'TcHmiSymbol.Show'}
+    eCtrlMode:      E_METIS_CTRL_MODE;  // AUTO or MANUAL
+	{attribute 'TcHmiSymbol.Show'}	
+    bEngMode:       BOOL;   // TRUE means engineering mode should be ON
+	{attribute 'TcHmiSymbol.Show'}    
+    bHold   : BOOL; // level-based
+	{attribute 'TcHmiSymbol.Show'}    
+    lrFixedSetpoint : LREAL;
+	{attribute 'TcHmiSymbol.Show'}	
+    lrSetpointOffset : LREAL;
+    
+    // 	
+	//lrRampSetpointValue		: LREAL		:= 0.0;
+	{attribute 'TcHmiSymbol.Show'}
+	lrManualOut		: LREAL		:= 0.0;
+   	{attribute 'TcHmiSymbol.Show'} 
+    nInputTempIndex : INT;
+	{attribute 'TcHmiSymbol.Show'}	
+    nSetpointTempIndex : INT;
+    
+    // config reading/writing
+	{attribute 'TcHmiSymbol.Show'}	
+	bReadConfig         : BOOL;     // start reading the config file
+	{attribute 'TcHmiSymbol.Show'}
+	bWriteConfig        : BOOL;     // start writing the config file
+    
+    // output
+	{attribute 'TcHmiSymbol.Show'}
+    lrOutMaxLimit       : LREAL := 100.0;
+	{attribute 'TcHmiSymbol.Show'}
+    lrOutMinLimit       : LREAL := 0.0;
+    
+    // clear some diagnostics
+    bClearForcedManualDiag : BOOL;
+	{attribute 'TcHmiSymbol.Show'}
+	eInputTempIndex:		 	E_ALL_NOTT_TEMPERATURES;
+	{attribute 'TcHmiSymbol.Show'}
+	eVariableSetpointIndex:		E_ALL_NOTT_TEMPERATURES;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,254 @@
+<div id="CryogenicController_usercontrol_FlatField" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="500" data-tchmi-height="200" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="NottHeater_7" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="280" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/Heater/NottHeater.usercontrol" data-tchmi-top="88" data-tchmi-top-unit="px" data-tchmi-width="200" data-tchmi-width-unit="px" data-tchmi-metisheaterobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_shield%/s%">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "ShieldHtrPopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/METIS/Heaters/METISHeaterFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-metisheaterobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_shield%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Shield HTR"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 600.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 700.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="METISTemperatureVoterUserControl_9" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="21" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/NOTT/Voter/NOTTTemperatureVoterUserControl.usercontrol" data-tchmi-top="81" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="20" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_flat_field%/s%">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "FlatFieldVotePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-tempvoteobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_flat_field%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "Flat Field Temp Vote"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 600.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 600.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+<div id="METISTemperatureController_7" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="207" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol" data-tchmi-top="76" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-tctrlobject="%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_flatfield%/s%">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">
+[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "tCtrlFlatFieldPopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-tctrlobject": "%s%ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_tctrl.tc_flatfield%/s%",
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/String",
+            "value": "TCtrl Flat Field"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 960.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 640.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]
+</script>
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAGC_Label_9" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="21" data-tchmi-left-unit="px" data-tchmi-text="Flat Field" data-tchmi-top="57" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="PreCoolingCFOIMG_TcHmiPolyline_S7ToS8_18" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="192" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="97" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%" data-tchmi-zindex="102">
+</div>
+<div id="Cryostat_TemperatureControl_TcHmiLine_Type1_Connection1_111" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="15" data-tchmi-height-unit="px" data-tchmi-left="176" data-tchmi-top="101" data-tchmi-width="31" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="0" data-tchmi-zindex="1" data-tchmi-x1="1">
+</div>
+<div id="Cryostat_TemperatureControl_TcHmiLine_Type1_Connection1_112" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="15" data-tchmi-height-unit="px" data-tchmi-left="255" data-tchmi-top="101" data-tchmi-width="43" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%" data-tchmi-y1="0" data-tchmi-zindex="1" data-tchmi-x1="1">
+</div>
+<div id="PreCoolingCFOIMG_TcHmiPolyline_S7ToS8_19" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="270" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="97" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%" data-tchmi-zindex="102">
+</div>
+</div>

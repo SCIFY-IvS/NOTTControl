@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="E_ALL_NOTT_TEMPERATURES" Id="{6c4c0f99-33a8-4f53-8b2f-b8b58455be0b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_ALL_NOTT_TEMPERATURES :
+(
+
+	empty_temp 				:= 0,	
+	
+	// SideCar (* 3 *)
+	t_sidecar_1				:= 1,
+	t_sidecar_2             := 2,
+	t_sidecar_vote          := 3,
+	// Photonic Chip (* 3 *)
+	t_photonic_chip_1		:= 4,
+	t_photonic_chip_2       := 5,
+	t_photonic_chip_vote    := 6,
+	// Base Plate (* 3 *)
+	t_base_plate_1			:= 7,
+	t_base_plate_2          := 8,
+	t_base_plate_vote       := 9,
+	// Shield (* 3 *)
+	t_shield_1				:= 10,
+	t_shield_2              := 11,
+	t_shield_vote           := 12,	
+	// Detector (* 3 *)
+	t_detector				:= 13,
+	t_detector_spare        := 14,
+	t_detector_vote         := 15,
+	// System temperatures   (* 3 *)
+	// Master temperature to estimate overall temperature of the cryostat  
+	t_master				:= 16,
+	t_master_vot_1          := 17,
+	t_master_vot_2          := 18,
+	// Flat Field   (* 3 *)
+	t_flat_field_1			:= 19,
+	t_flat_field_2          := 20,
+	t_flat_field_vote       := 21,
+	// Thermal Box   (* 5 *)
+	t_thermal_box_1			:= 22,
+	t_thermal_box_2         := 23,
+	t_thermal_box_3			:= 24,
+	t_thermal_box_4         := 25,
+	t_thermal_box_vote      := 26,
+	
+		// Cabinet   (* 3 *)
+	t_cabinet_1				:= 27,
+	t_cabinet_2             := 28,
+	t_cabinet_vote          := 29
+	
+);
+END_TYPE
+
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

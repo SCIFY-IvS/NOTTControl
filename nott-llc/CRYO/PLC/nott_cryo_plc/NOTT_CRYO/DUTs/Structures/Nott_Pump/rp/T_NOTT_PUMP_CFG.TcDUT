@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_PUMP_CFG" Id="{c721a8a5-a3ba-4a73-9a83-b65fbcbc2982}">
+    <Declaration><![CDATA[TYPE T_NOTT_PUMP_CFG  EXTENDS T_CRYO_PUMP_SERIAL_CFG:
+STRUCT
+	// HiCube 80 Neo specific command configuration.
+// Pfeiffer Vacuum protocol for RS-485 interface.
+// HiPace 80 Neo RS-485 device ID=1 (001) !!!
+// MVP 015-2 RS-485 device ID=2 (002) !!!
+// MPT 200 RS-485 device ID=8 (008) !!!
+
+	// Definition of commands
+	
+// MVP 015-2 RS-485 device ID=2 (002) !!!
+	C_CMD_NONE:				STRING(16) := '';
+	C_CMD_sSetCtrlViaInt:	STRING(16) := '0021006003001';	// Control via DIO
+	C_CMD_sCtrlViaInt:		STRING(16) := '0020006002=?';	//Read status Control via DIO
+	C_CMD_sFwVersion:		STRING(16) := '0020031202=?';
+	C_CMD_sHwVersion:		STRING(16) := '0020035402=?';
+	C_CMD_nNominalSpeed:	STRING(16) := '0020039902=?';
+	C_CMD_bON:				STRING(16) := '0020001002=?';
+	C_CMD_nCtrlMode:		STRING(16) := '0020002602=?';
+	C_CMD_sErrorCode:		STRING(16) := '0020030302=?';
+	C_CMD_nMotorCurr:		STRING(16) := '0020031002=?';
+	C_CMD_nPumpHours:		STRING(16) := '0020031102=?';
+	C_CMD_nMotorVolt:		STRING(16) := '0020031302=?';
+	C_CMD_nElecPower:		STRING(16) := '0020031602=?';
+	C_CMD_nPumpTemp:		STRING(16) := '0020033002=?';
+	C_CMD_nPumpSpeed:		STRING(16) := '0020039802=?';
+	
+// MPT 200 RS-485 device ID=8 (008) !!!
+	C_CMD_PresSens_bOn:				STRING(16) := '0080004102=?';
+	C_CMD_PresSens_nErrorCode:		STRING(16) := '0080030302=?';
+	C_CMD_PresSens_sSwVersion:		STRING(16) := '0080031202=?';
+	C_CMD_PresSens_sHwVersion:		STRING(16) := '0080035402=?';
+	C_CMD_PresSens_sSerialNum:		STRING(16) := '0080035502=?';
+	C_CMD_PresSens_lrPressure:		STRING(16) := '0080074002=?';
+	
+	//C_CMD_sID000:			STRING(16) := '0001079706000001';	// Change all IDs to 1
+	C_CMD_sID000:			STRING(16) := '';
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

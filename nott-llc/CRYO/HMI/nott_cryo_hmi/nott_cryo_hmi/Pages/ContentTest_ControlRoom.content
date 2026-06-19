@@ -1,0 +1,1301 @@
+<div id="ContentTest_ControlRoom" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="1920" data-tchmi-height="930">
+<div id="CryogenicController_PumpUserControl_PVP_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="463" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Prevacuum" data-tchmi-target-user-control="UserControls/Controls/PumpUserControl.usercontrol" data-tchmi-top="785" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVPPressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Pump/PumpFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVP"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection1_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="18" data-tchmi-height-unit="px" data-tchmi-left="513" data-tchmi-left-unit="px" data-tchmi-top="780" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiTextblock_PVP_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="409" data-tchmi-left-unit="px" data-tchmi-text="PVP" data-tchmi-top="817" data-tchmi-top-unit="px" data-tchmi-width="55" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection2_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="780" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection3_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="775" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection4_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="770" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection5_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="765" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection6_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="760" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type1_ConnectTee1_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="508" data-tchmi-left-unit="px" data-tchmi-top="659" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection23" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="513" data-tchmi-left-unit="px" data-tchmi-top="669" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection7_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="513" data-tchmi-left-unit="px" data-tchmi-top="665" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_ValveUserControl_PVV1_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="599" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="623" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV1PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV1"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_GaugeSymbol_VAG1_1" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="80" data-tchmi-height-unit="px" data-tchmi-left="696" data-tchmi-left-unit="px" data-tchmi-top="701" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection8_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="686" data-tchmi-left-unit="px" data-tchmi-top="667" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type1_ConnectTee2_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="731" data-tchmi-left-unit="px" data-tchmi-top="662" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection9_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="736" data-tchmi-left-unit="px" data-tchmi-top="672" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection10_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="741" data-tchmi-left-unit="px" data-tchmi-top="667" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_ValveUserControl_PVV2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="773" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="627" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV2PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV2"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection11_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="859" data-tchmi-left-unit="px" data-tchmi-top="668" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_ValveUserControl_ENV1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="890" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="612" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_PVV1_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="599" data-tchmi-left-unit="px" data-tchmi-text="PVV1" data-tchmi-top="605" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TankSymbol_Tank" data-tchmi-type="TcHmi.Controls.CryoFramework.TankSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="815" data-tchmi-height-unit="px" data-tchmi-left="1024" data-tchmi-left-unit="px" data-tchmi-top="45" data-tchmi-top-unit="px" data-tchmi-width="310" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAG1_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="769" data-tchmi-left-unit="px" data-tchmi-text="VAG1" data-tchmi-top="750" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiTextblock_PVV2_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="773" data-tchmi-left-unit="px" data-tchmi-text="PVV2" data-tchmi-top="610" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiTextblock_ENV1_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="890" data-tchmi-left-unit="px" data-tchmi-text="ENV1" data-tchmi-top="594" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection12_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="977" data-tchmi-left-unit="px" data-tchmi-top="667" data-tchmi-top-unit="px" data-tchmi-width="49" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection24" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="163" data-tchmi-height-unit="px" data-tchmi-left="513" data-tchmi-left-unit="px" data-tchmi-top="502" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_ValveUserControl_PVV3" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="551" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="434" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV3PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV3"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection13" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="512" data-tchmi-left-unit="px" data-tchmi-top="476" data-tchmi-top-unit="px" data-tchmi-width="52" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiTextblock_PVV3_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="551" data-tchmi-left-unit="px" data-tchmi-text="PVV3" data-tchmi-top="416" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection14" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="638" data-tchmi-left-unit="px" data-tchmi-top="475" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type1_ConnectTee3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="683" data-tchmi-left-unit="px" data-tchmi-top="470" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection15" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="688" data-tchmi-left-unit="px" data-tchmi-top="480" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_GaugeSymbol_VAG2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="80" data-tchmi-height-unit="px" data-tchmi-left="649" data-tchmi-left-unit="px" data-tchmi-top="489" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAG2_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="591" data-tchmi-left-unit="px" data-tchmi-text="VAG2" data-tchmi-top="545" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection16" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="693" data-tchmi-left-unit="px" data-tchmi-top="475" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_ValveUserControl_PVV4" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="725" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="434" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV4PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "PVV4"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": null
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiTextblock_PVV4_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="725" data-tchmi-left-unit="px" data-tchmi-text="PVV4" data-tchmi-top="417" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiTextblock_TMP_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="845" data-tchmi-left-unit="px" data-tchmi-text="TMP" data-tchmi-top="410" data-tchmi-top-unit="px" data-tchmi-width="99" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_PumpUserControl_TMP_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Left" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="845" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Turbomolecular" data-tchmi-target-user-control="UserControls/Controls/PumpUserControl.usercontrol" data-tchmi-top="427" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "TMPPressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Pump/PumpFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "TMP"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": null
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection17" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="812" data-tchmi-left-unit="px" data-tchmi-top="477" data-tchmi-top-unit="px" data-tchmi-width="45" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_ValveUserControl_EGV2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="934" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="418" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_EGV2_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="934" data-tchmi-left-unit="px" data-tchmi-text="EGV2" data-tchmi-top="400" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection18" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="933" data-tchmi-left-unit="px" data-tchmi-top="477" data-tchmi-top-unit="px" data-tchmi-width="15" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection19" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="1021" data-tchmi-left-unit="px" data-tchmi-top="476" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection20" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="513" data-tchmi-left-unit="px" data-tchmi-top="472" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_GaugeSymbol_VAG3" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="80" data-tchmi-height-unit="px" data-tchmi-left="473" data-tchmi-left-unit="px" data-tchmi-top="393" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAG3_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="473" data-tchmi-left-unit="px" data-tchmi-text="VAG3" data-tchmi-top="369" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_PressureUserControl_VAG1_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="661" data-tchmi-left-unit="px" data-tchmi-notation="Scientific" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="786" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="28" data-tchmi-width="166" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAG1PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAG1"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_PressureUserControl_VAG2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="607" data-tchmi-left-unit="px" data-tchmi-notation="Scientific" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="569" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="28" data-tchmi-width="178" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAG2PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAG2"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection1_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="1001" data-tchmi-left-unit="px" data-tchmi-top="376" data-tchmi-top-unit="px" data-tchmi-width="25" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_ValveUserControl_GEG1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="914" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="318" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_GEG1_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="914" data-tchmi-left-unit="px" data-tchmi-text="GEG1" data-tchmi-top="301" data-tchmi-top-unit="px" data-tchmi-width="99" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection2_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="877" data-tchmi-left-unit="px" data-tchmi-top="377" data-tchmi-top-unit="px" data-tchmi-width="52" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection3_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="863" data-tchmi-left-unit="px" data-tchmi-top="348" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee1_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="858" data-tchmi-left-unit="px" data-tchmi-top="373" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_ValveUserControl_GEG2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="806" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="261" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_GEG2_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="806" data-tchmi-left-unit="px" data-tchmi-text="GEG2" data-tchmi-top="244" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="753" data-tchmi-left-unit="px" data-tchmi-top="377" data-tchmi-top-unit="px" data-tchmi-width="125" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_GaugeSymbol_VAGG2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="77" data-tchmi-height-unit="px" data-tchmi-left="676" data-tchmi-left-unit="px" data-tchmi-top="337" data-tchmi-top-unit="px" data-tchmi-width="77" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAGG2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="617" data-tchmi-left-unit="px" data-tchmi-text="VAGG2" data-tchmi-top="368" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="120" data-tchmi-height-unit="px" data-tchmi-left="810" data-tchmi-left-unit="px" data-tchmi-top="258" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="805" data-tchmi-left-unit="px" data-tchmi-top="373" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_GaugeSymbol_VAGG1" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="77" data-tchmi-height-unit="px" data-tchmi-left="676" data-tchmi-left-unit="px" data-tchmi-top="219" data-tchmi-top-unit="px" data-tchmi-width="77" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAGG1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="617" data-tchmi-left-unit="px" data-tchmi-text="VAGG1" data-tchmi-top="244" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection6" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="752" data-tchmi-left-unit="px" data-tchmi-top="258" data-tchmi-top-unit="px" data-tchmi-width="59" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_PressureUserControl_VAGG" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="633" data-tchmi-left-unit="px" data-tchmi-notation="Scientific" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="303" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="28" data-tchmi-width="178" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAGGPressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAGG"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_AnalogSensorUserControl_PVP_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="0" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="440" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/AnalogSensorUserControl.usercontrol" data-tchmi-top="885" data-tchmi-top-unit="px" data-tchmi-unit="rpm" data-tchmi-unittextboxwidth="28" data-tchmi-width="166" data-tchmi-width-unit="px" data-tchmi-datavalid="true" data-tchmi-zindex="100">
+</div>
+<div id="CryogenicController_AnalogSensorUserControl_TMP_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="0" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="823" data-tchmi-left-unit="px" data-tchmi-notation="Normal" data-tchmi-target-user-control="UserControls/Controls/AnalogSensorUserControl.usercontrol" data-tchmi-top="527" data-tchmi-top-unit="px" data-tchmi-unit="rpm" data-tchmi-unittextboxwidth="28" data-tchmi-width="166" data-tchmi-width-unit="px" data-tchmi-datavalid="true" data-tchmi-zindex="100">
+</div>
+<div id="CryogenicController_TcHmiLine_Type3_Connection2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="1333" data-tchmi-left-unit="px" data-tchmi-top="227" data-tchmi-top-unit="px" data-tchmi-width="52" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%">
+</div>
+<div id="CryogenicController_ValveUserControl_VGV1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="1373" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="170" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VGV1_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="1373" data-tchmi-left-unit="px" data-tchmi-text="VGV1" data-tchmi-top="151" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_ValveUserControl_N2V1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="1500" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="185" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "N2V1PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "N2V1"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiTextblock_N2V1_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="1500" data-tchmi-left-unit="px" data-tchmi-text="N2V1" data-tchmi-top="167" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type3_Connection3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="1461" data-tchmi-left-unit="px" data-tchmi-top="227" data-tchmi-top-unit="px" data-tchmi-width="52" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type4_Connection1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="1331" data-tchmi-left-unit="px" data-tchmi-top="407" data-tchmi-top-unit="px" data-tchmi-width="52" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor4%/tr%">
+</div>
+<div id="CryogenicController_GaugeSymbol_HPG" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="80" data-tchmi-height-unit="px" data-tchmi-left="1383" data-tchmi-left-unit="px" data-tchmi-top="368" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_HPG_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="1383" data-tchmi-left-unit="px" data-tchmi-text="HPG" data-tchmi-top="344" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_PressureUserControl_HPG" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="1337" data-tchmi-left-unit="px" data-tchmi-notation="Scientific" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="454" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="28" data-tchmi-width="178" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "HPGPressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "HPG"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection1_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="1000" data-tchmi-left-unit="px" data-tchmi-top="163" data-tchmi-top-unit="px" data-tchmi-width="28" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_ValveUserControl_GEF1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="913" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="105" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_GEF1_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="913" data-tchmi-left-unit="px" data-tchmi-text="GEF1" data-tchmi-top="88" data-tchmi-top-unit="px" data-tchmi-width="99" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection2_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="876" data-tchmi-left-unit="px" data-tchmi-top="164" data-tchmi-top-unit="px" data-tchmi-width="52" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection3_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="862" data-tchmi-left-unit="px" data-tchmi-top="135" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee1_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="857" data-tchmi-left-unit="px" data-tchmi-top="160" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_ValveUserControl_GEF2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="805" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="48" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_TcHmiTextblock_GEF2_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="805" data-tchmi-left-unit="px" data-tchmi-text="GEF2" data-tchmi-top="31" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection4_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="752" data-tchmi-left-unit="px" data-tchmi-top="164" data-tchmi-top-unit="px" data-tchmi-width="125" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_GaugeSymbol_VAGF2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="77" data-tchmi-height-unit="px" data-tchmi-left="675" data-tchmi-left-unit="px" data-tchmi-top="124" data-tchmi-top-unit="px" data-tchmi-width="77" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAGF2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="616" data-tchmi-left-unit="px" data-tchmi-text="VAGF2" data-tchmi-top="155" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection5_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="120" data-tchmi-height-unit="px" data-tchmi-left="809" data-tchmi-left-unit="px" data-tchmi-top="45" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee2_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="804" data-tchmi-left-unit="px" data-tchmi-top="160" data-tchmi-top-unit="px" data-tchmi-width="10" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_GaugeSymbol_VAGF1" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="77" data-tchmi-height-unit="px" data-tchmi-left="675" data-tchmi-left-unit="px" data-tchmi-top="6" data-tchmi-top-unit="px" data-tchmi-width="77" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="CryogenicController_TcHmiTextblock_VAGF1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="616" data-tchmi-left-unit="px" data-tchmi-text="VAGF1" data-tchmi-top="31" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+<div id="CryogenicController_TcHmiLine_Type2_Connection6_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="751" data-tchmi-left-unit="px" data-tchmi-top="45" data-tchmi-top-unit="px" data-tchmi-width="59" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_PressureUserControl_VAGF" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="632" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="90" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="28" data-tchmi-width="178" data-tchmi-width-unit="px" data-tchmi-notation="Scientific">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAGFPressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAGF"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": null
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_PressureUserControl_VAG3" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-decimals="3" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="294" data-tchmi-left-unit="px" data-tchmi-notation="Scientific" data-tchmi-target-user-control="UserControls/Controls/PressureUserControl.usercontrol" data-tchmi-top="417" data-tchmi-top-unit="px" data-tchmi-unittextboxwidth="28" data-tchmi-width="178" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAG3PressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "VAG3"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_ValveUserControl_GBV" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="100" data-tchmi-height-unit="px" data-tchmi-left="454" data-tchmi-left-unit="px" data-tchmi-strokethickness="2" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="665" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.JB_TcHmiDynamicPopup.CreatePopup",
+        "fnParams": [
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "GBVPressurePopup"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.TargetFile",
+            "value": {
+              "path": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol",
+              "attributes": {
+                "data-tchmi-eventgrid": "%ctrl%Events_TcHmiEventGrid%/ctrl%",
+                "data-tchmi-eventpageidentity": "Events"
+              }
+            }
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": "GBV"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/TcHmi.Controls.System.TcHmiPopup.ButtonList",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": true
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:framework#/definitions/Id",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 502.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 380.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Number",
+            "value": 0.0
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection29" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="512" data-tchmi-left-unit="px" data-tchmi-top="752" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="CryogenicController_TcHmiTextblock_GBV_Label" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-left="399" data-tchmi-left-unit="px" data-tchmi-text="GBV" data-tchmi-top="699" data-tchmi-top-unit="px" data-tchmi-width="55" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-font-size="16" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Center" data-tchmi-height="24">
+</div>
+</div>

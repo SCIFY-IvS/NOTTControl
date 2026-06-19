@@ -1,0 +1,58 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-heaterobject",
+      "displayName": "HeaterObject",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.FB_HMI_CRYO_HEATER",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "HeaterObject",
+      "propertySetterName": "setHeaterObject",
+      "propertyGetterName": "getHeaterObject",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-eventgrid",
+      "displayName": "EventGrid",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:framework#/definitions/TcHmi.Controls.Beckhoff.TcHmiEventGrid",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "EventGrid",
+      "propertySetterName": "setEventGrid",
+      "propertyGetterName": "getEventGrid",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-eventpageidentity",
+      "displayName": "EventPageIdentity",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:project#/definitions/PageIdentity",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "EventPageIdentity",
+      "propertySetterName": "setEventPageIdentity",
+      "propertyGetterName": "getEventPageIdentity",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

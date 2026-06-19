@@ -1,0 +1,81 @@
+{
+  "function": {
+    "name": "SetFilterOfEvents",
+    "namespace": "TcHmi.Functions.MyNamespace",
+    "displayName": "SetFilterOfEvents",
+    "description": "",
+    "waitMode": "Synchronous",
+    "category": "ESO",
+    "returnValue": {
+      "type": "tchmi:general#/definitions/VOID"
+    },
+    "visible": true,
+    "injectContextObject": false,
+    "arguments": [
+      {
+        "name": "EventGrid",
+        "displayName": "EventGrid",
+        "type": "tchmi:framework#/definitions/TcHmi.Controls.Beckhoff.TcHmiEventGrid",
+        "description": "",
+        "defaultValue": null,
+        "required": true,
+        "bindable": true,
+        "restParameter": false,
+        "asReference": false,
+        "allowControlAttributeBindingOptions": false
+      },
+      {
+        "name": "EventClassName",
+        "displayName": "EventClassName",
+        "type": "tchmi:general#/definitions/String",
+        "description": "",
+        "defaultValue": "",
+        "required": true,
+        "bindable": true,
+        "restParameter": false,
+        "asReference": false,
+        "allowControlAttributeBindingOptions": false
+      },
+      {
+        "name": "ShowNonClearedOnly",
+        "displayName": "ShowNonClearedOnly",
+        "type": "tchmi:general#/definitions/Boolean",
+        "description": "",
+        "defaultValue": "",
+        "required": true,
+        "bindable": true,
+        "restParameter": false,
+        "asReference": false,
+        "allowControlAttributeBindingOptions": false
+      },
+      {
+        "name": "InstanceName",
+        "displayName": "InstanceName",
+        "type": "tchmi:general#/definitions/String",
+        "description": "",
+        "defaultValue": "",
+        "required": true,
+        "bindable": true,
+        "restParameter": false,
+        "asReference": false,
+        "allowControlAttributeBindingOptions": false
+      }
+    ]
+  },
+  "$schema": "./../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/FunctionDescription.Schema.json",
+  "apiVersion": 1,
+  "version": {
+    "full": "0.0.0.0",
+    "major": 0,
+    "minor": 0,
+    "revision": 0,
+    "build": 0
+  },
+  "dependencyFiles": [
+    {
+      "name": "SetFilterOfEvents.js",
+      "type": "JavaScript",
+      "description": ""
+    }
+  ]
+}

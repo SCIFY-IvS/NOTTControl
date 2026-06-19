@@ -1,0 +1,138 @@
+<div id="PumpFaceplate" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="482" data-tchmi-height="320" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="PumpFaceplate_TcHmiTabNavigation" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTabNavigation" data-tchmi-height="300" data-tchmi-height-unit="px" data-tchmi-left="10" data-tchmi-left-unit="px" data-tchmi-top="10" data-tchmi-top-unit="px" data-tchmi-width="462" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-tabs" type="application/json">
+[
+  {
+    "name": "Operate",
+    "displayName": "%l%L_Operate%/l%",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Pump/PumpFaceplateOperateTab.usercontrol",
+      "attributes": {
+        "data-tchmi-pumpobject": "%pp%PumpObject%/pp%"
+      }
+    },
+    "targetFileHostPreload": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostKeepAlive": false,
+    "horizontalAlignment": "Left",
+    "verticalAlignment": "Center"
+  },
+  {
+    "name": "Status",
+    "displayName": "%l%L_Status%/l%",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Pump/PumpFaceplateStatusTab.usercontrol",
+      "attributes": {
+        "data-tchmi-pumpobject": "%pp%PumpObject%/pp%"
+      }
+    },
+    "targetFileHostPreload": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostKeepAlive": false,
+    "horizontalAlignment": "Left",
+    "verticalAlignment": "Center"
+  },
+  {
+    "name": "Messages",
+    "displayName": "%l%L_Messages%/l%",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Common/FaceplateMessagesTab.usercontrol",
+      "attributes": {
+        "data-tchmi-eventgrid": "%pp%EventGrid%/pp%",
+        "data-tchmi-eventclassname": "%pp%PumpObject::sEventClassName%/pp%",
+        "data-tchmi-eventpageidentity": "%pp%EventPageIdentity%/pp%",
+        "data-tchmi-instancename": "%pp%PumpObject::sInstanceName%/pp%"
+      }
+    },
+    "targetFileHostPreload": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostKeepAlive": false,
+    "horizontalAlignment": "Left",
+    "verticalAlignment": "Center"
+  },
+  {
+    "name": "Service",
+    "displayName": "%l%L_Service%/l%",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Common/FaceplateServiceTab.usercontrol",
+      "attributes": {
+        "data-tchmi-engineeringmodecommand": "%pp%PumpObject::ctrl::eng%/pp%",
+        "data-tchmi-engineeringmode": "%pp%PumpObject::out_stat::cmd_over_stat::bEngMode%/pp%",
+        "data-tchmi-automaticmode": "%pp%PumpObject::out_stat::cmd_over_stat::bAutoMode%/pp%"
+      }
+    },
+    "targetFileHostPreload": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostKeepAlive": false,
+    "horizontalAlignment": "Left",
+    "verticalAlignment": "Center"
+  }
+]
+</script>
+
+</div>
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%PumpObject::out_stat::cmd_over_stat::bEngMode%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%pp%PumpObject::out_stat::cmd_over_stat::bEngMode%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%tr%EngineeringModeFaceplateColor%/tr%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::BackgroundColor%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/Color",
+                  "value": null
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

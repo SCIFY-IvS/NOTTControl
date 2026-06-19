@@ -1,0 +1,53 @@
+<div id="METISTemperatureVoterFaceplate_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="950" data-tchmi-height="700" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="TemperatureFaceplate_TcHmiTabNavigation_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTabNavigation" data-tchmi-height="700" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="950" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-tabs" type="application/json">
+[
+  {
+    "displayName": "%l%L_Operate%/l%",
+    "name": "Operate",
+    "targetFile": {
+      "path": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplateStatus.usercontrol",
+      "attributes": {
+        "data-tchmi-tctrlobject": "%pp%TCtrlObject%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  },
+  {
+    "displayName": "%l%L_Service%/l%",
+    "name": "Service",
+    "targetFile": {
+      "path": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplateServiceTab.usercontrol",
+      "attributes": {
+        "data-tchmi-tctrlobject": "%pp%TCtrlObject%/pp%"
+      }
+    }
+  },
+  {
+    "displayName": "%l%L_Messages%/l%",
+    "name": "Messages",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Common/FaceplateMessagesTab.usercontrol",
+      "attributes": {
+        "data-tchmi-eventgrid": "%pp%EventGrid%/pp%",
+        "data-tchmi-eventclassname": "%pp%TCtrlObject::sEventClassName%/pp%",
+        "data-tchmi-eventpageidentity": "%pp%EventPageIdentity%/pp%",
+        "data-tchmi-instancename": "%pp%TCtrlObject::sInstanceName%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  }
+]
+</script>
+
+</div>
+
+
+
+
+</div>

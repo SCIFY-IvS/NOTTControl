@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_CRYO_EVAC_CTRL_50" Id="{7cef991e-5ac1-4c6a-953d-1f60c3cd8bda}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVAC_CTRL_50 :
+STRUCT
+	//
+	// Enable flags
+	//
+	
+	// Flags for control of pumps.
+	// Seeting the flag to TRUE  will start the pump.
+	// Seeting the flag to FALSE will stop  the pump.
+	bEnable_PVP:	BOOL := FALSE;	// Prevacuum pump
+	bEnable_TMP:	BOOL := FALSE;	// Turbo molecular pump
+	
+	// Flags for control of valves
+	// Seeting the flag to TRUE  will open  the valve.
+	// Seeting the flag to FALSE will close the valve.
+	bEnable_PVV1:	BOOL := FALSE;
+	
+	
+	//
+	// Override flags
+	//
+	
+	// Valve command override handling
+	cor_PVV1:	FB_CRYO_CMD_OVERRIDE;
+
+	// Pumps command override handling.
+	cor_PVP:	FB_CRYO_CMD_OVERRIDE;
+	cor_TMP:	FB_CRYO_CMD_OVERRIDE;
+
+	// Pressure Simulation override
+	por_VAG1:	FB_CRYO_CMD_OVERRIDE;
+	
+
+	//
+	// Simulation flags.
+	// NOTE: This is only needed for the total simulation
+	//       of the system that is normally done in Control Model.
+	//
+	bSim_Press_VAG1:	BOOL;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_CTRL" Id="{2da33da8-4f14-41e4-a10e-543b4b220305}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_CTRL :
+STRUCT
+	bExecute:	BOOL := FALSE;
+	nCommand:	E_NOTT_CRYO_CTRL_CMD := E_NOTT_CRYO_CTRL_CMD.NONE;
+	
+	bReset:		BOOL := FALSE;		// RESET Command
+
+	// Command to repressurize the system. 
+	// Exists only in full simulation in order to bring the 
+	// system to atmospheric pressure.
+	// In reality, repressurization is done by opening a manual valve.
+	bSim_Repress:	BOOL := FALSE;	
+
+	//
+	// Enable flags used to activate system functions. 	
+	//
+	{attribute 'TcHmiSymbol.Show'}
+	bEnable_Evac:		BOOL := FALSE;
+	bEnable_Cooler:		BOOL := FALSE;
+	bEnable_Heaters:	BOOL := FALSE;
+	bEnable_Warmup:		BOOL := FALSE;
+
+	//	
+	// Safe flags saying what is safe and what not.
+	//
+	bSafe_Cooling:		BOOL := FALSE;
+	bSafe_Warmup:		BOOL := FALSE;
+
+	//
+	// Simulation flags.
+	//
+	// Strictly speaking, these flags are not needed for normal
+	// operation, i.e., it is possible to simulate sensors
+	// without them. However, there existance greatly simplifies
+	// the simulation of the complete cryo system that is needed
+	// for Control Model testing.
+	// NOTE: These are only the flags of the complete higher-level
+	//       Control System.
+	//       There are also flags inside the Heaters, as well as
+	//       in the Evacuation subsystem.
+	//       See: ptrArr_tor[] populating in M_Configure().
+	//
+	// Temperature Simulation flags
+	bSim_Temp_Ambient:		BOOL := FALSE;
+	bSim_Temp_DetMon:		BOOL := FALSE;
+	bSim_Temp_ColdPlate:	BOOL := FALSE;
+	bSim_Temp_WarmFlange:	BOOL := FALSE;
+	bSim_Temp_WarmOptics:	BOOL := FALSE;
+	bSim_Temp_LS336:		BOOL := FALSE;
+	
+	// Pressure Simulation flags
+	bSim_Press_VAGC:	BOOL := FALSE;
+	bSim_Press_HPG:		BOOL := FALSE;
+
+
+	//
+	// System overrides for commands and sensor readings.
+	//	
+	// Command override (cor)
+	cor_Cooler:				FB_CRYO_CMD_OVERRIDE;
+	cor_Evac:				FB_CRYO_CMD_OVERRIDE;
+	cor_Heater_IF:			FB_CRYO_CMD_OVERRIDE;
+	cor_Heater_Preamp:		FB_CRYO_CMD_OVERRIDE;
+	cor_Heater_ColdPlate:	FB_CRYO_CMD_OVERRIDE;
+
+	// Temperature Simulation override (tor)
+	tor_Ambient:			FB_CRYO_CMD_OVERRIDE;
+	tor_DetMon:				FB_CRYO_CMD_OVERRIDE;
+	tor_ColdPlate:			FB_CRYO_CMD_OVERRIDE;
+	tor_WarmFlange:			FB_CRYO_CMD_OVERRIDE;
+	tor_WarmOptics:			FB_CRYO_CMD_OVERRIDE;
+	tor_LS336:				FB_CRYO_CMD_OVERRIDE;
+
+	// Pressure Simulation override (por)
+	por_VAGC:				FB_CRYO_CMD_OVERRIDE;
+	por_HPG:				FB_CRYO_CMD_OVERRIDE;
+
+
+	
+	// Lakeshore related control parameters
+	bLS_UpdateSETP:		BOOL := FALSE;	// If TRUE, this flag will trigger Lakeshore SETP.
+	lrLS_SETP:			LREAL := 40.0;	// New SETP
+	lrLS_RAMP:			LREAL := 0.5;	// RAMP [K/min]
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

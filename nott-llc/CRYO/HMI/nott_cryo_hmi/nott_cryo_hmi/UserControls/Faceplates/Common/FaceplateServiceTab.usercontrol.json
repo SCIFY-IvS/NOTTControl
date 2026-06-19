@@ -1,0 +1,58 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-engineeringmodecommand",
+      "displayName": "EngineeringModeCommand",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.E_HMI_CRYO_ENG",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "EngineeringModeCommand",
+      "propertySetterName": "setEngineeringModeCommand",
+      "propertyGetterName": "getEngineeringModeCommand",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-engineeringmode",
+      "displayName": "EngineeringMode",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "EngineeringMode",
+      "propertySetterName": "setEngineeringMode",
+      "propertyGetterName": "getEngineeringMode",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-automaticmode",
+      "displayName": "AutomaticMode",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "AutomaticMode",
+      "propertySetterName": "setAutomaticMode",
+      "propertyGetterName": "getAutomaticMode",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

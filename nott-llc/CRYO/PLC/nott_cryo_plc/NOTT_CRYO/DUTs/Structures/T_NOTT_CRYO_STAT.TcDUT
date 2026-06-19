@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_STAT" Id="{e0babf34-620b-4f3b-9ccd-c42cad9ef3ae}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_STAT :
+STRUCT
+	//
+	// Common attributes
+	//
+	bConfigured:	BOOL := FALSE;
+	bSystemStarted:	BOOL := FALSE;	// Indicates if M_GetState has been called.
+
+	bDone:			BOOL;			// Flag if controller is OK
+	bBusy:			BOOL;			// Flag if controller is BUSY
+	bError:			BOOL;			// Flag if controller is OK
+	bActive:		BOOL;			// Flag if controller is ACTIVE
+	
+	nLastCommand:	E_NOTT_CRYO_CTRL_CMD 	:= E_NOTT_CRYO_CTRL_CMD.NONE;
+	nState:			E_NOTT_CRYO_CTRL_STATE	:= E_NOTT_CRYO_CTRL_STATE.NONE;
+	sState:			STRING(64);		// State as text
+
+
+	//
+	// PDS Cryo Controller specific attributes
+	//
+	
+	// Simulation
+	bSimulation:	BOOL := FALSE;	// If TRUE, System is simulated - Variant (V2_SIM)	
+	bSim_RepressEnabled:	BOOL := FALSE;
+
+	bVacuum:		BOOL := FALSE;		
+	bVacuumOK:		BOOL := FALSE;		
+
+	bCold:			BOOL := FALSE;	// Master temperature < cfg.lrTemp_Cold		
+	bOP:			BOOL := FALSE;	// Master temperature < cfg.lrTemp_OP
+
+	bCoolantFlowOK:	BOOL := FALSE;		
+
+	bHighestTempValid:	BOOL := FALSE;	// Highest temperature Valid flag
+	bLowestTempValid:	BOOL := FALSE;	// Lowest temperature Valid flag
+
+	lrHighestTempK:	LREAL;	// Highest temperature [K] in Cryostat
+	lrLowestTempK:	LREAL;	// Lowest temperature [K] in Cryostat
+	
+	//
+	// Temperatures [K]
+	//
+
+	
+	// Master temperature [K] for cooldown and warmup.
+	// Normally, if everything is OK, this is the temperature
+	// measured by Heater_DetIF.
+	lrMasterTempK:	LREAL;
+	nMasterTempKIndex:	INT:= 0;
+
+	lrTempDiff_DET_Mon:			LREAL;	// Temperature difference between DET (Lakeshore) and DET Mon (PT100)
+	lrTempDiff_DetIF_Mon:		LREAL;	// Temperature difference between DET Interface and DET Mom
+	lrTempDiff_DetIF_Preamp:	LREAL;	// Temperature difference between DET Interface and Preamp
+	lrTempDiff_DetIF_ColdPlate:	LREAL;	// Temperature difference between DET Interface and Cold Plate
+	lrTempDiff_DetIF_WarmFlange:LREAL;	// Temperature difference between DET Interface and Warm Flange
+	lrTempDiff_DetIF_WarmOptics:LREAL;	// Temperature difference between DET Interface and Warm Optics
+
+	// TODO: Attributes not used yet.
+	lrTemp_K_DET_Ctrl:		LREAL;	// DET Temperature measured with Lakeshore
+	lrTemp_K_DET_Mon:		LREAL;	// DET Temperature measured with PT100
+	lrTemp_K_DET_Interface:	LREAL;
+	lrTemp_K_DET_Preamp:	LREAL;
+	lrTemp_K_ColdPlate:		LREAL;
+	lrTemp_K_WarmFlange:	LREAL;
+	lrTemp_K_WarmOptics:	LREAL;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

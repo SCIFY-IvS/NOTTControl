@@ -1,0 +1,25 @@
+<div id="METISTemperatureVoterFaceplateServiceTab_1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="600" data-tchmi-height="430" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="METISTemperatureVoterFaceplateServiceTab_TcHmiGrid_1" data-tchmi-type="TcHmi.Controls.System.TcHmiGrid" data-tchmi-height="430" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="600" data-tchmi-width-unit="px">
+
+<script data-tchmi-target-attribute="data-tchmi-row-options" type="application/json">
+[
+  {
+    "height": 1,
+    "heightMode": "Value",
+    "heightUnit": "factor",
+    "overflow": false
+  },
+  {
+    "height": 1,
+    "heightMode": "Value",
+    "heightUnit": "factor"
+  }
+]
+</script>
+<div id="NOTTTemperatureVoterFaceplateModes_Servicetab" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="144" data-tchmi-height-unit="px" data-tchmi-left="157" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateModes.usercontrol" data-tchmi-top="34" data-tchmi-top-unit="px" data-tchmi-width="242" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%pp%TempVoteObject%/pp%">
+</div>
+<div id="METISTemperatureVoterFaceplateConfig_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-grid-column-index="0" data-tchmi-grid-row-index="1" data-tchmi-height="98" data-tchmi-height-unit="px" data-tchmi-left="105" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateConfiguration.usercontrol" data-tchmi-top="52" data-tchmi-top-unit="px" data-tchmi-width="344" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%pp%TempVoteObject%/pp%">
+</div>
+</div>
+</div>

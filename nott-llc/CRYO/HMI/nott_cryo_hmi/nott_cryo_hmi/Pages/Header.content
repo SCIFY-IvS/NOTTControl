@@ -1,0 +1,171 @@
+<div id="Header" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="110" data-tchmi-width-unit="%">
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 0,
+  "right": 0,
+  "top": 0,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "None",
+  "right": "None",
+  "top": "None",
+  "bottom": "Dotted"
+}
+</script>
+<div id="Header_TcHmiGrid" data-tchmi-type="TcHmi.Controls.System.TcHmiGrid" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%">
+
+<script data-tchmi-target-attribute="data-tchmi-column-options" type="application/json">
+[
+  {
+    "maxWidth": 100.0,
+    "maxWidthUnit": "px",
+    "minWidth": 100.0,
+    "minWidthUnit": "px",
+    "overflow": false,
+    "width": 100.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "maxWidth": 115.0,
+    "maxWidthUnit": "px",
+    "minWidth": 115.0,
+    "minWidthUnit": "px",
+    "overflow": false,
+    "width": 115.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "maxWidth": 115.0,
+    "maxWidthUnit": "px",
+    "minWidth": 115.0,
+    "minWidthUnit": "px",
+    "overflow": false,
+    "width": 115.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "maxWidth": 115.0,
+    "maxWidthUnit": "px",
+    "minWidth": 115.0,
+    "minWidthUnit": "px",
+    "overflow": false,
+    "width": 115.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "maxWidth": 115.0,
+    "maxWidthUnit": "px",
+    "minWidth": 115.0,
+    "minWidthUnit": "px",
+    "overflow": false,
+    "width": 115.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "maxWidthUnit": "px",
+    "minWidthUnit": "px",
+    "overflow": false,
+    "width": 115.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "width": 115.0,
+    "widthMode": "Value",
+    "widthUnit": "px"
+  },
+  {
+    "maxWidthUnit": "%",
+    "minWidthUnit": "%",
+    "overflow": false,
+    "width": 1.0,
+    "widthMode": "Value",
+    "widthUnit": "factor"
+  }
+]
+</script>
+
+
+<div id="Header_ESO_Logo" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-background-image-horizontal-alignment="Left" data-tchmi-background-image-vertical-alignment="Center" data-tchmi-background-image="Images/European_Southern_Observatory_(ESO)_logo.svg" data-tchmi-background-image-height="100" data-tchmi-background-image-height-unit="%">
+</div>
+<div id="Header_NavigationButton_MainPage" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%MainPageIcon%/tr%" data-tchmi-label="%l%L_MainPage%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="MainPage" data-tchmi-grid-column-index="1" data-tchmi-width-mode="Value">
+
+
+
+
+</div>
+<div id="Header_NavigationButton_Events" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%EventsIcon%/tr%" data-tchmi-label="%l%L_Events%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="Events" data-tchmi-grid-column-index="2">
+</div>
+<div id="Header_NavigationButton_Cryo" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%CryoIcon%/tr%" data-tchmi-label="%l%L_Cryo%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="CryogenicController" data-tchmi-grid-column-index="3" data-tchmi-top="8">
+</div>
+<div id="Header_NavigationButton_Settings" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%SettingsIcon%/tr%" data-tchmi-label="%l%L_Settings%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="Settings" data-tchmi-grid-column-index="4">
+</div>
+<div id="Header_NavigationButton_Logout" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-label="%l%L_Logout%/l%" data-tchmi-icon="%tr%LogoutIcon%/tr%" data-tchmi-grid-column-index="6" data-tchmi-right="5" data-tchmi-top="8" data-tchmi-width-mode="Value" data-tchmi-height-mode="Value">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "JavaScript",
+        "active": true,
+        "sourceLines": [
+          "var currentUser = TcHmi.Server.getCurrentUser();",
+          "if (currentUser === \"Maintenance\") {",
+          "\t// Write single symbol",
+          "\tTcHmi.Server.writeSymbol('PLC1.MAIN.bMaintenanceUserLoggedIn', false, function(data){",
+          "\t    if(data.error !== TcHmi.Errors.NONE){",
+          "\t\t    console.log(\"TcHmi.Server class level error\");",
+          "\t        return;",
+          "\t    }",
+          "\t    var response = data.response;",
+          "\t    if (!response || response.error !== undefined) {",
+          "\t    \tconsole.log(\"TwinCAT HMI Server response level error\");",
+          "\t        return;",
+          "\t    }",
+          "\t    var commands = response.commands;",
+          "\t    if(commands === undefined){",
+          "\t        return;",
+          "\t    }",
+          "\t    var command = commands[0];",
+          "\t    if(command === undefined){",
+          "\t        return;",
+          "\t    }",
+          "\t    if(command.error !== undefined){",
+          "\t\t\tconsole.log(\"TwinCAT HMI Server command level error\");",
+          "\t        return;",
+          "\t    }",
+          "\t});",
+          "}",
+          "",
+          "TcHmi.Server.logout(function(data) {",
+          "    console.log('User logout not successful.');",
+          "});"
+        ],
+        "injectContextObject": false,
+        "asyncWait": true,
+        "waitMode": "Synchronous"
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="Header_NavigationButton_ContentTest" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%ContentTestIcon%/tr%" data-tchmi-label="%l%L_ContentTest%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="ContentTest" data-tchmi-grid-column-index="5">
+</div>
+<div id="TcHmiImage_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="28" data-tchmi-left-unit="px" data-tchmi-src="Images/NOTT_logo_simple.png" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="196" data-tchmi-width-unit="px" data-tchmi-grid-row-index="0" data-tchmi-grid-column-index="7">
+</div>
+</div>
+</div>

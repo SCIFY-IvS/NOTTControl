@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_PUMP_HIPACE80_CFG" Id="{199024e5-1063-4863-8fa1-3ae262cd8a77}">
+    <Declaration><![CDATA[TYPE T_NOTT_PUMP_HIPACE80_CFG EXTENDS T_CRYO_PUMP_SERIAL_CFG :
+STRUCT
+	// HIPACE80 specific command configuration.
+// Pfeiffer Vacuum protocol for RS-485 interface.
+// Assumed RS-485 device ID=1 (001) !!!
+
+	// Definition of commands
+	C_CMD_NONE:             	STRING(16) := '';
+	
+	C_CMD_sCtrlViaInt:      	STRING(16) := '0011006003001';   // write P060 = remote
+	C_CMD_sFwVersion:       	STRING(16) := '0010031202=?';
+	C_CMD_sHwVersion:       	STRING(16) := '0010035402=?';
+	C_CMD_nNominalSpeed:    	STRING(16) := '0010039902=?';
+	C_CMD_bDI1VentingEnable:	STRING(16) := '0011006203001';
+	C_CMD_bDI1VentingDisable: 	STRING(16) := '0011001206000000';	
+	C_CMD_bDI1Deactivated: 		STRING(16) := '0011006203000';   // disable vent DI
+	C_CMD_nDI1Config : 			STRING(16) := '0010006202=?';    // Readback
+	C_CMD_nRotSpdSwitch80 : 	STRING(16) := '0011030203080';  // Switch speed
+	C_CMD_nRotSpdSwitchPt : 	STRING(16) := '0010070102=?';   // '0010030202=?';
+	C_CMD_bVentEnable:			STRING(16) := '0010006202=?';
+	C_CMD_bON:              	STRING(16) := '0010002302=?';       // MotorPump status
+	// alternatively, if you want pumping station status:
+	C_CMD_bPumpingStatn: STRING(16) := '0010001002=?';
+
+	C_CMD_nCtrlMode:        STRING(16) := '0010006002=?';       // CtrlViaInt readback
+	C_CMD_sErrorCode:       STRING(16) := '0010030302=?';
+	C_CMD_bTargetSpeed:     STRING(16) := '0010030602=?';
+	C_CMD_nMotorCurr:       STRING(16) := '0010031002=?';
+	C_CMD_nPumpHours:       STRING(16) := '0010031102=?';
+	C_CMD_nMotorVolt:       STRING(16) := '0010031302=?';
+	C_CMD_nElecHours:       STRING(16) := '0010031402=?';
+	C_CMD_nElecTemp:        STRING(16) := '0010032602=?';
+	C_CMD_nPumpTemp:        STRING(16) := '0010033002=?';       // TempPmpBot
+	C_CMD_nPumpSpeed:       STRING(16) := '0010039802=?';
+
+	// optional extra, if useful:
+	C_CMD_nRotorTemp:    STRING(16) := '0010038402=?';
+	
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,518 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_TEMPERATURES" Id="{624fd6f8-f4ec-45df-941a-59dc484007e2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_TEMPERATURES
+VAR_OUTPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	out_lrHighestTemp:		LREAL;
+	out_sHighestTempName:	STRING;
+	out_bHighestTempValid:	BOOL;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	out_lrLowestTemp:		LREAL;
+	out_sLowestTempName:	STRING;
+	out_bLowestTempValid:	BOOL;
+	
+	out_lrAverageOfAllTemps: LREAL;
+	
+	out_all_temperature_names   : ARRAY [0..30] OF STRING;
+END_VAR
+VAR
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	{attribute 'TcHmiSymbol.Show'}
+	all_temperatures		: ARRAY [MIN_INDEX..MAX_INDEX] OF POINTER TO FB_METIS_TEMPERATURE;
+    
+    // NOTE: the names below are needed for the VISU, which cannot deal with MIN_INDEX and MAX_INDEX
+    // Hence, we must specify the numbers explicitly
+    // MAKE SURE THE INDEXES ALWATS CORRESPOND TO THE CONSTANTS MIN_INDEX AND MAX_INDEX
+	{attribute 'OPC.UA.DA' := '0'}
+	{attribute 'TcHmiSymbol.Show'}
+    all_temperature_names   : ARRAY [0..30] OF STRING;  // names of the temperatures
+
+(* Empty temp: 1 *)
+    
+{attribute 'OPC.UA.DA' := '0'}
+{attribute 'TcHmiSymbol.Show'}
+empty_temp					: FB_METIS_TEMPERATURE;
+
+//
+// PT100 Temperatures
+//
+		
+	// SideCar (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_sidecar_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_sidecar_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_sidecar_vote:			FB_METIS_TEMPERATURE;
+	
+	// Photonic Chip (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_photonic_chip_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_photonic_chip_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_photonic_chip_vote:		FB_METIS_TEMPERATURE;	
+	
+	// Base Plate (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_base_plate_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_base_plate_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_base_plate_vote:			FB_METIS_TEMPERATURE;
+	
+	// Shield (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_shield_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_shield_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_shield_vote:			FB_METIS_TEMPERATURE;
+	
+//
+// DT670 Temperature sensors connected via LS240-2P
+//
+		// Detector (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_detector:					FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_detector_spare:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_detector_vote:		FB_METIS_TEMPERATURE;
+
+	// System temperatures   (* 3 *)
+	// Master temperature to estimate overall temperature of the cryostat  
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_master                 	:FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_master_vot_1           	:FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_master_vot_2           	:FB_METIS_TEMPERATURE;
+	
+	// Flat Field   (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_flat_field_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_flat_field_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_flat_field_vote:			FB_METIS_TEMPERATURE;
+	
+	// Thermal Box   (* 5 *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_thermal_box_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_thermal_box_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_thermal_box_3:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_thermal_box_4:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_thermal_box_vote:			FB_METIS_TEMPERATURE;
+	
+		// Cabinet   (* 3 *)
+	{attribute 'OPC.UA.DA' := '1'}	
+	{attribute 'TcHmiSymbol.Show'}
+	t_cabinet_1:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_cabinet_2:			FB_METIS_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	t_cabinet_vote:			FB_METIS_TEMPERATURE;
+
+(*Vars*)
+
+{attribute 'OPC.UA.DA' := '0'}
+bConfigured					: BOOL := FALSE;
+
+               
+END_VAR
+VAR CONSTANT
+	{attribute 'OPC.UA.DA' := '0'}
+    MIN_INDEX : INT := 0;
+	{attribute 'OPC.UA.DA' := '0'}
+    MAX_INDEX : INT := 30; // 1 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 5 + 3 = 30 items ==> MAX_INDEX = 30
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_Configure();
+
+// to avoid invalid pointers, it is recommended to update the pointers every cycle
+M_UpdatePointers();
+
+M_ReadSensors();
+
+M_MaxMinAvrgTemperatures();
+
+
+//sim_t_cry_sha_1(in_Temp_Sensor_DT670 := t_cry_sha_1);
+//sim_t_cry_sha_2(in_Temp_Sensor_DT670 := t_cry_sha_2);
+//sim_t_sca_fw_icar(in_Temp_Sensor_DT670 := t_sca_fw_icar);
+//sim_t_img_n_pw_icar(in_Temp_Sensor_DT670 := t_img_n_pw_icar);
+//sim_t_lms_pla_1(in_Temp_Sensor_DT670 := t_lms_pla_1);
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ConfigSimTemperatures" Id="{20439c11-875e-476c-a0b5-7ed7c511c368}">
+      <Declaration><![CDATA[METHOD M_ConfigSimTemperatures
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+//sim_t_cry_sha_1(in_Temp_Sensor_DT670 := t_cry_sha_1);
+//sim_t_cry_sha_2(in_Temp_Sensor_DT670 := t_cry_sha_2);
+//sim_t_sca_fw_icar(in_Temp_Sensor_DT670 := t_sca_fw_icar);
+//sim_t_img_n_pw_icar(in_Temp_Sensor_DT670 := t_img_n_pw_icar);
+//sim_t_lms_pla_1(in_Temp_Sensor_DT670 := t_lms_pla_1);	
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{e6395427-dd9f-424e-8be3-9084bc754ad9}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+    i : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bConfigured THEN
+    
+    // just as a safety precaution, set valid pointers to start with
+    FOR i := MIN_INDEX TO MAX_INDEX DO
+        all_temperatures[i] := ADR(empty_temp);
+    END_FOR
+    
+    // Configure the all temp array
+    M_UpdatePointers();
+    
+    // execute the M_ReadSensors function once to update the names
+    M_ReadSensors();
+    
+    // store the names in a separate array
+    FOR i := MIN_INDEX TO MAX_INDEX DO
+        all_temperature_names[i] := all_temperatures[i]^.in_sName;
+    END_FOR
+
+    // Config SIM Temperatures
+    M_ConfigSimTemperatures();
+    
+    bConfigured := TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetTempSensorIndex" Id="{f667fb6a-1227-409c-a906-36868045859e}">
+      <Declaration><![CDATA[METHOD M_GetTempSensorIndex : INT
+VAR_INPUT
+    sName : STRING;
+END_VAR
+VAR
+    i: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := MIN_INDEX TO MAX_INDEX DO
+    IF sName = all_temperatures[i]^.in_sName THEN
+        M_GetTempSensorIndex := i;
+        RETURN;
+    END_IF
+END_FOR
+
+// Handle error: sensor name not found
+M_GetTempSensorIndex := 0; // empty temperature]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsIgnoredTemperature" Id="{bbaa1b54-1082-424f-a8b5-0126ed8ed112}">
+      <Declaration><![CDATA[METHOD M_IsIgnoredTemperature : BOOL
+VAR_INPUT
+    index : INT;   // Index into all_temperatures[]
+END_VAR
+VAR
+
+    IgnoreList: 		ARRAY[1..5] OF STRING := [
+        't_cry_pca',
+        't_cry_pcb',
+        't_cry_wim',
+        't_cry_wia',
+        't_cry_wid'
+    ];
+    i : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_IsIgnoredTemperature := FALSE;
+
+// Loop through ignore list
+FOR i := 1 TO 5 DO
+    IF all_temperatures[index]^.in_sName = IgnoreList[i] THEN
+        M_IsIgnoredTemperature := TRUE;
+        RETURN; // Exit early once a match is found
+    END_IF
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_MaxMinAvrgTemperatures" Id="{52c1fbd8-f4e2-4eec-b727-08af18db1fe8}">
+      <Declaration><![CDATA[METHOD M_MaxMinAvrgTemperatures
+VAR_INPUT
+END_VAR
+VAR
+	lrHigestTemp:		LREAL;	// Temporary var Higest temp
+	sHighestTempName:	STRING;
+	
+	lrLowestTemp:		LREAL;	// Temporary var Lowest temp
+	sLowestTempName:	STRING;
+	
+	lrAverageTemp:		LREAL;	// Temporary var Lowest temp
+	nSample:	INT;	// Number of valid sensor readings
+	i:			INT;
+	
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*Highest Temperature*)
+
+lrHigestTemp	:= -10000.0; // setting initial temperature for comparision
+sHighestTempName := '';
+lrLowestTemp := 10000.0; // setting initial temperature for comparision
+sLowestTempName := '';
+lrAverageTemp:= 0.0; 	// setting initial temperature for comparision		
+
+nSample	:= 0;
+
+FOR i := MIN_INDEX TO MAX_INDEX DO
+		// Ignor Ambient temps
+		IF M_IsIgnoredTemperature(index := i) THEN		
+			; // Skip this sensor in averaging, highest, lowest calculation
+		ELSE			
+			IF  all_temperatures[i]^.stat.bValid	THEN
+				
+					IF  all_temperatures[i]^.stat.lrTempK > lrHigestTemp THEN
+						lrHigestTemp	:= all_temperatures[i]^.stat.lrTempK;
+						sHighestTempName := all_temperatures[i]^.in_sName;
+					END_IF
+					
+					IF  all_temperatures[i]^.stat.lrTempK < lrLowestTemp THEN
+						lrLowestTemp	:= all_temperatures[i]^.stat.lrTempK;
+						sLowestTempName    := all_temperatures[i]^.in_sName;
+					END_IF
+					
+					lrAverageTemp	:= lrAverageTemp + all_temperatures[i]^.stat.lrTempK;	
+					
+					nSample	:= nSample + 1;
+			END_IF
+			
+		END_IF
+END_FOR
+
+
+
+IF nSample > 0	THEN
+	out_lrAverageOfAllTemps	:= lrAverageTemp / nSample;
+	
+	out_lrHighestTemp := lrHigestTemp;		
+	out_sHighestTempName := sHighestTempName;
+	out_bHighestTempValid := TRUE;
+	
+	out_lrLowestTemp :=		lrLowestTemp;
+	out_sLowestTempName :=	sLowestTempName;
+	out_bLowestTempValid := TRUE;
+	
+	
+	
+ELSE
+	
+	out_lrAverageOfAllTemps	:= 9999;
+	
+	out_lrHighestTemp := 9999;		
+	out_sHighestTempName := 'NA';
+	out_bHighestTempValid := FALSE;
+	
+	out_lrLowestTemp :=		9999;
+	out_sLowestTempName :=	'NA';
+	out_bLowestTempValid := FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{c159b3c6-d47e-4931-99bd-2f20bef177aa}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[empty_temp			(in_sName:='', in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.LS240, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+	// SideCar (* 3 *)	
+t_sidecar_1           (in_sName:='t_sidecar_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_sidecar_2           (in_sName:='t_sidecar_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_sidecar_vote        (in_sName:='t_sidecar_vote',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+	// Photonic Chip (* 3 *)
+t_photonic_chip_1           (in_sName:='t_photonic_chip_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_photonic_chip_2           (in_sName:='t_photonic_chip_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_photonic_chip_vote        (in_sName:='t_photonic_chip_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+	// Base Plate (* 3 *)
+t_base_plate_1           (in_sName:='t_base_plate_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_base_plate_2           (in_sName:='t_base_plate_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_base_plate_vote        (in_sName:='t_base_plate_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+	// Shield (* 3 *)
+t_shield_1           (in_sName:='t_shield_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_shield_2           (in_sName:='t_shield_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_shield_vote        (in_sName:='t_shield_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+//
+// DT670 Temperature sensors connected via LS240-2P
+//
+		// Detector (* 3 *)
+t_detector			(in_sName:='t_detector', in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.LS240, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+t_detector_spare	(in_sName:='t_detector_spare', in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.LS240, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);			
+t_detector_vote     (in_sName:='t_detector_vote',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+// System temperatures   (* 3 *)
+// Master temperature to estimate overall temperature of the cryostat  
+
+t_master       		(in_sName:='t_master',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+t_master_vot_1 		(in_sName:='t_master_vot_1',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+t_master_vot_2 		(in_sName:='t_master_vot_2',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+	// Flat Field 
+	
+t_flat_field_1           (in_sName:='t_flat_field_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_flat_field_2           (in_sName:='t_flat_field_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_flat_field_vote        (in_sName:='t_flat_field_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+// Thermal Box   (* 5 *)
+t_thermal_box_1           (in_sName:='t_thermal_box_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_2           (in_sName:='t_thermal_box_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_3           (in_sName:='t_thermal_box_3', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_4           (in_sName:='t_thermal_box_4', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_thermal_box_vote        (in_sName:='t_thermal_box_vote',  	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+// Cabinet   (* 3 *)
+		
+t_cabinet_1           (in_sName:='t_cabinet_1', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_cabinet_2           (in_sName:='t_cabinet_2', 	in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.EL32XX, in_lrScale := 0.01, in_lrOffset := 273.15);
+t_cabinet_vote        (in_sName:='t_cabinet_vote',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER,  in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetTemperatureSensor" Id="{a6312db2-58d1-4769-9d0f-caf5a5b785ff}">
+      <Declaration><![CDATA[METHOD M_SetTemperatureSensor : POINTER TO FB_METIS_TEMPERATURE
+VAR_INPUT
+	m_nIndex	:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// always return a valid pointer!
+IF (m_nIndex >= MIN_INDEX) AND (m_nIndex <= MAX_INDEX) THEN 
+    M_SetTemperatureSensor := all_temperatures[m_nIndex];
+ELSE
+    M_SetTemperatureSensor := all_temperatures[0]; // empty temperature
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdatePointer" Id="{60424aa2-c350-4efa-bb23-2d102b307fa1}">
+      <Declaration><![CDATA[METHOD M_UpdatePointer
+VAR_INPUT
+    pSensor : POINTER TO FB_METIS_TEMPERATURE;
+END_VAR
+VAR_IN_OUT
+    i : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF i >= MIN_INDEX AND i <= MAX_INDEX THEN
+    all_temperatures[i] := pSensor;
+    i := i + 1;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdatePointers" Id="{d75ad872-ceec-4b19-a669-facbfa78e149}">
+      <Declaration><![CDATA[METHOD M_UpdatePointers
+VAR_INPUT
+END_VAR
+VAR_INST
+    {attribute 'OPC.UA.DA' := '0'}
+    i : INT := 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// EMPTY
+M_UpdatePointer(i := i, pSensor := ADR(empty_temp));
+
+	// SideCar (* 3 *)
+M_UpdatePointer(i := i, pSensor := ADR(t_sidecar_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_sidecar_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_sidecar_vote));
+	// Photonic Chip (* 3 *)
+M_UpdatePointer(i := i, pSensor := ADR(t_photonic_chip_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_photonic_chip_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_photonic_chip_vote));
+	// Base Plate (* 3 *)
+M_UpdatePointer(i := i, pSensor := ADR(t_base_plate_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_base_plate_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_base_plate_vote));
+	// Shield (* 3 *)
+M_UpdatePointer(i := i, pSensor := ADR(t_shield_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_shield_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_shield_vote));
+		// Detector (* 3 *)
+M_UpdatePointer(i := i, pSensor := ADR(t_detector));
+M_UpdatePointer(i := i, pSensor := ADR(t_detector_spare));
+M_UpdatePointer(i := i, pSensor := ADR(t_detector_vote));
+
+(*System temperatures   (3) *)
+M_UpdatePointer(i := i, pSensor := ADR(t_master));
+M_UpdatePointer(i := i, pSensor := ADR(t_master_vot_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_master_vot_2));
+// Flat Field
+M_UpdatePointer(i := i, pSensor := ADR(t_flat_field_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_flat_field_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_flat_field_vote));
+// Thermal Box
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_3));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_4));
+M_UpdatePointer(i := i, pSensor := ADR(t_thermal_box_vote));
+// Cabinet
+M_UpdatePointer(i := i, pSensor := ADR(t_cabinet_1));
+M_UpdatePointer(i := i, pSensor := ADR(t_cabinet_2));
+M_UpdatePointer(i := i, pSensor := ADR(t_cabinet_vote));]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

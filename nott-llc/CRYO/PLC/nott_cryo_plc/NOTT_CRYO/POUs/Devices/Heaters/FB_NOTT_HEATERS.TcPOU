@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_HEATERS" Id="{288ed15a-be1f-4cb0-9003-91e4a6c3ec29}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_HEATERS
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+    tctrl:                  FB_NOTT_TCTRLs;
+END_VAR
+VAR
+
+	
+// Detector    
+	{attribute 'TcHmiSymbol.Show'}
+    h_detector:            	FB_METIS_HEATER;   // NOTT detector heater
+	{attribute 'TcHmiSymbol.Show'}
+    h_detector_spare:            FB_METIS_HEATER;   // NOTT detector heater SPARE
+	
+// Sidecar
+	{attribute 'TcHmiSymbol.Show'}
+    h_sidecar:            	FB_METIS_HEATER;  
+	
+// Photonic Chip
+	{attribute 'TcHmiSymbol.Show'}
+    h_photonic_chip:            	FB_METIS_HEATER;  
+
+// // Flat Field
+// 	{attribute 'TcHmiSymbol.Show'}
+//     h_flat_field:            	FB_METIS_HEATER; 
+
+// Base Plate
+	{attribute 'TcHmiSymbol.Show'}
+    h_base_plate:            	FB_METIS_HEATER; 
+
+// Shield
+	{attribute 'TcHmiSymbol.Show'}
+    h_shield:            	FB_METIS_HEATER;
+
+  
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ExecuteControllers(tctrl);]]></ST>
+    </Implementation>
+    <Method Name="M_ExecuteControllers" Id="{ef640a7d-aa6e-4d30-8597-93eb22df04bc}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR_INPUT
+END_VAR
+VAR_IN_OUT
+    tctrl: FB_NOTT_TCTRLs;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Detector 
+
+h_detector(
+    in_sName                := 'Detector HTR',
+    in_lrHeaterResistance   := 75,
+    in_lrHeaterMaxPower     := 5,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.EL95X1,
+    in_sAutoSetpointSource  := tctrl.tc_detector.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_detector.stat.lrControllerOut);
+h_detector_spare(
+    in_sName                := 'Detector Spare HTR',
+    in_lrHeaterResistance   := 75,
+    in_lrHeaterMaxPower     := 5,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.EL95X1,
+    in_sAutoSetpointSource  := tctrl.tc_detector_spare.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_detector_spare.stat.lrControllerOut);
+
+// Sidecar
+
+h_sidecar(
+    in_sName                := 'Sidecar HTR',
+    in_lrHeaterResistance   := 75,
+    in_lrHeaterMaxPower     := 5,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.EL95X1,
+    in_sAutoSetpointSource  := tctrl.tc_sidecar.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_sidecar.stat.lrControllerOut);
+
+// Photonic Chip
+
+h_photonic_chip(
+    in_sName                := 'Photonic Chip HTR',
+    in_lrHeaterResistance   := 75,
+    in_lrHeaterMaxPower     := 5,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.EL95X1,
+    in_sAutoSetpointSource  := tctrl.tc_photonic_chip.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_photonic_chip.stat.lrControllerOut);
+
+// Base Plate
+
+h_base_plate(
+    in_sName                := 'Base Plate HTR',
+    in_lrHeaterResistance   := 18.75,
+    in_lrHeaterMaxPower     := 192,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.CPAU60,
+    in_sAutoSetpointSource  := tctrl.tc_base_plate.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_base_plate.stat.lrControllerOut);
+	
+// Shield
+
+h_shield(
+    in_sName                := 'Shield HTR',
+    in_lrHeaterResistance   := 18.75,
+    in_lrHeaterMaxPower     := 192,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.CPAU60,
+    in_sAutoSetpointSource  := tctrl.tc_shields.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_shields.stat.lrControllerOut);	
+	
+	]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

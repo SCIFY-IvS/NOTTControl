@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_TEMP_VOTE_STATUS" Id="{4568b1cb-886e-454c-b1bd-5930ffe26879}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_TEMP_VOTE_STATUS:
+STRUCT
+		//
+	// Status coming from the analog input terminal.
+	// This is nothing to do with the sensor, i.e. the reading can be
+	// inside the input terminal measuring range but still it might
+	// not be inside the sensor measuring range!
+	//
+	bInputUnder:		BOOL;
+	bInputOver:			BOOL;
+	bInputError:		BOOL;
+	bInputToggle:		BOOL;
+	bInputValid:		BOOL;
+	bInputActive:		BOOL	:= FALSE;
+	nRawValue:			INT;
+
+	// Calculated status of the sensor
+	bError:				BOOL;
+	
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrRamp:		LREAL;	// Temperature ramp [deg/min]
+	
+	{attribute 'TcHmiSymbol.Show'}
+
+	bSimulated:		BOOL;				// Flag indicating if the value is simulated.
+	{attribute 'TcHmiSymbol.Show'}
+
+	lrSimTempK:	LREAL;				// Simulated Temp [K]
+
+	{attribute 'TcHmiSymbol.Show'}
+
+	bEnabled:		BOOL	:= FALSE;	// Flag indicating if the voter is enabled
+    
+	{attribute 'TcHmiSymbol.Show'}
+
+	sDescription:	STRING;	// User description of the voter (e.g. 'Average detector T')
+    
+	{attribute 'TcHmiSymbol.Show'}
+
+	bValid:			BOOL	:= FALSE;	// Flag indicating if the value is valid.
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrTempK:		LREAL;				// Calculated Temperature in K
+	sStatus:		STRING;				// Status string
+
+	// Flags indicating connected sensor is Valid.
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrSens1TempK:		LREAL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrSens2TempK:		LREAL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrSens3TempK:		LREAL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrSens4TempK:		LREAL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrSens5TempK:		LREAL;
+	
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bValidSensor1:		BOOL	:= FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bValidSensor2:		BOOL	:= FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bValidSensor3:		BOOL	:= FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bValidSensor4:		BOOL	:= FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bValidSensor5:		BOOL	:= FALSE;
+	{attribute 'TcHmiSymbol.ShowRecursively'}
+
+	stAlarms:		T_CRYO_ALARMS;	
+
+	bInRange:		BOOL	:= FALSE;
+
+	lrTempC:		LREAL;				// Temp [deg C]
+	
+	{attribute 'TcHmiSymbol.Show'}
+	aTempIndexes:		ARRAY[0..4] OF E_ALL_NOTT_TEMPERATURES;
+	{attribute 'TcHmiSymbol.Show'}
+	nVoteMethod:		E_METIS_TEMP_VOTE_METHOD;
+
+    //bEnabled:       BOOL;	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

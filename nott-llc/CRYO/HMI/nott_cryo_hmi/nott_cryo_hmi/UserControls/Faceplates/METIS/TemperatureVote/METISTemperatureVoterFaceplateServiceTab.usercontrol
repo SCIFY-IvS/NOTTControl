@@ -1,0 +1,25 @@
+<div id="METISTemperatureVoterFaceplateServiceTab" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="600" data-tchmi-height="430" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="METISTemperatureVoterFaceplateServiceTab_TcHmiGrid" data-tchmi-type="TcHmi.Controls.System.TcHmiGrid" data-tchmi-height="430" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="600" data-tchmi-width-unit="px">
+
+<script data-tchmi-target-attribute="data-tchmi-row-options" type="application/json">
+[
+  {
+    "height": 1,
+    "heightMode": "Value",
+    "heightUnit": "factor",
+    "overflow": false
+  },
+  {
+    "height": 1,
+    "heightMode": "Value",
+    "heightUnit": "factor"
+  }
+]
+</script>
+<div id="METISTemperatureVoterFaceplateModes_Servicetab" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="144" data-tchmi-height-unit="px" data-tchmi-left="155" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateModes.usercontrol" data-tchmi-top="32" data-tchmi-top-unit="px" data-tchmi-width="242" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%pp%TempVoteObject%/pp%">
+</div>
+<div id="METISTemperatureVoterFaceplateServiceTab_METISTemperatureVoterFaceplateConfig" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-grid-column-index="0" data-tchmi-grid-row-index="1" data-tchmi-height="98" data-tchmi-height-unit="px" data-tchmi-left="104" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateConfiguration.usercontrol" data-tchmi-top="49" data-tchmi-top-unit="px" data-tchmi-width="344" data-tchmi-width-unit="px" data-tchmi-tempvoteobject="%pp%TempVoteObject%/pp%">
+</div>
+</div>
+</div>

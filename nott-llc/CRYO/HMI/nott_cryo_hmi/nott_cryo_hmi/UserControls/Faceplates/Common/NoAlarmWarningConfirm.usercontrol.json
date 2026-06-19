@@ -1,0 +1,41 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-cryoalarms",
+      "displayName": "CryoAlarms",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.T_CRYO_ALARMS",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "CryoAlarms",
+      "propertySetterName": "setCryoAlarms",
+      "propertyGetterName": "getCryoAlarms",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-confirmalarmsvariable",
+      "displayName": "ConfirmAlarmsVariable",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "ConfirmAlarmsVariable",
+      "propertySetterName": "setConfirmAlarmsVariable",
+      "propertyGetterName": "getConfirmAlarmsVariable",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

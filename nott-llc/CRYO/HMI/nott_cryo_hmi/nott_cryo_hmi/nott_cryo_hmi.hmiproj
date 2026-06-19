@@ -1,0 +1,1215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Clean;Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.props" Condition="Exists('..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <TcHmiDirectory>$(registry:HKEY_CURRENT_USER\Software\Beckhoff\TwinCAT3\3.1@InstallDir)\..\Functions\TE2000-HMI-Engineering</TcHmiDirectory>
+    <TcHmiDirectory Condition="'$(TcHmiDirectory)'==''">$(registry:HKEY_LOCAL_MACHINE\Software\Beckhoff\TwinCAT3\3.1@InstallDir)\..\Functions\TE2000-HMI-Engineering</TcHmiDirectory>
+    <TcHmiDirectory Condition="'$(TcHmiDirectory)'==''">$(registry:HKEY_LOCAL_MACHINE\Software\Wow6432Node\Beckhoff\TwinCAT3\3.1@InstallDir)\..\Functions\TE2000-HMI-Engineering</TcHmiDirectory>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">15.0</VisualStudioVersion>
+    <AvailablePlatforms>TwinCAT HMI</AvailablePlatforms>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <HmiTitle>Cryo HMI template project</HmiTitle>
+    <HmiVerboseLevel>2</HmiVerboseLevel>
+    <HmiVersion>1.0.0.0</HmiVersion>
+    <HmiCommunicationServerPort>3004</HmiCommunicationServerPort>
+    <HmiLogTcHmiServerMessages>false</HmiLogTcHmiServerMessages>
+    <HmiLogDesignerModeComMessages>false</HmiLogDesignerModeComMessages>
+    <HmiDefaultLanguage>client</HmiDefaultLanguage>
+    <TargetFrameworkMoniker>native,Version=v1.12.0,Profile=tchmi</TargetFrameworkMoniker>
+    <TargetFramework>native1.12-tchmi</TargetFramework>
+    <AzureFunctionsVersion>v2</AzureFunctionsVersion>
+    <HmiViewportInitialScale>1.0</HmiViewportInitialScale>
+    <HmiViewportMinimumScale />
+    <HmiViewportMaximumScale />
+    <HmiViewportUserScaleable>Default</HmiViewportUserScaleable>
+    <HmiPostProcessing>True</HmiPostProcessing>
+    <Name>nott_cryo_hmi</Name>
+    <HmiCommunicationRouterPort>10121</HmiCommunicationRouterPort>
+    <HmiCommunicationServerAuthPort>13004</HmiCommunicationServerAuthPort>
+    <HmiInitial>1.12.760.59</HmiInitial>
+    <HmiRecent>14.3.804.1</HmiRecent>
+    <HmiServerNodeAdvancedView>False</HmiServerNodeAdvancedView>
+    <PinVersion>True (Version 1.12.760.59)</PinVersion>
+    <HmiCompanyName>European Southern Observatory</HmiCompanyName>
+    <HmiCompanyWebsite>www.eso.org</HmiCompanyWebsite>
+    <TcHmi_Beckhoff_TwinCAT_HMI_Server_Engineering_IncludeInArchive>false</TcHmi_Beckhoff_TwinCAT_HMI_Server_Engineering_IncludeInArchive>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <HmiCommunicationServerPublicPort>3443</HmiCommunicationServerPublicPort>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TwinCATHmi_Tasks>$(TcHmiDirectory)\MSBuild\Beckhoff.TwinCAT.HMI.tasks</TwinCATHmi_Tasks>
+    <TwinCATHmi_Targets>$(TcHmiDirectory)\MSBuild\Beckhoff.TwinCAT.HMI.targets</TwinCATHmi_Targets>
+  </PropertyGroup>
+  <Import Project="$(TwinCATHmi_Tasks)" />
+  <Import Project="$(TwinCATHmi_Targets)" />
+  <PropertyGroup>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>4cd6f035-8a9f-42e8-9d15-1c7f369338f5</ProjectGuid>
+    <RootNamespace>TwinCAT3HmiProject</RootNamespace>
+    <AssemblyName>TwinCAT3HmiProject</AssemblyName>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">TwinCAT HMI</Platform>
+  </PropertyGroup>
+  <!-- Any CPU -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|TwinCAT HMI' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>TwinCAT HMI</PlatformTarget>
+    <DefaultNamespace>pdshmi</DefaultNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|TwinCAT HMI' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>TwinCAT HMI</PlatformTarget>
+    <DefaultNamespace>pdshmi</DefaultNamespace>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="'$(RestoreProjectStyle)' == 'PackageReference'" />
+  <PropertyGroup>
+    <PreBuildEventDependsOn />
+  </PropertyGroup>
+  <Target Name="PreBuildEvent" Condition="'$(PreBuildEvent)'!=''" DependsOnTargets="$(PreBuildEventDependsOn)">
+    <Exec WorkingDirectory="$(OutDir)" Command="$(PreBuildEvent)" />
+  </Target>
+  <PropertyGroup>
+    <PostBuildEventDependsOn />
+  </PropertyGroup>
+  <Target Name="PostBuildEvent" Condition="'$(PostBuildEvent)' != '' and ('$(RunPostBuildEvent)'=='Always' or '$(RunPostBuildEvent)'=='OnOutputUpdated')" DependsOnTargets="$(PostBuildEventDependsOn)">
+    <Exec WorkingDirectory="$(OutDir)" Command="$(PostBuildEvent)" />
+  </Target>
+  <Target Name="GetFrameworkPaths" />
+  <PropertyGroup>
+    <BuiltProjectOutputGroupDependsOn>
+			PreBuildEvent;
+			CoreBuild;
+			PostBuildEvent
+		</BuiltProjectOutputGroupDependsOn>
+    <CleanDependsOn>
+			BaseClean
+		</CleanDependsOn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TcHmi_ProjectDirectory Condition="'$(TcHmi_ProjectDirectory)' == ''">$(MSBuildProjectDirectory)</TcHmi_ProjectDirectory>
+    <TcHmi_ServerAddress Condition="'$(TcHmi_ServerAddress)' == ''">127.0.0.1</TcHmi_ServerAddress>
+    <TcHmi_ServerPort Condition="'$(TcHmi_ServerPort)' == ''">1010</TcHmi_ServerPort>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_TcHmiNodeJsMode>Global</_TcHmiNodeJsMode>
+    <_TcHmiNodeJsMode Condition="'$(_TcHmiNodeJsMode)' == ''">Global</_TcHmiNodeJsMode>
+    <_TcHmiNodePath Condition="'$(_TcHmiNodeJsMode)' == 'Global'">$(registry:HKEY_LOCAL_MACHINE\SOFTWARE\Node.js@InstallPath)</_TcHmiNodePath>
+    <_TcHmiNodePath Condition="'$(_TcHmiNodeJsMode)' == 'Global' AND '$(_TcHmiNodePath)' == '' AND Exists('C:\Program Files\nodejs\')">C:\Program Files\nodejs\</_TcHmiNodePath>
+    <_TcHmiNodePath Condition="'$(_TcHmiNodeJsMode)' == 'Global' AND '$(_TcHmiNodePath)' == '' AND Exists('C:\Program Files (x86)\nodejs\')">C:\Program Files (x86)\nodejs\</_TcHmiNodePath>
+  </PropertyGroup>
+  <Target Name="ReTargetNodePath" Condition="'$(_TcHmiNodePath)' != ''" BeforeTargets="$(CompileDependsOn)">
+    <PropertyGroup>
+      <NodePath>$(_TcHmiNodePath)</NodePath>
+    </PropertyGroup>
+  </Target>
+  <Target Name="CoreBuild">
+    <TcHmiMSBuild.Publish.TcHmiBuild TaskAction="Clean" ProjectDirectory="$(TcHmi_ProjectDirectory)" OutputPath="$(OutputPath)" />
+    <TcHmiMSBuild.Publish.TcHmiBuild TaskAction="Build" ProjectDirectory="$(TcHmi_ProjectDirectory)" OutputPath="$(OutputPath)" ProjectFiles="@(Content)" VirtualMappings="$(TcHmi_VirtualMappings)" PostProcessing="$(HmiPostProcessing)" />
+    <TcHmiMSBuild.Publish.TcHmiGenerator TaskAction="EntryPage" ProjectDirectory="$(TcHmi_ProjectDirectory)" OutputPath="$(OutputPath)" TcHmiServerAddress="$(TcHmi_ServerAddress)" TcHmiServerPort="$(TcHmi_ServerPort)">
+      <Output TaskParameter="Result" PropertyName="TaskResult0" />
+    </TcHmiMSBuild.Publish.TcHmiGenerator>
+    <Message Text="Generating the Default.html within OutputPath('$(OutputPath)'): $(TaskResult0)" />
+  </Target>
+  <Target Name="Build" DependsOnTargets="$(BuiltProjectOutputGroupDependsOn)" />
+  <Target Name="Clean" DependsOnTargets="$(CleanDependsOn)" />
+  <Target Name="ReBuild" DependsOnTargets="Clean; Build" />
+  <ItemGroup>
+    <Content Include="Fonts\inconsolata.bold.woff">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Fonts\inconsolata.regular.woff">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\alert.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\back.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\back_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\European_Southern_Observatory_%28ESO%29_logo.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\LoginPageBackground_1920_1200_ESO.png">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\more.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\more_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\cryo.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\cryo_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\eventlist.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\eventlist_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\home.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\home_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\logout.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\logout_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\pipe.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\pipe_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\settings.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NavigationButtonIcons\settings_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\NOTT_logo_simple.png">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\sequence.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\sequence_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="JavaScript\GetCurrentUsername.function.json">
+      <SubType>Content</SubType>
+      <DependentUpon>JavaScript\GetCurrentUsername.js</DependentUpon>
+    </Content>
+    <Content Include="JavaScript\GetCurrentUsername.js">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="JavaScript\PrintFilterOfEventGrid.function.json">
+      <SubType>Content</SubType>
+      <DependentUpon>JavaScript\PrintFilterOfEventGrid.js</DependentUpon>
+    </Content>
+    <Content Include="JavaScript\PrintFilterOfEventGrid.js">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="JavaScript\SetFilterOfEventGrid.function.json">
+      <SubType>Content</SubType>
+      <DependentUpon>JavaScript\SetFilterOfEventGrid.js</DependentUpon>
+    </Content>
+    <Content Include="JavaScript\SetFilterOfEventGrid.js">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Pages\ContentTest_ControlCabinet.content">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Pages\ContentTest_ControlRoom.content">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Pages\CryogenicController.content">
+      <SubType>Content</SubType>
+      <Cache>True</Cache>
+    </Content>
+    <Content Include="Pages\EvacuateSequence.content">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Pages\LoginPage.html">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\RFIDAuth\RFIDAuth.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\RFIDAuth\RFIDAuth.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\RFIDAuth\RFIDAuth.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\Heater\NottHeater.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\Heater\NottHeater.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\NOTT\Heater\NottHeater.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\TempController\NOTTTemperatureController.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\TempController\NOTTTemperatureController.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\NOTT\TempController\NOTTTemperatureController.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\Voter\NOTTTemperatureVoterUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\NOTT\Voter\NOTTTemperatureVoterUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\NOTT\Voter\NOTTTemperatureVoterUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\PdsHeaterUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\PdsHeaterUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\PdsHeaterUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\TemperatureUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\TemperatureUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\TemperatureUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\PressureUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\PressureUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\PressureUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\AnalogSensorUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\AnalogSensorUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\AnalogSensorUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\HeaterUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\HeaterUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\HeaterUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\LakeshoreControllerUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\LakeshoreControllerUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\LakeshoreControllerUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\HeliumCompressor.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\HeliumCompressor.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\HeliumCompressor.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\PumpUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\PumpUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\PumpUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\StirlingCoolerUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\StirlingCoolerUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\StirlingCoolerUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Controls\ValveUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Controls\ValveUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Controls\ValveUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateSimulation.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateSimulation.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateSimulation.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Pressure\PressureFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateSimulation.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateSimulation.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateSimulation.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\AnalogSensors\Temperature\TemperatureFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\CoolerOnOffAutomaticManual.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\CoolerOnOffAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\CoolerOnOffAutomaticManual.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\EngineeringMode.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\EngineeringMode.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\EngineeringMode.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\FaceplateServiceTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\FaceplateServiceTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\FaceplateServiceTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\InterlockPermissions.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\InterlockPermissions.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\InterlockPermissions.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\NoAlarmWarningConfirm.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\NoAlarmWarningConfirm.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\NoAlarmWarningConfirm.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\HeliumCompressorOnOffAutomaticManual.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\HeliumCompressorOnOffAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\HeliumCompressorOnOffAutomaticManual.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\HeaterOnOffAutomaticManual.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\HeaterOnOffAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\HeaterOnOffAutomaticManual.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\PumpTemperature.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\PumpTemperature.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\PumpTemperature.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\PrevacPressure.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\PrevacPressure.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\PrevacPressure.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\FaceplateMessagesTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\FaceplateMessagesTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\FaceplateMessagesTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\ValveOpenCloseAutomaticManual.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\ValveOpenCloseAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\ValveOpenCloseAutomaticManual.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\PumpOnOffAutomaticManual.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\PumpOnOffAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\PumpOnOffAutomaticManual.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\StateAndRequestButton.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Common\StateAndRequestButton.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Common\StateAndRequestButton.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Cooler\CoolerFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Cooler\CoolerFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Cooler\CoolerFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Cooler\CoolerFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Cooler\CoolerFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Cooler\CoolerFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\PdsHeaterFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\PdsHeaterFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Heater\PdsHeaterFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\PdsHeaterFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\PdsHeaterFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Heater\PdsHeaterFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\HeaterFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\HeaterFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Heater\HeaterFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\HeaterFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Heater\HeaterFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Heater\HeaterFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\HeliumCompressor\HeliumCompressorFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\HeliumCompressor\HeliumCompressorFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\HeliumCompressor\HeliumCompressorFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\HeliumCompressor\HeliumCompressorFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\HeliumCompressor\HeliumCompressorFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\HeliumCompressor\HeliumCompressorFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\HeliumCompressor\HeliumCompressorStatusTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\HeliumCompressor\HeliumCompressorStatusTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\HeliumCompressor\HeliumCompressorStatusTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Lakeshore\LakeshoreFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Lakeshore\LakeshoreFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Lakeshore\LakeshoreFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Lakeshore\LakeshoreFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Lakeshore\LakeshoreFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Lakeshore\LakeshoreFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Lakeshore\LakeshoreStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Lakeshore\LakeshoreStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Lakeshore\LakeshoreStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\AlarmPopUp\FaceplateAlarmPopUp.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\AlarmPopUp\FaceplateAlarmPopUp.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\AlarmPopUp\FaceplateAlarmPopUp.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Common\OnOffAutomaticManual - Copy.usercontrol.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Common\OnOffAutomaticManual.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Common\OnOffAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\Common\OnOffAutomaticManual.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Common\PumpOnOffAutomaticManual.usercontrol.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\ControlValves\METISControlValveFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\ControlValves\METISControlValveFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\ControlValves\METISControlValveFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\ControlValves\METISControlValveFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\ControlValves\METISControlValveFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\ControlValves\METISControlValveFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\EvacuationSequence\METISEvacBranchSequenceFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\EvacuationSequence\METISEvacBranchSequenceFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\EvacuationSequence\METISEvacBranchSequenceFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Heaters\METISHeaterFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Heaters\METISHeaterFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\Heaters\METISHeaterFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Heaters\METISHeaterFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\Heaters\METISHeaterFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\Heaters\METISHeaterFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplateConfig.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplateConfig.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplateConfig.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplateOperate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplateOperate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\LN2LevelControl\METISLN2LevelCtrlFaceplateOperate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2_Level_Sensor\LN2LevelSensor.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\LN2_Level_Sensor\LN2LevelSensor.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\LN2_Level_Sensor\LN2LevelSensor.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplateServiceTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplateServiceTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplateServiceTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureControl\METISTempCtrlFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateConfiguration.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateConfiguration.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateConfiguration.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateModes.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateModes.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateModes.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateServiceTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateServiceTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateServiceTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateSimulation.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateSimulation.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateSimulation.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\METIS\TemperatureVote\METISTemperatureVoterFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Pump\PumpFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Pump\PumpFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Pump\PumpFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Pump\PumpFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Pump\PumpFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Pump\PumpFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Pump\PumpFaceplateStatusTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Pump\PumpFaceplateStatusTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Pump\PumpFaceplateStatusTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Sequence\SequenceControlFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Sequence\SequenceControlFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Sequence\SequenceControlFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Valve\ValveFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Valve\ValveFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Valve\ValveFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\Faceplates\Valve\ValveFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\Faceplates\Valve\ValveFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\Faceplates\Valve\ValveFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\InMaintenanceModePopupUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\InMaintenanceModePopupUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\InMaintenanceModePopupUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NavigationButton.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NavigationButton.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NavigationButton.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\CryogenicController_usercontrol_FlatField.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\CryogenicController_usercontrol_FlatField.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\CryogenicController_usercontrol_FlatField.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\CryogenicController_usercontrol_Temperatures.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\CryogenicController_usercontrol_Temperatures.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\CryogenicController_usercontrol_Temperatures.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateConfiguration.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateConfiguration.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateConfiguration.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateModes.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateModes.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateModes.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateOperateTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateOperateTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateOperateTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateServiceTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateServiceTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateServiceTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateSimulation.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateSimulation.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateSimulation.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\FaceplateVoter\NOTTTemperatureVoterFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\METISAnalogSensorUserControl\METISAnalogSensorUserControl.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\METISAnalogSensorUserControl\METISAnalogSensorUserControl.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\METISAnalogSensorUserControl\METISAnalogSensorUserControl.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplate.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplateServiceTab.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplateServiceTab.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplateServiceTab.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplateStatus.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplateStatus.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplateStatus.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\SectionA.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\SectionA.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\SectionA.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\SectionB.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\SectionB.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\SectionB.usercontrol</DependentUpon>
+    </Content>
+    <Content Include="UserControls\SectionC.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\SectionC.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\SectionC.usercontrol</DependentUpon>
+    </Content>
+    <Folder Include="Fonts\" />
+    <Folder Include="Images" />
+    <Folder Include="Images\Manifest" />
+    <Folder Include="Images\NavigationButtonIcons" />
+    <Folder Include="Imports" />
+    <Folder Include="Imports\Images" />
+    <Folder Include="Imports\Videos" />
+    <Folder Include="KeyboardLayouts\" />
+    <Folder Include="Localization" />
+    <Folder Include="JavaScript" />
+    <Folder Include="Server\RFIDAuth" />
+    <Folder Include="UserControls" />
+    <Folder Include="Pages" />
+    <Folder Include="Server\TcHmiEventLogger" />
+    <Folder Include="Themes" />
+    <Folder Include="Themes\Base-Dark\Images\" />
+    <Folder Include="Themes\Base\" />
+    <Folder Include="Themes\Base-Dark\" />
+    <Folder Include="Server">
+      <WorkingDirectory>pdshmi</WorkingDirectory>
+    </Folder>
+    <Folder Include="Properties" />
+    <Content Include=".eslintrc.json">
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="ControlRoom.view">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\clock-circular-outline.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\exclamation-mark.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\user.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="JavaScript\ReadUrlParameter.js">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Pages\Header.content">
+      <SubType>Content</SubType>
+      <Cache>True</Cache>
+    </Content>
+    <Content Include="Pages\Events.content">
+      <SubType>Content</SubType>
+      <Cache>True</Cache>
+    </Content>
+    <Content Include="Pages\Settings.content">
+      <SubType>Content</SubType>
+      <Cache>True</Cache>
+    </Content>
+    <Content Include="Pages\MainPage.content">
+      <SubType>Content</SubType>
+      <Cache>True</Cache>
+    </Content>
+    <Content Include="Pages\StatusBar.content">
+      <SubType>Content</SubType>
+      <Cache>True</Cache>
+    </Content>
+    <Content Include="Server\TcHmiEventLogger\TcHmiEventLogger.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiEventLogger\TcHmiEventLogger.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiEventLogger\TcHmiEventLogger.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiLua\TcHmiLua.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiLua\TcHmiLua.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiLua\TcHmiLua.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiSqliteLogger\TcHmiSqliteLogger.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiSqliteLogger\TcHmiSqliteLogger.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiSqliteLogger\TcHmiSqliteLogger.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiUserManagement\TcHmiUserManagement.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiUserManagement\TcHmiUserManagement.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiUserManagement\TcHmiUserManagement.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Themes\Base\WhiteBackground.css">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="tsconfig.tpl.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="tsconfig.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+      <DependentUpon>tsconfig.tpl.json</DependentUpon>
+    </Content>
+    <Content Include="packages.config">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="packages.xsd">
+      <SubType>Content</SubType>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="Properties\tchmiconfig.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Properties\tchmi.framework.Schema.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Properties\tchmi.project.Schema.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Properties\tchmipublish.config.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Properties\tchmimanifest.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Properties\Default.tpl">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include=".tfignore">
+      <SubType>Content</SubType>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include=".gitignore">
+      <SubType>Content</SubType>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="Fonts\Fonts.css">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Fonts\Roboto-Condensed-webfont.woff">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base\Base.theme">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base\BaseStyle.css">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base\Images\Splash-320x534.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base\Images\Splash-420x200.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base\Images\Splash-800x600.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base\Images\Background.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base-Dark\Base-Dark.theme">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base-Dark\Base-DarkStyle.css">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base-Dark\Images\Splash-320x534.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base-Dark\Images\Splash-420x200.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base-Dark\Images\Splash-800x600.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Themes\Base-Dark\Images\Background.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Localization\de.localization">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Localization\en.localization">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="KeyboardLayouts\German - compact.keyboard.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="KeyboardLayouts\US - compact.keyboard.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="KeyboardLayouts\Numpad (plusminus).keyboard.json">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Favicon.ico">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Beckhoff_Logo.svg">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Manifest\launcher-icon-0-75x.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Manifest\launcher-icon-1-5x.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Manifest\launcher-icon-1x.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Manifest\launcher-icon-2x.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Manifest\launcher-icon-3x.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="Images\Manifest\launcher-icon-4x.png">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Content Include="ControlCabinet.view">
+      <SubType>Content</SubType>
+      <Visible>true</Visible>
+    </Content>
+    <Folder Include="Server\ADS\" />
+    <Folder Include="Server\TcHmiLua\" />
+    <Folder Include="Server\TcHmiSqliteLogger\" />
+    <Folder Include="Server\TcHmiSrv\" />
+    <Folder Include="Server\TcHmiUserManagement\" />
+    <Content Include="Server\ADS\ADS.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\ADS\ADS.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\ADS\ADS.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiSrv\TcHmiSrv.Config.default.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiSrv\TcHmiSrv.Config.remote.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Server\TcHmiSrv\TcHmiSrv.Storage.json">
+      <SubType>Content</SubType>
+    </Content>
+    <Folder Include="Themes\Base\Images\" />
+    <Folder Include="UserControls\Controls\NOTT" />
+    <Folder Include="UserControls\Controls\NOTT\Heater" />
+    <Folder Include="UserControls\Controls\NOTT\TempController" />
+    <Folder Include="UserControls\Controls\NOTT\Voter" />
+    <Folder Include="UserControls\Faceplates" />
+    <Folder Include="UserControls\Controls" />
+    <Folder Include="UserControls\Faceplates\AnalogSensors\Temperature" />
+    <Folder Include="UserControls\Faceplates\AnalogSensors\Pressure" />
+    <Folder Include="UserControls\Faceplates\Common" />
+    <Folder Include="UserControls\Faceplates\Heater" />
+    <Folder Include="UserControls\Faceplates\Cooler" />
+    <Folder Include="UserControls\Faceplates\Lakeshore" />
+    <Folder Include="UserControls\Faceplates\HeliumCompressor" />
+    <Folder Include="UserControls\Faceplates\AnalogSensors" />
+    <Folder Include="UserControls\Faceplates\METIS" />
+    <Folder Include="UserControls\Faceplates\METIS\AlarmPopUp" />
+    <Folder Include="UserControls\Faceplates\METIS\Common" />
+    <Folder Include="UserControls\Faceplates\METIS\ControlValves" />
+    <Folder Include="UserControls\Faceplates\METIS\EvacuationSequence" />
+    <Folder Include="UserControls\Faceplates\METIS\Heaters" />
+    <Folder Include="UserControls\Faceplates\METIS\LN2LevelControl" />
+    <Folder Include="UserControls\Faceplates\METIS\LN2_Level_Sensor" />
+    <Folder Include="UserControls\Faceplates\METIS\TemperatureControl" />
+    <Folder Include="UserControls\Faceplates\METIS\TemperatureVote" />
+    <Folder Include="UserControls\Faceplates\Sequence" />
+    <Folder Include="UserControls\Faceplates\Valve" />
+    <Folder Include="UserControls\Faceplates\Pump" />
+    <Folder Include="UserControls\NOTT" />
+    <Folder Include="UserControls\NOTT\METISAnalogSensorUserControl" />
+    <Folder Include="UserControls\NOTT\FaceplateVoter" />
+    <Folder Include="UserControls\NOTT\TemperatureControl" />
+  </ItemGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets'))" />
+  </Target>
+  <Import Project="..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets" Condition="Exists('..\packages\Microsoft.TypeScript.MSBuild.5.9.3\build\Microsoft.TypeScript.MSBuild.targets')" />
+</Project>

@@ -1,0 +1,24 @@
+{
+  "parameters": [
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": false,
+      "bindable": true,
+      "propertySetterName": "setLN2SensorObject",
+      "propertyGetterName": "getLN2SensorObject",
+      "refTo": "",
+      "name": "data-tchmi-ln2sensorobject",
+      "displayName": "LN2SensorObject",
+      "visible": true,
+      "type": "tchmi:server#/definitions/ADS-PLC1.FB_METIS_CRYO_LN2_SENSOR",
+      "category": "",
+      "description": "",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "LN2SensorObject"
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.3.431/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

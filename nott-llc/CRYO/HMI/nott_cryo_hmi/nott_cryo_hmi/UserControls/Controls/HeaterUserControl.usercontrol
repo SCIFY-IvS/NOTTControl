@@ -1,0 +1,206 @@
+<div id="HeaterUserControl" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500" data-tchmi-width-mode="Value" data-tchmi-height-mode="Value">
+
+<div id="HeaterFrameworkControl" data-tchmi-type="TcHmi.Controls.CryoFramework.Heater" data-tchmi-basesymbolcontrol-devicestate-box-size-unit="%" data-tchmi-basesymbolcontrol-direction="%pp%Direction%/pp%" data-tchmi-basesymbolcontrol-eventbox-box-size-unit="%" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness="2" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness-unit="px" data-tchmi-basesymbolcontrol-state="0" data-tchmi-basesymbolcontrol-symbol-stroke-thickness-unit="px" data-tchmi-datalabel-font-size-unit="px" data-tchmi-heater-data-valid="true" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-basesymbolcontrol-symbol-margin="%pp%SymbolMarginSize%/pp%" data-tchmi-basesymbolcontrol-symbol-stroke-thickness="%pp%StrokeThickness%/pp%" data-tchmi-heater-value="%pp%Value%/pp%" data-tchmi-datalabel-text-font-size="%pp%TextFontSize%/pp%" data-tchmi-datalabel-text-horizontal-alignment="Center" data-tchmi-datalabel-text-vertical-alignment="Center" data-tchmi-basesymbolcontrol-alarm-raised="%pp%HeaterHmiObject::out_stat::heater_stat::stAlarms::bAlarmRaised%/pp%" data-tchmi-basesymbolcontrol-alarm-confirmed="%pp%HeaterHmiObject::out_stat::heater_stat::stAlarms::bAlarmConfirmed%/pp%" data-tchmi-basesymbolcontrol-warning-raised="%pp%HeaterHmiObject::out_stat::heater_stat::stAlarms::bWarningRaised%/pp%" data-tchmi-basesymbolcontrol-warning-confirmed="%pp%HeaterHmiObject::out_stat::heater_stat::stAlarms::bWarningConfirmed%/pp%" data-tchmi-basesymbolcontrol-interlock-active="%pp%HeaterHmiObject::out_stat::cmd_over_stat::bInterlock%/pp%">
+
+
+
+
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%HeaterHmiObject::out_stat::heater_stat::bActON%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%pp%HeaterHmiObject::out_stat::heater_stat::bActON%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 2.0
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 0.0
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%pp%HeaterHmiObject::out_stat::cmd_over_stat::sMode%/pp%",
+    "actions": [
+      {
+        "objectType": "SwitchCase",
+        "active": true,
+        "compare": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:general#/definitions/STRING(80)",
+          "symbolExpression": "%pp%HeaterHmiObject::out_stat::cmd_over_stat::sMode%/pp%"
+        },
+        "cases": [
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/STRING(80)",
+              "value": "MANUAL"
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              },
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/STRING(80)",
+              "value": "ENG"
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              },
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/STRING(80)",
+              "value": "AUTO"
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              },
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "caseDefault": {
+          "actions": [
+            {
+              "objectType": "WriteToSymbol",
+              "active": true,
+              "symbolExpression": "%ctrl%HeaterFrameworkControl::ManualMode%/ctrl%",
+              "value": {
+                "objectType": "StaticValue",
+                "valueType": "tchmi:general#/definitions/Boolean",
+                "value": false
+              },
+              "asyncWait": true
+            },
+            {
+              "objectType": "WriteToSymbol",
+              "active": true,
+              "symbolExpression": "%ctrl%HeaterFrameworkControl::EngineeringMode%/ctrl%",
+              "value": {
+                "objectType": "StaticValue",
+                "valueType": "tchmi:general#/definitions/Boolean",
+                "value": false
+              },
+              "asyncWait": true
+            }
+          ]
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

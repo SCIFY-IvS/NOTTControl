@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="MAIN" Id="{156d88d6-38db-460b-bb6f-1d8dbe58db4d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+		{attribute 'TcHmiSymbol.Show'}
+	nott_cryo_ctrl : FB_NOTT_CRYO_CTRL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[nott_cryo_ctrl();]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

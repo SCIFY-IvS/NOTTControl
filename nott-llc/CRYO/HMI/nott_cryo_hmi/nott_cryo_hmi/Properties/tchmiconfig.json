@@ -1,0 +1,896 @@
+{
+  "$schema": "./../../Packages/Beckhoff.TwinCAT.HMI.Framework.14.3.431/runtimes/native1.12-tchmi/Schema/TchmiConfig.Schema.json",
+  "basePath": "./Beckhoff.TwinCAT.HMI.Framework",
+  "scaleMode": "ScaleToFit",
+  "startupView": "ControlCabinet.view",
+  "loginPage": "Pages/LoginPage.html",
+  "splash": {
+    "versionSource": "Framework"
+  },
+  "projectVersion": "1.0.0.0",
+  "tcHmiServer": {
+    "websocketIntervalTime": 500,
+    "websocketTimeout": 20000,
+    "websocketSystemTimeout": 60000,
+    "websocketSubscriptionMode": null,
+    "disableOptionalSystemSubscriptions": false
+  },
+  "activeTheme": "Base",
+  "themes": {
+    "Base-Dark": {
+      "resources": [
+        {
+          "name": "Themes/Base-Dark/Base-DarkStyle.css",
+          "description": "",
+          "type": "Stylesheet"
+        },
+        {
+          "name": "Themes/Base-Dark/Base-Dark.theme",
+          "description": "",
+          "type": "ThemedValues"
+        }
+      ],
+      "replacesThemeForControls": [],
+      "replacesThemeForPackageComponents": []
+    },
+    "Base": {
+      "resources": [
+        {
+          "name": "Themes/Base/Base.theme",
+          "description": "",
+          "type": "ThemedValues"
+        },
+        {
+          "name": "Themes/Base/BaseStyle.css",
+          "description": "",
+          "type": "Stylesheet"
+        },
+        {
+          "name": "Themes/Base/WhiteBackground.css",
+          "description": "",
+          "type": "Stylesheet"
+        }
+      ],
+      "replacesThemeForControls": [],
+      "replacesThemeForPackageComponents": []
+    }
+  },
+  "dependencyFiles": [
+    {
+      "name": "Fonts/Fonts.css",
+      "description": "",
+      "type": "Stylesheet"
+    },
+    {
+      "name": "JavaScript/ReadUrlParameter.js",
+      "description": "",
+      "type": "JavaScript"
+    },
+    {
+      "name": "JavaScript/GetCurrentUsername.js",
+      "description": "",
+      "type": "JavaScript"
+    },
+    {
+      "name": "JavaScript/SetFilterOfEventGrid.js",
+      "description": "",
+      "type": "JavaScript"
+    },
+    {
+      "name": "JavaScript/PrintFilterOfEventGrid.js",
+      "description": "",
+      "type": "JavaScript"
+    }
+  ],
+  "userControls": [
+    {
+      "url": "UserControls/Controls/AnalogSensorUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/HeaterUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/HeliumCompressor.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/LakeshoreControllerUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/NOTT/Heater/NottHeater.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/NOTT/TempController/NOTTTemperatureController.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/NOTT/Voter/NOTTTemperatureVoterUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/PdsHeaterUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/PressureUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/PumpUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/StirlingCoolerUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/TemperatureUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Controls/ValveUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplateSimulation.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Pressure/PressureFaceplateStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Temperature/TemperatureFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Temperature/TemperatureFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Temperature/TemperatureFaceplateSimulation.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/AnalogSensors/Temperature/TemperatureFaceplateStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/CoolerOnOffAutomaticManual.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/EngineeringMode.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/FaceplateMessagesTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/FaceplateServiceTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/HeaterOnOffAutomaticManual.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/HeliumCompressorOnOffAutomaticManual.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/InterlockPermissions.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/NoAlarmWarningConfirm.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/PrevacPressure.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/PumpOnOffAutomaticManual.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/PumpTemperature.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/StateAndRequestButton.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Common/ValveOpenCloseAutomaticManual.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Cooler/CoolerFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Cooler/CoolerFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Heater/HeaterFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Heater/HeaterFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Heater/PdsHeaterFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Heater/PdsHeaterFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/HeliumCompressor/HeliumCompressorFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/HeliumCompressor/HeliumCompressorFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/HeliumCompressor/HeliumCompressorStatusTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Lakeshore/LakeshoreFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Lakeshore/LakeshoreFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Lakeshore/LakeshoreStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/AlarmPopUp/FaceplateAlarmPopUp.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/Common/OnOffAutomaticManual.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/ControlValves/METISControlValveFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/ControlValves/METISControlValveFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/EvacuationSequence/METISEvacBranchSequenceFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/Heaters/METISHeaterFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/Heaters/METISHeaterFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/LN2_Level_Sensor/LN2LevelSensor.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/LN2LevelControl/METISLN2LevelCtrlFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/LN2LevelControl/METISLN2LevelCtrlFaceplateConfig.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/LN2LevelControl/METISLN2LevelCtrlFaceplateOperate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureControl/METISTempCtrlFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureControl/METISTempCtrlFaceplateServiceTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureControl/METISTempCtrlFaceplateStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateConfiguration.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateModes.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateServiceTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateSimulation.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/METIS/TemperatureVote/METISTemperatureVoterFaceplateStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Pump/PumpFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Pump/PumpFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Pump/PumpFaceplateStatusTab.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Sequence/SequenceControlFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Valve/ValveFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/Faceplates/Valve/ValveFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/InMaintenanceModePopupUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/NavigationButton.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/CryogenicController_usercontrol_FlatField.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/CryogenicController_usercontrol_Temperatures.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateConfiguration.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateModes.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateOperateTab.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateServiceTab.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateSimulation.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/METISAnalogSensorUserControl/METISAnalogSensorUserControl.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplate.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplateServiceTab.usercontrol"
+    },
+    {
+      "url": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplateStatus.usercontrol"
+    },
+    {
+      "url": "UserControls/SectionA.usercontrol"
+    },
+    {
+      "url": "UserControls/SectionB.usercontrol"
+    },
+    {
+      "url": "UserControls/SectionC.usercontrol"
+    }
+  ],
+  "controls": [],
+  "content": [
+    {
+      "url": "Pages/ContentTest_ControlCabinet.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/ContentTest_ControlRoom.content",
+      "preload": false,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/CryogenicController.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/EvacuateSequence.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/Events.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/Header.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/MainPage.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/Settings.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "Pages/StatusBar.content",
+      "preload": true,
+      "keepAlive": false,
+      "loadSync": false,
+      "preloadBindings": false
+    }
+  ],
+  "views": [
+    {
+      "url": "ControlCabinet.view",
+      "preload": false,
+      "keepAlive": false,
+      "preloadBindings": false
+    },
+    {
+      "url": "ControlRoom.view",
+      "preload": false,
+      "keepAlive": false,
+      "preloadBindings": false
+    }
+  ],
+  "userFunctions": [
+    {
+      "url": "JavaScript/GetCurrentUsername.js"
+    },
+    {
+      "url": "JavaScript/PrintFilterOfEventGrid.js"
+    },
+    {
+      "url": "JavaScript/SetFilterOfEventGrid.js"
+    }
+  ],
+  "symbols": {
+    "internal": {
+      "SelectedPageIdentity": {
+        "value": "MainPage",
+        "type": "tchmi:project#/definitions/PageIdentity",
+        "persist": false,
+        "readonly": false
+      },
+      "LastVisitedPageIdentity": {
+        "value": "MainPage",
+        "type": "tchmi:project#/definitions/PageIdentity",
+        "persist": false,
+        "readonly": false
+      },
+      "PreviouslyVisitedPageIdentity": {
+        "value": "MainPage",
+        "type": "tchmi:project#/definitions/PageIdentity",
+        "persist": false,
+        "readonly": false
+      }
+    },
+    "themedResources": {
+      "SettingsIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/NavigationButtonIcons/settings.svg",
+          "Base-Dark": "Images/NavigationButtonIcons/settings_white.svg"
+        }
+      },
+      "MainPageIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/NavigationButtonIcons/home.svg",
+          "Base-Dark": "Images/NavigationButtonIcons/home_white.svg"
+        }
+      },
+      "EventsIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/NavigationButtonIcons/eventlist.svg",
+          "Base-Dark": "Images/NavigationButtonIcons/eventlist_white.svg"
+        }
+      },
+      "LogoutIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/NavigationButtonIcons/logout.svg",
+          "Base-Dark": "Images/NavigationButtonIcons/logout_white.svg"
+        }
+      },
+      "FaceplateGridBorderColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(192, 192, 197, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(68, 68, 68, 1)"
+          }
+        }
+      },
+      "CryoIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/NavigationButtonIcons/cryo.svg",
+          "Base-Dark": "Images/NavigationButtonIcons/cryo_white.svg"
+        }
+      },
+      "InMaintenanceModePopupBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(192, 192, 197, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(68, 68, 68, 1)"
+          }
+        }
+      },
+      "EngineeringModeFaceplateColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 165, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 165, 0, 1)"
+          }
+        }
+      },
+      "EngineeringModeButtonBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 165, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 165, 0, 1)"
+          }
+        }
+      },
+      "ActiveButtonBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(61, 255, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(61, 255, 0, 1)"
+          }
+        }
+      },
+      "ErrorButtonBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 0, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 0, 0, 1)"
+          }
+        }
+      },
+      "ManualModeButtonBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 255, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 255, 0, 1)"
+          }
+        }
+      },
+      "CryogenicControllerLineColor1": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(20, 205, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(25, 255, 0, 1)"
+          }
+        }
+      },
+      "CryogenicControllerLineColor2": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(0, 0, 255, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(111, 111, 255, 1)"
+          }
+        }
+      },
+      "SequenceStateTextBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 255, 255, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(42, 56, 69, 1)"
+          }
+        }
+      },
+      "SequenceFlowchartImage": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/sequence.svg",
+          "Base-Dark": "Images/sequence_white.svg"
+        }
+      },
+      "SequenceFlowchartImageThreeDots": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/more.svg",
+          "Base-Dark": "Images/more_white.svg"
+        }
+      },
+      "SequenceConfirmBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(192, 192, 197, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(68, 68, 68, 1)"
+          }
+        }
+      },
+      "BackIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/back.svg",
+          "Base-Dark": "Images/back_white.svg"
+        }
+      },
+      "SequenceArrowFillColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(0, 0, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 255, 255, 1)"
+          }
+        }
+      },
+      "TextblockBackgroundColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 255, 255, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(42, 56, 69, 1)"
+          }
+        }
+      },
+      "TextboxErrorColor": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(253, 211, 211, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(253, 211, 211, 1)"
+          }
+        }
+      },
+      "ContentTestIcon": {
+        "type": "tchmi:framework#/definitions/Path",
+        "description": "",
+        "values": {
+          "Base": "Images/NavigationButtonIcons/pipe.svg",
+          "Base-Dark": "Images/NavigationButtonIcons/pipe_white.svg"
+        }
+      },
+      "CryogenicControllerLineColor3": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(0, 0, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 255, 255, 1)"
+          }
+        }
+      },
+      "CryogenicControllerLineColor4": {
+        "type": "tchmi:framework#/definitions/Color",
+        "description": "",
+        "values": {
+          "Base": {
+            "color": "rgba(255, 0, 0, 1)"
+          },
+          "Base-Dark": {
+            "color": "rgba(255, 0, 0, 1)"
+          }
+        }
+      }
+    },
+    "timer": {},
+    "package": {}
+  },
+  "intervals": {},
+  "trigger": [
+    {
+      "event": "onInitialized",
+      "actions": [
+        {
+          "objectType": "JavaScript",
+          "active": true,
+          "sourceLines": [
+            "var currentUser = TcHmi.Server.getCurrentUser();",
+            "if (currentUser === \"Maintenance\") {",
+            "\t// Write single symbol",
+            "\tTcHmi.Server.writeSymbol('PLC1.MAIN.bMaintenanceUserLoggedIn', true, function(data){",
+            "\t    if(data.error !== TcHmi.Errors.NONE){",
+            "\t\t    console.log(\"TcHmi.Server class level error\");",
+            "\t        return;",
+            "\t    }",
+            "\t    var response = data.response;",
+            "\t    if (!response || response.error !== undefined) {",
+            "\t    \tconsole.log(\"TwinCAT HMI Server response level error\");",
+            "\t        return;",
+            "\t    }",
+            "\t    var commands = response.commands;",
+            "\t    if(commands === undefined){",
+            "\t        return;",
+            "\t    }",
+            "\t    var command = commands[0];",
+            "\t    if(command === undefined){",
+            "\t        return;",
+            "\t    }",
+            "\t    if(command.error !== undefined){",
+            "\t\t\tconsole.log(\"TwinCAT HMI Server command level error\");",
+            "\t        return;",
+            "\t    }",
+            "\t});",
+            "}"
+          ],
+          "injectContextObject": false,
+          "asyncWait": true,
+          "waitMode": "Synchronous"
+        }
+      ]
+    },
+    {
+      "event": "%i%SelectedPageIdentity%/i%",
+      "actions": [
+        {
+          "objectType": "WriteToSymbol",
+          "active": true,
+          "symbolExpression": "%i%PreviouslyVisitedPageIdentity%/i%",
+          "value": {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%i%LastVisitedPageIdentity%/i%"
+          },
+          "asyncWait": true
+        },
+        {
+          "objectType": "WriteToSymbol",
+          "active": true,
+          "symbolExpression": "%i%LastVisitedPageIdentity%/i%",
+          "value": {
+            "objectType": "Symbol",
+            "valueType": "tchmi:general#/definitions/String",
+            "symbolExpression": "%i%SelectedPageIdentity%/i%"
+          },
+          "asyncWait": true
+        }
+      ]
+    }
+  ],
+  "actionTemplates": [],
+  "languages": {
+    "de": "Localization/de.localization",
+    "en": "Localization/en.localization"
+  },
+  "languageFallback": "",
+  "disableLoadingOptimization": false,
+  "creatorSettings": {
+    "viewport": {
+      "defaultWidth": 1024,
+      "defaultHeight": 768
+    }
+  },
+  "binding": {
+    "symbolError": "Ignore",
+    "symbolWriteError": "ReadBack"
+  },
+  "packages": [
+    {
+      "name": "Beckhoff.TwinCAT.HMI.Controls",
+      "basePath": "/Beckhoff.TwinCAT.HMI.Controls",
+      "symbols": {
+        "package": {}
+      }
+    },
+    {
+      "name": "Beckhoff.TwinCAT.HMI.Framework",
+      "basePath": "/Beckhoff.TwinCAT.HMI.Framework",
+      "symbols": {
+        "package": {}
+      }
+    },
+    {
+      "name": "Beckhoff.TwinCAT.HMI.Functions",
+      "basePath": "/Beckhoff.TwinCAT.HMI.Functions",
+      "symbols": {
+        "package": {}
+      }
+    },
+    {
+      "name": "CryoFramework",
+      "basePath": "/CryoFramework",
+      "symbols": {
+        "package": {}
+      }
+    },
+    {
+      "name": "JB.TcHmiDynamicPopup",
+      "basePath": "/JB.TcHmiDynamicPopup",
+      "symbols": {
+        "package": {}
+      }
+    }
+  ],
+  "keyboardLayouts": [
+    {
+      "url": "KeyboardLayouts/German - compact.keyboard.json"
+    },
+    {
+      "url": "KeyboardLayouts/Numpad (plusminus).keyboard.json"
+    },
+    {
+      "url": "KeyboardLayouts/US - compact.keyboard.json"
+    }
+  ],
+  "systemKeyboard": {
+    "providerName": "",
+    "autoOpen": false,
+    "projectKeyboardMapping": {
+      "de": {
+        "text": "KeyboardLayouts/German - compact.keyboard.json",
+        "decimal": "KeyboardLayouts/Numpad (plusminus).keyboard.json",
+        "numeric": ""
+      },
+      "en": {
+        "text": "KeyboardLayouts/US - compact.keyboard.json",
+        "decimal": "KeyboardLayouts/Numpad (plusminus).keyboard.json",
+        "numeric": ""
+      }
+    }
+  },
+  "systemPopups": {
+    "providerName": "Beckhoff.TcHmiPopups"
+  }
+}

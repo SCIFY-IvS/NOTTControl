@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_TCTRLs" Id="{6bdb9dcd-3a61-4832-8d85-5f1079c76f24}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_TCTRLs
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+    temperatures:   FB_NOTT_TEMPERATURES;  // all temperatures
+END_VAR
+VAR
+
+	{attribute 'TcHmiSymbol.Show'}
+    tc_detector:     		FB_NOTT_CTRL_TEMPERATURE; // Detector
+	{attribute 'TcHmiSymbol.Show'}
+    tc_detector_spare:     	FB_NOTT_CTRL_TEMPERATURE; // Controls spare heater on Detector
+    {attribute 'TcHmiSymbol.Show'}
+	tc_sidecar:     		FB_NOTT_CTRL_TEMPERATURE; // Sidecar
+	{attribute 'TcHmiSymbol.Show'}
+    tc_photonic_chip:       FB_NOTT_CTRL_TEMPERATURE; // Photonic Chip
+	{attribute 'TcHmiSymbol.Show'}
+    tc_base_plate:      	FB_NOTT_CTRL_TEMPERATURE; // Base Plate
+	{attribute 'TcHmiSymbol.Show'}
+	tc_shields:      		FB_NOTT_CTRL_TEMPERATURE; // Shield
+	{attribute 'TcHmiSymbol.Show'}
+	tc_flatfield:      		FB_NOTT_CTRL_TEMPERATURE; // Flatfield
+
+END_VAR
+VAR CONSTANT
+	{attribute 'OPC.UA.DA' := '0'}
+    CYCLE_TIME : TIME := T#10ms;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// CRY
+tc_detector			(in_sName := 'tc_detector' 		 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+tc_detector_spare	(in_sName := 'tc_detector_spare' , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+tc_sidecar			(in_sName := 'tc_sidecar' 		 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+tc_photonic_chip	(in_sName := 'tc_photonic_chip'  , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+tc_shields			(in_sName := 'tc_shields'  		 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+tc_flatfield		(in_sName := 'tc_flatfield'  	 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+
+
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

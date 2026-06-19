@@ -1,0 +1,68 @@
+<div id="NottHeater" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500" data-tchmi-left-unit="%" data-tchmi-top-unit="%">
+
+<div id="Heater_1" data-tchmi-type="TcHmi.Controls.CryoFramework.Heater" data-tchmi-basesymbolcontrol-devicestate-box-size-unit="%" data-tchmi-basesymbolcontrol-direction="Up" data-tchmi-basesymbolcontrol-eventbox-box-size-unit="%" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness="2" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness-unit="px" data-tchmi-basesymbolcontrol-symbol-stroke-thickness-unit="px" data-tchmi-heater-data-valid="True" data-tchmi-height="70" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-top="0" data-tchmi-top-unit="%" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-heater-value="%pp%METISHeaterObject::in_sName%/pp%" data-tchmi-basesymbolcontrol-state="0" data-tchmi-basesymbolcontrol-alarm-raised="%pp%METISHeaterObject::stat::stAlarms::bAlarmRaised%/pp%" data-tchmi-basesymbolcontrol-devicestate-box-size="40" data-tchmi-basesymbolcontrol-alarm-confirmed="%pp%METISHeaterObject::stat::stAlarms::bAlarmConfirmed%/pp%" data-tchmi-basesymbolcontrol-warning-raised="%pp%METISHeaterObject::stat::stAlarms::bWarningRaised%/pp%" data-tchmi-basesymbolcontrol-warning-confirmed="%pp%METISHeaterObject::stat::stAlarms::bWarningConfirmed%/pp%" data-tchmi-basesymbolcontrol-manual-mode="%pp%METISHeaterObject::stat::bManual%/pp%" data-tchmi-datalabel-text-horizontal-alignment="Center" data-tchmi-datalabel-text-vertical-alignment="Center">
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%METISHeaterObject::stat::bActive%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "symbolExpression": "%pp%METISHeaterObject::stat::bActive%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 2.0
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 0.0
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="TcHmiTextblock_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="30" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="%" data-tchmi-text="%f%%pp%METISHeaterObject::stat::lrActHeaterPower%/pp%.toFixed(1) + ' W'%/f%" data-tchmi-top="70" data-tchmi-top-unit="%" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-word-wrap="True" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-font-size="16">
+</div>
+</div>

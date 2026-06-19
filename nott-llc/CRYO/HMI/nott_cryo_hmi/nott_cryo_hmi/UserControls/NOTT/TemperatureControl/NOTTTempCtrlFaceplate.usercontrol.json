@@ -1,0 +1,58 @@
+{
+  "parameters": [
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": false,
+      "bindable": true,
+      "propertySetterName": "setTCtrlObject",
+      "propertyGetterName": "getTCtrlObject",
+      "refTo": "",
+      "name": "data-tchmi-tctrlobject",
+      "displayName": "TCtrlObject",
+      "visible": true,
+      "type": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.FB_NOTT_CTRL_TEMPERATURE",
+      "category": "",
+      "description": "",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "TCtrlObject"
+    },
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": false,
+      "bindable": true,
+      "propertySetterName": "setEventGrid",
+      "propertyGetterName": "getEventGrid",
+      "refTo": "",
+      "name": "data-tchmi-eventgrid",
+      "displayName": "EventGrid",
+      "visible": true,
+      "type": "tchmi:framework#/definitions/TcHmi.Controls.Beckhoff.TcHmiEventGrid",
+      "category": "",
+      "description": "",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "EventGrid"
+    },
+    {
+      "allowSymbolExpressionsInObject": false,
+      "requiredOnCompile": false,
+      "bindable": true,
+      "propertySetterName": "setEventPageIdentity",
+      "propertyGetterName": "getEventPageIdentity",
+      "refTo": "",
+      "name": "data-tchmi-eventpageidentity",
+      "displayName": "EventPageIdentity",
+      "visible": true,
+      "type": "tchmi:project#/definitions/PageIdentity",
+      "category": "",
+      "description": "",
+      "readOnly": false,
+      "heritable": true,
+      "propertyName": "EventPageIdentity"
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

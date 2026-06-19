@@ -1,0 +1,243 @@
+<div id="ValveUserControl" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="ValveFrameworkControl" data-tchmi-type="TcHmi.Controls.CryoFramework.Valve" data-tchmi-basesymbolcontrol-devicestate-box-size="20" data-tchmi-basesymbolcontrol-devicestate-box-size-unit="%" data-tchmi-basesymbolcontrol-direction="%pp%Direction%/pp%" data-tchmi-basesymbolcontrol-eventbox-box-size="20" data-tchmi-basesymbolcontrol-eventbox-box-size-unit="%" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness="2" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness-unit="px" data-tchmi-basesymbolcontrol-state="0" data-tchmi-basesymbolcontrol-symbol-stroke-thickness-unit="px" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-valve-box-size="18" data-tchmi-valve-box-size-unit="%" data-tchmi-valve-close-state="%pp%ValveHmiObject::out_stat::valve_stat::bActOFF%/pp%" data-tchmi-valve-open-state="%pp%ValveHmiObject::out_stat::valve_stat::bActON%/pp%" data-tchmi-valve-show-feedback="%pp%ShowFeedback%/pp%" data-tchmi-valve-symbol-type="%pp%SymbolType%/pp%" data-tchmi-valve-valid-feedback="true" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-basesymbolcontrol-symbol-margin="%pp%SymbolMarginSize%/pp%" data-tchmi-basesymbolcontrol-symbol-stroke-thickness="%pp%StrokeThickness%/pp%" data-tchmi-basesymbolcontrol-interlock-active="%pp%ValveHmiObject::out_stat::cmd_over_stat::bInterlock%/pp%" data-tchmi-basesymbolcontrol-alarm-raised="%pp%ValveHmiObject::out_stat::valve_stat::stAlarms::bAlarmRaised%/pp%" data-tchmi-basesymbolcontrol-alarm-confirmed="%pp%ValveHmiObject::out_stat::valve_stat::stAlarms::bAlarmConfirmed%/pp%" data-tchmi-basesymbolcontrol-warning-raised="%pp%ValveHmiObject::out_stat::valve_stat::stAlarms::bWarningRaised%/pp%" data-tchmi-basesymbolcontrol-warning-confirmed="%pp%ValveHmiObject::out_stat::valve_stat::stAlarms::bWarningConfirmed%/pp%">
+
+
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%ValveHmiObject::out_stat::cmd_over_stat::sMode%/pp%",
+    "actions": [
+      {
+        "objectType": "SwitchCase",
+        "active": true,
+        "compare": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:general#/definitions/STRING(80)",
+          "symbolExpression": "%pp%ValveHmiObject::out_stat::cmd_over_stat::sMode%/pp%"
+        },
+        "cases": [
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/STRING(80)",
+              "value": "MANUAL"
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::ManualMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              },
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::EngineeringMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/STRING(80)",
+              "value": "ENG"
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::ManualMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              },
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::EngineeringMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:general#/definitions/STRING(80)",
+              "value": "AUTO"
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::ManualMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              },
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::EngineeringMode%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "caseDefault": {
+          "actions": [
+            {
+              "objectType": "WriteToSymbol",
+              "active": true,
+              "symbolExpression": "%ctrl%ValveFrameworkControl::ManualMode%/ctrl%",
+              "value": {
+                "objectType": "StaticValue",
+                "valueType": "tchmi:general#/definitions/Boolean",
+                "value": false
+              },
+              "asyncWait": true
+            },
+            {
+              "objectType": "WriteToSymbol",
+              "active": true,
+              "symbolExpression": "%ctrl%ValveFrameworkControl::EngineeringMode%/ctrl%",
+              "value": {
+                "objectType": "StaticValue",
+                "valueType": "tchmi:general#/definitions/Boolean",
+                "value": false
+              },
+              "asyncWait": true
+            }
+          ]
+        },
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%pp%ValveHmiObject::out_stat::valve_stat::nState%/pp%",
+    "actions": [
+      {
+        "objectType": "SwitchCase",
+        "active": true,
+        "compare": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_BIN_CTRL_STATE",
+          "symbolExpression": "%pp%ValveHmiObject::out_stat::valve_stat::nState%/pp%"
+        },
+        "cases": [
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_BIN_CTRL_STATE",
+              "value": 1
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 0.0
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_BIN_CTRL_STATE",
+              "value": 2
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 1.0
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_BIN_CTRL_STATE",
+              "value": 4
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 2.0
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "caseValue": {
+              "objectType": "StaticValue",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_BIN_CTRL_STATE",
+              "value": 5
+            },
+            "actions": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%ValveFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 3.0
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

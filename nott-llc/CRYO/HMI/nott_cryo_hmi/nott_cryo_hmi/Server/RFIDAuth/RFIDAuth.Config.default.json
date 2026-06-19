@@ -1,0 +1,8 @@
+{
+    "users": {
+        "TestRfidUser": {
+            "enabled": true,
+            "rfidCardUID": "A6F31CA3"
+        }
+    }
+}

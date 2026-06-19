@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_TRIGGERS" Id="{a2cafc0f-b2bd-4f26-934b-a6f2f257f43f}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_TRIGGERS :
+STRUCT
+	//
+	// Evacuation pumps
+	//
+	PVV1_Open:		R_TRIG;	// evac.PVV1.in_bEnable
+	PVV1_Close:		F_TRIG;	// evac.PVV1.in_bEnable
+	PVV1_Opened:	R_TRIG;	// evac.PVV1.stat.bActON
+	PVV1_Closed:	R_TRIG;	// evac.PVV1.stat.bActOFF
+
+	PVP_Start:		R_TRIG;	// evac.pump_pvp.in_bEnable
+	PVP_Stop:		F_TRIG;	// evac.pump_pvp.in_bEnable
+	PVP_Ready:		R_TRIG;	// evac.pump_pvp.stat.bReady
+	PVP_Stopped:	F_TRIG;	// evac.pump_pvp.stat.bMoving
+
+	//
+	// Evacuation valve
+	//
+	TMP_Start:		R_TRIG;	// evac.pump_tmp.in_bEnable
+	TMP_Stop:		F_TRIG;	// evac.pump_tmp.in_bEnable
+	TMP_Ready:		R_TRIG;	// evac.pump_tmp.stat.bReady
+	TMP_Stopped:	F_TRIG;	// evac.pump_tmp.stat.bMoving
+	
+	//
+	// Heaters
+	//
+	Heater_DetIF_Enable:		R_TRIG;	// Heater_DetIF.in_bEnable
+	Heater_DetIF_Disable:		F_TRIG;	// Heater_DetIF.in_bEnable
+	Heater_DetIF_ON:			R_TRIG;	// Heater_DetIF.stat.bActON
+	Heater_DetIF_OFF:			R_TRIG;	// Heater_DetIF.stat.bActOFF
+
+	Heater_Preamp_Enable:		R_TRIG;	// Heater_Preamp.in_bEnable
+	Heater_Preamp_Disable:		F_TRIG;	// Heater_Preamp.in_bEnable
+	Heater_Preamp_ON:			R_TRIG;	// Heater_Preamp.stat.bActON
+	Heater_Preamp_OFF:			R_TRIG;	// Heater_Preamp.stat.bActOFF
+
+	Heater_ColdPlate_Enable:	R_TRIG;	// Heater_ColdPlate.in_bEnable
+	Heater_ColdPlate_Disable:	F_TRIG;	// Heater_ColdPlate.in_bEnable
+	Heater_ColdPlate_ON:		R_TRIG;	// Heater_ColdPlate.stat.bActON
+	Heater_ColdPlate_OFF:		R_TRIG;	// Heater_ColdPlate.stat.bActOFF
+
+	//
+	// Cooler
+	//
+	Cooler_Enable:		R_TRIG;	// cooler.in_bEnable
+	Cooler_Disable:		F_TRIG;	// cooler.in_bEnable
+	Cooler_ON:			R_TRIG;	// cooler.stat.nDevState
+	Cooler_OFF:			R_TRIG;	// cooler.stat.nDevState
+
+
+	//
+	// Pressure and Temperature status flags
+	//
+	
+	// Vacuum
+	Vacuum_ON:		R_TRIG;	// stat.bInVacuum
+	Vacuum_OFF:		F_TRIG;	// stat.bInVacuum
+	Vacuum_OK:		R_TRIG;	// stat.bGoodVacuum
+	Vacuum_NOT_OK:	F_TRIG;	// stat.bGoodVacuum
+
+	// Temperature
+	Cold_ON:		R_TRIG;	// stat.bCold
+	Cold_OFF:		F_TRIG;	// stat.bCold
+	OP_ON:			R_TRIG;	// stat.bOP
+	OP_OFF:			F_TRIG;	// stat.bOP
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
