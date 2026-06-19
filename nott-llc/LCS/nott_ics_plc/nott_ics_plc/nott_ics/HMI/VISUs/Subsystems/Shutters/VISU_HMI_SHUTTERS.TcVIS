@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
   <Visu Name="VISU_HMI_SHUTTERS" Id="{bc7ead1a-79ad-498a-88b1-c825494753c4}">
     <XmlArchive>
       <Data>
@@ -3853,19 +3853,19 @@
                     </o>
                     <o>
                       <v n="Id">1649127785L</v>
-                      <v n="Value">16</v>
+                      <v n="Value" t="Int16">16</v>
                     </o>
                     <o>
                       <v n="Id">357335551L</v>
-                      <v n="Value">72</v>
+                      <v n="Value" t="Int16">72</v>
                     </o>
                     <o>
                       <v n="Id">2422045748L</v>
-                      <v n="Value">1066</v>
+                      <v n="Value">1058</v>
                     </o>
                     <o>
                       <v n="Id">2134141914L</v>
-                      <v n="Value">794</v>
+                      <v n="Value">786</v>
                     </o>
                     <o>
                       <v n="Id">394923068L</v>
@@ -3952,11 +3952,11 @@
                               <o>
                                 <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
                                 <n n="VisuNodeReference" />
-                                <v n="VisNodeRefs33">"GUI_TEMPLATE_NOTT_SHUTTER"</v>
+                                <v n="VisNodeRefs33">"GUI_TEMPLATE_MOTOR"</v>
                                 <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                                   <o>
                                     <v n="Flags">2L</v>
-                                    <v n="BasicTypeNodeValue">"MAIN.nott_ics.Shutters.ptrShutters[MAIN.nott_ics.Shutters.guiShutterIndex]^"</v>
+                                    <n n="BasicTypeNodeValue" />
                                     <v n="BasicTypeNodeAcceptsExpression">true</v>
                                     <n n="BasicTypeNodeFastAccess" />
                                     <a n="BasicTypeNodeEnumValues" et="String" />
@@ -4134,11 +4134,11 @@
                     </o>
                     <o>
                       <v n="Id">550940142L</v>
-                      <v n="Value">549</v>
+                      <v n="Value">545</v>
                     </o>
                     <o>
                       <v n="Id">1473355128L</v>
-                      <v n="Value">469</v>
+                      <v n="Value">465</v>
                     </o>
                     <o>
                       <v n="Id">493260384L</v>
@@ -4157,7 +4157,7 @@
                       <o n="Value" t="VisualizationNode">
                         <v n="VisuNodeReferenceGuid">{00000000-0000-0000-0000-000000000000}</v>
                         <n n="VisuNodeReference" />
-                        <v n="VisNodeRefs33">"GUI_TEMPLATE_NOTT_SHUTTER"</v>
+                        <v n="VisNodeRefs33">"GUI_TEMPLATE_MOTOR"</v>
                         <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                           <o>
                             <v n="Flags">2L</v>
@@ -4216,33 +4216,33 @@
                       </o>
                     </o>
                     <o>
-                      <v n="Id">2476463590L</v>
-                      <v n="Value">"MAIN.nott_ics.Shutters.ptrShutters[MAIN.nott_ics.Shutters.guiShutterIndex]^"</v>
-                    </o>
-                    <o>
                       <v n="Id">2597686782L</v>
                       <v n="Value">true</v>
+                    </o>
+                    <o>
+                      <v n="Id">2476463590L</v>
+                      <v n="Value">"MAIN.nott_ics.Shutters.ptrShutters[MAIN.nott_ics.Shutters.guiShutterIndex]^"</v>
                     </o>
                   </l>
                 </o>
                 <v n="VisualElementName">"Frame"</v>
                 <v n="VisualElementTypeName">"VisuFbFrame"</v>
                 <v n="VisualElementIsRectangle">true</v>
-                <v n="VisualElementIdentifier">"GenElemInst_17"</v>
+                <v n="VisualElementIdentifier">"GenElemInst_18"</v>
                 <n n="VisualElementOfflinePaintCommands" />
                 <o n="VisualElementFrameInformation" t="VisualFrameInfo">
                   <l n="ContainedGuids" t="ArrayList" />
                   <l n="ContainedVisualizations" t="ArrayList" />
                   <a n="ContainedVisualizations33" cet="String">
-                    <v>GUI_TEMPLATE_NOTT_SHUTTER</v>
+                    <v>GUI_TEMPLATE_MOTOR</v>
                   </a>
                 </o>
                 <d n="VisualElementInputActions" t="Hashtable" />
-                <v n="VisualElementIdentification">{2e575eb9-10d4-4a71-ab31-c97ea8bcb989}</v>
+                <v n="VisualElementIdentification">{a2f27222-fb94-47f2-8722-f226078a388f}</v>
                 <v n="VisualElementOwningObjectGuid">{bc7ead1a-79ad-498a-88b1-c825494753c4}</v>
                 <a n="LMGuids" et="Guid" />
                 <d n="SubElements" t="Hashtable" />
-                <v n="VisualElementId">14</v>
+                <v n="VisualElementId">0</v>
                 <l n="UserManagementAccessRights" t="ArrayList" />
               </o>
             </l>
@@ -4394,7 +4394,7 @@
             </o>
             <v n="DialogDut">{6a524787-a6e6-45f6-bf50-5aff393a4cad}</v>
           </o>
-          <v n="LastUsedIdForIdentifier">17</v>
+          <v n="LastUsedIdForIdentifier">18</v>
           <o n="TextDocument" t="TextDocument">
             <a n="TextLines" cet="TextLine">
               <o>
@@ -4432,12 +4432,12 @@
               <v>0</v>
               <o>
                 <v n="Width">1308</v>
-                <v n="Height">866</v>
+                <v n="Height">858</v>
               </o>
               <v>1</v>
               <o>
                 <v n="Width">1308</v>
-                <v n="Height">866</v>
+                <v n="Height">858</v>
               </o>
             </d2>
             <v n="Version">1</v>

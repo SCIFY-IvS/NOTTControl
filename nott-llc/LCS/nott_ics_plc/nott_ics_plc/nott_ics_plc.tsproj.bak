@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.64">
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.65">
 	<DataTypes>
 		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-000000000035}" TcBaseType="true" HideType="true">UINTARR2</Name>
@@ -1662,13 +1662,14 @@ External Setpoint Generation:
 				<Cpu/>
 				<Cpu CpuId="1"/>
 			</Settings>
-			<Licenses>
+			<Licenses CacheOrCheckLicensesOnStartup="true">
 				<Target>
 					<ManualSelect>{57BD9670-089D-434A-85CF-90A857EE0EFF}</ManualSelect>
 					<ManualSelect>{54BC404D-F267-4F81-A7FD-9796672C1C24}</ManualSelect>
 					<ManualSelect>{BCA6EE0A-9CE1-4D3F-98CA-413ABC0D94FD}</ManualSelect>
 					<ManualSelect>{BDCC0070-42D5-49AE-ABF1-1D4434813D60}</ManualSelect>
 					<ManualSelect>{3EBB9639-5FF3-42B6-8847-35C70DC013C8}</ManualSelect>
+					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSystemId="{6FBEE245-64E9-1FCF-9840-D733C640E1BF}"/>
 				</Target>
 			</Licenses>
 			<Tasks>
@@ -4911,7 +4912,7 @@ External Setpoint Generation:
 				<Axis Id="35" CreateSymbols="true" AxisType="1" AxisFolder="Shutters" GroupId="2">
 					<Name>NSH1</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="100" Deceleration="100" Jerk="1000"/>
+						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="9" Deceleration="9" Jerk="1000"/>
 						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
 						<PositionAreaControl Enable="false"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
@@ -5073,7 +5074,7 @@ External Setpoint Generation:
 				<Axis Id="16" CreateSymbols="true" AxisType="1" AxisFolder="Shutters">
 					<Name>NSH2</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="100" Deceleration="100" Jerk="1000"/>
+						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="9" Deceleration="9" Jerk="1000"/>
 						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
 						<PositionAreaControl Enable="false"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
@@ -5235,7 +5236,7 @@ External Setpoint Generation:
 				<Axis Id="17" CreateSymbols="true" AxisType="1" AxisFolder="Shutters">
 					<Name>NSH3</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="100" Deceleration="100" Jerk="1000"/>
+						<Dynamic AccelerationMaximum="100" DecelerationMaximum="100" Acceleration="9" Deceleration="9" Jerk="1000"/>
 						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
 						<PositionAreaControl Enable="false"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
@@ -5397,7 +5398,7 @@ External Setpoint Generation:
 				<Axis Id="18" CreateSymbols="true" AxisType="1" AxisFolder="Shutters">
 					<Name>NSH4</Name>
 					<AxisPara>
-						<Dynamic AccelerationMaximum="200" DecelerationMaximum="200" Acceleration="127.556" Deceleration="127.556" Jerk="726.357"/>
+						<Dynamic AccelerationMaximum="200" DecelerationMaximum="200" Acceleration="9" Deceleration="9" Jerk="726.357"/>
 						<Velo RefSearch="3" RefSync="3" SlowManual="3" FastManual="5" Fast="30" Maximum="35"/>
 						<PositionAreaControl Enable="false"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="1" PulseDistanceNeg="1"/>
@@ -5697,6 +5698,7 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="5"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -6990,12 +6992,13 @@ External Setpoint Generation:
 				<Axis Id="11" CreateSymbols="true" AxisType="1" AxisFolder="Birefringence_NPCs" GroupId="7">
 					<Name>NPC1</Name>
 					<AxisPara>
+						<General UnitName="Degree"/>
 						<Dynamic AccelerationMaximum="4.5" DecelerationMaximum="4.5" Acceleration="4.5" Deceleration="4.5" Jerk="9"/>
-						<Velo RefSearch="0.5" RefSync="0.5" SlowManual="0.05" FastManual="0.05" Fast="2" Maximum="2.3"/>
+						<Velo RefSearch="0.5" RefSync="0.5" SlowManual="0.05" FastManual="0.05" Fast="2" Maximum="25"/>
 						<OtherSettings AllowMotionCmdToSlave="true" PulseDistancePos="0.02" PulseDistanceNeg="0.02"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="4">
-						<EncPara ScaleFactorNumerator="2.893937e-05" MaxCount="#x0000ffff">
+						<EncPara ScaleFactorNumerator="0.0005" MaxCount="#x0000ffff">
 							<Inc RefSoftSyncMask="#x0000ffff"/>
 						</EncPara>
 						<Vars VarGrpType="1">
@@ -7056,7 +7059,7 @@ External Setpoint Generation:
 					</Encoder>
 					<Drive Name="Drive" DrvType="23">
 						<DrvPara>
-							<Analog VeloReferenz="2.3" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
+							<Analog VeloReferenz="25" TorqueSetpointScale="10" ScaleFactorActTorque="0.1"/>
 							<TimeComp TaskDelayCycles="1"/>
 						</DrvPara>
 						<Vars VarGrpType="1">
@@ -7128,6 +7131,7 @@ External Setpoint Generation:
 					</Drive>
 					<Controller Name="Ctrl" CtrType="1">
 						<CtrPara PriorControlFactor="1">
+							<PID PosKp="10"/>
 							<Observer BandWidth="20"/>
 						</CtrPara>
 					</Controller>
@@ -7627,7 +7631,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{4F1F5AE8-7265-4417-A46B-F9A8DDA5914C}" Name="nott_ics" PrjFilePath="nott_ics\nott_ics.plcproj" TmcFilePath="nott_ics\nott_ics.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{0CA6AD87-4231-E47D-9988-B6E3B0B7C52E}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="nott_ics\nott_ics.tmc" TmcHash="{29551A5B-2616-8ABF-5DE6-6670BBB4317D}">
 					<Name>nott_ics Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1" ContextId="1" AreaNo="16">
@@ -14768,7 +14772,7 @@ External Setpoint Generation:
 									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002020800402000000c60c4d6f746f7220636f696c20726573697374616e636500</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000001a000000000000000000000000000000000000000000000020208005020000003200526564756365642063757272656e742028706f7369746976652900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000001a000000000000000000000000000000000000000000000020208006020000003200526564756365642063757272656e7420286e656761746976652900</MBoxUserCmdData>
-									<MBoxUserCmdData>020003000a0000001b000000000000000000000000000000000000000000000020208007020000000008456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001b00000003000000000000000000000000000000000000002020800702000000f401456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a000000160000000000000000000000000000000000000000000000202080080200000061244d6178696d616c206d6f746f722076656c6f6369747900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000f00000000000000000000000000000000000000000000002030800102000000fa004d6178696d616c2063757272656e7400</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000f000000000000000000000000000000000000000000000020308002020000009c004e6f6d696e616c2063757272656e7400</MBoxUserCmdData>
@@ -16371,6 +16375,8 @@ External Setpoint Generation:
 									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>02000300090000001700000003000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001b000000030000000000000000000000000000000000000020108007020000005000456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -16515,7 +16521,7 @@ External Setpoint Generation:
 										<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d">
+										<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__Sync error" Index="#x6010" Sub="#x0e">
@@ -16807,6 +16813,8 @@ External Setpoint Generation:
 									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>02000300090000001700000003000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001b000000030000000000000000000000000000000000000020108007020000005000456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -16830,10 +16838,10 @@ External Setpoint Generation:
 										<Entry Name="Status__Extrapolation stall" Index="#x6000" Sub="#x08">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Status of input A" Index="#x6000" Sub="#x09">
+										<Entry Name="Status__Status of input A" Index="#x6000" Sub="#x09" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Status of input B" Index="#x6000" Sub="#x0a">
+										<Entry Name="Status__Status of input B" Index="#x6000" Sub="#x0a" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__Status of input C" Index="#x6000" Sub="#x0b">
@@ -16948,10 +16956,10 @@ External Setpoint Generation:
 										<Entry Name="Status__">
 											<Type GUID="{18071995-0000-0000-0000-002000000003}">ARRAY [0..2] OF BIT</Type>
 										</Entry>
-										<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c">
+										<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d">
+										<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__Sync error" Index="#x6010" Sub="#x0e">
@@ -17243,15 +17251,17 @@ External Setpoint Generation:
 									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>02000300090000001700000003000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001b000000030000000000000000000000000000000000000020108007020000005000456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
-										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
+										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Latch extern valid" Index="#x6000" Sub="#x02">
+										<Entry Name="Status__Latch extern valid" Index="#x6000" Sub="#x02" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Set counter done" Index="#x6000" Sub="#x03">
+										<Entry Name="Status__Set counter done" Index="#x6000" Sub="#x03" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__Counter underflow" Index="#x6000" Sub="#x04">
@@ -17266,19 +17276,19 @@ External Setpoint Generation:
 										<Entry Name="Status__Extrapolation stall" Index="#x6000" Sub="#x08">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Status of input A" Index="#x6000" Sub="#x09">
+										<Entry Name="Status__Status of input A" Index="#x6000" Sub="#x09" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Status of input B" Index="#x6000" Sub="#x0a">
+										<Entry Name="Status__Status of input B" Index="#x6000" Sub="#x0a" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Status of input C" Index="#x6000" Sub="#x0b">
+										<Entry Name="Status__Status of input C" Index="#x6000" Sub="#x0b" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__">
 											<Type GUID="{18071995-0000-0000-0000-002000000001}">ARRAY [0..0] OF BIT</Type>
 										</Entry>
-										<Entry Name="Status__Status of extern latch" Index="#x6000" Sub="#x0d">
+										<Entry Name="Status__Status of extern latch" Index="#x6000" Sub="#x0d" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__Sync error" Index="#x6000" Sub="#x0e">
@@ -17384,10 +17394,10 @@ External Setpoint Generation:
 										<Entry Name="Status__">
 											<Type GUID="{18071995-0000-0000-0000-002000000003}">ARRAY [0..2] OF BIT</Type>
 										</Entry>
-										<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c">
+										<Entry Name="Status__Digital input 1" Index="#x6010" Sub="#x0c" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
-										<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d">
+										<Entry Name="Status__Digital input 2" Index="#x6010" Sub="#x0d" Flags="#x00008020">
 											<Type>BIT</Type>
 										</Entry>
 										<Entry Name="Status__Sync error" Index="#x6010" Sub="#x0e">
@@ -17679,6 +17689,8 @@ External Setpoint Generation:
 									<MBoxUserCmdData>020003000a0000000f0000000000000000000000000000000000000000000000201080060200000014004d6f746f722066756c6c737465707300</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000000e00000000000000000000000000000000000000000000002010800902000000102753746172742076656c6f6369747900</MBoxUserCmdData>
 									<MBoxUserCmdData>020003000a0000001500000000000000000000000000000000000000000000002010800a02000000dc054d6f746f7220636f696c20696e64756374616e636500</MBoxUserCmdData>
+									<MBoxUserCmdData>02000300090000001700000003000000000000000000000000000000000000002000800a0100000000456e61626c65206d6963726f20696e6372656d656e747300</MBoxUserCmdData>
+									<MBoxUserCmdData>020003000a0000001b000000030000000000000000000000000000000000000020108007020000005000456e636f64657220696e6372656d656e74732028342d666f6c642900</MBoxUserCmdData>
 									<Pdo Name="ENC Status compact" Index="#x1a00" Flags="#x0010" SyncMan="3">
 										<ExcludePdo>#x1a01</ExcludePdo>
 										<Entry Name="Status__Latch C valid" Index="#x6000" Sub="#x01">
@@ -27906,8 +27918,7 @@ Bit1: Value smaller than Limit2]]></Comment>
 				<Link VarA="PlcTask Outputs^MAIN.nott_ics.CO2_Pressure_Control.CO2_Valve.Actuator.q_bCtrl" VarB="Channel 1^Output"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 15 (EK1101)^N13 (EL1008)">
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Birefringence.NPC1.switches^bLHW" VarB="Channel 1^Input"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Birefringence.NPC1.switches^bUHW" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Birefringence.NPC1.switches^bREF" VarB="Channel 1^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Birefringence.NPC2.switches^bLHW" VarB="Channel 3^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Birefringence.NPC2.switches^bUHW" VarB="Channel 4^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Birefringence.NPC3.switches^bLHW" VarB="Channel 5^Input"/>
@@ -27968,24 +27979,24 @@ Bit1: Value smaller than Limit2]]></Comment>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 15 (EK1101)^NSH1 (N16) (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.i_nCouplerState" VarB="InfoData^State"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.switches^bLSTOP" VarB="STM Status^Status^Digital input 1"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.switches^bUSTOP" VarB="STM Status^Status^Digital input 2"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.switches^bLHW" VarB="STM Status^Status^Digital input 1"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH1.switches^bUHW" VarB="STM Status^Status^Digital input 2"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.Test_Shutter.i_nCouplerState" VarB="InfoData^State"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 15 (EK1101)^NSH2 (N17) (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.i_nCouplerState" VarB="InfoData^State"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.switches^bLSTOP" VarB="STM Status^Status^Digital input 1"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.switches^bUSTOP" VarB="STM Status^Status^Digital input 2"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.switches^bLHW" VarB="STM Status^Status^Digital input 1"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH2.switches^bUHW" VarB="STM Status^Status^Digital input 2"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 15 (EK1101)^NSH3 (N18) (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.i_nCouplerState" VarB="InfoData^State"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.switches^bLSTOP" VarB="STM Status^Status^Digital input 1"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.switches^bUSTOP" VarB="STM Status^Status^Digital input 2"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.switches^bLHW" VarB="STM Status^Status^Digital input 1"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH3.switches^bUHW" VarB="STM Status^Status^Digital input 2"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 15 (EK1101)^NSH4 (N19) (EL7047)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.i_nCouplerState" VarB="InfoData^State"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.switches^bLSTOP" VarB="STM Status^Status^Digital input 1"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.switches^bUSTOP" VarB="STM Status^Status^Digital input 2"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.switches^bLHW" VarB="STM Status^Status^Digital input 1"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Shutters.NSH4.switches^bUHW" VarB="STM Status^Status^Digital input 2"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 32 (EK1101)^N11 (EL1008)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTA1.switches^bLHW" VarB="Channel 1^Input"/>
@@ -28018,8 +28029,8 @@ Bit1: Value smaller than Limit2]]></Comment>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTTB4.switches^bUHW" VarB="Channel 8^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 7 (EK1101)^Term 14 (EK1122)^Term 32 (EK1101)^N8 (EL1008)">
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.switches^bLSTOP" VarB="Channel 1^Input"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.switches^bUSTOP" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.switches^bLHW" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA1.switches^bUHW" VarB="Channel 2^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA2.switches^bLHW" VarB="Channel 3^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA2.switches^bUHW" VarB="Channel 4^Input"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.TipTilt.NTPA3.switches^bLHW" VarB="Channel 5^Input"/>
@@ -28116,6 +28127,10 @@ Bit1: Value smaller than Limit2]]></Comment>
 			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL3">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL3.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL3.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+			</OwnerB>
+			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NDL4">
+				<Link VarA="PlcTask Inputs^MAIN.nott_ics.Delay_Lines.NDL4.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_ics.Delay_Lines.NDL4.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
 			</OwnerB>
 			<OwnerB Name="TINC^NC-Task 1 SAF^Axes^NGP1">
 				<Link VarA="PlcTask Inputs^MAIN.nott_ics.ZnSeActuators.NGP1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>

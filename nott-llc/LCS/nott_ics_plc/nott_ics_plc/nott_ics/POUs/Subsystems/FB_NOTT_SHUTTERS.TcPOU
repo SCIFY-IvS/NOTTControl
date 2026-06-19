@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
   <POU Name="FB_NOTT_SHUTTERS" Id="{5e7ffd6c-ffbc-4dd1-b7ad-e668e0db56a4}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_SHUTTERS
 VAR_INPUT
@@ -27,7 +27,7 @@ END_VAR
       <ST><![CDATA[
 
 NSH1(
-	in_bStepper_Shutter := TRUE,
+	in_bStepper_Shutter := FALSE,
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
 	sName:= 'NSH 1', 
@@ -35,7 +35,7 @@ NSH1(
 	nNOVRAM_Offset:= 21000);
 	
 NSH2(
-	in_bStepper_Shutter := TRUE,
+	in_bStepper_Shutter := FALSE,
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
 	sName:= 'NSH 2', 
@@ -43,7 +43,7 @@ NSH2(
 	nNOVRAM_Offset:= 22000);
 	
 NSH3(
-	in_bStepper_Shutter := TRUE,
+	in_bStepper_Shutter := FALSE,
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
 	sName:= 'NSH 3', 
@@ -51,7 +51,7 @@ NSH3(
 	nNOVRAM_Offset:= 23000);
 	
 NSH4(
-	in_bStepper_Shutter := TRUE,
+	in_bStepper_Shutter := FALSE,
 	in_bSafe:=, 
 	in_bDisableIfUnsafe:=, 
 	sName:= 'NSH 4', 
