@@ -53,6 +53,7 @@ class RedisClient:
             pipe.add(f'{key}_sum', unix_time, brightness_result.sum)
 
         pipe.execute()
+        
     def unix_time_ms(self, time):
         return round((time - self.epoch).total_seconds() * 1000.0)
     
@@ -65,3 +66,12 @@ class RedisClient:
             return {}
         else:
             return saved_pos[0]
+    
+    def save_sensor_values(self, time, sensor_names, sensor_values):
+        unix_time = self.unix_time_ms(time)
+        
+        pipe = self.ts.pipeline()
+        for i in len(sensor_names):
+            pipe.add(sensor_names[i], unix_time, sensor_values[i])
+        
+        pipe.execute()
