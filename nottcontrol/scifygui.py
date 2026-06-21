@@ -7,6 +7,7 @@ from datetime import datetime
 from nottcontrol.redisclient import RedisClient
 from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
 from nottcontrol import config, sensor_config_path
+from nottcontrol.sensors import load_sensor_config
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
@@ -68,7 +69,7 @@ class MainWindow(QMainWindow):
         self.t.timeout.connect(self.refresh_status)
         self.t.start(10000)
 
-        self.sensors = self.read_sensor_config()
+        self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
 
         opcuaddress_cry =  config['DEFAULT']['opcuaaddress_cry']
 
@@ -176,19 +177,10 @@ class MainWindow(QMainWindow):
         self.ui.label_dl_status.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sStatus")))
         self.ui.label_dl_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sState")))
     
-    def read_sensor_config(self):
-        sensors = []
-        with open(sensor_config_path) as sensors_file:
-            for line in sensors_file:
-                sensors.append(line)
-        
-        return sensors
-    
     def read_and_store_sensor_values(self):
-        sensor_values = self.opcua_conn_cry.read_nodes(self.sensors)
+        sensor_values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
         now = datetime.utcnow()
-
-        self.redis_client.save_sensor_values(now, self.sensors, sensor_values)
+        self.redis_client.save_sensor_values(now, self.sensor_redis_keys, sensor_values)
 
 
     def update_cryo_temps(self):

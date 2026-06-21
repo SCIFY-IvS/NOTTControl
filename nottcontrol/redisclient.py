@@ -67,11 +67,14 @@ class RedisClient:
         else:
             return saved_pos[0]
     
-    def save_sensor_values(self, time, sensor_names, sensor_values):
+    def save_sensor_values(self, time, redis_keys, sensor_values):
+        if len(redis_keys) != len(sensor_values):
+            raise ValueError(
+                f"sensor key/value count mismatch: {len(redis_keys)} keys, "
+                f"{len(sensor_values)} values"
+            )
         unix_time = self.unix_time_ms(time)
-        
         pipe = self.ts.pipeline()
-        for i in len(sensor_names):
-            pipe.add(sensor_names[i], unix_time, sensor_values[i])
-        
+        for key, value in zip(redis_keys, sensor_values):
+            pipe.add(key, unix_time, value)
         pipe.execute()
