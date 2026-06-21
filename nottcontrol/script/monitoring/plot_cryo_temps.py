@@ -13,13 +13,18 @@ import numpy as np
 import redis
 
 from nottcontrol import config
-from nottcontrol.script.lib.nott_time import unix_time_ms
 
 DEFAULT_KEYS = (
     "cryo.t_shield_1.lrTempK",
     "cryo.t_shield_2.lrTempK",
     "cryo.t_cabinet_vote.lrTempK",
 )
+
+_EPOCH = datetime.utcfromtimestamp(0)
+
+
+def unix_time_ms(time: datetime) -> int:
+    return round((time - _EPOCH).total_seconds() * 1000.0)
 
 
 def fetch_timeseries(

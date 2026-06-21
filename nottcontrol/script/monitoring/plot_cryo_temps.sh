@@ -2,9 +2,9 @@
 # Fetch cryostat temperature TimeSeries from NOTT Redis and plot them.
 #
 # Usage:
-#   ./nottcontrol/script/plot_cryo_temps.sh
-#   ./nottcontrol/script/plot_cryo_temps.sh --show
-#   ./nottcontrol/script/plot_cryo_temps.sh -o /tmp/cryo.png
+#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh
+#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --show
+#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh -o /tmp/cryo.png
 #
 # Environment:
 #   NOTT_REDIS_URL  override Redis URL (default: nottcontrol/config.ini)
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 cd "${REPO_ROOT}"
 
@@ -25,4 +25,4 @@ else
   exit 1
 fi
 
-exec "${PYTHON}" -m nottcontrol.script.plot_cryo_temps "$@"
+exec "${PYTHON}" "${SCRIPT_DIR}/plot_cryo_temps.py" "$@"
