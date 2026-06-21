@@ -177,17 +177,28 @@ int initialize(string configFile, MACIE_Settings *ptUserData)
     return 0;
 }
 
-void halt_acquisition(MACIE_Settings *ptUserData)
+bool halt_acquisition(MACIE_Settings *ptUserData)
 {
+    bool ret = true;
     verbose_printf(LOG_INFO, ptUserData, "Halting Data Acquisition...\n");
 
     // What is the proper order?
-    HaltCameraAcq(ptUserData);
+    if(!HaltCameraAcq(ptUserData))
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "Halt camera acquisition failed\n");
+        ret = false;
+    }
     delay(300);
-    CloseGigEScienceInterface(ptUserData);
+    if (!CloseGigEScienceInterface(ptUserData))
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface during halt acquisition\n");
+        ret = false;
+    }
+
+    return ret;
 }
 
-void acquire(bool no_recon, MACIE_Settings *ptUserData )
+bool acquire(bool no_recon, MACIE_Settings *ptUserData )
 {
     verbose_printf(LOG_INFO, ptUserData, "Starting Data Acquisition...\n");
 
@@ -195,6 +206,7 @@ void acquire(bool no_recon, MACIE_Settings *ptUserData )
     // Then trigger image acquisition
     // Then download and save data
     bool bOutput = true;
+    bool ret = true;
     if (!no_recon)
     {
         timestamp_t t0 = get_timestamp();
@@ -207,15 +219,17 @@ void acquire(bool no_recon, MACIE_Settings *ptUserData )
     if (bOutput == false)
     {
         verbose_printf(LOG_ERROR, ptUserData, "Reconfigure ASIC failed at %s()\n", __func__);
+        ret = false;
     }
     else if (AcquireDataGigE(ptUserData, false) == false)
     {
         verbose_printf(LOG_ERROR, ptUserData, "AcquireDataGigE failed at %s()\n", __func__);
+        ret = false;
     }
     else
     {
         timestamp_t t0 = get_timestamp();
-        DownloadAndSaveAllUSB(ptUserData);
+        ret = DownloadAndSaveAllUSB(ptUserData);
         timestamp_t t1 = get_timestamp();
         double time_taken = (t1 - t0) / 1000000.0L;
         printf("\nDownloadAndSaveAllUSB() took %f seconds to execute.\n", time_taken);
@@ -242,6 +256,8 @@ void acquire(bool no_recon, MACIE_Settings *ptUserData )
             ResetErrorCounters(ptUserData);
         }
     }
+
+    return ret;
 }
 
 void toggle_offline_testing(bool offline_testing, MACIE_Settings *ptUserData)

@@ -215,7 +215,7 @@ extern bool SetLED(MACIE_Settings *ptUserData, unsigned int set_val);
 
 extern bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger);
 extern bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger);
-extern void HaltCameraAcq(MACIE_Settings *ptUserData);
+extern bool HaltCameraAcq(MACIE_Settings *ptUserData);
 extern bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData);
 extern bool DownloadRampUSB(MACIE_Settings *ptUserData, unsigned short pData[], long framesize, 
                             long nframes_save, int triggerTimeout, int wait_delta);
