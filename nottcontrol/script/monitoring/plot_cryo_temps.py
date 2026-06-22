@@ -23,6 +23,8 @@ DEFAULT_KEYS = (
 )
 
 _EPOCH = datetime.utcfromtimestamp(0)
+DEFAULT_FIT_MAX_POINTS = 300
+DEFAULT_PLOT_MAX_POINTS = 2_000
 
 
 def unix_time_ms(time: datetime) -> int:
@@ -30,19 +32,31 @@ def unix_time_ms(time: datetime) -> int:
 
 
 def fetch_timeseries(
-    redis_url: str,
+    redis_client: redis.Redis,
     key: str,
     start_ms: int,
     end_ms: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    client = redis.from_url(redis_url)
-    samples = client.ts().range(key, start_ms, end_ms)
+    samples = redis_client.ts().range(key, start_ms, end_ms)
     if not samples:
         return np.array([]), np.array([])
     data = np.array(samples, dtype=float)
     times = data[:, 0] / 1000.0
     values = data[:, 1]
     return times, values
+
+
+def downsample_series(
+    times: np.ndarray,
+    values: np.ndarray,
+    max_points: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Keep evenly spaced points, always including the first and last sample."""
+    if times.size <= max_points:
+        return times, values
+    indices = np.linspace(0, times.size - 1, max_points, dtype=int)
+    indices = np.unique(indices)
+    return times[indices], values[indices]
 
 
 def exponential_sum_model(t_hours: np.ndarray, t_asymp: float, *params: float) -> np.ndarray:
@@ -99,7 +113,8 @@ def fit_exponential_sum(
         values,
         p0=p0,
         bounds=(lower, upper),
-        maxfev=20_000,
+        method="trf",
+        maxfev=5_000,
     )
     return params, times[0]
 
@@ -127,6 +142,8 @@ def plot_cryo_temps(
     show: bool,
     n_exp_terms: int,
     predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
 ) -> int:
     end = datetime.utcnow()
     start = end - timedelta(hours=hours)
@@ -137,9 +154,11 @@ def plot_cryo_temps(
     fig, ax = plt.subplots(figsize=(11, 5))
     any_data = False
     min_points = 2 * n_exp_terms + 2
+    redis_client = redis.from_url(redis_url)
+    model = build_exponential_model(n_exp_terms)
 
     for key in keys:
-        times, values = fetch_timeseries(redis_url, key, start_ms, end_ms)
+        times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
         if times.size == 0:
             print(f"warning: no samples for {key}", file=sys.stderr)
             continue
@@ -150,33 +169,41 @@ def plot_cryo_temps(
             )
             continue
 
-        any_data = True
         label = key.removeprefix("cryo.").removesuffix(".lrTempK")
+        fit_times, fit_values = downsample_series(times, values, fit_max_points)
+        if fit_times.size < times.size:
+            print(
+                f"{label}: fitting on {fit_times.size} of {times.size} samples "
+                f"(max {fit_max_points})",
+                file=sys.stderr,
+            )
+
+        any_data = True
         try:
-            params, t0 = fit_exponential_sum(times, values, n_exp_terms)
+            params, t0 = fit_exponential_sum(fit_times, fit_values, n_exp_terms)
         except RuntimeError as exc:
             print(f"warning: fit failed for {key}: {exc}", file=sys.stderr)
             continue
 
         t_asymp = asymptotic_temperature(params)
         predicted_k = predict_temperature(params, t0, predict_end_unix, n_exp_terms)
-        model = build_exponential_model(n_exp_terms)
 
+        plot_times, plot_values = downsample_series(times, values, plot_max_points)
         ax.plot(
-            [datetime.utcfromtimestamp(t) for t in times],
-            values,
+            [datetime.utcfromtimestamp(t) for t in plot_times],
+            plot_values,
             linewidth=1.2,
             label=f"{label} (data)",
         )
 
-        fit_start = times[0]
-        fit_end = max(times[-1], predict_end_unix)
-        fit_times = np.linspace(fit_start, fit_end, 200)
-        fit_hours = (fit_times - t0) / 3600.0
-        fit_values = model(fit_hours, *params)
+        curve_start = times[0]
+        curve_end = max(times[-1], predict_end_unix)
+        curve_times = np.linspace(curve_start, curve_end, 200)
+        curve_hours = (curve_times - t0) / 3600.0
+        curve_values = model(curve_hours, *params)
         ax.plot(
-            [datetime.utcfromtimestamp(t) for t in fit_times],
-            fit_values,
+            [datetime.utcfromtimestamp(t) for t in curve_times],
+            curve_values,
             linewidth=1.5,
             linestyle="--",
             label=f"{label} fit",
@@ -261,6 +288,18 @@ def main() -> int:
         help="Hours ahead from now to evaluate the fitted model (default: 24)",
     )
     parser.add_argument(
+        "--fit-max-points",
+        type=int,
+        default=DEFAULT_FIT_MAX_POINTS,
+        help="Max samples used for curve fitting (default: 300)",
+    )
+    parser.add_argument(
+        "--plot-max-points",
+        type=int,
+        default=DEFAULT_PLOT_MAX_POINTS,
+        help="Max samples drawn for the data trace (default: 2000)",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         help="Output image path (default: cryo_temps.png when not showing interactively)",
@@ -275,6 +314,9 @@ def main() -> int:
     if args.n_exp < 1:
         print("error: --n-exp must be at least 1", file=sys.stderr)
         return 1
+    if args.fit_max_points < 10:
+        print("error: --fit-max-points must be at least 10", file=sys.stderr)
+        return 1
 
     return plot_cryo_temps(
         redis_url=args.redis_url,
@@ -284,6 +326,8 @@ def main() -> int:
         show=args.show,
         n_exp_terms=args.n_exp,
         predict_hours=args.predict_hours,
+        fit_max_points=args.fit_max_points,
+        plot_max_points=args.plot_max_points,
     )
 
 
