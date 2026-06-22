@@ -14,6 +14,8 @@ from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.tip_tilt_control import TipTiltControl
 import json
 
+SENSOR_SAVE_INTERVAL_MS = 60_000
+
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
 #     input_args = [ua.Variant(arg, ua.VariantType.Variant) for arg in args]
@@ -78,7 +80,7 @@ class MainWindow(QMainWindow):
 
         self.t2 = QTimer()
         self.t2.timeout.connect(self.read_and_store_sensor_values)
-        self.t2.start(1)
+        self.t2.start(SENSOR_SAVE_INTERVAL_MS)
 
     def open_camera_interface(self):
         try:
