@@ -17,9 +17,8 @@ from scipy.optimize import curve_fit
 from nottcontrol import config
 
 DEFAULT_KEYS = (
-    "cryo.t_shield_1.lrTempK",
-    "cryo.t_shield_2.lrTempK",
-    "cryo.t_cabinet_vote.lrTempK",
+    "cryo.t_base_plate_1.lrTempK",
+    "cryo.t_base_plate_2.lrTempK",
 )
 
 _EPOCH = datetime.utcfromtimestamp(0)
