@@ -17,13 +17,24 @@ from scipy.optimize import curve_fit
 from nottcontrol import config
 
 DEFAULT_KEYS = (
-    "cryo.t_base_plate_1.lrTempK",
-    "cryo.t_base_plate_2.lrTempK",
+    "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1.stat.lrTempK",
+    "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_2.stat.lrTempK",
 )
 
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
 DEFAULT_PLOT_MAX_POINTS = 2_000
+
+
+def redis_key_label(key: str) -> str:
+    """Short legend label from a Redis key or OPC UA node id."""
+    path = key.split(";s=")[-1] if ";s=" in key else key
+    if path.endswith(".stat.lrTempK"):
+        path = path[: -len(".stat.lrTempK")]
+    parts = path.split(".")
+    if "nott_temp" in parts:
+        return ".".join(parts[parts.index("nott_temp") + 1 :])
+    return parts[-1] if parts else key
 
 
 def unix_time_ms(time: datetime) -> int:
@@ -168,7 +179,7 @@ def plot_cryo_temps(
             )
             continue
 
-        label = key.removeprefix("cryo.").removesuffix(".lrTempK")
+        label = redis_key_label(key)
         fit_times, fit_values = downsample_series(times, values, fit_max_points)
         if fit_times.size < times.size:
             print(

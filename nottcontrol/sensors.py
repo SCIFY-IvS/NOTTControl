@@ -29,27 +29,8 @@ def opc_node_to_asyncua_id(opc_node: str) -> str:
 
 
 def opc_node_to_redis_key(opc_node: str) -> str:
-    """Build a short Redis TS key from a cryo OPC UA node identifier line.
-
-    Example
-    -------
-    NS4|String|MAIN.nott_cryo_ctrl.nott_temp.t_detector.stat.lrTempK
-    -> cryo.t_detector.lrTempK
-    """
-    path = opc_node_path(opc_node)
-    parts = path.split(".")
-    if "stat" not in parts:
-        return path.replace(".", "_")
-
-    stat_idx = parts.index("stat")
-    field = parts[stat_idx + 1] if stat_idx + 1 < len(parts) else "value"
-    # Drop MAIN.nott_cryo_ctrl
-    signal_parts = parts[2:stat_idx]
-    if signal_parts and signal_parts[0] == "nott_temp":
-        signal_parts = signal_parts[1:]
-    if signal_parts:
-        return f"cryo.{'.'.join(signal_parts)}.{field}"
-    return f"cryo.{field}"
+    """Use the asyncua OPC UA node id as the Redis TimeSeries key."""
+    return opc_node_to_asyncua_id(opc_node)
 
 
 def load_sensor_config(path: str | Path) -> tuple[list[str], list[str]]:
