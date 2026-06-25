@@ -113,8 +113,8 @@ void CardInfo_testing(MACIE_CardInfo **pCard)
 {
     (*pCard)[0].macieSerialNumber = 1337;
     (*pCard)[0].bUART = false;
-    (*pCard)[0].bGigE = false;
-    (*pCard)[0].bUSB = true;
+    (*pCard)[0].bGigE = true;
+    (*pCard)[0].bUSB = false;
     strcpy((*pCard)[0].usbSerialNumber, "MACIE01337");
     (*pCard)[0].usbSpeed = 48;
 }
@@ -324,7 +324,7 @@ bool GetHandleGigE(MACIE_Settings *ptUserData)
     // If failed to find a USB, then handle=0
     if ((ptUserData->handle == 0) || (ptUserData->numCards == 0))
     {
-        verbose_printf(LOG_ERROR, ptUserData, "  No USB cards found. Check interfaces.\n");
+        verbose_printf(LOG_ERROR, ptUserData, "  No ethernet connections found. Check interfaces.\n");
         verbose_printf(LOG_ERROR, ptUserData, "  numCards=%i, handle=%i\n",
                        ptUserData->numCards, ptUserData->handle);
         return false;
@@ -1704,23 +1704,25 @@ bool CloseGigEScienceInterface(MACIE_Settings *ptUserData)
     return true;
 }
 
-void HaltCameraAcq(MACIE_Settings *ptUserData)
+bool HaltCameraAcq(MACIE_Settings *ptUserData)
 {
     verbose_printf(LOG_INFO, ptUserData, "Halting data acquisition...\n");
     // verbose_printf(LOG_INFO, ptUserData, "Waiting for last ramp to complete...\n");
 
     if (ptUserData->DetectorMode == CAMERA_MODE_FAST)
     {
-        WriteASICReg(ptUserData, 0x6900, 0x8000);
+        bool ret = WriteASICReg(ptUserData, 0x6900, 0x8000);
         delay(100);
+        return ret;
     }
     else
     {
-        WriteASICReg(ptUserData, 0x6900, 0x8000);
+        bool ret = WriteASICReg(ptUserData, 0x6900, 0x8000);
         // TODO: Is this delay necessary? Frame boundary?
         // int tframe_ms = (int)exposure_frametime_ms(ptUserData);
         // delay(tframe_ms);
         delay(100);
+        return ret;
     }
 }
 
@@ -2530,6 +2532,10 @@ bool GetMACIEClockRate(MACIE_Settings *ptUserData)
         // Below 0x6f (DEC 111), 1 MHZ is a change of 4 values
         // Above 0x6f (DEC 111), 1 MHZ is a change of 2 values
         ptUserData->clkRateM = (val < 111) ? (val + 1) / 4 : (val - 55) / 2;
+    }
+    else
+    {
+        ptUserData->clkRateM = ptUserData->clkRateMDefault;
     }
 
     // Update pixel rate information

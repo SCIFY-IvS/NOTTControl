@@ -28,19 +28,17 @@ extern "C" int M_initialize(const char* configFile, bool offline_mode)
     }
     return ret;
 }
-extern "C" void M_acquire(const bool no_recon)
+extern "C" bool M_acquire(const bool no_recon)
 {
     std::cout << "Calling acquire" << std::endl;;
     std::cout << no_recon;
-    acquire(no_recon, _ptUserData);
-    return;
+    return acquire(no_recon, _ptUserData);
 }
 
-extern "C" void M_halt_acquisition()
+extern "C" bool M_halt_acquisition()
 {
     std::cout << "Calling halt" << std::endl;;
-    halt_acquisition(_ptUserData);
-    return;
+    return halt_acquisition(_ptUserData);
 }
 
 extern "C" bool M_initCamera()
@@ -53,29 +51,43 @@ extern "C" bool M_initCamera()
     return InitCamera(_configFile, MACIE_GigE, _ptUserData);
 }
 
-extern "C" void M_powerOff()
+extern "C" bool M_powerOff()
 {
     std::cout << "Calling powerOff" << std::endl;;
-    SetPowerASIC(_ptUserData, false);
+    return SetPowerASIC(_ptUserData, false);
 }
-extern "C" void M_powerOn()
+extern "C" bool M_powerOn()
 {
     std::cout << "Calling powerOn" << std::endl;;
-    SetPowerASIC(_ptUserData, true);
+    return SetPowerASIC(_ptUserData, true);
 }
 
-extern "C" void M_getPower()
+extern "C" bool M_getPower()
 {
     std::cout << "Calling getPower" << std::endl;
     bool pArr[MACIE_PWR_CTRL_SIZE];
-    GetPower(_ptUserData, pArr);
+    return GetPower(_ptUserData, pArr);
 }
 
-extern "C" void M_close()
+extern "C" bool M_close()
 {
     std::cout << "Calling close" << std::endl;
-    SetPowerASIC(_ptUserData, false);
-    free_resources(_ptUserData);
+    bool ret1 = SetPowerASIC(_ptUserData, false);
+    bool ret2 = free_resources(_ptUserData);
+    return ret1 && ret2;
+}
+
+extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroups, int nreads, int ndrops, int nresets)
+{
+    printf("Calling exposure_settings, save %d, ncoadds %d, nseq %d, ngroups %d, nreads %d, ndrops %d, nresets %d \n", save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);
+    return set_exposure_settings(_ptUserData, save, ncoadds, nseq,
+                                      ngroups, nreads, ndrops, nresets);
+}
+
+extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2)
+{
+    printf("Calling frame_settings, xWindowing %d, yWindowing %d, x1 %d, x2 %d, y1 %d, y2 %d\n", xWindowing, yWindowing, x1, x2, y1, y2);
+    return set_frame_settings(_ptUserData, xWindowing, yWindowing, x1, x2, y1, y2);
 }
 
 //  Receive 0MQ string from socket and convert into string
@@ -119,7 +131,10 @@ int main () {
         std::string request = s_recv(socket);
         std::cout << "Received request " << request << std::endl;
 
-        std::string kReplyString;
+        //Did the operation succeed?
+        bool result;
+        //What is the answer?
+        std::string answer = "";
 
         try{
             auto tokens = split(request, ";");
@@ -141,29 +156,12 @@ int main () {
 
                 int ret = M_initialize(configFile.c_str(), offlineMode);
 
-                if(ret == 0)
-                {
-                    kReplyString = "ok";
-                }
-                else
-                {
-                    kReplyString = "nok";
-                }
-
-                kReplyString += ";" + std::to_string(ret);
+                result = ret == 0;
+                answer = std::to_string(ret);
             }
             else if (command == "initcamera")
             {
-                bool ret = M_initCamera();
-
-                if(ret)
-                {
-                    kReplyString = "ok";
-                }
-                else
-                {
-                    kReplyString = "nok";
-                }
+                result = M_initCamera();
             }
             else if (command == "acquire")
             {
@@ -173,40 +171,66 @@ int main () {
                 {
                     norecon = true;
                 }
-                M_acquire(norecon);
-                kReplyString = "ok";
+                result = M_acquire(norecon);
             }
             else if (command == "halt")
             {
-                M_halt_acquisition();
-                kReplyString = "ok";
+                result = M_halt_acquisition();
             }
             else if (command == "poweron")
             {
-                M_powerOn();
-                kReplyString = "ok";
+                result = M_powerOn();
             }
             else if (command == "poweroff")
             {
-                M_powerOff();
-                kReplyString = "ok";
+                result = M_powerOff();
             }
             else if (command == "getpower")
             {
-                //TODO reply value
-                M_getPower();
-                kReplyString = "ok";
+                result = M_getPower();
             }
             else if (command == "close")
             {
-                M_close();
-                kReplyString = "ok";
+                result = M_close();
+            }
+            else if (command == "expsettings")
+            {
+                std::string save_str = tokens[1];
+                bool save = save_str == "true";
+                int ncoadds = std::stoi(tokens[2]);
+                int nseq = std::stoi(tokens[3]);
+                int ngroups = std::stoi(tokens[4]);
+                int nreads = std::stoi(tokens[5]);
+                int ndrops = std::stoi(tokens[6]);
+                int nresets = std::stoi(tokens[7]);
+
+                result = M_exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);          
+            }
+            else if (command == "framesettings")
+            {
+                bool xWindow = tokens[1] == "true";
+                bool yWindow = tokens[2] == "true";
+                int x1 = std::stoi(tokens[3]);
+                int x2 = std::stoi(tokens[4]);
+                int y1 = std::stoi(tokens[5]);
+                int y2 = std::stoi(tokens[6]);
+
+                result = M_frame_settings(xWindow, yWindow, x1, x2, y1, y2);
+            }
+            else 
+            {
+                result = false;
+                answer = "unknown command";
             }
         }
         catch (const std::exception& e)
         {
-            kReplyString = std::string("nok;" + std::string(e.what()));
+            result = false;
+            answer = std::string(e.what());
         }
+
+        std::string resultString = result ? "ok" : "nok";
+        std::string kReplyString = resultString + ";" + answer;
 
         //  Send reply back to client
         zmq::message_t reply (kReplyString.length());
