@@ -14,11 +14,16 @@ import numpy as np
 import redis
 from scipy.optimize import curve_fit
 
-from nottcontrol import config
+from nottcontrol import config, sensor_config_path
+from nottcontrol.sensors import (
+    load_sensor_config,
+    opc_node_path,
+    opc_node_to_asyncua_id,
+)
 
-DEFAULT_KEYS = (
-    "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1.stat.lrTempK",
-    "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_2.stat.lrTempK",
+DEFAULT_SENSOR_NAMES = (
+    "t_base_plate_1",
+    "t_base_plate_2",
 )
 
 _EPOCH = datetime.utcfromtimestamp(0)
@@ -28,13 +33,49 @@ DEFAULT_PLOT_MAX_POINTS = 2_000
 
 def redis_key_label(key: str) -> str:
     """Short legend label from a Redis key or OPC UA node id."""
-    path = key.split(";s=")[-1] if ";s=" in key else key
+    path = opc_node_path(key)
     if path.endswith(".stat.lrTempK"):
         path = path[: -len(".stat.lrTempK")]
     parts = path.split(".")
     if "nott_temp" in parts:
         return ".".join(parts[parts.index("nott_temp") + 1 :])
     return parts[-1] if parts else key
+
+
+def build_sensor_key_map(path: str | os.PathLike[str]) -> dict[str, str]:
+    """Map short sensor names to Redis TimeSeries keys from sensors.ini."""
+    _, redis_keys = load_sensor_config(path)
+    return {redis_key_label(key): key for key in redis_keys}
+
+
+def normalize_redis_key(key: str, sensor_map: dict[str, str]) -> str:
+    """Accept asyncua ids, sensors.ini lines, short names, or legacy cryo.* keys."""
+    if key in sensor_map:
+        return sensor_map[key]
+    if key.startswith("cryo."):
+        short_name = key.removeprefix("cryo.").removesuffix(".lrTempK")
+        if short_name in sensor_map:
+            return sensor_map[short_name]
+    return opc_node_to_asyncua_id(key)
+
+
+def resolve_redis_keys(
+    keys: list[str] | None,
+    sensor_names: list[str] | None,
+    sensors_ini: str | os.PathLike[str],
+) -> list[str]:
+    sensor_map = build_sensor_key_map(sensors_ini)
+    if keys:
+        return [normalize_redis_key(key, sensor_map) for key in keys]
+    names = sensor_names if sensor_names else list(DEFAULT_SENSOR_NAMES)
+    missing = [name for name in names if name not in sensor_map]
+    if missing:
+        available = ", ".join(sorted(sensor_map))
+        raise ValueError(
+            f"unknown sensor name(s): {', '.join(missing)}. "
+            f"Available short names: {available}"
+        )
+    return [sensor_map[name] for name in names]
 
 
 def unix_time_ms(time: datetime) -> int:
@@ -282,8 +323,24 @@ def main() -> int:
     parser.add_argument(
         "--keys",
         nargs="+",
-        default=list(DEFAULT_KEYS),
-        help="Redis TimeSeries keys to plot",
+        help=(
+            "Redis TimeSeries keys: OPC UA node id (ns=4;s=...), "
+            "sensors.ini line, short name, or legacy cryo.* key"
+        ),
+    )
+    parser.add_argument(
+        "--sensor-names",
+        nargs="+",
+        default=list(DEFAULT_SENSOR_NAMES),
+        help=(
+            "Short sensor names from sensors.ini "
+            f"(default: {' '.join(DEFAULT_SENSOR_NAMES)})"
+        ),
+    )
+    parser.add_argument(
+        "--sensors-ini",
+        default=sensor_config_path,
+        help="Path to sensors.ini used to resolve Redis keys",
     )
     parser.add_argument(
         "--n-exp",
@@ -328,9 +385,19 @@ def main() -> int:
         print("error: --fit-max-points must be at least 10", file=sys.stderr)
         return 1
 
+    try:
+        redis_keys = resolve_redis_keys(
+            keys=args.keys,
+            sensor_names=None if args.keys else args.sensor_names,
+            sensors_ini=args.sensors_ini,
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
     return plot_cryo_temps(
         redis_url=args.redis_url,
-        keys=tuple(args.keys),
+        keys=tuple(redis_keys),
         hours=args.hours,
         output=args.output,
         show=args.show,

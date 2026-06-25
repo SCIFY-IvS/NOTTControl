@@ -3,8 +3,8 @@
 #
 # Usage:
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh
-#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --show
-#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh -o /tmp/cryo.png
+#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --sensor-names t_shield_1 t_shield_2
+#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --keys "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1.stat.lrTempK"
 #
 # Environment:
 #   NOTT_REDIS_URL  override Redis URL (default: nottcontrol/config.ini)
