@@ -211,8 +211,10 @@ class MainWindow(QMainWindow):
             filepath = str(Path.joinpath(directory, filename))
 
             recording = self.recording
+
+            save_frame = recording and self.ui.checkBox_saveframes.isChecked()
             
-            if recording:
+            if save_frame:
                 thread = threading.Thread(target = self.save_frame_write_redis, args =(filepath, img, timestamp))
                 thread.start()
 
@@ -238,7 +240,7 @@ class MainWindow(QMainWindow):
                 tLastUpdate = t
                 self.request_image_update.emit(img)
             
-            if recording:
+            if save_frame:
                 thread.join()
     
     def load_roi_config(self, config):
@@ -288,7 +290,6 @@ class MainWindow(QMainWindow):
     def connectSignalSlots(self):
         self.ui.button_connect.clicked.connect(self.connect_clicked)
         self.ui.button_record.clicked.connect(self.record_clicked)
-        self.ui.button_trigger.clicked.connect(self.trigger_clicked)
 
         self.ui.button_parameters.clicked.connect(self.configure_parameters)
 
@@ -418,9 +419,6 @@ class MainWindow(QMainWindow):
         self.ui.button_record.setText('Start')
         self.ui.label_recording.setText('Not recording')
         self.recording = False
-
-    def trigger_clicked(self):
-        print('trigger')
     
     def take_background(self):
         self.background_img = self.image.getImageItem().image

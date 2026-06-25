@@ -16,3 +16,5 @@ if system() == "Linux":
     sf_config = Config(sf_path,
                        inline_comment_prefixes = "#",
                        comment_prefixes = "#")
+
+sensor_config_path = os.path.join(parent, "sensors.ini")
