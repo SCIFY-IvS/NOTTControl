@@ -1,5 +1,8 @@
 *.pyc
 *_ui.py
+*.o
+*.so
+*.a
 build/*
 nottcontrol.egg-info/*
 nottcontrol/script/data/*
@@ -231,3 +234,5 @@ nottcontrol/script/diagnostics/redis_lag_shutter_time_stats.png
 *.ipynb_checkpoints*
 
 nottcontrol/persist.json
+nottcontrol/camera/macie/macie_exe/zmq_server
+nottcontrol/nottcontrol.egg-info/

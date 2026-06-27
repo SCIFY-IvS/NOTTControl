@@ -10,8 +10,8 @@ This class provides retrieval and handling of sequences of infrared camera frame
 
 import numpy as np
 from PIL import Image
-from nottcontrol.camera.roi import Roi
-from nottcontrol.camera.brightness_calculator import BrightnessCalculator
+from nottcontrol.camera.infratec.roi import Roi
+from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
 from nottcontrol import config as nott_config
 from pathlib import Path
 from platform import system

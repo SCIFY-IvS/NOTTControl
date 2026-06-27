@@ -15,18 +15,18 @@ from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColorConstants
-from nottcontrol.camera.infratec_interface import InfratecInterface, Image
+from nottcontrol.camera.infratec.infratec_interface import InfratecInterface, Image
 
 import numpy
 import cv2
-from nottcontrol.camera.brightness_calculator import BrightnessCalculator
-from nottcontrol.camera.parametersdialog import ParametersDialog
+from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
+from nottcontrol.camera.infratec.parametersdialog import ParametersDialog
 from nottcontrol.redisclient import RedisClient
 from nottcontrol import config
 from collections import deque
 from enum import Enum
-from nottcontrol.camera.roi import Roi
-from nottcontrol.camera.roiwidget import RoiWidget
+from nottcontrol.camera.infratec.roi import Roi
+from nottcontrol.camera.infratec.roiwidget import RoiWidget
 import queue
 from pathlib import Path
 import zmq
@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         
-        self.ui = loadUi('camera/mainwindow.ui', self)
+        self.ui = loadUi('camera/infratec/mainwindow.ui', self)
 
         self.roi_widgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
                            RoiWidget(self, 4, QColorConstants.Blue), RoiWidget(self, 5, QColorConstants.Magenta), RoiWidget(self, 6, QColorConstants.DarkGreen),
@@ -211,8 +211,10 @@ class MainWindow(QMainWindow):
             filepath = str(Path.joinpath(directory, filename))
 
             recording = self.recording
+
+            save_frame = recording and self.ui.checkBox_saveframes.isChecked()
             
-            if recording:
+            if save_frame:
                 thread = threading.Thread(target = self.save_frame_write_redis, args =(filepath, img, timestamp))
                 thread.start()
 
@@ -238,7 +240,7 @@ class MainWindow(QMainWindow):
                 tLastUpdate = t
                 self.request_image_update.emit(img)
             
-            if recording:
+            if save_frame:
                 thread.join()
     
     def load_roi_config(self, config):
@@ -288,7 +290,6 @@ class MainWindow(QMainWindow):
     def connectSignalSlots(self):
         self.ui.button_connect.clicked.connect(self.connect_clicked)
         self.ui.button_record.clicked.connect(self.record_clicked)
-        self.ui.button_trigger.clicked.connect(self.trigger_clicked)
 
         self.ui.button_parameters.clicked.connect(self.configure_parameters)
 
@@ -418,9 +419,6 @@ class MainWindow(QMainWindow):
         self.ui.button_record.setText('Start')
         self.ui.label_recording.setText('Not recording')
         self.recording = False
-
-    def trigger_clicked(self):
-        print('trigger')
     
     def take_background(self):
         self.background_img = self.image.getImageItem().image

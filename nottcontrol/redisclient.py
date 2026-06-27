@@ -1,6 +1,6 @@
 import redis
 from datetime import datetime
-from nottcontrol.camera.utils.utils import BrightnessResults
+from nottcontrol.camera.infratec.utils.utils import BrightnessResults
 import json
 
 class RedisClient:
@@ -53,6 +53,7 @@ class RedisClient:
             pipe.add(f'{key}_sum', unix_time, brightness_result.sum)
 
         pipe.execute()
+        
     def unix_time_ms(self, time):
         return round((time - self.epoch).total_seconds() * 1000.0)
     
@@ -65,3 +66,15 @@ class RedisClient:
             return {}
         else:
             return saved_pos[0]
+    
+    def save_sensor_values(self, time, redis_keys, sensor_values):
+        if len(redis_keys) != len(sensor_values):
+            raise ValueError(
+                f"sensor key/value count mismatch: {len(redis_keys)} keys, "
+                f"{len(sensor_values)} values"
+            )
+        unix_time = self.unix_time_ms(time)
+        pipe = self.ts.pipeline()
+        for key, value in zip(redis_keys, sensor_values):
+            pipe.add(key, unix_time, value)
+        pipe.execute()
