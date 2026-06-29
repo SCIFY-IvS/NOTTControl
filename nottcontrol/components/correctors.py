@@ -905,7 +905,7 @@ class offband_ft(object):
         # * corrector
         acorrector = None
         return cls(wl_ft, wl_science, wa_true, wa_model,
-                    mycorrecor=acorrector)
+                    mycorrector=acorrector)
 
     def refresh_corrector_models(self):
         self.S_model_science = self.corrector_model.solve_air_corrector(self.wl_science)
