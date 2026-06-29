@@ -889,6 +889,15 @@ class offband_ft(object):
                          wa_model=None):
         ft_wl = asgard.getarray("asgard", "wl_ft")
         wl_ft = np.linspace(ft_wl[0], ft_wl[-1], 6)
+        if wa_model is None:
+            temp = asgard.getfloat("conditions", "T_tun")
+            pres = asgard.getfloat("conditions", "pres")
+            rhum = asgard.getfloat("conditions", "rhum")
+            co2 = asgard.getfloat("conditions", "co2")
+            wa_model = n_air.wet_atmo(temp=temp, pres=pres,
+                                      rhum=rhum, co2=co2)
+        if wa_true is None:
+            wa_true = wa_model
         # TODO : pick correct
         # * wa_true
         # * wa_model
@@ -1394,12 +1403,15 @@ def no_material(lambs, add=0):
 
 def autocreate(wl_ft=None, wl_science=None):
     from nottcontrol.components import n_air
-    from nottcontrol import sf_config
+    from nottcontrol import config, sf_config, asgard_bridge
     from copy import deepcopy
+    print(sf_config.config_parser.getfloat("vlti", "T_vlti"))
     if wl_ft is None:
-        wl_science = np.linspace(3.5e-6, 4.0e-6)
+        wls_ft = asgard_bridge.getarray("asgard", "wl_ft", dtype=float)
+        wl_ft = np.linspace(*wls_ft, 6)
+        # wl_ft = np.linspace(2.0e-6, 2.5e-6)
     if wl_science is None:
-        wl_ft = np.linspace(2.0e-6, 2.5e-6)
+        wl_science = np.linspace(3.5e-6, 4.0e-6, 11)
     myair = n_air.wet_atmo(config=sf_config.config_parser)
     mymodel = deepcopy(myair)
     acor = corrector(config=sf_config, lambs=wl_science)
@@ -1407,4 +1419,6 @@ def autocreate(wl_ft=None, wl_science=None):
                      wa_true=myair,
                      wa_model=mymodel,
                      mycorrector=acor)
+    aft = offband_ft.from_nott_config(config=None, asgard=asgard_bridge,
+                                       wl_science=wl_science)
     return aft, acor
