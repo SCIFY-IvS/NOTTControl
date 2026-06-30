@@ -1,25 +1,31 @@
 import zmq
 from datetime import datetime, timezone
 import json
+import numpy as np
+import matplotlib.pyplot as plt
 
 #TODO: this returns an empty string if the parameter value is '0'
 # It will return the literal 'ERROR' if the parameter does not exist
-def read_parameter(param_name: str):
+def read_parameter(param_name: str,
+                    verbose: bool = False):
     #  Socket to talk to server
     context = zmq.Context()
-    print ("Connecting to MCS...")
+    if verbose:
+        print ("Connecting to MCS...")
     socket = context.socket(zmq.REQ)
     socket.connect("tcp://10.33.179.102:7050")
 
     obj = {"command" : {"name" : "read", "time" : datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S'), "parameter" : {"name" : param_name}}} 
 
     message = json.dumps(obj)
-    print ("Sending request ", message,"...")
+    if verbose:
+        print ("Sending request ", message,"...")
     socket.send_string(message)
 
     #  Get the reply.
     reply = socket.recv_string()
-    print ("Received reply ", message, "[", reply, "]")
+    if verbose:
+        print ("Received reply ", message, "[", reply, "]")
     #Trim \x00 character(which indicates end of the string)
     reply_trim = reply.removesuffix(f'\x00')
     #Extract parameter value from the JSON reply:
@@ -42,3 +48,23 @@ def read_parameter_lst():
 def read_parameter_seeing():
     value = read_parameter('seeing')
     return float(value)
+
+def get_convert(param_name: str,
+                separator: str,
+                strip: str,
+                dtype: type = float,
+                verbose: bool = False):
+    stringval = read_parameter(param_name=param_name, verbose=verbose)
+    for astrip in strip:
+        stringval = stringval.strip(astrip)
+    stripped = stringval.split(separator)
+    if verbose:
+        print(f"Stripped data {stripped}")
+    if len(stripped) > 1:
+        values = np.array(stripped, dtype=dtype)
+    else:
+        values = dtype(stripped)
+    if verbose:
+        print("Values :")
+        print(values)
+    return values

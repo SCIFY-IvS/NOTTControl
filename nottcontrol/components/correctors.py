@@ -226,7 +226,7 @@ def get_shape_res(params, combiner, corrector, lambs):
     return res
 
 class corrector(object):
-    def __init__(self, config, lambs, file=None, order=3,
+    def __init__(self, ntel, lambs, file=None, order=3,
                 model_comp=None, model_material2=None):
         """
         A module that provides beam adjustments
@@ -236,7 +236,7 @@ class corrector(object):
         
         **Parameters:**
         
-        * config:     A parsed config file
+        * ntel  :    The number of beams corrected
         * lambs :     The wavelength channels to consider [m]
           (At the __init__ stage, it is only used for
           the computation of a mean refractive index for
@@ -256,7 +256,6 @@ class corrector(object):
         * b     :     Vetor of the geometric piston term [m]
         * c     :     Vetor of the dispersive piston term [m]
         """
-        self.config = config
         self.lambs = lambs
         if file is None:
             nplate_file = np.loadtxt(znse_file, delimiter=";")
@@ -277,25 +276,23 @@ class corrector(object):
         else:
             self.nmat2 = model_material2.get_Nair
         self.nmean_mat2 = np.mean(self.nmat2(self.lambs))
-        diams = self.config.getarray("configuration", "diam")
-        self.n_tel = diams.shape[0]
         # An amplitude factor
-        
-        chip_corr = np.zeros((self.n_tel,4)) # (n_tel, n_glasses)
-        atmo_corr = np.zeros((self.n_tel,4)) # (n_tel, n_glasses)
+        self.n_tel = ntel
+        chip_corr = np.zeros((self.n_tel, 4)) # (n_tel, n_glasses)
+        atmo_corr = np.zeros((self.n_tel, 4)) # (n_tel, n_glasses)
         a_corr = np.ones(self.n_tel) # (n_tel, n_glasses)
         
         self.refresh_adjustments(a=a_corr, chip_corr=chip_corr, atmo_corr=atmo_corr,
                                 write=True)
         self.nmean = np.mean(self.nplate(self.lambs))
 
-        self.prediction_model = n_air.wet_atmo(config)
-        # pdb.set_trace()
         
     @classmethod
-    def from_nott_config(cls, config, ):
-        return cls(self, config, lambs, file=None, order=3,
-                model_comp=None, model_material2=None)
+    def from_nott_config(cls, config, science_wls, ntel=4):
+        afile = config["ldc"]["glass_file"]
+
+        return cls(ntel, lambs=science_wls, file=afile, order=3,
+                model_comp=None, model_material2=None,)
 
     def update(self, model_comp:n_air.wet_atmo = None,
                model_material2:n_air.wet_atmo = None,
@@ -324,7 +321,7 @@ class corrector(object):
         else:
             self.nmat2 = model_material2.get_Nair
         self.nmean_mat2 = np.mean(self.nmat2(lambs))
-        diams = self.config.getarray("configuration", "diam")
+        diams = self.config.getarray("vlti", "diam")
         self.n_tel = diams.shape[0]
         # An amplitude factor
         self.nmean = np.mean(self.nplate(lambs))
@@ -886,17 +883,25 @@ class offband_ft(object):
     @classmethod
     def from_nott_config(cls, config, asgard,
                          wl_science, wa_true=None,
-                         wa_model=None):
+                         wa_model=None, ntel=4):
         ft_wl = asgard.getarray("asgard", "wl_ft")
         wl_ft = np.linspace(ft_wl[0], ft_wl[-1], 6)
+        if wa_model is None:
+            temp = asgard.getfloat("conditions", "T_tun")
+            pres = asgard.getfloat("conditions", "pres")
+            rhum = asgard.getfloat("conditions", "rhum")
+            co2 = asgard.getfloat("conditions", "co2")
+            wa_model = n_air.wet_atmo(temp=temp, pres=pres,
+                                      rhum=rhum, co2=co2)
+        if wa_true is None:
+            wa_true = wa_model
         # TODO : pick correct
         # * wa_true
-        # * wa_model
-        # * wl_science
         # * corrector
-        acorrector = None
+        acorrector = corrector.from_nott_config(config, wl_science,
+                                                ntel=ntel)
         return cls(wl_ft, wl_science, wa_true, wa_model,
-                    mycorrecor=acorrector)
+                    mycorrector=acorrector)
 
     def refresh_corrector_models(self):
         self.S_model_science = self.corrector_model.solve_air_corrector(self.wl_science)
@@ -1394,17 +1399,25 @@ def no_material(lambs, add=0):
 
 def autocreate(wl_ft=None, wl_science=None):
     from nottcontrol.components import n_air
-    from nottcontrol import sf_config
+    from nottcontrol import config, sf_config, asgard_bridge
     from copy import deepcopy
+    print(sf_config.config_parser.getfloat("vlti", "T_vlti"))
     if wl_ft is None:
-        wl_science = np.linspace(3.5e-6, 4.0e-6)
+        wls_ft = asgard_bridge.getarray("asgard", "wl_ft", dtype=float)
+        wl_ft = np.linspace(*wls_ft, 6)
+        # wl_ft = np.linspace(2.0e-6, 2.5e-6)
     if wl_science is None:
-        wl_ft = np.linspace(2.0e-6, 2.5e-6)
+        wl_science = np.linspace(3.5e-6, 4.0e-6, 11)
     myair = n_air.wet_atmo(config=sf_config.config_parser)
     mymodel = deepcopy(myair)
-    acor = corrector(config=sf_config, lambs=wl_science)
+    acor = corrector.from_nott_config(config=config, science_wls=wl_science)
     aft = offband_ft(wl_ft, wl_science,
                      wa_true=myair,
                      wa_model=mymodel,
                      mycorrector=acor)
+    aft = offband_ft.from_nott_config(config=config,
+                                      asgard=asgard_bridge,
+                                      wa_model = mymodel,
+                                      wl_science=wl_science,
+                                      )
     return aft, acor

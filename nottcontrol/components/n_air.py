@@ -52,6 +52,17 @@ class wet_atmo(object):
             self.rhum = rhum
             
         self.Nair = None
+
+    @classmethod
+    def from_asgard_link(cls, asgard_link, T_name="T_tun"):
+        pres = asgard_link["conditions"]["pres"]
+        co2 = asgard_link["conditions"]["co2"]
+        rhum = asgard_link["conditions"]["rhum"]
+        temp = asgard_link["conditions"][T_name]
+        return cls(temp=temp, pres=pres,
+                   rhum=rhum, co2=co2)
+
+        
         
 
     
