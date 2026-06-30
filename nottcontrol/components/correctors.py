@@ -227,8 +227,7 @@ def get_shape_res(params, combiner, corrector, lambs):
 
 class corrector(object):
     def __init__(self, ntel, lambs, file=None, order=3,
-                model_comp=None, model_material2=None,
-                prediction_model=None):
+                model_comp=None, model_material2=None):
         """
         A module that provides beam adjustments
         for the input. It contains amplitude *a*, geometric
@@ -287,22 +286,13 @@ class corrector(object):
                                 write=True)
         self.nmean = np.mean(self.nplate(self.lambs))
 
-        # TODO: self.prediction model is deprecated ! remove !
-        if prediction_model is None:
-            self.prediction_model = n_air.wet_atmo(config)
-        else :
-            self.prediction_model = prediction_model
-        # pdb.set_trace()
         
     @classmethod
-    def from_nott_config(cls, config, asgard_link, science_wls, ntel=4):
+    def from_nott_config(cls, config, science_wls, ntel=4):
         afile = config["ldc"]["glass_file"]
 
-        prediction_model = n_air.wet_atmo.from_asgard_link(asgard_link,
-                                                            T_name="T_labo")
         return cls(ntel, lambs=science_wls, file=afile, order=3,
-                model_comp=None, model_material2=None,
-                prediction_model=prediction_model)
+                model_comp=None, model_material2=None,)
 
     def update(self, model_comp:n_air.wet_atmo = None,
                model_material2:n_air.wet_atmo = None,
@@ -893,7 +883,7 @@ class offband_ft(object):
     @classmethod
     def from_nott_config(cls, config, asgard,
                          wl_science, wa_true=None,
-                         wa_model=None):
+                         wa_model=None, ntel=4):
         ft_wl = asgard.getarray("asgard", "wl_ft")
         wl_ft = np.linspace(ft_wl[0], ft_wl[-1], 6)
         if wa_model is None:
@@ -908,7 +898,8 @@ class offband_ft(object):
         # TODO : pick correct
         # * wa_true
         # * corrector
-        acorrector = None
+        acorrector = corrector.from_nott_config(config, wl_science,
+                                                ntel=ntel)
         return cls(wl_ft, wl_science, wa_true, wa_model,
                     mycorrector=acorrector)
 
@@ -1419,7 +1410,7 @@ def autocreate(wl_ft=None, wl_science=None):
         wl_science = np.linspace(3.5e-6, 4.0e-6, 11)
     myair = n_air.wet_atmo(config=sf_config.config_parser)
     mymodel = deepcopy(myair)
-    acor = corrector(config=sf_config, lambs=wl_science)
+    acor = corrector.from_nott_config(config=config, science_wls=wl_science)
     aft = offband_ft(wl_ft, wl_science,
                      wa_true=myair,
                      wa_model=mymodel,
