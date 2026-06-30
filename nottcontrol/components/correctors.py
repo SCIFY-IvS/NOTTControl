@@ -321,7 +321,7 @@ class corrector(object):
         else:
             self.nmat2 = model_material2.get_Nair
         self.nmean_mat2 = np.mean(self.nmat2(lambs))
-        diams = self.config.getarray("configuration", "diam")
+        diams = self.config.getarray("vlti", "diam")
         self.n_tel = diams.shape[0]
         # An amplitude factor
         self.nmean = np.mean(self.nplate(lambs))
