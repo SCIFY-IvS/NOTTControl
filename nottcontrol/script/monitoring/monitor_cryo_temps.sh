@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Fetch cryostat temperature TimeSeries from NOTT Redis and plot them.
+# Monitor base plate and shield cryostat temperatures (12 h, exponential fit).
+#
+# Redis keys are OPC UA node ids from nottcontrol/sensors.ini.
 #
 # Usage:
-#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh
-#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --sensor-names t_shield_1 t_shield_2
-#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --keys "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1.stat.lrTempK"
+#   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh
+#   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh -o /tmp/cryo_monitor.png
+#   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh --hours 24 --show
 #
 # Environment:
 #   NOTT_REDIS_URL  override Redis URL (default: nottcontrol/config.ini)
@@ -26,4 +28,4 @@ else
   exit 1
 fi
 
-exec "${PYTHON}" "${SCRIPT_DIR}/plot_cryo_temps.py" "$@"
+exec "${PYTHON}" "${SCRIPT_DIR}/monitor_cryo_temps.py" "$@"

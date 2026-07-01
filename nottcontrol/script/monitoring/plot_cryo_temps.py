@@ -26,6 +26,12 @@ DEFAULT_SENSOR_NAMES = (
     "t_base_plate_2",
 )
 
+# Shield + base plate groups for monitor_cryo_temps.py (Redis keys via sensors.ini).
+MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
+    "Base plate": ("t_base_plate_1", "t_base_plate_2"),
+    "Shield": ("t_shield_1", "t_shield_2"),
+}
+
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
 DEFAULT_PLOT_MAX_POINTS = 2_000
@@ -185,28 +191,22 @@ def asymptotic_temperature(params: np.ndarray) -> float:
     return float(params[0])
 
 
-def plot_cryo_temps(
-    redis_url: str,
+def plot_sensors_on_axes(
+    ax: plt.Axes,
+    redis_client: redis.Redis,
     keys: tuple[str, ...],
-    hours: float,
-    output: str | None,
-    show: bool,
-    n_exp_terms: int,
+    start_ms: int,
+    end_ms: int,
+    predict_end_unix: float,
     predict_hours: float,
+    n_exp_terms: int,
     fit_max_points: int,
     plot_max_points: int,
 ) -> int:
-    end = datetime.utcnow()
-    start = end - timedelta(hours=hours)
-    start_ms = unix_time_ms(start)
-    end_ms = unix_time_ms(end)
-    predict_end_unix = end.timestamp() + predict_hours * 3600.0
-
-    fig, ax = plt.subplots(figsize=(11, 5))
-    any_data = False
+    """Plot data, exponential fits, and asymptotes for keys on one axes. Returns series count."""
     min_points = 2 * n_exp_terms + 2
-    redis_client = redis.from_url(redis_url)
     model = build_exponential_model(n_exp_terms)
+    plotted = 0
 
     for key in keys:
         times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
@@ -229,7 +229,6 @@ def plot_cryo_temps(
                 file=sys.stderr,
             )
 
-        any_data = True
         try:
             params, t0 = fit_exponential_sum(fit_times, fit_values, n_exp_terms)
         except RuntimeError as exc:
@@ -271,8 +270,134 @@ def plot_cryo_temps(
             f"{label}: model temperature in {predict_hours:g} h "
             f"({datetime.utcfromtimestamp(predict_end_unix)} UTC) = {predicted_k:.4f} K"
         )
+        plotted += 1
+
+    return plotted
+
+
+def plot_cryo_monitor(
+    redis_url: str,
+    sensor_groups: dict[str, tuple[str, ...]],
+    sensors_ini: str | os.PathLike[str],
+    hours: float,
+    output: str | None,
+    show: bool,
+    n_exp_terms: int,
+    predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
+) -> int:
+    """Plot shield and base plate groups with exponential fits (separate subplots)."""
+    end = datetime.utcnow()
+    start_ms = unix_time_ms(end - timedelta(hours=hours))
+    end_ms = unix_time_ms(end)
+    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+
+    sensor_map = build_sensor_key_map(sensors_ini)
+    redis_client = redis.from_url(redis_url)
+
+    fig, axes = plt.subplots(
+        len(sensor_groups),
+        1,
+        figsize=(11, 4 * len(sensor_groups)),
+        sharex=True,
+        squeeze=False,
+    )
+    any_data = False
+
+    for row, (group_title, sensor_names) in enumerate(sensor_groups.items()):
+        ax = axes[row, 0]
+        missing = [name for name in sensor_names if name not in sensor_map]
+        if missing:
+            print(
+                f"error: unknown sensor name(s) in {group_title!r}: {', '.join(missing)}",
+                file=sys.stderr,
+            )
+            return 1
+
+        keys = tuple(sensor_map[name] for name in sensor_names)
+        plotted = plot_sensors_on_axes(
+            ax,
+            redis_client,
+            keys,
+            start_ms,
+            end_ms,
+            predict_end_unix,
+            predict_hours,
+            n_exp_terms,
+            fit_max_points,
+            plot_max_points,
+        )
+        if plotted:
+            any_data = True
+        ax.set_title(f"{group_title} (last {hours:g} h, UTC)")
+        ax.set_ylabel("Temperature (K)")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="best", fontsize=8)
 
     if not any_data:
+        print(
+            f"error: no data found in the last {hours:g} h for monitor groups",
+            file=sys.stderr,
+        )
+        plt.close(fig)
+        return 1
+
+    fig.suptitle(
+        f"Cryostat monitor — exponential fit ({n_exp_terms} terms)",
+        y=1.01,
+    )
+    axes[-1, 0].set_xlabel("Time (UTC)")
+    fig.autofmt_xdate()
+    fig.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150, bbox_inches="tight")
+        print(f"saved plot to {output}")
+    elif show:
+        plt.show()
+    else:
+        default_output = "cryo_monitor.png"
+        fig.savefig(default_output, dpi=150, bbox_inches="tight")
+        print(f"saved plot to {default_output}")
+
+    plt.close(fig)
+    return 0
+
+
+def plot_cryo_temps(
+    redis_url: str,
+    keys: tuple[str, ...],
+    hours: float,
+    output: str | None,
+    show: bool,
+    n_exp_terms: int,
+    predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
+) -> int:
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+    start_ms = unix_time_ms(start)
+    end_ms = unix_time_ms(end)
+    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+
+    fig, ax = plt.subplots(figsize=(11, 5))
+    redis_client = redis.from_url(redis_url)
+    plotted = plot_sensors_on_axes(
+        ax,
+        redis_client,
+        keys,
+        start_ms,
+        end_ms,
+        predict_end_unix,
+        predict_hours,
+        n_exp_terms,
+        fit_max_points,
+        plot_max_points,
+    )
+
+    if plotted == 0:
         print(
             f"error: no data found in the last {hours:g} h for keys: {', '.join(keys)}",
             file=sys.stderr,
