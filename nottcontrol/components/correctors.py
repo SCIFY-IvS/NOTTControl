@@ -12,7 +12,6 @@ logit = logging.getLogger(__name__)
 from copy import deepcopy
 
 ArrayLike = np.typing.ArrayLike
-# import pdb
 
 # from pdb import set_trace
 
@@ -288,11 +287,17 @@ class corrector(object):
 
         
     @classmethod
-    def from_nott_config(cls, config, science_wls, ntel=4):
+    def from_nott_config(cls, config, science_wls,
+                        asgard_link, ntel=4,
+                        model_comp=None):
         afile = config["ldc"]["glass_file"]
+        if model_comp is None:
+            model_comp = n_air.wet_atmo.from_asgard_link(
+                asgard_link=asgard_link, T_name="T_labo"
+            )
 
         return cls(ntel, lambs=science_wls, file=afile, order=3,
-                model_comp=None, model_material2=None,)
+                model_comp=model_comp, model_material2=None,)
 
     def update(self, model_comp:n_air.wet_atmo = None,
                model_material2:n_air.wet_atmo = None,
@@ -895,11 +900,21 @@ class offband_ft(object):
                                       rhum=rhum, co2=co2)
         if wa_true is None:
             wa_true = wa_model
+
+        temp = asgard.getfloat("conditions", "T_labo")
+        pres = asgard.getfloat("conditions", "pres")
+        rhum = asgard.getfloat("conditions", "rhum")
+        co2 = asgard.getfloat("conditions", "co2")
+        ncomp_model = n_air.wet_atmo(temp=temp, pres=pres,
+                                  rhum=rhum, co2=co2)
         # TODO : pick correct
         # * wa_true
         # * corrector
-        acorrector = corrector.from_nott_config(config, wl_science,
-                                                ntel=ntel)
+        acorrector = corrector.from_nott_config(
+                        config, wl_science,
+                        asgard_link=asgard,
+                        ntel=ntel
+        )
         return cls(wl_ft, wl_science, wa_true, wa_model,
                     mycorrector=acorrector)
 
@@ -1387,7 +1402,7 @@ def generic_vacuum(lambs, add=1.):
     """
     Add should always be 1.
     """
-    return np.ones_like(lambs) + add
+    return np.zeros_like(lambs) + add
 def no_material(lambs, add=0):
     """
     Add should always be 0.
@@ -1410,7 +1425,10 @@ def autocreate(wl_ft=None, wl_science=None):
         wl_science = np.linspace(3.5e-6, 4.0e-6, 11)
     myair = n_air.wet_atmo(config=sf_config.config_parser)
     mymodel = deepcopy(myair)
-    acor = corrector.from_nott_config(config=config, science_wls=wl_science)
+    acor = corrector.from_nott_config(
+                config=config, science_wls=wl_science,
+                asgard_link=asgard_bridge
+            )
     aft = offband_ft(wl_ft, wl_science,
                      wa_true=myair,
                      wa_model=mymodel,
