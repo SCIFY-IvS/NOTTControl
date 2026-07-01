@@ -15,6 +15,7 @@ from nottcontrol import config, sensor_config_path
 
 from plot_cryo_temps import (
     DEFAULT_FIT_MAX_POINTS,
+    DEFAULT_MONITOR_TARGET_K,
     DEFAULT_PLOT_MAX_POINTS,
     MONITOR_SENSOR_GROUPS,
     plot_cryo_monitor,
@@ -59,6 +60,15 @@ def main() -> int:
         help="Hours ahead from now to evaluate the fitted model (default: 24)",
     )
     parser.add_argument(
+        "--target-k",
+        type=float,
+        default=DEFAULT_MONITOR_TARGET_K,
+        help=(
+            "Base plate target temperature (K) for time-to-reach legend "
+            f"(default: {DEFAULT_MONITOR_TARGET_K:g})"
+        ),
+    )
+    parser.add_argument(
         "--fit-max-points",
         type=int,
         default=DEFAULT_FIT_MAX_POINTS,
@@ -100,6 +110,7 @@ def main() -> int:
         predict_hours=args.predict_hours,
         fit_max_points=args.fit_max_points,
         plot_max_points=args.plot_max_points,
+        target_temp_k=args.target_k,
     )
 
 

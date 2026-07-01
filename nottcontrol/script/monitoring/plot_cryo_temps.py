@@ -12,7 +12,7 @@ from typing import Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import redis
-from scipy.optimize import curve_fit
+from scipy.optimize import brentq, curve_fit
 
 from nottcontrol import config, sensor_config_path
 from nottcontrol.sensors import (
@@ -31,6 +31,9 @@ MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
     "Base plate": ("t_base_plate_1", "t_base_plate_2"),
     "Shield": ("t_shield_1", "t_shield_2"),
 }
+
+DEFAULT_MONITOR_TARGET_K = 90.0
+BASE_PLATE_GROUP = "Base plate"
 
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
@@ -191,6 +194,58 @@ def asymptotic_temperature(params: np.ndarray) -> float:
     return float(params[0])
 
 
+def temperature_at_fit_hours(
+    params: np.ndarray,
+    t_hours: float,
+    n_terms: int,
+) -> float:
+    return float(exponential_sum_model(np.array([t_hours]), *params)[0])
+
+
+def time_hours_to_reach_temperature(
+    params: np.ndarray,
+    n_terms: int,
+    target_k: float,
+    t_search_max: float = 10_000.0,
+) -> float | None:
+    """Hours from fit t=0 until the model reaches target_k, if it crosses."""
+    t_start = temperature_at_fit_hours(params, 0.0, n_terms)
+    t_asymp = asymptotic_temperature(params)
+
+    if abs(t_start - target_k) < 1e-3:
+        return 0.0
+
+    if (t_start - target_k) * (t_asymp - target_k) > 0:
+        return None
+
+    def delta(t_hours: float) -> float:
+        return temperature_at_fit_hours(params, t_hours, n_terms) - target_k
+
+    hi = max(1.0, t_search_max / 100.0)
+    while hi <= t_search_max:
+        if delta(hi) * delta(0.0) <= 0:
+            return float(brentq(delta, 0.0, hi))
+        hi *= 2.0
+    return None
+
+
+def format_time_to_target_label(
+    label: str,
+    target_k: float,
+    hours_from_fit_start: float | None,
+    fit_start_unix: float,
+) -> str:
+    if hours_from_fit_start is None:
+        return f"{label}: fit does not reach {target_k:g} K"
+    if hours_from_fit_start <= 0:
+        return f"{label}: at {target_k:g} K at window start"
+    reach_time = datetime.utcfromtimestamp(fit_start_unix + hours_from_fit_start * 3600.0)
+    return (
+        f"{label}: {target_k:g} K in {hours_from_fit_start:.2f} h "
+        f"({reach_time:%Y-%m-%d %H:%M} UTC)"
+    )
+
+
 def plot_sensors_on_axes(
     ax: plt.Axes,
     redis_client: redis.Redis,
@@ -202,6 +257,7 @@ def plot_sensors_on_axes(
     n_exp_terms: int,
     fit_max_points: int,
     plot_max_points: int,
+    target_temp_k: float | None = None,
 ) -> int:
     """Plot data, exponential fits, and asymptotes for keys on one axes. Returns series count."""
     min_points = 2 * n_exp_terms + 2
@@ -239,7 +295,7 @@ def plot_sensors_on_axes(
         predicted_k = predict_temperature(params, t0, predict_end_unix, n_exp_terms)
 
         plot_times, plot_values = downsample_series(times, values, plot_max_points)
-        ax.plot(
+        (data_line,) = ax.plot(
             [datetime.utcfromtimestamp(t) for t in plot_times],
             plot_values,
             linewidth=1.2,
@@ -270,6 +326,32 @@ def plot_sensors_on_axes(
             f"{label}: model temperature in {predict_hours:g} h "
             f"({datetime.utcfromtimestamp(predict_end_unix)} UTC) = {predicted_k:.4f} K"
         )
+
+        if target_temp_k is not None:
+            hours_to_target = time_hours_to_reach_temperature(
+                params,
+                n_exp_terms,
+                target_temp_k,
+                t_search_max=max(predict_hours, 1.0) * 24.0,
+            )
+            target_label = format_time_to_target_label(
+                label,
+                target_temp_k,
+                hours_to_target,
+                t0,
+            )
+            print(target_label)
+            ax.plot([], [], linestyle="", label=target_label)
+            if hours_to_target is not None and hours_to_target > 0:
+                reach_unix = t0 + hours_to_target * 3600.0
+                ax.axvline(
+                    datetime.utcfromtimestamp(reach_unix),
+                    linestyle="-.",
+                    linewidth=1.0,
+                    alpha=0.7,
+                    color=data_line.get_color(),
+                )
+
         plotted += 1
 
     return plotted
@@ -286,6 +368,7 @@ def plot_cryo_monitor(
     predict_hours: float,
     fit_max_points: int,
     plot_max_points: int,
+    target_temp_k: float | None = DEFAULT_MONITOR_TARGET_K,
 ) -> int:
     """Plot shield and base plate groups with exponential fits (separate subplots)."""
     end = datetime.utcnow()
@@ -316,6 +399,7 @@ def plot_cryo_monitor(
             return 1
 
         keys = tuple(sensor_map[name] for name in sensor_names)
+        group_target_k = target_temp_k if group_title == BASE_PLATE_GROUP else None
         plotted = plot_sensors_on_axes(
             ax,
             redis_client,
@@ -327,6 +411,7 @@ def plot_cryo_monitor(
             n_exp_terms,
             fit_max_points,
             plot_max_points,
+            target_temp_k=group_target_k,
         )
         if plotted:
             any_data = True
