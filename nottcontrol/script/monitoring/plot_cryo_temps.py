@@ -7,12 +7,13 @@ import argparse
 import os
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import redis
-from scipy.optimize import curve_fit
+from scipy.optimize import brentq, curve_fit
 
 from nottcontrol import config, sensor_config_path
 from nottcontrol.sensors import (
@@ -26,9 +27,43 @@ DEFAULT_SENSOR_NAMES = (
     "t_base_plate_2",
 )
 
+# Shield, base plate, and detector panels for monitor_cryo_temps.py.
+MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
+    "Base plate": ("t_base_plate_1", "t_base_plate_2"),
+    "Shield": ("t_shield_1", "t_shield_2"),
+    "Detector": ("t_detector", "t_detector_vote"),
+}
+
+MONITOR_FIT_GROUPS = frozenset({"Base plate", "Shield"})
+
+DEFAULT_MONITOR_TARGET_K = 90.0
+BASE_PLATE_GROUP = "Base plate"
+
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
 DEFAULT_PLOT_MAX_POINTS = 2_000
+MONITOR_OUTPUT_DIR = Path(__file__).resolve().parent
+DEFAULT_MONITOR_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_monitor.png"
+DEFAULT_CRYO_PLOT_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_temps.png"
+
+
+def resolve_output_path(output: str | None, default: Path) -> Path:
+    """Return an absolute output path, expanding ~ if needed."""
+    path = Path(output).expanduser() if output else default
+    return path.resolve()
+
+
+def save_figure(fig: plt.Figure, output: str | None, default: Path, show: bool) -> Path | None:
+    """Save or show a figure. Returns the path written, if any."""
+    if show:
+        plt.show()
+        return None
+
+    out_path = resolve_output_path(output, default)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    print(f"saved plot to {out_path}")
+    return out_path
 
 
 def redis_key_label(key: str) -> str:
@@ -185,28 +220,141 @@ def asymptotic_temperature(params: np.ndarray) -> float:
     return float(params[0])
 
 
-def plot_cryo_temps(
-    redis_url: str,
+def temperature_at_fit_hours(
+    params: np.ndarray,
+    t_hours: float,
+    n_terms: int,
+) -> float:
+    return float(exponential_sum_model(np.array([t_hours]), *params)[0])
+
+
+def time_hours_to_reach_temperature(
+    params: np.ndarray,
+    n_terms: int,
+    target_k: float,
+    t_search_max: float = 10_000.0,
+) -> float | None:
+    """Hours from fit t=0 until the model reaches target_k, if it crosses."""
+    t_start = temperature_at_fit_hours(params, 0.0, n_terms)
+    t_asymp = asymptotic_temperature(params)
+
+    if abs(t_start - target_k) < 1e-3:
+        return 0.0
+
+    if (t_start - target_k) * (t_asymp - target_k) > 0:
+        return None
+
+    def delta(t_hours: float) -> float:
+        return temperature_at_fit_hours(params, t_hours, n_terms) - target_k
+
+    hi = max(1.0, t_search_max / 100.0)
+    while hi <= t_search_max:
+        if delta(hi) * delta(0.0) <= 0:
+            return float(brentq(delta, 0.0, hi))
+        hi *= 2.0
+    return None
+
+
+def format_time_to_target_label(
+    label: str,
+    target_k: float,
+    hours_from_fit_start: float | None,
+    fit_start_unix: float,
+) -> str:
+    if hours_from_fit_start is None:
+        return f"{label}: fit does not reach {target_k:g} K"
+    if hours_from_fit_start <= 0:
+        return f"{label}: already at {target_k:g} K at window start"
+    reach_time = datetime.utcfromtimestamp(fit_start_unix + hours_from_fit_start * 3600.0)
+    return (
+        f"{label}: {target_k:g} K in {hours_from_fit_start:.2f} h "
+        f"({reach_time:%Y-%m-%d %H:%M} UTC)"
+    )
+
+
+def add_target_info_to_axes(
+    ax: plt.Axes,
+    info_lines: list[str],
+    target_k: float,
+) -> None:
+    """Draw target temperature line and a visible annotation box on the axes."""
+    if not info_lines:
+        return
+
+    ax.axhline(
+        target_k,
+        color="#444444",
+        linestyle=(0, (6, 4)),
+        linewidth=1.4,
+        label=f"{target_k:g} K target",
+        zorder=1,
+    )
+
+    box_text = f"Time to {target_k:g} K (from fit start):\n" + "\n".join(info_lines)
+    ax.text(
+        0.02,
+        0.98,
+        box_text,
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        fontsize=9,
+        family="monospace",
+        bbox={"boxstyle": "round,pad=0.45", "facecolor": "#fff8e1", "edgecolor": "#888888"},
+        zorder=10,
+    )
+
+
+def plot_data_only_on_axes(
+    ax: plt.Axes,
+    redis_client: redis.Redis,
     keys: tuple[str, ...],
-    hours: float,
-    output: str | None,
-    show: bool,
-    n_exp_terms: int,
-    predict_hours: float,
-    fit_max_points: int,
+    start_ms: int,
+    end_ms: int,
     plot_max_points: int,
 ) -> int:
-    end = datetime.utcnow()
-    start = end - timedelta(hours=hours)
-    start_ms = unix_time_ms(start)
-    end_ms = unix_time_ms(end)
-    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+    """Plot temperature data only (no exponential fit)."""
+    plotted = 0
 
-    fig, ax = plt.subplots(figsize=(11, 5))
-    any_data = False
+    for key in keys:
+        times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
+        if times.size == 0:
+            print(f"warning: no samples for {key}", file=sys.stderr)
+            continue
+
+        label = redis_key_label(key)
+        plot_times, plot_values = downsample_series(times, values, plot_max_points)
+        ax.plot(
+            [datetime.utcfromtimestamp(t) for t in plot_times],
+            plot_values,
+            linewidth=1.4,
+            label=label,
+        )
+        print(f"{label}: latest = {values[-1]:.4f} K")
+        plotted += 1
+
+    return plotted
+
+
+def plot_sensors_on_axes(
+    ax: plt.Axes,
+    redis_client: redis.Redis,
+    keys: tuple[str, ...],
+    start_ms: int,
+    end_ms: int,
+    predict_end_unix: float,
+    predict_hours: float,
+    n_exp_terms: int,
+    fit_max_points: int,
+    plot_max_points: int,
+    target_temp_k: float | None = None,
+) -> tuple[int, list[str]]:
+    """Plot data, exponential fits, and asymptotes. Returns (series count, target info lines)."""
     min_points = 2 * n_exp_terms + 2
-    redis_client = redis.from_url(redis_url)
     model = build_exponential_model(n_exp_terms)
+    plotted = 0
+    target_info_lines: list[str] = []
+    vline_marks: list[tuple[datetime, float, str, str]] = []
 
     for key in keys:
         times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
@@ -229,7 +377,6 @@ def plot_cryo_temps(
                 file=sys.stderr,
             )
 
-        any_data = True
         try:
             params, t0 = fit_exponential_sum(fit_times, fit_values, n_exp_terms)
         except RuntimeError as exc:
@@ -240,7 +387,7 @@ def plot_cryo_temps(
         predicted_k = predict_temperature(params, t0, predict_end_unix, n_exp_terms)
 
         plot_times, plot_values = downsample_series(times, values, plot_max_points)
-        ax.plot(
+        (data_line,) = ax.plot(
             [datetime.utcfromtimestamp(t) for t in plot_times],
             plot_values,
             linewidth=1.2,
@@ -272,7 +419,198 @@ def plot_cryo_temps(
             f"({datetime.utcfromtimestamp(predict_end_unix)} UTC) = {predicted_k:.4f} K"
         )
 
+        if target_temp_k is not None:
+            hours_to_target = time_hours_to_reach_temperature(
+                params,
+                n_exp_terms,
+                target_temp_k,
+                t_search_max=max(predict_hours, 1.0) * 24.0,
+            )
+            target_label = format_time_to_target_label(
+                label,
+                target_temp_k,
+                hours_to_target,
+                t0,
+            )
+            print(target_label)
+            target_info_lines.append(target_label)
+            if hours_to_target is not None and hours_to_target > 0:
+                reach_unix = t0 + hours_to_target * 3600.0
+                vline_marks.append(
+                    (
+                        datetime.utcfromtimestamp(reach_unix),
+                        hours_to_target,
+                        label,
+                        data_line.get_color(),
+                    )
+                )
+
+        plotted += 1
+
+    target_k_label = f"{target_temp_k:g} K" if target_temp_k is not None else "target"
+    for reach_dt, hours_to_target, label, color in vline_marks:
+        ax.axvline(
+            reach_dt,
+            linestyle="-.",
+            linewidth=1.4,
+            alpha=0.85,
+            color=color,
+            label=f"{label} → {target_k_label}",
+        )
+
+    if vline_marks:
+        ax.relim()
+        ax.autoscale_view()
+        ylim = ax.get_ylim()
+        y_annot = ylim[1] - 0.05 * (ylim[1] - ylim[0])
+        for reach_dt, hours_to_target, label, color in vline_marks:
+            ax.annotate(
+                f"{label}\n{target_k_label} in {hours_to_target:.1f} h",
+                xy=(reach_dt, y_annot),
+                xytext=(5, 0),
+                textcoords="offset points",
+                ha="left",
+                va="top",
+                fontsize=8,
+                color=color,
+                bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.9},
+            )
+
+    return plotted, target_info_lines
+
+
+def plot_cryo_monitor(
+    redis_url: str,
+    sensor_groups: dict[str, tuple[str, ...]],
+    sensors_ini: str | os.PathLike[str],
+    hours: float,
+    output: str | None,
+    show: bool,
+    n_exp_terms: int,
+    predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
+    target_temp_k: float | None = DEFAULT_MONITOR_TARGET_K,
+) -> int:
+    """Plot shield and base plate groups with exponential fits (separate subplots)."""
+    end = datetime.utcnow()
+    start_ms = unix_time_ms(end - timedelta(hours=hours))
+    end_ms = unix_time_ms(end)
+    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+
+    sensor_map = build_sensor_key_map(sensors_ini)
+    redis_client = redis.from_url(redis_url)
+
+    fig, axes = plt.subplots(
+        len(sensor_groups),
+        1,
+        figsize=(11, 3.8 * len(sensor_groups)),
+        sharex=True,
+        squeeze=False,
+    )
+    any_data = False
+
+    for row, (group_title, sensor_names) in enumerate(sensor_groups.items()):
+        ax = axes[row, 0]
+        missing = [name for name in sensor_names if name not in sensor_map]
+        if missing:
+            print(
+                f"error: unknown sensor name(s) in {group_title!r}: {', '.join(missing)}",
+                file=sys.stderr,
+            )
+            return 1
+
+        keys = tuple(sensor_map[name] for name in sensor_names)
+        group_target_k = target_temp_k if group_title == BASE_PLATE_GROUP else None
+
+        if group_title in MONITOR_FIT_GROUPS:
+            plotted, target_info_lines = plot_sensors_on_axes(
+                ax,
+                redis_client,
+                keys,
+                start_ms,
+                end_ms,
+                predict_end_unix,
+                predict_hours,
+                n_exp_terms,
+                fit_max_points,
+                plot_max_points,
+                target_temp_k=group_target_k,
+            )
+            if group_title == BASE_PLATE_GROUP and group_target_k is not None:
+                add_target_info_to_axes(ax, target_info_lines, group_target_k)
+        else:
+            plotted = plot_data_only_on_axes(
+                ax,
+                redis_client,
+                keys,
+                start_ms,
+                end_ms,
+                plot_max_points,
+            )
+            target_info_lines = []
+        if plotted:
+            any_data = True
+        subtitle = "data only" if group_title not in MONITOR_FIT_GROUPS else "exponential fit"
+        ax.set_title(f"{group_title} (last {hours:g} h, UTC) — {subtitle}")
+        ax.set_ylabel("Temperature (K)")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="upper right", fontsize=8)
+
     if not any_data:
+        print(
+            f"error: no data found in the last {hours:g} h for monitor groups",
+            file=sys.stderr,
+        )
+        plt.close(fig)
+        return 1
+
+    fig.suptitle(
+        f"Cryostat monitor — exponential fit ({n_exp_terms} terms)",
+        y=1.01,
+    )
+    axes[-1, 0].set_xlabel("Time (UTC)")
+    fig.autofmt_xdate()
+    fig.tight_layout()
+
+    save_figure(fig, output, DEFAULT_MONITOR_OUTPUT, show)
+    plt.close(fig)
+    return 0
+
+
+def plot_cryo_temps(
+    redis_url: str,
+    keys: tuple[str, ...],
+    hours: float,
+    output: str | None,
+    show: bool,
+    n_exp_terms: int,
+    predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
+) -> int:
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+    start_ms = unix_time_ms(start)
+    end_ms = unix_time_ms(end)
+    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+
+    fig, ax = plt.subplots(figsize=(11, 5))
+    redis_client = redis.from_url(redis_url)
+    plotted, _ = plot_sensors_on_axes(
+        ax,
+        redis_client,
+        keys,
+        start_ms,
+        end_ms,
+        predict_end_unix,
+        predict_hours,
+        n_exp_terms,
+        fit_max_points,
+        plot_max_points,
+    )
+
+    if plotted == 0:
         print(
             f"error: no data found in the last {hours:g} h for keys: {', '.join(keys)}",
             file=sys.stderr,
@@ -290,17 +628,7 @@ def plot_cryo_temps(
     fig.autofmt_xdate()
     fig.tight_layout()
 
-    if output:
-        fig.savefig(output, dpi=150)
-        print(f"saved plot to {output}")
-
-    if show:
-        plt.show()
-    elif not output:
-        default_output = "cryo_temps.png"
-        fig.savefig(default_output, dpi=150)
-        print(f"saved plot to {default_output}")
-
+    save_figure(fig, output, DEFAULT_CRYO_PLOT_OUTPUT, show)
     plt.close(fig)
     return 0
 
@@ -369,7 +697,7 @@ def main() -> int:
     parser.add_argument(
         "-o",
         "--output",
-        help="Output image path (default: cryo_temps.png when not showing interactively)",
+        help=f"Output image path (default: {DEFAULT_CRYO_PLOT_OUTPUT})",
     )
     parser.add_argument(
         "--show",
