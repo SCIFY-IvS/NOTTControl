@@ -7,6 +7,7 @@ import argparse
 import os
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Callable
 
 import matplotlib.pyplot as plt
@@ -41,6 +42,28 @@ BASE_PLATE_GROUP = "Base plate"
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
 DEFAULT_PLOT_MAX_POINTS = 2_000
+MONITOR_OUTPUT_DIR = Path(__file__).resolve().parent
+DEFAULT_MONITOR_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_monitor.png"
+DEFAULT_CRYO_PLOT_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_temps.png"
+
+
+def resolve_output_path(output: str | None, default: Path) -> Path:
+    """Return an absolute output path, expanding ~ if needed."""
+    path = Path(output).expanduser() if output else default
+    return path.resolve()
+
+
+def save_figure(fig: plt.Figure, output: str | None, default: Path, show: bool) -> Path | None:
+    """Save or show a figure. Returns the path written, if any."""
+    if show:
+        plt.show()
+        return None
+
+    out_path = resolve_output_path(output, default)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    print(f"saved plot to {out_path}")
+    return out_path
 
 
 def redis_key_label(key: str) -> str:
@@ -550,16 +573,7 @@ def plot_cryo_monitor(
     fig.autofmt_xdate()
     fig.tight_layout()
 
-    if output:
-        fig.savefig(output, dpi=150, bbox_inches="tight")
-        print(f"saved plot to {output}")
-    elif show:
-        plt.show()
-    else:
-        default_output = "cryo_monitor.png"
-        fig.savefig(default_output, dpi=150, bbox_inches="tight")
-        print(f"saved plot to {default_output}")
-
+    save_figure(fig, output, DEFAULT_MONITOR_OUTPUT, show)
     plt.close(fig)
     return 0
 
@@ -614,17 +628,7 @@ def plot_cryo_temps(
     fig.autofmt_xdate()
     fig.tight_layout()
 
-    if output:
-        fig.savefig(output, dpi=150)
-        print(f"saved plot to {output}")
-
-    if show:
-        plt.show()
-    elif not output:
-        default_output = "cryo_temps.png"
-        fig.savefig(default_output, dpi=150)
-        print(f"saved plot to {default_output}")
-
+    save_figure(fig, output, DEFAULT_CRYO_PLOT_OUTPUT, show)
     plt.close(fig)
     return 0
 
@@ -693,7 +697,7 @@ def main() -> int:
     parser.add_argument(
         "-o",
         "--output",
-        help="Output image path (default: cryo_temps.png when not showing interactively)",
+        help=f"Output image path (default: {DEFAULT_CRYO_PLOT_OUTPUT})",
     )
     parser.add_argument(
         "--show",

@@ -16,6 +16,7 @@ from nottcontrol import config, sensor_config_path
 
 from plot_cryo_temps import (
     DEFAULT_FIT_MAX_POINTS,
+    DEFAULT_MONITOR_OUTPUT,
     DEFAULT_MONITOR_TARGET_K,
     DEFAULT_PLOT_MAX_POINTS,
     MONITOR_SENSOR_GROUPS,
@@ -84,7 +85,8 @@ def main() -> int:
     parser.add_argument(
         "-o",
         "--output",
-        help="Output image path (default: cryo_monitor.png when not showing)",
+        default=str(DEFAULT_MONITOR_OUTPUT),
+        help=f"Output image path (default: {DEFAULT_MONITOR_OUTPUT})",
     )
     parser.add_argument(
         "--show",

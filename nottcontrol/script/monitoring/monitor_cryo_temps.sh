@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Monitor base plate, shield, and detector cryostat temperatures (12 h).
 #
+# Default output:
+#   nottcontrol/script/monitoring/cryo_monitor.png
+#
 # Redis keys are OPC UA node ids from nottcontrol/sensors.ini.
 #
 # Usage:

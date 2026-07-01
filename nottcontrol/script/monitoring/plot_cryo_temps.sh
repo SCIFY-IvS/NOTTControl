@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Fetch cryostat temperature TimeSeries from NOTT Redis and plot them.
 #
+# Default output:
+#   nottcontrol/script/monitoring/cryo_temps.png
+#
 # Usage:
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --sensor-names t_shield_1 t_shield_2
