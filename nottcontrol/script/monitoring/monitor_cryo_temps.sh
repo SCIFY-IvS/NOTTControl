@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Monitor base plate and shield cryostat temperatures (12 h, exponential fit).
+# Monitor base plate, shield, and detector cryostat temperatures (12 h).
 #
 # Redis keys are OPC UA node ids from nottcontrol/sensors.ini.
 #

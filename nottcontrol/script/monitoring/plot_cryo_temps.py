@@ -26,11 +26,14 @@ DEFAULT_SENSOR_NAMES = (
     "t_base_plate_2",
 )
 
-# Shield + base plate groups for monitor_cryo_temps.py (Redis keys via sensors.ini).
+# Shield, base plate, and detector panels for monitor_cryo_temps.py.
 MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
     "Base plate": ("t_base_plate_1", "t_base_plate_2"),
     "Shield": ("t_shield_1", "t_shield_2"),
+    "Detector": ("t_detector", "t_detector_vote"),
 }
+
+MONITOR_FIT_GROUPS = frozenset({"Base plate", "Shield"})
 
 DEFAULT_MONITOR_TARGET_K = 90.0
 BASE_PLATE_GROUP = "Base plate"
@@ -238,12 +241,76 @@ def format_time_to_target_label(
     if hours_from_fit_start is None:
         return f"{label}: fit does not reach {target_k:g} K"
     if hours_from_fit_start <= 0:
-        return f"{label}: at {target_k:g} K at window start"
+        return f"{label}: already at {target_k:g} K at window start"
     reach_time = datetime.utcfromtimestamp(fit_start_unix + hours_from_fit_start * 3600.0)
     return (
         f"{label}: {target_k:g} K in {hours_from_fit_start:.2f} h "
         f"({reach_time:%Y-%m-%d %H:%M} UTC)"
     )
+
+
+def add_target_info_to_axes(
+    ax: plt.Axes,
+    info_lines: list[str],
+    target_k: float,
+) -> None:
+    """Draw target temperature line and a visible annotation box on the axes."""
+    if not info_lines:
+        return
+
+    ax.axhline(
+        target_k,
+        color="#444444",
+        linestyle=(0, (6, 4)),
+        linewidth=1.4,
+        label=f"{target_k:g} K target",
+        zorder=1,
+    )
+
+    box_text = f"Time to {target_k:g} K (from fit start):\n" + "\n".join(info_lines)
+    ax.text(
+        0.02,
+        0.98,
+        box_text,
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        fontsize=9,
+        family="monospace",
+        bbox={"boxstyle": "round,pad=0.45", "facecolor": "#fff8e1", "edgecolor": "#888888"},
+        zorder=10,
+    )
+
+
+def plot_data_only_on_axes(
+    ax: plt.Axes,
+    redis_client: redis.Redis,
+    keys: tuple[str, ...],
+    start_ms: int,
+    end_ms: int,
+    plot_max_points: int,
+) -> int:
+    """Plot temperature data only (no exponential fit)."""
+    plotted = 0
+
+    for key in keys:
+        times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
+        if times.size == 0:
+            print(f"warning: no samples for {key}", file=sys.stderr)
+            continue
+
+        label = redis_key_label(key)
+        plot_times, plot_values = downsample_series(times, values, plot_max_points)
+        ax.plot(
+            [datetime.utcfromtimestamp(t) for t in plot_times],
+            plot_values,
+            linewidth=1.4,
+            label=label,
+        )
+        print(f"{label}: latest = {values[-1]:.4f} K")
+        plotted += 1
+
+    return plotted
 
 
 def plot_sensors_on_axes(
@@ -258,11 +325,13 @@ def plot_sensors_on_axes(
     fit_max_points: int,
     plot_max_points: int,
     target_temp_k: float | None = None,
-) -> int:
-    """Plot data, exponential fits, and asymptotes for keys on one axes. Returns series count."""
+) -> tuple[int, list[str]]:
+    """Plot data, exponential fits, and asymptotes. Returns (series count, target info lines)."""
     min_points = 2 * n_exp_terms + 2
     model = build_exponential_model(n_exp_terms)
     plotted = 0
+    target_info_lines: list[str] = []
+    vline_marks: list[tuple[datetime, float, str, str]] = []
 
     for key in keys:
         times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
@@ -341,20 +410,50 @@ def plot_sensors_on_axes(
                 t0,
             )
             print(target_label)
-            ax.plot([], [], linestyle="", label=target_label)
+            target_info_lines.append(target_label)
             if hours_to_target is not None and hours_to_target > 0:
                 reach_unix = t0 + hours_to_target * 3600.0
-                ax.axvline(
-                    datetime.utcfromtimestamp(reach_unix),
-                    linestyle="-.",
-                    linewidth=1.0,
-                    alpha=0.7,
-                    color=data_line.get_color(),
+                vline_marks.append(
+                    (
+                        datetime.utcfromtimestamp(reach_unix),
+                        hours_to_target,
+                        label,
+                        data_line.get_color(),
+                    )
                 )
 
         plotted += 1
 
-    return plotted
+    target_k_label = f"{target_temp_k:g} K" if target_temp_k is not None else "target"
+    for reach_dt, hours_to_target, label, color in vline_marks:
+        ax.axvline(
+            reach_dt,
+            linestyle="-.",
+            linewidth=1.4,
+            alpha=0.85,
+            color=color,
+            label=f"{label} → {target_k_label}",
+        )
+
+    if vline_marks:
+        ax.relim()
+        ax.autoscale_view()
+        ylim = ax.get_ylim()
+        y_annot = ylim[1] - 0.05 * (ylim[1] - ylim[0])
+        for reach_dt, hours_to_target, label, color in vline_marks:
+            ax.annotate(
+                f"{label}\n{target_k_label} in {hours_to_target:.1f} h",
+                xy=(reach_dt, y_annot),
+                xytext=(5, 0),
+                textcoords="offset points",
+                ha="left",
+                va="top",
+                fontsize=8,
+                color=color,
+                bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.9},
+            )
+
+    return plotted, target_info_lines
 
 
 def plot_cryo_monitor(
@@ -382,7 +481,7 @@ def plot_cryo_monitor(
     fig, axes = plt.subplots(
         len(sensor_groups),
         1,
-        figsize=(11, 4 * len(sensor_groups)),
+        figsize=(11, 3.8 * len(sensor_groups)),
         sharex=True,
         squeeze=False,
     )
@@ -400,25 +499,40 @@ def plot_cryo_monitor(
 
         keys = tuple(sensor_map[name] for name in sensor_names)
         group_target_k = target_temp_k if group_title == BASE_PLATE_GROUP else None
-        plotted = plot_sensors_on_axes(
-            ax,
-            redis_client,
-            keys,
-            start_ms,
-            end_ms,
-            predict_end_unix,
-            predict_hours,
-            n_exp_terms,
-            fit_max_points,
-            plot_max_points,
-            target_temp_k=group_target_k,
-        )
+
+        if group_title in MONITOR_FIT_GROUPS:
+            plotted, target_info_lines = plot_sensors_on_axes(
+                ax,
+                redis_client,
+                keys,
+                start_ms,
+                end_ms,
+                predict_end_unix,
+                predict_hours,
+                n_exp_terms,
+                fit_max_points,
+                plot_max_points,
+                target_temp_k=group_target_k,
+            )
+            if group_title == BASE_PLATE_GROUP and group_target_k is not None:
+                add_target_info_to_axes(ax, target_info_lines, group_target_k)
+        else:
+            plotted = plot_data_only_on_axes(
+                ax,
+                redis_client,
+                keys,
+                start_ms,
+                end_ms,
+                plot_max_points,
+            )
+            target_info_lines = []
         if plotted:
             any_data = True
-        ax.set_title(f"{group_title} (last {hours:g} h, UTC)")
+        subtitle = "data only" if group_title not in MONITOR_FIT_GROUPS else "exponential fit"
+        ax.set_title(f"{group_title} (last {hours:g} h, UTC) — {subtitle}")
         ax.set_ylabel("Temperature (K)")
         ax.grid(True, alpha=0.3)
-        ax.legend(loc="best", fontsize=8)
+        ax.legend(loc="upper right", fontsize=8)
 
     if not any_data:
         print(
@@ -469,7 +583,7 @@ def plot_cryo_temps(
 
     fig, ax = plt.subplots(figsize=(11, 5))
     redis_client = redis.from_url(redis_url)
-    plotted = plot_sensors_on_axes(
+    plotted, _ = plot_sensors_on_axes(
         ax,
         redis_client,
         keys,

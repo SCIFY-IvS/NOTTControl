@@ -2,7 +2,8 @@
 """Monitor base plate and shield cryostat temperatures from Redis TimeSeries.
 
 Uses OPC UA node id keys from sensors.ini (see cursor/sensor-readout-redis-keys).
-Fits a sum-of-exponentials model to the last 12 hours of data by default.
+Fits a sum-of-exponentials model to the last 12 hours of base plate and shield
+data. Detector temperature is plotted as raw data only (no fit).
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ DEFAULT_HOURS = 12.0
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Monitor shield and base plate cryostat temperatures from NOTT Redis "
+            "Monitor base plate, shield, and detector cryostat temperatures "
             "(OPC UA TimeSeries keys)."
         ),
     )
