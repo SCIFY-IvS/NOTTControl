@@ -54,7 +54,8 @@ class DelayLine(Motor):
     @property
     def is_standing(self):
         # Motor sStatus == 'STANDING'?
-        return self.getStatusInformation()[0] == 'STANDING'
+        return (self.getStatusInformation()[0] == 'STANDING')\
+                or (self.getStatusInformation()[0] == 'Motor stopped - STANDING')
 
     def await_motor(self, dt=0.1, timeout=30., initial=None, verbose=True):
         if self.is_standing:
@@ -225,6 +226,73 @@ def get_motor_args(prefix, i):
 class MotorError(OSError):
     pass
 
+from typing import Union
+
+class LayeredRegister(object):
+    def __init__(self, len: int = 4, layers: int = 5):
+        self._buff = [np.zeros(len) for i in range(layers)]
+        self.layers = {
+            "bench":0,
+            "tuning":1,
+            "sky":2,
+            "dcomp":3,
+            "manual":4
+        }
+
+    def __repr__(self):
+        return self._buff.__repr__()
+
+    def __str__(self):
+        return self._buff.__str__()
+
+    def set(self, values, layer: Union[int, str] = -1):
+        # If the layer indicator is a string, we convert it
+        # to an integer using the dictionary
+        if isinstance(layer, str):
+            layer = self.layers[layer]
+        self._buff[layer] = values.astype(float)
+
+    def get(self, layer: Union[int, str] = -1):
+        if isinstance(layer, str):
+            layer = self.layers[layer]
+        return self._buff[layer]
+
+    def consolidate_layers(self, layers: list, destination: Union[int, str] = 0):
+        """
+            Takes the sum of layers indentified by `layers`, and writes them in
+            the layer `destination`
+        """
+        mylayers = []
+        topurge = []
+        for i, alayer in enumerate(layers):
+            if isinstance(alayer, str):
+                alayer = self.layers[alayer]
+            mylayers.append(self._buff[alayer])
+            topurge.append(alayer)
+        newvalues = np.array(mylayers).sum(axis=0)
+        for alayer in topurge:
+            self.purge(alayer)
+        self.set(newvalues, layer=destination)
+
+
+    def purge(self, layer: Union[int, str] = -1):
+        if isinstance(layer, str):
+            layer = self.layers[layer]
+        self._buff[layer] = np.zeros_like(self._buff[layer])
+        
+    def purge_all(self):
+        for alayer in self._buff:
+            alayer = np.zeros_like(alayer)
+
+    @property
+    def buff(self):
+        return np.array(self._buff)
+
+    @property
+    def total(self):
+        return np.array(self._buff).sum(axis=0)
+
+
 class ActuatorCluster(object):
     def __init__(self, opcua_conn, prefix,
                 ):
@@ -232,6 +300,7 @@ class ActuatorCluster(object):
         available = config.getarray("ldc", prefix+"_idx_available", dtype=int)
         self.motors = [DelayLine(self.opcua_conn, **get_motor_args(prefix, i)) for i in available ]
         self.threads = []
+        self.tbuff = LayeredRegister(len=4, layers=5)
 
     def __getitem__(self, key):
         return self.motors[key]
@@ -272,7 +341,7 @@ class ActuatorCluster(object):
         return np.array([amotor.target_microns for amotor in self.motors])
 
 
-    def move_abs_all(self, target_pos: ArrayLike,
+    def move_abs_all(self, target_pos: ArrayLike = None,
                     check_valid: bool= True,
                     cp_backlash=True,
                     dt=0.1,
@@ -280,6 +349,8 @@ class ActuatorCluster(object):
                     initial=None,
                     verbose=False):
         assert self.threads == [], "The threads were not finished"
+        if target_pos is None:
+            target_pos = self.tbuff.total
         for i, amotor in enumerate(self.motors):
             kwargs = {"target_pos":target_pos[i],
                         "check_valid":check_valid,
@@ -344,7 +415,8 @@ class GazLines(ActuatorCluster):
         volume_defined_center = (self.vmax - self.vwork)\
                                 / (len(self) * self.section)
         target_pos_m = volume_defined_center + centered_pos
-        self.move_abs_all(target_pos_m*u.m.to(u.micron))
+        self.tbuff.set(target_pos_m*u.m.to(u.micron))
+        self.move_abs_all()
 
     def set_volume(self, volume):
         self.working_volume = volume
