@@ -117,6 +117,7 @@ class Observatory(object):
         order = asgard_link.getarray("vlti", "order", dtype=int)
         stat_names = asgard_link.getarray("vlti", "conf_string",
                                               dtype=str)
+        stat_names = np.array([asgard_bridge["vlti"][f"STATION{i}"] for i in np.arange(1,5)])
         location = "Paranal"
         pdiams = asgard_link.getarray("vlti", "diam")
         return cls(statnames=stat_names, location=location,
