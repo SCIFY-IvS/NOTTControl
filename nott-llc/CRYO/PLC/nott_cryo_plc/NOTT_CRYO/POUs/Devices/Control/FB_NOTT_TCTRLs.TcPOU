@@ -41,6 +41,7 @@ tc_sidecar			(in_sName := 'tc_sidecar' 		 , in_tCycleTime := CYCLE_TIME, tempera
 tc_photonic_chip	(in_sName := 'tc_photonic_chip'  , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
 tc_shields			(in_sName := 'tc_shields'  		 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
 tc_flatfield		(in_sName := 'tc_flatfield'  	 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
+tc_base_plate		(in_sName := 'tc_base_plate'  	 , in_tCycleTime := CYCLE_TIME, temperatures := temperatures);
 
 
 ]]></ST>

@@ -29,6 +29,12 @@ VAR
 	// Status of the Pressure sensor on the PVP Pump
 	VAG1_stat : T_CRYO_PRESSURE_VOTE_STATUS;
 
+	// Default for 16-bit, +-10V or 0..10V AI: 2^16/10/2 = 3276.8 bit
+	lrBitsPerVolt:	LREAL := 3276.8;	// Scale factor, U = raw / scale. Default 3276.8	
+	// Pressure out similar to pkr 360
+	q_nStatus AT %Q*: UINT; 
+	q_nValue AT%Q*: INT;
+
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -47,15 +53,13 @@ VAR
 	// List of INIT commands.
 	//
 	cmdList_Init_MVP030: ARRAY [1..8] OF T_CRYO_PUMP_CMD := [
-
-
-		(cmd := cfg.C_CMD_PresSens_sSwVersion,  length := 19),		
-		(cmd := cfg.C_CMD_PresSens_sHwVersion,  length := 19),
+		(cmd := cfg.C_CMD_sFwVersion,       	length := 20), // P:312 -> reply value length 06
+		(cmd := cfg.C_CMD_sHwVersion,       	length := 20), // P:354 -> reply value length 06
+		(cmd := cfg.C_CMD_bGasBallastOn,  		length := 20),
+		(cmd := cfg.C_CMD_bGasBallastAuto,  	length := 19),
 		(cmd := cfg.C_CMD_sSetCtrlViaInt,   	length := 20),
-		(cmd := cfg.C_CMD_sFwVersion,       	length := 19), // P:312 -> reply value length 06
-		(cmd := cfg.C_CMD_sHwVersion,       	length := 19), // P:354 -> reply value length 06
 		(cmd := cfg.C_CMD_sCtrlViaInt,    		length := 19), // P:399 -> reply value length 06
-		(cmd := cfg.C_CMD_nNominalSpeed,    	length := 19),	
+		(cmd := cfg.C_CMD_nNominalSpeed,    	length := 20),	
 		(cmd := '', 							length := 0)];
 
 	//
@@ -66,9 +70,7 @@ VAR
 		(cmd := cfg.C_CMD_PresSens_lrPressure,       length := 19),
 		(cmd := cfg.C_CMD_PresSens_bOn,              length := 19),
 		(cmd := cfg.C_CMD_PresSens_nErrorCode,       length := 19),
-
 		(cmd := cfg.C_CMD_nPumpTemp,        length := 20), // P:010 -> value length 06
-		(cmd := cfg.C_CMD_nCtrlMode,        length := 17), // P:026 -> value length 03
 		(cmd := cfg.C_CMD_sErrorCode,       length := 19), // P:303 -> value length 06
 		(cmd := cfg.C_CMD_nMotorCurr,       length := 19), // P:310 -> value length 06
 		(cmd := cfg.C_CMD_nPumpHours,       length := 19), // P:311 -> value length 06
@@ -76,9 +78,9 @@ VAR
 		(cmd := cfg.C_CMD_nElecPower,       length := 19), // P:316 -> value length 06
 		(cmd := cfg.C_CMD_bON,        		length := 19), // P:330 -> value length 06
 		(cmd := cfg.C_CMD_nPumpSpeed,       length := 19), // P:398 -> value length 06
-		(cmd := '',                         length := 0),
-		(cmd := '',                         length := 0),
-		(cmd := '',                         length := 0),
+		(cmd := cfg.C_CMD_bGasBallastOn,  	length := 20),		
+		(cmd := cfg.C_CMD_bGasBallast,      length := 20),
+		(cmd := cfg.C_CMD_sSetCtrlViaInt,   length := 17), // P060
 		(cmd := '',                         length := 0)];
 
 	i: INT;
@@ -283,10 +285,20 @@ cmdNoCrc := LEFT(cmd, LEN(cmd) - 3); // remove checksum
 IF cmdNoCrc = cfg.C_CMD_sCtrlViaInt THEN
 	stat.nCtrlViaInt := STRING_TO_DINT(subStr);
 	CASE stat.nCtrlViaInt OF
-		1:   stat.sCtrlViaInt := 'Remote';
-		2:   stat.sCtrlViaInt := 'RS-485';
+		1:  stat.sCtrlViaInt := 'Remote';
+			stat.sCtrlMode	:= 'REMOTE';
+		
+		2:  stat.sCtrlViaInt := 'RS-485';
+			stat.sCtrlMode	:= 'RS-485';
+		
 		4:   stat.sCtrlViaInt := 'PV.can';
+			 stat.sCtrlMode	:= 'PV.can';
+		
+		32:	 stat.sCtrlMode	:= 'Keys on Front Panel';
+	 		 stat.sCtrlViaInt := 'Keys on Front Panel';
+				
 		255: stat.sCtrlViaInt := 'Interface selection';
+			 stat.sCtrlMode:= 'Interface selection';
 	ELSE
 		stat.sCtrlViaInt := subStr;
 	END_CASE
@@ -303,7 +315,7 @@ ELSIF cmdNoCrc = cfg.C_CMD_nNominalSpeed THEN
 ELSIF cmdNoCrc = cfg.C_CMD_bON THEN
 	stat.bON := (subStr = '111111');
 
-ELSIF cmdNoCrc = cfg.C_CMD_nCtrlMode THEN
+ELSIF cmdNoCrc = cfg.C_CMD_nSpdSetMode THEN
 	stat.nCtrlMode := STRING_TO_DINT(subStr);
 
 ELSIF cmdNoCrc = cfg.C_CMD_sErrorCode THEN
@@ -333,6 +345,41 @@ ELSIF cmdNoCrc = cfg.C_CMD_nPumpTemp THEN
 
 ELSIF cmdNoCrc = cfg.C_CMD_nPumpSpeed THEN
 	stat.nPumpSpeed := STRING_TO_DINT(subStr);
+	
+/// Gas Ballast Valve
+
+
+ELSIF cmdNoCrc = cfg.C_CMD_bGasBallast THEN
+	// P050 - Flushing gas / gas ballast enable
+	stat.bGasBallastEnabled := (subStr = '111111');
+
+ELSIF cmdNoCrc = cfg.C_CMD_bGasBallastOn THEN
+	// ACK after writing P050 = ON
+	stat.bGasBallastEnabled := (subStr = '111111');
+
+// ELSIF cmdNoCrc = cfg.C_CMD_bGasBallastOff THEN
+// 	// ACK after writing P050 = OFF
+// 	stat.bGasBallastEnabled := (subStr = '111111');
+
+ELSIF cmdNoCrc = cfg.C_CMD_nGasBallastMode THEN
+	// P068 - Accessory C configuration
+	// 1 = Automatic gas ballast
+	// 6 = Permanently closed
+	// 7 = Permanently open
+	stat.nGasBallastMode := STRING_TO_DINT(subStr);
+
+	CASE stat.nGasBallastMode OF
+		1: stat.sGasBallastMode := 'Automatic';
+		6: stat.sGasBallastMode := 'Closed';
+		7: stat.sGasBallastMode := 'Open';
+	ELSE
+		stat.sGasBallastMode := 'Unknown';
+	END_CASE;
+
+ELSIF cmdNoCrc = cfg.C_CMD_bGasBallastAuto THEN
+	// Acknowledge after writing P068 = 1
+	stat.nGasBallastMode := STRING_TO_DINT(subStr);
+	stat.sGasBallastMode := 'Automatic';		
 END_IF
 
 
@@ -407,6 +454,90 @@ END_IF
 
 stat.sErrorText := '';
 M_ReadFromReply := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetOutput_PKR_360" Id="{e9176f62-0238-4e37-b486-f8ff9336f12e}">
+      <Declaration><![CDATA[METHOD M_SetOutput_PKR_360
+VAR_INPUT
+	in_lrPressure_mbar : LREAL;   // Pressure to simulate/output [mbar]
+END_VAR
+VAR
+	lrVoltage : LREAL;
+	lrRaw     : LREAL;
+	lrP       : LREAL;
+END_VAR
+VAR_INST
+	fbToggleTimer : TON;
+	bToggleBit    : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// ------------------------------------------------------------
+// Simulate terminal status
+// ------------------------------------------------------------
+// Bit 14 must be 0 for PDO OK:
+// RefStat.bInputValid := (i_nStatus AND 16#4000) = 0
+//
+// Bit 15 must toggle for terminal alive:
+// RefStat.bInputToggle := (i_nStatus AND 16#8000) <> 0
+//
+// Therefore keep status mostly 0, but toggle bit 15.
+fbToggleTimer(IN := TRUE, PT := T#500MS);
+
+IF fbToggleTimer.Q THEN
+	fbToggleTimer(IN := FALSE);
+	bToggleBit := NOT bToggleBit;
+END_IF
+
+q_nStatus := UINT#0;
+
+IF bToggleBit THEN
+	q_nStatus := q_nStatus OR UINT#16#8000;
+END_IF
+
+
+// ------------------------------------------------------------
+// Convert pressure -> voltage
+// ------------------------------------------------------------
+IF in_lrPressure_mbar <= 0.0 THEN
+	lrVoltage := 1.30; // underrange-like voltage
+ELSE
+	lrP := in_lrPressure_mbar;
+
+	IF lrP < 1E-9 THEN
+		lrP := 1E-9;
+	ELSIF lrP > 1014.0 THEN
+		lrP := 1014.0;
+	END_IF
+
+	// Reverse of:
+	// P = 10^(1.667 * U - 11.33)
+	lrVoltage := ((LN(lrP) / LN(10.0)) + 11.33) / 1.667;
+END_IF
+
+
+// ------------------------------------------------------------
+// Clamp voltage
+// ------------------------------------------------------------
+IF lrVoltage < 1.217 THEN
+	lrVoltage := 1.217;
+ELSIF lrVoltage > 9.5 THEN
+	lrVoltage := 9.5;
+END_IF
+
+
+// ------------------------------------------------------------
+// Voltage -> raw bits
+// ------------------------------------------------------------
+lrRaw := lrVoltage * lrBitsPerVolt;
+
+IF lrRaw > 32767.0 THEN
+	q_nValue := 32767;
+ELSIF lrRaw < -32768.0 THEN
+	q_nValue := -32768;
+ELSE
+	q_nValue := LREAL_TO_INT(lrRaw);
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_UpdatePressureSensorStat" Id="{7047485c-002b-4210-a291-1501987b2242}">
@@ -485,7 +616,14 @@ END_IF
 VAG1_stat.lrPressure := stat.PresSens_lrPressure_hPa; // hPa = mbar
 VAG1_stat.bValid     := TRUE;
 VAG1_stat.bWarnSens1 := FALSE;
-VAG1_stat.sStatus    := 'OK';]]></ST>
+VAG1_stat.sStatus    := 'OK';
+
+
+M_SetOutput_PKR_360(in_lrPressure_mbar := stat.PresSens_lrPressure_hPa);
+
+
+
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_UpdateStatus" Id="{a733af65-32be-4df2-9ad9-d468f8574b41}">
@@ -515,14 +653,14 @@ stat.bMoving	:= stat.nPumpSpeed > 0;
 	4 = PV.can
 	32 = Keys on the front panel
 *)
-CASE stat.nCtrlMode	OF
-	1:		stat.sCtrlMode	:= 'REMOTE';
-	2:		stat.sCtrlMode	:= 'RS-485';
-	4:		stat.sCtrlMode	:= 'PV.can';
-	32:		stat.sCtrlMode	:= 'Keys on Front Panel';
-ELSE
-	stat.sCtrlMode	:= 'UNKNOWN';
-END_CASE
+// CASE stat.nCtrlMode	OF
+// 	1:		stat.sCtrlMode	:= 'REMOTE';
+// 	2:		stat.sCtrlMode	:= 'RS-485';
+// 	4:		stat.sCtrlMode	:= 'PV.can';
+// 	32:		stat.sCtrlMode	:= 'Keys on Front Panel';
+// ELSE
+// 	stat.sCtrlMode	:= 'UNKNOWN';
+// END_CASE
 
 
 

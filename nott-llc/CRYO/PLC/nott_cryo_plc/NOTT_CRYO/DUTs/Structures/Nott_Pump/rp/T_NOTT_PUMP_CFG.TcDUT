@@ -15,11 +15,13 @@ STRUCT
 	C_CMD_NONE:				STRING(16) := '';
 	C_CMD_sSetCtrlViaInt:	STRING(16) := '0021006003001';	// Control via DIO
 	C_CMD_sCtrlViaInt:		STRING(16) := '0020006002=?';	//Read status Control via DIO
+	
+	C_CMD_nSpdSetMode:		STRING(16) := '0020002602=?';
 	C_CMD_sFwVersion:		STRING(16) := '0020031202=?';
 	C_CMD_sHwVersion:		STRING(16) := '0020035402=?';
 	C_CMD_nNominalSpeed:	STRING(16) := '0020039902=?';
 	C_CMD_bON:				STRING(16) := '0020001002=?';
-	C_CMD_nCtrlMode:		STRING(16) := '0020002602=?';
+
 	C_CMD_sErrorCode:		STRING(16) := '0020030302=?';
 	C_CMD_nMotorCurr:		STRING(16) := '0020031002=?';
 	C_CMD_nPumpHours:		STRING(16) := '0020031102=?';
@@ -27,6 +29,11 @@ STRUCT
 	C_CMD_nElecPower:		STRING(16) := '0020031602=?';
 	C_CMD_nPumpTemp:		STRING(16) := '0020033002=?';
 	C_CMD_nPumpSpeed:		STRING(16) := '0020039802=?';
+	C_CMD_bGasBallastOn: 	STRING(24) := '0021005006111111'; // P050 = ON
+	C_CMD_bGasBallastOff: 	STRING(24) := '0021005006000000'; // P050 = OFF
+	C_CMD_bGasBallast: 		STRING(16) := '0020005002=?';     // read P050
+	C_CMD_bGasBallastAuto:  STRING(16) := '0021003003000';
+	C_CMD_nGasBallastMode:  STRING(16) := '0020006802=?';
 	
 // MPT 200 RS-485 device ID=8 (008) !!!
 	C_CMD_PresSens_bOn:				STRING(16) := '0080004102=?';

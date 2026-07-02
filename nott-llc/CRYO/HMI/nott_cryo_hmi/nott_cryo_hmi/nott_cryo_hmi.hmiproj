@@ -28,7 +28,7 @@
     <HmiCommunicationRouterPort>10121</HmiCommunicationRouterPort>
     <HmiCommunicationServerAuthPort>13004</HmiCommunicationServerAuthPort>
     <HmiInitial>1.12.760.59</HmiInitial>
-    <HmiRecent>14.3.804.1</HmiRecent>
+    <HmiRecent>14.3.870.1</HmiRecent>
     <HmiServerNodeAdvancedView>False</HmiServerNodeAdvancedView>
     <PinVersion>True (Version 1.12.760.59)</PinVersion>
     <HmiCompanyName>European Southern Observatory</HmiCompanyName>
@@ -193,10 +193,16 @@
     <Content Include="Images\NOTT_logo_simple.png">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Images\Resistor.svg">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Images\sequence.svg">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Images\sequence_white.svg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Images\TC.svg">
       <SubType>Content</SubType>
     </Content>
     <Content Include="JavaScript\GetCurrentUsername.function.json">

@@ -536,15 +536,15 @@ ELSIF debug.nCycleCounter = 2 THEN
 	
 ELSIF debug.nCycleCounter = 3 THEN
 // Put the complete system into simulation
-	stat.bSimulation	:= TRUE;
+	stat.bSimulation	:= FALSE;
 
 // Temperature Simulation flags
-	ctrl.bSim_Temp_Ambient		:= TRUE;
-	ctrl.bSim_Temp_DetMon		:= TRUE;
-	ctrl.bSim_Temp_ColdPlate	:= TRUE;
-	ctrl.bSim_Temp_WarmFlange	:= TRUE;
-	ctrl.bSim_Temp_WarmOptics	:= TRUE;
-	ctrl.bSim_Temp_LS336		:= TRUE;
+// 	ctrl.bSim_Temp_Ambient		:= TRUE;
+// 	ctrl.bSim_Temp_DetMon		:= TRUE;
+// 	ctrl.bSim_Temp_ColdPlate	:= TRUE;
+// 	ctrl.bSim_Temp_WarmFlange	:= TRUE;
+// 	ctrl.bSim_Temp_WarmOptics	:= TRUE;
+// 	ctrl.bSim_Temp_LS336		:= TRUE;
 
 // 	refBOOL	REF=Heater_DetIF.bSim_Temp;		refBOOL	:= TRUE;
 // 	refBOOL	REF=Heater_Preamp.bSim_Temp;	refBOOL	:= TRUE;	
@@ -552,7 +552,8 @@ ELSIF debug.nCycleCounter = 3 THEN
 	
 // Pressure Simulation flags
 	ctrl.bSim_Press_VAGC		:= FALSE;	// The values will come from the simulator.
-	refBOOL	REF=evac.ctrl.bSim_Press_VAG1;	refBOOL	:= TRUE;
+	//evac.ctrl.bSim_Press_VAG1	:= FALSE;	// The values will come from the simulator.
+	//refBOOL	REF=evac.ctrl.bSim_Press_VAG1;	refBOOL	:= TRUE;
 
 ELSIF debug.nCycleCounter > 200 THEN
 	stat.bConfigured	:= TRUE;
@@ -1056,7 +1057,7 @@ hmi_pressure_vote_vagc(
 	);
 
 hmi_pressure_vote_vag1(
-	inout_sPressureVoteStatRef := evac.pump_pvp.VAG1_stat,
+	inout_sPressureVoteStatRef := evac.VAG1.stat,
 	inout_sCmdOver := evac.ctrl.por_VAG1,
 	inout_fbAlarmHandlerRef := evac.VAG1.fbAlarmHandler
 	);

@@ -673,7 +673,7 @@
 </div>
 <div id="METISHeaterFaceplateOperateTab_TcHmiTextblock_Source_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="23" data-tchmi-top="187" data-tchmi-width="75" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Source" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Left">
 </div>
-<div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_CtrlOut_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="98" data-tchmi-top="212" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="LN2 absence temperature threshold" data-tchmi-text="%pp%METISHeaterObject::stat::lrAutoCtrlOut%/pp%" data-tchmi-is-read-only="True">
+<div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_CtrlOut_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="98" data-tchmi-top="212" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="LN2 absence temperature threshold" data-tchmi-text="%f%%pp%METISHeaterObject::stat::lrAutoCtrlOut%/pp%.toFixed(2) %/f%" data-tchmi-is-read-only="True">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -836,7 +836,7 @@
 </div>
 <div id="METISHeaterFaceplateOperateTab_TcHmiTextblock_Scaling_Label_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="23" data-tchmi-top="237" data-tchmi-width="75" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="x Scaling" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Left">
 </div>
-<div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_Setpoint_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="98" data-tchmi-top="262" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="LN2 absence temperature threshold" data-tchmi-text="%pp%METISHeaterObject::stat::lrAutoSetpointValue%/pp%" data-tchmi-is-read-only="True">
+<div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_Setpoint_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="98" data-tchmi-top="262" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-text-font-size="16" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="LN2 absence temperature threshold" data-tchmi-text="%f%%pp%METISHeaterObject::stat::lrAutoSetpointValue%/pp%.toFixed(1) %/f%" data-tchmi-is-read-only="True">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,
@@ -1441,7 +1441,7 @@
 <div id="METISHeaterFaceplateOperateTab_TcHmiContainer_HeaterResister" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="149" data-tchmi-height-unit="px" data-tchmi-left="314" data-tchmi-left-unit="px" data-tchmi-top="169" data-tchmi-top-unit="px" data-tchmi-width="236" data-tchmi-width-unit="px" data-tchmi-background-color="%tr%TextblockBackgroundColor%/tr%">
 
 
-<div id="METISHeaterFaceplateOperateTab_TcHmiImage_Resistor" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="49" data-tchmi-height-unit="px" data-tchmi-left="48" data-tchmi-left-unit="px" data-tchmi-src="Images/METIS/Resistor.svg" data-tchmi-top="93" data-tchmi-top-unit="px" data-tchmi-width="128" data-tchmi-width-unit="px" data-tchmi-is-enabled="True">
+<div id="METISHeaterFaceplateOperateTab_TcHmiImage_Resistor" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="49" data-tchmi-height-unit="px" data-tchmi-left="48" data-tchmi-left-unit="px" data-tchmi-src="Images/Resistor.svg" data-tchmi-top="93" data-tchmi-top-unit="px" data-tchmi-width="128" data-tchmi-width-unit="px" data-tchmi-is-enabled="True">
 </div>
 <div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_Source_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="108" data-tchmi-top="15" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-tooltip="LN2 absence temperature threshold" data-tchmi-text="%f%%pp%METISHeaterObject::in_lrHeaterResistance%/pp%.toFixed(1)  +  ' Ohm'%/f%" data-tchmi-is-read-only="True">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
@@ -1503,7 +1503,7 @@
 </div>
 <div id="METISHeaterFaceplateOperateTab_TcHmiTextblock_CtrlOut_Label_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="33" data-tchmi-top="40" data-tchmi-width="75" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="Max Power" data-tchmi-zindex="1" data-tchmi-text-horizontal-alignment="Left">
 </div>
-<div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_Scaling_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="108" data-tchmi-top="65" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-auto-focus-out="true" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%f%%pp%METISHeaterObject::stat::lrMaxCurrent%/pp%.toFixed(2)  +  ' A'%/f%" data-tchmi-is-read-only="True">
+<div id="METISHeaterFaceplateOperateTab_TcHmiTextbox_Scaling_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextbox" data-tchmi-height="25" data-tchmi-height-unit="px" data-tchmi-left="108" data-tchmi-top="65" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-auto-focus-out="False" data-tchmi-text-horizontal-alignment="Right" data-tchmi-text="%f%%pp%METISHeaterObject::stat::lrMaxCurrent%/pp%.toFixed(2)  +  ' A'%/f%" data-tchmi-is-read-only="True">
 <script data-tchmi-target-attribute="data-tchmi-content-padding" type="application/json">
 {
   "top": 3,

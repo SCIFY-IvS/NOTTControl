@@ -74,6 +74,9 @@ STATUS commands
 	PresSens_lrPressure_hPa  : LREAL;
 	PresSens_nPressure_hPa   : DINT;
 	PresSens_sPressureText   : STRING(32);
+	bGasBallastEnabled : BOOL;       // P050
+	nGasBallastMode    : DINT;       // P068
+	sGasBallastMode    : STRING(20); // Automatic / Closed / Open
 	// Status Commands
 END_STRUCT
 END_TYPE

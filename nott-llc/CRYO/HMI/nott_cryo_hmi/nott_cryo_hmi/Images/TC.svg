@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="80"
+   height="80"
+   viewBox="0 0 21.166666 21.166667"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   sodipodi:docname="TC.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     showguides="true"
+     inkscape:lockguides="false"
+     inkscape:zoom="16.408369"
+     inkscape:cx="52.960779"
+     inkscape:cy="41.168016"
+     inkscape:window-width="3200"
+     inkscape:window-height="1721"
+     inkscape:window-x="2391"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <sodipodi:guide
+       position="10.981057,12.007723"
+       orientation="1,0"
+       id="guide2101"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="2.5477343,10.153359"
+       orientation="0,-1"
+       id="guide2103"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       style="fill:#ffffff;stroke:#060005;stroke-width:0.326851;fill-opacity:0.80000001"
+       id="path234"
+       cx="10.583333"
+       cy="10.583333"
+       r="10.419908" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.99999px;line-height:0px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';text-align:center;text-anchor:middle;fill:#020000;fill-opacity:1;stroke:#060005;stroke-width:0.25"
+       x="11.142306"
+       y="13.912833"
+       id="text957"><tspan
+         sodipodi:role="line"
+         id="tspan955"
+         style="fill:#020000;fill-opacity:1;stroke-width:0.25"
+         x="11.142306"
+         y="13.912833">TC</tspan></text>
+  </g>
+</svg>

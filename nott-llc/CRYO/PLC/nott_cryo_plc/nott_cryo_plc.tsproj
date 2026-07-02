@@ -214,6 +214,7 @@
 			</Settings>
 			<Licenses>
 				<Target>
+					<ManualSelect>{D58728E0-7762-4145-8A93-80D55E0453A6}</ManualSelect>
 					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSystemId="{79913E43-1383-6EAF-4674-0B0CA7BA839F}" DongleSerialNumber="000btrgq" DongleCacheLicense="true"/>
 				</Target>
 			</Licenses>
@@ -225,7 +226,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{9AB5A682-4972-37FA-F7B3-8F372CA79B56}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{2489BAF0-018C-5FAD-C496-00B13BA061A0}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -254,6 +255,15 @@
 							<Name>MAIN.nott_cryo_ctrl.evac.pump_pvp.comm.COMout_EL60xx</Name>
 							<Comment><![CDATA[ linked to the EL60xx ]]></Comment>
 							<Type GUID="{79129C14-7549-7C51-1EF4-288B9700CED8}" Namespace="ESO_Cryo_HMI_Library.ESO_LDC_Cryo_Library.Tc2_SerialCom">KL6outData22B</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.evac.pump_pvp.q_nStatus</Name>
+							<Comment><![CDATA[ Pressure out similar to pkr 360]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.evac.pump_pvp.q_nValue</Name>
+							<Type>INT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.evac.pump_tmp.q_bStart</Name>
@@ -11409,6 +11419,8 @@ Revision: 1.0
 			<OwnerB Name="TIPC^NOTT_CRYO^NOTT_CRYO Instance">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.PVV1.Actuator.i_bOFF" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.q_bPVV1_OFF_Flag"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.PVV1.Actuator.i_bON" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.PVV1.Actuator.q_bCtrl"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.sensor_VAG1.i_nStatus" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.pump_pvp.q_nStatus"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.sensor_VAG1.i_nValue" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.pump_pvp.q_nValue"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_vote.i_bValid" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_voters.vote_base_plate.q_bValid"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_vote.i_lrValue" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_voters.vote_base_plate.q_lrTemp"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_cabinet_vote.i_bValid" VarB="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_voters.vote_cabinet.q_bValid"/>
