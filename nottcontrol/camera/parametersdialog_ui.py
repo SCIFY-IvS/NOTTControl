@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\fys-lab-ivs\Documents\Git\NottControl\NOTTControl\camera\parametersdialog.ui'
+# Form implementation generated from reading ui file 'c:\Users\fys-lab-ivs\Documents\Git\NottControl\NOTTControl\nottcontrol\camera\parametersdialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
