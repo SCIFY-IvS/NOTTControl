@@ -33,6 +33,12 @@ For day-to-day work on a checkout (editable install, picks up code changes witho
 pip install -e .
 ```
 
+In the case of a conda environment, (requires `conda-build` installed with 
+`conda install conda-build`).
+```bash
+conda develop .
+```
+
 Run the application from an environment where the package is installed. The entry script changes the working directory to the `nottcontrol` package folder so that **`config.ini`** and **`.ui`** files are found next to [`nottcontrol/main.py`](nottcontrol/main.py).
 
 ## Configuration

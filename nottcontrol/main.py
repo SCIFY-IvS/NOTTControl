@@ -17,7 +17,8 @@ def main():
     logger = logging.getLogger("asyncua")
     logger.setLevel(logging.WARNING)
 
-    opcua_conn = OPCUAConnection(url)
+    opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=10.0)
+    opcua_conn = OPCUAConnection(url, timeout=opcua_timeout_s)
     opcua_conn.connect()
 
     # set up the main window

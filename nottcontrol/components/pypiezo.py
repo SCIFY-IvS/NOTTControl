@@ -24,7 +24,8 @@ default_gains = nott_config.getarray('PIEZO','default_gains')
 default_offsets = nott_config.getarray('PIEZO','default_offsets')
 default_min_raw = int(nott_config['PIEZO']['default_min_raw'])
 default_max_raw = int(nott_config['PIEZO']['default_max_raw'])
-default_port_params = {"port":"/dev/ttyACM0", "baudrate":57600,
+default_port = nott_config['PIEZO'].get('port', '/dev/ttyACM0')
+default_port_params = {"port": default_port, "baudrate":57600,
                      "bytesize":serial.EIGHTBITS, "parity":"N",
                      "stopbits":1}
 
@@ -47,10 +48,13 @@ class piezointerface(object):
         self.raw_values = self.values2raw(self.values)
 
         self.listening = True
-        listen_thread = threading.Thread(target=self.listen)
-        listen_thread.start()
+        if self.ser is not None:
+            listen_thread = threading.Thread(target=self.listen)
+            listen_thread.start()
     
     def listen(self):
+        if self.ser is None:
+            return
         self.ser.timeout = 0.1
         while(self.listening):
             answer = self.ser.read_until()
@@ -58,6 +62,8 @@ class piezointerface(object):
                 print(answer.decode("utf-8"))
 
     def __del__(self):
+        if self.ser is None:
+            return
         print("Reseting server")
         self.reset_server()
         print("Closing the interface")
@@ -80,20 +86,28 @@ class piezointerface(object):
         return values
 
     def send_current(self,):
+        if self.ser is None:
+            return
         bytearray = self.vals2bytes("s", self.raw_values)
         self.ser.write(bytearray)
         pass
 
     def reset_server(self,):
+        if self.ser is None:
+            return
         self.ser.write(b"[z,0]")
     
     def set_verbose_mode(self, val: bool):
+        if self.ser is None:
+            return
         if val:
             self.ser.write(b"[v,1]")
         else:
             self.ser.write(b"[v,0]")
 
     def _send(self):
+        if self.ser is None:
+            return
         myrawvalues = self.raw_values
         self.ser.write(self.vals2bytes("s",myrawvalues))
 

@@ -15,7 +15,7 @@ from time import sleep,time
 import numpy as np
 import matplotlib.pyplot as plt
 from nottcontrol import config as nott_config
-from nottcontrol.camera.infratec_interface import InfratecInterface
+from nottcontrol.camera.infratec.infratec_interface import InfratecInterface
 import nottcontrol.components.pypiezo as pypiezo
 import nottcontrol.components.human_interface as human_interface
 from nottcontrol import redisclient

@@ -17,3 +17,11 @@ class MoveRelCommand(AsyncCommand):
         status, state = self._opcua_conn.read_nodes([f"{self._opcua_prefix}.stat.sStatus", f"{self._opcua_prefix}.stat.sState"])
 
         return (status == 'STANDING' and state == 'OPERATIONAL')
+
+class MoveRelCommandSim(MoveRelCommand):
+    def execute(self):
+        print(f"Simulating MoveAbsCommand to {self._target_pos} at speed {self._speed}")    
+        self.st
+    def check_progress(self):
+        print("Simulate checking status")
+        return (True, True)

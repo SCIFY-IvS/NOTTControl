@@ -1,0 +1,13 @@
+PyQt5
+asyncua
+pyqtgraph
+numpy
+scipy
+opencv-contrib-python
+redis
+pyzmq
+sympy
+matplotlib
+astropy
+pyserial
+scikit-learn

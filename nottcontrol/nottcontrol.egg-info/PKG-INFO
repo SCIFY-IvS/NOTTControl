@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: nottcontrol
+Version: 0.0
+Summary: Software package for the high level control of the NOTT instrument
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Requires-Dist: PyQt5
+Requires-Dist: asyncua
+Requires-Dist: pyqtgraph
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: opencv-contrib-python
+Requires-Dist: redis
+Requires-Dist: pyzmq
+Requires-Dist: sympy
+Requires-Dist: matplotlib
+Requires-Dist: astropy
+Requires-Dist: pyserial
+Requires-Dist: scikit-learn

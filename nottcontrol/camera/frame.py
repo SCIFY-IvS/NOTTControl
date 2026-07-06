@@ -10,9 +10,9 @@ This class provides retrieval and handling of sequences of infrared camera frame
 
 import numpy as np
 from PIL import Image
-from nottcontrol.camera.roi import Roi
-from nottcontrol.camera.brightness_calculator import BrightnessCalculator
-from nottcontrol import config as nott_config
+from nottcontrol.camera.infratec.roi import Roi
+from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
+from nottcontrol import config 
 from pathlib import Path
 from platform import system
 from time import sleep
@@ -20,9 +20,9 @@ from time import sleep
 
 # Location of frames on the machine
 if system() == "Windows":
-    frame_directory = str(nott_config['DEFAULT']['frame_directory'])
+    frame_directory = str(config['DEFAULT']['frame_directory'])
 else:
-    frame_directory = str(nott_config['DEFAULT']['linux_frame_directory'])
+    frame_directory = str(config['DEFAULT']['linux_frame_directory'])
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
@@ -32,7 +32,7 @@ class Frame(object):
     # Camera window position and size (dictionary format)
     window_cfg = dict.fromkeys(["w","h","x","y"])
     for key in window_cfg.keys():
-        window_cfg[key] = int(nott_config['CAMERA']['window_'+key]) # string to int
+        window_cfg[key] = config.getint('CAMERA', 'window_'+key)
             
     # Camera ROIs' positions and sizes : not linked to outputs (list format)
     rois_cfg = []
@@ -42,7 +42,7 @@ class Frame(object):
     stop = False
     while not stop:
         try:
-            roi = nott_config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
+            roi = config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
         except:
             stop = True
         else:
@@ -148,8 +148,8 @@ class Frame(object):
                            (2) data registered in matching ROI (numpy array)
         """
         # Camera ROIs' positions and sizes : matched to outputs (dictionary format)
-        channel_labels = nott_config.getarray('CAMERA', 'channel_labels', str) # np array of strings
-        roi_indices = nott_config.getarray('CAMERA', 'roi_indices', np.int32) # np array of ints
+        channel_labels = config.getarray('CAMERA', 'channel_labels', str) # np array of strings
+        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32) # np array of ints
         channels_roi = dict.fromkeys(channel_labels)
         channels_data = dict.fromkeys(channel_labels)
         for i,channel_label in enumerate(channels_data):
@@ -185,6 +185,15 @@ class Frame(object):
         self.rois_crop = rois_crop
         self.rois_data = np.array(rois_data)
         return
+
+    def partition(self, N):
+        # Partition the Frame object into N children, splitting the underlying data into equal parts.
+        # Returns a list of Frame objects, each containing a subset of the data.
+        if N <= 0:
+            raise ValueError("Cannot partition the Frame object into a negative amount of children.")
+        id_chunks = np.array_split(self.ids, N)
+        integtime_chunks = np.array_split(self.integtimes, N)
+        return [Frame(np.array(np.copy(ids)), np.copy(its)) for ids, its in zip(id_chunks, integtime_chunks)]
         
     def av_full(self):
         # Averaging the full frames, over all DITs
@@ -241,10 +250,21 @@ class Frame(object):
         return master_frame,master_frame_std
       
     def calib_seq(self, dark, flat=None, full=False, dark_mean=None, dark_mean_std=None):
-        # Compute a sequence of calibrated (dark-subtracted, also background-subtracted if not full) individual frames and calculate the corresponding std map for each
-        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
-        # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
+        """
+            Compute a sequence of calibrated (dark-subtracted, also background-subtracted if not full) individual frames and corresponding std maps.
+        ! If not full, the average of the two background ROIs is subtracted from each ROI (see config.ini).
+        Parameters:
+        -----------
+        dark : series of dark frames (Frame object)
+        flat : series of flat frames (Frame object)
+        full : whether to return full or roi-cropped output
 
+        Returns:
+        --------
+        cal_seq, cal_seq_std; (ROI, frame, px row, px col) if not full
+                              (frame, px row, px col) if full
+        """
+      
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
             if not full:
@@ -256,7 +276,8 @@ class Frame(object):
             # Calibrate the sequence of frames (= one DIT each; detector integration time), calculate total std (science sample std + dark mean std + mean background error)
             # Dark subtract
             cal_seq = self.rois_data - dark_mean[:, np.newaxis, :, :]
-            cal_seq_std = np.hypot(self.std_rois(), dark_mean_std)
+            cal_seq_std = np.hypot(self.std_rois()[:,np.newaxis,:,:], dark_mean_std[:,np.newaxis,:,:])
+            cal_seq_std = cal_seq_std * np.ones(cal_seq.shape[1])[np.newaxis,:, np.newaxis, np.newaxis]
             # Calculate mean dark-subtracted background from background ROIs, for each individual frame in the sequence.
             N = len(self.bg_roi_idx)
             cal_meanbg_seq = np.average(cal_seq[self.bg_roi_idx],axis=0)
@@ -272,11 +293,21 @@ class Frame(object):
         return cal_seq, cal_seq_std
 
     def calib_master(self, dark, flat=None, full=False, dark_mean=None, dark_mean_std=None):
-        # Compute the calibrated (dark-subtracted, also background-subtracted if not full) master frame and calculate the corresponding std map
-        # "dark" and "flat" denote series of dark (shutters closed) and flat (even illumination) frames, are both instances of the Frame class
-        # If not full, the average of the two background ROIs (see config.ini) is also subtracted from each ROI.
-        # Output is in (ROI, pixel row, pixel column) format.
-              
+        """
+            Compute a calibrated (dark-subtracted, also background-subtracted if not full) master frame and corresponding std map.
+        ! If not full, the average of the two background ROIs is subtracted from each ROI (see config.ini).
+        Parameters:
+        -----------
+        dark : series of dark frames (Frame object)
+        flat : series of flat frames (Frame object)
+        full : whether to return full or roi-cropped output
+
+        Returns:
+        --------
+        cal_mean, cal_mean_std; (ROI, px row, px col) if not full
+                                (px row, px col) if full
+        """
+        
         # Mean dark frame and corresponding std frame (only calculated if not provided)
         if dark_mean is None or dark_mean_std is None:
             if not full:
@@ -309,13 +340,15 @@ class Frame(object):
 
     def calib_seq_nifits_format(self, dark, flat=None):
         cal_seq, cal_seq_std = self.calib_seq(dark, flat=flat)
-        return cal_seq.sum(axis=-1).transpose((1,2,0)), np.linalg.norm(cal_seq_std, axis=-1).transpose((1,2,0)) / np.size(cal_seq_std, -1)
+        # Sum over pixel columns (axis=-1) to get the total flux per pixel row / wavelength bin (axis=2)
+        # Transpose to get (frame, wavelength, ROI) index numbering; i.e. NIFITS format.
+        return cal_seq.sum(axis=-1).transpose((1,2,0)), np.linalg.norm(cal_seq_std, axis=-1).transpose((1,2,0)) 
 
     def calib_master_nifits_format(self, dark, flat=None):
         cal_mean, cal_mean_std = self.calib_master(dark, flat=flat)
         # Sum over pixel columns (axis=-1) to get the total flux per pixel row / wavelength bin (axis=1).
         # Transpose to get (wavelength, ROI) index numbering; i.e. NIFITS format.
-        return cal_mean.sum(axis=-1).transpose((1,0)), np.linalg.norm(cal_mean_std, axis=-1).transpose((1,0)) / np.size(cal_mean_std, -1)
+        return cal_mean.sum(axis=-1).transpose((1,0)), np.linalg.norm(cal_mean_std, axis=-1).transpose((1,0))
 
     def calib(self, dark, flat=None, full=False):
         # Function that combines above two into one.

@@ -27,7 +27,7 @@ class ParametersDialog(QDialog):
     
     def __init__(self, interface):
         super(ParametersDialog, self).__init__()
-        self.ui = loadUi('camera/parametersdialog.ui', self)
+        self.ui = loadUi('camera/infratec/parametersdialog.ui', self)
         self.connectSignalSlots()
         self.interface = interface
         
