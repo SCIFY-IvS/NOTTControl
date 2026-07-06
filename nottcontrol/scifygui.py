@@ -59,6 +59,12 @@ class MainWindow(QMainWindow):
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
 
+        self.dl_temp_opc_nodes = [
+            node.strip()
+            for node in config["SENSORS"]["dl_temp_opc_nodes"].split(",")
+            if node.strip()
+        ]
+
         # Dl status on main window
         self.load_dl1_status()
 
@@ -70,11 +76,6 @@ class MainWindow(QMainWindow):
         self.t.start(10000)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
-        self.dl_temp_opc_nodes = [
-            node.strip()
-            for node in config["SENSORS"]["dl_temp_opc_nodes"].split(",")
-            if node.strip()
-        ]
 
         opcuaddress_cry =  config['DEFAULT']['opcuaaddress_cry']
         opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
