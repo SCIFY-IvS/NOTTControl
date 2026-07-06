@@ -59,8 +59,11 @@ class Config:
     def __getitem__(self, key):
         return self.config_parser[key]
     
-    def getint(self, section, key):
-        return self.config_parser.getint(section, key)
+    def getint(self, section, key, fallback=None):
+        return self.config_parser.getint(section, key, fallback=fallback)
+
+    def getfloat(self, section, key, fallback=None):
+        return self.config_parser.getfloat(section, key, fallback=fallback)
     
     def write(self):
         with open(self._path, 'w') as configfile:

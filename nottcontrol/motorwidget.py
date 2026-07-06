@@ -50,11 +50,10 @@ class MotorWidget(QWidget):
         self.engineering_menu.exec(globalPos)
 
     def executeCommand(self, cmd):
-        cmd.execute()
-
         if self._activeCommand is not None:
             raise Exception('Already an active command!')
-        
+
+        cmd.execute()
         self._activeCommand = cmd
         self.ui.dl_command_status.setText(f'Executing command \'{self._activeCommand.text()}\' ...')
 
@@ -93,15 +92,25 @@ class MotorWidget(QWidget):
             self.ui.label_error.setText(str(e))
     
     def load_position(self):
-        current_pos, current_speed, timestamp = self._motor.getPositionAndSpeed()
-        
-        # Convert mm -> micron
-        self.current_pos = current_pos * 1000
-        self.current_speed = current_speed * 1000
-        
-        #timestamp_plc = datetime.strptime(timestamp, '%Y-%m-%d-%H:%M:%S.%f')
-        timestamp = datetime.utcnow()
-        self.redis_client.add_dl_position(self._motor.name, timestamp, self.current_pos)
+        try:
+            current_pos, current_speed, timestamp = self._motor.getPositionAndSpeed()
+
+            # Convert mm -> micron
+            self.current_pos = current_pos * 1000
+            self.current_speed = current_speed * 1000
+
+            now = datetime.utcnow()
+            if (
+                self.timestamp is None
+                or (now - self.timestamp).total_seconds() >= 1.0
+                or abs(self.current_pos - getattr(self, "_last_redis_pos", self.current_pos)) >= 0.1
+            ):
+                self.redis_client.add_dl_position(self._motor.name, now, self.current_pos)
+                self._last_redis_pos = self.current_pos
+                self.timestamp = now
+        except Exception as e:
+            print(e)
+            self.ui.label_error.setText(str(e))
 
     # Reset motor
     def reset_motor(self):

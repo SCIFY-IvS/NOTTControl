@@ -7,7 +7,7 @@ from datetime import datetime
 from nottcontrol.redisclient import RedisClient
 from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
 from nottcontrol import config, sensor_config_path
-from nottcontrol.sensors import load_sensor_config
+from nottcontrol.sensors import load_sensor_config, coerce_sensor_value
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
@@ -70,10 +70,16 @@ class MainWindow(QMainWindow):
         self.t.start(10000)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
+        self.dl_temp_opc_nodes = [
+            node.strip()
+            for node in config["SENSORS"]["dl_temp_opc_nodes"].split(",")
+            if node.strip()
+        ]
 
         opcuaddress_cry =  config['DEFAULT']['opcuaaddress_cry']
+        opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
 
-        self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry)
+        self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
         self.opcua_conn_cry.connect() 
 
         self.t2 = QTimer()
@@ -120,7 +126,8 @@ class MainWindow(QMainWindow):
             self.redis_client.add_temperature_3(now, self.temp3)
             self.redis_client.add_temperature_4(now, self.temp4)
 
-            self.ui.label_error.clear()
+            if not self.ui.label_error.text().startswith("Sensors:"):
+                self.ui.label_error.clear()
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
@@ -174,36 +181,50 @@ class MainWindow(QMainWindow):
         self.tiptilt_window = None
 
     def load_dl1_status(self):
-
-        self.ui.label_dl_status.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sStatus")))
-        self.ui.label_dl_state.setText(str(self.opcua_conn.read_node("ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sState")))
+        status, state = self.opcua_conn.read_nodes([
+            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sStatus",
+            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sState",
+        ])
+        self.ui.label_dl_status.setText(str(status))
+        self.ui.label_dl_state.setText(str(state))
     
     def read_and_store_sensor_values(self):
-        sensor_values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
-        now = datetime.utcnow()
-        self.redis_client.save_sensor_values(now, self.sensor_redis_keys, sensor_values)
+        try:
+            sensor_values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
+            now = datetime.utcnow()
+            saved_count, skipped_keys = self.redis_client.save_sensor_values(
+                now, self.sensor_redis_keys, sensor_values
+            )
+            if skipped_keys:
+                self.ui.label_error.setText(
+                    f"Sensors: saved {saved_count}, skipped {len(skipped_keys)} invalid"
+                )
+        except Exception as e:
+            print(f"Sensor read/save failed: {e}")
+            self.ui.label_error.setText(f"Sensors: {e}")
+            try:
+                self.opcua_conn_cry.reconnect()
+            except Exception as reconnect_error:
+                print(f"OPC UA cryo reconnect failed: {reconnect_error}")
 
 
     def update_cryo_temps(self):
-        nodes = ["ns=4;s=MAIN.not_cryo_ctrl.lrTempC_1", 
-            "ns=4;s=MAIN.not_cryo_ctrl.lrTempC_2",
-            "ns=4;s=MAIN.not_cryo_ctrl.lrTempC_3",
-            "ns=4;s=MAIN.not_cryo_ctrl.lrTempC_4" ]
+        if not self.dl_temp_opc_nodes:
+            return
 
-        values = self.opcua_conn.read_nodes(nodes)
+        values = self.opcua_conn.read_nodes(self.dl_temp_opc_nodes)
 
-        # update the value in the delay lines window
-        self.temp1 = str(values[0])
-        self.ui.main_label_temp1.setText(self.temp1)
+        self.temp1 = coerce_sensor_value(values[0])
+        self.ui.main_label_temp1.setText("" if self.temp1 is None else f"{self.temp1:.2f}")
 
-        self.temp2 = str(values[1])
-        self.ui.main_label_temp2.setText(self.temp2)
+        self.temp2 = coerce_sensor_value(values[1])
+        self.ui.main_label_temp2.setText("" if self.temp2 is None else f"{self.temp2:.2f}")
 
-        self.temp3 = str(values[2])
-        self.ui.main_label_temp3.setText(self.temp3)
+        self.temp3 = coerce_sensor_value(values[2])
+        self.ui.main_label_temp3.setText("" if self.temp3 is None else f"{self.temp3:.2f}")
 
-        self.temp4 = str(values[3])
-        self.ui.main_label_temp4.setText(self.temp4)
+        self.temp4 = coerce_sensor_value(values[3])
+        self.ui.main_label_temp4.setText("" if self.temp4 is None else f"{self.temp4:.2f}")
 
 class DelayLinesWindow(QMainWindow):
     closing = pyqtSignal()
@@ -213,11 +234,7 @@ class DelayLinesWindow(QMainWindow):
 
         self.parent = parent
 
-        url =  config['DEFAULT']['opcuaaddress']
-
-        # save the OPC UA connection
-        self.opcua_conn = OPCUAConnection(url)
-        self.opcua_conn.connect()
+        self.opcua_conn = opcua_conn
 
         default_speed = config.getint('DL', 'default_speed')
 
@@ -246,9 +263,12 @@ class DelayLinesWindow(QMainWindow):
         self.saved_configurations = self.redis_client.load_DL_pos()
 
         self.timestamp = None
+        position_save_interval_ms = config.getint(
+            "SENSORS", "position_save_interval_ms", fallback=1000
+        )
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
-        self.t_pos.start(10)
+        self.t_pos.start(position_save_interval_ms)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
@@ -257,7 +277,6 @@ class DelayLinesWindow(QMainWindow):
     def closeEvent(self, *args):
         self.t.stop()
         self.t_pos.stop()
-        self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
 

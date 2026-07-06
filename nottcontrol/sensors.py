@@ -1,6 +1,7 @@
 """Load cryostat sensor OPC UA nodes and map them to Redis TimeSeries keys."""
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 
@@ -31,6 +32,25 @@ def opc_node_to_asyncua_id(opc_node: str) -> str:
 def opc_node_to_redis_key(opc_node: str) -> str:
     """Use the asyncua OPC UA node id as the Redis TimeSeries key."""
     return opc_node_to_asyncua_id(opc_node)
+
+
+def coerce_sensor_value(value) -> float | None:
+    """Return a finite float suitable for Redis TimeSeries, or None if invalid."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
 
 
 def load_sensor_config(path: str | Path) -> tuple[list[str], list[str]]:
