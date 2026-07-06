@@ -1,11 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
-from nottcontrol.opcua import OPCUAConnection
-from asyncua import ua
-from datetime import datetime
-from nottcontrol.redisclient import RedisClient
-from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
 from nottcontrol import config
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
@@ -18,31 +13,27 @@ class TipTiltWindow(QWidget):
 
         self.parent = parent
 
-        url =  config['DEFAULT']['opcuaaddress']
-
-        # save the OPC UA connection
-        self.opcua_conn = OPCUAConnection(url)
-        self.opcua_conn.connect()
+        self.opcua_conn = opcua_conn
 
         default_speed = config.getint('TIPTILT','default_speed')
 
-        self._motor_ntpa1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA1", "NTPA1", speed = default_speed)
-        self._motor_ntta1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA1", "NTTA1", speed = default_speed)
-        self._motor_ntpa2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA2", "NTPA2", speed = default_speed)
-        self._motor_ntta2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA2", "NTTA2", speed = default_speed)
-        self._motor_ntpa3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA3", "NTPA3", speed = default_speed)
-        self._motor_ntta3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA3", "NTTA3", speed = default_speed)
-        self._motor_ntpa4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA4", "NTPA4", speed = default_speed)
-        self._motor_ntta4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA4", "NTTA4", speed = default_speed)
+        self._motor_ntpa1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA1", "NTPA1", speed = default_speed)
+        self._motor_ntta1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA1", "NTTA1", speed = default_speed)
+        self._motor_ntpa2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA2", "NTPA2", speed = default_speed)
+        self._motor_ntta2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA2", "NTTA2", speed = default_speed)
+        self._motor_ntpa3 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA3", "NTPA3", speed = default_speed)
+        self._motor_ntta3 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA3", "NTTA3", speed = default_speed)
+        self._motor_ntpa4 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPA4", "NTPA4", speed = default_speed)
+        self._motor_ntta4 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTA4", "NTTA4", speed = default_speed)
 
-        self._motor_ntpb1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB1", "NTPB1", speed = default_speed)
-        self._motor_nttb1 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB1", "NTTB1", speed = default_speed)
-        self._motor_ntpb2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB2", "NTPB2", speed = default_speed)
-        self._motor_nttb2 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB2", "NTTB2", speed = default_speed)
-        self._motor_ntpb3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB3", "NTPB3", speed = default_speed)
-        self._motor_nttb3 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB3", "NTTB3", speed = default_speed)
-        self._motor_ntpb4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB4", "NTPB4", speed = default_speed)
-        self._motor_nttb4 = Motor(opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB4", "NTTB4", speed = default_speed)
+        self._motor_ntpb1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB1", "NTPB1", speed = default_speed)
+        self._motor_nttb1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB1", "NTTB1", speed = default_speed)
+        self._motor_ntpb2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB2", "NTPB2", speed = default_speed)
+        self._motor_nttb2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB2", "NTTB2", speed = default_speed)
+        self._motor_ntpb3 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB3", "NTPB3", speed = default_speed)
+        self._motor_nttb3 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB3", "NTTB3", speed = default_speed)
+        self._motor_ntpb4 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTPB4", "NTPB4", speed = default_speed)
+        self._motor_nttb4 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.TipTilt.NTTB4", "NTTB4", speed = default_speed)
 
         self.redis_client = redis_client
 
@@ -75,7 +66,10 @@ class TipTiltWindow(QWidget):
 
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
-        self.t_pos.start(10)
+        position_save_interval_ms = config.getint(
+            "SENSORS", "position_save_interval_ms", fallback=1000
+        )
+        self.t_pos.start(position_save_interval_ms)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
@@ -84,7 +78,6 @@ class TipTiltWindow(QWidget):
     def closeEvent(self, *args):
         self.t.stop()
         self.t_pos.stop()
-        self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
 

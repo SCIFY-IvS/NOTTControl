@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
-from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
 from nottcontrol.components.shutter import Shutter
 
@@ -13,11 +12,7 @@ class ShutterWindow(QMainWindow):
 
         self.parent = parent
 
-        url =  config['DEFAULT']['opcuaaddress']
-
-        # save the OPC UA connection
-        self.opcua_conn = OPCUAConnection(url)
-        self.opcua_conn.connect()
+        self.opcua_conn = opcua_conn
 
         self._shutter1 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
         self._shutter2 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH2", 'Shutter 2')
@@ -38,7 +33,10 @@ class ShutterWindow(QMainWindow):
 
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
-        self.t_pos.start(5)
+        position_save_interval_ms = config.getint(
+            "SENSORS", "position_save_interval_ms", fallback=1000
+        )
+        self.t_pos.start(position_save_interval_ms)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
@@ -47,7 +45,6 @@ class ShutterWindow(QMainWindow):
     def closeEvent(self, *args):
         self.t.stop()
         self.t_pos.stop()
-        self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
 

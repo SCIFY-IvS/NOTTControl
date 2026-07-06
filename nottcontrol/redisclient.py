@@ -1,6 +1,7 @@
 import redis
 from datetime import datetime
 from nottcontrol.camera.infratec.utils.utils import BrightnessResults
+from nottcontrol.sensors import coerce_sensor_value
 import json
 
 class RedisClient:
@@ -27,19 +28,27 @@ class RedisClient:
     
     def add_temperature_1(self, time, temp):
         unix_time = self.unix_time_ms(time)
-        self.ts.add('dl_T1', unix_time, temp)
+        number = coerce_sensor_value(temp)
+        if number is not None:
+            self.ts.add('dl_T1', unix_time, number)
 
     def add_temperature_2(self, time, temp):
         unix_time = self.unix_time_ms(time)
-        self.ts.add('dl_T2', unix_time, temp)
+        number = coerce_sensor_value(temp)
+        if number is not None:
+            self.ts.add('dl_T2', unix_time, number)
 
     def add_temperature_3(self, time, temp):
         unix_time = self.unix_time_ms(time)
-        self.ts.add('dl_T3', unix_time, temp)
+        number = coerce_sensor_value(temp)
+        if number is not None:
+            self.ts.add('dl_T3', unix_time, number)
 
     def add_temperature_4(self, time, temp):
         unix_time = self.unix_time_ms(time)
-        self.ts.add('dl_T4', unix_time, temp)
+        number = coerce_sensor_value(temp)
+        if number is not None:
+            self.ts.add('dl_T4', unix_time, number)
 
     def add_roi_values(self, time, roi_results: dict[str, BrightnessResults]):
         unix_time = self.unix_time_ms(time)
@@ -75,6 +84,19 @@ class RedisClient:
             )
         unix_time = self.unix_time_ms(time)
         pipe = self.ts.pipeline()
+        skipped_keys = []
         for key, value in zip(redis_keys, sensor_values):
-            pipe.add(key, unix_time, value)
-        pipe.execute()
+            number = coerce_sensor_value(value)
+            if number is None:
+                skipped_keys.append(key)
+                continue
+            pipe.add(key, unix_time, number)
+        if skipped_keys:
+            print(
+                f"TSDB: skipped {len(skipped_keys)} invalid sensor value(s): "
+                f"{', '.join(skipped_keys[:3])}"
+                + (" ..." if len(skipped_keys) > 3 else "")
+            )
+        if len(skipped_keys) < len(redis_keys):
+            pipe.execute()
+        return len(redis_keys) - len(skipped_keys), skipped_keys

@@ -18,3 +18,4 @@ if system() == "Linux":
                        comment_prefixes = "#")
 
 sensor_config_path = os.path.join(parent, "sensors.ini")
+cryo_status_config_path = os.path.join(parent, "cryo_status.ini")
