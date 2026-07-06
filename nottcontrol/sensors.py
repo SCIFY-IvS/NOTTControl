@@ -43,12 +43,6 @@ def temperature_tag(opc_node_id: str) -> str | None:
     return path.split(".nott_temp.")[1].split(".stat.")[0]
 
 
-def temperature_display_name(tag: str) -> str:
-    """Human-readable label for a temperature tag."""
-    name = tag[2:] if tag.startswith("t_") else tag
-    return name.replace("_", " ")
-
-
 def temperature_group(tag: str) -> str:
     """Group name for sorting and section headers in the GUI."""
     group_prefixes = [
@@ -66,6 +60,42 @@ def temperature_group(tag: str) -> str:
         if tag == prefix or tag.startswith(f"{prefix}_"):
             return group_name
     return "Other"
+
+
+def temperature_display_name(tag: str) -> str:
+    """Human-readable label for a temperature tag."""
+    name = tag[2:] if tag.startswith("t_") else tag
+    return name.replace("_", " ")
+
+
+def is_vote_temperature_tag(tag: str) -> bool:
+    """True for consolidated vote sensors (one reading per device group)."""
+    return tag.endswith("_vote")
+
+
+def filter_temperature_sensors(
+    opc_nodes: list[str],
+    redis_keys: list[str],
+    display_names: list[str],
+    tags: list[str],
+    *,
+    tag_filter,
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    """Return temperature sensor lists filtered by ``tag_filter(tag) -> bool``."""
+    filtered_opc: list[str] = []
+    filtered_redis: list[str] = []
+    filtered_names: list[str] = []
+    filtered_tags: list[str] = []
+    for opc_id, redis_key, name, tag in zip(
+        opc_nodes, redis_keys, display_names, tags
+    ):
+        if not tag_filter(tag):
+            continue
+        filtered_opc.append(opc_id)
+        filtered_redis.append(redis_key)
+        filtered_names.append(name)
+        filtered_tags.append(tag)
+    return filtered_opc, filtered_redis, filtered_names, filtered_tags
 
 
 def load_temperature_sensors(

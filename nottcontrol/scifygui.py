@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.uic import loadUi
 from pathlib import Path
 from nottcontrol.opcua import OPCUAConnection
@@ -15,9 +15,10 @@ from nottcontrol.sensors import (
     load_pressure_sensors,
     load_cryo_status_config,
     coerce_sensor_value,
+    filter_temperature_sensors,
+    is_vote_temperature_tag,
 )
 from nottcontrol.components.cryo_temp_panel import (
-    CryoEquipmentPanel,
     CryoPressurePanel,
     CryoTemperaturePanel,
 )
@@ -123,6 +124,18 @@ class MainWindow(QMainWindow):
             self.temp_tags,
         ) = load_temperature_sensors(sensor_config_path)
         (
+            self.dashboard_temp_opc_nodes,
+            _dashboard_temp_redis_keys,
+            self.dashboard_temp_display_names,
+            self.dashboard_temp_tags,
+        ) = filter_temperature_sensors(
+            self.temp_opc_nodes,
+            _temp_redis_keys,
+            self.temp_display_names,
+            self.temp_tags,
+            tag_filter=is_vote_temperature_tag,
+        )
+        (
             self.pressure_opc_nodes,
             _pressure_redis_keys,
             self.pressure_display_names,
@@ -136,19 +149,23 @@ class MainWindow(QMainWindow):
         self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
         self.opcua_conn_cry.connect()
 
-        self.equipment_panel = CryoEquipmentPanel(self.ui.centralwidget)
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
-        self.equipment_panel.setGeometry(230, 585, 420, 95)
-        self.equipment_panel.setup(equipment_items, show_updated=False)
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
-        self.pressure_panel.setGeometry(230, 470, 420, 110)
-        self.pressure_panel.setup(self.pressure_tags, self.pressure_display_names)
+        self.pressure_panel.setGeometry(230, 470, 420, 155)
+        self.pressure_panel.setup(
+            self.pressure_tags,
+            self.pressure_display_names,
+            equipment_items,
+        )
 
         self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
-        self.cryo_temp_panel.setGeometry(230, 688, 790, 210)
-        self.cryo_temp_panel.setup(self.temp_tags, self.temp_display_names)
-        self.equipment_panel.raise_()
+        self.cryo_temp_panel.setGeometry(660, 632, 360, 100)
+        self.cryo_temp_panel.setup(
+            self.dashboard_temp_tags,
+            self.dashboard_temp_display_names,
+            compact=True,
+        )
 
         for widget in (
             self.ui.label_light_source,
@@ -219,6 +236,10 @@ class MainWindow(QMainWindow):
 
     def _load_header_logos(self) -> None:
         assets_dir = Path(__file__).resolve().parent
+
+        nott_logo_path = assets_dir / "NOTT.png"
+        if nott_logo_path.exists():
+            self.setWindowIcon(QIcon(str(nott_logo_path)))
 
         self.ui.label.setGeometry(10, 30, 210, 82)
         self._set_logo_label(self.ui.label, assets_dir / "NOTT.png", 210, 82)
@@ -465,9 +486,7 @@ class MainWindow(QMainWindow):
                 tag: coerce_sensor_value(value)
                 for tag, value in zip(pressure_tags, pressure_values)
             }
-        self.equipment_panel.update_values(equipment_status, updated_at)
-        if pressure_tag_values is not None:
-            self.pressure_panel.update_values(pressure_tag_values)
+        self.pressure_panel.update_values(pressure_tag_values, equipment_status)
         self.cryo_temp_panel.update_values(temp_tag_values)
         if self.cryostat_window is not None and pressure_tags is not None and pressure_values is not None:
             self.cryostat_window.sync_from_values(

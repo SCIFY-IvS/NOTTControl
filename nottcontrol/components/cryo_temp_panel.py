@@ -220,7 +220,7 @@ class CryoEquipmentPanel(QWidget):
 
 
 class CryoPressurePanel(QWidget):
-    """Vacuum and pressure readouts, shown below the delay-lines panel."""
+    """Vacuum, pressure, and equipment readouts below the delay-lines panel."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -231,18 +231,26 @@ class CryoPressurePanel(QWidget):
         layout.setSpacing(0)
 
         self._pressure_value_labels: dict[str, QLabel] = {}
+        self._equipment_value_labels: dict[str, QLabel] = {}
 
-    def setup(self, tags: list[str], display_names: list[str]) -> None:
-        if not tags:
+    def setup(
+        self,
+        tags: list[str],
+        display_names: list[str],
+        equipment_items: list[tuple[str, str]] | None = None,
+    ) -> None:
+        if not tags and not equipment_items:
             return
 
-        box = QGroupBox("Vacuum & pressure")
+        box = QGroupBox("Vacuum & cryostat")
         grid = QGridLayout(box)
         grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(6)
 
-        for row, (tag, name) in enumerate(zip(tags, display_names)):
+        row = 0
+        for tag, name in zip(tags, display_names):
             name_label = QLabel(name)
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("—")
@@ -251,15 +259,38 @@ class CryoPressurePanel(QWidget):
             grid.addWidget(name_label, row, 0)
             grid.addWidget(value_label, row, 1)
             self._pressure_value_labels[tag] = value_label
+            row += 1
+
+        for key, label in equipment_items or []:
+            name_label = QLabel(label)
+            name_label.setStyleSheet('font: 10pt "Segoe UI";')
+            value_label = QLabel("Unknown")
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setStyleSheet(_equipment_status_style("unknown"))
+            grid.addWidget(name_label, row, 0)
+            grid.addWidget(value_label, row, 1)
+            self._equipment_value_labels[key] = value_label
+            row += 1
 
         layout = self.layout()
         layout.addWidget(box)
 
-    def update_values(self, pressure_tag_values: dict[str, float | None]) -> None:
-        for tag, label in self._pressure_value_labels.items():
-            value = pressure_tag_values.get(tag)
-            label.setText(format_pressure_value(tag, value))
-            label.setStyleSheet(_pressure_value_style(value))
+    def update_values(
+        self,
+        pressure_tag_values: dict[str, float | None] | None = None,
+        equipment_status: dict[str, object] | None = None,
+    ) -> None:
+        if pressure_tag_values is not None:
+            for tag, label in self._pressure_value_labels.items():
+                value = pressure_tag_values.get(tag)
+                label.setText(format_pressure_value(tag, value))
+                label.setStyleSheet(_pressure_value_style(value))
+
+        if equipment_status is not None:
+            for key, label in self._equipment_value_labels.items():
+                text, style_key = format_equipment_status(equipment_status.get(key))
+                label.setText(text)
+                label.setStyleSheet(_equipment_status_style(style_key))
 
 
 class CryoTemperaturePanel(QWidget):
@@ -275,7 +306,66 @@ class CryoTemperaturePanel(QWidget):
 
         self._temp_value_labels: dict[str, QLabel] = {}
 
-    def setup(self, tags: list[str], display_names: list[str]) -> None:
+    def setup(
+        self,
+        tags: list[str],
+        display_names: list[str],
+        *,
+        compact: bool = False,
+    ) -> None:
+        if compact:
+            self._setup_compact(tags)
+        else:
+            self._setup_grouped(tags, display_names)
+
+    def _setup_compact(self, tags: list[str]) -> None:
+        from nottcontrol.sensors import temperature_group
+
+        group_order = [
+            "Detector",
+            "Base plate",
+            "Shield",
+            "Photonic chip",
+            "Flat field",
+            "Master",
+            "Sidecar",
+            "Thermal box",
+            "Cabinet",
+            "Other",
+        ]
+        order_index = {name: index for index, name in enumerate(group_order)}
+        sorted_tags = sorted(
+            tags,
+            key=lambda tag: (order_index.get(temperature_group(tag), 99), tag),
+        )
+
+        box = QGroupBox("Cryostat temperatures")
+        grid = QGridLayout(box)
+        grid.setColumnStretch(0, 2)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 2)
+        grid.setColumnStretch(3, 1)
+        grid.setHorizontalSpacing(20)
+        grid.setVerticalSpacing(4)
+
+        for index, tag in enumerate(sorted_tags):
+            row = index // 2
+            column_base = 0 if index % 2 == 0 else 2
+            name_label = QLabel(temperature_group(tag))
+            name_label.setMinimumHeight(20)
+            name_label.setStyleSheet(_temp_panel_name_style())
+            value_label = QLabel("—")
+            value_label.setMinimumWidth(72)
+            value_label.setMinimumHeight(20)
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setStyleSheet(_temp_value_style(None))
+            grid.addWidget(name_label, row, column_base)
+            grid.addWidget(value_label, row, column_base + 1)
+            self._temp_value_labels[tag] = value_label
+
+        self.layout().addWidget(box)
+
+    def _setup_grouped(self, tags: list[str], display_names: list[str]) -> None:
         from nottcontrol.sensors import temperature_group
 
         grouped: dict[str, list[tuple[str, str]]] = {}
