@@ -7,7 +7,13 @@ from datetime import datetime
 from nottcontrol.redisclient import RedisClient
 from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
 from nottcontrol import config, sensor_config_path
-from nottcontrol.sensors import load_sensor_config, coerce_sensor_value
+from nottcontrol.sensors import (
+    load_sensor_config,
+    load_temperature_sensors,
+    load_pressure_sensors,
+    coerce_sensor_value,
+)
+from nottcontrol.components.cryo_temp_panel import CryoTempPanel
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
@@ -32,6 +38,15 @@ async def call_method_async(opcua_conn, node_id, method_name, *args):
 
     except Exception as e:
         print(f"Error calling RPC method: {e}")
+
+
+HEADLINE_TEMP_TAGS = (
+    "t_detector_vote",
+    "t_base_plate_vote",
+    "t_shield_vote",
+    "t_photonic_chip_vote",
+)
+HEADLINE_TEMP_TITLES = ("Detector", "Base plate", "Shield", "Chip")
 
 
 class MainWindow(QMainWindow):
@@ -59,29 +74,61 @@ class MainWindow(QMainWindow):
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
 
-        self.dl_temp_opc_nodes = [
-            node.strip()
-            for node in config["SENSORS"]["dl_temp_opc_nodes"].split(",")
-            if node.strip()
-        ]
+        self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
+        (
+            self.temp_opc_nodes,
+            _temp_redis_keys,
+            self.temp_display_names,
+            self.temp_tags,
+        ) = load_temperature_sensors(sensor_config_path)
+        (
+            self.pressure_opc_nodes,
+            _pressure_redis_keys,
+            self.pressure_display_names,
+            self.pressure_tags,
+            _pressure_units,
+        ) = load_pressure_sensors(sensor_config_path)
+
+        opcuaddress_cry = config["DEFAULT"]["opcuaaddress_cry"]
+        opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
+        self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
+        self.opcua_conn_cry.connect()
+
+        self.cryo_panel = CryoTempPanel(self.ui.centralwidget)
+        self.cryo_panel.setGeometry(660, 90, 350, 620)
+        self.cryo_panel.setup_pressures(self.pressure_tags, self.pressure_display_names)
+        self.cryo_panel.setup(self.temp_tags, self.temp_display_names)
+
+        self._headline_widgets = (
+            (self.ui.main_label_temp1, self.ui.label_12),
+            (self.ui.main_label_temp2, self.ui.label_11),
+            (self.ui.main_label_temp3, self.ui.label_13),
+            (self.ui.main_label_temp4, self.ui.label_10),
+        )
+        for (_, title_label), title in zip(self._headline_widgets, HEADLINE_TEMP_TITLES):
+            title_label.setText(title)
+
+        headline_style = (
+            'font: 700 13pt "Segoe UI"; color: rgb(50, 129, 140);'
+        )
+        for value_label, _ in self._headline_widgets:
+            value_label.setStyleSheet(
+                headline_style + " background-color: rgb(245, 248, 249);"
+                " border: 1px solid rgb(50, 129, 140); border-radius: 4px;"
+            )
+            value_label.setText("—")
+
+        self.temp1 = self.temp2 = self.temp3 = self.temp4 = None
+
+        self.resize(max(self.width(), 1040), self.height())
 
         # Dl status on main window
         self.load_dl1_status()
-
-        # update the temp values
         self.update_cryo_temps()
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
         self.t.start(10000)
-
-        self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
-
-        opcuaddress_cry =  config['DEFAULT']['opcuaaddress_cry']
-        opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
-
-        self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
-        self.opcua_conn_cry.connect() 
 
         self.t2 = QTimer()
         self.t2.timeout.connect(self.read_and_store_sensor_values)
@@ -127,7 +174,7 @@ class MainWindow(QMainWindow):
             self.redis_client.add_temperature_3(now, self.temp3)
             self.redis_client.add_temperature_4(now, self.temp4)
 
-            if not self.ui.label_error.text().startswith("Sensors:"):
+            if not self.ui.label_error.text().startswith(("Sensors:", "Cryo temps:")):
                 self.ui.label_error.clear()
         except Exception as e:
             print(e)
@@ -196,6 +243,12 @@ class MainWindow(QMainWindow):
             saved_count, skipped_keys = self.redis_client.save_sensor_values(
                 now, self.sensor_redis_keys, sensor_values
             )
+            values_by_node = dict(zip(self.sensor_opc_nodes, sensor_values))
+            temp_values = [values_by_node[node] for node in self.temp_opc_nodes]
+            pressure_values = [values_by_node[node] for node in self.pressure_opc_nodes]
+            self.update_cryo_display_from_values(
+                self.temp_tags, temp_values, self.pressure_tags, pressure_values, now
+            )
             if skipped_keys:
                 self.ui.label_error.setText(
                     f"Sensors: saved {saved_count}, skipped {len(skipped_keys)} invalid"
@@ -209,23 +262,52 @@ class MainWindow(QMainWindow):
                 print(f"OPC UA cryo reconnect failed: {reconnect_error}")
 
 
+    def update_cryo_display_from_values(
+        self,
+        temp_tags: list[str],
+        temp_values: list,
+        pressure_tags: list[str] | None = None,
+        pressure_values: list | None = None,
+        updated_at: datetime | None = None,
+    ) -> None:
+        temp_tag_values = {
+            tag: coerce_sensor_value(value) for tag, value in zip(temp_tags, temp_values)
+        }
+        pressure_tag_values = None
+        if pressure_tags is not None and pressure_values is not None:
+            pressure_tag_values = {
+                tag: coerce_sensor_value(value)
+                for tag, value in zip(pressure_tags, pressure_values)
+            }
+        self.cryo_panel.update_values(temp_tag_values, pressure_tag_values, updated_at)
+
+        for (value_label, _), tag in zip(self._headline_widgets, HEADLINE_TEMP_TAGS):
+            temp_k = temp_tag_values.get(tag)
+            value_label.setText("—" if temp_k is None else f"{temp_k:.1f} K")
+
+        self.temp1 = temp_tag_values.get(HEADLINE_TEMP_TAGS[0])
+        self.temp2 = temp_tag_values.get(HEADLINE_TEMP_TAGS[1])
+        self.temp3 = temp_tag_values.get(HEADLINE_TEMP_TAGS[2])
+        self.temp4 = temp_tag_values.get(HEADLINE_TEMP_TAGS[3])
+
     def update_cryo_temps(self):
-        if not self.dl_temp_opc_nodes:
+        if not self.sensor_opc_nodes:
             return
-
-        values = self.opcua_conn.read_nodes(self.dl_temp_opc_nodes)
-
-        self.temp1 = coerce_sensor_value(values[0])
-        self.ui.main_label_temp1.setText("" if self.temp1 is None else f"{self.temp1:.2f}")
-
-        self.temp2 = coerce_sensor_value(values[1])
-        self.ui.main_label_temp2.setText("" if self.temp2 is None else f"{self.temp2:.2f}")
-
-        self.temp3 = coerce_sensor_value(values[2])
-        self.ui.main_label_temp3.setText("" if self.temp3 is None else f"{self.temp3:.2f}")
-
-        self.temp4 = coerce_sensor_value(values[3])
-        self.ui.main_label_temp4.setText("" if self.temp4 is None else f"{self.temp4:.2f}")
+        try:
+            values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
+            values_by_node = dict(zip(self.sensor_opc_nodes, values))
+            temp_values = [values_by_node[node] for node in self.temp_opc_nodes]
+            pressure_values = [values_by_node[node] for node in self.pressure_opc_nodes]
+            self.update_cryo_display_from_values(
+                self.temp_tags,
+                temp_values,
+                self.pressure_tags,
+                pressure_values,
+                datetime.utcnow(),
+            )
+        except Exception as e:
+            print(f"Cryo sensor read failed: {e}")
+            self.ui.label_error.setText(f"Cryo temps: {e}")
 
 class DelayLinesWindow(QMainWindow):
     closing = pyqtSignal()

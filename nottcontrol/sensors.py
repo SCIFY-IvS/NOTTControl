@@ -34,6 +34,140 @@ def opc_node_to_redis_key(opc_node: str) -> str:
     return opc_node_to_asyncua_id(opc_node)
 
 
+def temperature_tag(opc_node_id: str) -> str | None:
+    """Return the nott_temp tag (e.g. t_detector_vote) or None if not a temperature node."""
+    path = opc_node_path(opc_node_id)
+    if ".nott_temp." not in path or not path.endswith("lrTempK"):
+        return None
+    return path.split(".nott_temp.")[1].split(".stat.")[0]
+
+
+def temperature_display_name(tag: str) -> str:
+    """Human-readable label for a temperature tag."""
+    name = tag[2:] if tag.startswith("t_") else tag
+    return name.replace("_", " ")
+
+
+def temperature_group(tag: str) -> str:
+    """Group name for sorting and section headers in the GUI."""
+    group_prefixes = [
+        ("Detector", "t_detector"),
+        ("Base plate", "t_base_plate"),
+        ("Shield", "t_shield"),
+        ("Photonic chip", "t_photonic_chip"),
+        ("Flat field", "t_flat_field"),
+        ("Master", "t_master"),
+        ("Sidecar", "t_sidecar"),
+        ("Thermal box", "t_thermal_box"),
+        ("Cabinet", "t_cabinet"),
+    ]
+    for group_name, prefix in group_prefixes:
+        if tag == prefix or tag.startswith(f"{prefix}_"):
+            return group_name
+    return "Other"
+
+
+def load_temperature_sensors(
+    path: str | Path,
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    """Return (opc_ids, redis_keys, display_names, tags) for temperature sensors only."""
+    opc_nodes: list[str] = []
+    redis_keys: list[str] = []
+    display_names: list[str] = []
+    tags: list[str] = []
+    with open(path, encoding="utf-8") as sensors_file:
+        for raw_line in sensors_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            opc_id = opc_node_to_asyncua_id(line)
+            tag = temperature_tag(opc_id)
+            if tag is None:
+                continue
+            opc_nodes.append(opc_id)
+            redis_keys.append(opc_node_to_redis_key(line))
+            display_names.append(temperature_display_name(tag))
+            tags.append(tag)
+    return opc_nodes, redis_keys, display_names, tags
+
+
+def pressure_tag(opc_node_id: str) -> str | None:
+    """Return a stable tag for a pressure/vacuum sensor, or None if it is a temperature node."""
+    if temperature_tag(opc_node_id) is not None:
+        return None
+    path = opc_node_path(opc_node_id)
+    if "MAIN.nott_cryo_ctrl." not in path:
+        return path
+    return path.split("MAIN.nott_cryo_ctrl.", 1)[1]
+
+
+def pressure_display_name(tag: str) -> str:
+    """Human-readable label for a pressure/vacuum sensor tag."""
+    names = {
+        "VAGC.stat.lrRamp": "VAGC ramp",
+        "VAGC.stat.lrPressure": "VAGC pressure",
+        "evac.pump_pvp.stat.PresSens_lrPressure_hPa": "Pump pressure",
+    }
+    if tag in names:
+        return names[tag]
+    return tag.replace(".stat.", " ").replace("_", " ")
+
+
+def pressure_unit(tag: str) -> str:
+    if tag.endswith("lrPressure_hPa"):
+        return "hPa"
+    if tag.endswith("lrRamp"):
+        return "%"
+    if tag.endswith("lrPressure"):
+        return "mbar"
+    return ""
+
+
+def format_pressure_value(tag: str, value: float | None) -> str:
+    if value is None:
+        return "—"
+    unit = pressure_unit(tag)
+    if unit == "hPa":
+        if abs(value) < 0.01 and value != 0:
+            text = f"{value:.2e}"
+        else:
+            text = f"{value:.3f}"
+    elif unit == "%":
+        text = f"{value:.1f}"
+    else:
+        if abs(value) < 0.01 and value != 0:
+            text = f"{value:.2e}"
+        else:
+            text = f"{value:.3f}"
+    return f"{text} {unit}".strip()
+
+
+def load_pressure_sensors(
+    path: str | Path,
+) -> tuple[list[str], list[str], list[str], list[str], list[str]]:
+    """Return (opc_ids, redis_keys, display_names, tags, units) for pressure sensors."""
+    opc_nodes: list[str] = []
+    redis_keys: list[str] = []
+    display_names: list[str] = []
+    tags: list[str] = []
+    units: list[str] = []
+    with open(path, encoding="utf-8") as sensors_file:
+        for raw_line in sensors_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            opc_id = opc_node_to_asyncua_id(line)
+            tag = pressure_tag(opc_id)
+            if tag is None:
+                continue
+            opc_nodes.append(opc_id)
+            redis_keys.append(opc_node_to_redis_key(line))
+            tags.append(tag)
+            display_names.append(pressure_display_name(tag))
+            units.append(pressure_unit(tag))
+    return opc_nodes, redis_keys, display_names, tags, units
+
+
 def coerce_sensor_value(value) -> float | None:
     """Return a finite float suitable for Redis TimeSeries, or None if invalid."""
     if value is None:
