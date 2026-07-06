@@ -262,9 +262,11 @@ class CryoPressurePanel(QWidget):
             row += 1
 
         for key, label in equipment_items or []:
-            name_label = QLabel(label)
+            name_label = QLabel(f"{label} status")
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("Unknown")
+            value_label.setMinimumWidth(84)
+            value_label.setMinimumHeight(22)
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             value_label.setStyleSheet(_equipment_status_style("unknown"))
             grid.addWidget(name_label, row, 0)
@@ -272,6 +274,7 @@ class CryoPressurePanel(QWidget):
             self._equipment_value_labels[key] = value_label
             row += 1
 
+        box.setMinimumHeight(28 + row * 26)
         layout = self.layout()
         layout.addWidget(box)
 

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPainter, QPixmap
 from PyQt5.uic import loadUi
 from pathlib import Path
 from nottcontrol.opcua import OPCUAConnection
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
-        self.pressure_panel.setGeometry(230, 470, 420, 155)
+        self.pressure_panel.setGeometry(230, 470, 420, 200)
         self.pressure_panel.setup(
             self.pressure_tags,
             self.pressure_display_names,
@@ -160,12 +160,13 @@ class MainWindow(QMainWindow):
         )
 
         self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
-        self.cryo_temp_panel.setGeometry(660, 632, 360, 100)
+        self.cryo_temp_panel.setGeometry(660, 678, 360, 100)
         self.cryo_temp_panel.setup(
             self.dashboard_temp_tags,
             self.dashboard_temp_display_names,
             compact=True,
         )
+        self.pressure_panel.raise_()
 
         for widget in (
             self.ui.label_light_source,
@@ -234,12 +235,41 @@ class MainWindow(QMainWindow):
         )
         label.setText("")
 
+    def _window_icon_from_logo(self, logo_path: Path) -> QIcon:
+        source = QPixmap(str(logo_path))
+        if source.isNull():
+            return QIcon()
+
+        # Use the NOTT sphere mark (left part of the wordmark) for a square icon.
+        crop_width = min(source.width(), int(source.height() * 1.15))
+        mark = source.copy(0, 0, crop_width, source.height())
+
+        icon = QIcon()
+        for size in (16, 32, 48, 64, 128, 256):
+            canvas = QPixmap(size, size)
+            canvas.fill(Qt.transparent)
+            scaled = mark.scaled(
+                size,
+                size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+            painter = QPainter(canvas)
+            painter.drawPixmap(
+                (size - scaled.width()) // 2,
+                (size - scaled.height()) // 2,
+                scaled,
+            )
+            painter.end()
+            icon.addPixmap(canvas)
+        return icon
+
     def _load_header_logos(self) -> None:
         assets_dir = Path(__file__).resolve().parent
 
         nott_logo_path = assets_dir / "NOTT.png"
         if nott_logo_path.exists():
-            self.setWindowIcon(QIcon(str(nott_logo_path)))
+            self.setWindowIcon(self._window_icon_from_logo(nott_logo_path))
 
         self.ui.label.setGeometry(10, 30, 210, 82)
         self._set_logo_label(self.ui.label, assets_dir / "NOTT.png", 210, 82)
