@@ -16,8 +16,11 @@ from nottcontrol.sensors import (
     load_cryo_status_config,
     coerce_sensor_value,
 )
-from nottcontrol.components.cryo_temp_panel import CryoTempPanel, CryoPressurePanel
-from nottcontrol.components.cryo_temperature_bar import CryoTemperatureBar
+from nottcontrol.components.cryo_temp_panel import (
+    CryoEquipmentPanel,
+    CryoPressurePanel,
+    CryoTemperaturePanel,
+)
 from nottcontrol.components.delay_lines_panel import (
     DelayLinesStatusPanel,
     delay_line_opc_nodes,
@@ -34,6 +37,7 @@ from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
+from nottcontrol.cryostat_window import CryostatWindow
 import json
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
@@ -75,6 +79,7 @@ class MainWindow(QMainWindow):
         self.shutter_window = None
         self.tiptilt_window = None
         self.piezos_window = None
+        self.cryostat_window = None
 
         url =  config['DEFAULT']['databaseurl']
         self.redis_client = RedisClient(url)
@@ -82,7 +87,8 @@ class MainWindow(QMainWindow):
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
         self.setWindowTitle("NOTT instrument control")
-        self._load_header_logo()
+        self._load_header_logos()
+        self._layout_nav_buttons()
         self.ui.label_2.setStyleSheet("background: transparent;")
 
         # print("self.opcua_conn in MainWindow", self.opcua_conn)
@@ -91,6 +97,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_shutters.clicked.connect(self.open_shutter_window)
         self.ui.pushButton_tiptilt.clicked.connect(self.open_tiptilt_window)
         self.ui.pushButton_piezos.clicked.connect(self.open_piezos_window)
+        self.ui.pushButton_cryostat.clicked.connect(self.open_cryostat_window)
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
 
@@ -102,11 +109,11 @@ class MainWindow(QMainWindow):
 
         self.tt_status_opc_nodes, self.tt_status_keys = tip_tilt_opc_nodes()
         self.tt_status_panel = TipTiltStatusPanel(self.ui.centralwidget)
-        self.tt_status_panel.setGeometry(660, 260, 350, 165)
+        self.tt_status_panel.setGeometry(660, 90, 350, 285)
 
         self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
         self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
-        self.shutter_status_panel.setGeometry(660, 435, 350, 165)
+        self.shutter_status_panel.setGeometry(660, 385, 350, 165)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -129,19 +136,18 @@ class MainWindow(QMainWindow):
         self.opcua_conn_cry = OPCUAConnection(opcuaddress_cry, timeout=opcua_timeout_s)
         self.opcua_conn_cry.connect()
 
-        self.cryo_panel = CryoTempPanel(self.ui.centralwidget)
-        self.cryo_panel.setGeometry(660, 90, 350, 160)
-        self.cryo_panel.setup_equipment(
-            [(item.key, item.label) for item in self.cryo_status_items]
-        )
+        self.equipment_panel = CryoEquipmentPanel(self.ui.centralwidget)
+        equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
+        self.equipment_panel.setGeometry(230, 590, 420, 88)
+        self.equipment_panel.setup(equipment_items)
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
-        self.pressure_panel.setGeometry(230, 470, 420, 120)
+        self.pressure_panel.setGeometry(230, 470, 420, 110)
         self.pressure_panel.setup(self.pressure_tags, self.pressure_display_names)
 
-        self.cryo_temp_bar = CryoTemperatureBar(self.ui.centralwidget)
-        self.cryo_temp_bar.setGeometry(230, 690, 790, 220)
-        self.cryo_temp_bar.setup(self.temp_tags, self.temp_display_names)
+        self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
+        self.cryo_temp_panel.setGeometry(230, 685, 790, 205)
+        self.cryo_temp_panel.setup(self.temp_tags, self.temp_display_names)
 
         for widget in (
             self.ui.label_light_source,
@@ -160,8 +166,9 @@ class MainWindow(QMainWindow):
 
         self.temp1 = self.temp2 = self.temp3 = self.temp4 = None
 
-        self.ui.label_error.setGeometry(270, 925, 500, 16)
-        self.resize(max(self.width(), 1040), 955)
+        self.ui.label_error.setGeometry(270, 895, 500, 16)
+        self.resize(max(self.width(), 1040), 925)
+        self._layout_title()
 
         # Dl status on main window
         self.load_dl_status()
@@ -178,20 +185,52 @@ class MainWindow(QMainWindow):
         sensor_save_interval_ms = config.getint("SENSORS", "sensor_save_interval_ms")
         self.t2.start(sensor_save_interval_ms)
 
-    def _load_header_logo(self) -> None:
-        logo_path = Path(__file__).resolve().parent / "NOTT.png"
-        self.ui.label.setStyleSheet("background: transparent;")
-        self.ui.label.setAttribute(Qt.WA_TranslucentBackground, True)
+    def _layout_nav_buttons(self) -> None:
+        button_height = 50
+        button_gap = 5
+        y = 250
+        for button in (
+            self.ui.pushButton_light_source,
+            self.ui.main_pb_delay_lines,
+            self.ui.pushButton_tiptilt,
+            self.ui.pushButton_piezos,
+            self.ui.pushButton_filter_wheel,
+            self.ui.pushButton_shutters,
+            self.ui.pushButton_cryostat,
+            self.ui.pushButton_camera,
+        ):
+            button.setGeometry(20, y, 200, button_height)
+            y += button_height + button_gap
+
+    def _set_logo_label(self, label: QLabel, logo_path: Path, width: int, height: int) -> None:
+        label.setStyleSheet("background: transparent;")
+        label.setAttribute(Qt.WA_TranslucentBackground, True)
+        label.setAlignment(Qt.AlignCenter)
         if not logo_path.exists():
             return
         pixmap = QPixmap(str(logo_path))
         if pixmap.isNull():
             return
-        self.ui.label.setPixmap(
-            pixmap.scaled(240, 110, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        label.setPixmap(
+            pixmap.scaled(width, height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
-        self.ui.label.setAlignment(Qt.AlignCenter)
-        self.ui.label.setText("")
+        label.setText("")
+
+    def _load_header_logos(self) -> None:
+        assets_dir = Path(__file__).resolve().parent
+
+        self.ui.label.setGeometry(10, 30, 210, 82)
+        self._set_logo_label(self.ui.label, assets_dir / "NOTT.png", 210, 82)
+
+        self._asgard_logo_label = QLabel(self.ui.centralwidget)
+        self._asgard_logo_label.setGeometry(225, 12, 96, 96)
+        self._set_logo_label(self._asgard_logo_label, assets_dir / "ASGARD.png", 96, 96)
+
+        self._layout_title()
+
+    def _layout_title(self) -> None:
+        self.ui.label_2.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.ui.label_2.setGeometry(0, 28, self.width(), 56)
 
     def open_camera_interface(self):
         try:
@@ -207,6 +246,10 @@ class MainWindow(QMainWindow):
     
     def clear_camera_window(self):
         self.camera_window = None
+
+    def resizeEvent(self, event):
+        self._layout_title()
+        super().resizeEvent(event)
 
     def closeEvent(self, *args):
         self.t.stop()
@@ -289,6 +332,18 @@ class MainWindow(QMainWindow):
                 self.piezos_window.activateWindow()
         except Exception as e:
             print(f"Error opening piezos window: {e}")
+
+    def open_cryostat_window(self):
+        try:
+            if self.cryostat_window is None:
+                self.cryostat_window = CryostatWindow(self)
+                self.cryostat_window.closing.connect(self.clear_cryostat_window)
+                self.cryostat_window.show()
+                self.update_cryo_temps()
+            else:
+                self.cryostat_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening cryostat window: {e}")
     
     def clear_shutter_window(self):
         self.shutter_window = None
@@ -302,6 +357,9 @@ class MainWindow(QMainWindow):
     def clear_piezos_window(self):
         self.piezos_window = None
 
+    def clear_cryostat_window(self):
+        self.cryostat_window = None
+
     def load_dl_status(self):
         values = self.opcua_conn.read_nodes(self.dl_status_opc_nodes)
         for index, dl_key in enumerate(self.dl_status_keys):
@@ -312,11 +370,13 @@ class MainWindow(QMainWindow):
 
     def load_tt_status(self):
         values = self.opcua_conn.read_nodes(self.tt_status_opc_nodes)
-        for index, beam_key in enumerate(self.tt_status_keys):
+        for index, actuator_id in enumerate(self.tt_status_keys):
             status = values[index * 3]
             state = values[index * 3 + 1]
             position_mm = coerce_sensor_value(values[index * 3 + 2])
-            self.tt_status_panel.update_status(beam_key, status, state, position_mm)
+            self.tt_status_panel.update_status(
+                actuator_id, status, state, position_mm
+            )
 
     def load_shutter_status(self):
         values = self.opcua_conn.read_nodes(self.shutter_status_opc_nodes)
@@ -391,10 +451,19 @@ class MainWindow(QMainWindow):
                 tag: coerce_sensor_value(value)
                 for tag, value in zip(pressure_tags, pressure_values)
             }
-        self.cryo_panel.update_values(None, equipment_status, updated_at)
+        self.equipment_panel.update_values(equipment_status, updated_at)
         if pressure_tag_values is not None:
             self.pressure_panel.update_values(pressure_tag_values)
-        self.cryo_temp_bar.update_values(temp_tag_values)
+        self.cryo_temp_panel.update_values(temp_tag_values)
+        if self.cryostat_window is not None and pressure_tags is not None and pressure_values is not None:
+            self.cryostat_window.sync_from_values(
+                temp_tags,
+                temp_values,
+                pressure_tags,
+                pressure_values,
+                equipment_status,
+                updated_at,
+            )
 
         self.temp1 = temp_tag_values.get(HEADLINE_TEMP_TAGS[0])
         self.temp2 = temp_tag_values.get(HEADLINE_TEMP_TAGS[1])

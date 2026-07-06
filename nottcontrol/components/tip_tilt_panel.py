@@ -12,28 +12,33 @@ from nottcontrol.components.delay_lines_panel import (
     _status_style,
 )
 
-TIP_TILT_BEAMS = tuple(
-    (f"Beam {index}", f"ns=4;s=MAIN.nott_ics.TipTilt.NTPA{index + 1}")
-    for index in range(4)
+TIP_TILT_ACTUATORS = tuple(
+    (
+        f"Beam {beam_index}",
+        actuator_id,
+        f"ns=4;s=MAIN.nott_ics.TipTilt.{actuator_id}",
+    )
+    for beam_index in range(4)
+    for actuator_id in (f"NTPA{beam_index + 1}", f"NTTA{beam_index + 1}")
 )
 
 
 def tip_tilt_opc_nodes() -> tuple[list[str], list[str]]:
-    """Return (node_ids, beam_keys) for a batched status/position read."""
+    """Return (node_ids, row_keys) for a batched status/position read."""
     node_ids: list[str] = []
-    beam_keys: list[str] = []
-    for beam_key, prefix in TIP_TILT_BEAMS:
+    row_keys: list[str] = []
+    for _beam_key, actuator_id, prefix in TIP_TILT_ACTUATORS:
         node_ids.extend([
             f"{prefix}.stat.sStatus",
             f"{prefix}.stat.sState",
             f"{prefix}.stat.lrPosActual",
         ])
-        beam_keys.append(beam_key)
-    return node_ids, beam_keys
+        row_keys.append(actuator_id)
+    return node_ids, row_keys
 
 
 class TipTiltStatusPanel(QWidget):
-    """Compact status table for the four tip/tilt beams."""
+    """Compact status table for tip/tilt actuators (P and T per beam)."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -46,13 +51,14 @@ class TipTiltStatusPanel(QWidget):
         box = QGroupBox("Tip / tilt")
         grid = QGridLayout(box)
         grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 2)
+        grid.setColumnStretch(1, 1)
         grid.setColumnStretch(2, 2)
         grid.setColumnStretch(3, 2)
+        grid.setColumnStretch(4, 2)
         grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(6)
+        grid.setVerticalSpacing(4)
 
-        headers = ("", "Status", "State", "Position")
+        headers = ("", "Actuator", "Status", "State", "Position")
         for col, text in enumerate(headers):
             header = QLabel(text)
             header.setStyleSheet(_header_style())
@@ -64,49 +70,66 @@ class TipTiltStatusPanel(QWidget):
         self._state_labels: dict[str, QLabel] = {}
         self._position_labels: dict[str, QLabel] = {}
 
-        for row, (beam_key, _) in enumerate(TIP_TILT_BEAMS, start=1):
-            name_label = QLabel(beam_key)
-            name_label.setStyleSheet(_name_style())
+        row = 1
+        beam_index = 0
+        while beam_index < 4:
+            beam_key = f"Beam {beam_index}"
+            beam_actuators = [
+                item for item in TIP_TILT_ACTUATORS if item[0] == beam_key
+            ]
+            beam_label = QLabel(beam_key)
+            beam_label.setStyleSheet(_name_style())
+            beam_label.setAlignment(Qt.AlignCenter)
+            grid.addWidget(beam_label, row, 0, len(beam_actuators), 1)
 
-            status_label = QLabel("—")
-            status_label.setAlignment(Qt.AlignCenter)
-            status_label.setStyleSheet(_status_style(None))
+            for offset, (_beam, actuator_id, _) in enumerate(beam_actuators):
+                actuator_label = QLabel(actuator_id)
+                actuator_label.setStyleSheet('font: 9pt "Segoe UI"; color: rgb(80, 80, 80);')
+                actuator_label.setAlignment(Qt.AlignCenter)
 
-            state_label = QLabel("—")
-            state_label.setAlignment(Qt.AlignCenter)
-            state_label.setStyleSheet(_state_style(None))
+                status_label = QLabel("—")
+                status_label.setAlignment(Qt.AlignCenter)
+                status_label.setStyleSheet(_status_style(None))
 
-            position_label = QLabel("—")
-            position_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            position_label.setStyleSheet(_position_style())
+                state_label = QLabel("—")
+                state_label.setAlignment(Qt.AlignCenter)
+                state_label.setStyleSheet(_state_style(None))
 
-            grid.addWidget(name_label, row, 0)
-            grid.addWidget(status_label, row, 1)
-            grid.addWidget(state_label, row, 2)
-            grid.addWidget(position_label, row, 3)
+                position_label = QLabel("—")
+                position_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                position_label.setStyleSheet(_position_style())
 
-            self._status_labels[beam_key] = status_label
-            self._state_labels[beam_key] = state_label
-            self._position_labels[beam_key] = position_label
+                item_row = row + offset
+                grid.addWidget(actuator_label, item_row, 1)
+                grid.addWidget(status_label, item_row, 2)
+                grid.addWidget(state_label, item_row, 3)
+                grid.addWidget(position_label, item_row, 4)
+
+                self._status_labels[actuator_id] = status_label
+                self._state_labels[actuator_id] = state_label
+                self._position_labels[actuator_id] = position_label
+
+            row += len(beam_actuators)
+            beam_index += 1
 
         outer.addWidget(box)
 
     def update_status(
         self,
-        beam_key: str,
+        actuator_id: str,
         status: str | None,
         state: str | None,
         position_mm: float | None,
     ) -> None:
-        status_label = self._status_labels[beam_key]
+        status_label = self._status_labels[actuator_id]
         status_label.setText("—" if status is None else str(status))
         status_label.setStyleSheet(_status_style(status))
 
-        state_label = self._state_labels[beam_key]
+        state_label = self._state_labels[actuator_id]
         state_label.setText("—" if state is None else str(state))
         state_label.setStyleSheet(_state_style(state))
 
-        position_label = self._position_labels[beam_key]
+        position_label = self._position_labels[actuator_id]
         if position_mm is None:
             position_label.setText("—")
         else:

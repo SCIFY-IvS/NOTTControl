@@ -62,7 +62,7 @@ def _equipment_status_style(style_key: str) -> str:
 
 
 class CryoTempPanel(QWidget):
-    """Equipment and vacuum readouts for the right-hand cryostat panel."""
+    """Equipment readouts for the right-hand cryostat panel."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -72,21 +72,15 @@ class CryoTempPanel(QWidget):
         outer.setContentsMargins(4, 4, 4, 4)
         outer.setSpacing(6)
 
-        title = QLabel("Cryostat monitor")
-        title.setStyleSheet(f'font: 700 14pt "Segoe UI"; color: {TEAL};')
-        title.setAlignment(Qt.AlignCenter)
-        outer.addWidget(title)
-
-        self._updated_label = QLabel("Updated: —")
-        self._updated_label.setStyleSheet('font: 9pt "Segoe UI"; color: rgb(100, 100, 100);')
-        self._updated_label.setAlignment(Qt.AlignCenter)
-        outer.addWidget(self._updated_label)
-
         self._layout = QVBoxLayout()
         self._layout.setContentsMargins(2, 2, 2, 2)
         self._layout.setSpacing(8)
         outer.addLayout(self._layout)
         outer.addStretch(1)
+
+        self._updated_label = QLabel("Updated: —")
+        self._updated_label.setStyleSheet('font: 9pt "Segoe UI"; color: rgb(100, 100, 100);')
+        self._updated_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self._pressure_value_labels: dict[str, QLabel] = {}
         self._equipment_value_labels: dict[str, QLabel] = {}
@@ -111,6 +105,7 @@ class CryoTempPanel(QWidget):
             self._equipment_value_labels[key] = value_label
 
         self._layout.addWidget(box)
+        self._layout.addWidget(self._updated_label)
 
     def setup_pressures(self, tags: list[str], display_names: list[str]) -> None:
         if not tags:
@@ -157,6 +152,63 @@ class CryoTempPanel(QWidget):
             self._updated_label.setText(f"Updated: {updated_at.strftime('%H:%M:%S')} UTC")
 
 
+class CryoEquipmentPanel(QWidget):
+    """Pump and cryocooler status on the main dashboard."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet(PANEL_STYLE)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(0)
+
+        self._equipment_value_labels: dict[str, QLabel] = {}
+        self._updated_label = QLabel("Updated: —")
+        self._updated_label.setStyleSheet('font: 9pt "Segoe UI"; color: rgb(100, 100, 100);')
+        self._updated_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+    def setup(self, items: list[tuple[str, str]]) -> None:
+        if not items:
+            return
+
+        box = QGroupBox("Equipment")
+        grid = QGridLayout(box)
+        grid.setColumnStretch(0, 1)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(6)
+
+        for row, (key, label) in enumerate(items):
+            name_label = QLabel(label)
+            name_label.setStyleSheet('font: 10pt "Segoe UI";')
+            value_label = QLabel("Unknown")
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setStyleSheet(_equipment_status_style("unknown"))
+            grid.addWidget(name_label, row, 0)
+            grid.addWidget(value_label, row, 1)
+            self._equipment_value_labels[key] = value_label
+
+        layout = self.layout()
+        layout.addWidget(box)
+        layout.addWidget(self._updated_label)
+
+    def update_values(
+        self,
+        equipment_status_values: dict[str, object] | None,
+        updated_at: datetime | None = None,
+    ) -> None:
+        if equipment_status_values is not None:
+            for key, label in self._equipment_value_labels.items():
+                text, style_key = format_equipment_status(
+                    equipment_status_values.get(key)
+                )
+                label.setText(text)
+                label.setStyleSheet(_equipment_status_style(style_key))
+
+        if updated_at is not None:
+            self._updated_label.setText(f"Updated: {updated_at.strftime('%H:%M:%S')} UTC")
+
+
 class CryoPressurePanel(QWidget):
     """Vacuum and pressure readouts, shown below the delay-lines panel."""
 
@@ -198,3 +250,82 @@ class CryoPressurePanel(QWidget):
             value = pressure_tag_values.get(tag)
             label.setText(format_pressure_value(tag, value))
             label.setStyleSheet(_pressure_value_style(value))
+
+
+class CryoTemperaturePanel(QWidget):
+    """Grouped cryostat temperature readouts in a single panel."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet(PANEL_STYLE)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(0)
+
+        self._temp_value_labels: dict[str, QLabel] = {}
+
+    def setup(self, tags: list[str], display_names: list[str]) -> None:
+        from nottcontrol.sensors import temperature_group
+
+        grouped: dict[str, list[tuple[str, str]]] = {}
+        for tag, name in zip(tags, display_names):
+            grouped.setdefault(temperature_group(tag), []).append((tag, name))
+
+        group_order = [
+            "Detector",
+            "Base plate",
+            "Shield",
+            "Photonic chip",
+            "Flat field",
+            "Master",
+            "Sidecar",
+            "Thermal box",
+            "Cabinet",
+            "Other",
+        ]
+
+        box = QGroupBox("Cryostat temperatures")
+        grid = QGridLayout(box)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(2, 1)
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(4)
+
+        row = 0
+        for group_name in group_order:
+            items = grouped.get(group_name)
+            if not items:
+                continue
+
+            header = QLabel(group_name)
+            header.setStyleSheet(f'font: 700 10pt "Segoe UI"; color: {TEAL};')
+            grid.addWidget(header, row, 0, 1, 4)
+            row += 1
+
+            sorted_items = sorted(items, key=lambda item: item[1])
+            half = (len(sorted_items) + 1) // 2
+            for index, (tag, name) in enumerate(sorted_items):
+                column_base = 0 if index < half else 2
+                item_row = row + (index if index < half else index - half)
+                name_label = QLabel(name)
+                name_label.setStyleSheet('font: 9pt "Segoe UI";')
+                value_label = QLabel("—")
+                value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                value_label.setStyleSheet(_temp_value_style(None))
+                grid.addWidget(name_label, item_row, column_base)
+                grid.addWidget(value_label, item_row, column_base + 1)
+                self._temp_value_labels[tag] = value_label
+
+            row += half
+
+        self.layout().addWidget(box)
+
+    def update_values(self, temp_tag_values: dict[str, float | None]) -> None:
+        for tag, label in self._temp_value_labels.items():
+            temp_k = temp_tag_values.get(tag)
+            if temp_k is None:
+                label.setText("—")
+            else:
+                label.setText(f"{temp_k:.1f} K")
+            label.setStyleSheet(_temp_value_style(temp_k))

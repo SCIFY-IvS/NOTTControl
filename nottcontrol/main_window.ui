@@ -199,7 +199,7 @@ color: rgb(50, 129, 140);</string>
      <string notr="true">background: transparent;</string>
     </property>
     <property name="text">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot;margin:0; background:transparent;&quot;&gt;&lt;p style=&quot;margin:0; line-height:120%;&quot;&gt;&lt;span style=&quot;font-family:'Segoe UI'; font-size:28pt; font-weight:700; color:#32818c;&quot;&gt;NOTT&lt;/span&gt;&lt;span style=&quot;font-family:'Segoe UI'; font-size:28pt; font-weight:700; color:#2f3e44;&quot;&gt; instrument control&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot;margin:0; background:transparent;&quot;&gt;&lt;p align=&quot;center&quot; style=&quot;margin:0; line-height:120%;&quot;&gt;&lt;span style=&quot;font-family:'Segoe UI'; font-size:28pt; font-weight:700; color:#32818c;&quot;&gt;NOTT&lt;/span&gt;&lt;span style=&quot;font-family:'Segoe UI'; font-size:28pt; font-weight:700; color:#2f3e44;&quot;&gt; instrument control&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="textFormat">
      <enum>Qt::RichText</enum>
