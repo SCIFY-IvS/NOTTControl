@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -166,6 +167,65 @@ def load_pressure_sensors(
             display_names.append(pressure_display_name(tag))
             units.append(pressure_unit(tag))
     return opc_nodes, redis_keys, display_names, tags, units
+
+
+@dataclass(frozen=True)
+class CryoStatusItem:
+    key: str
+    label: str
+    opc_id: str
+
+
+def format_equipment_status(value) -> tuple[str, str]:
+    """Return (display text, style key) for pump/cryocooler status values."""
+    if value is None:
+        return "Unknown", "unknown"
+    if isinstance(value, bool):
+        return ("Running" if value else "Stopped"), ("running" if value else "stopped")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        is_running = value != 0
+        return ("Running" if is_running else "Stopped"), (
+            "running" if is_running else "stopped"
+        )
+
+    text = str(value).strip()
+    if not text:
+        return "Unknown", "unknown"
+
+    upper = text.upper()
+    running_tokens = {"TRUE", "ON", "RUN", "RUNNING", "ENABLED", "ACTIVE", "STARTED"}
+    stopped_tokens = {"FALSE", "OFF", "STOP", "STOPPED", "IDLE", "DISABLED", "STANDBY"}
+    if upper in running_tokens:
+        return "Running", "running"
+    if upper in stopped_tokens:
+        return "Stopped", "stopped"
+    return text, "unknown"
+
+
+def load_cryo_status_config(path: str | Path) -> list[CryoStatusItem]:
+    """Load equipment status nodes from cryo_status.ini."""
+    items: list[CryoStatusItem] = []
+    with open(path, encoding="utf-8") as status_file:
+        for raw_line in status_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = [part.strip() for part in line.split("|")]
+            if len(parts) == 3:
+                key, label, opc_node = parts
+            elif len(parts) == 2:
+                key, opc_node = parts
+                label = key.replace("_", " ").title()
+            else:
+                continue
+            items.append(
+                CryoStatusItem(
+                    key=key,
+                    label=label,
+                    opc_id=opc_node_to_asyncua_id(opc_node),
+                )
+            )
+    return items
 
 
 def coerce_sensor_value(value) -> float | None:

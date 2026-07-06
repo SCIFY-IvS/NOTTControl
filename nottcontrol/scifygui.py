@@ -1,23 +1,30 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.uic import loadUi
 from nottcontrol.opcua import OPCUAConnection
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
 from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
-from nottcontrol import config, sensor_config_path
+from nottcontrol import config, sensor_config_path, cryo_status_config_path
 from nottcontrol.sensors import (
     load_sensor_config,
     load_temperature_sensors,
     load_pressure_sensors,
+    load_cryo_status_config,
     coerce_sensor_value,
+    format_equipment_status,
 )
 from nottcontrol.components.cryo_temp_panel import CryoTempPanel
+from nottcontrol.components.cryo_temperature_bar import CryoTemperatureBar
+from nottcontrol.components.delay_lines_panel import (
+    DelayLinesStatusPanel,
+    delay_line_opc_nodes,
+)
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
-from nottcontrol.tip_tilt_control import TipTiltControl
+from nottcontrol.piezos_window import PiezosWindow
 import json
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
@@ -46,7 +53,6 @@ HEADLINE_TEMP_TAGS = (
     "t_shield_vote",
     "t_photonic_chip_vote",
 )
-HEADLINE_TEMP_TITLES = ("Detector", "Base plate", "Shield", "Chip")
 
 
 class MainWindow(QMainWindow):
@@ -59,20 +65,32 @@ class MainWindow(QMainWindow):
         self.delayline_window = None
         self.shutter_window = None
         self.tiptilt_window = None
+        self.piezos_window = None
 
         url =  config['DEFAULT']['databaseurl']
         self.redis_client = RedisClient(url)
 
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
+        self.setWindowTitle("NOTT instrument control")
+        self.ui.label.setStyleSheet("background: transparent;")
+        self.ui.label.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.ui.label_2.setStyleSheet("background: transparent;")
 
         # print("self.opcua_conn in MainWindow", self.opcua_conn)
         # Show Delay line window
         self.ui.main_pb_delay_lines.clicked.connect(self.open_delay_lines)
         self.ui.pushButton_shutters.clicked.connect(self.open_shutter_window)
         self.ui.pushButton_tiptilt.clicked.connect(self.open_tiptilt_window)
+        self.ui.pushButton_piezos.clicked.connect(self.open_piezos_window)
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
+
+        self.dl_status_opc_nodes, self.dl_status_keys = delay_line_opc_nodes()
+        self.dl_status_panel = DelayLinesStatusPanel(self.ui.centralwidget)
+        self.dl_status_panel.setGeometry(230, 295, 420, 165)
+        self.ui.label_dl_status.hide()
+        self.ui.label_dl_state.hide()
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -88,6 +106,7 @@ class MainWindow(QMainWindow):
             self.pressure_tags,
             _pressure_units,
         ) = load_pressure_sensors(sensor_config_path)
+        self.cryo_status_items = load_cryo_status_config(cryo_status_config_path)
 
         opcuaddress_cry = config["DEFAULT"]["opcuaaddress_cry"]
         opcua_timeout_s = config.getfloat("SENSORS", "opcua_timeout_s", fallback=30.0)
@@ -95,35 +114,43 @@ class MainWindow(QMainWindow):
         self.opcua_conn_cry.connect()
 
         self.cryo_panel = CryoTempPanel(self.ui.centralwidget)
-        self.cryo_panel.setGeometry(660, 90, 350, 620)
+        self.cryo_panel.setGeometry(660, 90, 350, 240)
+        self.cryo_panel.setup_equipment(
+            [(item.key, item.label) for item in self.cryo_status_items]
+        )
         self.cryo_panel.setup_pressures(self.pressure_tags, self.pressure_display_names)
-        self.cryo_panel.setup(self.temp_tags, self.temp_display_names)
 
-        self._headline_widgets = (
-            (self.ui.main_label_temp1, self.ui.label_12),
-            (self.ui.main_label_temp2, self.ui.label_11),
-            (self.ui.main_label_temp3, self.ui.label_13),
-            (self.ui.main_label_temp4, self.ui.label_10),
-        )
-        for (_, title_label), title in zip(self._headline_widgets, HEADLINE_TEMP_TITLES):
-            title_label.setText(title)
+        self.cryo_temp_bar = CryoTemperatureBar(self.ui.centralwidget)
+        self.cryo_temp_bar.setGeometry(20, 620, 1000, 155)
+        self.cryo_temp_bar.setup(self.temp_tags, self.temp_display_names)
 
-        headline_style = (
-            'font: 700 13pt "Segoe UI"; color: rgb(50, 129, 140);'
-        )
-        for value_label, _ in self._headline_widgets:
-            value_label.setStyleSheet(
-                headline_style + " background-color: rgb(245, 248, 249);"
-                " border: 1px solid rgb(50, 129, 140); border-radius: 4px;"
-            )
-            value_label.setText("—")
+        self._equipment_summary_labels: dict[str, QLabel] = {}
+        summary_y = 505
+        for index, item in enumerate(self.cryo_status_items):
+            label = QLabel(f"{item.label}: —", self.ui.centralwidget)
+            label.setGeometry(230, summary_y + index * 24, 220, 22)
+            label.setStyleSheet('font: 10pt "Segoe UI"; color: rgb(80, 80, 80);')
+            self._equipment_summary_labels[item.key] = label
+
+        for widget in (
+            self.ui.main_label_temp1,
+            self.ui.main_label_temp2,
+            self.ui.main_label_temp3,
+            self.ui.main_label_temp4,
+            self.ui.label_10,
+            self.ui.label_11,
+            self.ui.label_12,
+            self.ui.label_13,
+        ):
+            widget.hide()
 
         self.temp1 = self.temp2 = self.temp3 = self.temp4 = None
 
-        self.resize(max(self.width(), 1040), self.height())
+        self.ui.label_error.setGeometry(270, 785, 500, 16)
+        self.resize(max(self.width(), 1040), 820)
 
         # Dl status on main window
-        self.load_dl1_status()
+        self.load_dl_status()
         self.update_cryo_temps()
 
         self.t = QTimer()
@@ -159,7 +186,7 @@ class MainWindow(QMainWindow):
 
     def refresh_status(self):
         try:
-            self.load_dl1_status()
+            self.load_dl_status()
             self.update_cryo_temps()
 
             now = datetime.utcnow()
@@ -218,6 +245,17 @@ class MainWindow(QMainWindow):
                 self.tiptilt_window.activateWindow()
         except Exception as e:
             print(f"Error opening tiptilt window: {e}")
+
+    def open_piezos_window(self):
+        try:
+            if self.piezos_window is None:
+                self.piezos_window = PiezosWindow(self)
+                self.piezos_window.closing.connect(self.clear_piezos_window)
+                self.piezos_window.show()
+            else:
+                self.piezos_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening piezos window: {e}")
     
     def clear_shutter_window(self):
         self.shutter_window = None
@@ -228,13 +266,16 @@ class MainWindow(QMainWindow):
     def clear_tiptilt_window(self):
         self.tiptilt_window = None
 
-    def load_dl1_status(self):
-        status, state = self.opcua_conn.read_nodes([
-            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sStatus",
-            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1.stat.sState",
-        ])
-        self.ui.label_dl_status.setText(str(status))
-        self.ui.label_dl_state.setText(str(state))
+    def clear_piezos_window(self):
+        self.piezos_window = None
+
+    def load_dl_status(self):
+        values = self.opcua_conn.read_nodes(self.dl_status_opc_nodes)
+        for index, dl_key in enumerate(self.dl_status_keys):
+            status = values[index * 3]
+            state = values[index * 3 + 1]
+            position_mm = coerce_sensor_value(values[index * 3 + 2])
+            self.dl_status_panel.update_status(dl_key, status, state, position_mm)
     
     def read_and_store_sensor_values(self):
         try:
@@ -246,8 +287,14 @@ class MainWindow(QMainWindow):
             values_by_node = dict(zip(self.sensor_opc_nodes, sensor_values))
             temp_values = [values_by_node[node] for node in self.temp_opc_nodes]
             pressure_values = [values_by_node[node] for node in self.pressure_opc_nodes]
+            equipment_status = self._read_cryo_equipment_status()
             self.update_cryo_display_from_values(
-                self.temp_tags, temp_values, self.pressure_tags, pressure_values, now
+                self.temp_tags,
+                temp_values,
+                self.pressure_tags,
+                pressure_values,
+                equipment_status,
+                now,
             )
             if skipped_keys:
                 self.ui.label_error.setText(
@@ -262,12 +309,40 @@ class MainWindow(QMainWindow):
                 print(f"OPC UA cryo reconnect failed: {reconnect_error}")
 
 
+    def _read_cryo_equipment_status(self) -> dict[str, object]:
+        if not self.cryo_status_items:
+            return {}
+        try:
+            opc_ids = [item.opc_id for item in self.cryo_status_items]
+            values = self.opcua_conn_cry.read_nodes(opc_ids)
+            return {
+                item.key: value for item, value in zip(self.cryo_status_items, values)
+            }
+        except Exception as e:
+            print(f"Equipment status read failed: {e}")
+            return {item.key: None for item in self.cryo_status_items}
+
+    def _update_equipment_summary(self, equipment_status: dict[str, object]) -> None:
+        for item in self.cryo_status_items:
+            label = self._equipment_summary_labels.get(item.key)
+            if label is None:
+                continue
+            text, style_key = format_equipment_status(equipment_status.get(item.key))
+            color = {
+                "running": "rgb(0, 140, 70)",
+                "stopped": "rgb(180, 60, 60)",
+                "unknown": "rgb(140, 140, 140)",
+            }[style_key]
+            label.setText(f"{item.label}: {text}")
+            label.setStyleSheet(f'font: 700 10pt "Segoe UI"; color: {color};')
+
     def update_cryo_display_from_values(
         self,
         temp_tags: list[str],
         temp_values: list,
         pressure_tags: list[str] | None = None,
         pressure_values: list | None = None,
+        equipment_status: dict[str, object] | None = None,
         updated_at: datetime | None = None,
     ) -> None:
         temp_tag_values = {
@@ -279,16 +354,15 @@ class MainWindow(QMainWindow):
                 tag: coerce_sensor_value(value)
                 for tag, value in zip(pressure_tags, pressure_values)
             }
-        self.cryo_panel.update_values(temp_tag_values, pressure_tag_values, updated_at)
-
-        for (value_label, _), tag in zip(self._headline_widgets, HEADLINE_TEMP_TAGS):
-            temp_k = temp_tag_values.get(tag)
-            value_label.setText("—" if temp_k is None else f"{temp_k:.1f} K")
+        self.cryo_panel.update_values(pressure_tag_values, equipment_status, updated_at)
+        self.cryo_temp_bar.update_values(temp_tag_values)
 
         self.temp1 = temp_tag_values.get(HEADLINE_TEMP_TAGS[0])
         self.temp2 = temp_tag_values.get(HEADLINE_TEMP_TAGS[1])
         self.temp3 = temp_tag_values.get(HEADLINE_TEMP_TAGS[2])
         self.temp4 = temp_tag_values.get(HEADLINE_TEMP_TAGS[3])
+        if equipment_status is not None:
+            self._update_equipment_summary(equipment_status)
 
     def update_cryo_temps(self):
         if not self.sensor_opc_nodes:
@@ -298,11 +372,13 @@ class MainWindow(QMainWindow):
             values_by_node = dict(zip(self.sensor_opc_nodes, values))
             temp_values = [values_by_node[node] for node in self.temp_opc_nodes]
             pressure_values = [values_by_node[node] for node in self.pressure_opc_nodes]
+            equipment_status = self._read_cryo_equipment_status()
             self.update_cryo_display_from_values(
                 self.temp_tags,
                 temp_values,
                 self.pressure_tags,
                 pressure_values,
+                equipment_status,
                 datetime.utcnow(),
             )
         except Exception as e:
