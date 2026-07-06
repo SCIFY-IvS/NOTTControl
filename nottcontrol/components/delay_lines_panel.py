@@ -86,6 +86,40 @@ def _position_style() -> str:
     return 'font: 10pt "Segoe UI"; color: rgb(80, 70, 150);'
 
 
+def format_compact_status(status: str | None) -> str:
+    if status is None:
+        return "—"
+    upper = str(status).strip().upper()
+    if "STAND" in upper:
+        return "Stand"
+    if upper in {"OK", "ENABLED", "READY"}:
+        return upper.title() if upper != "OK" else "OK"
+    if "ERR" in upper or "FAULT" in upper:
+        return "Error"
+    if "DISABLE" in upper:
+        return "Off"
+    text = str(status).strip()
+    return text if len(text) <= 8 else text[:7] + "…"
+
+
+def format_compact_state(state: str | None) -> str:
+    if state is None:
+        return "—"
+    upper = str(state).strip().upper()
+    if "OPERAT" in upper:
+        return "Oper"
+    if "NOT OP" in upper or "NOT_OP" in upper:
+        return "Not op"
+    if "STAND" in upper or "IDLE" in upper:
+        return "Idle"
+    if "MOV" in upper or "RUN" in upper:
+        return "Move"
+    if "ERR" in upper or "FAULT" in upper:
+        return "Error"
+    text = str(state).strip()
+    return text if len(text) <= 8 else text[:7] + "…"
+
+
 class DelayLinesStatusPanel(QWidget):
     """Compact status table for all four delay lines."""
 

@@ -109,11 +109,11 @@ class MainWindow(QMainWindow):
 
         self.tt_status_opc_nodes, self.tt_status_keys = tip_tilt_opc_nodes()
         self.tt_status_panel = TipTiltStatusPanel(self.ui.centralwidget)
-        self.tt_status_panel.setGeometry(660, 90, 350, 285)
+        self.tt_status_panel.setGeometry(660, 90, 370, 270)
 
         self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
         self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
-        self.shutter_status_panel.setGeometry(660, 385, 350, 165)
+        self.shutter_status_panel.setGeometry(660, 445, 370, 165)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
 
         self.equipment_panel = CryoEquipmentPanel(self.ui.centralwidget)
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
-        self.equipment_panel.setGeometry(230, 590, 420, 88)
+        self.equipment_panel.setGeometry(660, 365, 370, 75)
         self.equipment_panel.setup(equipment_items)
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
         self.pressure_panel.setup(self.pressure_tags, self.pressure_display_names)
 
         self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
-        self.cryo_temp_panel.setGeometry(230, 685, 790, 205)
+        self.cryo_temp_panel.setGeometry(230, 620, 790, 270)
         self.cryo_temp_panel.setup(self.temp_tags, self.temp_display_names)
 
         for widget in (
@@ -223,10 +223,22 @@ class MainWindow(QMainWindow):
         self._set_logo_label(self.ui.label, assets_dir / "NOTT.png", 210, 82)
 
         self._asgard_logo_label = QLabel(self.ui.centralwidget)
-        self._asgard_logo_label.setGeometry(225, 12, 96, 96)
         self._set_logo_label(self._asgard_logo_label, assets_dir / "ASGARD.png", 96, 96)
+        self._layout_asgard_logo()
 
         self._layout_title()
+
+    def _layout_asgard_logo(self) -> None:
+        if not hasattr(self, "_asgard_logo_label"):
+            return
+        logo_size = 96
+        margin = 12
+        self._asgard_logo_label.setGeometry(
+            max(margin, self.width() - logo_size - margin),
+            12,
+            logo_size,
+            logo_size,
+        )
 
     def _layout_title(self) -> None:
         self.ui.label_2.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
@@ -249,6 +261,7 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, event):
         self._layout_title()
+        self._layout_asgard_logo()
         super().resizeEvent(event)
 
     def closeEvent(self, *args):

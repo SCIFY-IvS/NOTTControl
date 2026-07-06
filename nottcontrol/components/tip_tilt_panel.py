@@ -10,6 +10,8 @@ from nottcontrol.components.delay_lines_panel import (
     _position_style,
     _state_style,
     _status_style,
+    format_compact_state,
+    format_compact_status,
 )
 
 TIP_TILT_ACTUATORS = tuple(
@@ -52,8 +54,8 @@ class TipTiltStatusPanel(QWidget):
         grid = QGridLayout(box)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(2, 2)
-        grid.setColumnStretch(3, 2)
+        grid.setColumnStretch(2, 1)
+        grid.setColumnStretch(3, 1)
         grid.setColumnStretch(4, 2)
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(4)
@@ -122,11 +124,13 @@ class TipTiltStatusPanel(QWidget):
         position_mm: float | None,
     ) -> None:
         status_label = self._status_labels[actuator_id]
-        status_label.setText("—" if status is None else str(status))
+        status_text = format_compact_status(status)
+        status_label.setText(status_text)
         status_label.setStyleSheet(_status_style(status))
 
         state_label = self._state_labels[actuator_id]
-        state_label.setText("—" if state is None else str(state))
+        state_text = format_compact_state(state)
+        state_label.setText(state_text)
         state_label.setStyleSheet(_state_style(state))
 
         position_label = self._position_labels[actuator_id]

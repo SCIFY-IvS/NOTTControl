@@ -40,6 +40,14 @@ def _temp_value_style(temp_k: float | None) -> str:
     return f'font: 700 11pt "Segoe UI"; color: {color};'
 
 
+def _temp_panel_name_style() -> str:
+    return 'font: 10pt "Segoe UI"; color: rgb(40, 40, 40);'
+
+
+def _temp_panel_header_style() -> str:
+    return f'font: 700 11pt "Segoe UI"; color: {TEAL};'
+
+
 def _pressure_value_style(value: float | None) -> str:
     if value is None:
         return 'font: 11pt "Segoe UI"; color: rgb(140, 140, 140);'
@@ -287,10 +295,12 @@ class CryoTemperaturePanel(QWidget):
 
         box = QGroupBox("Cryostat temperatures")
         grid = QGridLayout(box)
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(2, 1)
-        grid.setHorizontalSpacing(16)
-        grid.setVerticalSpacing(4)
+        grid.setColumnStretch(0, 2)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 2)
+        grid.setColumnStretch(3, 1)
+        grid.setHorizontalSpacing(20)
+        grid.setVerticalSpacing(6)
 
         row = 0
         for group_name in group_order:
@@ -299,7 +309,7 @@ class CryoTemperaturePanel(QWidget):
                 continue
 
             header = QLabel(group_name)
-            header.setStyleSheet(f'font: 700 10pt "Segoe UI"; color: {TEAL};')
+            header.setStyleSheet(_temp_panel_header_style())
             grid.addWidget(header, row, 0, 1, 4)
             row += 1
 
@@ -309,8 +319,9 @@ class CryoTemperaturePanel(QWidget):
                 column_base = 0 if index < half else 2
                 item_row = row + (index if index < half else index - half)
                 name_label = QLabel(name)
-                name_label.setStyleSheet('font: 9pt "Segoe UI";')
+                name_label.setStyleSheet(_temp_panel_name_style())
                 value_label = QLabel("—")
+                value_label.setMinimumWidth(72)
                 value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 value_label.setStyleSheet(_temp_value_style(None))
                 grid.addWidget(name_label, item_row, column_base)
