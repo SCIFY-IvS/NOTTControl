@@ -91,13 +91,13 @@ def format_compact_status(status: str | None) -> str:
         return "—"
     upper = str(status).strip().upper()
     if "STAND" in upper:
-        return "Stand"
+        return "STAND"
     if upper in {"OK", "ENABLED", "READY"}:
         return upper.title() if upper != "OK" else "OK"
     if "ERR" in upper or "FAULT" in upper:
-        return "Error"
+        return "ERROR"
     if "DISABLE" in upper:
-        return "Off"
+        return "OFF"
     text = str(status).strip()
     return text if len(text) <= 8 else text[:7] + "…"
 
@@ -107,15 +107,15 @@ def format_compact_state(state: str | None) -> str:
         return "—"
     upper = str(state).strip().upper()
     if "OPERAT" in upper:
-        return "Oper"
+        return "OPER"
     if "NOT OP" in upper or "NOT_OP" in upper:
-        return "Not op"
+        return "NOT OP"
     if "STAND" in upper or "IDLE" in upper:
-        return "Idle"
+        return "IDLE"
     if "MOV" in upper or "RUN" in upper:
-        return "Move"
+        return "MOVE"
     if "ERR" in upper or "FAULT" in upper:
-        return "Error"
+        return "ERROR"
     text = str(state).strip()
     return text if len(text) <= 8 else text[:7] + "…"
 

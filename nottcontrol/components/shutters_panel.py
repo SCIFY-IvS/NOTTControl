@@ -10,6 +10,8 @@ from nottcontrol.components.delay_lines_panel import (
     _name_style,
     _state_style,
     _status_style,
+    format_compact_state,
+    format_compact_status,
 )
 
 SHUTTER_OPEN_POS_MM = 5.0
@@ -40,9 +42,9 @@ def shutter_hardware_state(position_mm: float | None) -> str | None:
     if position_mm is None:
         return None
     if np.isclose(position_mm, SHUTTER_OPEN_POS_MM, SHUTTER_POS_RTOL):
-        return "Open"
+        return "OPEN"
     if np.isclose(position_mm, SHUTTER_CLOSE_POS_MM, SHUTTER_POS_RTOL):
-        return "Closed"
+        return "CLOSED"
     return "Unknown"
 
 
@@ -126,11 +128,13 @@ class ShuttersStatusPanel(QWidget):
         position_mm: float | None,
     ) -> None:
         status_label = self._status_labels[shutter_key]
-        status_label.setText("—" if status is None else str(status))
+        status_text = format_compact_status(status)
+        status_label.setText(status_text)
         status_label.setStyleSheet(_status_style(status))
 
         state_label = self._state_labels[shutter_key]
-        state_label.setText("—" if state is None else str(state))
+        state_text = format_compact_state(state)
+        state_label.setText(state_text)
         state_label.setStyleSheet(_state_style(state))
 
         shutter_state = shutter_hardware_state(position_mm)

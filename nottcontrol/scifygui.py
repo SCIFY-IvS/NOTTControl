@@ -109,11 +109,11 @@ class MainWindow(QMainWindow):
 
         self.tt_status_opc_nodes, self.tt_status_keys = tip_tilt_opc_nodes()
         self.tt_status_panel = TipTiltStatusPanel(self.ui.centralwidget)
-        self.tt_status_panel.setGeometry(660, 90, 370, 270)
+        self.tt_status_panel.setGeometry(660, 118, 370, 285)
 
         self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
         self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
-        self.shutter_status_panel.setGeometry(660, 445, 370, 165)
+        self.shutter_status_panel.setGeometry(660, 413, 370, 165)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -138,16 +138,17 @@ class MainWindow(QMainWindow):
 
         self.equipment_panel = CryoEquipmentPanel(self.ui.centralwidget)
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
-        self.equipment_panel.setGeometry(660, 365, 370, 75)
-        self.equipment_panel.setup(equipment_items)
+        self.equipment_panel.setGeometry(230, 585, 420, 95)
+        self.equipment_panel.setup(equipment_items, show_updated=False)
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
         self.pressure_panel.setGeometry(230, 470, 420, 110)
         self.pressure_panel.setup(self.pressure_tags, self.pressure_display_names)
 
         self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
-        self.cryo_temp_panel.setGeometry(230, 620, 790, 270)
+        self.cryo_temp_panel.setGeometry(230, 688, 790, 210)
         self.cryo_temp_panel.setup(self.temp_tags, self.temp_display_names)
+        self.equipment_panel.raise_()
 
         for widget in (
             self.ui.label_light_source,

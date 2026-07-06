@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QFrame, QGridLayout, QGroupBox, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from nottcontrol.sensors import format_pressure_value, format_equipment_status
 
@@ -176,13 +176,14 @@ class CryoEquipmentPanel(QWidget):
         self._updated_label.setStyleSheet('font: 9pt "Segoe UI"; color: rgb(100, 100, 100);')
         self._updated_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-    def setup(self, items: list[tuple[str, str]]) -> None:
+    def setup(self, items: list[tuple[str, str]], *, show_updated: bool = True) -> None:
         if not items:
             return
 
         box = QGroupBox("Equipment")
         grid = QGridLayout(box)
         grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(6)
 
@@ -198,7 +199,8 @@ class CryoEquipmentPanel(QWidget):
 
         layout = self.layout()
         layout.addWidget(box)
-        layout.addWidget(self._updated_label)
+        if show_updated:
+            layout.addWidget(self._updated_label)
 
     def update_values(
         self,
@@ -300,7 +302,7 @@ class CryoTemperaturePanel(QWidget):
         grid.setColumnStretch(2, 2)
         grid.setColumnStretch(3, 1)
         grid.setHorizontalSpacing(20)
-        grid.setVerticalSpacing(6)
+        grid.setVerticalSpacing(8)
 
         row = 0
         for group_name in group_order:
@@ -309,6 +311,7 @@ class CryoTemperaturePanel(QWidget):
                 continue
 
             header = QLabel(group_name)
+            header.setMinimumHeight(22)
             header.setStyleSheet(_temp_panel_header_style())
             grid.addWidget(header, row, 0, 1, 4)
             row += 1
@@ -319,9 +322,11 @@ class CryoTemperaturePanel(QWidget):
                 column_base = 0 if index < half else 2
                 item_row = row + (index if index < half else index - half)
                 name_label = QLabel(name)
+                name_label.setMinimumHeight(22)
                 name_label.setStyleSheet(_temp_panel_name_style())
                 value_label = QLabel("—")
                 value_label.setMinimumWidth(72)
+                value_label.setMinimumHeight(22)
                 value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 value_label.setStyleSheet(_temp_value_style(None))
                 grid.addWidget(name_label, item_row, column_base)
@@ -330,7 +335,13 @@ class CryoTemperaturePanel(QWidget):
 
             row += half
 
-        self.layout().addWidget(box)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidget(box)
+
+        self.layout().addWidget(scroll)
 
     def update_values(self, temp_tag_values: dict[str, float | None]) -> None:
         for tag, label in self._temp_value_labels.items():
