@@ -155,3 +155,46 @@ class CryoTempPanel(QWidget):
 
         if updated_at is not None:
             self._updated_label.setText(f"Updated: {updated_at.strftime('%H:%M:%S')} UTC")
+
+
+class CryoPressurePanel(QWidget):
+    """Vacuum and pressure readouts, shown below the delay-lines panel."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet(PANEL_STYLE)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(0)
+
+        self._pressure_value_labels: dict[str, QLabel] = {}
+
+    def setup(self, tags: list[str], display_names: list[str]) -> None:
+        if not tags:
+            return
+
+        box = QGroupBox("Vacuum & pressure")
+        grid = QGridLayout(box)
+        grid.setColumnStretch(0, 1)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(6)
+
+        for row, (tag, name) in enumerate(zip(tags, display_names)):
+            name_label = QLabel(name)
+            name_label.setStyleSheet('font: 10pt "Segoe UI";')
+            value_label = QLabel("—")
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setStyleSheet(_pressure_value_style(None))
+            grid.addWidget(name_label, row, 0)
+            grid.addWidget(value_label, row, 1)
+            self._pressure_value_labels[tag] = value_label
+
+        layout = self.layout()
+        layout.addWidget(box)
+
+    def update_values(self, pressure_tag_values: dict[str, float | None]) -> None:
+        for tag, label in self._pressure_value_labels.items():
+            value = pressure_tag_values.get(tag)
+            label.setText(format_pressure_value(tag, value))
+            label.setStyleSheet(_pressure_value_style(value))

@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUi
+from pathlib import Path
 from nottcontrol.opcua import OPCUAConnection
 from asyncua import ua
 from datetime import datetime
@@ -13,13 +15,20 @@ from nottcontrol.sensors import (
     load_pressure_sensors,
     load_cryo_status_config,
     coerce_sensor_value,
-    format_equipment_status,
 )
-from nottcontrol.components.cryo_temp_panel import CryoTempPanel
+from nottcontrol.components.cryo_temp_panel import CryoTempPanel, CryoPressurePanel
 from nottcontrol.components.cryo_temperature_bar import CryoTemperatureBar
 from nottcontrol.components.delay_lines_panel import (
     DelayLinesStatusPanel,
     delay_line_opc_nodes,
+)
+from nottcontrol.components.tip_tilt_panel import (
+    TipTiltStatusPanel,
+    tip_tilt_opc_nodes,
+)
+from nottcontrol.components.shutters_panel import (
+    ShuttersStatusPanel,
+    shutter_opc_nodes,
 )
 from nottcontrol.components.motor import Motor
 from nottcontrol.shutters_window import ShutterWindow
@@ -73,8 +82,7 @@ class MainWindow(QMainWindow):
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
         self.setWindowTitle("NOTT instrument control")
-        self.ui.label.setStyleSheet("background: transparent;")
-        self.ui.label.setAttribute(Qt.WA_TranslucentBackground, True)
+        self._load_header_logo()
         self.ui.label_2.setStyleSheet("background: transparent;")
 
         # print("self.opcua_conn in MainWindow", self.opcua_conn)
@@ -91,6 +99,14 @@ class MainWindow(QMainWindow):
         self.dl_status_panel.setGeometry(230, 295, 420, 165)
         self.ui.label_dl_status.hide()
         self.ui.label_dl_state.hide()
+
+        self.tt_status_opc_nodes, self.tt_status_keys = tip_tilt_opc_nodes()
+        self.tt_status_panel = TipTiltStatusPanel(self.ui.centralwidget)
+        self.tt_status_panel.setGeometry(660, 260, 350, 165)
+
+        self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
+        self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
+        self.shutter_status_panel.setGeometry(660, 435, 350, 165)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -114,25 +130,23 @@ class MainWindow(QMainWindow):
         self.opcua_conn_cry.connect()
 
         self.cryo_panel = CryoTempPanel(self.ui.centralwidget)
-        self.cryo_panel.setGeometry(660, 90, 350, 240)
+        self.cryo_panel.setGeometry(660, 90, 350, 160)
         self.cryo_panel.setup_equipment(
             [(item.key, item.label) for item in self.cryo_status_items]
         )
-        self.cryo_panel.setup_pressures(self.pressure_tags, self.pressure_display_names)
+
+        self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
+        self.pressure_panel.setGeometry(230, 470, 420, 120)
+        self.pressure_panel.setup(self.pressure_tags, self.pressure_display_names)
 
         self.cryo_temp_bar = CryoTemperatureBar(self.ui.centralwidget)
-        self.cryo_temp_bar.setGeometry(20, 620, 1000, 155)
+        self.cryo_temp_bar.setGeometry(230, 690, 790, 220)
         self.cryo_temp_bar.setup(self.temp_tags, self.temp_display_names)
 
-        self._equipment_summary_labels: dict[str, QLabel] = {}
-        summary_y = 505
-        for index, item in enumerate(self.cryo_status_items):
-            label = QLabel(f"{item.label}: —", self.ui.centralwidget)
-            label.setGeometry(230, summary_y + index * 24, 220, 22)
-            label.setStyleSheet('font: 10pt "Segoe UI"; color: rgb(80, 80, 80);')
-            self._equipment_summary_labels[item.key] = label
-
         for widget in (
+            self.ui.label_light_source,
+            self.ui.label_shutters_status,
+            self.ui.label_filter_wheel_status,
             self.ui.main_label_temp1,
             self.ui.main_label_temp2,
             self.ui.main_label_temp3,
@@ -146,11 +160,13 @@ class MainWindow(QMainWindow):
 
         self.temp1 = self.temp2 = self.temp3 = self.temp4 = None
 
-        self.ui.label_error.setGeometry(270, 785, 500, 16)
-        self.resize(max(self.width(), 1040), 820)
+        self.ui.label_error.setGeometry(270, 925, 500, 16)
+        self.resize(max(self.width(), 1040), 955)
 
         # Dl status on main window
         self.load_dl_status()
+        self.load_tt_status()
+        self.load_shutter_status()
         self.update_cryo_temps()
 
         self.t = QTimer()
@@ -161,6 +177,21 @@ class MainWindow(QMainWindow):
         self.t2.timeout.connect(self.read_and_store_sensor_values)
         sensor_save_interval_ms = config.getint("SENSORS", "sensor_save_interval_ms")
         self.t2.start(sensor_save_interval_ms)
+
+    def _load_header_logo(self) -> None:
+        logo_path = Path(__file__).resolve().parent / "NOTT.png"
+        self.ui.label.setStyleSheet("background: transparent;")
+        self.ui.label.setAttribute(Qt.WA_TranslucentBackground, True)
+        if not logo_path.exists():
+            return
+        pixmap = QPixmap(str(logo_path))
+        if pixmap.isNull():
+            return
+        self.ui.label.setPixmap(
+            pixmap.scaled(240, 110, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
+        self.ui.label.setAlignment(Qt.AlignCenter)
+        self.ui.label.setText("")
 
     def open_camera_interface(self):
         try:
@@ -187,6 +218,8 @@ class MainWindow(QMainWindow):
     def refresh_status(self):
         try:
             self.load_dl_status()
+            self.load_tt_status()
+            self.load_shutter_status()
             self.update_cryo_temps()
 
             now = datetime.utcnow()
@@ -276,6 +309,24 @@ class MainWindow(QMainWindow):
             state = values[index * 3 + 1]
             position_mm = coerce_sensor_value(values[index * 3 + 2])
             self.dl_status_panel.update_status(dl_key, status, state, position_mm)
+
+    def load_tt_status(self):
+        values = self.opcua_conn.read_nodes(self.tt_status_opc_nodes)
+        for index, beam_key in enumerate(self.tt_status_keys):
+            status = values[index * 3]
+            state = values[index * 3 + 1]
+            position_mm = coerce_sensor_value(values[index * 3 + 2])
+            self.tt_status_panel.update_status(beam_key, status, state, position_mm)
+
+    def load_shutter_status(self):
+        values = self.opcua_conn.read_nodes(self.shutter_status_opc_nodes)
+        for index, shutter_key in enumerate(self.shutter_status_keys):
+            status = values[index * 3]
+            state = values[index * 3 + 1]
+            position_mm = coerce_sensor_value(values[index * 3 + 2])
+            self.shutter_status_panel.update_status(
+                shutter_key, status, state, position_mm
+            )
     
     def read_and_store_sensor_values(self):
         try:
@@ -322,20 +373,6 @@ class MainWindow(QMainWindow):
             print(f"Equipment status read failed: {e}")
             return {item.key: None for item in self.cryo_status_items}
 
-    def _update_equipment_summary(self, equipment_status: dict[str, object]) -> None:
-        for item in self.cryo_status_items:
-            label = self._equipment_summary_labels.get(item.key)
-            if label is None:
-                continue
-            text, style_key = format_equipment_status(equipment_status.get(item.key))
-            color = {
-                "running": "rgb(0, 140, 70)",
-                "stopped": "rgb(180, 60, 60)",
-                "unknown": "rgb(140, 140, 140)",
-            }[style_key]
-            label.setText(f"{item.label}: {text}")
-            label.setStyleSheet(f'font: 700 10pt "Segoe UI"; color: {color};')
-
     def update_cryo_display_from_values(
         self,
         temp_tags: list[str],
@@ -354,15 +391,15 @@ class MainWindow(QMainWindow):
                 tag: coerce_sensor_value(value)
                 for tag, value in zip(pressure_tags, pressure_values)
             }
-        self.cryo_panel.update_values(pressure_tag_values, equipment_status, updated_at)
+        self.cryo_panel.update_values(None, equipment_status, updated_at)
+        if pressure_tag_values is not None:
+            self.pressure_panel.update_values(pressure_tag_values)
         self.cryo_temp_bar.update_values(temp_tag_values)
 
         self.temp1 = temp_tag_values.get(HEADLINE_TEMP_TAGS[0])
         self.temp2 = temp_tag_values.get(HEADLINE_TEMP_TAGS[1])
         self.temp3 = temp_tag_values.get(HEADLINE_TEMP_TAGS[2])
         self.temp4 = temp_tag_values.get(HEADLINE_TEMP_TAGS[3])
-        if equipment_status is not None:
-            self._update_equipment_summary(equipment_status)
 
     def update_cryo_temps(self):
         if not self.sensor_opc_nodes:

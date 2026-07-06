@@ -15,8 +15,8 @@ class CryoTemperatureBar(QWidget):
         self.setStyleSheet(PANEL_STYLE)
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(4, 2, 4, 4)
-        outer.setSpacing(4)
+        outer.setContentsMargins(6, 4, 6, 6)
+        outer.setSpacing(6)
 
         title = QLabel("Cryostat temperatures")
         title.setStyleSheet(f'font: 700 12pt "Segoe UI"; color: {TEAL};')
@@ -24,8 +24,8 @@ class CryoTemperatureBar(QWidget):
 
         self._grid = QGridLayout()
         self._grid.setContentsMargins(0, 0, 0, 0)
-        self._grid.setHorizontalSpacing(8)
-        self._grid.setVerticalSpacing(6)
+        self._grid.setHorizontalSpacing(12)
+        self._grid.setVerticalSpacing(10)
         outer.addLayout(self._grid)
 
         self._temp_value_labels: dict[str, QLabel] = {}
@@ -49,7 +49,7 @@ class CryoTemperatureBar(QWidget):
         ]
         active_groups = [name for name in group_order if grouped.get(name)]
 
-        columns = 5
+        columns = 4
         for index, group_name in enumerate(active_groups):
             items = grouped[group_name]
             row = index // columns
@@ -57,19 +57,20 @@ class CryoTemperatureBar(QWidget):
 
             box = QGroupBox(group_name)
             box.setStyleSheet(
-                'QGroupBox { font: 700 9pt "Segoe UI"; margin-top: 8px; padding-top: 6px; }'
+                'QGroupBox { font: 700 10pt "Segoe UI"; margin-top: 10px; padding-top: 8px; }'
             )
+            box.setMinimumHeight(36 + len(items) * 24)
             grid = QGridLayout(box)
-            grid.setContentsMargins(6, 4, 6, 4)
-            grid.setHorizontalSpacing(6)
-            grid.setVerticalSpacing(2)
+            grid.setContentsMargins(8, 6, 8, 8)
+            grid.setHorizontalSpacing(8)
+            grid.setVerticalSpacing(4)
             grid.setColumnStretch(0, 1)
 
             for item_row, (tag, name) in enumerate(
                 sorted(items, key=lambda item: item[1])
             ):
                 name_label = QLabel(name)
-                name_label.setStyleSheet('font: 8pt "Segoe UI";')
+                name_label.setStyleSheet('font: 9pt "Segoe UI";')
                 value_label = QLabel("—")
                 value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 value_label.setStyleSheet(_temp_value_style(None))
@@ -78,6 +79,7 @@ class CryoTemperatureBar(QWidget):
                 self._temp_value_labels[tag] = value_label
 
             self._grid.addWidget(box, row, col)
+            self._grid.setRowStretch(row, 1)
 
     def update_values(self, temp_tag_values: dict[str, float | None]) -> None:
         for tag, label in self._temp_value_labels.items():
