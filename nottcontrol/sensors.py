@@ -241,8 +241,9 @@ def load_cryo_status_config(path: str | Path) -> list[CryoStatusItem]:
             if not line or line.startswith("#"):
                 continue
             parts = [part.strip() for part in line.split("|")]
-            if len(parts) == 3:
-                key, label, opc_node = parts
+            if len(parts) >= 3:
+                key, label = parts[0], parts[1]
+                opc_node = "|".join(parts[2:])
             elif len(parts) == 2:
                 key, opc_node = parts
                 label = key.replace("_", " ").title()
