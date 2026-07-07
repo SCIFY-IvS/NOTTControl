@@ -402,7 +402,7 @@ class MainWindow(QMainWindow):
     def open_tiptilt_window(self):
         try:
             if self.tiptilt_window is None:
-                self.tiptilt_window = TipTiltControl(self, self.opcua_conn, self.redis_client)
+                self.tiptilt_window = TipTiltWindow(self, self.opcua_conn, self.redis_client)
                 self.tiptilt_window.closing.connect(self.clear_tiptilt_window)
                 self.tiptilt_window.show()
                 print("Tiptilt window is opening fine")
