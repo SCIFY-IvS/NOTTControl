@@ -9,12 +9,14 @@ from nottcontrol.camera.infratec.roi import Roi
 from nottcontrol.camera.infratec.utils.utils import BrightnessResults
 
 ROI_COUNT = 10
-NAME_WIDTH = 52
-PLOT_WIDTH = 36
-VALUE_WIDTH = 58
+NAME_WIDTH = 42
+PLOT_WIDTH = 22
+VALUE_WIDTH = 48
 ROW_HEIGHT = 20
 HEADER_HEIGHT = 18
-PANEL_CHROME_HEIGHT = 34
+PANEL_CHROME_HEIGHT = 30
+GRID_H_SPACING = 3
+PANEL_SIDE_MARGIN = 14
 
 VALUE_STYLE = 'font: 10pt "Consolas", monospace; color: rgb(30, 30, 30);'
 HEADER_STYLE = 'font: 700 9pt "Segoe UI"; color: rgb(90, 90, 90);'
@@ -22,6 +24,16 @@ HEADER_STYLE = 'font: 700 9pt "Segoe UI"; color: rgb(90, 90, 90);'
 
 def roi_panel_height() -> int:
     return PANEL_CHROME_HEIGHT + HEADER_HEIGHT + ROI_COUNT * ROW_HEIGHT
+
+
+def roi_panel_width() -> int:
+    grid_width = (
+        NAME_WIDTH
+        + PLOT_WIDTH
+        + VALUE_WIDTH * 3
+        + GRID_H_SPACING * 4
+    )
+    return grid_width + PANEL_SIDE_MARGIN * 2
 
 
 class RoiWidget:

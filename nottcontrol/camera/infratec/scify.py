@@ -34,6 +34,7 @@ from collections import deque
 from enum import Enum
 from nottcontrol.camera.infratec.roi import Roi
 from nottcontrol.camera.infratec.roiwidget import (
+    GRID_H_SPACING,
     HEADER_HEIGHT,
     HEADER_STYLE,
     NAME_WIDTH,
@@ -41,6 +42,7 @@ from nottcontrol.camera.infratec.roiwidget import (
     RoiWidget,
     VALUE_WIDTH,
     roi_panel_height,
+    roi_panel_width,
 )
 import queue
 from pathlib import Path
@@ -66,8 +68,10 @@ SAVE_QUEUE_SIZE = config.getint("CAMERA", "save_queue_size", fallback=256)
 PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
 IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
 IMAGE_BORDER = 16
-GRAPH_HEIGHT = 180
-WINDOW_BOTTOM_BUFFER = 28
+GRAPH_HEIGHT = 110
+WINDOW_BOTTOM_BUFFER = 6
+LEFT_COLUMN_X = 10
+LEFT_COLUMN_GAP = 10
 FRAMES_TODAY_LABEL_Y = 132
 ROI_PANEL_Y = 156
 
@@ -171,7 +175,7 @@ class MainWindow(QMainWindow):
     def _setup_roi_values_panel(self) -> None:
         self.ui.scrollArea.hide()
 
-        panel_width = NAME_WIDTH + PLOT_WIDTH + VALUE_WIDTH * 3 + 36
+        panel_width = roi_panel_width()
         panel_height = roi_panel_height()
 
         self.roi_panel = QGroupBox("ROI values", self.ui.centralwidget)
@@ -200,7 +204,7 @@ class MainWindow(QMainWindow):
         grid_host = QWidget(self.roi_panel)
         grid = QGridLayout(grid_host)
         grid.setContentsMargins(6, 2, 6, 4)
-        grid.setHorizontalSpacing(6)
+        grid.setHorizontalSpacing(GRID_H_SPACING)
         grid.setVerticalSpacing(0)
 
         for column, (text, width, alignment) in enumerate(
@@ -237,12 +241,14 @@ class MainWindow(QMainWindow):
             self.roi_widgets.append(roi_widget)
 
         outer = QGridLayout(self.roi_panel)
-        outer.setContentsMargins(8, 12, 8, 6)
+        outer.setContentsMargins(6, 10, 6, 4)
         outer.addWidget(grid_host, 0, 0)
 
     def _setup_frames_today_label(self) -> None:
         self.label_frames_today = QLabel(self.ui.centralwidget)
-        self.label_frames_today.setGeometry(10, FRAMES_TODAY_LABEL_Y, 268, 20)
+        self.label_frames_today.setGeometry(
+            LEFT_COLUMN_X, FRAMES_TODAY_LABEL_Y, roi_panel_width(), 20
+        )
         self.label_frames_today.setStyleSheet(
             'font: 10pt "Segoe UI"; color: rgb(50, 129, 140);'
         )
@@ -292,17 +298,22 @@ class MainWindow(QMainWindow):
 
         camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
         camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
-        camera_x = 270
         top_y = 50
-        left_panel_x = 10
         graph_gap = 8
+        panel_width = roi_panel_width()
+        panel_height = roi_panel_height()
+        camera_x = LEFT_COLUMN_X + panel_width + LEFT_COLUMN_GAP
+
+        self.roi_panel.setGeometry(LEFT_COLUMN_X, ROI_PANEL_Y, panel_width, panel_height)
+        self.roi_panel.setFixedSize(panel_width, panel_height)
+        self.label_frames_today.setFixedWidth(panel_width)
 
         self.ui.frame_camera.setGeometry(camera_x, top_y, camera_w, camera_h)
         self.ui.frame_camera.setFixedSize(camera_w, camera_h)
 
-        panel_height = roi_panel_height()
-        panel_width = self.roi_panel.width()
-        self.roi_panel.setGeometry(left_panel_x, ROI_PANEL_Y, panel_width, panel_height)
+        background_bar = self.ui.button_takebackground.parentWidget()
+        if background_bar is not None:
+            background_bar.setGeometry(camera_x, 20, min(camera_w, 320), 32)
 
         graph_y = top_y + camera_h + graph_gap
         self.ui.frame_roi_graph.setGeometry(camera_x, graph_y, camera_w, GRAPH_HEIGHT)
@@ -315,8 +326,12 @@ class MainWindow(QMainWindow):
         self.ui.groupBox.setGeometry(right_x, 80, 181, 151)
         self.ui.groupBox_2.setGeometry(right_x, 250, 181, 91)
 
-        window_h = graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER
+        content_h = graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER
         window_w = max(right_x + 200, camera_x + camera_w + 40)
+        self.ui.centralwidget.setFixedSize(window_w, content_h)
+        window_h = content_h + self.menuBar().height()
+        if self.statusBar() is not None:
+            window_h += self.statusBar().height()
         self.setMinimumSize(window_w, window_h)
         self.resize(window_w, window_h)
     
