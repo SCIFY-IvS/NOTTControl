@@ -65,6 +65,17 @@ class RedisClient:
         
     def unix_time_ms(self, time):
         return round((time - self.epoch).total_seconds() * 1000.0)
+
+    def fetch_timeseries_range(
+        self, key: str, start_ms: int, end_ms: int
+    ) -> tuple[list[float], list[float]]:
+        """Return (unix_seconds, values) for a Redis TimeSeries key."""
+        samples = self.ts.range(key, start_ms, end_ms)
+        if not samples:
+            return [], []
+        times = [sample[0] / 1000.0 for sample in samples]
+        values = [float(sample[1]) for sample in samples]
+        return times, values
     
     def save_DL_pos(self, dl_pos_json):
         self.db.json().set("saved_pos", "$", dl_pos_json)

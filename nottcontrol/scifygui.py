@@ -68,6 +68,18 @@ HEADLINE_TEMP_TAGS = (
     "t_photonic_chip_vote",
 )
 
+DASHBOARD_GAP = 12
+LEFT_PANEL_X = 230
+LEFT_PANEL_W = 420
+RIGHT_PANEL_X = 660
+RIGHT_PANEL_W = 370
+DASHBOARD_TOP_Y = 295
+DL_PANEL_H = 165
+PRESSURE_PANEL_H = 200
+TT_PANEL_H = 285
+SHUTTER_PANEL_H = 165
+TEMP_PANEL_H = 110
+
 
 class MainWindow(QMainWindow):
     def __init__(self, opcua_conn):
@@ -104,17 +116,26 @@ class MainWindow(QMainWindow):
 
         self.dl_status_opc_nodes, self.dl_status_keys = delay_line_opc_nodes()
         self.dl_status_panel = DelayLinesStatusPanel(self.ui.centralwidget)
-        self.dl_status_panel.setGeometry(230, 295, 420, 165)
+        self.dl_status_panel.setGeometry(
+            LEFT_PANEL_X, DASHBOARD_TOP_Y, LEFT_PANEL_W, DL_PANEL_H
+        )
         self.ui.label_dl_status.hide()
         self.ui.label_dl_state.hide()
 
         self.tt_status_opc_nodes, self.tt_status_keys = tip_tilt_opc_nodes()
         self.tt_status_panel = TipTiltStatusPanel(self.ui.centralwidget)
-        self.tt_status_panel.setGeometry(660, 118, 370, 285)
+        tt_panel_y = 118
+        self.tt_status_panel.setGeometry(
+            RIGHT_PANEL_X, tt_panel_y, RIGHT_PANEL_W, TT_PANEL_H
+        )
 
         self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
         self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
-        self.shutter_status_panel.setGeometry(660, 413, 370, 165)
+        shutter_panel_y = tt_panel_y + TT_PANEL_H + DASHBOARD_GAP
+        self.shutter_status_panel.setGeometry(
+            RIGHT_PANEL_X, shutter_panel_y, RIGHT_PANEL_W, SHUTTER_PANEL_H
+        )
+        temp_panel_y = shutter_panel_y + SHUTTER_PANEL_H + DASHBOARD_GAP
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -152,7 +173,10 @@ class MainWindow(QMainWindow):
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
-        self.pressure_panel.setGeometry(230, 470, 420, 200)
+        pressure_panel_y = DASHBOARD_TOP_Y + DL_PANEL_H + DASHBOARD_GAP
+        self.pressure_panel.setGeometry(
+            LEFT_PANEL_X, pressure_panel_y, LEFT_PANEL_W, PRESSURE_PANEL_H
+        )
         self.pressure_panel.setup(
             self.pressure_tags,
             self.pressure_display_names,
@@ -160,7 +184,9 @@ class MainWindow(QMainWindow):
         )
 
         self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
-        self.cryo_temp_panel.setGeometry(660, 678, 360, 100)
+        self.cryo_temp_panel.setGeometry(
+            RIGHT_PANEL_X, temp_panel_y, RIGHT_PANEL_W, TEMP_PANEL_H
+        )
         self.cryo_temp_panel.setup(
             self.dashboard_temp_tags,
             self.dashboard_temp_display_names,
@@ -185,8 +211,13 @@ class MainWindow(QMainWindow):
 
         self.temp1 = self.temp2 = self.temp3 = self.temp4 = None
 
-        self.ui.label_error.setGeometry(270, 895, 500, 16)
-        self.resize(max(self.width(), 1040), 925)
+        self.ui.label_error.hide()
+
+        dashboard_bottom = max(
+            pressure_panel_y + PRESSURE_PANEL_H,
+            temp_panel_y + TEMP_PANEL_H,
+        )
+        self.resize(max(self.width(), 1040), dashboard_bottom + 60)
         self._layout_title()
 
         # Dl status on main window
@@ -341,12 +372,8 @@ class MainWindow(QMainWindow):
             self.redis_client.add_temperature_2(now, self.temp2)
             self.redis_client.add_temperature_3(now, self.temp3)
             self.redis_client.add_temperature_4(now, self.temp4)
-
-            if not self.ui.label_error.text().startswith(("Sensors:", "Cryo temps:")):
-                self.ui.label_error.clear()
         except Exception as e:
             print(e)
-            self.ui.label_error.setText(str(e))
 
 
 
@@ -473,12 +500,11 @@ class MainWindow(QMainWindow):
                 now,
             )
             if skipped_keys:
-                self.ui.label_error.setText(
+                print(
                     f"Sensors: saved {saved_count}, skipped {len(skipped_keys)} invalid"
                 )
         except Exception as e:
-            print(f"Sensor read/save failed: {e}")
-            self.ui.label_error.setText(f"Sensors: {e}")
+            print(f"Sensors: {e}")
             try:
                 self.opcua_conn_cry.reconnect()
             except Exception as reconnect_error:
@@ -551,8 +577,7 @@ class MainWindow(QMainWindow):
                 datetime.utcnow(),
             )
         except Exception as e:
-            print(f"Cryo sensor read failed: {e}")
-            self.ui.label_error.setText(f"Cryo temps: {e}")
+            print(f"Cryo temps: {e}")
 
 class DelayLinesWindow(QMainWindow):
     closing = pyqtSignal()

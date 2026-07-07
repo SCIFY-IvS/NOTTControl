@@ -35,10 +35,15 @@ class PiezosWindow(QMainWindow):
         else:
             self.ui.label_connection.setText(f"Connected on {port}")
 
-        self.ui.piezo_widget_1.setup(self._piezo_interf, 0, "Piezo 1")
-        self.ui.piezo_widget_2.setup(self._piezo_interf, 1, "Piezo 2")
-        self.ui.piezo_widget_3.setup(self._piezo_interf, 2, "Piezo 3")
-        self.ui.piezo_widget_4.setup(self._piezo_interf, 3, "Piezo 4")
+        for index, widget in enumerate(
+            (
+                self.ui.piezo_widget_1,
+                self.ui.piezo_widget_2,
+                self.ui.piezo_widget_3,
+                self.ui.piezo_widget_4,
+            )
+        ):
+            widget.setup(self._piezo_interf, index, f"Piezo {index + 1}", port)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_positions)
@@ -47,6 +52,15 @@ class PiezosWindow(QMainWindow):
 
     def closeEvent(self, *args):
         self.t.stop()
+        for widget in (
+            self.ui.piezo_widget_1,
+            self.ui.piezo_widget_2,
+            self.ui.piezo_widget_3,
+            self.ui.piezo_widget_4,
+        ):
+            worker = getattr(widget, "_scan_worker", None)
+            if worker is not None and worker.isRunning():
+                worker.wait(2000)
         if getattr(self._piezo_interf, "ser", None) is not None:
             try:
                 self._piezo_interf.reset_server()
