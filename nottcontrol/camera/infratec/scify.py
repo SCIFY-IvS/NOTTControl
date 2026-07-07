@@ -143,6 +143,10 @@ class MainWindow(QMainWindow):
         self.ui = loadUi('camera/infratec/mainwindow.ui', self)
         self.frame_directory = frame_directory
 
+        self.connected = False
+        self.recording = False
+        self.triggerEnabled = False
+
         self._setup_roi_values_panel()
         self._setup_frames_today_label()
         self._setup_detector_panel()
@@ -153,10 +157,6 @@ class MainWindow(QMainWindow):
         self._recording_started_at: datetime | None = None
 
         self.connectSignalSlots()
-        
-        self.connected = False
-        self.recording = False
-        self.triggerEnabled = False
         
         self.image=pg.ImageView(self.ui.frame_camera)
         self.image.ui.histogram.hide()
