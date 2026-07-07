@@ -153,12 +153,6 @@ class MainWindow(QMainWindow):
         self.connected = False
         self.recording = False
         self.triggerEnabled = False
-
-        self._setup_roi_values_panel()
-        self._setup_frames_today_label()
-        self._setup_detector_panel()
-        self._layout_window()
-
         self.integtime = 0
         self._last_camera_frame_rate: float | None = None
         self._recording_started_at: datetime | None = None
@@ -166,6 +160,11 @@ class MainWindow(QMainWindow):
         self._cached_exposure_options_us: list[int] | None = None
         self._cached_framerate_options_hz: list[float] | None = None
         self._applying_detector = False
+
+        self._setup_roi_values_panel()
+        self._setup_frames_today_label()
+        self._setup_detector_panel()
+        self._layout_window()
 
         self.connectSignalSlots()
         
