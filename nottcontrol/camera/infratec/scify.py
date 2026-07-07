@@ -189,6 +189,8 @@ class MainWindow(QMainWindow):
         self._cached_exposure_options_us: list[int] | None = None
         self._cached_framerate_options_hz: list[float] | None = None
         self._applying_detector = False
+        self._subtract_background_enabled = False
+        self._background_img = None
 
         self._setup_brightness_panel()
         self._setup_roi_values_panel()
@@ -1120,9 +1122,23 @@ class MainWindow(QMainWindow):
         self.ui.button_parameters.clicked.connect(self.configure_parameters)
 
         self.ui.button_takebackground.clicked.connect(self.take_background)
+        self.ui.checkBox_subtractbackground.stateChanged.connect(
+            self._on_subtract_background_changed
+        )
 
         self.ui.button_autobrightness.clicked.connect(self.set_brightness_auto)
         self.ui.button_manualbrightness.clicked.connect(self.set_brightness_manual)
+
+    def _on_subtract_background_changed(self, state: int) -> None:
+        self._subtract_background_enabled = state == Qt.Checked
+
+    def _image_for_analysis(self, img: numpy.ndarray) -> numpy.ndarray:
+        if not self._subtract_background_enabled:
+            return img
+        background = self._background_img
+        if background is None or background.shape != img.shape:
+            return img
+        return cv2.subtract(img, background)
 
     def set_brightness_auto(self):
         min, max = self.image.imageItem.quickMinMax()
@@ -1274,7 +1290,9 @@ class MainWindow(QMainWindow):
         self._update_timing_labels()
     
     def take_background(self):
-        self.background_img = self.image.getImageItem().image
+        frame = self.image.getImageItem().image
+        if frame is not None:
+            self._background_img = frame.copy()
         self.ui.checkBox_subtractbackground.setEnabled(True)
     
     def load_image(self, recording_timestamp, use_camera_time):  
@@ -1362,8 +1380,7 @@ class MainWindow(QMainWindow):
             self.initialize_image_display(img)
             self.set_brightness_auto()
         else:
-            if self.ui.checkBox_subtractbackground.isChecked():
-                img = cv2.subtract(img, self.background_img)
+            img = self._image_for_analysis(img)
             self.image.getImageItem().setImage(img, autoLevels = False)
             self._fit_detector_image()
 
@@ -1389,6 +1406,7 @@ class MainWindow(QMainWindow):
             plot_item.getViewBox().autoRange(padding=0.08)
                 
     def process_roi(self, img, timestamp, coadded_frame):
+        img = self._image_for_analysis(img)
         calculator = self.run_roi_calculator(img)
         if not coadded_frame and self.recording:
             if record_rois:
