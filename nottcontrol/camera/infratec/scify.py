@@ -1,6 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QGroupBox, QHBoxLayout, QLabel, QMainWindow, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIntValidator
 from PyQt5.uic import loadUi
 
@@ -12,7 +11,6 @@ from datetime import datetime, timedelta, timezone
 import ctypes,_ctypes
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColorConstants
 from nottcontrol.camera.infratec.infratec_interface import InfratecInterface, Image
@@ -26,7 +24,13 @@ from nottcontrol import config
 from collections import deque
 from enum import Enum
 from nottcontrol.camera.infratec.roi import Roi
-from nottcontrol.camera.infratec.roiwidget import RoiWidget
+from nottcontrol.camera.infratec.roiwidget import (
+    NAME_WIDTH,
+    PLOT_WIDTH,
+    ROW_HEIGHT,
+    RoiWidget,
+    VALUE_WIDTH,
+)
 import queue
 from pathlib import Path
 import zmq
@@ -81,10 +85,7 @@ class MainWindow(QMainWindow):
                            RoiWidget(self, 7, QColorConstants.DarkBlue), RoiWidget(self, 8, QColorConstants.DarkRed), RoiWidget(self, 9, QColorConstants.DarkCyan),
                            RoiWidget(self, 10, QColorConstants.DarkYellow)]
         
-        self.ui.scrollAreaWidgetContents.setLayout(QVBoxLayout())
-        self.ui.scrollArea.setWidgetResizable(True)
-        for roiwidget in self.roi_widgets:
-            self.ui.scrollAreaWidgetContents.layout().addWidget(roiwidget)
+        self._setup_roi_values_panel()
 
         self.connectSignalSlots()
         
@@ -136,6 +137,59 @@ class MainWindow(QMainWindow):
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
         self.frame_directory = frame_directory
+
+    def _setup_roi_values_panel(self) -> None:
+        self.ui.scrollArea.hide()
+
+        self.roi_panel = QGroupBox("ROI values", self.ui.centralwidget)
+        self.roi_panel.setGeometry(self.ui.scrollArea.geometry())
+        self.roi_panel.setStyleSheet(
+            """
+            QGroupBox {
+                font: 700 10pt "Segoe UI";
+                color: rgb(50, 129, 140);
+                border: 1px solid rgb(50, 129, 140);
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 8px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 4px;
+            }
+            """
+        )
+
+        layout = QVBoxLayout(self.roi_panel)
+        layout.setContentsMargins(8, 10, 8, 8)
+        layout.setSpacing(1)
+
+        header_style = 'font: 700 9pt "Segoe UI"; color: rgb(110, 110, 110);'
+        header = QWidget(self.roi_panel)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(4, 0, 4, 0)
+        header_layout.setSpacing(4)
+
+        for text, width, alignment in (
+            ("", NAME_WIDTH, Qt.AlignLeft),
+            ("Plot", PLOT_WIDTH, Qt.AlignCenter),
+            ("Min", VALUE_WIDTH, Qt.AlignRight),
+            ("Max", VALUE_WIDTH, Qt.AlignRight),
+            ("Avg", VALUE_WIDTH, Qt.AlignRight),
+        ):
+            label = QLabel(text, header)
+            label.setFixedWidth(width)
+            label.setStyleSheet(header_style)
+            label.setAlignment(alignment | Qt.AlignVCenter)
+            header_layout.addWidget(label)
+
+        header.setFixedHeight(ROW_HEIGHT)
+        layout.addWidget(header)
+
+        for roi_widget in self.roi_widgets:
+            layout.addWidget(roi_widget)
+        layout.addStretch()
     
     def socket_server(self):
         context = zmq.Context()

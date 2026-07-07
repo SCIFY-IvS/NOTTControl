@@ -1,5 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication
+from nottcontrol.app_icon import apply_app_icon
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.scifygui import MainWindow
 import os
@@ -23,6 +24,7 @@ def main():
 
     # set up the main window
     app = QApplication(sys.argv)
+    apply_app_icon(app)
     main_window = MainWindow(opcua_conn)
     main_window.show()
     sys.exit(app.exec_())
