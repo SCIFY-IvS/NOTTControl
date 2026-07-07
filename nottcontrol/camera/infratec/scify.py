@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMainWindow,
     QSizePolicy,
+    QVBoxLayout,
     QWidget,
 )
 from PyQt5.QtGui import QIntValidator
@@ -63,6 +64,7 @@ img_timestamp_ref = None
 
 use_camera_time = (config['CAMERA']['use_camera_time'] == "True")
 record_rois = (config['CAMERA']['record_rois'] == "True")
+CAMERA_VERBOSE = config['CAMERA'].get('verbose', 'False') == 'True'
 FRAME_QUEUE_SIZE = config.getint("CAMERA", "frame_queue_size", fallback=64)
 SAVE_QUEUE_SIZE = config.getint("CAMERA", "save_queue_size", fallback=256)
 PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
@@ -74,6 +76,12 @@ LEFT_COLUMN_X = 10
 LEFT_COLUMN_GAP = 10
 FRAMES_TODAY_LABEL_Y = 132
 ROI_PANEL_Y = 156
+
+
+def _camera_log(*args, **kwargs) -> None:
+    if CAMERA_VERBOSE:
+        print(*args, **kwargs)
+
 
 def callback(context,*args):#, aHandle, aStreamIndex):
     # Creating timezone-aware datetime object, in utc
@@ -128,7 +136,9 @@ class MainWindow(QMainWindow):
         
         self.request_image_update.connect(self.update_image)
         self.roi_calculation_finished.connect(self.on_roi_calculations_finished)
-        self.frames_saved_today_updated.connect(self._update_frames_today_label)
+        self.frames_saved_today_updated.connect(
+            self._update_frames_today_label, Qt.QueuedConnection
+        )
         
         self.recording_lock = threading.Lock()
         self._frames_count_lock = threading.Lock()
@@ -265,20 +275,24 @@ class MainWindow(QMainWindow):
 
     def _refresh_frames_saved_today(self) -> None:
         utc_day = self._utc_day_key()
-        count = self._count_frames_for_utc_day(utc_day)
+        disk_count = self._count_frames_for_utc_day(utc_day)
         with self._frames_count_lock:
-            self._frames_saved_utc_day = utc_day
-            self._frames_saved_today = count
-        self.frames_saved_today_updated.emit(count, utc_day)
+            if self._frames_saved_utc_day != utc_day:
+                self._frames_saved_utc_day = utc_day
+                self._frames_saved_today = disk_count
+            else:
+                self._frames_saved_today = max(self._frames_saved_today, disk_count)
+            count = self._frames_saved_today
+            day = self._frames_saved_utc_day
+        self.frames_saved_today_updated.emit(count, day)
 
     def _on_frame_saved_to_disk(self, filepath: str) -> None:
-        today = self._utc_day_key()
         saved_day = Path(filepath).parent.name
         with self._frames_count_lock:
-            if self._frames_saved_utc_day != today:
-                self._frames_saved_utc_day = today
-                self._frames_saved_today = self._count_frames_for_utc_day(today)
-            elif saved_day == today:
+            if self._frames_saved_utc_day != saved_day:
+                self._frames_saved_utc_day = saved_day
+                self._frames_saved_today = self._count_frames_for_utc_day(saved_day)
+            else:
                 self._frames_saved_today += 1
             count = self._frames_saved_today
             day = self._frames_saved_utc_day
@@ -289,12 +303,9 @@ class MainWindow(QMainWindow):
             f"Frames saved today ({utc_day} UTC): {count:,}"
         )
 
-    def _layout_window(self, img_shape=None) -> None:
-        if img_shape is not None:
-            img_h, img_w = int(img_shape[0]), int(img_shape[1])
-        else:
-            img_h = config.getint("CAMERA", "window_h")
-            img_w = config.getint("CAMERA", "window_w")
+    def _layout_window(self) -> None:
+        img_h = config.getint("CAMERA", "window_h")
+        img_w = config.getint("CAMERA", "window_w")
 
         camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
         camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
@@ -318,8 +329,7 @@ class MainWindow(QMainWindow):
         graph_y = top_y + camera_h + graph_gap
         self.ui.frame_roi_graph.setGeometry(camera_x, graph_y, camera_w, GRAPH_HEIGHT)
         self.ui.frame_roi_graph.setFixedSize(camera_w, GRAPH_HEIGHT)
-        if hasattr(self, "pw_roi"):
-            self.pw_roi.setMinimumSize(camera_w, GRAPH_HEIGHT)
+        self._fit_roi_plot()
 
         right_x = camera_x + camera_w + 12
         self.ui.button_parameters.setGeometry(right_x, 20, 161, 32)
@@ -332,8 +342,33 @@ class MainWindow(QMainWindow):
         window_h = content_h + self.menuBar().height()
         if self.statusBar() is not None:
             window_h += self.statusBar().height()
-        self.setMinimumSize(window_w, window_h)
-        self.resize(window_w, window_h)
+        self.setFixedSize(window_w, window_h)
+
+    def _setup_roi_plot(self) -> None:
+        if hasattr(self, "pw_roi"):
+            return
+
+        layout = QVBoxLayout(self.ui.frame_roi_graph)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(0)
+
+        axis = pg.DateAxisItem(orientation='bottom')
+        self.pw_roi = pg.PlotWidget(axisItems={'bottom': axis})
+        self.pw_roi.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.pw_roi.addLegend()
+        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness [ADU]')
+        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time [UTC]')
+        self.plot_data_item_roi = self.pw_roi.plot()
+        layout.addWidget(self.pw_roi)
+        self._fit_roi_plot()
+
+    def _fit_roi_plot(self) -> None:
+        if not hasattr(self, "pw_roi"):
+            return
+        plot_w = max(1, self.ui.frame_roi_graph.width() - 4)
+        plot_h = max(1, self.ui.frame_roi_graph.height() - 4)
+        self.pw_roi.setMinimumSize(plot_w, plot_h)
+        self.pw_roi.setMaximumSize(plot_w, plot_h)
     
     def socket_server(self):
         context = zmq.Context()
@@ -348,7 +383,7 @@ class MainWindow(QMainWindow):
                 events = dict(poller.poll(timeout=500))
                 if socket in events:
                     message = socket.recv_string()
-                    print(f"Message received: {message}")
+                    _camera_log(f"Message received: {message}")
                     if message == "Start record":
                         if self.start_recording():
                             reply = "Ok"
@@ -364,7 +399,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"Unexpected error while handling message: {e}")
             
-        print("Stopping zmq thread")
+        _camera_log("Stopping zmq thread")
 
     
     def enable_coadd(self):
@@ -382,12 +417,15 @@ class MainWindow(QMainWindow):
 
     def save_frame_write_redis(self, filepath, img, timestamp):
         if not self.frame_writer.enqueue(filepath, img, timestamp, self.integtime):
-            print(f"Save queue full; dropped frame write ({self.frame_writer.dropped} total)")
+            _camera_log(
+                f"Save queue full; dropped frame write "
+                f"({self.frame_writer.dropped} total)"
+            )
 
     def process_frame(self):
         tLastUpdate = time.perf_counter()
         base_path = self.frame_directory
-        print(f"base directory: {base_path}")
+        _camera_log(f"base directory: {base_path}")
         while True:
             item = self.roi_queue.get()
             img = item[0]
@@ -443,7 +481,7 @@ class MainWindow(QMainWindow):
             try:
                 roi_config = self.load_roi_from_config(config, roi_widget.name)
             except:
-                print(f'Failed to load roi configuration for {roi_widget.name}, using default')
+                _camera_log(f'Failed to load roi configuration for {roi_widget.name}, using default')
                 roi_config = Roi(i*100, 600, 50,50)
             roi_widget.setConfig(roi_config)
             i = i + 1
@@ -511,10 +549,10 @@ class MainWindow(QMainWindow):
     def calculate_frame_rates(self):
         camera_frame_rate = self.nbCameraImages / 5
         roi_frame_rate = self.roi_tracking_frames / 5
-        print(f'Camera frame rate: {camera_frame_rate:.2f}')
-        print(f'ROI tracking frame rate: {roi_frame_rate:.2f}')
+        _camera_log(f'Camera frame rate: {camera_frame_rate:.2f}')
+        _camera_log(f'ROI tracking frame rate: {roi_frame_rate:.2f}')
         if self.dropped_frames or self.frame_writer.dropped:
-            print(
+            _camera_log(
                 f'Dropped frames: process={self.dropped_frames}, '
                 f'save={self.frame_writer.dropped}, '
                 f'save queue={self.frame_writer.pending()}'
@@ -650,7 +688,7 @@ class MainWindow(QMainWindow):
                 
         if self.time_reference_frames < 100:
             new_timestamp_ref = recording_timestamp - timedelta(milliseconds=timestamp_offset)
-            print(f"Timestamp reference: {new_timestamp_ref}")
+            _camera_log(f"Timestamp reference: {new_timestamp_ref}")
             if img_timestamp_ref is None:
                 img_timestamp_ref = new_timestamp_ref
             #Take the earliest time because there is always a delay, and the estimated timestamp can never be earlier thatn the actual timestamp
@@ -659,7 +697,7 @@ class MainWindow(QMainWindow):
             self.time_reference_frames = self.time_reference_frames + 1
 
             if self.time_reference_frames == 100:
-                print(f"Final timestamp reference: {img_timestamp_ref}")
+                _camera_log(f"Final timestamp reference: {img_timestamp_ref}")
 
             #Use the first 100 frames purely to establish time
             return
@@ -673,7 +711,7 @@ class MainWindow(QMainWindow):
         if(self.roi_queue.full()):
             self.dropped_frames += 1
             if self.dropped_frames == 1 or self.dropped_frames % 100 == 0:
-                print(
+                _camera_log(
                     f'Dropping frame ({self.dropped_frames} total), '
                     f'process queue full, save queue={self.frame_writer.pending()}'
                 )
@@ -682,7 +720,6 @@ class MainWindow(QMainWindow):
 
     
     def initialize_image_display(self, img):
-        self._layout_window(img.shape)
         self.image.setImage(img, autoRange=False)
         
         self.initialize_roi(img)
@@ -690,16 +727,7 @@ class MainWindow(QMainWindow):
         self.image.autoRange()
         self.imageInit = True
 
-        axis = pg.DateAxisItem(orientation='bottom')
-        self.pw_roi = pg.PlotWidget(parent = self.ui.frame_roi_graph,axisItems={'bottom': axis})
-        self.pw_roi.setMinimumWidth(self.ui.frame_roi_graph.width())
-        self.pw_roi.setMinimumHeight(self.ui.frame_roi_graph.height())
-        self.pw_roi.addLegend()
-        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness [ADU]')
-        
-        self.pw_roi.show()
-        self.plot_data_item_roi = self.pw_roi.plot()
-        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time [UTC]')
+        self._setup_roi_plot()
 
         #Now safe to start processing the frames
         threading.Thread(target=self.process_frame, daemon=True).start()
@@ -723,6 +751,9 @@ class MainWindow(QMainWindow):
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
             self.image.getImageItem().setImage(img, autoLevels = False)
+
+        if not hasattr(self, "pw_roi"):
+            return
 
         self.pw_roi.clear()
 
