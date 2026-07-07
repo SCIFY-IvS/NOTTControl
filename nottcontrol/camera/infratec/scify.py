@@ -2,7 +2,6 @@
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
-    QFormLayout,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -94,8 +93,8 @@ FRAMES_TODAY_LABEL_Y = 132
 ROI_PANEL_Y = 156
 CAM_PARAM_FRAMERATE_HZ = 240
 CAM_PARAM_INTEGRATION_TIME = 262
-DETECTOR_PANEL_WIDTH = 200
-DETECTOR_PANEL_HEIGHT = 232
+DETECTOR_PANEL_WIDTH = 228
+DETECTOR_PANEL_HEIGHT = 240
 
 PANEL_GROUP_STYLE = """
     QGroupBox {
@@ -348,46 +347,49 @@ class MainWindow(QMainWindow):
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(6)
 
-        form = QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setHorizontalSpacing(6)
-        form.setVerticalSpacing(5)
-        form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(6)
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 1)
 
         field_style = (
             'font: 9pt "Segoe UI";'
-            "QComboBox, QSpinBox { padding: 1px 2px; min-height: 20px; }"
+            "QComboBox, QSpinBox { padding: 1px 4px; min-height: 22px; }"
         )
         label_style = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
-        combo_width = 96
+        field_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         def _form_label(text: str) -> QLabel:
             label = QLabel(text, self.detector_panel)
             label.setStyleSheet(label_style)
-            label.setMinimumWidth(88)
+            label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             return label
+
+        def _add_field(row: int, text: str, widget: QWidget) -> None:
+            grid.addWidget(_form_label(text), row, 0, Qt.AlignLeft | Qt.AlignVCenter)
+            widget.setSizePolicy(field_policy)
+            widget.setStyleSheet(field_style)
+            grid.addWidget(widget, row, 1, Qt.AlignRight | Qt.AlignVCenter)
 
         self.combo_exposure = QComboBox(self.detector_panel)
         self.combo_exposure.setEditable(False)
-        self.combo_exposure.setFixedWidth(combo_width)
-        self.combo_exposure.setStyleSheet(field_style)
-        form.addRow(_form_label("Exposure (ms):"), self.combo_exposure)
+        self.combo_exposure.setMinimumWidth(104)
+        _add_field(0, "Exposure (ms):", self.combo_exposure)
 
         self.combo_framerate = QComboBox(self.detector_panel)
         self.combo_framerate.setEditable(False)
-        self.combo_framerate.setFixedWidth(combo_width)
-        self.combo_framerate.setStyleSheet(field_style)
-        form.addRow(_form_label("Frame rate (Hz):"), self.combo_framerate)
+        self.combo_framerate.setMinimumWidth(104)
+        _add_field(1, "Frame rate (Hz):", self.combo_framerate)
 
         self.spin_coadd = QSpinBox(self.detector_panel)
         self.spin_coadd.setRange(1, 999)
         self.spin_coadd.setValue(1)
-        self.spin_coadd.setFixedWidth(combo_width)
-        self.spin_coadd.setStyleSheet(field_style)
-        form.addRow(_form_label("Coadd:"), self.spin_coadd)
+        self.spin_coadd.setMinimumWidth(104)
+        _add_field(2, "Coadd:", self.spin_coadd)
 
-        outer.addLayout(form)
+        outer.addLayout(grid)
 
         self.btn_apply_detector = QPushButton("Apply to camera", self.detector_panel)
         self.btn_apply_detector.setStyleSheet(
