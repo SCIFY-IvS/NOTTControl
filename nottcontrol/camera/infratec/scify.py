@@ -1,5 +1,13 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5.QtWidgets import QApplication, QGroupBox, QHBoxLayout, QLabel, QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import (
+    QApplication,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QMainWindow,
+    QSizePolicy,
+    QWidget,
+)
 from PyQt5.QtGui import QIntValidator
 from PyQt5.uic import loadUi
 
@@ -17,6 +25,7 @@ from nottcontrol.camera.infratec.infratec_interface import InfratecInterface, Im
 
 import numpy
 import cv2
+from nottcontrol.camera.infratec.frame_writer import FrameWriter
 from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
 from nottcontrol.camera.infratec.parametersdialog import ParametersDialog
 from nottcontrol.redisclient import RedisClient
@@ -25,11 +34,13 @@ from collections import deque
 from enum import Enum
 from nottcontrol.camera.infratec.roi import Roi
 from nottcontrol.camera.infratec.roiwidget import (
+    HEADER_HEIGHT,
+    HEADER_STYLE,
     NAME_WIDTH,
     PLOT_WIDTH,
-    ROW_HEIGHT,
     RoiWidget,
     VALUE_WIDTH,
+    roi_panel_height,
 )
 import queue
 from pathlib import Path
@@ -50,6 +61,15 @@ img_timestamp_ref = None
 
 use_camera_time = (config['CAMERA']['use_camera_time'] == "True")
 record_rois = (config['CAMERA']['record_rois'] == "True")
+FRAME_QUEUE_SIZE = config.getint("CAMERA", "frame_queue_size", fallback=64)
+SAVE_QUEUE_SIZE = config.getint("CAMERA", "save_queue_size", fallback=256)
+PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
+IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
+IMAGE_BORDER = 16
+GRAPH_HEIGHT = 180
+WINDOW_BOTTOM_BUFFER = 28
+FRAMES_TODAY_LABEL_Y = 132
+ROI_PANEL_Y = 156
 
 def callback(context,*args):#, aHandle, aStreamIndex):
     # Creating timezone-aware datetime object, in utc
@@ -67,6 +87,7 @@ class MainWindow(QMainWindow):
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     request_image_update = pyqtSignal(numpy.ndarray)
     roi_calculation_finished = pyqtSignal(BrightnessCalculator)
+    frames_saved_today_updated = pyqtSignal(int, str)
     closing = pyqtSignal()
     
     def __init__(self):
@@ -79,13 +100,11 @@ class MainWindow(QMainWindow):
         pg.setConfigOption('foreground', 'k')
         
         self.ui = loadUi('camera/infratec/mainwindow.ui', self)
+        self.frame_directory = frame_directory
 
-        self.roi_widgets = [RoiWidget(self, 1, QColorConstants.Green), RoiWidget(self, 2, QColorConstants.Cyan), RoiWidget(self, 3, QColorConstants.Red), 
-                           RoiWidget(self, 4, QColorConstants.Blue), RoiWidget(self, 5, QColorConstants.Magenta), RoiWidget(self, 6, QColorConstants.DarkGreen),
-                           RoiWidget(self, 7, QColorConstants.DarkBlue), RoiWidget(self, 8, QColorConstants.DarkRed), RoiWidget(self, 9, QColorConstants.DarkCyan),
-                           RoiWidget(self, 10, QColorConstants.DarkYellow)]
-        
         self._setup_roi_values_panel()
+        self._setup_frames_today_label()
+        self._layout_window()
 
         self.connectSignalSlots()
         
@@ -105,8 +124,12 @@ class MainWindow(QMainWindow):
         
         self.request_image_update.connect(self.update_image)
         self.roi_calculation_finished.connect(self.on_roi_calculations_finished)
+        self.frames_saved_today_updated.connect(self._update_frames_today_label)
         
         self.recording_lock = threading.Lock()
+        self._frames_count_lock = threading.Lock()
+        self._frames_saved_utc_day: str | None = None
+        self._frames_saved_today = 0
 
         self.frame_rate_timer = QTimer()
         self.frame_rate_timer.timeout.connect(self.calculate_frame_rates)
@@ -117,8 +140,15 @@ class MainWindow(QMainWindow):
 
         url =  config['DEFAULT']['databaseurl']
         self.redisclient = RedisClient(url)
+        self.frame_writer = FrameWriter(
+            self.redisclient,
+            queue_size=SAVE_QUEUE_SIZE,
+            png_compression=PNG_COMPRESSION,
+            on_frame_saved=self._on_frame_saved_to_disk,
+        )
         
         self.load_roi_config(config)
+        self._refresh_frames_saved_today()
 
         self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
@@ -132,17 +162,22 @@ class MainWindow(QMainWindow):
 
         self.timestamps = deque(maxlen = deque_length)
         self.coadd_frames_buffer = []
-        self.roi_queue = queue.Queue()
+        self.roi_queue = queue.Queue(maxsize=FRAME_QUEUE_SIZE)
+        self.dropped_frames = 0
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
-        self.frame_directory = frame_directory
 
     def _setup_roi_values_panel(self) -> None:
         self.ui.scrollArea.hide()
 
+        panel_width = NAME_WIDTH + PLOT_WIDTH + VALUE_WIDTH * 3 + 36
+        panel_height = roi_panel_height()
+
         self.roi_panel = QGroupBox("ROI values", self.ui.centralwidget)
-        self.roi_panel.setGeometry(self.ui.scrollArea.geometry())
+        self.roi_panel.setGeometry(10, ROI_PANEL_Y, panel_width, panel_height)
+        self.roi_panel.setFixedSize(panel_width, panel_height)
+        self.roi_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.roi_panel.setStyleSheet(
             """
             QGroupBox {
@@ -151,7 +186,8 @@ class MainWindow(QMainWindow):
                 border: 1px solid rgb(50, 129, 140);
                 border-radius: 6px;
                 margin-top: 10px;
-                padding-top: 8px;
+                padding-top: 6px;
+                background: white;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
@@ -161,35 +197,128 @@ class MainWindow(QMainWindow):
             """
         )
 
-        layout = QVBoxLayout(self.roi_panel)
-        layout.setContentsMargins(8, 10, 8, 8)
-        layout.setSpacing(1)
+        grid_host = QWidget(self.roi_panel)
+        grid = QGridLayout(grid_host)
+        grid.setContentsMargins(6, 2, 6, 4)
+        grid.setHorizontalSpacing(6)
+        grid.setVerticalSpacing(0)
 
-        header_style = 'font: 700 9pt "Segoe UI"; color: rgb(110, 110, 110);'
-        header = QWidget(self.roi_panel)
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(4, 0, 4, 0)
-        header_layout.setSpacing(4)
-
-        for text, width, alignment in (
-            ("", NAME_WIDTH, Qt.AlignLeft),
-            ("Plot", PLOT_WIDTH, Qt.AlignCenter),
-            ("Min", VALUE_WIDTH, Qt.AlignRight),
-            ("Max", VALUE_WIDTH, Qt.AlignRight),
-            ("Avg", VALUE_WIDTH, Qt.AlignRight),
+        for column, (text, width, alignment) in enumerate(
+            (
+                ("", NAME_WIDTH, Qt.AlignLeft),
+                ("Plot", PLOT_WIDTH, Qt.AlignCenter),
+                ("Min", VALUE_WIDTH, Qt.AlignRight),
+                ("Max", VALUE_WIDTH, Qt.AlignRight),
+                ("Avg", VALUE_WIDTH, Qt.AlignRight),
+            )
         ):
-            label = QLabel(text, header)
-            label.setFixedWidth(width)
-            label.setStyleSheet(header_style)
-            label.setAlignment(alignment | Qt.AlignVCenter)
-            header_layout.addWidget(label)
+            header = QLabel(text, grid_host)
+            header.setFixedWidth(width)
+            header.setFixedHeight(HEADER_HEIGHT)
+            header.setStyleSheet(HEADER_STYLE)
+            header.setAlignment(alignment | Qt.AlignVCenter)
+            grid.addWidget(header, 0, column)
 
-        header.setFixedHeight(ROW_HEIGHT)
-        layout.addWidget(header)
+        self.roi_widgets = []
+        colors = [
+            QColorConstants.Green,
+            QColorConstants.Cyan,
+            QColorConstants.Red,
+            QColorConstants.Blue,
+            QColorConstants.Magenta,
+            QColorConstants.DarkGreen,
+            QColorConstants.DarkBlue,
+            QColorConstants.DarkRed,
+            QColorConstants.DarkCyan,
+            QColorConstants.DarkYellow,
+        ]
+        for index, color in enumerate(colors, start=1):
+            roi_widget = RoiWidget(grid_host, grid, index, index, color)
+            self.roi_widgets.append(roi_widget)
 
-        for roi_widget in self.roi_widgets:
-            layout.addWidget(roi_widget)
-        layout.addStretch()
+        outer = QGridLayout(self.roi_panel)
+        outer.setContentsMargins(8, 12, 8, 6)
+        outer.addWidget(grid_host, 0, 0)
+
+    def _setup_frames_today_label(self) -> None:
+        self.label_frames_today = QLabel(self.ui.centralwidget)
+        self.label_frames_today.setGeometry(10, FRAMES_TODAY_LABEL_Y, 268, 20)
+        self.label_frames_today.setStyleSheet(
+            'font: 10pt "Segoe UI"; color: rgb(50, 129, 140);'
+        )
+        self._update_frames_today_label(0, datetime.now(timezone.utc).strftime("%Y%m%d"))
+
+    def _utc_day_key(self) -> str:
+        return datetime.now(timezone.utc).strftime("%Y%m%d")
+
+    def _count_frames_for_utc_day(self, utc_day: str) -> int:
+        directory = Path(self.frame_directory) / utc_day
+        if not directory.is_dir():
+            return 0
+        return sum(1 for path in directory.iterdir() if path.suffix.lower() == ".png")
+
+    def _refresh_frames_saved_today(self) -> None:
+        utc_day = self._utc_day_key()
+        count = self._count_frames_for_utc_day(utc_day)
+        with self._frames_count_lock:
+            self._frames_saved_utc_day = utc_day
+            self._frames_saved_today = count
+        self.frames_saved_today_updated.emit(count, utc_day)
+
+    def _on_frame_saved_to_disk(self, filepath: str) -> None:
+        today = self._utc_day_key()
+        saved_day = Path(filepath).parent.name
+        with self._frames_count_lock:
+            if self._frames_saved_utc_day != today:
+                self._frames_saved_utc_day = today
+                self._frames_saved_today = self._count_frames_for_utc_day(today)
+            elif saved_day == today:
+                self._frames_saved_today += 1
+            count = self._frames_saved_today
+            day = self._frames_saved_utc_day
+        self.frames_saved_today_updated.emit(count, day)
+
+    def _update_frames_today_label(self, count: int, utc_day: str) -> None:
+        self.label_frames_today.setText(
+            f"Frames saved today ({utc_day} UTC): {count:,}"
+        )
+
+    def _layout_window(self, img_shape=None) -> None:
+        if img_shape is not None:
+            img_h, img_w = int(img_shape[0]), int(img_shape[1])
+        else:
+            img_h = config.getint("CAMERA", "window_h")
+            img_w = config.getint("CAMERA", "window_w")
+
+        camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
+        camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
+        camera_x = 270
+        top_y = 50
+        left_panel_x = 10
+        graph_gap = 8
+
+        self.ui.frame_camera.setGeometry(camera_x, top_y, camera_w, camera_h)
+        self.ui.frame_camera.setFixedSize(camera_w, camera_h)
+
+        panel_height = roi_panel_height()
+        panel_width = self.roi_panel.width()
+        self.roi_panel.setGeometry(left_panel_x, ROI_PANEL_Y, panel_width, panel_height)
+
+        graph_y = top_y + camera_h + graph_gap
+        self.ui.frame_roi_graph.setGeometry(camera_x, graph_y, camera_w, GRAPH_HEIGHT)
+        self.ui.frame_roi_graph.setFixedSize(camera_w, GRAPH_HEIGHT)
+        if hasattr(self, "pw_roi"):
+            self.pw_roi.setMinimumSize(camera_w, GRAPH_HEIGHT)
+
+        right_x = camera_x + camera_w + 12
+        self.ui.button_parameters.setGeometry(right_x, 20, 161, 32)
+        self.ui.groupBox.setGeometry(right_x, 80, 181, 151)
+        self.ui.groupBox_2.setGeometry(right_x, 250, 181, 91)
+
+        window_h = graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER
+        window_w = max(right_x + 200, camera_x + camera_w + 40)
+        self.setMinimumSize(window_w, window_h)
+        self.resize(window_w, window_h)
     
     def socket_server(self):
         context = zmq.Context()
@@ -237,8 +366,8 @@ class MainWindow(QMainWindow):
         return int(s)
 
     def save_frame_write_redis(self, filepath, img, timestamp):
-        cv2.imwrite(filepath, img)
-        self.store_integtime_to_db(timestamp, self.integtime)
+        if not self.frame_writer.enqueue(filepath, img, timestamp, self.integtime):
+            print(f"Save queue full; dropped frame write ({self.frame_writer.dropped} total)")
 
     def process_frame(self):
         tLastUpdate = time.perf_counter()
@@ -256,21 +385,19 @@ class MainWindow(QMainWindow):
                 timestamp = timestamp + timedelta(microseconds=(1000-remaining_us))
             else:
                 timestamp = timestamp - timedelta(microseconds=remaining_us)
-            #base_path = r"Y:\Documents\Scify\Frames\frame_"
             directory = Path(base_path).joinpath(timestamp.strftime("%Y%m%d"))
-            directory.mkdir(parents=True, exist_ok=True)
             # Already rounded to the nearest ms earlier, just drop the "000" at the end.
             timestamp_str = timestamp.strftime("%H%M%S%f")[:-3]
             filename = timestamp_str + ".png"
             filepath = str(Path.joinpath(directory, filename))
 
-            recording = self.recording
+            with self.recording_lock:
+                recording = self.recording
 
             save_frame = recording and self.ui.checkBox_saveframes.isChecked()
             
             if save_frame:
-                thread = threading.Thread(target = self.save_frame_write_redis, args =(filepath, img, timestamp))
-                thread.start()
+                self.save_frame_write_redis(filepath, img, timestamp)
 
             if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
                 self.process_roi(img, timestamp, coadded_frame=False)
@@ -293,9 +420,6 @@ class MainWindow(QMainWindow):
             if (t-tLastUpdate) > 0.4 and not coadd_in_process:
                 tLastUpdate = t
                 self.request_image_update.emit(img)
-            
-            if save_frame:
-                thread.join()
     
     def load_roi_config(self, config):
         self.roi_config = []
@@ -374,8 +498,14 @@ class MainWindow(QMainWindow):
         roi_frame_rate = self.roi_tracking_frames / 5
         print(f'Camera frame rate: {camera_frame_rate:.2f}')
         print(f'ROI tracking frame rate: {roi_frame_rate:.2f}')
+        if self.dropped_frames or self.frame_writer.dropped:
+            print(
+                f'Dropped frames: process={self.dropped_frames}, '
+                f'save={self.frame_writer.dropped}, '
+                f'save queue={self.frame_writer.pending()}'
+            )
+        self._refresh_frames_saved_today()
         
-        #TODO technically, need to lock
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
 
@@ -402,6 +532,7 @@ class MainWindow(QMainWindow):
             self.ui.button_takebackground.setEnabled(True)
             self.nbCameraImages = 0
             self.frame_rate_timer.start(5000)
+            self._refresh_frames_saved_today()
     
 
     def set_window(self):
@@ -449,8 +580,9 @@ class MainWindow(QMainWindow):
             self.start_recording()
             
     def start_recording(self):
-        if self.recording:
-            return True
+        with self.recording_lock:
+            if self.recording:
+                return True
         if not self.connected:
             return False
         
@@ -463,16 +595,21 @@ class MainWindow(QMainWindow):
 
         self.ui.button_record.setText('Stop')
         self.ui.label_recording.setText('Recording')
-        self.recording = True
+        with self.recording_lock:
+            self.recording = True
+        self._refresh_frames_saved_today()
         return True
     
     def stop_recording(self):
-        if not self.recording:
-            return
+        with self.recording_lock:
+            if not self.recording:
+                return
+            self.recording = False
         
         self.ui.button_record.setText('Start')
         self.ui.label_recording.setText('Not recording')
-        self.recording = False
+        self.frame_writer.drain(timeout=30.0)
+        self._refresh_frames_saved_today()
     
     def take_background(self):
         self.background_img = self.image.getImageItem().image
@@ -518,13 +655,19 @@ class MainWindow(QMainWindow):
             timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
         
-        if(self.roi_queue.qsize() > 5):
-            print('Dropping frame!')
+        if(self.roi_queue.full()):
+            self.dropped_frames += 1
+            if self.dropped_frames == 1 or self.dropped_frames % 100 == 0:
+                print(
+                    f'Dropping frame ({self.dropped_frames} total), '
+                    f'process queue full, save queue={self.frame_writer.pending()}'
+                )
         else:
             self.roi_queue.put((img, timestamp))
 
     
     def initialize_image_display(self, img):
+        self._layout_window(img.shape)
         self.image.setImage(img, autoRange=False)
         
         self.initialize_roi(img)
@@ -590,9 +733,26 @@ class MainWindow(QMainWindow):
         self.roi_calculation_finished.emit(calculator)
 
     def run_roi_calculator(self, img):
-        calculator = BrightnessCalculator([roi_widget.roi.getArrayRegion(img, self.image.getImageItem()) for roi_widget in self.roi_widgets])
+        regions = self._extract_roi_regions(img)
+        calculator = BrightnessCalculator(regions)
         calculator.run()
         return calculator
+
+    def _extract_roi_regions(self, img):
+        if not self.imageInit:
+            return [
+                roi_widget.roi.getArrayRegion(img, self.image.getImageItem())
+                for roi_widget in self.roi_widgets
+            ]
+
+        regions = []
+        for roi_widget in self.roi_widgets:
+            pos = roi_widget.roi.pos()
+            size = roi_widget.roi.size()
+            x, y = int(pos[0]), int(pos[1])
+            w, h = int(size[0]), int(size[1])
+            regions.append(img[y : y + h, x : x + w])
+        return regions
 
     def store_roi_to_db(self, timestamp, calculator):
         roi_values = dict()
@@ -617,6 +777,7 @@ class MainWindow(QMainWindow):
         #stopgrab
         if self.connected:
             self.stop_recording()
+        self.frame_writer.stop(timeout=30.0)
         self.interface.free_device()
         self.interface.free_dll()
         self.closing.emit()

@@ -17,6 +17,14 @@ class RedisClient:
     def add_cam_integtime(self,time,integtime):
         unix_time = self.unix_time_ms(time)
         self.ts.add('cam_integtime', unix_time, integtime)
+
+    def add_cam_integtimes(self, entries: list[tuple[datetime, int]]) -> None:
+        if not entries:
+            return
+        pipe = self.ts.pipeline()
+        for time, integtime in entries:
+            pipe.add('cam_integtime', self.unix_time_ms(time), integtime)
+        pipe.execute()
         
     def add_dl_position(self, motor, time, pos):
         unix_time = self.unix_time_ms(time)
