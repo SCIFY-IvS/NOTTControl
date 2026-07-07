@@ -322,6 +322,8 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
 
     def closeEvent(self, *args):
+        if self.camera_window is not None:
+            self.camera_window.close()
         self.t.stop()
         self.opcua_conn.disconnect()
         self.t2.stop()

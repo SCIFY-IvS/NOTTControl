@@ -86,11 +86,15 @@ class FrameWriter:
 
     def stop(self, timeout: float = 10.0) -> None:
         self._running = False
-        try:
-            self._queue.put_nowait(None)
-        except queue.Full:
-            pass
-        self._thread.join(timeout=timeout)
+        deadline = time.perf_counter() + timeout
+        while time.perf_counter() < deadline:
+            try:
+                self._queue.put_nowait(None)
+                break
+            except queue.Full:
+                time.sleep(0.02)
+        remaining = max(0.0, deadline - time.perf_counter())
+        self._thread.join(timeout=remaining)
         self.flush_redis()
 
     def _run(self) -> None:

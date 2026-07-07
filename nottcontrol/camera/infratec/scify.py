@@ -1019,8 +1019,11 @@ class MainWindow(QMainWindow):
         tLastUpdate = time.perf_counter()
         base_path = self.frame_directory
         _camera_log(f"base directory: {base_path}")
-        while True:
-            item = self.roi_queue.get()
+        while self.running:
+            try:
+                item = self.roi_queue.get(timeout=0.2)
+            except queue.Empty:
+                continue
             img = item[0]
             # Timestamp is a datetime.utc object
             timestamp = item[1]
@@ -1284,7 +1287,7 @@ class MainWindow(QMainWindow):
         self.ui.label_recording.setText('Not recording')
         self._recording_started_at = None
         self._timing_refresh_timer.stop()
-        self.frame_writer.drain(timeout=30.0)
+        self.frame_writer.drain(timeout=5.0)
         self._refresh_frames_saved_today()
         self._set_detector_controls_enabled()
         self._update_timing_labels()
@@ -1465,16 +1468,20 @@ class MainWindow(QMainWindow):
             self.roi_widgets[i].setValues(calculator.results[i])
 
     def closeEvent(self, *args):
-        #stopgrab
+        self.running = False
+        self.frame_rate_timer.stop()
+        self._timing_refresh_timer.stop()
+
         if self.connected:
-            self.stop_recording()
-        self.frame_writer.stop(timeout=30.0)
+            with self.recording_lock:
+                self.recording = False
+            self.disconnect_camera()
+
+        self.frame_writer.stop(timeout=2.0)
         self.interface.free_device()
         self.interface.free_dll()
         self.closing.emit()
         super().closeEvent(*args)
-
-        self.running = False
 
 if __name__ == "__main__":
     from nottcontrol.app_icon import apply_app_icon, ensure_windows_app_identity
