@@ -162,6 +162,10 @@ class MainWindow(QMainWindow):
         self.integtime = 0
         self._last_camera_frame_rate: float | None = None
         self._recording_started_at: datetime | None = None
+        self._coadd_frame_count = 1
+        self._cached_exposure_options_us: list[int] | None = None
+        self._cached_framerate_options_hz: list[float] | None = None
+        self._applying_detector = False
 
         self.connectSignalSlots()
         
@@ -185,6 +189,7 @@ class MainWindow(QMainWindow):
         )
         
         self.recording_lock = threading.Lock()
+        self._coadd_lock = threading.Lock()
         self._frames_count_lock = threading.Lock()
         self._frames_saved_utc_day: str | None = None
         self._frames_saved_today = 0
@@ -194,6 +199,10 @@ class MainWindow(QMainWindow):
 
         self._timing_refresh_timer = QTimer()
         self._timing_refresh_timer.timeout.connect(self._update_timing_labels)
+
+        self._timing_labels_debounce = QTimer()
+        self._timing_labels_debounce.setSingleShot(True)
+        self._timing_labels_debounce.timeout.connect(self._update_timing_labels)
 
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
@@ -443,8 +452,12 @@ class MainWindow(QMainWindow):
         outer.addWidget(self.label_recording_elapsed)
 
         self.spin_coadd.valueChanged.connect(self._on_coadd_changed)
-        self.combo_exposure.currentIndexChanged.connect(self._update_timing_labels)
-        self.combo_framerate.currentIndexChanged.connect(self._update_timing_labels)
+        self.combo_exposure.currentIndexChanged.connect(
+            self._schedule_timing_labels_update
+        )
+        self.combo_framerate.currentIndexChanged.connect(
+            self._schedule_timing_labels_update
+        )
         self._populate_detector_option_combos()
         self._set_detector_controls_enabled()
 
@@ -479,16 +492,24 @@ class MainWindow(QMainWindow):
         if combo.count() > 0:
             combo.setCurrentIndex(0)
 
-    def _populate_detector_option_combos(self) -> None:
+    def _populate_detector_option_combos(self, *, refresh: bool = False) -> None:
         if not hasattr(self, "combo_exposure"):
             return
 
-        if self.connected:
-            exposure_options = get_integration_time_options_us(self.interface)
-            framerate_options = get_framerate_options_hz(self.interface)
-        else:
-            exposure_options = fallback_integration_times_us()
-            framerate_options = fallback_framerate_options_hz()
+        if refresh or self._cached_exposure_options_us is None:
+            if self.connected:
+                self._cached_exposure_options_us = get_integration_time_options_us(
+                    self.interface
+                )
+                self._cached_framerate_options_hz = get_framerate_options_hz(
+                    self.interface
+                )
+            else:
+                self._cached_exposure_options_us = fallback_integration_times_us()
+                self._cached_framerate_options_hz = fallback_framerate_options_hz()
+
+        exposure_options = self._cached_exposure_options_us
+        framerate_options = self._cached_framerate_options_hz
 
         self.combo_exposure.blockSignals(True)
         self.combo_exposure.clear()
@@ -535,9 +556,13 @@ class MainWindow(QMainWindow):
         return None
 
     def _coadd_count(self) -> int:
-        if hasattr(self, "spin_coadd"):
-            return max(1, self.spin_coadd.value())
-        return 1
+        return max(1, getattr(self, "_coadd_frame_count", 1))
+
+    def _schedule_timing_labels_update(self) -> None:
+        if hasattr(self, "_timing_labels_debounce"):
+            self._timing_labels_debounce.start(50)
+        else:
+            self._update_timing_labels()
 
     def _frame_period_us(self) -> tuple[float | None, bool]:
         if self._last_camera_frame_rate and self._last_camera_frame_rate > 0:
@@ -638,7 +663,9 @@ class MainWindow(QMainWindow):
     def _set_detector_controls_enabled(self) -> None:
         if not hasattr(self, "combo_exposure"):
             return
-        camera_controls_enabled = self.connected and not self.recording
+        camera_controls_enabled = (
+            self.connected and not self.recording and not self._applying_detector
+        )
         self.combo_exposure.setEnabled(camera_controls_enabled)
         self.combo_framerate.setEnabled(camera_controls_enabled)
         self.btn_apply_detector.setEnabled(camera_controls_enabled)
@@ -646,7 +673,7 @@ class MainWindow(QMainWindow):
     def _load_detector_settings_from_camera(self) -> None:
         if not self.connected:
             return
-        self._populate_detector_option_combos()
+        self._populate_detector_option_combos(refresh=True)
         try:
             integ_us = int(
                 self.interface.getparam_idx_int32(CAM_PARAM_INTEGRATION_TIME, 0)
@@ -667,30 +694,57 @@ class MainWindow(QMainWindow):
         self._update_timing_labels()
 
     def _apply_detector_settings(self) -> None:
-        if not self.connected or self.recording:
+        if (
+            not self.connected
+            or self.recording
+            or self._applying_detector
+        ):
             return
         integ_us = self._selected_integration_us()
         framerate_hz = self._selected_framerate_hz()
         if integ_us is None or framerate_hz is None:
             return
-        try:
-            self.interface.setparam_idx_int32(
-                CAM_PARAM_INTEGRATION_TIME, 0, integ_us
-            )
-            self.interface.setparam_single(CAM_PARAM_FRAMERATE_HZ, framerate_hz)
-            self.integtime = integ_us
-            _camera_log(
-                f"Detector settings applied: DIT={integ_us} us, "
-                f"frame rate={framerate_hz:.2f} Hz"
-            )
-        except Exception as exc:
-            _camera_log(f"Failed to apply detector settings: {exc}")
-        self._update_timing_labels()
 
-    def _on_coadd_changed(self, _value: int) -> None:
-        if self._coadd_count() <= 1:
-            self.coadd_frames_buffer.clear()
-        self._update_timing_labels()
+        self._applying_detector = True
+        self.btn_apply_detector.setEnabled(False)
+        self.combo_exposure.setEnabled(False)
+        self.combo_framerate.setEnabled(False)
+
+        def worker() -> None:
+            error: Exception | None = None
+            try:
+                self.interface.setparam_idx_int32(
+                    CAM_PARAM_INTEGRATION_TIME, 0, integ_us
+                )
+                self.interface.setparam_single(
+                    CAM_PARAM_FRAMERATE_HZ, framerate_hz
+                )
+            except Exception as exc:
+                error = exc
+
+            def finish() -> None:
+                self._applying_detector = False
+                if error is None:
+                    self.integtime = integ_us
+                    _camera_log(
+                        f"Detector settings applied: DIT={integ_us} us, "
+                        f"frame rate={framerate_hz:.2f} Hz"
+                    )
+                else:
+                    _camera_log(f"Failed to apply detector settings: {error}")
+                self._set_detector_controls_enabled()
+                self._update_timing_labels()
+
+            QTimer.singleShot(0, finish)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_coadd_changed(self, value: int) -> None:
+        self._coadd_frame_count = max(1, value)
+        if self._coadd_frame_count <= 1:
+            with self._coadd_lock:
+                self.coadd_frames_buffer.clear()
+        self._schedule_timing_labels_update()
 
     def _layout_image_view(self) -> None:
         if not hasattr(self, "image"):
@@ -881,16 +935,20 @@ class MainWindow(QMainWindow):
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
             if self.is_coadd_enabled():
-                self.coadd_frames_buffer.append(img)
-                if len(self.coadd_frames_buffer) >= self.nb_coadd_frames():
-                    #Create 3D array containing all values
-                    arr = numpy.array(self.coadd_frames_buffer)
-                    #maintain dtype, otherwise the background substraction will throw an error
+                with self._coadd_lock:
+                    self.coadd_frames_buffer.append(img)
+                    ready = (
+                        len(self.coadd_frames_buffer)
+                        >= self._coadd_frame_count
+                    )
+                    if ready:
+                        arr = numpy.array(self.coadd_frames_buffer)
+                        self.coadd_frames_buffer.clear()
+                    else:
+                        coadd_in_process = True
+                if ready:
                     img = numpy.average(arr, axis=0).astype(numpy.uint16)
                     self.process_roi(img, timestamp, coadded_frame=True)
-                    self.coadd_frames_buffer.clear()
-                else:
-                    coadd_in_process = True
             
             t = time.perf_counter()
             if (t-tLastUpdate) > 0.4 and not coadd_in_process:

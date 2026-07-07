@@ -76,6 +76,9 @@ def format_framerate_hz(framerate_hz: float) -> str:
     return text or "0"
 
 
+MAX_MIT_COUNT = 256
+
+
 def get_integration_time_options_us(interface) -> list[int]:
     options: list[int] = []
     try:
@@ -83,7 +86,9 @@ def get_integration_time_options_us(interface) -> list[int]:
     except Exception:
         count = 0
 
-    for index in range(max(count, 0)):
+    count = min(max(count, 0), MAX_MIT_COUNT)
+
+    for index in range(count):
         try:
             integration_us = int(
                 interface.getparam_idx_int32(IRBG_PARAM_IntegTime, index)
