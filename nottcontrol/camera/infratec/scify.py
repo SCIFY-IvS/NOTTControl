@@ -33,6 +33,8 @@ import cv2
 from nottcontrol.camera.infratec.frame_writer import FrameWriter
 from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
 from nottcontrol.camera.infratec.detector_options import (
+    DEFAULT_FRAMERATE_HZ,
+    ensure_default_framerate_option,
     fallback_framerate_options_hz,
     fallback_integration_times_us,
     format_exposure_ms,
@@ -82,7 +84,7 @@ FRAME_QUEUE_SIZE = config.getint("CAMERA", "frame_queue_size", fallback=64)
 SAVE_QUEUE_SIZE = config.getint("CAMERA", "save_queue_size", fallback=256)
 PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
 IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
-IMAGE_BORDER = 16
+IMAGE_BORDER = 0
 GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
 FRAME_READOUT_OVERHEAD_US = config.getint(
     "CAMERA", "frame_readout_overhead_us", fallback=5000
@@ -558,7 +560,9 @@ class MainWindow(QMainWindow):
                 self._cached_framerate_options_hz = fallback_framerate_options_hz()
 
         exposure_options = self._cached_exposure_options_us
-        framerate_options = self._cached_framerate_options_hz
+        framerate_options = ensure_default_framerate_option(
+            self._cached_framerate_options_hz
+        )
 
         self.combo_exposure.blockSignals(True)
         self.combo_exposure.clear()
@@ -576,6 +580,14 @@ class MainWindow(QMainWindow):
                 format_framerate_hz(framerate_hz),
                 framerate_hz,
             )
+        self.combo_framerate.blockSignals(False)
+        self._select_default_framerate()
+
+    def _select_default_framerate(self) -> None:
+        if not hasattr(self, "combo_framerate") or self.combo_framerate.count() == 0:
+            return
+        self.combo_framerate.blockSignals(True)
+        self._select_combo_value(self.combo_framerate, DEFAULT_FRAMERATE_HZ)
         self.combo_framerate.blockSignals(False)
 
     def _format_duration_us(self, us: float | None) -> str:
@@ -719,7 +731,9 @@ class MainWindow(QMainWindow):
         self.combo_framerate.setEnabled(camera_controls_enabled)
         self.btn_apply_detector.setEnabled(camera_controls_enabled)
 
-    def _load_detector_settings_from_camera(self) -> None:
+    def _load_detector_settings_from_camera(
+        self, *, use_default_framerate: bool = False
+    ) -> None:
         if not self.connected:
             return
         self._populate_detector_option_combos(refresh=True)
@@ -732,15 +746,20 @@ class MainWindow(QMainWindow):
             self._select_combo_value(self.combo_exposure, integ_us)
             self.combo_exposure.blockSignals(False)
 
-            framerate_hz = float(
-                self.interface.getparam_single(CAM_PARAM_FRAMERATE_HZ)
-            )
-            self.combo_framerate.blockSignals(True)
-            self._select_combo_value(self.combo_framerate, framerate_hz)
-            self.combo_framerate.blockSignals(False)
+            if use_default_framerate:
+                self._select_default_framerate()
+            else:
+                framerate_hz = float(
+                    self.interface.getparam_single(CAM_PARAM_FRAMERATE_HZ)
+                )
+                self.combo_framerate.blockSignals(True)
+                self._select_combo_value(self.combo_framerate, framerate_hz)
+                self.combo_framerate.blockSignals(False)
         except Exception:
             pass
         self._update_timing_labels()
+        if use_default_framerate:
+            self._apply_detector_settings()
 
     def _apply_detector_settings(self) -> None:
         if (
@@ -801,10 +820,26 @@ class MainWindow(QMainWindow):
         img = self.image.getImageItem().image
         if img is None:
             return
-        height, width = img.shape[:2]
+        img_h, img_w = img.shape[:2]
+        if img_w <= 0 or img_h <= 0:
+            return
+
+        widget_w = max(1, self.image.width())
+        widget_h = max(1, self.image.height())
         view = self.image.getView()
         view.setAspectLocked(True)
-        view.setRange(xRange=(0, width), yRange=(0, height), padding=0)
+
+        # Scale to cover the view (zoom in, crop if needed) rather than letterbox.
+        scale = max(widget_w / img_w, widget_h / img_h)
+        visible_w = widget_w / scale
+        visible_h = widget_h / scale
+        x0 = (img_w - visible_w) / 2.0
+        y0 = (img_h - visible_h) / 2.0
+        view.setRange(
+            xRange=(x0, x0 + visible_w),
+            yRange=(y0, y0 + visible_h),
+            padding=0,
+        )
 
     def _layout_image_view(self) -> None:
         if not hasattr(self, "image"):
@@ -1149,7 +1184,7 @@ class MainWindow(QMainWindow):
             self.nbCameraImages = 0
             self.frame_rate_timer.start(5000)
             self._refresh_frames_saved_today()
-            self._load_detector_settings_from_camera()
+            self._load_detector_settings_from_camera(use_default_framerate=True)
             self._set_detector_controls_enabled()
     
 
@@ -1330,6 +1365,7 @@ class MainWindow(QMainWindow):
             if self.ui.checkBox_subtractbackground.isChecked():
                 img = cv2.subtract(img, self.background_img)
             self.image.getImageItem().setImage(img, autoLevels = False)
+            self._fit_detector_image()
 
         if not hasattr(self, "pw_roi"):
             return

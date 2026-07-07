@@ -9,6 +9,8 @@ from nottcontrol.camera.infratec.hirbgrab import (
     IRBG_PARAM_MIT_Count,
 )
 
+DEFAULT_FRAMERATE_HZ = 200.0
+
 DEFAULT_FRAMERATE_OPTIONS_HZ = (
     1.0,
     2.0,
@@ -60,9 +62,15 @@ def fallback_integration_times_us() -> list[int]:
 def fallback_framerate_options_hz() -> list[float]:
     raw = config["CAMERA"].get(
         "framerates_hz",
-        "10,20,25,30,40,50,60,80,100",
+        "10,20,25,30,40,50,60,80,100,200",
     )
     return sorted(_parse_float_list(raw))
+
+
+def ensure_default_framerate_option(options: list[float]) -> list[float]:
+    if any(abs(rate - DEFAULT_FRAMERATE_HZ) <= 0.05 for rate in options):
+        return options
+    return sorted(options + [DEFAULT_FRAMERATE_HZ])
 
 
 def format_exposure_ms(integration_us: int) -> str:
