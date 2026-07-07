@@ -34,3 +34,6 @@ dependencies = [
   "pyserial",
   "scikit-learn",
 ]
+
+[project.optional-dependencies]
+macos = ["pyobjc-framework-Cocoa"]

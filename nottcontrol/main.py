@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from nottcontrol.app_icon import apply_app_icon
+from nottcontrol.app_icon import apply_app_icon, ensure_windows_app_identity
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.scifygui import MainWindow
 import os
@@ -8,6 +8,8 @@ import logging
 from nottcontrol import config
 
 def main():
+    ensure_windows_app_identity()
+
     #Change the running directory to this directory
     #If you run this file from another directory, this is required to find the config file
     os.chdir(os.path.dirname(__file__))

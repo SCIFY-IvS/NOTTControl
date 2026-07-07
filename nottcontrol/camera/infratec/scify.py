@@ -70,7 +70,10 @@ SAVE_QUEUE_SIZE = config.getint("CAMERA", "save_queue_size", fallback=256)
 PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
 IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
 IMAGE_BORDER = 16
-GRAPH_HEIGHT = 110
+GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
+FRAME_READOUT_OVERHEAD_US = config.getint(
+    "CAMERA", "frame_readout_overhead_us", fallback=5000
+)
 WINDOW_BOTTOM_BUFFER = 6
 LEFT_COLUMN_X = 10
 LEFT_COLUMN_GAP = 10
@@ -116,7 +119,12 @@ class MainWindow(QMainWindow):
 
         self._setup_roi_values_panel()
         self._setup_frames_today_label()
+        self._setup_timing_panel()
         self._layout_window()
+
+        self.integtime = 0
+        self._last_camera_frame_rate: float | None = None
+        self._recording_started_at: datetime | None = None
 
         self.connectSignalSlots()
         
@@ -129,6 +137,7 @@ class MainWindow(QMainWindow):
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
         self.image.show()
+        self._layout_image_view()
         self.imageInit = False
         
         self.image.getView().setMouseEnabled(x = True, y = True)
@@ -148,9 +157,13 @@ class MainWindow(QMainWindow):
         self.frame_rate_timer = QTimer()
         self.frame_rate_timer.timeout.connect(self.calculate_frame_rates)
 
+        self._timing_refresh_timer = QTimer()
+        self._timing_refresh_timer.timeout.connect(self._update_timing_labels)
+
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
         self.calculating_roi = False
+        self.time_reference_frames = 0
 
         url =  config['DEFAULT']['databaseurl']
         self.redisclient = RedisClient(url)
@@ -168,6 +181,7 @@ class MainWindow(QMainWindow):
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
 
         self.ui.cb_coadd.stateChanged.connect(self.enable_coadd)
+        self.ui.lineEdit_coadd_frames.textChanged.connect(self._update_timing_labels)
         self.ui.lineEdit_coadd_frames.setPlaceholderText("Please enter a valid number up to 999")
         self.ui.lineEdit_coadd_frames.setValidator(QIntValidator(1, 999, self))
 
@@ -181,6 +195,7 @@ class MainWindow(QMainWindow):
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
+        self._update_timing_labels()
 
     def _setup_roi_values_panel(self) -> None:
         self.ui.scrollArea.hide()
@@ -303,6 +318,169 @@ class MainWindow(QMainWindow):
             f"Frames saved today ({utc_day} UTC): {count:,}"
         )
 
+    def _setup_timing_panel(self) -> None:
+        self.timing_group = QGroupBox("Exposure timing", self.ui.centralwidget)
+        self.timing_group.setStyleSheet(
+            """
+            QGroupBox {
+                font: 700 10pt "Segoe UI";
+                color: rgb(50, 129, 140);
+                border: 1px solid rgb(50, 129, 140);
+                border-radius: 6px;
+                margin-top: 10px;
+                padding-top: 6px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 4px;
+            }
+            """
+        )
+
+        layout = QVBoxLayout(self.timing_group)
+        layout.setContentsMargins(8, 10, 8, 8)
+        layout.setSpacing(3)
+
+        label_style = 'font: 10pt "Segoe UI"; color: rgb(50, 50, 50);'
+        self.label_dit = QLabel("DIT: —")
+        self.label_total_integ = QLabel("Total integration: —")
+        self.label_acq_time = QLabel("Acquisition time: —")
+        self.label_frame_rate = QLabel("Frame period: —")
+        self.label_recording_elapsed = QLabel("")
+
+        for label in (
+            self.label_dit,
+            self.label_total_integ,
+            self.label_acq_time,
+            self.label_frame_rate,
+        ):
+            label.setStyleSheet(label_style)
+            layout.addWidget(label)
+
+        self.label_recording_elapsed.setStyleSheet(
+            'font: 10pt "Segoe UI"; color: rgb(50, 129, 140);'
+        )
+        layout.addWidget(self.label_recording_elapsed)
+
+    def _format_duration_us(self, us: float | None) -> str:
+        if us is None:
+            return "—"
+        if us >= 1_000_000:
+            return f"{us / 1_000_000:.2f} s"
+        if us >= 1000:
+            return f"{us / 1000:.2f} ms"
+        return f"{us:.0f} µs"
+
+    def _read_integtime_us(self) -> int | None:
+        if not self.connected:
+            return getattr(self, "integtime", None) or None
+        try:
+            return int(self.interface.getparam_idx_int32(262, 0))
+        except Exception:
+            return getattr(self, "integtime", None) or None
+
+    def _coadd_count(self) -> int:
+        if not self.is_coadd_enabled():
+            return 1
+        try:
+            return max(1, self.nb_coadd_frames())
+        except ValueError:
+            return 1
+
+    def _frame_period_us(self) -> tuple[float | None, bool]:
+        if self._last_camera_frame_rate and self._last_camera_frame_rate > 0:
+            return 1e6 / self._last_camera_frame_rate, True
+        dit_us = self._read_integtime_us()
+        if dit_us is not None:
+            return dit_us + FRAME_READOUT_OVERHEAD_US, False
+        return None, False
+
+    def _timing_snapshot(self) -> dict:
+        dit_us = self._read_integtime_us()
+        coadd_n = self._coadd_count()
+        frame_period_us, measured = self._frame_period_us()
+        total_integ_us = dit_us * coadd_n if dit_us is not None else None
+        if frame_period_us is not None:
+            acq_per_output_us = frame_period_us * coadd_n
+        else:
+            acq_per_output_us = None
+        frame_rate_hz = (
+            self._last_camera_frame_rate
+            if measured and self._last_camera_frame_rate
+            else None
+        )
+        return {
+            "dit_us": dit_us,
+            "coadd_n": coadd_n,
+            "total_integ_us": total_integ_us,
+            "frame_period_us": frame_period_us,
+            "acq_per_output_us": acq_per_output_us,
+            "frame_rate_hz": frame_rate_hz,
+            "measured": measured,
+        }
+
+    def _update_timing_labels(self) -> None:
+        if not hasattr(self, "label_dit"):
+            return
+
+        snap = self._timing_snapshot()
+        coadd_n = snap["coadd_n"]
+
+        self.label_dit.setText(f"DIT: {self._format_duration_us(snap['dit_us'])}")
+
+        if coadd_n > 1:
+            self.label_total_integ.setText(
+                "Total integration "
+                f"(×{coadd_n}): {self._format_duration_us(snap['total_integ_us'])}"
+            )
+        else:
+            self.label_total_integ.setText(
+                f"Total integration: {self._format_duration_us(snap['total_integ_us'])}"
+            )
+
+        if coadd_n > 1:
+            self.label_acq_time.setText(
+                "Acquisition per output "
+                f"(incl. overhead): {self._format_duration_us(snap['acq_per_output_us'])}"
+            )
+        else:
+            self.label_acq_time.setText(
+                "Acquisition per frame "
+                f"(incl. overhead): {self._format_duration_us(snap['acq_per_output_us'])}"
+            )
+
+        if snap["frame_period_us"] is not None:
+            source = "measured" if snap["measured"] else "estimated"
+            if snap["frame_rate_hz"]:
+                rate_text = f"{snap['frame_rate_hz']:.1f} Hz, {source}"
+            else:
+                rate_text = source
+            self.label_frame_rate.setText(
+                f"Frame period: {self._format_duration_us(snap['frame_period_us'])} "
+                f"({rate_text})"
+            )
+        else:
+            self.label_frame_rate.setText("Frame period: —")
+
+        if self.recording and self._recording_started_at is not None:
+            elapsed = (
+                datetime.now(timezone.utc).replace(tzinfo=None)
+                - self._recording_started_at
+            )
+            elapsed_text = str(elapsed).split(".")[0]
+            self.label_recording_elapsed.setText(f"Recording elapsed: {elapsed_text}")
+        else:
+            self.label_recording_elapsed.setText("")
+
+    def _layout_image_view(self) -> None:
+        if not hasattr(self, "image"):
+            return
+        width = max(1, self.ui.frame_camera.width() - 4)
+        height = max(1, self.ui.frame_camera.height() - 4)
+        self.image.setGeometry(2, 2, width, height)
+
     def _layout_window(self) -> None:
         img_h = config.getint("CAMERA", "window_h")
         img_w = config.getint("CAMERA", "window_w")
@@ -335,6 +513,8 @@ class MainWindow(QMainWindow):
         self.ui.button_parameters.setGeometry(right_x, 20, 161, 32)
         self.ui.groupBox.setGeometry(right_x, 80, 181, 151)
         self.ui.groupBox_2.setGeometry(right_x, 250, 181, 91)
+        if hasattr(self, "timing_group"):
+            self.timing_group.setGeometry(right_x, 348, 181, 118)
 
         content_h = graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER
         window_w = max(right_x + 200, camera_x + camera_w + 40)
@@ -343,32 +523,37 @@ class MainWindow(QMainWindow):
         if self.statusBar() is not None:
             window_h += self.statusBar().height()
         self.setFixedSize(window_w, window_h)
+        self._layout_image_view()
 
     def _setup_roi_plot(self) -> None:
         if hasattr(self, "pw_roi"):
             return
 
         layout = QVBoxLayout(self.ui.frame_roi_graph)
-        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(0)
 
         axis = pg.DateAxisItem(orientation='bottom')
         self.pw_roi = pg.PlotWidget(axisItems={'bottom': axis})
         self.pw_roi.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.pw_roi.addLegend()
-        self.pw_roi.getPlotItem().setLabel(axis='left', text='ROI brightness [ADU]')
-        self.pw_roi.getPlotItem().setLabel(axis='bottom', text='Time [UTC]')
+        self.pw_roi.showGrid(x=True, y=True, alpha=0.25)
+
+        plot_item = self.pw_roi.getPlotItem()
+        plot_item.addLegend(offset=(8, 8))
+        plot_item.setLabel(axis='left', text='ROI brightness [ADU]')
+        plot_item.setLabel(axis='bottom', text='Time [UTC]')
+        plot_item.getAxis('left').setWidth(58)
+        plot_item.layout.setContentsMargin(8, 8, 8, 8)
+        plot_item.enableAutoRange(axis='y', enable=True)
+        plot_item.enableAutoRange(axis='x', enable=False)
+
         self.plot_data_item_roi = self.pw_roi.plot()
         layout.addWidget(self.pw_roi)
-        self._fit_roi_plot()
 
     def _fit_roi_plot(self) -> None:
         if not hasattr(self, "pw_roi"):
             return
-        plot_w = max(1, self.ui.frame_roi_graph.width() - 4)
-        plot_h = max(1, self.ui.frame_roi_graph.height() - 4)
-        self.pw_roi.setMinimumSize(plot_w, plot_h)
-        self.pw_roi.setMaximumSize(plot_w, plot_h)
+        self.pw_roi.updateGeometry()
     
     def socket_server(self):
         context = zmq.Context()
@@ -405,8 +590,9 @@ class MainWindow(QMainWindow):
     def enable_coadd(self):
         self.ui.lineEdit_coadd_frames.setEnabled(self.is_coadd_enabled())
 
-        if self.is_coadd_enabled:
+        if self.is_coadd_enabled():
             self.coadd_frames_buffer.clear()
+        self._update_timing_labels()
     
     def is_coadd_enabled(self):
         return self.ui.cb_coadd.isChecked()
@@ -545,10 +731,15 @@ class MainWindow(QMainWindow):
     def configure_parameters(self):
         dialog = ParametersDialog(self.interface)
         dialog.exec()
+        if self.connected:
+            self.integtime = self.interface.getparam_idx_int32(262, 0)
+        self._update_timing_labels()
     
     def calculate_frame_rates(self):
         camera_frame_rate = self.nbCameraImages / 5
         roi_frame_rate = self.roi_tracking_frames / 5
+        if camera_frame_rate > 0:
+            self._last_camera_frame_rate = camera_frame_rate
         _camera_log(f'Camera frame rate: {camera_frame_rate:.2f}')
         _camera_log(f'ROI tracking frame rate: {roi_frame_rate:.2f}')
         if self.dropped_frames or self.frame_writer.dropped:
@@ -558,6 +749,7 @@ class MainWindow(QMainWindow):
                 f'save queue={self.frame_writer.pending()}'
             )
         self._refresh_frames_saved_today()
+        self._update_timing_labels()
         
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
@@ -567,6 +759,7 @@ class MainWindow(QMainWindow):
             self.time_reference_frames = 0
             self.connect_camera()
             self.integtime = self.interface.getparam_idx_int32(262,0)
+            self._update_timing_labels()
         else:
             self.disconnect_camera()
     
@@ -586,6 +779,7 @@ class MainWindow(QMainWindow):
             self.nbCameraImages = 0
             self.frame_rate_timer.start(5000)
             self._refresh_frames_saved_today()
+            self._update_timing_labels()
     
 
     def set_window(self):
@@ -624,12 +818,13 @@ class MainWindow(QMainWindow):
             self.ui.button_takebackground.setEnabled(False)
             self.ui.checkBox_subtractbackground.setEnabled(False)
             self.frame_rate_timer.stop()
+            self._last_camera_frame_rate = None
+            self._update_timing_labels()
 
     def record_clicked(self):
         if self.recording:
             self.stop_recording()
         else:
-            self.time_reference_frames = 0
             self.start_recording()
             
     def start_recording(self):
@@ -650,7 +845,9 @@ class MainWindow(QMainWindow):
         self.ui.label_recording.setText('Recording')
         with self.recording_lock:
             self.recording = True
-        self._refresh_frames_saved_today()
+        self._recording_started_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        self._timing_refresh_timer.start(1000)
+        self._update_timing_labels()
         return True
     
     def stop_recording(self):
@@ -661,8 +858,11 @@ class MainWindow(QMainWindow):
         
         self.ui.button_record.setText('Start')
         self.ui.label_recording.setText('Not recording')
+        self._recording_started_at = None
+        self._timing_refresh_timer.stop()
         self.frame_writer.drain(timeout=30.0)
         self._refresh_frames_saved_today()
+        self._update_timing_labels()
     
     def take_background(self):
         self.background_img = self.image.getImageItem().image
@@ -728,6 +928,7 @@ class MainWindow(QMainWindow):
         self.imageInit = True
 
         self._setup_roi_plot()
+        self._layout_image_view()
 
         #Now safe to start processing the frames
         threading.Thread(target=self.process_frame, daemon=True).start()
@@ -757,9 +958,21 @@ class MainWindow(QMainWindow):
 
         self.pw_roi.clear()
 
+        plotted = False
         for roi_widget in self.roi_widgets:
             if roi_widget.isChecked():
-                self.pw_roi.plot(list(self.timestamps), list(roi_widget.max_values), name= roi_widget.name, pen= roi_widget.color)
+                self.pw_roi.plot(
+                    list(self.timestamps),
+                    list(roi_widget.max_values),
+                    name=roi_widget.name,
+                    pen=roi_widget.color,
+                )
+                plotted = True
+
+        if plotted:
+            plot_item = self.pw_roi.getPlotItem()
+            plot_item.enableAutoRange(axis='y', enable=True)
+            plot_item.getViewBox().autoRange(padding=0.08)
                 
     def process_roi(self, img, timestamp, coadded_frame):
         calculator = self.run_roi_calculator(img)
@@ -832,7 +1045,11 @@ class MainWindow(QMainWindow):
         self.running = False
 
 if __name__ == "__main__":
+    from nottcontrol.app_icon import apply_app_icon, ensure_windows_app_identity
+
+    ensure_windows_app_identity()
     app = QApplication(sys.argv)
+    apply_app_icon(app)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
