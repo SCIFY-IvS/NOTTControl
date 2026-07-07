@@ -81,10 +81,40 @@ class MacieInterface():
         self._socket.send_string(message)
         return self._receive_and_parse_reply()
     
+    def read_exposure_settings(self):
+        message = "rexpsettings"
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+        
+        results = answer.split(";")
+        save = True if results[0] == "true" else False
+        ncoadds = results[1]
+        nsaved_ramps = results[2]
+        ngroups = results[3]
+        nreads = results[4]
+        ndrops = results[5]
+        nresets = results[6]
+        return (save, ncoadds, nsaved_ramps, ngroups, nreads, ndrops, nresets)
+    
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
         message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
         self._socket.send_string(message)
         return self._receive_and_parse_reply()
+    
+    def read_frame_settings(self):
+        message = "rframesettings"
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+
+        results = answer.split(";")
+        xWindow = True if results[0] == "true" else False
+        yWindow = True if results[1] == "true" else False
+        x1 = results[2]
+        x2 = results[3]
+        y1 = results[4]
+        y2 = results[5]
+
+        return (xWindow, yWindow, x1, x2, y1, y2)
     
     def start_continuous_acquisition(self):
         self._acquiring.set()

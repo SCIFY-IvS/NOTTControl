@@ -84,10 +84,22 @@ extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroup
                                       ngroups, nreads, ndrops, nresets);
 }
 
+extern "C" bool M_read_exposure_settings(bool &save, uint &ncoadds, uint &nseq, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets)
+{
+    load_exposure_settings(_ptUserData, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);
+    return true;
+}
+
 extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2)
 {
     printf("Calling frame_settings, xWindowing %d, yWindowing %d, x1 %d, x2 %d, y1 %d, y2 %d\n", xWindowing, yWindowing, x1, x2, y1, y2);
     return set_frame_settings(_ptUserData, xWindowing, yWindowing, x1, x2, y1, y2);
+}
+
+extern "C" bool M_read_frame_settings(bool &xWindowing, bool &yWindowing, uint &x1, uint &x2, uint &y1, uint &y2)
+{
+    load_frame_settings(_ptUserData, xWindowing, yWindowing, x1, x2, y1, y2);
+    return true;
 }
 
 //  Receive 0MQ string from socket and convert into string
@@ -206,6 +218,24 @@ int main () {
 
                 result = M_exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);          
             }
+            else if (command == "rexpsettings")
+            {
+                bool save = false;
+                uint ncoadds = 0;
+                uint nseq = 0;
+                uint ngroups = 0;
+                uint nreads = 0;
+                uint ndrops = 0;
+                uint nresets = 0;
+                result = M_read_exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets);
+                answer = (std::string) (save ? "true" : "false") + ";"
+                    + std::to_string(ncoadds) + ";"
+                    + std::to_string(nseq) + ";"
+                    + std::to_string(ngroups) + ";"
+                    + std::to_string(nreads) + ";"
+                    + std::to_string(ndrops) + ";"
+                    + std::to_string(nresets);
+            }
             else if (command == "framesettings")
             {
                 bool xWindow = tokens[1] == "true";
@@ -216,6 +246,22 @@ int main () {
                 int y2 = std::stoi(tokens[6]);
 
                 result = M_frame_settings(xWindow, yWindow, x1, x2, y1, y2);
+            }
+            else if (command == "rframesettings")
+            {
+                bool xWindowing = false;
+                bool yWindowing = false;
+                uint x1 = 0;
+                uint x2 = 0;
+                uint y1 = 0;
+                uint y2 = 0;
+                result = M_read_frame_settings(xWindowing, yWindowing, x1, x2, y1, y2);
+                answer = (std::string) (xWindowing ? "true" : "false") + ";"
+                    + (yWindowing ? "true" : "false") + ";"
+                    + std::to_string(x1) + ";"
+                    + std::to_string(x2) + ";"
+                    + std::to_string(y1) + ";"
+                    + std::to_string(y2);
             }
             else 
             {

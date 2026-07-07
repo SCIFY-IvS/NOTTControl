@@ -10,4 +10,6 @@ extern "C" bool M_powerOn();
 extern "C" bool M_getPower();
 extern "C" bool M_close();
 extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroups, int nreads, int ndrops, int nresets);
+extern "C" bool M_read_exposure_settings(bool &save, uint &ncoadds, uint &nseq, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets);
 extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2);
+extern "C" bool M_read_frame_settings(bool &xWindowing, bool &yWindowing, uint &x1, uint &x2, uint &y1, uint &y2);

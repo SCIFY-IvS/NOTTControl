@@ -3817,6 +3817,17 @@ bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
     return true;
 }
 
+void load_exposure_settings(MACIE_Settings *ptUserData, bool &bSave,
+                           uint &ncoadds, uint &nsaved_ramps, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets)
+{
+    bSave = ptUserData->bSaveData;
+    ncoadds = ASIC_NCoadds(ptUserData, false, 0);
+    nsaved_ramps = ASIC_NSaves(ptUserData, false, 0);
+    ngroups = ASIC_NGroups(ptUserData, false, 0);
+    nreads = ASIC_NReads(ptUserData, false, 0);
+    ndrops = ASIC_NDrops(ptUserData, false, 0);
+    nresets = ASIC_NResets(ptUserData, false, 0);
+}
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief set_frame_settings Set the window and stripe frame sizes.
 /// \param ptUserData The user-set structure containing the hardware parameters.
@@ -3952,6 +3963,18 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
 
     return true;
+}
+
+extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
+    uint &x1, uint &x2, uint &y1, uint &y2)
+{
+    bVertWin = ASIC_WinVert(ptUserData, true, 0);
+    bHorzWin = ASIC_WinHorz(ptUserData, true, 0);
+
+    x1 = ASIC_getX1(ptUserData);
+    x2 = ASIC_getX2(ptUserData);
+    y1 = ASIC_getY1(ptUserData);
+    y2 = ASIC_getY2(ptUserData);
 }
 
 // Subarray mode might not exist in certain microcodes.
