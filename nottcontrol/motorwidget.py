@@ -18,6 +18,8 @@ class MotorWidget(QWidget):
         self._motor = motor
         self.redis_client = redis_client
         self.timestamp = None
+        self.current_pos = 0.0
+        self.current_speed = 0.0
 
         self.ui = loadUi('motorwidget.ui', self)
 
@@ -42,6 +44,7 @@ class MotorWidget(QWidget):
         self.ui.label_name.setText(self._motor.name)
 
         self._activeCommand = None
+        self.load_position()
     
     def expand_engineering_menu(self):
         localPos = self.ui.pb_engineering_menu.pos()
