@@ -6,12 +6,14 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QPushButton,
     QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWidget,
+    QFileDialog,
 )
 from PyQt5.uic import loadUi
 
@@ -23,7 +25,6 @@ from datetime import datetime, timedelta, timezone
 import ctypes,_ctypes
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColorConstants
 from nottcontrol.camera.infratec.infratec_interface import InfratecInterface, Image
 
@@ -90,11 +91,37 @@ WINDOW_BOTTOM_BUFFER = 6
 LEFT_COLUMN_X = 10
 LEFT_COLUMN_GAP = 10
 FRAMES_TODAY_LABEL_Y = 132
-ROI_PANEL_Y = 156
+FRAMES_TODAY_LABEL_HEIGHT = 22
+LEFT_PANEL_GAP = 8
+RIGHT_PANEL_WIDTH = 228
+BRIGHTNESS_PANEL_HEIGHT = 152
 CAM_PARAM_FRAMERATE_HZ = 240
 CAM_PARAM_INTEGRATION_TIME = 262
-DETECTOR_PANEL_WIDTH = 228
 DETECTOR_PANEL_HEIGHT = 240
+
+PANEL_BUTTON_STYLE = """
+    QPushButton {
+        font: 10pt "Segoe UI";
+        color: white;
+        background: rgb(50, 129, 140);
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+    }
+    QPushButton:hover {
+        background: rgb(42, 110, 120);
+    }
+    QPushButton:disabled {
+        background: rgb(180, 190, 192);
+        color: rgb(240, 240, 240);
+    }
+"""
+
+PANEL_FIELD_STYLE = (
+    'font: 9pt "Segoe UI";'
+    "QComboBox, QSpinBox, QLineEdit { padding: 1px 4px; min-height: 22px; }"
+)
+PANEL_LABEL_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
 
 PANEL_GROUP_STYLE = """
     QGroupBox {
@@ -161,6 +188,7 @@ class MainWindow(QMainWindow):
         self._cached_framerate_options_hz: list[float] | None = None
         self._applying_detector = False
 
+        self._setup_brightness_panel()
         self._setup_roi_values_panel()
         self._setup_frames_today_label()
         self._setup_detector_panel()
@@ -177,7 +205,7 @@ class MainWindow(QMainWindow):
         self.imageInit = False
         
         self.image.getView().setMouseEnabled(x = True, y = True)
-        self.image.getView().disableAutoRange()
+        self.image.getView().setAspectLocked(True)
         
         self.request_image_update.connect(self.update_image, Qt.QueuedConnection)
         self.roi_calculation_finished.connect(
@@ -245,7 +273,7 @@ class MainWindow(QMainWindow):
         grid_height = panel_height - PANEL_CHROME_HEIGHT
 
         self.roi_panel = QGroupBox("ROI values", self.ui.centralwidget)
-        self.roi_panel.setGeometry(LEFT_COLUMN_X, ROI_PANEL_Y, panel_width, panel_height)
+        self.roi_panel.setGeometry(LEFT_COLUMN_X, 0, panel_width, panel_height)
         self.roi_panel.setFixedSize(panel_width, panel_height)
         self.roi_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.roi_panel.setStyleSheet(PANEL_GROUP_STYLE)
@@ -295,6 +323,49 @@ class MainWindow(QMainWindow):
         outer.addWidget(grid_host, 0, 0)
         self.roi_panel.show()
         self.roi_panel.raise_()
+
+    def _setup_brightness_panel(self) -> None:
+        group = self.ui.groupBox
+        group.setStyleSheet(PANEL_GROUP_STYLE)
+        group.setTitle("Brightness levels")
+
+        outer = QVBoxLayout(group)
+        outer.setContentsMargins(8, 12, 8, 8)
+        outer.setSpacing(6)
+
+        self.ui.button_autobrightness.setStyleSheet(PANEL_BUTTON_STYLE)
+        self.ui.button_autobrightness.setMinimumHeight(28)
+        outer.addWidget(self.ui.button_autobrightness)
+
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(6)
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 1)
+
+        field_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        def _add_row(row: int, text: str, widget: QLineEdit) -> None:
+            label = QLabel(text, group)
+            label.setStyleSheet(PANEL_LABEL_STYLE)
+            label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            grid.addWidget(label, row, 0, Qt.AlignLeft | Qt.AlignVCenter)
+            widget.setSizePolicy(field_policy)
+            widget.setStyleSheet(PANEL_FIELD_STYLE)
+            grid.addWidget(widget, row, 1, Qt.AlignRight | Qt.AlignVCenter)
+
+        _add_row(0, "Min:", self.ui.lineEdit_minBrightness)
+        _add_row(1, "Max:", self.ui.lineEdit_maxBrightness)
+        outer.addLayout(grid)
+
+        self.ui.button_manualbrightness.setText("Apply")
+        self.ui.button_manualbrightness.setStyleSheet(PANEL_BUTTON_STYLE)
+        self.ui.button_manualbrightness.setMinimumHeight(28)
+        outer.addWidget(self.ui.button_manualbrightness)
+
+        self.ui.label.hide()
+        self.ui.label_5.hide()
 
     def _setup_frames_today_label(self) -> None:
         self.label_frames_today = QLabel(self.ui.centralwidget)
@@ -362,11 +433,8 @@ class MainWindow(QMainWindow):
         grid.setColumnStretch(0, 0)
         grid.setColumnStretch(1, 1)
 
-        field_style = (
-            'font: 9pt "Segoe UI";'
-            "QComboBox, QSpinBox { padding: 1px 4px; min-height: 22px; }"
-        )
-        label_style = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
+        field_style = PANEL_FIELD_STYLE
+        label_style = PANEL_LABEL_STYLE
         field_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         def _form_label(text: str) -> QLabel:
@@ -400,25 +468,7 @@ class MainWindow(QMainWindow):
         outer.addLayout(grid)
 
         self.btn_apply_detector = QPushButton("Apply to camera", self.detector_panel)
-        self.btn_apply_detector.setStyleSheet(
-            """
-            QPushButton {
-                font: 10pt "Segoe UI";
-                color: white;
-                background: rgb(50, 129, 140);
-                border: none;
-                border-radius: 4px;
-                padding: 4px 8px;
-            }
-            QPushButton:hover {
-                background: rgb(42, 110, 120);
-            }
-            QPushButton:disabled {
-                background: rgb(180, 190, 192);
-                color: rgb(240, 240, 240);
-            }
-            """
-        )
+        self.btn_apply_detector.setStyleSheet(PANEL_BUTTON_STYLE)
         self.btn_apply_detector.clicked.connect(self._apply_detector_settings)
         outer.addWidget(self.btn_apply_detector)
 
@@ -745,12 +795,24 @@ class MainWindow(QMainWindow):
                 self.coadd_frames_buffer.clear()
         self._schedule_timing_labels_update()
 
+    def _fit_detector_image(self) -> None:
+        if not hasattr(self, "image") or not getattr(self, "imageInit", False):
+            return
+        img = self.image.getImageItem().image
+        if img is None:
+            return
+        height, width = img.shape[:2]
+        view = self.image.getView()
+        view.setAspectLocked(True)
+        view.setRange(xRange=(0, width), yRange=(0, height), padding=0)
+
     def _layout_image_view(self) -> None:
         if not hasattr(self, "image"):
             return
-        width = max(1, self.ui.frame_camera.width() - 4)
-        height = max(1, self.ui.frame_camera.height() - 4)
-        self.image.setGeometry(2, 2, width, height)
+        width = max(1, self.ui.frame_camera.width())
+        height = max(1, self.ui.frame_camera.height())
+        self.image.setGeometry(0, 0, width, height)
+        self._fit_detector_image()
 
     def _layout_window(self) -> None:
         img_h = config.getint("CAMERA", "window_h")
@@ -764,9 +826,26 @@ class MainWindow(QMainWindow):
         panel_height = roi_panel_height()
         camera_x = LEFT_COLUMN_X + panel_width + LEFT_COLUMN_GAP
 
-        self.roi_panel.setGeometry(LEFT_COLUMN_X, ROI_PANEL_Y, panel_width, panel_height)
-        self.roi_panel.setFixedSize(panel_width, panel_height)
+        frames_y = FRAMES_TODAY_LABEL_Y
+        self.label_frames_today.setGeometry(
+            LEFT_COLUMN_X,
+            frames_y,
+            panel_width,
+            FRAMES_TODAY_LABEL_HEIGHT,
+        )
         self.label_frames_today.setFixedWidth(panel_width)
+
+        detector_y = frames_y + FRAMES_TODAY_LABEL_HEIGHT + LEFT_PANEL_GAP
+        roi_y = detector_y + DETECTOR_PANEL_HEIGHT + LEFT_PANEL_GAP
+
+        if hasattr(self, "detector_panel"):
+            self.detector_panel.setGeometry(
+                LEFT_COLUMN_X, detector_y, panel_width, DETECTOR_PANEL_HEIGHT
+            )
+            self.detector_panel.setFixedSize(panel_width, DETECTOR_PANEL_HEIGHT)
+
+        self.roi_panel.setGeometry(LEFT_COLUMN_X, roi_y, panel_width, panel_height)
+        self.roi_panel.setFixedSize(panel_width, panel_height)
 
         self.ui.frame_camera.setMinimumSize(0, 0)
         self.ui.frame_camera.setGeometry(camera_x, top_y, camera_w, camera_h)
@@ -785,19 +864,20 @@ class MainWindow(QMainWindow):
         self._fit_roi_plot()
 
         right_x = camera_x + camera_w + 12
-        self.ui.button_parameters.setGeometry(right_x, 20, DETECTOR_PANEL_WIDTH, 32)
-        self.ui.groupBox.setGeometry(right_x, 80, DETECTOR_PANEL_WIDTH, 151)
+        self.ui.button_parameters.setGeometry(
+            right_x, 20, RIGHT_PANEL_WIDTH, 32
+        )
+        self.ui.groupBox.setGeometry(
+            right_x, 60, RIGHT_PANEL_WIDTH, BRIGHTNESS_PANEL_HEIGHT
+        )
+        self.ui.groupBox.setFixedSize(RIGHT_PANEL_WIDTH, BRIGHTNESS_PANEL_HEIGHT)
         self.ui.groupBox_2.hide()
-        if hasattr(self, "detector_panel"):
-            self.detector_panel.setGeometry(
-                right_x, 250, DETECTOR_PANEL_WIDTH, DETECTOR_PANEL_HEIGHT
-            )
-            self.detector_panel.setFixedSize(
-                DETECTOR_PANEL_WIDTH, DETECTOR_PANEL_HEIGHT
-            )
 
-        content_h = graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER
-        window_w = max(right_x + DETECTOR_PANEL_WIDTH + 24, camera_x + camera_w + 40)
+        content_h = max(
+            graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER,
+            roi_y + panel_height + WINDOW_BOTTOM_BUFFER,
+        )
+        window_w = max(right_x + RIGHT_PANEL_WIDTH + 24, camera_x + camera_w + 40)
         self.ui.centralwidget.setMinimumSize(0, 0)
         self.ui.centralwidget.setFixedSize(window_w, content_h)
         window_h = content_h + self.menuBar().height()
@@ -1215,11 +1295,11 @@ class MainWindow(QMainWindow):
     
     def initialize_image_display(self, img):
         self.image.setImage(img, autoRange=False)
-        
+
         self.initialize_roi(img)
-        
-        self.image.autoRange()
+
         self.imageInit = True
+        self._fit_detector_image()
 
         self._setup_roi_plot()
         self._layout_image_view()
