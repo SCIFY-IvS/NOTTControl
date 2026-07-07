@@ -23,6 +23,7 @@ from nottcontrol.components.cryo_temp_panel import (
     CryoPressurePanel,
     CryoTemperaturePanel,
 )
+from nottcontrol.ui_scale import cryo_temp_panel_height, scaled
 from nottcontrol.components.delay_lines_panel import (
     DelayLinesStatusPanel,
     delay_line_opc_nodes,
@@ -118,7 +119,7 @@ class MainWindow(QMainWindow):
         self.dl_status_opc_nodes, self.dl_status_keys = delay_line_opc_nodes()
         self.dl_status_panel = DelayLinesStatusPanel(self.ui.centralwidget)
         self.dl_status_panel.setGeometry(
-            LEFT_PANEL_X, DASHBOARD_TOP_Y, LEFT_PANEL_W, DL_PANEL_H
+            scaled(LEFT_PANEL_X), DASHBOARD_TOP_Y, scaled(LEFT_PANEL_W), scaled(DL_PANEL_H)
         )
         self.ui.label_dl_status.hide()
         self.ui.label_dl_state.hide()
@@ -127,14 +128,17 @@ class MainWindow(QMainWindow):
         self.tt_status_panel = TipTiltStatusPanel(self.ui.centralwidget)
         tt_panel_y = 118
         self.tt_status_panel.setGeometry(
-            RIGHT_PANEL_X, tt_panel_y, RIGHT_PANEL_W, TT_PANEL_H
+            scaled(RIGHT_PANEL_X), tt_panel_y, scaled(RIGHT_PANEL_W), scaled(TT_PANEL_H)
         )
 
         self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
         self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
         shutter_panel_y = tt_panel_y + TT_PANEL_H + DASHBOARD_GAP
         self.shutter_status_panel.setGeometry(
-            RIGHT_PANEL_X, shutter_panel_y, RIGHT_PANEL_W, SHUTTER_PANEL_H
+            scaled(RIGHT_PANEL_X),
+            shutter_panel_y,
+            scaled(RIGHT_PANEL_W),
+            scaled(SHUTTER_PANEL_H),
         )
         temp_panel_y = shutter_panel_y + SHUTTER_PANEL_H + DASHBOARD_GAP
 
@@ -174,9 +178,12 @@ class MainWindow(QMainWindow):
         equipment_items = [(item.key, item.label) for item in self.cryo_status_items]
 
         self.pressure_panel = CryoPressurePanel(self.ui.centralwidget)
-        pressure_panel_y = DASHBOARD_TOP_Y + DL_PANEL_H + DASHBOARD_GAP
+        pressure_panel_y = DASHBOARD_TOP_Y + scaled(DL_PANEL_H) + DASHBOARD_GAP
         self.pressure_panel.setGeometry(
-            LEFT_PANEL_X, pressure_panel_y, LEFT_PANEL_W, PRESSURE_PANEL_H
+            scaled(LEFT_PANEL_X),
+            pressure_panel_y,
+            scaled(LEFT_PANEL_W),
+            scaled(PRESSURE_PANEL_H),
         )
         self.pressure_panel.setup(
             self.pressure_tags,
@@ -185,8 +192,14 @@ class MainWindow(QMainWindow):
         )
 
         self.cryo_temp_panel = CryoTemperaturePanel(self.ui.centralwidget)
+        temp_panel_h = cryo_temp_panel_height(
+            len(self.dashboard_temp_tags), columns=2, dense=True
+        )
         self.cryo_temp_panel.setGeometry(
-            RIGHT_PANEL_X, temp_panel_y, RIGHT_PANEL_W, TEMP_PANEL_H
+            scaled(RIGHT_PANEL_X),
+            temp_panel_y,
+            scaled(RIGHT_PANEL_W),
+            temp_panel_h,
         )
         self.cryo_temp_panel.setup(
             self.dashboard_temp_tags,
@@ -215,10 +228,10 @@ class MainWindow(QMainWindow):
         self.ui.label_error.hide()
 
         dashboard_bottom = max(
-            pressure_panel_y + PRESSURE_PANEL_H,
-            temp_panel_y + TEMP_PANEL_H,
+            pressure_panel_y + scaled(PRESSURE_PANEL_H),
+            temp_panel_y + temp_panel_h,
         )
-        self.resize(max(self.width(), 1040), dashboard_bottom + 60)
+        self.resize(max(self.width(), scaled(1040)), dashboard_bottom + scaled(60))
         self._layout_title()
 
         # Dl status on main window

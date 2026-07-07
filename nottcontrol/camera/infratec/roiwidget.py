@@ -3,37 +3,51 @@ from collections import deque
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QCheckBox, QGridLayout, QLabel, QWidget
+from PyQt5.QtWidgets import QCheckBox, QGridLayout, QLabel, QSizePolicy, QWidget
 
 from nottcontrol.camera.infratec.roi import Roi
 from nottcontrol.camera.infratec.utils.utils import BrightnessResults
+from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 ROI_COUNT = 10
 NAME_WIDTH = 42
 PLOT_WIDTH = 22
-VALUE_WIDTH = 48
-ROW_HEIGHT = 20
+VALUE_WIDTH = 54
+ROW_HEIGHT = 22
 HEADER_HEIGHT = 18
 PANEL_CHROME_HEIGHT = 30
 GRID_H_SPACING = 3
 PANEL_SIDE_MARGIN = 14
 
-VALUE_STYLE = 'font: 10pt "Consolas", monospace; color: rgb(30, 30, 30);'
-HEADER_STYLE = 'font: 700 9pt "Segoe UI"; color: rgb(90, 90, 90);'
+
+def _value_style(row_bg: str = "") -> str:
+    pt = scaled_font_pt(10)
+    return f'{row_bg} font: {pt}pt "Consolas", monospace; color: rgb(30, 30, 30);'
+
+
+def _header_style() -> str:
+    pt = scaled_font_pt(9)
+    return f'font: 700 {pt}pt "Segoe UI"; color: rgb(90, 90, 90);'
+
+
+def header_style() -> str:
+    return _header_style()
 
 
 def roi_panel_height() -> int:
-    return PANEL_CHROME_HEIGHT + HEADER_HEIGHT + ROI_COUNT * ROW_HEIGHT
+    return scaled(PANEL_CHROME_HEIGHT) + scaled(HEADER_HEIGHT) + ROI_COUNT * scaled(
+        ROW_HEIGHT
+    )
 
 
 def roi_panel_width() -> int:
     grid_width = (
-        NAME_WIDTH
-        + PLOT_WIDTH
-        + VALUE_WIDTH * 3
-        + GRID_H_SPACING * 4
+        scaled(NAME_WIDTH)
+        + scaled(PLOT_WIDTH)
+        + scaled(VALUE_WIDTH) * 3
+        + scaled(GRID_H_SPACING) * 4
     )
-    return grid_width + PANEL_SIDE_MARGIN * 2
+    return grid_width + scaled(PANEL_SIDE_MARGIN) * 2
 
 
 class RoiWidget:
@@ -53,21 +67,22 @@ class RoiWidget:
         self.color = color
         self.max_values = deque(maxlen=deque_length)
         self.roi = None
+        self._row_bg = "background: rgb(248, 250, 251);" if index % 2 == 0 else ""
 
-        row_bg = "background: rgb(248, 250, 251);" if index % 2 == 0 else ""
+        row_height = scaled(ROW_HEIGHT)
 
         self.name_label = QLabel(self.name, parent)
-        self.name_label.setFixedWidth(NAME_WIDTH)
-        self.name_label.setFixedHeight(ROW_HEIGHT)
-        self.name_label.setStyleSheet(row_bg)
+        self.name_label.setMinimumWidth(scaled(NAME_WIDTH))
+        self.name_label.setFixedHeight(row_height)
+        self.name_label.setStyleSheet(self._row_bg)
 
         self.plot_checkbox = QCheckBox(parent)
-        self.plot_checkbox.setFixedWidth(PLOT_WIDTH)
+        self.plot_checkbox.setFixedWidth(scaled(PLOT_WIDTH))
         self.plot_checkbox.setToolTip("Plot in ROI graph")
 
-        self.min_label = self._make_value_label(parent, row_bg)
-        self.max_label = self._make_value_label(parent, row_bg)
-        self.avg_label = self._make_value_label(parent, row_bg)
+        self.min_label = self._make_value_label(parent, row_height)
+        self.max_label = self._make_value_label(parent, row_height)
+        self.avg_label = self._make_value_label(parent, row_height)
 
         grid.addWidget(self.name_label, row, 0)
         grid.addWidget(self.plot_checkbox, row, 1, Qt.AlignCenter)
@@ -77,19 +92,22 @@ class RoiWidget:
 
         self.setColor(color)
 
-    def _make_value_label(self, parent: QWidget, row_bg: str) -> QLabel:
+    def _make_value_label(self, parent: QWidget, row_height: int) -> QLabel:
         label = QLabel("—", parent)
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        label.setFixedWidth(VALUE_WIDTH)
-        label.setFixedHeight(ROW_HEIGHT)
-        label.setStyleSheet(f"{row_bg} {VALUE_STYLE}")
+        label.setMinimumWidth(scaled(VALUE_WIDTH))
+        label.setFixedHeight(row_height)
+        label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
+        label.setStyleSheet(_value_style(self._row_bg))
         return label
 
     def setColor(self, color: QColor) -> None:
         self.color = color
+        pt = scaled_font_pt(10)
         self.name_label.setStyleSheet(
-            "font: 700 10pt 'Segoe UI';"
+            f"font: 700 {pt}pt 'Segoe UI';"
             f" color: rgb({color.red()}, {color.green()}, {color.blue()});"
+            f" {self._row_bg}"
         )
 
     def setValues(self, brightnessResults: BrightnessResults) -> None:

@@ -1,6 +1,8 @@
 import sys
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 from nottcontrol.app_icon import apply_app_icon, ensure_windows_app_identity
+from nottcontrol.ui_scale import configure_high_dpi, init_ui_scale
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.scifygui import MainWindow
 import os
@@ -8,6 +10,7 @@ import logging
 from nottcontrol import config
 
 def main():
+    configure_high_dpi()
     ensure_windows_app_identity()
 
     #Change the running directory to this directory
@@ -26,6 +29,8 @@ def main():
 
     # set up the main window
     app = QApplication(sys.argv)
+    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    init_ui_scale(app)
     apply_app_icon(app)
     main_window = MainWindow(opcua_conn)
     main_window.show()

@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from nottcontrol.sensors import format_pressure_value, format_equipment_status
+from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 
 TEAL = "rgb(50, 129, 140)"
@@ -56,7 +57,7 @@ _TEMP_GROUP_ORDER = [
 
 
 def _temp_value_style(temp_k: float | None, *, dense: bool = False) -> str:
-    size = 10 if dense else 11
+    size = scaled_font_pt(10 if dense else 11)
     if temp_k is None:
         return f'font: {size}pt "Segoe UI"; color: rgb(140, 140, 140);'
     if temp_k < 10:
@@ -71,14 +72,14 @@ def _temp_value_style(temp_k: float | None, *, dense: bool = False) -> str:
 
 
 def _temp_panel_name_style(*, dense: bool = False) -> str:
-    size = 9 if dense else 10
+    size = scaled_font_pt(9 if dense else 10)
     return f'font: {size}pt "Segoe UI"; color: rgb(40, 40, 40);'
 
 
 def _pressure_value_style(value: float | None) -> str:
     if value is None:
-        return 'font: 11pt "Segoe UI"; color: rgb(140, 140, 140);'
-    return 'font: 700 11pt "Segoe UI"; color: rgb(80, 70, 150);'
+        return f'font: {scaled_font_pt(11)}pt "Segoe UI"; color: rgb(140, 140, 140);'
+    return f'font: 700 {scaled_font_pt(11)}pt "Segoe UI"; color: rgb(80, 70, 150);'
 
 
 def _equipment_status_style(style_key: str) -> str:
@@ -89,10 +90,10 @@ def _equipment_status_style(style_key: str) -> str:
     }
     color = colors.get(style_key, colors["unknown"])
     return (
-        f'font: 700 11pt "Segoe UI"; color: {color};'
+        f'font: 700 {scaled_font_pt(11)}pt "Segoe UI"; color: {color};'
         " background-color: rgb(245, 248, 249);"
         " border: 1px solid rgb(200, 210, 215); border-radius: 4px;"
-        " padding: 2px 8px;"
+        f" padding: {scaled(2)}px {scaled(8)}px;"
     )
 
 
@@ -156,6 +157,8 @@ class CryoTempPanel(QWidget):
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("—")
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setMinimumWidth(scaled(96))
+            value_label.setMinimumHeight(scaled(22))
             value_label.setStyleSheet(_pressure_value_style(None))
             grid.addWidget(name_label, row, 0)
             grid.addWidget(value_label, row, 1)
@@ -282,6 +285,8 @@ class CryoPressurePanel(QWidget):
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("—")
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setMinimumWidth(scaled(96))
+            value_label.setMinimumHeight(scaled(22))
             value_label.setStyleSheet(_pressure_value_style(None))
             grid.addWidget(name_label, row, 0)
             grid.addWidget(value_label, row, 1)
@@ -292,8 +297,8 @@ class CryoPressurePanel(QWidget):
             name_label = QLabel(f"{label} status")
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("Unknown")
-            value_label.setMinimumWidth(84)
-            value_label.setMinimumHeight(22)
+            value_label.setMinimumWidth(scaled(84))
+            value_label.setMinimumHeight(scaled(22))
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             value_label.setStyleSheet(_equipment_status_style("unknown"))
             grid.addWidget(name_label, row, 0)
@@ -301,7 +306,7 @@ class CryoPressurePanel(QWidget):
             self._equipment_value_labels[key] = value_label
             row += 1
 
-        box.setMinimumHeight(28 + row * 26)
+        box.setMinimumHeight(scaled(28) + row * scaled(26))
         layout = self.layout()
         layout.addWidget(box)
 
@@ -378,26 +383,32 @@ class CryoTemperaturePanel(QWidget):
         dense: bool,
     ) -> None:
         sorted_tags = self._sort_tags_by_group(tags)
-        row_height = 16 if dense else 18
-        value_width = 56 if dense else 64
+        row_height = scaled(18 if dense else 20)
+        value_width = scaled(68 if dense else 76)
 
         box = QGroupBox("Cryostat temperatures")
         grid = QGridLayout(box)
-        grid.setContentsMargins(6, 2, 6, 4)
+        grid.setContentsMargins(scaled(6), scaled(2), scaled(6), scaled(4))
         for column in range(columns * 2):
             grid.setColumnStretch(column, 2 if column % 2 == 0 else 1)
-        grid.setHorizontalSpacing(10 if dense else 16)
-        grid.setVerticalSpacing(1 if dense else 3)
+        grid.setHorizontalSpacing(scaled(10 if dense else 16))
+        grid.setVerticalSpacing(scaled(1 if dense else 3))
 
         for index, tag in enumerate(sorted_tags):
             row = index // columns
             column_base = (index % columns) * 2
             name_label = QLabel(label_for_tag(tag))
             name_label.setMinimumHeight(row_height)
+            name_label.setSizePolicy(
+                QSizePolicy.MinimumExpanding, QSizePolicy.Fixed
+            )
             name_label.setStyleSheet(_temp_panel_name_style(dense=dense))
             value_label = QLabel("—")
             value_label.setMinimumWidth(value_width)
             value_label.setMinimumHeight(row_height)
+            value_label.setSizePolicy(
+                QSizePolicy.MinimumExpanding, QSizePolicy.Fixed
+            )
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             value_label.setStyleSheet(_temp_value_style(None, dense=dense))
             grid.addWidget(name_label, row, column_base)

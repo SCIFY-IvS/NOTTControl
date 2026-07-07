@@ -52,15 +52,16 @@ from nottcontrol.camera.infratec.roi import Roi
 from nottcontrol.camera.infratec.roiwidget import (
     GRID_H_SPACING,
     HEADER_HEIGHT,
-    HEADER_STYLE,
     NAME_WIDTH,
     PANEL_CHROME_HEIGHT,
     PLOT_WIDTH,
     RoiWidget,
     VALUE_WIDTH,
+    header_style,
     roi_panel_height,
     roi_panel_width,
 )
+from nottcontrol.ui_scale import scaled, scaled_font_pt
 import queue
 from pathlib import Path
 import zmq
@@ -161,8 +162,6 @@ def callback(context,*args):#, aHandle, aStreamIndex):
     context.load_image(recording_timestamp,use_camera_time)
 
 class MainWindow(QMainWindow):
-    #Without this call, the GUI is resized and tiny
-    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     request_image_update = pyqtSignal(numpy.ndarray)
     roi_calculation_finished = pyqtSignal(BrightnessCalculator)
     frames_saved_today_updated = pyqtSignal(int, str)
@@ -275,7 +274,7 @@ class MainWindow(QMainWindow):
 
         panel_width = roi_panel_width()
         panel_height = roi_panel_height()
-        grid_height = panel_height - PANEL_CHROME_HEIGHT
+        grid_height = panel_height - scaled(PANEL_CHROME_HEIGHT)
 
         self.roi_panel = QGroupBox("ROI values", self.ui.centralwidget)
         self.roi_panel.setGeometry(LEFT_COLUMN_X, 0, panel_width, panel_height)
@@ -284,10 +283,10 @@ class MainWindow(QMainWindow):
         self.roi_panel.setStyleSheet(PANEL_GROUP_STYLE)
 
         grid_host = QWidget(self.roi_panel)
-        grid_host.setMinimumSize(panel_width - 12, grid_height)
+        grid_host.setMinimumSize(panel_width - scaled(12), grid_height)
         grid = QGridLayout(grid_host)
-        grid.setContentsMargins(6, 2, 6, 4)
-        grid.setHorizontalSpacing(GRID_H_SPACING)
+        grid.setContentsMargins(scaled(6), scaled(2), scaled(6), scaled(4))
+        grid.setHorizontalSpacing(scaled(GRID_H_SPACING))
         grid.setVerticalSpacing(0)
 
         for column, (text, width, alignment) in enumerate(
@@ -300,11 +299,13 @@ class MainWindow(QMainWindow):
             )
         ):
             header = QLabel(text, grid_host)
-            header.setFixedWidth(width)
-            header.setFixedHeight(HEADER_HEIGHT)
-            header.setStyleSheet(HEADER_STYLE)
+            header.setMinimumWidth(scaled(width))
+            header.setFixedHeight(scaled(HEADER_HEIGHT))
+            header.setStyleSheet(header_style())
             header.setAlignment(alignment | Qt.AlignVCenter)
             grid.addWidget(header, 0, column)
+            if column >= 2:
+                grid.setColumnStretch(column, 1)
 
         self.roi_widgets = []
         colors = [
@@ -375,7 +376,7 @@ class MainWindow(QMainWindow):
     def _setup_frames_today_label(self) -> None:
         self.label_frames_today = QLabel(self.ui.centralwidget)
         self.label_frames_today.setGeometry(
-            LEFT_COLUMN_X, FRAMES_TODAY_LABEL_Y, roi_panel_width(), 20
+            LEFT_COLUMN_X, FRAMES_TODAY_LABEL_Y, roi_panel_width(), scaled(20)
         )
         self.label_frames_today.setStyleSheet(
             'font: 10pt "Segoe UI"; color: rgb(50, 129, 140);'
@@ -887,30 +888,36 @@ class MainWindow(QMainWindow):
         graph_gap = 8
         panel_width = roi_panel_width()
         panel_height = roi_panel_height()
-        camera_x = LEFT_COLUMN_X + panel_width + LEFT_COLUMN_GAP
-
         frames_y = FRAMES_TODAY_LABEL_Y
+        frames_label_h = scaled(FRAMES_TODAY_LABEL_HEIGHT)
+        detector_panel_h = scaled(DETECTOR_PANEL_HEIGHT)
+        right_panel_w = scaled(RIGHT_PANEL_WIDTH)
+        brightness_panel_h = scaled(BRIGHTNESS_PANEL_HEIGHT)
+        left_panel_gap = scaled(LEFT_PANEL_GAP)
+        left_column_gap = scaled(LEFT_COLUMN_GAP)
+
         self.label_frames_today.setGeometry(
             LEFT_COLUMN_X,
             frames_y,
             panel_width,
-            FRAMES_TODAY_LABEL_HEIGHT,
+            frames_label_h,
         )
         self.label_frames_today.setFixedWidth(panel_width)
 
-        detector_y = frames_y + FRAMES_TODAY_LABEL_HEIGHT + LEFT_PANEL_GAP
-        roi_y = detector_y + DETECTOR_PANEL_HEIGHT + LEFT_PANEL_GAP
+        detector_y = frames_y + frames_label_h + left_panel_gap
+        roi_y = detector_y + detector_panel_h + left_panel_gap
 
         if hasattr(self, "detector_panel"):
             self.detector_panel.setGeometry(
-                LEFT_COLUMN_X, detector_y, panel_width, DETECTOR_PANEL_HEIGHT
+                LEFT_COLUMN_X, detector_y, panel_width, detector_panel_h
             )
-            self.detector_panel.setFixedSize(panel_width, DETECTOR_PANEL_HEIGHT)
+            self.detector_panel.setFixedSize(panel_width, detector_panel_h)
 
         self.roi_panel.setGeometry(LEFT_COLUMN_X, roi_y, panel_width, panel_height)
         self.roi_panel.setFixedSize(panel_width, panel_height)
 
         self.ui.frame_camera.setMinimumSize(0, 0)
+        camera_x = LEFT_COLUMN_X + panel_width + left_column_gap
         self.ui.frame_camera.setGeometry(camera_x, top_y, camera_w, camera_h)
         self.ui.frame_camera.setFixedSize(camera_w, camera_h)
 
@@ -926,21 +933,21 @@ class MainWindow(QMainWindow):
         self.ui.frame_roi_graph.raise_()
         self._fit_roi_plot()
 
-        right_x = camera_x + camera_w + 12
+        right_x = camera_x + camera_w + scaled(12)
         self.ui.button_parameters.setGeometry(
-            right_x, 20, RIGHT_PANEL_WIDTH, 32
+            right_x, 20, right_panel_w, scaled(32)
         )
         self.ui.groupBox.setGeometry(
-            right_x, 60, RIGHT_PANEL_WIDTH, BRIGHTNESS_PANEL_HEIGHT
+            right_x, 60, right_panel_w, brightness_panel_h
         )
-        self.ui.groupBox.setFixedSize(RIGHT_PANEL_WIDTH, BRIGHTNESS_PANEL_HEIGHT)
+        self.ui.groupBox.setFixedSize(right_panel_w, brightness_panel_h)
         self.ui.groupBox_2.hide()
 
         content_h = max(
             graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER,
             roi_y + panel_height + WINDOW_BOTTOM_BUFFER,
         )
-        window_w = max(right_x + RIGHT_PANEL_WIDTH + 24, camera_x + camera_w + 40)
+        window_w = max(right_x + right_panel_w + scaled(24), camera_x + camera_w + scaled(40))
         self.ui.centralwidget.setMinimumSize(0, 0)
         self.ui.centralwidget.setFixedSize(window_w, content_h)
         window_h = content_h + self.menuBar().height()
@@ -1511,9 +1518,12 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     from nottcontrol.app_icon import apply_app_icon, ensure_windows_app_identity
+    from nottcontrol.ui_scale import configure_high_dpi, init_ui_scale
 
+    configure_high_dpi()
     ensure_windows_app_identity()
     app = QApplication(sys.argv)
+    init_ui_scale(app)
     apply_app_icon(app)
     window = MainWindow()
     window.show()
