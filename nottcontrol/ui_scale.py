@@ -54,4 +54,4 @@ def cryo_temp_panel_height(
     """Minimum height for a cryostat temperature group box."""
     rows = max(1, (tag_count + columns - 1) // columns)
     row_h = scaled(20 if dense else 22)
-    return scaled(30) + rows * row_h
+    return scaled(38) + rows * row_h
