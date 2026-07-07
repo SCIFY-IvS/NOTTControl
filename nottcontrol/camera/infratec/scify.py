@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5.QtWidgets import (
     QApplication,
-    QDoubleSpinBox,
+    QComboBox,
     QFormLayout,
     QFrame,
     QGridLayout,
@@ -32,6 +32,14 @@ import numpy
 import cv2
 from nottcontrol.camera.infratec.frame_writer import FrameWriter
 from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
+from nottcontrol.camera.infratec.detector_options import (
+    fallback_framerate_options_hz,
+    fallback_integration_times_us,
+    format_exposure_ms,
+    format_framerate_hz,
+    get_framerate_options_hz,
+    get_integration_time_options_us,
+)
 from nottcontrol.camera.infratec.parametersdialog import ParametersDialog
 from nottcontrol.redisclient import RedisClient
 from nottcontrol import config
@@ -349,41 +357,33 @@ class MainWindow(QMainWindow):
 
         field_style = (
             'font: 9pt "Segoe UI";'
-            "QDoubleSpinBox, QSpinBox { padding: 1px 2px; min-height: 20px; }"
+            "QComboBox, QSpinBox { padding: 1px 2px; min-height: 20px; }"
         )
         label_style = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
-        spin_width = 96
+        combo_width = 96
 
         def _form_label(text: str) -> QLabel:
             label = QLabel(text, self.detector_panel)
             label.setStyleSheet(label_style)
-            label.setMinimumWidth(74)
+            label.setMinimumWidth(88)
             return label
 
-        self.spin_integ_ms = QDoubleSpinBox(self.detector_panel)
-        self.spin_integ_ms.setRange(0.001, 60_000.0)
-        self.spin_integ_ms.setDecimals(3)
-        self.spin_integ_ms.setSingleStep(0.1)
-        self.spin_integ_ms.setValue(1.0)
-        self.spin_integ_ms.setSuffix(" ms")
-        self.spin_integ_ms.setFixedWidth(spin_width)
-        self.spin_integ_ms.setStyleSheet(field_style)
-        form.addRow(_form_label("Exposure:"), self.spin_integ_ms)
+        self.combo_exposure = QComboBox(self.detector_panel)
+        self.combo_exposure.setEditable(False)
+        self.combo_exposure.setFixedWidth(combo_width)
+        self.combo_exposure.setStyleSheet(field_style)
+        form.addRow(_form_label("Exposure (ms):"), self.combo_exposure)
 
-        self.spin_framerate_hz = QDoubleSpinBox(self.detector_panel)
-        self.spin_framerate_hz.setRange(0.1, 500.0)
-        self.spin_framerate_hz.setDecimals(2)
-        self.spin_framerate_hz.setSingleStep(0.5)
-        self.spin_framerate_hz.setValue(25.0)
-        self.spin_framerate_hz.setSuffix(" Hz")
-        self.spin_framerate_hz.setFixedWidth(spin_width)
-        self.spin_framerate_hz.setStyleSheet(field_style)
-        form.addRow(_form_label("Frame rate:"), self.spin_framerate_hz)
+        self.combo_framerate = QComboBox(self.detector_panel)
+        self.combo_framerate.setEditable(False)
+        self.combo_framerate.setFixedWidth(combo_width)
+        self.combo_framerate.setStyleSheet(field_style)
+        form.addRow(_form_label("Frame rate (Hz):"), self.combo_framerate)
 
         self.spin_coadd = QSpinBox(self.detector_panel)
         self.spin_coadd.setRange(1, 999)
         self.spin_coadd.setValue(1)
-        self.spin_coadd.setFixedWidth(spin_width)
+        self.spin_coadd.setFixedWidth(combo_width)
         self.spin_coadd.setStyleSheet(field_style)
         form.addRow(_form_label("Coadd:"), self.spin_coadd)
 
@@ -441,9 +441,70 @@ class MainWindow(QMainWindow):
         outer.addWidget(self.label_recording_elapsed)
 
         self.spin_coadd.valueChanged.connect(self._on_coadd_changed)
-        self.spin_integ_ms.valueChanged.connect(self._update_timing_labels)
-        self.spin_framerate_hz.valueChanged.connect(self._update_timing_labels)
+        self.combo_exposure.currentIndexChanged.connect(self._update_timing_labels)
+        self.combo_framerate.currentIndexChanged.connect(self._update_timing_labels)
+        self._populate_detector_option_combos()
         self._set_detector_controls_enabled()
+
+    def _selected_integration_us(self) -> int | None:
+        if not hasattr(self, "combo_exposure"):
+            return None
+        value = self.combo_exposure.currentData()
+        if value is None:
+            return None
+        return int(value)
+
+    def _selected_framerate_hz(self) -> float | None:
+        if not hasattr(self, "combo_framerate"):
+            return None
+        value = self.combo_framerate.currentData()
+        if value is None:
+            return None
+        return float(value)
+
+    def _select_combo_value(self, combo: QComboBox, value, *, tolerance: float = 0.05) -> None:
+        for index in range(combo.count()):
+            item_value = combo.itemData(index)
+            if item_value is None:
+                continue
+            if isinstance(value, float):
+                if abs(float(item_value) - float(value)) <= tolerance:
+                    combo.setCurrentIndex(index)
+                    return
+            elif int(item_value) == int(value):
+                combo.setCurrentIndex(index)
+                return
+        if combo.count() > 0:
+            combo.setCurrentIndex(0)
+
+    def _populate_detector_option_combos(self) -> None:
+        if not hasattr(self, "combo_exposure"):
+            return
+
+        if self.connected:
+            exposure_options = get_integration_time_options_us(self.interface)
+            framerate_options = get_framerate_options_hz(self.interface)
+        else:
+            exposure_options = fallback_integration_times_us()
+            framerate_options = fallback_framerate_options_hz()
+
+        self.combo_exposure.blockSignals(True)
+        self.combo_exposure.clear()
+        for integration_us in exposure_options:
+            self.combo_exposure.addItem(
+                format_exposure_ms(integration_us),
+                integration_us,
+            )
+        self.combo_exposure.blockSignals(False)
+
+        self.combo_framerate.blockSignals(True)
+        self.combo_framerate.clear()
+        for framerate_hz in framerate_options:
+            self.combo_framerate.addItem(
+                format_framerate_hz(framerate_hz),
+                framerate_hz,
+            )
+        self.combo_framerate.blockSignals(False)
 
     def _format_duration_us(self, us: float | None) -> str:
         if us is None:
@@ -455,8 +516,9 @@ class MainWindow(QMainWindow):
         return f"{us:.0f} µs"
 
     def _read_integtime_us(self) -> int | None:
-        if hasattr(self, "spin_integ_ms"):
-            return int(round(self.spin_integ_ms.value() * 1000))
+        selected = self._selected_integration_us()
+        if selected is not None:
+            return selected
         if not self.connected:
             return getattr(self, "integtime", None) or None
         try:
@@ -465,8 +527,9 @@ class MainWindow(QMainWindow):
             return getattr(self, "integtime", None) or None
 
     def _configured_framerate_hz(self) -> float | None:
-        if hasattr(self, "spin_framerate_hz") and self.spin_framerate_hz.value() > 0:
-            return float(self.spin_framerate_hz.value())
+        selected = self._selected_framerate_hz()
+        if selected is not None:
+            return selected
         return None
 
     def _coadd_count(self) -> int:
@@ -571,31 +634,32 @@ class MainWindow(QMainWindow):
             self.label_recording_elapsed.setText("")
 
     def _set_detector_controls_enabled(self) -> None:
-        if not hasattr(self, "spin_integ_ms"):
+        if not hasattr(self, "combo_exposure"):
             return
         camera_controls_enabled = self.connected and not self.recording
-        self.spin_integ_ms.setEnabled(camera_controls_enabled)
-        self.spin_framerate_hz.setEnabled(camera_controls_enabled)
+        self.combo_exposure.setEnabled(camera_controls_enabled)
+        self.combo_framerate.setEnabled(camera_controls_enabled)
         self.btn_apply_detector.setEnabled(camera_controls_enabled)
 
     def _load_detector_settings_from_camera(self) -> None:
         if not self.connected:
             return
+        self._populate_detector_option_combos()
         try:
             integ_us = int(
                 self.interface.getparam_idx_int32(CAM_PARAM_INTEGRATION_TIME, 0)
             )
             self.integtime = integ_us
-            self.spin_integ_ms.blockSignals(True)
-            self.spin_integ_ms.setValue(integ_us / 1000.0)
-            self.spin_integ_ms.blockSignals(False)
+            self.combo_exposure.blockSignals(True)
+            self._select_combo_value(self.combo_exposure, integ_us)
+            self.combo_exposure.blockSignals(False)
 
             framerate_hz = float(
                 self.interface.getparam_single(CAM_PARAM_FRAMERATE_HZ)
             )
-            self.spin_framerate_hz.blockSignals(True)
-            self.spin_framerate_hz.setValue(framerate_hz)
-            self.spin_framerate_hz.blockSignals(False)
+            self.combo_framerate.blockSignals(True)
+            self._select_combo_value(self.combo_framerate, framerate_hz)
+            self.combo_framerate.blockSignals(False)
         except Exception:
             pass
         self._update_timing_labels()
@@ -603,9 +667,11 @@ class MainWindow(QMainWindow):
     def _apply_detector_settings(self) -> None:
         if not self.connected or self.recording:
             return
+        integ_us = self._selected_integration_us()
+        framerate_hz = self._selected_framerate_hz()
+        if integ_us is None or framerate_hz is None:
+            return
         try:
-            integ_us = int(round(self.spin_integ_ms.value() * 1000))
-            framerate_hz = float(self.spin_framerate_hz.value())
             self.interface.setparam_idx_int32(
                 CAM_PARAM_INTEGRATION_TIME, 0, integ_us
             )
@@ -720,7 +786,7 @@ class MainWindow(QMainWindow):
         plot_item.setLabel(axis='left', text='ROI brightness [ADU]')
         plot_item.setLabel(axis='bottom', text='Time [UTC]')
         plot_item.getAxis('left').setWidth(58)
-        plot_item.layout.setContentsMargin(8, 8, 8, 8)
+        plot_item.layout.setContentsMargins(8, 8, 8, 8)
         plot_item.enableAutoRange(axis='y', enable=True)
         plot_item.enableAutoRange(axis='x', enable=False)
 
