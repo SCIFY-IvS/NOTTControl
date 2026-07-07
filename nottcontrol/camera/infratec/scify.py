@@ -41,6 +41,7 @@ from nottcontrol.camera.infratec.detector_options import (
     format_framerate_hz,
     get_framerate_options_hz,
     get_integration_time_options_us,
+    integration_time_options_for_framerate,
 )
 from nottcontrol.camera.infratec.parametersdialog import ParametersDialog
 from nottcontrol.redisclient import RedisClient
@@ -509,7 +510,7 @@ class MainWindow(QMainWindow):
             self._schedule_timing_labels_update
         )
         self.combo_framerate.currentIndexChanged.connect(
-            self._schedule_timing_labels_update
+            self._on_framerate_selection_changed
         )
         self._populate_detector_option_combos()
         self._set_detector_controls_enabled()
@@ -566,15 +567,6 @@ class MainWindow(QMainWindow):
             self._cached_framerate_options_hz
         )
 
-        self.combo_exposure.blockSignals(True)
-        self.combo_exposure.clear()
-        for integration_us in exposure_options:
-            self.combo_exposure.addItem(
-                format_exposure_ms(integration_us),
-                integration_us,
-            )
-        self.combo_exposure.blockSignals(False)
-
         self.combo_framerate.blockSignals(True)
         self.combo_framerate.clear()
         for framerate_hz in framerate_options:
@@ -584,6 +576,40 @@ class MainWindow(QMainWindow):
             )
         self.combo_framerate.blockSignals(False)
         self._select_default_framerate()
+        self._rebuild_exposure_combo()
+
+    def _selected_framerate_for_exposure_limits(self) -> float | None:
+        selected = self._selected_framerate_hz()
+        if selected is not None:
+            return selected
+        return DEFAULT_FRAMERATE_HZ
+
+    def _rebuild_exposure_combo(self, *, keep_selection: bool = True) -> None:
+        if not hasattr(self, "combo_exposure"):
+            return
+
+        previous_us = self._selected_integration_us() if keep_selection else None
+        exposure_options = integration_time_options_for_framerate(
+            self._cached_exposure_options_us or fallback_integration_times_us(),
+            self._selected_framerate_for_exposure_limits(),
+        )
+
+        self.combo_exposure.blockSignals(True)
+        self.combo_exposure.clear()
+        for integration_us in exposure_options:
+            self.combo_exposure.addItem(
+                format_exposure_ms(integration_us),
+                integration_us,
+            )
+        if previous_us is not None:
+            self._select_combo_value(self.combo_exposure, previous_us)
+        elif self.combo_exposure.count() > 0:
+            self.combo_exposure.setCurrentIndex(0)
+        self.combo_exposure.blockSignals(False)
+
+    def _on_framerate_selection_changed(self) -> None:
+        self._rebuild_exposure_combo()
+        self._schedule_timing_labels_update()
 
     def _select_default_framerate(self) -> None:
         if not hasattr(self, "combo_framerate") or self.combo_framerate.count() == 0:
@@ -628,11 +654,11 @@ class MainWindow(QMainWindow):
             self._update_timing_labels()
 
     def _frame_period_us(self) -> tuple[float | None, bool]:
+        configured_hz = self._configured_framerate_hz()
+        if configured_hz and configured_hz > 0:
+            return 1e6 / configured_hz, False
         if self._last_camera_frame_rate and self._last_camera_frame_rate > 0:
             return 1e6 / self._last_camera_frame_rate, True
-        configured_hz = self._configured_framerate_hz()
-        if configured_hz:
-            return 1e6 / configured_hz, False
         dit_us = self._read_integtime_us()
         if dit_us is not None:
             return dit_us + FRAME_READOUT_OVERHEAD_US, False

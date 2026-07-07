@@ -67,6 +67,25 @@ def fallback_framerate_options_hz() -> list[float]:
     return sorted(_parse_float_list(raw))
 
 
+def max_integration_us_for_framerate_hz(framerate_hz: float) -> int:
+    if framerate_hz <= 0:
+        return 10_000_000
+    return max(1, int(1e6 / framerate_hz))
+
+
+def integration_time_options_for_framerate(
+    camera_options: list[int],
+    framerate_hz: float | None,
+) -> list[int]:
+    options = sorted(set(camera_options) | set(fallback_integration_times_us()))
+    if framerate_hz and framerate_hz > 0:
+        max_us = max_integration_us_for_framerate_hz(framerate_hz)
+        filtered = [value for value in options if value <= max_us]
+        if filtered:
+            options = filtered
+    return options
+
+
 def ensure_default_framerate_option(options: list[float]) -> list[float]:
     if any(abs(rate - DEFAULT_FRAMERATE_HZ) <= 0.05 for rate in options):
         return options
