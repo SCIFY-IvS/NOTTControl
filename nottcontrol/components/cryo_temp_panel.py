@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QGridLayout, QGroupBox, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
 from nottcontrol.sensors import format_pressure_value, format_equipment_status
 
@@ -25,10 +25,40 @@ QGroupBox::title {{
 }}
 """
 
+PANEL_STYLE_DENSE = f"""
+QGroupBox {{
+    font: 700 10pt "Segoe UI";
+    color: {TEAL};
+    border: 1px solid {TEAL};
+    border-radius: 6px;
+    margin-top: 8px;
+    padding-top: 4px;
+}}
+QGroupBox::title {{
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 3px;
+}}
+"""
 
-def _temp_value_style(temp_k: float | None) -> str:
+_TEMP_GROUP_ORDER = [
+    "Detector",
+    "Base plate",
+    "Shield",
+    "Photonic chip",
+    "Flat field",
+    "Master",
+    "Sidecar",
+    "Thermal box",
+    "Cabinet",
+    "Other",
+]
+
+
+def _temp_value_style(temp_k: float | None, *, dense: bool = False) -> str:
+    size = 10 if dense else 11
     if temp_k is None:
-        return 'font: 11pt "Segoe UI"; color: rgb(140, 140, 140);'
+        return f'font: {size}pt "Segoe UI"; color: rgb(140, 140, 140);'
     if temp_k < 10:
         color = "rgb(0, 102, 204)"
     elif temp_k < 50:
@@ -37,15 +67,12 @@ def _temp_value_style(temp_k: float | None) -> str:
         color = "rgb(200, 120, 0)"
     else:
         color = "rgb(200, 50, 0)"
-    return f'font: 700 11pt "Segoe UI"; color: {color};'
+    return f'font: 700 {size}pt "Segoe UI"; color: {color};'
 
 
-def _temp_panel_name_style() -> str:
-    return 'font: 10pt "Segoe UI"; color: rgb(40, 40, 40);'
-
-
-def _temp_panel_header_style() -> str:
-    return f'font: 700 11pt "Segoe UI"; color: {TEAL};'
+def _temp_panel_name_style(*, dense: bool = False) -> str:
+    size = 9 if dense else 10
+    return f'font: {size}pt "Segoe UI"; color: rgb(40, 40, 40);'
 
 
 def _pressure_value_style(value: float | None) -> str:
@@ -297,17 +324,18 @@ class CryoPressurePanel(QWidget):
 
 
 class CryoTemperaturePanel(QWidget):
-    """Grouped cryostat temperature readouts in a single panel."""
+    """Cryostat temperature readouts in a flat, non-scrollable grid."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setStyleSheet(PANEL_STYLE)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(0)
 
         self._temp_value_labels: dict[str, QLabel] = {}
+        self._dense = False
 
     def setup(
         self,
@@ -315,126 +343,68 @@ class CryoTemperaturePanel(QWidget):
         display_names: list[str],
         *,
         compact: bool = False,
+        dense: bool = False,
     ) -> None:
-        if compact:
-            self._setup_compact(tags)
-        else:
-            self._setup_grouped(tags, display_names)
-
-    def _setup_compact(self, tags: list[str]) -> None:
         from nottcontrol.sensors import temperature_group
 
-        group_order = [
-            "Detector",
-            "Base plate",
-            "Shield",
-            "Photonic chip",
-            "Flat field",
-            "Master",
-            "Sidecar",
-            "Thermal box",
-            "Cabinet",
-            "Other",
-        ]
-        order_index = {name: index for index, name in enumerate(group_order)}
-        sorted_tags = sorted(
+        self._dense = dense or compact
+        self.setStyleSheet(PANEL_STYLE_DENSE if self._dense else PANEL_STYLE)
+
+        if compact:
+            label_for_tag = temperature_group
+            columns = 2
+        else:
+            labels = dict(zip(tags, display_names))
+            label_for_tag = labels.get
+            columns = 4 if dense else 3
+
+        self._setup_temp_grid(tags, label_for_tag, columns=columns, dense=self._dense)
+
+    def _sort_tags_by_group(self, tags: list[str]) -> list[str]:
+        from nottcontrol.sensors import temperature_group
+
+        order_index = {name: index for index, name in enumerate(_TEMP_GROUP_ORDER)}
+        return sorted(
             tags,
             key=lambda tag: (order_index.get(temperature_group(tag), 99), tag),
         )
 
+    def _setup_temp_grid(
+        self,
+        tags: list[str],
+        label_for_tag,
+        *,
+        columns: int,
+        dense: bool,
+    ) -> None:
+        sorted_tags = self._sort_tags_by_group(tags)
+        row_height = 16 if dense else 18
+        value_width = 56 if dense else 64
+
         box = QGroupBox("Cryostat temperatures")
         grid = QGridLayout(box)
-        grid.setColumnStretch(0, 2)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(2, 2)
-        grid.setColumnStretch(3, 1)
-        grid.setHorizontalSpacing(20)
-        grid.setVerticalSpacing(4)
+        grid.setContentsMargins(6, 2, 6, 4)
+        for column in range(columns * 2):
+            grid.setColumnStretch(column, 2 if column % 2 == 0 else 1)
+        grid.setHorizontalSpacing(10 if dense else 16)
+        grid.setVerticalSpacing(1 if dense else 3)
 
         for index, tag in enumerate(sorted_tags):
-            row = index // 2
-            column_base = 0 if index % 2 == 0 else 2
-            name_label = QLabel(temperature_group(tag))
-            name_label.setMinimumHeight(20)
-            name_label.setStyleSheet(_temp_panel_name_style())
+            row = index // columns
+            column_base = (index % columns) * 2
+            name_label = QLabel(label_for_tag(tag))
+            name_label.setMinimumHeight(row_height)
+            name_label.setStyleSheet(_temp_panel_name_style(dense=dense))
             value_label = QLabel("—")
-            value_label.setMinimumWidth(72)
-            value_label.setMinimumHeight(20)
+            value_label.setMinimumWidth(value_width)
+            value_label.setMinimumHeight(row_height)
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            value_label.setStyleSheet(_temp_value_style(None))
+            value_label.setStyleSheet(_temp_value_style(None, dense=dense))
             grid.addWidget(name_label, row, column_base)
             grid.addWidget(value_label, row, column_base + 1)
             self._temp_value_labels[tag] = value_label
 
         self.layout().addWidget(box)
-
-    def _setup_grouped(self, tags: list[str], display_names: list[str]) -> None:
-        from nottcontrol.sensors import temperature_group
-
-        grouped: dict[str, list[tuple[str, str]]] = {}
-        for tag, name in zip(tags, display_names):
-            grouped.setdefault(temperature_group(tag), []).append((tag, name))
-
-        group_order = [
-            "Detector",
-            "Base plate",
-            "Shield",
-            "Photonic chip",
-            "Flat field",
-            "Master",
-            "Sidecar",
-            "Thermal box",
-            "Cabinet",
-            "Other",
-        ]
-
-        box = QGroupBox("Cryostat temperatures")
-        grid = QGridLayout(box)
-        grid.setColumnStretch(0, 2)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(2, 2)
-        grid.setColumnStretch(3, 1)
-        grid.setHorizontalSpacing(20)
-        grid.setVerticalSpacing(8)
-
-        row = 0
-        for group_name in group_order:
-            items = grouped.get(group_name)
-            if not items:
-                continue
-
-            header = QLabel(group_name)
-            header.setMinimumHeight(22)
-            header.setStyleSheet(_temp_panel_header_style())
-            grid.addWidget(header, row, 0, 1, 4)
-            row += 1
-
-            sorted_items = sorted(items, key=lambda item: item[1])
-            half = (len(sorted_items) + 1) // 2
-            for index, (tag, name) in enumerate(sorted_items):
-                column_base = 0 if index < half else 2
-                item_row = row + (index if index < half else index - half)
-                name_label = QLabel(name)
-                name_label.setMinimumHeight(22)
-                name_label.setStyleSheet(_temp_panel_name_style())
-                value_label = QLabel("—")
-                value_label.setMinimumWidth(72)
-                value_label.setMinimumHeight(22)
-                value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                value_label.setStyleSheet(_temp_value_style(None))
-                grid.addWidget(name_label, item_row, column_base)
-                grid.addWidget(value_label, item_row, column_base + 1)
-                self._temp_value_labels[tag] = value_label
-
-            row += half
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setWidget(box)
-
-        self.layout().addWidget(scroll)
 
     def update_values(self, temp_tag_values: dict[str, float | None]) -> None:
         for tag, label in self._temp_value_labels.items():
@@ -443,4 +413,4 @@ class CryoTemperaturePanel(QWidget):
                 label.setText("—")
             else:
                 label.setText(f"{temp_k:.1f} K")
-            label.setStyleSheet(_temp_value_style(temp_k))
+            label.setStyleSheet(_temp_value_style(temp_k, dense=self._dense))

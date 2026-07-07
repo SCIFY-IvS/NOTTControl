@@ -46,7 +46,9 @@ class CryostatWindow(QMainWindow):
         top_row.addWidget(self.equipment_panel, stretch=0)
 
         self.temp_panel = CryoTemperaturePanel()
-        self.temp_panel.setup(parent.temp_tags, parent.temp_display_names)
+        self.temp_panel.setup(
+            parent.temp_tags, parent.temp_display_names, dense=True
+        )
         top_row.addWidget(self.temp_panel, stretch=1)
         layout.addLayout(top_row, stretch=0)
 
