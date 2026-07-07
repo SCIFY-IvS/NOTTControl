@@ -207,28 +207,26 @@ class CryoStatusItem:
 
 
 def format_equipment_status(value) -> tuple[str, str]:
-    """Return (display text, style key) for pump/cryocooler status values."""
+    """Return (display text, style key) for pump/cryocooler on/off values."""
     if value is None:
         return "Unknown", "unknown"
     if isinstance(value, bool):
-        return ("Running" if value else "Stopped"), ("running" if value else "stopped")
+        return ("On" if value else "Off"), ("running" if value else "stopped")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        is_running = value != 0
-        return ("Running" if is_running else "Stopped"), (
-            "running" if is_running else "stopped"
-        )
+        is_on = value != 0
+        return ("On" if is_on else "Off"), ("running" if is_on else "stopped")
 
     text = str(value).strip()
     if not text:
         return "Unknown", "unknown"
 
     upper = text.upper()
-    running_tokens = {"TRUE", "ON", "RUN", "RUNNING", "ENABLED", "ACTIVE", "STARTED"}
-    stopped_tokens = {"FALSE", "OFF", "STOP", "STOPPED", "IDLE", "DISABLED", "STANDBY"}
-    if upper in running_tokens:
-        return "Running", "running"
-    if upper in stopped_tokens:
-        return "Stopped", "stopped"
+    on_tokens = {"TRUE", "ON", "RUN", "RUNNING", "ENABLED", "ACTIVE", "STARTED"}
+    off_tokens = {"FALSE", "OFF", "STOP", "STOPPED", "IDLE", "DISABLED", "STANDBY"}
+    if upper in on_tokens:
+        return "On", "running"
+    if upper in off_tokens:
+        return "Off", "stopped"
     return text, "unknown"
 
 

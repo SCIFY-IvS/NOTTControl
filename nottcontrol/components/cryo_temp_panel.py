@@ -294,7 +294,7 @@ class CryoPressurePanel(QWidget):
             row += 1
 
         for key, label in equipment_items or []:
-            name_label = QLabel(f"{label} status")
+            name_label = QLabel(label)
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("Unknown")
             value_label.setMinimumWidth(scaled(84))
