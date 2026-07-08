@@ -86,14 +86,13 @@ class MacieInterface():
         self._socket.send_string(message)
         answer = self._receive_and_parse_reply()
         
-        results = answer.split(";")
-        save = True if results[0] == "true" else False
-        ncoadds = results[1]
-        nsaved_ramps = results[2]
-        ngroups = results[3]
-        nreads = results[4]
-        ndrops = results[5]
-        nresets = results[6]
+        save = True if answer[0] == "true" else False
+        ncoadds = answer[1]
+        nsaved_ramps = answer[2]
+        ngroups = answer[3]
+        nreads = answer[4]
+        ndrops = answer[5]
+        nresets = answer[6]
         return (save, ncoadds, nsaved_ramps, ngroups, nreads, ndrops, nresets)
     
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
@@ -106,13 +105,12 @@ class MacieInterface():
         self._socket.send_string(message)
         answer = self._receive_and_parse_reply()
 
-        results = answer.split(";")
-        xWindow = True if results[0] == "true" else False
-        yWindow = True if results[1] == "true" else False
-        x1 = results[2]
-        x2 = results[3]
-        y1 = results[4]
-        y2 = results[5]
+        xWindow = True if answer[0] == "true" else False
+        yWindow = True if answer[1] == "true" else False
+        x1 = answer[2]
+        x2 = answer[3]
+        y1 = answer[4]
+        y2 = answer[5]
 
         return (xWindow, yWindow, x1, x2, y1, y2)
     
@@ -137,6 +135,6 @@ class MacieInterface():
             if len(tokens) == 1:
                 return
             else:
-                return tokens[1]
+                return tokens[1:]
         else:
             raise Exception(f"Operation failed: {tokens[1]}")

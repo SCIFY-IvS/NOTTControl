@@ -3968,8 +3968,8 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
     uint &x1, uint &x2, uint &y1, uint &y2)
 {
-    bVertWin = ASIC_WinVert(ptUserData, true, 0);
-    bHorzWin = ASIC_WinHorz(ptUserData, true, 0);
+    bVertWin = ASIC_WinVert(ptUserData, false, 0);
+    bHorzWin = ASIC_WinHorz(ptUserData, false, 0);
 
     x1 = ASIC_getX1(ptUserData);
     x2 = ASIC_getX2(ptUserData);

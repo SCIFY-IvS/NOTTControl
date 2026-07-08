@@ -278,6 +278,8 @@ int main () {
         std::string resultString = result ? "ok" : "nok";
         std::string kReplyString = resultString + ";" + answer;
 
+        std::cout << "Sending answer " << kReplyString << std::endl;
+
         //  Send reply back to client
         zmq::message_t reply (kReplyString.length());
         memcpy (reply.data (), kReplyString.data(), kReplyString.length());
