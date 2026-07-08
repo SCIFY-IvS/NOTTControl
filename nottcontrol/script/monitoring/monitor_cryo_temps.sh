@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Monitor base plate, shield, and detector cryostat temperatures (12 h).
+# Monitor cryostat vote temperatures (three panels, 12 h default).
 #
 # Default output:
 #   nottcontrol/script/monitoring/cryo_monitor.png

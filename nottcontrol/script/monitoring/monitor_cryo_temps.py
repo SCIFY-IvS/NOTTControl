@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Monitor base plate and shield cryostat temperatures from Redis TimeSeries.
+"""Monitor cryostat vote temperatures from Redis TimeSeries.
 
-Uses OPC UA node id keys from sensors.ini (see cursor/sensor-readout-redis-keys).
-Fits a sum-of-exponentials model to the last 12 hours of base plate and shield
-data. Detector temperature is plotted as raw data only (no fit).
+Three panels: shield/base plate (with flat-field vote as shield side),
+photonic chip vote plus sidecar sensor 2, and detector vote.
+Fits a sum-of-exponentials model to the top two panels with time-to-90 K;
+the detector panel is data only.
 """
 
 from __future__ import annotations
@@ -29,8 +30,8 @@ DEFAULT_HOURS = 12.0
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Monitor base plate, shield, and detector cryostat temperatures "
-            "(OPC UA TimeSeries keys)."
+            "Monitor cryostat vote temperatures in three panels "
+            "(shield/base plate, photonic chip/sidecar, detector)."
         ),
     )
     parser.add_argument(
@@ -66,7 +67,7 @@ def main() -> int:
         type=float,
         default=DEFAULT_MONITOR_TARGET_K,
         help=(
-            "Base plate target temperature (K) for time-to-reach legend "
+            "Target temperature (K) for time-to-reach legend on fit panels "
             f"(default: {DEFAULT_MONITOR_TARGET_K:g})"
         ),
     )

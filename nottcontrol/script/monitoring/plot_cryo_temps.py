@@ -23,21 +23,33 @@ from nottcontrol.sensors import (
 )
 
 DEFAULT_SENSOR_NAMES = (
-    "t_base_plate_1",
-    "t_base_plate_2",
+    "t_shield_vote",
+    "t_base_plate_vote",
+    "t_flat_field_vote",
 )
 
-# Shield, base plate, and detector panels for monitor_cryo_temps.py.
+# Vote (and sidecar-2) sensors for monitor_cryo_temps.py three-panel layout.
 MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
-    "Base plate": ("t_base_plate_1", "t_base_plate_2"),
-    "Shield": ("t_shield_1", "t_shield_2"),
-    "Detector": ("t_detector", "t_detector_vote"),
+    "Shield & base plate": (
+        "t_shield_vote",
+        "t_base_plate_vote",
+        "t_flat_field_vote",
+    ),
+    "Photonic chip & sidecar": (
+        "t_photonic_chip_vote",
+        "t_sidecar_2",
+    ),
+    "Detector": ("t_detector_vote",),
 }
 
-MONITOR_FIT_GROUPS = frozenset({"Base plate", "Shield"})
+MONITOR_SENSOR_LABELS: dict[str, str] = {
+    "t_flat_field_vote": "shield (side)",
+}
+
+MONITOR_FIT_GROUPS = frozenset({"Shield & base plate", "Photonic chip & sidecar"})
+MONITOR_TARGET_GROUPS = MONITOR_FIT_GROUPS
 
 DEFAULT_MONITOR_TARGET_K = 90.0
-BASE_PLATE_GROUP = "Base plate"
 
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
@@ -75,6 +87,15 @@ def redis_key_label(key: str) -> str:
     if "nott_temp" in parts:
         return ".".join(parts[parts.index("nott_temp") + 1 :])
     return parts[-1] if parts else key
+
+
+def legend_label_for_key(
+    key: str,
+    legend_labels: dict[str, str] | None = None,
+) -> str:
+    if legend_labels and key in legend_labels:
+        return legend_labels[key]
+    return redis_key_label(key)
 
 
 def build_sensor_key_map(path: str | os.PathLike[str]) -> dict[str, str]:
@@ -312,6 +333,7 @@ def plot_data_only_on_axes(
     start_ms: int,
     end_ms: int,
     plot_max_points: int,
+    legend_labels: dict[str, str] | None = None,
 ) -> int:
     """Plot temperature data only (no exponential fit)."""
     plotted = 0
@@ -322,7 +344,7 @@ def plot_data_only_on_axes(
             print(f"warning: no samples for {key}", file=sys.stderr)
             continue
 
-        label = redis_key_label(key)
+        label = legend_label_for_key(key, legend_labels)
         plot_times, plot_values = downsample_series(times, values, plot_max_points)
         ax.plot(
             [datetime.utcfromtimestamp(t) for t in plot_times],
@@ -348,6 +370,7 @@ def plot_sensors_on_axes(
     fit_max_points: int,
     plot_max_points: int,
     target_temp_k: float | None = None,
+    legend_labels: dict[str, str] | None = None,
 ) -> tuple[int, list[str]]:
     """Plot data, exponential fits, and asymptotes. Returns (series count, target info lines)."""
     min_points = 2 * n_exp_terms + 2
@@ -368,7 +391,7 @@ def plot_sensors_on_axes(
             )
             continue
 
-        label = redis_key_label(key)
+        label = legend_label_for_key(key, legend_labels)
         fit_times, fit_values = downsample_series(times, values, fit_max_points)
         if fit_times.size < times.size:
             print(
@@ -492,7 +515,7 @@ def plot_cryo_monitor(
     plot_max_points: int,
     target_temp_k: float | None = DEFAULT_MONITOR_TARGET_K,
 ) -> int:
-    """Plot shield and base plate groups with exponential fits (separate subplots)."""
+    """Plot vote-temperature monitor panels; top two include exponential fits."""
     end = datetime.utcnow()
     start_ms = unix_time_ms(end - timedelta(hours=hours))
     end_ms = unix_time_ms(end)
@@ -521,7 +544,13 @@ def plot_cryo_monitor(
             return 1
 
         keys = tuple(sensor_map[name] for name in sensor_names)
-        group_target_k = target_temp_k if group_title == BASE_PLATE_GROUP else None
+        legend_labels = {
+            sensor_map[name]: MONITOR_SENSOR_LABELS.get(
+                name, redis_key_label(sensor_map[name])
+            )
+            for name in sensor_names
+        }
+        group_target_k = target_temp_k if group_title in MONITOR_TARGET_GROUPS else None
 
         if group_title in MONITOR_FIT_GROUPS:
             plotted, target_info_lines = plot_sensors_on_axes(
@@ -536,8 +565,9 @@ def plot_cryo_monitor(
                 fit_max_points,
                 plot_max_points,
                 target_temp_k=group_target_k,
+                legend_labels=legend_labels,
             )
-            if group_title == BASE_PLATE_GROUP and group_target_k is not None:
+            if group_target_k is not None:
                 add_target_info_to_axes(ax, target_info_lines, group_target_k)
         else:
             plotted = plot_data_only_on_axes(
@@ -547,6 +577,7 @@ def plot_cryo_monitor(
                 start_ms,
                 end_ms,
                 plot_max_points,
+                legend_labels=legend_labels,
             )
             target_info_lines = []
         if plotted:
