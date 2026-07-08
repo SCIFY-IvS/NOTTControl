@@ -21,6 +21,7 @@ from nottcontrol.sensors import (
     load_sensor_config,
     opc_node_path,
     opc_node_to_asyncua_id,
+    opc_node_to_redis_key,
 )
 
 DEFAULT_SENSOR_NAMES = (
@@ -45,13 +46,6 @@ MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
 
 MONITOR_SENSOR_LABELS: dict[str, str] = {
     "t_flat_field_vote": "shield (side)",
-}
-
-# Explicit PLC paths for monitor sensors (overrides sensors.ini short-name lookup).
-MONITOR_SENSOR_OPC_PATHS: dict[str, str] = {
-    "t_flat_field_vote": (
-        "MAIN.nott_cryo_ctrl.nott_temp.t_flat_field_vote.stat.lrTempK"
-    ),
 }
 
 MONITOR_FIT_GROUPS = frozenset({"Shield & base plate", "Photonic chip & sidecar"})
@@ -131,33 +125,52 @@ def build_sensor_key_map(path: str | os.PathLike[str]) -> dict[str, str]:
     return {redis_key_label(key): key for key in redis_keys}
 
 
-def monitor_sensor_redis_key(name: str, sensor_map: dict[str, str]) -> str:
-    """Resolve the primary Redis TimeSeries key for a monitor sensor."""
-    if name in MONITOR_SENSOR_OPC_PATHS:
-        return opc_node_to_asyncua_id(MONITOR_SENSOR_OPC_PATHS[name])
+def sensor_ini_lines_for_name(
+    sensors_ini: str | os.PathLike[str],
+    sensor_name: str,
+) -> list[str]:
+    """Return raw sensors.ini lines matching a short sensor name."""
+    lines: list[str] = []
+    with open(sensors_ini, encoding="utf-8") as sensors_file:
+        for raw_line in sensors_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if redis_key_label(opc_node_to_asyncua_id(line)) == sensor_name:
+                lines.append(line)
+    return lines
+
+
+def monitor_sensor_redis_key(
+    name: str,
+    sensor_map: dict[str, str],
+    sensors_ini: str | os.PathLike[str],
+) -> str:
+    """Resolve the primary Redis TimeSeries key (same as the GUI writer)."""
+    candidates = monitor_sensor_redis_key_candidates(name, sensor_map, sensors_ini)
+    if candidates:
+        return candidates[0]
     return sensor_map[name]
 
 
 def monitor_sensor_redis_key_candidates(
     name: str,
     sensor_map: dict[str, str],
+    sensors_ini: str | os.PathLike[str],
 ) -> tuple[str, ...]:
     """Return Redis keys to try, most preferred first."""
     candidates: list[str] = []
-    if name in MONITOR_SENSOR_OPC_PATHS:
-        path = MONITOR_SENSOR_OPC_PATHS[name]
-        candidates.extend(
-            [
-                opc_node_to_asyncua_id(path),
-                path,
-                f"NS4|String|{path}",
-            ]
-        )
+
+    for line in sensor_ini_lines_for_name(sensors_ini, name):
+        candidates.append(opc_node_to_redis_key(line))
+        if "|" in line:
+            candidates.append(line)
+
     if name in sensor_map:
         candidates.append(sensor_map[name])
+
     legacy = f"cryo.{name}.lrTempK"
-    if legacy not in candidates:
-        candidates.append(legacy)
+    candidates.append(legacy)
 
     unique: list[str] = []
     seen: set[str] = set()
@@ -223,7 +236,12 @@ def fetch_timeseries(
     start_ms: int,
     end_ms: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    samples = redis_client.ts().range(key, start_ms, end_ms)
+    try:
+        samples = redis_client.ts().range(key, start_ms, end_ms)
+    except redis.exceptions.ResponseError as exc:
+        if "does not exist" in str(exc).lower():
+            return np.array([]), np.array([])
+        raise
     if not samples:
         return np.array([]), np.array([])
     data = np.array(samples, dtype=float)
@@ -685,11 +703,7 @@ def plot_cryo_monitor(
 
     for row, (group_title, sensor_names) in enumerate(sensor_groups.items()):
         ax = axes[row, 0]
-        missing = [
-            name
-            for name in sensor_names
-            if name not in sensor_map and name not in MONITOR_SENSOR_OPC_PATHS
-        ]
+        missing = [name for name in sensor_names if name not in sensor_map]
         if missing:
             print(
                 f"error: unknown sensor name(s) in {group_title!r}: {', '.join(missing)}",
@@ -697,26 +711,35 @@ def plot_cryo_monitor(
             )
             return 1
 
-        keys = tuple(monitor_sensor_redis_key(name, sensor_map) for name in sensor_names)
+        keys = tuple(
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini) for name in sensor_names
+        )
         key_candidates_by_key = {
-            monitor_sensor_redis_key(name, sensor_map): monitor_sensor_redis_key_candidates(
-                name, sensor_map
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini): (
+                monitor_sensor_redis_key_candidates(name, sensor_map, sensors_ini)
             )
             for name in sensor_names
         }
         legend_labels = {
-            monitor_sensor_redis_key(name, sensor_map): MONITOR_SENSOR_LABELS.get(
-                name, redis_key_label(monitor_sensor_redis_key(name, sensor_map))
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini): MONITOR_SENSOR_LABELS.get(
+                name,
+                redis_key_label(monitor_sensor_redis_key(name, sensor_map, sensors_ini)),
             )
             for name in sensor_names
         }
         group_target_k = target_temp_k if group_title in MONITOR_TARGET_GROUPS else None
         fit_options_by_key = {
-            monitor_sensor_redis_key(name, sensor_map): MONITOR_SENSOR_FIT_OPTIONS.get(
-                name, SensorFitOptions()
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini): (
+                MONITOR_SENSOR_FIT_OPTIONS.get(name, SensorFitOptions())
             )
             for name in sensor_names
         }
+        if "t_flat_field_vote" in sensor_names:
+            ff_key = monitor_sensor_redis_key("t_flat_field_vote", sensor_map, sensors_ini)
+            print(
+                f"shield (side) Redis keys: primary={ff_key!r}, "
+                f"fallbacks={list(key_candidates_by_key[ff_key])!r}"
+            )
 
         plotted = 0
         target_info_lines: list[str] = []
