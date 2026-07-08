@@ -73,23 +73,24 @@ class MotorWidget(QWidget):
     def refresh_status(self):
         try:
             status, state, substate = self._motor.getStatusInformation()
+            target_pos = self._motor.getTargetPosition()
+            self.apply_status_values(status, state, substate, target_pos)
+        except Exception as e:
+            print(e)
+            self.ui.label_error.setText(str(e))
+
+    def apply_status_values(self, status, state, substate, target_pos_mm):
+        try:
             self.ui.label_status.setText(str(status))
             self.ui.label_state.setText(str(state))
             self.ui.label_substate.setText(str(substate))
-            
             self.ui.label_current_position.setText(f'{self.current_pos:.1f}')
-
-            target_pos = self._motor.getTargetPosition()
-            target_pos = target_pos * 1000
-            self.ui.label_target_position.setText(f'{target_pos:.1f}')
-
+            self.ui.label_target_position.setText(f'{target_pos_mm * 1000:.1f}')
             self.ui.label_current_speed.setText(f'{self.current_speed:.1f}')
-
             self.ui.label_error.clear()
 
             if self._activeCommand is not None and self._activeCommand.check_progress():
                 self.clearActiveCommand()
-
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
@@ -97,10 +98,15 @@ class MotorWidget(QWidget):
     def load_position(self):
         try:
             current_pos, current_speed, timestamp = self._motor.getPositionAndSpeed()
+            self.apply_position_values(current_pos, current_speed, timestamp)
+        except Exception as e:
+            print(e)
+            self.ui.label_error.setText(str(e))
 
-            # Convert mm -> micron
-            self.current_pos = current_pos * 1000
-            self.current_speed = current_speed * 1000
+    def apply_position_values(self, current_pos_mm, current_speed_mm_s, timestamp):
+        try:
+            self.current_pos = current_pos_mm * 1000
+            self.current_speed = current_speed_mm_s * 1000
 
             now = datetime.utcnow()
             if (

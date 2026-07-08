@@ -31,45 +31,46 @@ class ShutterWidget(QWidget):
     def refresh_status(self):
         try:
             status, state, substate = self._shutter.getStatusInformation()
-
-            self.ui.label_status.setText(str(status))
-            self.ui.label_state.setText(str(state))
-            self.ui.label_subState.setText(str(substate))
-            hwStatus = self.get_shutter_status()
-            self.ui.label_opened.setText(str(hwStatus))
+            hw_status = self._shutter.get_hardware_state()
+            self.apply_status_values(status, state, substate, hw_status)
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
+
+    def apply_status_values(self, status, state, substate, hw_status):
+        self.ui.label_status.setText(str(status))
+        self.ui.label_state.setText(str(state))
+        self.ui.label_subState.setText(str(substate))
+        self.ui.label_opened.setText(str(hw_status))
     
     def load_position(self):
         try:
-            hwStatus = self.get_shutter_status()
-
-            shutter_pos = -1
-            if hwStatus == "Open":
-                shutter_pos = 1
-            elif hwStatus == "Closed":
-                shutter_pos = 0
-            if shutter_pos < 0:
-                return
-
-            now = datetime.utcnow()
-            if (
-                self.timestamp is None
-                or (now - self.timestamp).total_seconds() >= 1.0
-                or shutter_pos != getattr(self, "_last_redis_pos", shutter_pos)
-            ):
-                self.redis_client.add_shutter_position(
-                    self._shutter.name, now, shutter_pos
-                )
-                self._last_redis_pos = shutter_pos
-                self.timestamp = now
+            hw_status = self._shutter.get_hardware_state()
+            self.apply_hardware_state(hw_status)
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
-    
-    def get_shutter_status(self):
-        return self._shutter.get_hardware_state()
+
+    def apply_hardware_state(self, hw_status):
+        shutter_pos = -1
+        if hw_status == "Open":
+            shutter_pos = 1
+        elif hw_status == "Closed":
+            shutter_pos = 0
+        if shutter_pos < 0:
+            return
+
+        now = datetime.utcnow()
+        if (
+            self.timestamp is None
+            or (now - self.timestamp).total_seconds() >= 1.0
+            or shutter_pos != getattr(self, "_last_redis_pos", shutter_pos)
+        ):
+            self.redis_client.add_shutter_position(
+                self._shutter.name, now, shutter_pos
+            )
+            self._last_redis_pos = shutter_pos
+            self.timestamp = now
 
     def reset(self):
         try:

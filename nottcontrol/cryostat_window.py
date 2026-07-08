@@ -111,27 +111,17 @@ class CryostatWindow(QMainWindow):
         super().closeEvent(*args)
 
     def refresh(self) -> None:
-        if not self.parent.sensor_opc_nodes:
+        cache = self.parent.get_cryo_cache()
+        if cache.get("updated_at") is None:
             return
-        try:
-            values = self.parent.opcua_conn_cry.read_nodes(self.parent.sensor_opc_nodes)
-            values_by_node = dict(zip(self.parent.sensor_opc_nodes, values))
-            temp_values = [values_by_node[node] for node in self.parent.temp_opc_nodes]
-            pressure_values = [
-                values_by_node[node] for node in self.parent.pressure_opc_nodes
-            ]
-            equipment_status = self.parent._read_cryo_equipment_status()
-            self.sync_from_values(
-                self.parent.temp_tags,
-                temp_values,
-                self.parent.pressure_tags,
-                pressure_values,
-                equipment_status,
-                datetime.utcnow(),
-            )
-            self.history_panel.refresh()
-        except Exception as e:
-            print(f"Cryostat window refresh failed: {e}")
+        self.sync_from_values(
+            self.parent.temp_tags,
+            cache["temp_values"],
+            self.parent.pressure_tags,
+            cache["pressure_values"],
+            cache["equipment_status"],
+            cache["updated_at"],
+        )
 
     def sync_from_values(
         self,

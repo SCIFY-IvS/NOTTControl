@@ -37,6 +37,12 @@ from nottcontrol.components.shutters_panel import (
     shutter_opc_nodes,
 )
 from nottcontrol.components.motor import Motor
+from nottcontrol.components.device_polling import (
+    motor_position_opc_nodes,
+    motor_status_opc_nodes,
+    split_motor_position_values,
+    split_motor_status_values,
+)
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
@@ -194,6 +200,7 @@ class MainWindow(QMainWindow):
             widget.hide()
 
         self.temp1 = self.temp2 = self.temp3 = self.temp4 = None
+        self._cryo_cache: dict = {}
 
         self.ui.label_error.hide()
 
@@ -203,7 +210,8 @@ class MainWindow(QMainWindow):
         self.load_dl_status()
         self.load_tt_status()
         self.load_shutter_status()
-        self.update_cryo_temps()
+        self._poll_cryo_opc()
+        self._apply_cryo_cache_to_display()
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
@@ -355,19 +363,8 @@ class MainWindow(QMainWindow):
             self.load_dl_status()
             self.load_tt_status()
             self.load_shutter_status()
-            self.update_cryo_temps()
-
-            now = datetime.utcnow()
-            # fileName = r'C:\Users\fys-lab-ivs\Documents\Python Scripts\Log\Temperatures_' \
-            #                 + now.strftime(r'%Y-%m-%d') + '.csv'
-
-            # f = open(fileName, 'a')
-            # f.write(f'{str(now)}, {self.temp1}, {self.temp2}, {self.temp3}, {self.temp4} \n')
-
-            self.redis_client.add_temperature_1(now, self.temp1)
-            self.redis_client.add_temperature_2(now, self.temp2)
-            self.redis_client.add_temperature_3(now, self.temp3)
-            self.redis_client.add_temperature_4(now, self.temp4)
+            if self._poll_cryo_opc():
+                self._apply_cryo_cache_to_display()
         except Exception as e:
             print(e)
 
@@ -427,7 +424,7 @@ class MainWindow(QMainWindow):
                 self.cryostat_window = CryostatWindow(self)
                 self.cryostat_window.closing.connect(self.clear_cryostat_window)
                 self.cryostat_window.show()
-                self.update_cryo_temps()
+                self._sync_cryostat_window_from_cache()
             else:
                 self.cryostat_window.activateWindow()
         except Exception as e:
@@ -478,23 +475,15 @@ class MainWindow(QMainWindow):
     
     def read_and_store_sensor_values(self):
         try:
-            sensor_values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
+            if self._cryo_cache.get("sensor_values") is None:
+                if not self._poll_cryo_opc():
+                    return
+            cache = self._cryo_cache
             now = datetime.utcnow()
             saved_count, skipped_keys = self.redis_client.save_sensor_values(
-                now, self.sensor_redis_keys, sensor_values
+                now, self.sensor_redis_keys, cache["sensor_values"]
             )
-            values_by_node = dict(zip(self.sensor_opc_nodes, sensor_values))
-            temp_values = [values_by_node[node] for node in self.temp_opc_nodes]
-            pressure_values = [values_by_node[node] for node in self.pressure_opc_nodes]
-            equipment_status = self._read_cryo_equipment_status()
-            self.update_cryo_display_from_values(
-                self.temp_tags,
-                temp_values,
-                self.pressure_tags,
-                pressure_values,
-                equipment_status,
-                now,
-            )
+            self._apply_cryo_cache_to_display()
             if skipped_keys:
                 print(
                     f"Sensors: saved {saved_count}, skipped {len(skipped_keys)} invalid"
@@ -505,6 +494,61 @@ class MainWindow(QMainWindow):
                 self.opcua_conn_cry.reconnect()
             except Exception as reconnect_error:
                 print(f"OPC UA cryo reconnect failed: {reconnect_error}")
+
+    def _poll_cryo_opc(self) -> bool:
+        if not self.sensor_opc_nodes:
+            return False
+        try:
+            sensor_values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
+            values_by_node = dict(zip(self.sensor_opc_nodes, sensor_values))
+            self._cryo_cache = {
+                "sensor_values": sensor_values,
+                "temp_values": [values_by_node[node] for node in self.temp_opc_nodes],
+                "pressure_values": [
+                    values_by_node[node] for node in self.pressure_opc_nodes
+                ],
+                "equipment_status": self._read_cryo_equipment_status(),
+                "updated_at": datetime.utcnow(),
+            }
+            return True
+        except Exception as e:
+            print(f"Cryo poll failed: {e}")
+            try:
+                self.opcua_conn_cry.reconnect()
+            except Exception as reconnect_error:
+                print(f"OPC UA cryo reconnect failed: {reconnect_error}")
+            return False
+
+    def get_cryo_cache(self) -> dict:
+        return self._cryo_cache
+
+    def _apply_cryo_cache_to_display(self) -> None:
+        cache = self._cryo_cache
+        if cache.get("updated_at") is None:
+            return
+        self.update_cryo_display_from_values(
+            self.temp_tags,
+            cache["temp_values"],
+            self.pressure_tags,
+            cache["pressure_values"],
+            cache["equipment_status"],
+            cache["updated_at"],
+        )
+
+    def _sync_cryostat_window_from_cache(self) -> None:
+        if self.cryostat_window is None:
+            return
+        cache = self._cryo_cache
+        if cache.get("updated_at") is None:
+            return
+        self.cryostat_window.sync_from_values(
+            self.temp_tags,
+            cache["temp_values"],
+            self.pressure_tags,
+            cache["pressure_values"],
+            cache["equipment_status"],
+            cache["updated_at"],
+        )
 
 
     def _read_cryo_equipment_status(self) -> dict[str, object]:
@@ -555,26 +599,6 @@ class MainWindow(QMainWindow):
         self.temp3 = temp_tag_values.get(HEADLINE_TEMP_TAGS[2])
         self.temp4 = temp_tag_values.get(HEADLINE_TEMP_TAGS[3])
 
-    def update_cryo_temps(self):
-        if not self.sensor_opc_nodes:
-            return
-        try:
-            values = self.opcua_conn_cry.read_nodes(self.sensor_opc_nodes)
-            values_by_node = dict(zip(self.sensor_opc_nodes, values))
-            temp_values = [values_by_node[node] for node in self.temp_opc_nodes]
-            pressure_values = [values_by_node[node] for node in self.pressure_opc_nodes]
-            equipment_status = self._read_cryo_equipment_status()
-            self.update_cryo_display_from_values(
-                self.temp_tags,
-                temp_values,
-                self.pressure_tags,
-                pressure_values,
-                equipment_status,
-                datetime.utcnow(),
-            )
-        except Exception as e:
-            print(f"Cryo temps: {e}")
-
 class DelayLinesWindow(QMainWindow):
     closing = pyqtSignal()
 
@@ -603,6 +627,14 @@ class DelayLinesWindow(QMainWindow):
         self.ui.motor_widget_2.setup(self.opcua_conn, self.redis_client, self._motor2)
         self.ui.motor_widget_3.setup(self.opcua_conn, self.redis_client, self._motor3)
         self.ui.motor_widget_4.setup(self.opcua_conn, self.redis_client, self._motor4)
+
+        self._motor_widgets = [
+            (self._motor1, self.ui.motor_widget_1),
+            (self._motor2, self.ui.motor_widget_2),
+            (self._motor3, self.ui.motor_widget_3),
+            (self._motor4, self.ui.motor_widget_4),
+        ]
+        self._motor_prefixes = [motor._prefix for motor, _ in self._motor_widgets]
 
         self._activeCommand = None
 
@@ -679,13 +711,26 @@ class DelayLinesWindow(QMainWindow):
         self.parent.camera_window.stop_recording()
 
     def refresh_status(self):
-        self.ui.motor_widget_1.refresh_status()
-        self.ui.motor_widget_2.refresh_status()
-        self.ui.motor_widget_3.refresh_status()
-        self.ui.motor_widget_4.refresh_status()
+        try:
+            values = self.opcua_conn.read_nodes(
+                motor_status_opc_nodes(self._motor_prefixes)
+            )
+            for (_, widget), row in zip(
+                self._motor_widgets, split_motor_status_values(values, len(self._motor_widgets))
+            ):
+                widget.apply_status_values(*row)
+        except Exception as e:
+            print(e)
     
     def load_positions(self):
-        self.ui.motor_widget_1.load_position()
-        self.ui.motor_widget_2.load_position()
-        self.ui.motor_widget_3.load_position()
-        self.ui.motor_widget_4.load_position()
+        try:
+            values = self.opcua_conn.read_nodes(
+                motor_position_opc_nodes(self._motor_prefixes)
+            )
+            for (_, widget), row in zip(
+                self._motor_widgets,
+                split_motor_position_values(values, len(self._motor_widgets)),
+            ):
+                widget.apply_position_values(*row)
+        except Exception as e:
+            print(e)

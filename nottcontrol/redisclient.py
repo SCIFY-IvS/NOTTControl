@@ -33,30 +33,6 @@ class RedisClient:
     def add_shutter_position(self, shutter, time, position):
         unix_time = self.unix_time_ms(time)
         self.ts.add(f'{shutter}_pos', unix_time, position)
-    
-    def add_temperature_1(self, time, temp):
-        unix_time = self.unix_time_ms(time)
-        number = coerce_sensor_value(temp)
-        if number is not None:
-            self.ts.add('dl_T1', unix_time, number)
-
-    def add_temperature_2(self, time, temp):
-        unix_time = self.unix_time_ms(time)
-        number = coerce_sensor_value(temp)
-        if number is not None:
-            self.ts.add('dl_T2', unix_time, number)
-
-    def add_temperature_3(self, time, temp):
-        unix_time = self.unix_time_ms(time)
-        number = coerce_sensor_value(temp)
-        if number is not None:
-            self.ts.add('dl_T3', unix_time, number)
-
-    def add_temperature_4(self, time, temp):
-        unix_time = self.unix_time_ms(time)
-        number = coerce_sensor_value(temp)
-        if number is not None:
-            self.ts.add('dl_T4', unix_time, number)
 
     def add_roi_values(self, time, roi_results: dict[str, BrightnessResults]):
         unix_time = self.unix_time_ms(time)

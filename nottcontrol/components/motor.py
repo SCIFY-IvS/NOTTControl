@@ -1,5 +1,6 @@
 from nottcontrol.commands.move_abs_command import MoveAbsCommand, MoveAbsCommandSim
 from nottcontrol.commands.move_rel_command import MoveRelCommand, MoveRelCommandSim
+from nottcontrol.components.device_polling import NTP_EXT_TIME_NODE
 
 class Motor():
     def __init__(self, opcua_conn, opcua_prefix: str, name: str, speed: int):
@@ -39,9 +40,19 @@ class Motor():
     def stop(self):
         return self._opcua_conn.execute_rpc(self._prefix, "4:RPC_Stop", [])
     
-    def getPositionAndSpeed(self):
-        current_pos, current_speed, timestamp = self._opcua_conn.read_nodes([f"{self._prefix}.stat.lrPosActual", f"{self._prefix}.stat.lrVelActual", 
-                                                                              "ns=4;s=INFRATEC_TRIGERS.sNTPExtTime"])
+    def getPositionAndSpeed(self, ntp_timestamp=None):
+        if ntp_timestamp is None:
+            current_pos, current_speed, timestamp = self._opcua_conn.read_nodes([
+                f"{self._prefix}.stat.lrPosActual",
+                f"{self._prefix}.stat.lrVelActual",
+                NTP_EXT_TIME_NODE,
+            ])
+        else:
+            current_pos, current_speed = self._opcua_conn.read_nodes([
+                f"{self._prefix}.stat.lrPosActual",
+                f"{self._prefix}.stat.lrVelActual",
+            ])
+            timestamp = ntp_timestamp
         return (current_pos, current_speed, timestamp)
     
     def getStatusInformation(self):

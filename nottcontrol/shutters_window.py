@@ -3,6 +3,10 @@ from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from nottcontrol import config
 from nottcontrol.components.shutter import Shutter
+from nottcontrol.components.device_polling import (
+    shutter_status_opc_nodes,
+    split_shutter_status_values,
+)
 
 class ShutterWindow(QMainWindow):
     closing = pyqtSignal()
@@ -28,6 +32,16 @@ class ShutterWindow(QMainWindow):
         self.ui.shutter_widget_3.setup(self.opcua_conn, self.redis_client, self._shutter3)
         self.ui.shutter_widget_4.setup(self.opcua_conn, self.redis_client, self._shutter4)
 
+        self._shutter_widgets = [
+            (self._shutter1, self.ui.shutter_widget_1),
+            (self._shutter2, self.ui.shutter_widget_2),
+            (self._shutter3, self.ui.shutter_widget_3),
+            (self._shutter4, self.ui.shutter_widget_4),
+        ]
+        self._shutter_prefixes = [
+            shutter._prefix for shutter, _ in self._shutter_widgets
+        ]
+
         self.ui.actionClose_all.triggered.connect(self.close_all)
         self.ui.actionOpen_all.triggered.connect(self.open_all)
 
@@ -49,16 +63,33 @@ class ShutterWindow(QMainWindow):
         super().closeEvent(*args)
 
     def refresh_status(self):
-        self.ui.shutter_widget_1.refresh_status()
-        self.ui.shutter_widget_2.refresh_status()
-        self.ui.shutter_widget_3.refresh_status()
-        self.ui.shutter_widget_4.refresh_status()
+        try:
+            values = self.opcua_conn.read_nodes(
+                shutter_status_opc_nodes(self._shutter_prefixes)
+            )
+            for (shutter, widget), row in zip(
+                self._shutter_widgets,
+                split_shutter_status_values(values, len(self._shutter_widgets)),
+            ):
+                status, state, substate, position = row
+                hw_status = shutter.hardware_state_from_position(position)
+                widget.apply_status_values(status, state, substate, hw_status)
+        except Exception as e:
+            print(e)
     
     def load_positions(self):
-        self.ui.shutter_widget_1.load_position()
-        self.ui.shutter_widget_2.load_position()
-        self.ui.shutter_widget_3.load_position()
-        self.ui.shutter_widget_4.load_position()
+        try:
+            values = self.opcua_conn.read_nodes(
+                shutter_status_opc_nodes(self._shutter_prefixes)
+            )
+            for (shutter, widget), row in zip(
+                self._shutter_widgets,
+                split_shutter_status_values(values, len(self._shutter_widgets)),
+            ):
+                hw_status = shutter.hardware_state_from_position(row[3])
+                widget.apply_hardware_state(hw_status)
+        except Exception as e:
+            print(e)
     
     def close_all(self):
         try:

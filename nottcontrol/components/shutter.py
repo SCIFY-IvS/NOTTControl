@@ -63,6 +63,9 @@ class Shutter(Motor):
     def get_hardware_state(self):
         """Return Open/Closed/Unknown from a single position read."""
         pos = self.getPositionAndSpeed()[0]
+        return self.hardware_state_from_position(pos)
+
+    def hardware_state_from_position(self, pos):
         if np.isclose(pos, self._open_pos, self.rtol):
             return "Open"
         if np.isclose(pos, self._close_pos, self.rtol):
