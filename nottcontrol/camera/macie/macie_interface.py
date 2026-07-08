@@ -57,7 +57,8 @@ class MacieInterface():
     
     def get_power(self):
         self._socket.send_string("getpower")
-        return self._receive_and_parse_reply()
+        result = self._receive_and_parse_reply()
+        return result == "true"
     
     def close(self):
         self._closing.set()
@@ -134,6 +135,8 @@ class MacieInterface():
         if tokens[0] == "ok":
             if len(tokens) == 1:
                 return
+            if len(tokens) == 2:
+                return tokens[1]
             else:
                 return tokens[1:]
         else:

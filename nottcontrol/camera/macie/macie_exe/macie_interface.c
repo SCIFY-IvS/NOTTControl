@@ -62,11 +62,11 @@ extern "C" bool M_powerOn()
     return SetPowerASIC(_ptUserData, true);
 }
 
-extern "C" bool M_getPower()
+extern "C" bool M_getPower(bool *power)
 {
     std::cout << "Calling getPower" << std::endl;
-    bool pArr[MACIE_PWR_CTRL_SIZE];
-    return GetPower(_ptUserData, pArr);
+
+    return GetPowerASIC(_ptUserData, power);
 }
 
 extern "C" bool M_close()
@@ -199,7 +199,9 @@ int main () {
             }
             else if (command == "getpower")
             {
-                result = M_getPower();
+                bool power = false;
+                result = M_getPower(&power);
+                answer = (std::string) (power ? "true" : "false");
             }
             else if (command == "close")
             {

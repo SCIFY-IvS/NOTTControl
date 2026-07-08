@@ -7,7 +7,7 @@ extern "C" bool M_halt_acquisition();
 extern "C" bool M_initCamera();
 extern "C" bool M_powerOff();
 extern "C" bool M_powerOn();
-extern "C" bool M_getPower();
+extern "C" bool M_getPower(bool *power);
 extern "C" bool M_close();
 extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroups, int nreads, int ndrops, int nresets);
 extern "C" bool M_read_exposure_settings(bool &save, uint &ncoadds, uint &nseq, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets);
