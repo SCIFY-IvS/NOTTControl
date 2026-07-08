@@ -46,6 +46,12 @@ MONITOR_SENSOR_LABELS: dict[str, str] = {
     "t_flat_field_vote": "shield (side)",
 }
 
+# Vote sensors shown as data traces only inside fit panels (no exponential fit).
+MONITOR_DATA_ONLY_SENSORS = frozenset({
+    "t_flat_field_vote",
+    "t_photonic_chip_vote",
+})
+
 MONITOR_FIT_GROUPS = frozenset({"Shield & base plate", "Photonic chip & sidecar"})
 MONITOR_TARGET_GROUPS = MONITOR_FIT_GROUPS
 
@@ -151,6 +157,20 @@ def fetch_timeseries(
     times = data[:, 0] / 1000.0
     values = data[:, 1]
     return times, values
+
+
+def valid_temperature_mask(values: np.ndarray, min_k: float = 5.0) -> np.ndarray:
+    """Mask out missing/placeholder readings (e.g. 0 K) before plotting or fitting."""
+    return np.isfinite(values) & (values >= min_k)
+
+
+def apply_temperature_mask(
+    times: np.ndarray,
+    values: np.ndarray,
+    min_k: float = 5.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    mask = valid_temperature_mask(values, min_k=min_k)
+    return times[mask], values[mask]
 
 
 def downsample_series(
@@ -345,6 +365,14 @@ def plot_data_only_on_axes(
             continue
 
         label = legend_label_for_key(key, legend_labels)
+        times, values = apply_temperature_mask(times, values)
+        if times.size == 0:
+            print(
+                f"warning: no valid temperature samples for {label} ({key})",
+                file=sys.stderr,
+            )
+            continue
+
         plot_times, plot_values = downsample_series(times, values, plot_max_points)
         ax.plot(
             [datetime.utcfromtimestamp(t) for t in plot_times],
@@ -384,6 +412,15 @@ def plot_sensors_on_axes(
         if times.size == 0:
             print(f"warning: no samples for {key}", file=sys.stderr)
             continue
+
+        label = legend_label_for_key(key, legend_labels)
+        times, values = apply_temperature_mask(times, values)
+        if times.size == 0:
+            print(
+                f"warning: no valid temperature samples for {label} ({key})",
+                file=sys.stderr,
+            )
+            continue
         if times.size < min_points:
             print(
                 f"warning: not enough samples for {n_exp_terms}-term exponential fit on {key}",
@@ -391,7 +428,6 @@ def plot_sensors_on_axes(
             )
             continue
 
-        label = legend_label_for_key(key, legend_labels)
         fit_times, fit_values = downsample_series(times, values, fit_max_points)
         if fit_times.size < times.size:
             print(
@@ -551,22 +587,44 @@ def plot_cryo_monitor(
             for name in sensor_names
         }
         group_target_k = target_temp_k if group_title in MONITOR_TARGET_GROUPS else None
+        data_only_names = tuple(
+            name for name in sensor_names if name in MONITOR_DATA_ONLY_SENSORS
+        )
+        fit_names = tuple(
+            name for name in sensor_names if name not in MONITOR_DATA_ONLY_SENSORS
+        )
+        data_only_keys = tuple(sensor_map[name] for name in data_only_names)
+        fit_keys = tuple(sensor_map[name] for name in fit_names)
 
+        plotted = 0
+        target_info_lines: list[str] = []
         if group_title in MONITOR_FIT_GROUPS:
-            plotted, target_info_lines = plot_sensors_on_axes(
-                ax,
-                redis_client,
-                keys,
-                start_ms,
-                end_ms,
-                predict_end_unix,
-                predict_hours,
-                n_exp_terms,
-                fit_max_points,
-                plot_max_points,
-                target_temp_k=group_target_k,
-                legend_labels=legend_labels,
-            )
+            if data_only_keys:
+                plotted += plot_data_only_on_axes(
+                    ax,
+                    redis_client,
+                    data_only_keys,
+                    start_ms,
+                    end_ms,
+                    plot_max_points,
+                    legend_labels=legend_labels,
+                )
+            if fit_keys:
+                fit_plotted, target_info_lines = plot_sensors_on_axes(
+                    ax,
+                    redis_client,
+                    fit_keys,
+                    start_ms,
+                    end_ms,
+                    predict_end_unix,
+                    predict_hours,
+                    n_exp_terms,
+                    fit_max_points,
+                    plot_max_points,
+                    target_temp_k=group_target_k,
+                    legend_labels=legend_labels,
+                )
+                plotted += fit_plotted
             if group_target_k is not None:
                 add_target_info_to_axes(ax, target_info_lines, group_target_k)
         else:
@@ -579,11 +637,10 @@ def plot_cryo_monitor(
                 plot_max_points,
                 legend_labels=legend_labels,
             )
-            target_info_lines = []
         if plotted:
             any_data = True
         subtitle = "data only" if group_title not in MONITOR_FIT_GROUPS else "exponential fit"
-        ax.set_title(f"{group_title} (last {hours:g} h, UTC) — {subtitle}")
+        ax.set_title(f"{group_title} — {subtitle}")
         ax.set_ylabel("Temperature (K)")
         ax.grid(True, alpha=0.3)
         ax.legend(loc="upper right", fontsize=8)
