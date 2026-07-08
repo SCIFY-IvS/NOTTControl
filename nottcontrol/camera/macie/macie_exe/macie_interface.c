@@ -102,6 +102,11 @@ extern "C" bool M_read_frame_settings(bool &xWindowing, bool &yWindowing, uint &
     return true;
 }
 
+extern "C" CAMERA_MODE M_get_detector_mode()
+{
+    return _ptUserData->DetectorMode;
+}
+
 //  Receive 0MQ string from socket and convert into string
 inline static std::string
 s_recv (zmq::socket_t & socket, zmq::recv_flags flags = zmq::recv_flags::none) {
@@ -264,6 +269,19 @@ int main () {
                     + std::to_string(x2) + ";"
                     + std::to_string(y1) + ";"
                     + std::to_string(y2);
+            }
+            else if (command == "getmode")
+            {
+                result = true;
+                CAMERA_MODE mode = M_get_detector_mode();
+                if(mode == CAMERA_MODE::CAMERA_MODE_SLOW)
+                {
+                    answer = "slow";
+                }
+                else if (mode == CAMERA_MODE::CAMERA_MODE_FAST)
+                {
+                    answer = "fast";
+                }
             }
             else 
             {

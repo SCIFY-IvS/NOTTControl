@@ -5,6 +5,12 @@ import zmq
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+from enum import Enum
+
+class DetectorMode(Enum):
+    SLOW = 1
+    FAST = 2
+
 #Usage: calling init_camera puts the camera in a state where it is ready to acquire images.
 #By using the python 'with' statement, you can ensure that both the initialization and the de-initialization are done
 class MacieInterface():
@@ -114,6 +120,20 @@ class MacieInterface():
         y2 = answer[5]
 
         return (xWindow, yWindow, x1, x2, y1, y2)
+    
+
+    
+    def get_detector_mode(self):
+        """ Get the current detector mode (fast/slow)"""
+        message = "getmode"
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+        if answer == "fast":
+            return DetectorMode.FAST
+        elif answer == "slow":
+            return DetectorMode.SLOW
+        else:
+            raise Exception("Unexpected reply to getmode")
     
     def start_continuous_acquisition(self):
         self._acquiring.set()
