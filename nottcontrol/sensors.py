@@ -207,6 +207,12 @@ class CryoStatusItem:
     opc_id: str
 
 
+PUMP_SPEED_TAGS: dict[str, str] = {
+    "tmp": "evac.pump_tmp.stat.nPumpSpeed",
+    "pvp": "evac.pump_pvp.stat.nPumpSpeed",
+}
+
+
 def format_equipment_status(value) -> tuple[str, str]:
     """Return (display text, style key) for pump/cryocooler on/off values."""
     if value is None:
@@ -229,6 +235,14 @@ def format_equipment_status(value) -> tuple[str, str]:
     if upper in off_tokens:
         return "Off", "stopped"
     return text, "unknown"
+
+
+def format_pump_status(value, speed_rpm: float | None) -> tuple[str, str]:
+    """Return on/off text with pump speed on the same line."""
+    text, style_key = format_equipment_status(value)
+    if speed_rpm is not None:
+        text = f"{text} · {int(round(speed_rpm))} rpm"
+    return text, style_key
 
 
 def load_cryo_status_config(path: str | Path) -> list[CryoStatusItem]:

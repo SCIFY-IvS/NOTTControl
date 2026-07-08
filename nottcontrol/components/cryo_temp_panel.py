@@ -5,7 +5,12 @@ from datetime import datetime
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
-from nottcontrol.sensors import format_pressure_value, format_equipment_status
+from nottcontrol.sensors import (
+    format_pressure_value,
+    format_equipment_status,
+    format_pump_status,
+    PUMP_SPEED_TAGS,
+)
 from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 
@@ -262,6 +267,7 @@ class CryoPressurePanel(QWidget):
 
         self._pressure_value_labels: dict[str, QLabel] = {}
         self._equipment_value_labels: dict[str, QLabel] = {}
+        self._pump_speed_tags: dict[str, str] = {}
 
     def setup(
         self,
@@ -280,7 +286,10 @@ class CryoPressurePanel(QWidget):
         grid.setVerticalSpacing(6)
 
         row = 0
+        pump_speed_tags = set(PUMP_SPEED_TAGS.values())
         for tag, name in zip(tags, display_names):
+            if tag in pump_speed_tags:
+                continue
             name_label = QLabel(name)
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("—")
@@ -304,6 +313,8 @@ class CryoPressurePanel(QWidget):
             grid.addWidget(name_label, row, 0)
             grid.addWidget(value_label, row, 1)
             self._equipment_value_labels[key] = value_label
+            if key in PUMP_SPEED_TAGS:
+                self._pump_speed_tags[key] = PUMP_SPEED_TAGS[key]
             row += 1
 
         box.setMinimumHeight(scaled(28) + row * scaled(26))
@@ -323,7 +334,16 @@ class CryoPressurePanel(QWidget):
 
         if equipment_status is not None:
             for key, label in self._equipment_value_labels.items():
-                text, style_key = format_equipment_status(equipment_status.get(key))
+                if key in self._pump_speed_tags and pressure_tag_values is not None:
+                    speed_tag = self._pump_speed_tags[key]
+                    speed = pressure_tag_values.get(speed_tag)
+                    text, style_key = format_pump_status(
+                        equipment_status.get(key), speed
+                    )
+                else:
+                    text, style_key = format_equipment_status(
+                        equipment_status.get(key)
+                    )
                 label.setText(text)
                 label.setStyleSheet(_equipment_status_style(style_key))
 
