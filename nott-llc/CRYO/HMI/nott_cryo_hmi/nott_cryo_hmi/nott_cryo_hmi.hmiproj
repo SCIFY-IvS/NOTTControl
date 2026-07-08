@@ -852,6 +852,13 @@
       <SubType>Content</SubType>
       <DependentUpon>UserControls\NOTT\METISAnalogSensorUserControl\METISAnalogSensorUserControl.usercontrol</DependentUpon>
     </Content>
+    <Content Include="UserControls\NOTT\Sequence\MetisNottSequenceControlFaceplate.usercontrol">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="UserControls\NOTT\Sequence\MetisNottSequenceControlFaceplate.usercontrol.json">
+      <SubType>Content</SubType>
+      <DependentUpon>UserControls\NOTT\Sequence\MetisNottSequenceControlFaceplate.usercontrol</DependentUpon>
+    </Content>
     <Content Include="UserControls\NOTT\TemperatureControl\NOTTTempCtrlFaceplate.usercontrol">
       <SubType>Content</SubType>
     </Content>
@@ -1208,6 +1215,7 @@
     <Folder Include="UserControls\NOTT" />
     <Folder Include="UserControls\NOTT\METISAnalogSensorUserControl" />
     <Folder Include="UserControls\NOTT\FaceplateVoter" />
+    <Folder Include="UserControls\NOTT\Sequence" />
     <Folder Include="UserControls\NOTT\TemperatureControl" />
   </ItemGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

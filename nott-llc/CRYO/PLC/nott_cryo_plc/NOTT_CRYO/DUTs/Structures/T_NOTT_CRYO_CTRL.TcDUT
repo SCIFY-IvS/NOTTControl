@@ -19,9 +19,13 @@ STRUCT
 	//
 	{attribute 'TcHmiSymbol.Show'}
 	bEnable_Evac:		BOOL := FALSE;
-	bEnable_Cooler:		BOOL := FALSE;
-	bEnable_Heaters:	BOOL := FALSE;
-	bEnable_Warmup:		BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}	
+	bEnable_CoolDown:		BOOL := FALSE;	
+	
+	//bEnable_Coole:		BOOL := FALSE;
+	bEnable_Heater:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}	
+	bEnable_WarmUp:		BOOL := FALSE;
 
 	//	
 	// Safe flags saying what is safe and what not.
@@ -32,24 +36,6 @@ STRUCT
 	//
 	// Simulation flags.
 	//
-	// Strictly speaking, these flags are not needed for normal
-	// operation, i.e., it is possible to simulate sensors
-	// without them. However, there existance greatly simplifies
-	// the simulation of the complete cryo system that is needed
-	// for Control Model testing.
-	// NOTE: These are only the flags of the complete higher-level
-	//       Control System.
-	//       There are also flags inside the Heaters, as well as
-	//       in the Evacuation subsystem.
-	//       See: ptrArr_tor[] populating in M_Configure().
-	//
-	// Temperature Simulation flags
-	bSim_Temp_Ambient:		BOOL := FALSE;
-	bSim_Temp_DetMon:		BOOL := FALSE;
-	bSim_Temp_ColdPlate:	BOOL := FALSE;
-	bSim_Temp_WarmFlange:	BOOL := FALSE;
-	bSim_Temp_WarmOptics:	BOOL := FALSE;
-	bSim_Temp_LS336:		BOOL := FALSE;
 	
 	// Pressure Simulation flags
 	bSim_Press_VAGC:	BOOL := FALSE;
@@ -60,7 +46,8 @@ STRUCT
 	// System overrides for commands and sensor readings.
 	//	
 	// Command override (cor)
-	cor_Cooler:				FB_CRYO_CMD_OVERRIDE;
+	cor_WarmUp:			FB_CRYO_CMD_OVERRIDE;
+	cor_CoolDown:			FB_CRYO_CMD_OVERRIDE;
 	cor_Evac:				FB_CRYO_CMD_OVERRIDE;
 	cor_Heater_IF:			FB_CRYO_CMD_OVERRIDE;
 	cor_Heater_Preamp:		FB_CRYO_CMD_OVERRIDE;

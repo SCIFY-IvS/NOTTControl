@@ -260,12 +260,20 @@ VAR_INPUT
 END_VAR
 VAR
 
-    IgnoreList: 		ARRAY[1..5] OF STRING := [
-        't_cry_pca',
-        't_cry_pcb',
-        't_cry_wim',
-        't_cry_wia',
-        't_cry_wid'
+    IgnoreList: 		ARRAY[1..11] OF STRING := [
+	   't_thermal_box_1', 	
+	   't_thermal_box_2', 	
+	   't_thermal_box_3', 	
+	   't_thermal_box_4', 	
+	   't_thermal_box_vote',  
+	   't_master',
+	   't_master_vot_1',
+	   't_master_vot_2',
+	   
+	   't_cabinet_1', 	
+	   't_cabinet_2', 	
+	   't_cabinet_vote'   	   
+	   
     ];
     i : INT;
 END_VAR

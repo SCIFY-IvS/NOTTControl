@@ -660,6 +660,22 @@
       "frameworkUserControlConfig": "UserControls\\Controls\\NOTT\\TempController\\NOTTTemperatureController.usercontrol.json",
       "type": "object",
       "id": "tchmi:project#/definitions/NOTTTemperatureController"
+    },
+    "METISSequenceControlFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\MetisNottSequence\\METISSequenceControlFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/METISSequenceControlFaceplate"
+    },
+    "MetisNottSequenceControlFaceplate": {
+      "frameworkControlNamespace": "TcHmi.Controls.Beckhoff",
+      "frameworkControlType": "TcHmi.Controls.System.TcHmiUserControl",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkUserControlConfig": "UserControls\\NOTT\\Sequence\\MetisNottSequenceControlFaceplate.usercontrol.json",
+      "type": "object",
+      "id": "tchmi:project#/definitions/MetisNottSequenceControlFaceplate"
     }
   }
 }

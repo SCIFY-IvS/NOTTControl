@@ -16,6 +16,8 @@ STRUCT
 	
 	nLastCommand:	E_NOTT_CRYO_CTRL_CMD 	:= E_NOTT_CRYO_CTRL_CMD.NONE;
 	nState:			E_NOTT_CRYO_CTRL_STATE	:= E_NOTT_CRYO_CTRL_STATE.NONE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	sState:			STRING(64);		// State as text
 
 
@@ -26,19 +28,31 @@ STRUCT
 	// Simulation
 	bSimulation:	BOOL := FALSE;	// If TRUE, System is simulated - Variant (V2_SIM)	
 	bSim_RepressEnabled:	BOOL := FALSE;
-
-	bVacuum:		BOOL := FALSE;		
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bVacuum:		BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}		
 	bVacuumOK:		BOOL := FALSE;		
-
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	bCold:			BOOL := FALSE;	// Master temperature < cfg.lrTemp_Cold		
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	bOP:			BOOL := FALSE;	// Master temperature < cfg.lrTemp_OP
 
 	bCoolantFlowOK:	BOOL := FALSE;		
-
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	bHighestTempValid:	BOOL := FALSE;	// Highest temperature Valid flag
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	bLowestTempValid:	BOOL := FALSE;	// Lowest temperature Valid flag
-
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	lrHighestTempK:	LREAL;	// Highest temperature [K] in Cryostat
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	lrLowestTempK:	LREAL;	// Lowest temperature [K] in Cryostat
 	
 	//
@@ -49,6 +63,8 @@ STRUCT
 	// Master temperature [K] for cooldown and warmup.
 	// Normally, if everything is OK, this is the temperature
 	// measured by Heater_DetIF.
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
 	lrMasterTempK:	LREAL;
 	nMasterTempKIndex:	INT:= 0;
 

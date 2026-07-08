@@ -30,7 +30,7 @@
         "name": "TcHmiUserManagement"
       }
     ],
-    "profileName": "TestPlc",
+    "profileName": "nott_cryo_plc",
     "publishMode": "TcHmi",
     "targetDirectory": "",
     "deleteAllFilesBeforePublish": false,

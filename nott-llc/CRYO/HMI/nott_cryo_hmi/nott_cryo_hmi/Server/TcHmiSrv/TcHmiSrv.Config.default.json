@@ -9,7 +9,7 @@
     "CACHEMAXAGE": "P30D",
     "CACHEMAXENTRYSIZE": 1048576,
     "CACHEMAXSIZE": 2097152,
-    "CERTIFICATE": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVDVENDQXZHZ0F3SUJBZ0lKQU5hN0ZYYzlFU0ZOTUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZd05qSTVNVEkxTnpNeFdoZ1BNakEyTkRFd01qY3hNalUzCk16RmFNRU14Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKRnpBVkJnTlZCQU1NRGtaWlV5MU1MV2wyY3kwd01EQTNNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QQpNSUlCQ2dLQ0FRRUFyVHRIOW92cnZCWHhVQjFKTURKNGZlOUpJQjduRGJoaWlTaE1hdGJUZWFLSjUreWRmRmU2Ckd5aE9ESThBRVFuQUMyMGU2clZtb0tJV0lBN3dVZGdBUTNRNkpnWEdsQTAyU1FIcEU4R3VyUjFXRzVaaDl4Q0kKSHdFSEVLSTlxOVhhaUtCanYwNnVRNWlyVmdPVlRxYW1GUUErM0tSN2VHSzc5bG12R1dycEhvalhPdXpjWS9UNQozNGVpNUw4WlBSMVdtNkwyWTQ0ekJ6RUdRTStYd1h5bTFBeDg5Z2hNdkZUUk1rZE9mNnNucWI1dzhQQzJCUzZtClVPNHk3SEFKeU1iS1NGckJrZDBvcmlIQnM5Y3V5RjVwSVJTZjk2S0ErbitWYnIyb3REN3IvaE9CU3ppMGNvUDIKOVhkbmRUenNISVQ1dnlZcVVaZ0NDYTZBTndRT2pid1MwUUlEQVFBQm80SDRNSUgxTUlHVUJnTlZIUkVFZ1l3dwpnWW1DQ1d4dlkyRnNhRzl6ZEljRWZ3QUFBWWNRQUFBQUFBQUFBQUFBQUFBQUFBQUFBWUlPUmxsVExVd3RhWFp6CkxUQXdNRGVDSkVaWlV5MU1MV2wyY3kwd01EQTNMa1paVTBGRUxrWlpVeTVMVlV4RlZWWkZUaTVDUlljRUNpR3oKU29jRXJCYm1YNGNRL29BQUFBQUFBQUJKYTlzb0FiNDhCb2NRL29BQUFBQUFBQUJLRmptTXAvMGVBekFkQmdOVgpIUTRFRmdRVW5aWkZmdWhZT1ZYdnAxeUltYndlaGRVeWNSTXdId1lEVlIwakJCZ3dGb0FVZEpzUUQwV0xSZXQ4ClNNSkFIdUtDT1VrbXdlc3dEQVlEVlIwVEFRSC9CQUl3QURBT0JnTlZIUThCQWY4RUJBTUNCYUF3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFEcjBSZ2NnNlprMG5lTlJWQ3lhcDZ5M243SEphYmtkemlHbkRaTmJrV3VMcmkyRAovVkdGZmxQOWdCOU1hK3d0cmNzdjdKeS9PbnNJbVdObDU1dTJrTzBmV0ZBbmJRbjc5aFYrMEhzR01WNWlYQXlFCjMrQngwMFJ3NHlISTBlTnhUdkYyZnNEdDNQeW1FeU1JMUNZWUJQaUhtQVpEVmhNd3VSdm1xWDNiMTJBeGYxclMKcnV6TXRjUG1OVVRhVnFES0Fwa1A3bG9kc05YcFhhNmh5YmpLOXM4bXVPNWU4ZFpuVkt6KzVuRkZlbnowMDJ1RQpVbmFvblNzWU5FTVJyV0R5dGsrenJkN0xINmZCRHRSbDNORjNRdk5iN1JnbTArbU8zVVFiUHhUMXpad0ZTbEIyClh3ZUljYTgvaUFJWHdDZ3c1TG1hV0xhRFhjdE5aWHZxVXNISTZoTT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJRUVUQ0NBdm1nQXdJQkFnSUpBT3B6cVBNMDJPaHlNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1FZ3hDekFKQmdOVgpCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXhIREFhQmdOVkJBTU1FMFpaClV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd0lCY05Nall3TmpJeU1UY3lORFF3V2hnUE1qQTJOREV3TWpBeE56STAKTkRCYU1FZ3hDekFKQmdOVkJBWVRBa1JGTVJzd0dRWURWUVFLREJKVWQybHVRMEZVSUVoTlNTQlRaWEoyWlhJeApIREFhQmdOVkJBTU1FMFpaVXkxTUxXbDJjeTB3TURBM1gzSnZiM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBCkE0SUJEd0F3Z2dFS0FvSUJBUUMvbkhCTzlZMjFDcHBqL081OHdXMUNSZXRZVStQZE5McFcySVhKQkVSdmw3UkUKbE1PT2g5d3drSFNhK0Q4MWR1TTJOeUQzSEFVYVlYbjhPMVRXQUdSb2t6QUFiYzFBa05MM1JBUGxWVnZEOFZFNAprVXQ0bUVFWFllQWNjZzdiQm4vWE92S3oyV3k0MlBTNm5Fb2ZXOHlaU3ZSQXJuYTYvcXFFS2lTY1BLWkZyMGFjCjFsWHhDV1RZRUJqZGdwM3k4c0JkaVJVQWt2b3dTdGs3aVpSTkh4NUpKWlduTDJYNTVod3NJcmUyZWlJZGxmSlQKMXdpSkRuSERLL1pVSTY2YUp0YTl1TFJaSlJ2Q0NoTUxzSE5FRGlVUlZMOVdrbDIvWVNwNTJyK2FXbXE5YmRzdAptUWtYQ0I0Vk0yVk5NYXJ0dXF0bXMyVjNsNkVKYXRaSVBxcDBTNitMQWdNQkFBR2pnZnN3Z2Znd2daUUdBMVVkCkVRU0JqRENCaVlJSmJHOWpZV3hvYjNOMGh3Ui9BQUFCaHhBQUFBQUFBQUFBQUFBQUFBQUFBQUFCZ2c1R1dWTXQKVEMxcGRuTXRNREF3TjRJa1JsbFRMVXd0YVhaekxUQXdNRGN1UmxsVFFVUXVSbGxUTGt0VlRFVlZWa1ZPTGtKRgpod1FLSWJOS2h3U3NGdVpmaHhEK2dBQUFBQUFBQUVscjJ5Z0J2andHaHhEK2dBQUFBQUFBQUVvV09ZeW4vUjRECk1CMEdBMVVkRGdRV0JCUjBteEFQUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFmQmdOVkhTTUVHREFXZ0JSMG14QVAKUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTRHQTFVZER3RUIvd1FFQXdJQgpCakFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBdmJ4bm82RnFxRVRXQkNXUE5ycnhiUWVLQjRhL3ozNWR0cVRyCjA0cTBrNXlhMjRVR21uS1ZnWnpXWU5aaTVaK1BOaTA4Ymx2NWdFclBaTjlYcTFjbDZKbnVmK1lmd2ErQ0dvUWYKcCtlTkUvc2lyNUxUaVJZc0hYSHhJaHpFUW80b1JieHc5UnBrN3pqbi9wSkZrUjJqS3RQWTJnUURMVkJ6ODc0RQpsNDZlN1BLZjF0Z045RzJoZnlpOTQ1YnllRjdhZG1MRnk0RTFDYVBiZ3pjb3BCWHVKM0tDT2R2eFRDWmxITEtmCnNqa1RmZTdHYVdjcmFxWXI5RWt4RmFPTTNyZHRuUktiMllvMVlDRFhZSUROM2xCMm42a3dqU08rRzV0M291dkcKMVNIK1l6MjN5c2dtdXNMUE05dTd3UXpUdHp0MEZVdWtZU3p1cWcwN1c0VnZ2dzFyQVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+    "CERTIFICATE": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVDVENDQXZHZ0F3SUJBZ0lKQU1SOWJMN3FTZjV3TUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZd056QTNNRGt4T1RFMldoZ1BNakEyTkRFeE1EUXdPVEU1Ck1UWmFNRU14Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKRnpBVkJnTlZCQU1NRGtaWlV5MU1MV2wyY3kwd01EQTNNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QQpNSUlCQ2dLQ0FRRUE0SVdTUXdaNzE5SCs3L2tOdnpUQy9BQjgvUlpZUmkxSUEvcytNMlJtazdpeUpxa3BqV0paCjZQemxJY3FqaVBUK0J2Qkp3cFZLMzFwclpzUnZxRmxQMG9EVnNVTUdPSVBYdFMyZlhjUWhRUzU4WERvajZGWjUKSDdwb0tjZy9RVUJyVkVSUjlqeWNXQU56QmtqZGxLcWxGVUdIenlBQzRIQ2c4dStPeUNQdStxOVlXSUlFZWRLNgpwdFZqMjA5OFYvdWo1WGVjOUdjbGRFeG1JSXpFK3NkcmQ0akQzTjdCOXlVdXJ4ejJpTGFxT04ySHpIYnByamszCjA5ejVsR0c4bzlOMjlJUmtOS2ljckExeUV0cklqczZ6YUFxbWtIaHNRbGN3MmFkMXBiazVHN3lxb0ZCcWpXMUcKU2FvNkV4QW1lWUQzaytjQTFiajJZZ2dzSThlbUtrSDY4UUlEQVFBQm80SDRNSUgxTUlHVUJnTlZIUkVFZ1l3dwpnWW1DQ1d4dlkyRnNhRzl6ZEljRWZ3QUFBWWNRQUFBQUFBQUFBQUFBQUFBQUFBQUFBWUlPUmxsVExVd3RhWFp6CkxUQXdNRGVDSkVaWlV5MU1MV2wyY3kwd01EQTNMa1paVTBGRUxrWlpVeTVMVlV4RlZWWkZUaTVDUlljRUNpR3oKU29jRXJCYm1YNGNRL29BQUFBQUFBQUJKYTlzb0FiNDhCb2NRL29BQUFBQUFBQUJLRmptTXAvMGVBekFkQmdOVgpIUTRFRmdRVTlQN0lYcmN1RjkvWDJtMExPR1BYakpQNGhvVXdId1lEVlIwakJCZ3dGb0FVZEpzUUQwV0xSZXQ4ClNNSkFIdUtDT1VrbXdlc3dEQVlEVlIwVEFRSC9CQUl3QURBT0JnTlZIUThCQWY4RUJBTUNCYUF3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFLT01lQlRObW9sSVFUeW5yaS8vQU5oWnFMK3BOVjFvZk1Wa2lJL1QycktCamtVQwpzeS8yRUhwUUlydHBtekV0dkxRZlpUZzUxaGpZcmZqM1VGN1ZuM3FYKy9VaHpnSENqZjdpOEZBQXpjTFE3Rm1LCjR2blhaSG1URmdhUTlMeDZpYjZqM0F6UnBaTGNvcVlGc2lOd1lXV3VldkQ5Wk13NURDNHVlenF4VVZ1TUkyYUUKM0wvTCtOV1RxV3Azd3g2UWdVQURQL1pMWXlPUXNvenNXK2prWnJCSUxyWkovb3lOOVdGQ3lSWkpqSXFBRFlucwpHSnJsdjllUlJ5aHBNUHcvYjJsdTdJdFUrNWxjanFpcTJYWUVjZWtMZlF6ZG5FZi81WVROMzJ5WHNoVmtReEVrCit1dWNZQzZISlJLc3o3NUtVeitQNDE4bzN1UkhsUmUwM25PUzgwND0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJRUVUQ0NBdm1nQXdJQkFnSUpBT3B6cVBNMDJPaHlNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1FZ3hDekFKQmdOVgpCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXhIREFhQmdOVkJBTU1FMFpaClV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd0lCY05Nall3TmpJeU1UY3lORFF3V2hnUE1qQTJOREV3TWpBeE56STAKTkRCYU1FZ3hDekFKQmdOVkJBWVRBa1JGTVJzd0dRWURWUVFLREJKVWQybHVRMEZVSUVoTlNTQlRaWEoyWlhJeApIREFhQmdOVkJBTU1FMFpaVXkxTUxXbDJjeTB3TURBM1gzSnZiM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBCkE0SUJEd0F3Z2dFS0FvSUJBUUMvbkhCTzlZMjFDcHBqL081OHdXMUNSZXRZVStQZE5McFcySVhKQkVSdmw3UkUKbE1PT2g5d3drSFNhK0Q4MWR1TTJOeUQzSEFVYVlYbjhPMVRXQUdSb2t6QUFiYzFBa05MM1JBUGxWVnZEOFZFNAprVXQ0bUVFWFllQWNjZzdiQm4vWE92S3oyV3k0MlBTNm5Fb2ZXOHlaU3ZSQXJuYTYvcXFFS2lTY1BLWkZyMGFjCjFsWHhDV1RZRUJqZGdwM3k4c0JkaVJVQWt2b3dTdGs3aVpSTkh4NUpKWlduTDJYNTVod3NJcmUyZWlJZGxmSlQKMXdpSkRuSERLL1pVSTY2YUp0YTl1TFJaSlJ2Q0NoTUxzSE5FRGlVUlZMOVdrbDIvWVNwNTJyK2FXbXE5YmRzdAptUWtYQ0I0Vk0yVk5NYXJ0dXF0bXMyVjNsNkVKYXRaSVBxcDBTNitMQWdNQkFBR2pnZnN3Z2Znd2daUUdBMVVkCkVRU0JqRENCaVlJSmJHOWpZV3hvYjNOMGh3Ui9BQUFCaHhBQUFBQUFBQUFBQUFBQUFBQUFBQUFCZ2c1R1dWTXQKVEMxcGRuTXRNREF3TjRJa1JsbFRMVXd0YVhaekxUQXdNRGN1UmxsVFFVUXVSbGxUTGt0VlRFVlZWa1ZPTGtKRgpod1FLSWJOS2h3U3NGdVpmaHhEK2dBQUFBQUFBQUVscjJ5Z0J2andHaHhEK2dBQUFBQUFBQUVvV09ZeW4vUjRECk1CMEdBMVVkRGdRV0JCUjBteEFQUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFmQmdOVkhTTUVHREFXZ0JSMG14QVAKUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTRHQTFVZER3RUIvd1FFQXdJQgpCakFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBdmJ4bm82RnFxRVRXQkNXUE5ycnhiUWVLQjRhL3ozNWR0cVRyCjA0cTBrNXlhMjRVR21uS1ZnWnpXWU5aaTVaK1BOaTA4Ymx2NWdFclBaTjlYcTFjbDZKbnVmK1lmd2ErQ0dvUWYKcCtlTkUvc2lyNUxUaVJZc0hYSHhJaHpFUW80b1JieHc5UnBrN3pqbi9wSkZrUjJqS3RQWTJnUURMVkJ6ODc0RQpsNDZlN1BLZjF0Z045RzJoZnlpOTQ1YnllRjdhZG1MRnk0RTFDYVBiZ3pjb3BCWHVKM0tDT2R2eFRDWmxITEtmCnNqa1RmZTdHYVdjcmFxWXI5RWt4RmFPTTNyZHRuUktiMllvMVlDRFhZSUROM2xCMm42a3dqU08rRzV0M291dkcKMVNIK1l6MjN5c2dtdXNMUE05dTd3UXpUdHp0MEZVdWtZU3p1cWcwN1c0VnZ2dzFyQVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
     "CERTIFICATEEXPIRATION": "P14000D",
     "CHECKSUMENABLED": true,
     "CHUNKSIZE": 1048576,
@@ -23189,7 +23189,10 @@
         "RFIDAuth": {
             "ENABLED": true,
             "METADATA": {
-                "migrationVersion": "1.14"
+                "migrationVersion": "1.14",
+                "previousVersions": [
+                    "1.12"
+                ]
             },
             "NAME": "RFIDAuth",
             "PATH": "..\\..\\Packages\\RFIDAuth.1.0.0\\runtimes\\win-x64\\net472\\",
@@ -23197,7 +23200,7 @@
             "STARTUPTYPE": 1
         },
         "TcHmiEventLogger": {
-            "ENABLED": false,
+            "ENABLED": true,
             "METADATA": {
                 "migrationVersion": "1.14",
                 "previousVersions": [
@@ -23205,7 +23208,7 @@
                 ]
             },
             "NAME": "TcHmiEventLogger",
-            "PATH": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.EventLogger.22.0.7765\\runtimes\\win-x64\\native\\",
+            "PATH": "..\\..\\Packages\\Beckhoff.TwinCAT.HMI.EventLogger.23.0.198\\runtimes\\win-x64\\native\\",
             "REQUIRED": false,
             "STARTUPTYPE": 1
         },
@@ -23418,7 +23421,7 @@
     "HTTP_FLOODPROTECTION": 10,
     "INITTIMEOUT": "PT10S",
     "KEEP_ALIVE": "PT40S",
-    "KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRQ3RPMGYyaSt1OEZmRlEKSFVrd01uaDk3MGtnSHVjTnVHS0pLRXhxMXRONW9vbm43SjE4VjdvYktFNE1qd0FSQ2NBTGJSN3F0V2Fnb2hZZwpEdkJSMkFCRGREb21CY2FVRFRaSkFla1R3YTZ0SFZZYmxtSDNFSWdmQVFjUW9qMnIxZHFJb0dPL1RxNURtS3RXCkE1Vk9wcVlWQUQ3Y3BIdDRZcnYyV2E4WmF1a2VpTmM2N054ajlQbmZoNkxrdnhrOUhWYWJvdlpqampNSE1RWkEKejVmQmZLYlVESHoyQ0V5OFZORXlSMDUvcXllcHZuRHc4TFlGTHFaUTdqTHNjQW5JeHNwSVdzR1IzU2l1SWNHegoxeTdJWG1raEZKLzNvb0Q2ZjVWdXZhaTBQdXYrRTRGTE9MUnlnL2IxZDJkMVBPd2NoUG0vSmlwUm1BSUpyb0EzCkJBNk52QkxSQWdNQkFBRUNnZ0VBSU00TTNPN1cyN1d4RHNtWStraFlnb3E5cDVoS2k1SGJFUnZCU3VzM1BYM1AKRFUxRTdvN2packN0aFJuUWVxbUV4WFVxNldva1R1K2E3b085dFZZSkNMMGFKT2lybUE1ZmRSaG9SYzVFRUxMeApRMFNwZFNMYmtEbCsxOExObUh5bFI0SE9HZVNod2huSGVvQ3Z0ZWIvcFJMNGxJcU9lamdDWGM3U2hxYjFFZ3VxCm5raEZwcXU1UThyaklkZzRmTGxiaGJNY1F6ZUJDUHU4Ynp5RHVnRDBPVDJiUEhzYWlYYlRxTCtiTmhZbWVqenYKOEVKZlBJb0t3Q3hsMXU0SWliZnlVa0ZXNVB5L21ZRHJDeU1RWGFKOGxybWZMa04rOGhTOTloU0xXWjNtdDR0aQplZkZYeW9kWUxkRXQ3eGRvOEpncVBuRmdjN1FNUWE2VkM4STZYYTNQMVFLQmdRRFo1MmJUVDdMS2VVcG5OYnpWCjd2NllmQ2hPYzRMcGlWNExiMFI3c1BWOEE1TGtGQTBoUSttS2htMWRRRVRBaWQyU2N4dVJ4cHJWSkd0RVczVVMKOUsxWlI1VWhTRC9CQzRMVHJkTFNEaXJuZWVmN29OYlVmVGY4ajV2NXEreHlrS1ZPSUpabENPK2tqYWxPNXI5TwpBd2JwRUtaYXM0eWExNWUwaDJqZzFrMXExUUtCZ1FETGhJRmNEd2JtQmN4aUFtMjRFbmx2akIxM3lCMVBaQ000CnVMZ3lTNVNHSEtFV3JucG1BNjAydVpBZzVJZUdGVTJ6UEx0TkJCNStVenNmZDROdlZwUGFhaUN0VCtYb2JVQ2wKakdWNXN3MCtUNWQrUWgrWXdmN2VvYTdMM3d3Rkp4R1g0S3hwcWN5enlKWUZTUDdXSmlLQ1dKV0xSR2loQVFmSAppYnFVdng0T0RRS0JnUUN5UE9UUC9rWUo5bktVdjlFSjBTY3h4WVVXdnNlYmpZQitxL0lCbHpzRnlNcVRnNDlGCjRZNGJnRi9ld2g0NnU4cWc2MFRtMWVSNmFnTFA5RnRzT1BXK3JKM2dqbitQd1lHdThtVWE2dm5QUTlrczYyQXUKaVlxTkxVN3hSOTd0eTBGY0NhM2JVUmJzcSsrTW1aUnNGRy9IbnBYa1pTK2l6S3pMdjJOYlhoQVBUUUtCZ1FEQQozTzhoNkhPbkpET05aYlBJVG1tYUZmUVBBU3NWZzFZRmVMZkZvZTQ4TVlGTzEwWFN5d1VvNlN6Mm50cjNhOVRZCldHTS9Gdm8yeUhVczJydEpsWWhENFhMYUN1OWJGYjIvcEk2OWg3cXpKQVh5ZG9NdTVoaTdyZ2pSMXF1emJsU3oKMHd4UWpjTVpWS3Nta3dnOHRLTGJWMHRRVVNHK0FoWDNPRVFDbGlMTE9RS0JnRFUzZjIxME52cHVGMENSVXJMeQppNXlBU25OSXl4Q3NFY0picVpNUWtFKzJ6eTVtUnB4akpNUFBZK0hPc2hWZXBQb2UvWDg4cVF3NXltSjRPUDdIClpsV0lMbE1saERhVEhrUklJczNDK3piejRwL1hZRHV5NUFwL3Z1T1hFbHdFZW5yWUxNdER0M25xUjVCRU5ld0oKKzYrR3Fmck9FSGdoWk9YRFN5ZzliMi9pCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
+    "KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRRGdoWkpEQm52WDBmN3YKK1EyL05NTDhBSHo5RmxoR0xVZ0QrejR6WkdhVHVMSW1xU21OWWxuby9PVWh5cU9JOVA0RzhFbkNsVXJmV210bQp4RytvV1UvU2dOV3hRd1k0ZzllMUxaOWR4Q0ZCTG54Y09pUG9WbmtmdW1ncHlEOUJRR3RVUkZIMlBKeFlBM01HClNOMlVxcVVWUVlmUElBTGdjS0R5NzQ3SUkrNzZyMWhZZ2dSNTBycW0xV1BiVDN4WCs2UGxkNXowWnlWMFRHWWcKak1UNngydDNpTVBjM3NIM0pTNnZIUGFJdHFvNDNZZk1kdW11T1RmVDNQbVVZYnlqMDNiMGhHUTBxSnlzRFhJUwoyc2lPenJOb0NxYVFlR3hDVnpEWnAzV2x1VGtidktxZ1VHcU5iVVpKcWpvVEVDWjVnUGVUNXdEVnVQWmlDQ3dqCng2WXFRZnJ4QWdNQkFBRUNnZ0VBTWNUNkpKaHAySEFJNnFvVEpZanRGZzZIcGxTUE1kTTB6UWtqQXlKazZLYisKK3JueDU1RGZMRm51OHR3bi95S0xzdjhONHEvVVhvbDlHRlZBQ1JudksxTDZ5NlgzV1l6RVFybS93M25JQTFwcQpIOG1Wanhtb0ZPUHQxaUU1QUY1bXpGR3V0MzQ5Qy9lTHhsOWRtdWh1MnJUaGhZVHJqbFA1SVpELzNoYTFFV1ZsCm8zc09idm81Y1k5eERnbTVXYzY4OW1NNHIyUlVCRkNsT25LNG1saUZaUURQZlVGTTNxTlFLU3hpNTE3dEhJUDcKZjRPWEdzM2ttOG5SZEZTNE5IZVVOUlA5Mmd4L3JJeUxYRzR4aXNaM3BnQWZBWDc5WE5yTm56WkJ1Vm5PME9Dbgp1RHZqbHB4bUJldTc3N3RRV3BCcVFTK2haV3VhcWtob0ZLb2dTbE5yRHdLQmdRRDltanlkUEZjS0dmTDdJZE9OCkIxc3ZVMzFkV2NoaC9hRDFGTm9Za3lsb2srcXNPKzFkbDhnT29Dbm1JTGV2dm1MNlJ6SDVObWhraW5DSHBnWWIKOGQwMThEYXNSTXo5UmF2dnVBV0FLTmhBbjNUMnp1dVhpOFFYMlBGYy9oN1d3MkRXMFlSTmZ2Kzc2NkRsT3Uybgp1aXVMQ0pZT2VIZndaMWZDYjRHT3F5VVhud0tCZ1FEaXBQUTY3ZjlhR2hBbk1zdlE4WHhCYVgwQ1p0SWZyUGZnCkN5Qko1ZUk2eXpDd0VzUDZoMDhlbGxQbkx6YUJRQ2hxNXhoSzR4alVVSUpENndZN2FTM1k5MmFsVFIxbWxpaU8KcWY5MkFRSHI1ZjJjVi9ndlkzNXlCTTk5aVk2eXNESGdpRng3bXhwQit2aWpKK3Z2eU1ZeWxhQi9xZFJOOEk0cQozU0JOZjg0amJ3S0JnSDNhNlhIdTNCTTdSWWEwQnRUYWJicFM2TWhISWxiZkU5NE05eDl6Q1AzSlNwRW5QR2xTClJncGNHZThIRmFHMkRsQyt2R0k5U2hsN1N0Vkc0NGxDd3RGZDRRUWxNTVlRcVg5U0NBak9QR1Axdm9vdHJtV0wKQzBuNmMrMytmemQ5eHJWVlRSOVlnM216T2lvSTBLQ0lsOHRyKzJ3N0JPcmRub1B6Nm92dkMzMXBBb0dCQU1XbQpkdnJoVFB3Rm1LcW1pTW81bmxQcEs4U3BhSHVKTzAzZVJoVkw3aU81eVVienhvYzM4dzdJcUhrSFduQVRSR3dlCkJyaGdIZW9pSDhnZE1QMGt0My9zR1U3MDFqdjluWGIwMTd6UUdoM2dIM0IxNHhGb29mL0xKQ3ZsaDFWYmhOTzcKOTNNd0N4RVpUalh5L2JYS0VOWlNXSHFjMzNIczQvNkxncjB6Uk5EdkFvR0JBSTBoR0tDZTVibzZlUG5uTnJXTApxUzZDc1BsanlmcUlyODN0SkpYcHBEMkpSam52VDRWdFNOTU9jWitpd1pDWUhZcU9ib1RJNER6WGF6NWlRMTlQCmFxMENlcHo3bTJ6L0xkV21ZL3lXOWRMbU5WaEh1ZElNbUhuY2x3REEzODlVNGFEbEhXcGdMRGl1REY3RDl0ZzIKdkZMU2xnMEhoWHY3dzBTZWx3enZQTjlRCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
     "KEYPASSWORD": "",
     "MAXCONNECTIONSPERCLIENT": 32,
     "MAXHTTPHEADERSIZE": 32768,
@@ -23968,6 +23971,89 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStart": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cool_down::bPermitStart",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 14
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStop": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cool_down::bPermitStop",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 15
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.bActive": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cool_down::stat::bActive",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Flag if controller is ACTIVE",
+                        "propertyOrder": 4,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.sStatus": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cool_down::stat::sStatus",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-64-ReadOnly"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Status as text",
+                        "propertyOrder": 13
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cooler": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -23984,6 +24070,26 @@
                         },
                         "comment": "//////////////////\r\n//////////////////\r\n///////////////////////////////////////////\r\n///////////////////////////////////////////",
                         "propertyOrder": 8
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_CoolDown": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::ctrl::bEnable_CoolDown",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 6
                     }
                 ]
             },
@@ -24010,6 +24116,26 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_WarmUp": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::ctrl::bEnable_WarmUp",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 8
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.VAG1": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -24026,6 +24152,68 @@
                         },
                         "comment": "Prevacuum pressure",
                         "propertyOrder": 13
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEvacuationActive": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::evac::bEvacuationActive",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Flag if controller is ACTIVE",
+                        "propertyOrder": 36,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStart": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::evac::bPermitStart",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 23
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStop": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::evac::bPermitStop",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 24
                     }
                 ]
             },
@@ -25102,6 +25290,262 @@
                         },
                         "comment": "Thermal Box",
                         "propertyOrder": 12
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bCold": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::bCold",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Master temperature < cfg.lrTemp_Cold",
+                        "propertyOrder": 14,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bHighestTempValid": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::bHighestTempValid",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Highest temperature Valid flag",
+                        "propertyOrder": 17,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bOP": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::bOP",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Master temperature < cfg.lrTemp_OP",
+                        "propertyOrder": 15,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bVacuum": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::bVacuum",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 12,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bVacuumOK": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::bVacuumOK",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 13,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.lrHighestTempK": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::lrHighestTempK",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/LREAL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Highest temperature [K] in Cryostat",
+                        "propertyOrder": 19,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.lrLowestTempK": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::lrLowestTempK",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/LREAL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Lowest temperature [K] in Cryostat",
+                        "propertyOrder": 20,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sState": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::sState",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-64-ReadOnly"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "State as text",
+                        "propertyOrder": 9
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStart": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::warm_up::bPermitStart",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 13
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStop": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::warm_up::bPermitStop",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 14
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.bActive": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::warm_up::stat::bActive",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Flag if controller is ACTIVE",
+                        "propertyOrder": 4,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.sStatus": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::warm_up::stat::sStatus",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.STRING-64-ReadOnly"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Status as text",
+                        "propertyOrder": 11
                     }
                 ]
             },
@@ -28406,9 +28850,18 @@
                 "ADS.AdsSyncReadStateReq": 3,
                 "ADS.CheckLicense": 3,
                 "ADS.Diagnostics": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStart": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStop": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.bActive": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.sStatus": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cooler": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_CoolDown": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_Evac": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_WarmUp": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.VAG1": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEvacuationActive": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStart": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStop": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.pump_tmp": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.stat": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.stat.sStatus": 3,
@@ -28461,6 +28914,18 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_shield": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_sidecar": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_voters.vote_thermal_box": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bCold": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bHighestTempValid": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bOP": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bVacuum": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bVacuumOK": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.lrHighestTempK": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.lrLowestTempK": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sState": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStart": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStop": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.bActive": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.stat.sStatus": 3,
                 "ChangeUserSettings": 3,
                 "Config.ENABLE_READ_BEFORE_WRITE": 3,
                 "ConfirmAlarm": 3,

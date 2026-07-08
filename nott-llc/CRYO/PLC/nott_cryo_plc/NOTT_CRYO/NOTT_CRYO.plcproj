@@ -19,6 +19,12 @@
     <CompilerDefines>VISU_USEPROPERTYINFO</CompilerDefines>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DUTs\Enumerations\CoolDOwn\E_NOTT_CRYO_COOLDOWN_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Enumerations\WarmUP\E_NOTT_CRYO_WARMUP_STATE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Enumerations\E_NOTT_CRYO_CTRL_CMD.TcDUT">
       <SubType>Code</SubType>
     </Compile>
@@ -32,6 +38,15 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DUTs\Enumerations\TempVote\E_ALL_NOTT_TEMPERATURES.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\CoolDown\T_NOTT_CRYO_COOLDOWN_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\CoolDown\T_NOTT_CRYO_COOLDOWN_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\CoolDown\T_NOTT_CRYO_COOLDOWN_STAT.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DUTs\Structures\Nott_Pump\rp\T_NOTT_PUMPS_STAT.TcDUT">
@@ -79,6 +94,15 @@
     <Compile Include="DUTs\Structures\T_NOTT_CRYO_TRIGGERS.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DUTs\Structures\WarmUp\T_NOTT_CRYO_WARMUP_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\WarmUp\T_NOTT_CRYO_WARMUP_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\WarmUp\T_NOTT_CRYO_WARMUP_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="GlobalTextList.TcGTLO">
       <SubType>Code</SubType>
     </Compile>
@@ -94,6 +118,15 @@
     <Compile Include="POUs\Devices\Heaters\FB_NOTT_HEATERS.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Devices\NOTT_Pump\Functions\F_PfeifferExpoNewToLReal.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Devices\NOTT_Pump\rp\FB_NOTT_PUMP_HICUBE_80_NEO.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Devices\NOTT_Pump\tp\FB_NOTT_PUMP_HIPACE80.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Devices\Temperatures\FB_NOTT_TEMPERATURES.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -106,22 +139,19 @@
     <Compile Include="POUs\Devices\Temp_voters\FB_NOTT_READ_WRITE_TEMP_VOTE_CONFIG.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Evacuation\FB_NOTT_CRYO_EVAC.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="POUs\FB_NOTT_CRYO_CTRL.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\MAIN.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\NOTT_Pump\Functions\F_PfeifferExpoNewToLReal.TcPOU">
+    <Compile Include="POUs\Routines\CoolDown\FB_NOTT_CRYO_COOLDOWN.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\NOTT_Pump\rp\FB_NOTT_PUMP_HICUBE_80_NEO.TcPOU">
+    <Compile Include="POUs\Routines\Evacuation\FB_NOTT_CRYO_EVAC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\NOTT_Pump\tp\FB_NOTT_PUMP_HIPACE80.TcPOU">
+    <Compile Include="POUs\Routines\WarmUp\FB_NOTT_CRYO_WARMUP.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Visualization Manager.TcVMO">
@@ -163,9 +193,13 @@
   <ItemGroup>
     <Folder Include="DUTs" />
     <Folder Include="DUTs\Enumerations" />
+    <Folder Include="DUTs\Enumerations\CoolDOwn" />
+    <Folder Include="DUTs\Enumerations\WarmUP" />
     <Folder Include="DUTs\Enumerations\TCtrl" />
     <Folder Include="DUTs\Enumerations\TempVote" />
     <Folder Include="DUTs\Structures" />
+    <Folder Include="DUTs\Structures\CoolDown" />
+    <Folder Include="DUTs\Structures\WarmUp" />
     <Folder Include="DUTs\Structures\TempVote" />
     <Folder Include="DUTs\Structures\Nott_Pump" />
     <Folder Include="DUTs\Structures\Nott_Pump\rp" />
@@ -173,14 +207,17 @@
     <Folder Include="GVLs" />
     <Folder Include="POUs\Devices\Heaters" />
     <Folder Include="POUs\Devices\Control" />
+    <Folder Include="POUs\Devices\NOTT_Pump" />
+    <Folder Include="POUs\Devices\NOTT_Pump\Functions" />
+    <Folder Include="POUs\Devices\NOTT_Pump\rp" />
+    <Folder Include="POUs\Devices\NOTT_Pump\tp" />
     <Folder Include="POUs\Devices\Temp_voters" />
     <Folder Include="POUs\Devices\Temperatures" />
-    <Folder Include="POUs\Evacuation" />
     <Folder Include="POUs\Devices" />
-    <Folder Include="POUs\NOTT_Pump" />
-    <Folder Include="POUs\NOTT_Pump\Functions" />
-    <Folder Include="POUs\NOTT_Pump\rp" />
-    <Folder Include="POUs\NOTT_Pump\tp" />
+    <Folder Include="POUs\Routines" />
+    <Folder Include="POUs\Routines\CoolDown" />
+    <Folder Include="POUs\Routines\Evacuation" />
+    <Folder Include="POUs\Routines\WarmUp" />
     <Folder Include="VISUs" />
     <Folder Include="POUs" />
   </ItemGroup>

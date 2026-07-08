@@ -339,6 +339,9 @@
       "url": "UserControls/NOTT/METISAnalogSensorUserControl/METISAnalogSensorUserControl.usercontrol"
     },
     {
+      "url": "UserControls/NOTT/Sequence/MetisNottSequenceControlFaceplate.usercontrol"
+    },
+    {
       "url": "UserControls/NOTT/TemperatureControl/NOTTTempCtrlFaceplate.usercontrol"
     },
     {
@@ -814,7 +817,7 @@
     "de": "Localization/de.localization",
     "en": "Localization/en.localization"
   },
-  "languageFallback": "",
+  "languageFallback": "en",
   "disableLoadingOptimization": false,
   "creatorSettings": {
     "viewport": {

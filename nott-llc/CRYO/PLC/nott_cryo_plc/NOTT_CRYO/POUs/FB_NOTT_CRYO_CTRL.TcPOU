@@ -24,6 +24,7 @@ VAR
 	/////////////////////
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'OPC.UA.DA.Access' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
 	stat:	T_NOTT_CRYO_STAT;
 
 	/////////////////////
@@ -44,14 +45,19 @@ VAR
 	/////////////////////
 	// Local variables
 	/////////////////////
+	bCoolDownPermitEvacuationStop:	BOOL := FALSE;
+	bCoolDownPermitWarmUp:			BOOL := FALSE;
+	bWarmUpPermitEvacuationStop:	BOOL := FALSE;
+	bWarmUpPermitCoolDown:			BOOL := FALSE;
 
 
 	//////////////////////////////////////////////
 	//             Controllers
 	//////////////////////////////////////////////
+ 	{attribute 'TcHmiSymbol.Show'}
+ 	cool_down:			FB_NOTT_CRYO_COOLDOWN;
 	{attribute 'TcHmiSymbol.Show'}
-	cooler:			FB_METIS_CRYO_CPA;
-	
+ 	warm_up:			FB_NOTT_CRYO_WARMUP;
 
 	
 	//
@@ -174,7 +180,11 @@ VAR
 	{attribute 'OPC.UA.DA' := '0'}
 	trgCool:			R_TRIG;
 	{attribute 'OPC.UA.DA' := '0'}
+	trgCoolStop:		F_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
 	trgWarmup:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgWarmupStop:		F_TRIG;
 	{attribute 'OPC.UA.DA' := '0'}
 	trgEvacOn:			R_TRIG;
 	{attribute 'OPC.UA.DA' := '0'}
@@ -265,6 +275,12 @@ M_ExecuteControllers();
 
 
 //
+// Update command permissions
+//
+M_SetCmdPermissions();
+
+
+//
 // Capture system commands
 //
 M_CheckForCommands();
@@ -289,6 +305,11 @@ M_ProcessHmi();
 M_StateMachine();
 
 //
+// Refresh permissions after state transitions
+//
+M_SetCmdPermissions();
+
+//
 // HMI Screen ON/OFF
 //
 M_HMI_Screen_Control();
@@ -301,35 +322,76 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[
-// Capture Cool command
-trgCool(CLK := ctrl.bEnable_Cooler);
-IF	trgCool.Q AND stat.nState = E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM THEN
-	ctrl.bExecute	:= TRUE;
-	ctrl.nCommand	:= E_NOTT_CRYO_CTRL_CMD.COOL;
+
+// Capture Cooldown ON/OFF command
+trgCool(CLK := ctrl.bEnable_CoolDown);
+trgCoolStop(CLK := ctrl.bEnable_CoolDown);
+
+IF trgCool.Q THEN
+	IF cool_down.bPermitStart THEN
+		ctrl.bExecute	:= TRUE;
+		ctrl.nCommand	:= E_NOTT_CRYO_CTRL_CMD.COOL;
+	ELSE
+		ctrl.bEnable_CoolDown	:= FALSE;
+		logs.M_LogInfo('Cooldown start command rejected: permission denied.');
+	END_IF
+
+ELSIF trgCoolStop.Q THEN
+	IF cool_down.bPermitStop THEN
+		logs.M_LogInfo('Cooldown stop command accepted.');
+	ELSE
+		// Do not force ctrl.bEnable_CoolDown back to TRUE here.
+		// The state machine also writes this bit internally.
+		logs.M_LogInfo('Cooldown stop command not permitted.');
+	END_IF
 END_IF
 
+// Capture Evacuation ON/OFF trigger
+trgEvacOn(CLK := ctrl.bEnable_Evac);
+trgEvacOff(CLK := ctrl.bEnable_Evac);
 
-// Capture Warmup command
-trgWarmup(CLK := ctrl.bEnable_Warmup);
-IF	trgWarmup.Q THEN
-	ctrl.bExecute	:= TRUE;
-	ctrl.nCommand	:= E_NOTT_CRYO_CTRL_CMD.WARM_UP;
+IF trgEvacOn.Q THEN
+	IF evac.bPermitStart THEN
+		ctrl.bEnable_Evac := TRUE;
+		logs.M_LogInfo('Evacuation started.');
+	ELSE
+		ctrl.bEnable_Evac := FALSE;
+		logs.M_LogInfo('Evacuation start command rejected: permission denied.');
+	END_IF
+
+ELSIF trgEvacOff.Q THEN
+	IF evac.bPermitStop THEN
+		ctrl.bEnable_Evac := FALSE;
+		logs.M_LogInfo('Evacuation stopped.');
+	ELSE
+		// Do not force ctrl.bEnable_Evac back to TRUE here.
+		logs.M_LogInfo('Evacuation stop command not permitted.');
+	END_IF
 END_IF
-
 
 
 // Capture Evacuation ON/OFF trigger
 trgEvacOn(CLK := ctrl.bEnable_Evac);
 trgEvacOff(CLK := ctrl.bEnable_Evac);
-IF	trgEvacOn.Q THEN
-	ctrl.bEnable_Evac	:= TRUE;
-	logs.M_LogInfo('Evacuation started.');
-ELSIF trgEvacOff.Q THEN
-	ctrl.bEnable_Evac	:= FALSE;
-	logs.M_LogInfo('Evacuation stopped.');
-END_IF
 
-]]></ST>
+IF trgEvacOn.Q THEN
+	IF evac.bPermitStart THEN
+		ctrl.bEnable_Evac := TRUE;
+		logs.M_LogInfo('Evacuation started.');
+	ELSE
+		ctrl.bEnable_Evac := FALSE;
+		logs.M_LogInfo('Evacuation start command rejected: permission denied.');
+	END_IF
+
+ELSIF trgEvacOff.Q THEN
+	IF evac.bPermitStop THEN
+		ctrl.bEnable_Evac := FALSE;
+		logs.M_LogInfo('Evacuation stopped.');
+	ELSE
+		// Do not force ctrl.bEnable_Evac back to TRUE here.
+		logs.M_LogInfo('Evacuation stop command not permitted.');
+	END_IF
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_CheckForSensorErrors" Id="{e147f220-db5d-4e17-bd45-ee5f80f6f4b1}">
@@ -348,7 +410,7 @@ END_IF
 ////////////////////////////////////////////////
 // Check for errors by testing the 'Valid' flag.
 ////////////////////////////////////////////////
-IF		NOT VAGC.stat.bValid	THEN
+IF	NOT VAGC.stat.bValid	THEN
 	stat.bError	:= TRUE;
 	stat.sState	:= 'Cryo Vacuum gauge problem';
 	IF stat.nState	<> E_NOTT_CRYO_CTRL_STATE.ERROR	THEN
@@ -377,7 +439,7 @@ END_IF
 // Disable control in failure state
 //
 IF stat.bError THEN
-	ctrl.bEnable_Cooler 	:= FALSE;
+	ctrl.bEnable_CoolDown 	:= FALSE;
 	ctrl.bEnable_Warmup		:= FALSE;
 END_IF]]></ST>
       </Implementation>
@@ -480,48 +542,12 @@ ELSIF debug.nCycleCounter = 1 THEN
 // THIS call just configures logs AT the very start.
 // Logging is done by explicit calls to M_LogInfo().
 	logs(in_sName := in_sName);
-
-
-// Populate arrays of pointers to system functions and sensors.
-// Arrays are mostly used in override/sensor GUIs 
-// to easily switch to selected system component.
-
 	
-	// Set pointers to Temperature readings
-// 	ptrArr_Temp[0] := ADR(Temp_Ambient);	
-// 	ptrArr_Temp[1] := ADR(Temp_DetMon);	
-// 	ptrArr_Temp[2] := ADR(Temp_ColdPlate);	
-// 	ptrArr_Temp[3] := ADR(Temp_WarmFlange);	
-// 	ptrArr_Temp[4] := ADR(Temp_WarmOptics);	
-// 	ptrArr_Temp[5] := ADR(Heater_DetIF.Temp);	
-// 	ptrArr_Temp[6] := ADR(Heater_Preamp.Temp);	
-// 	ptrArr_Temp[7] := ADR(Heater_ColdPlate.Temp);	
-// 	ptrArr_Temp[8] := ADR(Temp_LS336);	
 
 	// Set pointers to Pressure readings
 	ptrArr_Press[0] := ADR(VAGC);	
 	ptrArr_Press[1] := ADR(evac.VAG1);	
 
-	// Set pointers to command override instances
-	ptrArr_cor[0] := ADR(ctrl.cor_Cooler);
-	ptrArr_cor[1] := ADR(ctrl.cor_Heater_ColdPlate);
-	ptrArr_cor[2] := ADR(ctrl.cor_Heater_IF);
-	ptrArr_cor[3] := ADR(ctrl.cor_Heater_Preamp);
-	ptrArr_cor[4] := ADR(ctrl.cor_Evac);
-	ptrArr_cor[5] := ADR(evac.ctrl.cor_PVP);
-	ptrArr_cor[6] := ADR(evac.ctrl.cor_TMP);
-	ptrArr_cor[7] := ADR(evac.ctrl.cor_PVV1);
-	
-	// Set pointers to Overrides of Simulation flags for Temperatures.
-// 	ptrArr_tor[0] := ADR(ctrl.tor_Ambient);
-// 	ptrArr_tor[1] := ADR(ctrl.tor_DetMon);
-// 	ptrArr_tor[2] := ADR(ctrl.tor_ColdPlate);
-// 	ptrArr_tor[3] := ADR(ctrl.tor_WarmFlange);
-// 	ptrArr_tor[4] := ADR(ctrl.tor_WarmOptics);
-// 	ptrArr_tor[5] := ADR(Heater_DetIF.tor_Temp);
-// 	ptrArr_tor[6] := ADR(Heater_Preamp.tor_Temp);
-// 	ptrArr_tor[7] := ADR(Heater_ColdPlate.tor_Temp);
-// 	ptrArr_tor[8] := ADR(ctrl.tor_LS336);
 	
 // Set pointers to Overrides of Simulation flags for Pressures.
 	ptrArr_por[0] := ADR(ctrl.por_VAGC);
@@ -535,20 +561,7 @@ ELSIF debug.nCycleCounter = 2 THEN
 	events.critical.CreateEx	(TC_EVENTS.NottCryoSysEventClass.Critical,TRUE,0);
 	
 ELSIF debug.nCycleCounter = 3 THEN
-// Put the complete system into simulation
-	stat.bSimulation	:= FALSE;
-
-// Temperature Simulation flags
-// 	ctrl.bSim_Temp_Ambient		:= TRUE;
-// 	ctrl.bSim_Temp_DetMon		:= TRUE;
-// 	ctrl.bSim_Temp_ColdPlate	:= TRUE;
-// 	ctrl.bSim_Temp_WarmFlange	:= TRUE;
-// 	ctrl.bSim_Temp_WarmOptics	:= TRUE;
-// 	ctrl.bSim_Temp_LS336		:= TRUE;
-
-// 	refBOOL	REF=Heater_DetIF.bSim_Temp;		refBOOL	:= TRUE;
-// 	refBOOL	REF=Heater_Preamp.bSim_Temp;	refBOOL	:= TRUE;	
-// 	refBOOL	REF=Heater_ColdPlate.bSim_Temp;	refBOOL	:= TRUE;	
+	
 	
 // Pressure Simulation flags
 	ctrl.bSim_Press_VAGC		:= FALSE;	// The values will come from the simulator.
@@ -585,112 +598,28 @@ nott_heaters(tctrl := nott_tctrl);
 // // Evacuation subsystem
 ctrl.cor_Evac(in_bEnable:=ctrl.bEnable_Evac);
 evac(	in_bEnable	:= ctrl.cor_Evac.out_bEnable, 
-		in_RefVAGC	:= VAGC);
-// 
-// 
-// 
-// 
-// 	
-// // Cooler
-// ctrl.cor_Cooler(in_bEnable:=ctrl.bEnable_Cooler);
-// cooler(	in_sName		:= 'Cooler',
-// 		in_bSimulation	:= FALSE,
-// 		in_bAutoMonitor	:= TRUE,
-// 		in_bEnable		:= ctrl.cor_Cooler.out_bEnable);
-// 	
+		in_RefVAGC	:= VAGC);	
 
-	
-ctrl.cor_Cooler(in_bEnable:=ctrl.bEnable_Cooler);
-Cooler(
-	in_bEnable:= ctrl.cor_Cooler.out_bEnable,
-	in_bSimulation:= FALSE, 
-	in_sName:= 'PTC Cooler', 
-	in_sSN_Compressor:= 'CPA28H5W2DNCE-410730000001', 
-	in_sSN_PulseTube:= 'PT810-19880200001', 
-	in_nYear_Compressor:= 2023, 
-	in_nYear_PulseTube:= 2023, 
-	in_lrNextService_Compressor:= 20000.0, 
-	in_lrNextService_PulseTube:= 40000.0, 
-	in_nSlaveID:= 16, 
-	in_nPeriod:= 1000);
+ctrl.cor_CoolDown(in_bEnable:=ctrl.bEnable_CoolDown);
+cool_down(
+	in_bEnable:= ctrl.cor_CoolDown.out_bEnable, 
+	out_bPermit_Evacuation_Stop=> bCoolDownPermitEvacuationStop, 
+	out_bPermit_WarmUp=> bCoolDownPermitWarmUp, 
+	nott_temps:= nott_temp, 
+	nott_heaters:= nott_heaters, 
+	nott_t_ctrls:= nott_tctrl, 
+	nott_t_votes:= nott_voters);
 
+ctrl.cor_WarmUp(in_bEnable:=ctrl.bEnable_WarmUp);
+warm_up(
+	in_bEnable:= ctrl.cor_WarmUp.out_bEnable, 
+	out_bPermit_Evacuation_Stop=> bWarmUpPermitEvacuationStop, 
+	out_bPermit_CoolDown=> bWarmUpPermitCoolDown, 
+	nott_temps:= nott_temp, 
+	nott_heaters:= nott_heaters, 
+	nott_t_ctrls:= nott_tctrl, 
+	nott_t_votes:= nott_voters);
 
-
-// // Cooler simulation
-// M_SIM_Cooler();
-// 
-// 		
-// 
-// //
-// // Execute Lakeshore 336 controller
-// //
-// LS336(	
-// 	in_sName			:= 'LS336',
-// 	in_bSimulation		:= FALSE,
-// 	in_nModel			:= 336,
-// 	in_sCmdSuffix		:= '$0A',
-// 	in_sReplySuffix		:= '$0A',
-// 	in_sDeviceTcpIpAdr	:= '192.168.0.12',
-// 	in_nDeviceTcpPort	:= 7777,
-// 	in_nPeriod			:= 1000);
-// 
-// LS336_HMI(in_RefLakeshore := LS336);
-// 
-// //
-// // Assign LS336 readings to the 
-// // corresponding FB_CRYO_TEMPERATURE instance.
-// //
-// // Execute Temperature Override (tor) of simulation flags.
-// // ctrl.tor_LS336.out_bEnable overrides the LS336 Simulation flag.
-// // ctrl.tor_LS336.out_bEnable = TRUE ==> Simulation active.
-// ctrl.tor_LS336	(in_bEnable:=ctrl.bSim_Temp_LS336);
-// Temp_LS336(in_sName	:= 'LS336', in_bSimulation := ctrl.tor_LS336.out_bEnable);
-// 
-// IF NOT ctrl.tor_LS336.out_bEnable	THEN
-// 	// Normal mode, i.e., no simulation.
-// 	Temp_LS336.M_GetTemperatureFromLakeshore(
-// 		bValid	:= (LS336.stat.nErrorCode = 0  AND  
-// 					LS336.stat.lrKRDG_A > 0.0  AND 
-// 					NOT LS336.bCommProblem),
-// 		lrTempK	:= LS336.stat.lrKRDG_A,
-// 		lrTempC	:= LS336.stat.lrKRDG_A - 273.15);
-// 		
-// 	// Assign measured temperature to simulated temperature 
-// 	// to avoid jumps when switching to simulation.
-// 	ptrSimTemp	:= ADR(Temp_LS336.stat.lrSimTempK);
-// 	ptrSimTemp^	:= LS336.stat.lrKRDG_A;
-// END_IF
-
-
-// //
-// // Heaters
-// //
-// ctrl.cor_Heater_IF(in_bEnable:=ctrl.bEnable_Heaters);
-// Heater_DetIF(
-// 	in_sName	:= 'H_DetIF',
-// 	in_bEnable	:= ctrl.cor_Heater_IF.out_bEnable,
-// 	in_nType	:= E_PDS_CRYO_HEATER_CTRL.DET_IF, 
-// 	in_nSysState:= stat.nState,
-// 	in_RefTemp	:= Temp_DetMon,			// Reference temperature is of Detector Monitor.
-// 	in_lrPar1	:= cfg.lrTemp_Target);	// Target Detector Interface temperature 75K.
-// 	
-// ctrl.cor_Heater_Preamp(in_bEnable:=ctrl.bEnable_Heaters);
-// Heater_Preamp(	 
-// 	in_sName	:= 'H_Preamp',
-// 	in_bEnable	:= ctrl.cor_Heater_Preamp.out_bEnable,
-// 	in_nType	:= E_PDS_CRYO_HEATER_CTRL.PREAMP, 
-// 	in_nSysState:= stat.nState,
-// 	in_RefTemp	:= Heater_DetIF.Temp,	// Reference temperature is of Detector Interface.
-// 	in_lrPar1	:= cfg.lrTemp_Preamp);	// Preamp temperature 120K.
-// 	
-// ctrl.cor_Heater_ColdPlate(in_bEnable:=ctrl.bEnable_Heaters);
-// Heater_ColdPlate(	 
-// 	in_sName	:= 'H_ColdPlate',
-// 	in_bEnable	:= ctrl.cor_Heater_ColdPlate.out_bEnable,
-// 	in_nType	:= E_PDS_CRYO_HEATER_CTRL.COLD_PLATE, 
-// 	in_nSysState:= stat.nState,
-// 	in_RefTemp	:= Heater_DetIF.Temp);	// Reference temperature is of Detector Interface.
-	
 
 //
 // All temperatures are known.
@@ -725,43 +654,14 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// //
-// // Get the higest temperature in the system, 
-// // excluding the Ambient temperature.
-// //
-// // See M_Configure for indexes [0..8].
-// //    Ambient, index 0, skip it.
-// //
-// FOR i := 1 TO 8	DO
-// 	IF ptrArr_Temp[i]^.stat.bValid	THEN
-// 		IF ptrArr_Temp[i]^.stat.lrTempK > lrTempK	THEN
-// 			lrTempK	:= ptrArr_Temp[i]^.stat.lrTempK;
-// 			bValid	:= TRUE;
-// 		END_IF
-// 	END_IF
-// END_FOR
-// 
-// 
-// // Update status
-// stat.lrHighestTempK		:= lrTempK;
-// stat.bHighestTempValid	:= bValid;
+        <ST><![CDATA[
 
-(********************************
-***********************************
-***********************************
-******** Test temp Change it when temp sensors are available
-********************************
-******************************************************)
-
-stat.lrHighestTempK		:= 301;
-stat.bHighestTempValid	:= bValid;
+stat.lrHighestTempK		:= nott_temp.out_lrHighestTemp;
+stat.bHighestTempValid	:= nott_temp.out_bHighestTempValid;
 
 	
 		
-
-(*******************
-*******************
-***************)]]></ST>
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_GetLowestTemperature" Id="{bf361e98-30dd-4e82-9d81-54c9087f08fa}">
@@ -775,47 +675,11 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// //
-// // Get the lowest temperature in the system, 
-// // excluding the Ambient temperature.
-// //
-// // See M_Configure for indexes [0..8].
-// //    Ambient, index 0, skip it.
-// //
-// FOR i := 1 TO 8	DO
-// 	IF ptrArr_Temp[i]^.stat.bValid	THEN
-// 		IF ptrArr_Temp[i]^.stat.lrTempK < lrTempK	THEN
-// 			lrTempK	:= ptrArr_Temp[i]^.stat.lrTempK;
-// 			bValid	:= TRUE;
-// 		END_IF
-// 	END_IF
-// END_FOR
-// 
-// 
-// // Update status
-// stat.lrLowestTempK		:= lrTempK;
-// stat.bLowestTempValid	:= bValid;
+        <ST><![CDATA[
 
-
-
-
-
-(********************************
-***********************************
-***********************************
-******** Test temp Change it when temp sensors are available
-********************************
-******************************************************)
-
-stat.lrLowestTempK		:= 301;
-stat.bLowestTempValid	:= bValid;
-
-	
-		
-
-(*******************
-*******************
-***************)]]></ST>
+stat.lrLowestTempK		:= nott_temp.out_lrLowestTemp;
+stat.bLowestTempValid	:= nott_temp.out_bLowestTempValid;
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_GetMasterTemp" Id="{9f658211-f955-49ef-a8cf-c1aa3c505951}">
@@ -829,64 +693,44 @@ stat.bLowestTempValid	:= bValid;
 METHOD M_GetMasterTemp
 VAR_INPUT
 END_VAR
+VAR
+	lrDetectorTempK:	LREAL := 9999.0;
+	bDetectorTempValid:	BOOL := FALSE;
+END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[//
-// Take the first valid temperature reading as the master temperature.
-// Attribute stat.nMasterTempKIndex is only used to turn ON corresponding LED 
-// on the GUI_PDS_CRYO GUI.
-//
-// IF Heater_DetIF.Temp.stat.bValid	THEN
-// 	stat.lrMasterTempK	:= Heater_DetIF.Temp.stat.lrTempK;
-// 	stat.nMasterTempKIndex := 0;
-// ELSIF Temp_LS336.stat.bValid	THEN
-// 	stat.lrMasterTempK	:= Temp_LS336.stat.lrTempK;
-// 	stat.nMasterTempKIndex := 1;
-// ELSIF Temp_DetMon.stat.bValid	THEN
-// 	stat.lrMasterTempK	:= Temp_DetMon.stat.lrTempK;
-// 	stat.nMasterTempKIndex := 2;
-// ELSE
-// 	// None of the reference temperatures is valid.
-// 	// Set master temperature to the conventional invalid value. 
-// 	stat.lrMasterTempK	:= 850.0;
-// 	stat.nMasterTempKIndex := 0;
-// END_IF
+        <ST><![CDATA[
+// Use nott_temp directly for cryostat temperature status estimation.
+// COLD means the detector is below the warm threshold. Prefer the detector
+// vote and fall back to individual detector sensors only if the vote is invalid.
+// OP means the highest included cryostat temperature is below the operational
+// threshold.
 
-//
-// Update the cryostat temperature status.
-//
-// IF stat.lrMasterTempK < cfg.lrTemp_OP	THEN
-// 	stat.bCold	:= TRUE;
-// 	stat.bOP	:= TRUE;
-// ELSIF stat.lrMasterTempK < cfg.lrTemp_Cold	THEN
-// 	stat.bCold	:= TRUE;
-// 	stat.bOP	:= FALSE;
-// ELSE
-// 	stat.bCold	:= FALSE;
-// 	stat.bOP	:= FALSE;
-// END_IF
-// RETURN;
+IF nott_temp.t_detector_vote.stat.bValid THEN
+	lrDetectorTempK		:= nott_temp.t_detector_vote.stat.lrTempK;
+	bDetectorTempValid	:= TRUE;
+ELSIF nott_temp.t_detector.stat.bValid THEN
+	lrDetectorTempK		:= nott_temp.t_detector.stat.lrTempK;
+	bDetectorTempValid	:= TRUE;
+ELSIF nott_temp.t_detector_spare.stat.bValid THEN
+	lrDetectorTempK		:= nott_temp.t_detector_spare.stat.lrTempK;
+	bDetectorTempValid	:= TRUE;
+END_IF
 
-(********************************
-***********************************
-***********************************
-******** Test temp Change it when temp sensors are available
-********************************
-******************************************************)
-
-	stat.lrMasterTempK	:= 301;
-	stat.nMasterTempKIndex := 0;
-	
-
+IF bDetectorTempValid THEN
+	stat.bCold	:= lrDetectorTempK < cfg.lrTemp_Warm;
+ELSE
 	stat.bCold	:= FALSE;
+END_IF
+
+IF nott_temp.out_bHighestTempValid THEN
+	stat.bOP	:= nott_temp.out_lrHighestTemp < cfg.lrTemp_OP;
+ELSE
 	stat.bOP	:= FALSE;
+END_IF
+RETURN;
 
-	
-		
 
-(*******************
-*******************
-***************)
 ]]></ST>
       </Implementation>
     </Method>
@@ -915,59 +759,127 @@ END_IF
 
 timer();
 
+IF timer.Q	THEN
+	timer(IN:=FALSE);	// Reset the timer
+	
+	// 10S have expired.
+	// Find the system state from the combined thermal and pressure statuses.
+	// If temperature or pressure status cannot be estimated, the logic falls
+	// through to WARM_PRESS as the conservative startup state.
+	IF stat.bOP OR stat.bCold	THEN
+		logs.M_LogInfo('On restart, System is COLD.');
+		// Turn ON the Cool-Down 
+		ctrl.bEnable_CoolDown	:= TRUE;
+		// Enable Evacuation
+		ctrl.bEnable_Evac	:= TRUE;
+		//Disable WarmUp
+		ctrl.bEnable_WarmUp := FALSE;
+		// Log
+		logs.M_LogInfo('System started in state COLD');
+		// Switch to Cold state.
+		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.COLD;
+		
+	ELSIF stat.bVacuumOK OR stat.bVacuum THEN
+		// Enable Evacuation
+		ctrl.bEnable_Evac		:= TRUE;
+		// Stop Cooler.
+		ctrl.bEnable_CoolDown	:= FALSE;
+		// Turn OFF the heaters.
+		ctrl.bEnable_WarmUp	:= FALSE;
+		// Log
+		logs.M_LogInfo('System started in state WARM_VACUUM');
+
+		// The system is in WARM_VACUUM.
+		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;		
+		
+	ELSE
+		// Stop Evacuation.
+		ctrl.bEnable_Evac			:= FALSE;
+		// Stop Cooler.
+		ctrl.bEnable_CoolDown		:= FALSE;
+		// Turn OFF the heaters.
+		ctrl.bEnable_WarmUp			:= FALSE;
+		logs.M_LogInfo('System started in state WARM_PRESS');
+
+		// The system is in WARM_PRESS.
+		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+	END_IF	
+ELSE
+	stat.sState	:= 'Starting...';
+END_IF
+
+// // Determine the initial state based on the command and actuator state.
+// 
+// // Firstly wait for the complete system to start.
+// // Serial port devices need about seven seconds to initialise.
+// // We wait 10 sec to avoid going into Error state on startup.
+// //
+// IF NOT stat.bSystemStarted	THEN
+// 	// Start the 10s timer
+// 	timer(IN:=FALSE);
+// 	timer(IN:=TRUE, PT:=T#10S);
+// 	stat.bSystemStarted	:= TRUE;
+// 	stat.sState	:= 'Starting...';
+// 	RETURN;
+// END_IF
+// 
+// timer();
+// 
 // IF timer.Q	THEN
 // 	timer(IN:=FALSE);	// Reset the timer
 // 	
 // 	// 10S have expired.
 // 	// Find the system state based of sensor eadings.
-// 	IF Heater_DetIF.Temp.stat.lrTempK <= cfg.lrTemp_Cold	THEN
+// 	IF nott_temp.t_detector_vote.stat.lrTempK <= cfg.lrTemp_Cold	THEN
 // 		logs.M_LogInfo('On restart, System is COLD.');
-// 		// Turn ON the cooler if coolant flow is OK
-// 		IF stat.bCoolantFlowOK	THEN
-// 			ctrl.bEnable_Cooler	:= TRUE;
-// 		END_IF
+// 		// Turn ON the Cool-Down 
+// 		ctrl.bEnable_CoolDown	:= TRUE;
 // 		// Enable Evacuation
 // 		ctrl.bEnable_Evac	:= TRUE;
-// 		// Activate heaters in order to control the cooling rate
-// 		ctrl.bEnable_Heaters:= TRUE;
+// 		//Disable WarmUp
+// 		ctrl.bEnable_WarmUp := FALSE;
+// 		// Log
 // 		logs.M_LogInfo('System started in state COLD');
 // 		// Switch to Cold state.
 // 		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.COLD;
-// 	ELSIF 	Heater_DetIF.Temp.stat.lrTempK > cfg.lrTemp_Cold	AND 
+// 		
+// 	ELSIF 	nott_temp.t_detector_vote.stat.lrTempK > cfg.lrTemp_Cold	AND 
 // 			VAGC.stat.lrPressure <= cfg.lrPress_InVac				THEN
 // 		// Enable Evacuation
 // 		ctrl.bEnable_Evac		:= TRUE;
 // 		// Stop Cooler.
-// 		ctrl.bEnable_Cooler		:= FALSE;
+// 		ctrl.bEnable_CoolDown	:= FALSE;
 // 		// Turn OFF the heaters.
-// 		ctrl.bEnable_Heaters	:= FALSE;
+// 		ctrl.bEnable_WarmUp	:= FALSE;
+// 		// Log
 // 		logs.M_LogInfo('System started in state WARM_VACUUM');
 // 
 // 		// The system is in WARM_VACUUM.
-// 		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
-// 	ELSIF 	Heater_DetIF.Temp.stat.lrTempK > cfg.lrTemp_Cold	AND 
+// 		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;		
+// 		
+// 	ELSIF 	nott_temp.t_detector_vote.stat.lrTempK > cfg.lrTemp_Cold	AND 
 // 			VAGC.stat.lrPressure > cfg.lrPress_InVac				THEN
 // 		// Stop Evacuation.
 // 		ctrl.bEnable_Evac	:= FALSE;
 // 		// Stop Cooler.
-// 		ctrl.bEnable_Cooler		:= FALSE;
+// 		ctrl.bEnable_CoolDown		:= FALSE;
 // 		// Turn OFF the heaters.
-// 		ctrl.bEnable_Heaters	:= FALSE;
+// 		ctrl.bEnable_WarmUp	:= FALSE;
 // 		logs.M_LogInfo('System started in state WARM_PRESS');
 // 
 // 		// The system is in WARM_PRESS.
 // 		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
 // 	ELSE
-		// Stop Evacuation.
-		ctrl.bEnable_Evac	:= FALSE;
-		// Stop Cooler.
-		ctrl.bEnable_Cooler		:= FALSE;
-		// Turn OFF the heaters.
-		ctrl.bEnable_Heaters	:= FALSE;
-		logs.M_LogInfo('System started in state WARM_PRESS');
-
-		// The system is in WARM_PRESS.
-		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+// // Stop Evacuation.
+// 		ctrl.bEnable_Evac			:= FALSE;
+// // Stop Cooler.
+// 		ctrl.bEnable_CoolDown		:= FALSE;
+// // Turn OFF the heaters.
+// 		ctrl.bEnable_WarmUp			:= FALSE;
+// 		logs.M_LogInfo('System started in state WARM_PRESS');
+// 
+// // The system is in WARM_PRESS.
+// 		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
 // 	END_IF	
 // ELSE
 // 	stat.sState	:= 'Starting...';
@@ -1018,37 +930,9 @@ hmi_valve_pvv1(
 	inout_sCmdOver := evac.ctrl.cor_PVV1,
 	inout_fbAlarmHandlerRef := evac.PVV1.fbAlarmHandler,
 	);
-
-// hmi_cooler(
-// 	inout_sCoolerStatRef := cooler.stat,
-// 	inout_sCmdOver := ctrl.cor_Cooler,
-// 	inout_fbAlarmHandlerRef := cooler.fbAlarmHandler
-// 	);
 	
-hmi_cooler(inout_sCpaStatRef:= cooler.stat, inout_sCmdOver:= ctrl.cor_Cooler, out_stat=> );
+hmi_cooler(inout_sCpaStatRef:= cool_down.cooler.stat, inout_sCmdOver:= cool_down.ctrl.cor_Cooler, out_stat=> );
 
-// hmi_lakeshore(
-// 	inout_sLakeshoreStatRef := LS336_HMI.stat,
-// 	inout_fbAlarmHandlerRef := LS336_HMI.fbAlarmHandler
-// 	);
-// 
-// hmi_heater_DetIF(
-// 	inout_sHeaterStatRef := Heater_DetIF.stat,
-// 	inout_sCmdOver := ctrl.cor_Heater_IF,
-// 	inout_fbAlarmHandlerRef := Heater_DetIF.fbAlarmHandler
-// 	);
-// 
-// hmi_heater_Preamp(
-// 	inout_sHeaterStatRef := Heater_Preamp.stat,
-// 	inout_sCmdOver := ctrl.cor_Heater_Preamp,
-// 	inout_fbAlarmHandlerRef := Heater_Preamp.fbAlarmHandler
-// 	);
-// 
-// hmi_heater_ColdPlate(
-// 	inout_sHeaterStatRef := Heater_ColdPlate.stat,
-// 	inout_sCmdOver := ctrl.cor_Heater_ColdPlate,
-// 	inout_fbAlarmHandlerRef := Heater_ColdPlate.fbAlarmHandler
-// 	);
 
 hmi_pressure_vote_vagc(
 	inout_sPressureVoteStatRef := VAGC.stat,
@@ -1065,25 +949,7 @@ hmi_pressure_vote_hpg(
 	inout_sPressureVoteStatRef := HPG.stat,
 	inout_sCmdOver := ctrl.por_HPG,
 	inout_fbAlarmHandlerRef := HPG.fbAlarmHandler
-	);
-
-// hmi_heater_DetIF_temp(
-// 	inout_sTemperatureStatRef := Heater_DetIF.Temp.stat,
-// 	inout_sCmdOver := Heater_DetIF.tor_Temp,
-// 	inout_fbAlarmHandlerRef := Heater_DetIF.Temp.fbAlarmHandler
-// 	);
-// 
-// hmi_heater_Preamp_temp(
-// 	inout_sTemperatureStatRef := Heater_Preamp.Temp.stat,
-// 	inout_sCmdOver := Heater_Preamp.tor_Temp,
-// 	inout_fbAlarmHandlerRef := Heater_Preamp.Temp.fbAlarmHandler
-// 	);
-// 
-// hmi_heater_Coldplate_temp(
-// 	inout_sTemperatureStatRef := Heater_Coldplate.Temp.stat,
-// 	inout_sCmdOver := Heater_Coldplate.tor_Temp,
-// 	inout_fbAlarmHandlerRef := Heater_Coldplate.Temp.fbAlarmHandler
-// 	);]]></ST>
+	);]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_ProcessTriggers" Id="{926bb19b-2599-4262-b7c1-df02cad83bab}">
@@ -1180,32 +1046,6 @@ nott_temp();
 nott_voters(nott_temp := nott_temp);
 
 
-
-// Execute Temperature Override (tor) of simulation flags.
-// ctrl.tor_Ambient	(in_bEnable:=ctrl.bSim_Temp_Ambient);
-// ctrl.tor_DetMon		(in_bEnable:=ctrl.bSim_Temp_DetMon);
-// ctrl.tor_ColdPlate	(in_bEnable:=ctrl.bSim_Temp_ColdPlate);
-// ctrl.tor_WarmFlange	(in_bEnable:=ctrl.bSim_Temp_WarmFlange);
-// ctrl.tor_WarmOptics	(in_bEnable:=ctrl.bSim_Temp_WarmOptics);
-// 
-// Temp_Ambient	(in_sName := 'T_Ambient',		in_bSimulation := ctrl.tor_Ambient.out_bEnable);
-// Temp_DetMon		(in_sName := 'T_DetMon',		in_bSimulation := ctrl.tor_DetMon.out_bEnable);	
-// Temp_ColdPlate	(in_sName := 'T_ColdPlate',		in_bSimulation := ctrl.tor_ColdPlate.out_bEnable);
-// Temp_WarmFlange	(in_sName := 'T_WarmFlange',	in_bSimulation := ctrl.tor_WarmFlange.out_bEnable);
-// Temp_WarmOptics	(in_sName := 'T_WarmOptics',	in_bSimulation := ctrl.tor_WarmOptics.out_bEnable);
-
-
-
-// Calculate temperature differences.
-// Temperature difference between DET (Lakeshore) and DET (PT100).
-// stat.lrTempDiff_DET_Mon			:= Temp_LS336.stat.lrTempK        - Temp_DetMon.stat.lrTempK;	
-// stat.lrTempDiff_DetIF_Mon		:= Heater_DetIF.Temp.stat.lrTempK - Temp_DetMon.stat.lrTempK;	
-// stat.lrTempDiff_DetIF_Preamp	:= Heater_DetIF.Temp.stat.lrTempK - Heater_Preamp.Temp.stat.lrTempK;	
-// stat.lrTempDiff_DetIF_ColdPlate	:= Heater_DetIF.Temp.stat.lrTempK - Heater_ColdPlate.Temp.stat.lrTempK;	
-// stat.lrTempDiff_DetIF_WarmFlange:= Heater_DetIF.Temp.stat.lrTempK - Temp_WarmFlange.stat.lrTempK;
-// stat.lrTempDiff_DetIF_WarmOptics:= Heater_DetIF.Temp.stat.lrTempK - Temp_WarmOptics.stat.lrTempK;
-
-
 // NOTT Cryostat pressure.
 
 // Sensor instance
@@ -1241,9 +1081,6 @@ HPG(
 	in_pSensor1		:= ADR(sensor_HPG));
 
 
-
-
-
 //
 // Check Vacuum in the system
 //	
@@ -1260,6 +1097,111 @@ END_VAR
         <ST><![CDATA[// TODO if any
 
 ]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCmdPermissions" Id="{168e9b73-fc4a-42e0-8906-762b91e47017}">
+      <Declaration><![CDATA[METHOD M_SetCmdPermissions : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	bPermitStartEvacuation:	BOOL := FALSE;
+	bPermitStopEvacuation:	BOOL := FALSE;
+	bPermitStartCoolDown:	BOOL := FALSE;
+	bPermitStopCoolDown:	BOOL := FALSE;
+	bPermitStartWarmUp:	BOOL := FALSE;
+	bPermitStopWarmUp:	BOOL := FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_SetCmdPermissions := FALSE;
+
+// Start from a fail-closed permission set. Then open the allowed HMI
+// actions according to the top-level physical state and active routine.
+IF warm_up.stat.bActive THEN
+	// Warmup active
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= FALSE;
+	bPermitStartCoolDown	:= FALSE;
+	bPermitStopCoolDown		:= FALSE;
+	bPermitStartWarmUp		:= TRUE;
+	bPermitStopWarmUp		:= TRUE;
+
+ELSIF cool_down.stat.bActive THEN
+	// Cooldown active
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= FALSE;
+	bPermitStartCoolDown	:= TRUE;
+	bPermitStopCoolDown		:= TRUE;
+	bPermitStartWarmUp		:= FALSE;
+	bPermitStopWarmUp		:= FALSE;
+
+ELSIF stat.bOP THEN
+	// Operational
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= TRUE;
+	bPermitStartCoolDown	:= TRUE;
+	bPermitStopCoolDown		:= TRUE;
+	bPermitStartWarmUp		:= TRUE;
+	bPermitStopWarmUp		:= TRUE;
+
+ELSIF stat.bCold THEN
+	// Cold but not operational
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= FALSE;
+	bPermitStartCoolDown	:= TRUE;
+	bPermitStopCoolDown		:= TRUE;
+	bPermitStartWarmUp		:= FALSE;
+	bPermitStopWarmUp		:= FALSE;
+
+ELSIF evac.bEvacuationActive THEN
+	// Evacuating
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= TRUE;
+	bPermitStartCoolDown	:= TRUE;
+	bPermitStopCoolDown		:= FALSE;
+	bPermitStartWarmUp		:= FALSE;
+	bPermitStopWarmUp		:= FALSE;
+
+ELSIF stat.bVacuumOK OR stat.bVacuum THEN
+	// Warm vacuum or good vacuum
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= TRUE;
+	bPermitStartCoolDown	:= TRUE;
+	bPermitStopCoolDown		:= FALSE;
+	bPermitStartWarmUp		:= FALSE;
+	bPermitStopWarmUp		:= FALSE;
+
+ELSE
+	// Warm pressurized
+	bPermitStartEvacuation	:= TRUE;
+	bPermitStopEvacuation	:= FALSE;
+	bPermitStartCoolDown	:= FALSE;
+	bPermitStopCoolDown		:= FALSE;
+	bPermitStartWarmUp		:= FALSE;
+	bPermitStopWarmUp		:= FALSE;
+END_IF
+
+// Cross-routine vetoes. The routine-specific state machines know when a
+// dependent command is safe from their local process state.
+bPermitStopEvacuation	:= bPermitStopEvacuation
+	AND bCoolDownPermitEvacuationStop
+	AND bWarmUpPermitEvacuationStop;
+bPermitStartCoolDown	:= bPermitStartCoolDown AND bWarmUpPermitCoolDown;
+bPermitStartWarmUp		:= bPermitStartWarmUp AND bCoolDownPermitWarmUp;
+
+evac.M_PermitStart_Evacuation(in_bPermissionStart := bPermitStartEvacuation);
+evac.M_PermitStop_Evacuation(in_bPermissionStop := bPermitStopEvacuation);
+
+cool_down.M_PermitStart_Cooldown(in_bPermissionStart := bPermitStartCoolDown);
+cool_down.M_PermitStop_Cooldown(in_bPermissionStop := bPermitStopCoolDown);
+
+warm_up.M_PermitStart_WarmUp(in_bPermissionStart := bPermitStartWarmUp);
+warm_up.M_PermitStop_WarmUp(in_bPermissionStop := bPermitStopWarmUp);
+
+ctrl.bSafe_Cooling	:= bPermitStartCoolDown;
+ctrl.bSafe_Warmup	:= bPermitStartWarmUp;
+
+M_SetCmdPermissions := TRUE;]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_SetStatus" Id="{f025e401-b414-44ce-9499-c12078610b3c}">
@@ -1390,27 +1332,39 @@ CASE stat.nState OF
 	E_NOTT_CRYO_CTRL_STATE.WARM_PRESS:
 	/////////////////////////////////
 	//
-	ctrl.bSafe_Cooling	:= FALSE;
-	ctrl.bSafe_Warmup	:= FALSE;
-
-	ctrl.bEnable_Cooler		:= FALSE;
-	ctrl.bEnable_Heaters	:= FALSE;
-
-	IF	ctrl.bExecute	THEN
-		ctrl.bExecute		:= FALSE;
-		stat.nLastCommand	:= ctrl.nCommand;
-		ctrl.nCommand		:= E_NOTT_CRYO_CTRL_CMD.NONE;
-	ELSIF VAGC.stat.lrPressure < cfg.lrPress_InVac THEN
-		// Evacuation is not part of the State Machine.
-		// Once the air has been evacuated, we switch to WARM_VACUUM.
-		// In WARM_VACUUM, Cooler and Heater should be OFF.
-		// They are enabled on command.
-		ctrl.bEnable_Cooler		:= FALSE;
-		ctrl.bEnable_Heaters	:= FALSE;
-
+	
+	ctrl.bEnable_CoolDown := FALSE;
+	ctrl.bEnable_WarmUp   := FALSE;
+	
+	// Reject any queued top-level sequence command in WARM_PRESS.
+	// Evacuation is not handled through ctrl.bExecute / ctrl.nCommand.
+	IF ctrl.bExecute THEN
+		stat.nLastCommand := ctrl.nCommand;
+		ctrl.bExecute     := FALSE;
+		ctrl.nCommand     := E_NOTT_CRYO_CTRL_CMD.NONE;
+	
+		CASE stat.nLastCommand OF
+			E_NOTT_CRYO_CTRL_CMD.COOL:
+				logs.M_LogInfo('COOL command rejected: system is WARM_PRESS. Evacuate first.');
+	
+			E_NOTT_CRYO_CTRL_CMD.WARM_UP:
+				logs.M_LogInfo('WARM_UP command rejected: system is already warm pressurized.');
+		ELSE
+				logs.M_LogInfo('Command rejected: system is WARM_PRESS.');
+		END_CASE
+	END_IF
+	
+	// Evacuation itself is not part of this state machine.
+	// Once pressure status says the cryostat is in vacuum, recover to WARM_VACUUM.
+	IF stat.bVacuumOK OR stat.bVacuum THEN
+		ctrl.bEnable_CoolDown := FALSE;
+		ctrl.bEnable_WarmUp   := FALSE;
+	
+		logs.M_LogInfo('Vacuum detected. State is WARM_VACUUM.');
 		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
 	END_IF
-	M_SetStatus(stat.nState);	
+	
+	M_SetStatus(stat.nState);
 	RETURN;
 	
 	
@@ -1418,169 +1372,298 @@ CASE stat.nState OF
 	E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM:
 	//////////////////////////////////////////
 	//
-	ctrl.bSafe_Cooling	:= stat.bCoolantFlowOK  AND  stat.bVacuumOK;
-	ctrl.bSafe_Warmup	:= TRUE;
-	
-	IF	ctrl.bExecute	THEN
-		ctrl.bExecute		:= FALSE;
-		stat.nLastCommand	:= ctrl.nCommand;
-		ctrl.nCommand		:= E_NOTT_CRYO_CTRL_CMD.NONE;
-		IF stat.nLastCommand = E_NOTT_CRYO_CTRL_CMD.COOL	THEN
-			// Cool down only if the coolant flow is OK
-			IF stat.bCoolantFlowOK	THEN
-				logs.M_LogInfo('Cool-down started.');
-				// Turn ON the cooler
-				ctrl.bEnable_Cooler	:= TRUE;
-				// Activate heaters in order to control the cooling rate
-				ctrl.bEnable_Heaters:= TRUE;
-				// Enable Evacuation
-				ctrl.bEnable_Evac	:= TRUE;
-				// Switch to CoolingDown state.
-				stat.nState	:= E_NOTT_CRYO_CTRL_STATE.COOLING_DOWN;
+		
+		// Keep warmup inactive unless a permitted WARM_UP command is accepted.
+		ctrl.bEnable_WarmUp := FALSE;
+		
+		// If the system is already cold/operational, recover to COLD.
+		IF stat.bOP OR stat.bCold THEN
+			ctrl.bEnable_Evac := TRUE;
+		
+			logs.M_LogInfo('Cold condition detected. State is COLD.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.COLD;
+		
+		// If vacuum is lost, return to WARM_PRESS.
+		ELSIF NOT (stat.bVacuumOK OR stat.bVacuum) THEN
+			ctrl.bEnable_CoolDown := FALSE;
+			ctrl.bEnable_WarmUp   := FALSE;
+		
+			logs.M_LogInfo('Vacuum lost. State is WARM_PRESS.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+		
+		// Process queued top-level commands.
+		ELSIF ctrl.bExecute THEN
+			ctrl.bExecute     := FALSE;
+			stat.nLastCommand := ctrl.nCommand;
+			ctrl.nCommand     := E_NOTT_CRYO_CTRL_CMD.NONE;
+		
+			CASE stat.nLastCommand OF
+		
+				E_NOTT_CRYO_CTRL_CMD.COOL:
+					// Cool down only if top-level permissions and cooler state allow it.
+					IF cool_down.bPermitStart AND cool_down.cooler.stat.bInitialised THEN
+						logs.M_LogInfo('Cool-down started.');
+		
+						ctrl.bEnable_Evac     := TRUE;
+						ctrl.bEnable_CoolDown := TRUE;
+						ctrl.bEnable_WarmUp   := FALSE;
+		
+						stat.nState := E_NOTT_CRYO_CTRL_STATE.COOLING_DOWN;
+					ELSIF NOT cool_down.bPermitStart THEN
+						ctrl.bEnable_CoolDown := FALSE;
+						logs.M_LogInfo('COOL command rejected: cooldown start not permitted.');
+					ELSE
+						ctrl.bEnable_CoolDown := FALSE;
+						logs.M_LogInfo('COOL command rejected: cooler not initialised.');
+					END_IF
+		
+				E_NOTT_CRYO_CTRL_CMD.WARM_UP:
+					// Normally not allowed in WARM_VACUUM by the current permission table.
+					IF warm_up.bPermitStart THEN
+						logs.M_LogInfo('Warm-up started.');
+		
+						ctrl.bEnable_Evac     := TRUE;
+						ctrl.bEnable_WarmUp   := TRUE;
+						ctrl.bEnable_CoolDown := FALSE;
+		
+						stat.nState := E_NOTT_CRYO_CTRL_STATE.WARMING_UP;
+					ELSE
+						ctrl.bEnable_WarmUp := FALSE;
+						logs.M_LogInfo('WARM_UP command rejected: warmup start not permitted in WARM_VACUUM.');
+					END_IF
+		
 			ELSE
-				logs.M_LogInfo('Coolant flow too low. COOL command rejected!');
-				
-			END_IF
-		ELSIF stat.nLastCommand = E_NOTT_CRYO_CTRL_CMD.WARM_UP	THEN
-			// Enable Evacuation.
-			ctrl.bEnable_Evac	:= TRUE;
-			// Activate heaters to control temperature ramps and differences
-			ctrl.bEnable_Heaters:= TRUE;
-			// Stop the cooler.
-			ctrl.bEnable_Cooler	:= FALSE;
-
-			logs.M_LogInfo('Warm-up started.');
-			stat.nState	:= E_NOTT_CRYO_CTRL_STATE.WARMING_UP;
+				logs.M_LogInfo('Command rejected: unsupported command in WARM_VACUUM.');
+			END_CASE
 		END_IF
-	ELSIF VAGC.stat.lrPressure >= cfg.lrPress_InVac THEN
-		// The pressure in the cryostat has increased above 
-		// the in-vacuum threshold for some reason.
-		// Switch to WARM_PRESS (warm pressurized).
-		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
-	END_IF
-	M_SetStatus(stat.nState);	
-	RETURN;
+		
+		M_SetStatus(stat.nState);
+		RETURN;
 	
 
 	///////////////////////////////////
 	E_NOTT_CRYO_CTRL_STATE.COOLING_DOWN:
 	///////////////////////////////////
 	//
-	ctrl.bSafe_Cooling		:= TRUE;
-	ctrl.bSafe_Warmup		:= NOT ctrl.bEnable_Cooler;
 	
-	IF stat.lrMasterTempK < cfg.lrTemp_OP	THEN
-		logs.M_LogInfo('Temperature below OP threshold. State is COLD.');
-		// Enable Evacuation
-		ctrl.bEnable_Evac	:= TRUE;
-		// Activate heaters in order to control the cooling rate
-		ctrl.bEnable_Heaters:= TRUE;
-		// Switch to Cold state.
-		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.COLD;
-	ELSIF NOT ctrl.bEnable_Cooler THEN
-		// Cooling has been interrupted.
-		// Go back to WARM_VACUUM state.
-		
-		// Turn OFF heaters.
-		ctrl.bEnable_Heaters:= FALSE;
-		
-		logs.M_LogInfo('Cooling interrupted. State is WARM_VACUUM.');
-		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
-	ELSIF NOT stat.bCoolantFlowOK THEN
-		// No coolant flow. Stop the cooler.
-		// Go back to WARM_VACUUM state.
-		ctrl.bEnable_Cooler		:= FALSE;
-
-		// Turn OFF heaters.
-		ctrl.bEnable_Heaters:= FALSE;
-		
-		logs.M_LogInfo('Low coolant flow. Cooling interrupted. State is WARM_VACUUM.');
-		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+	// Evacuation should remain enabled during cooldown.
+	ctrl.bEnable_Evac := TRUE;
+	
+	// Reject queued top-level sequence commands while cooldown is active.
+	// Stop cooldown via ctrl.bEnable_CoolDown FALSE and permission logic.
+	IF ctrl.bExecute THEN
+		stat.nLastCommand := ctrl.nCommand;
+		ctrl.bExecute     := FALSE;
+		ctrl.nCommand     := E_NOTT_CRYO_CTRL_CMD.NONE;
+	
+		CASE stat.nLastCommand OF
+			E_NOTT_CRYO_CTRL_CMD.COOL:
+				logs.M_LogInfo('COOL command ignored: cooldown already active.');
+	
+			E_NOTT_CRYO_CTRL_CMD.WARM_UP:
+				logs.M_LogInfo('WARM_UP command rejected: cooldown active.');
+		ELSE
+				logs.M_LogInfo('Command rejected: cooldown active.');
+		END_CASE
 	END_IF
-	M_SetStatus(stat.nState);	
+	
+	// Operational or cold condition reached.
+	IF stat.bOP OR stat.bCold THEN
+		ctrl.bEnable_Evac := TRUE;
+	
+		logs.M_LogInfo('Cold/operational condition reached. State is COLD.');
+		stat.nState := E_NOTT_CRYO_CTRL_STATE.COLD;
+	
+	// Vacuum lost during cooldown.
+	ELSIF NOT (stat.bVacuumOK OR stat.bVacuum) THEN
+		ctrl.bEnable_CoolDown := FALSE;
+		ctrl.bEnable_WarmUp   := FALSE;
+	
+		logs.M_LogInfo('Vacuum lost during cooldown. State is WARM_PRESS.');
+		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+	
+	// Cooldown stopped by command/permission.
+	ELSIF NOT ctrl.bEnable_CoolDown THEN
+		ctrl.bEnable_WarmUp := FALSE;
+	
+		IF stat.bVacuumOK OR stat.bVacuum THEN
+			logs.M_LogInfo('Cooldown stopped. State is WARM_VACUUM.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+		ELSE
+			logs.M_LogInfo('Cooldown stopped and vacuum not present. State is WARM_PRESS.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+		END_IF
+	
+	// Cooler/routine no longer active unexpectedly.
+	ELSIF NOT cool_down.cooler.stat.bActive THEN
+		ctrl.bEnable_CoolDown := FALSE;
+		ctrl.bEnable_WarmUp   := FALSE;
+	
+		IF stat.bVacuumOK OR stat.bVacuum THEN
+			logs.M_LogInfo('Cooler inactive. State is WARM_VACUUM.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+		ELSE
+			logs.M_LogInfo('Cooler inactive and vacuum not present. State is WARM_PRESS.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+		END_IF
+	END_IF
+	
+	M_SetStatus(stat.nState);
 	RETURN;
 	
 	
 	///////////////////////////////////////////
 	E_NOTT_CRYO_CTRL_STATE.COLD:
 	///////////////////////////////////////////
-	//
-	ctrl.bSafe_Cooling	:= stat.bCoolantFlowOK;
-	ctrl.bSafe_Warmup	:= TRUE;
-
-	//
-	// Only WARM_UP command is allowed in state COLD.
-	// Other commands are ignored.
-	//
-	IF	ctrl.bExecute	THEN
-		ctrl.bExecute		:= FALSE;
-		stat.nLastCommand	:= ctrl.nCommand;
-		ctrl.nCommand		:= E_NOTT_CRYO_CTRL_CMD.NONE;
-		IF stat.nLastCommand = E_NOTT_CRYO_CTRL_CMD.WARM_UP	THEN
-			// Enable Evacuation.
-			ctrl.bEnable_Evac	:= TRUE;
-			// Activate heaters to control temperature ramps and differences
-			ctrl.bEnable_Heaters:= TRUE;
-			// Stop the cooler.
-			ctrl.bEnable_Cooler	:= FALSE;
-
-			logs.M_LogInfo('Warm-up started.');
-			stat.nState	:= E_NOTT_CRYO_CTRL_STATE.WARMING_UP;
+		
+		// Keep evacuation enabled/available while cold.
+		ctrl.bEnable_Evac := TRUE;
+		
+		// If the cryostat is no longer cold or operational, return to the appropriate warm state.
+		IF NOT (stat.bOP OR stat.bCold) THEN
+			ctrl.bEnable_WarmUp := FALSE;
+		
+			IF stat.bVacuumOK OR stat.bVacuum THEN
+				logs.M_LogInfo('Cryostat no longer cold. State is WARM_VACUUM.');
+				stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+			ELSE
+				ctrl.bEnable_CoolDown := FALSE;
+				logs.M_LogInfo('Cryostat no longer cold and vacuum not present. State is WARM_PRESS.');
+				stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+			END_IF
+		
+		// Process queued top-level commands.
+		ELSIF ctrl.bExecute THEN
+			ctrl.bExecute     := FALSE;
+			stat.nLastCommand := ctrl.nCommand;
+			ctrl.nCommand     := E_NOTT_CRYO_CTRL_CMD.NONE;
+		
+			CASE stat.nLastCommand OF
+		
+				E_NOTT_CRYO_CTRL_CMD.WARM_UP:
+					IF warm_up.bPermitStart THEN
+						logs.M_LogInfo('Warm-up started.');
+		
+						ctrl.bEnable_Evac     := TRUE;
+						ctrl.bEnable_WarmUp   := TRUE;
+						ctrl.bEnable_CoolDown := FALSE;
+		
+						stat.nState := E_NOTT_CRYO_CTRL_STATE.WARMING_UP;
+					ELSE
+						ctrl.bEnable_WarmUp := FALSE;
+						logs.M_LogInfo('WARM_UP command rejected: warmup start not permitted in COLD.');
+					END_IF
+		
+				E_NOTT_CRYO_CTRL_CMD.COOL:
+					// Already cold. Cooling command is only useful if cooldown is not active
+					// and permissions allow it.
+					IF cool_down.bPermitStart AND cool_down.cooler.stat.bInitialised THEN
+						logs.M_LogInfo('Cooldown command accepted in COLD: maintaining cold state.');
+		
+						ctrl.bEnable_Evac     := TRUE;
+						ctrl.bEnable_CoolDown := TRUE;
+						ctrl.bEnable_WarmUp   := FALSE;
+					ELSE
+						logs.M_LogInfo('COOL command ignored/rejected: system is already COLD or cooldown not permitted.');
+					END_IF
+		
+			ELSE
+				logs.M_LogInfo('Command rejected: unsupported command in COLD.');
+			END_CASE
+		
+		// If cooldown was requested but the cooler is not active, clear the cooldown enable.
+		ELSIF ctrl.bEnable_CoolDown AND NOT cool_down.cooler.stat.bActive THEN
+			ctrl.bEnable_CoolDown := FALSE;
+			logs.M_LogInfo('Cooldown enable cleared in COLD: cooler inactive.');
 		END_IF
-	ELSIF NOT stat.bCoolantFlowOK THEN
-		// No coolant flow. Stop the cooler.
-		IF ctrl.bEnable_Cooler	THEN
-			logs.M_LogInfo('Coolant flow too low. Cooling interrupted. State remains COLD.');
-		END_IF
-		ctrl.bEnable_Cooler		:= FALSE;
-	ELSIF stat.lrMasterTempK >= cfg.lrTemp_Cold	THEN
-		logs.M_LogInfo('Temperature increase. Not COLD any more. Switching to WARM_VACUUM.');
-		// Enable Evacuation Valve control
-		ctrl.bEnable_Evac	:= TRUE;
-		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
-	ELSIF 	ctrl.bEnable_Cooler = TRUE  AND  
-			stat.lrMasterTempK < cfg.lrTemp_LowLimit	THEN
-		// Temperature too low (<73K). Stop the cooler.
-		logs.M_LogInfo('Temperature too low. Safety action: Cooler OFF.');
-		ctrl.bEnable_Cooler		:= FALSE;
-	ELSIF	ctrl.bEnable_Cooler = FALSE  AND  
-			stat.lrMasterTempK > (cfg.lrTemp_LowLimit + 3.0)	AND  
-			stat.lrMasterTempK < (cfg.lrTemp_LowLimit + 8.0)	THEN
-		// Temperature increasing (>76K). 
-		// Start the cooler if close to target temperature.
-		logs.M_LogInfo('Temperature too high. Safety action: Cooler ON.');
-		ctrl.bEnable_Cooler	:= TRUE;
-	END_IF
-	M_SetStatus(stat.nState);	
-	RETURN;
+		
+		M_SetStatus(stat.nState);
+		RETURN;
 	
 	/////////////////////////////////
 	E_NOTT_CRYO_CTRL_STATE.WARMING_UP:
 	/////////////////////////////////
 	//
-	ctrl.bSafe_Cooling	:= FALSE;
-
-	IF NOT ctrl.bEnable_Warmup THEN
-		// Warming up has been interrupted by the user.
-		IF stat.lrMasterTempK > cfg.lrTemp_Cold	THEN
-			// Deactivate heaters
-			ctrl.bEnable_Heaters:= FALSE;
-			// Stop the cooler (just in case).
-			ctrl.bEnable_Cooler	:= FALSE;
-			// Go back to WARM_VACUUM state.
-			logs.M_LogInfo('Warming up interrupted. State is WARM_VACUUM.');
-			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+	// Warmup routine is active or expected to be active.
+	// Permissions are handled centrally in M_SetCmdPermissions().
+	//
+	
+	// Cooldown must remain disabled during warmup.
+	ctrl.bEnable_CoolDown := FALSE;
+	
+	// Evacuation should remain enabled/available during warmup.
+	ctrl.bEnable_Evac := TRUE;
+	
+	// Reject queued top-level sequence commands while warmup is active.
+	// Stop warmup via ctrl.bEnable_WarmUp FALSE and permission logic.
+	IF ctrl.bExecute THEN
+		stat.nLastCommand := ctrl.nCommand;
+		ctrl.bExecute     := FALSE;
+		ctrl.nCommand     := E_NOTT_CRYO_CTRL_CMD.NONE;
+	
+		CASE stat.nLastCommand OF
+			E_NOTT_CRYO_CTRL_CMD.WARM_UP:
+				logs.M_LogInfo('WARM_UP command ignored: warmup already active.');
+	
+			E_NOTT_CRYO_CTRL_CMD.COOL:
+				logs.M_LogInfo('COOL command rejected: warmup active.');
 		ELSE
-			// Enable Evacuation
-			ctrl.bEnable_Evac	:= TRUE;
-			// Activate heaters in order to control the cooling rate
-			ctrl.bEnable_Heaters:= TRUE;
-			// Go back to COLD state.
-			logs.M_LogInfo('Warming up interrupted. State is COLD.');
+				logs.M_LogInfo('Command rejected: warmup active.');
+		END_CASE
+	END_IF
+	
+	// Warmup stopped by command/permission.
+	IF NOT ctrl.bEnable_WarmUp THEN
+		ctrl.bEnable_CoolDown := FALSE;
+	
+		IF stat.bOP OR stat.bCold THEN
+			// Warmup was interrupted while still cold.
+			ctrl.bEnable_Evac   := TRUE;
+			ctrl.bEnable_WarmUp := FALSE;
+	
+			logs.M_LogInfo('Warmup stopped while cryostat is still cold. State is COLD.');
 			stat.nState := E_NOTT_CRYO_CTRL_STATE.COLD;
+	
+		ELSIF stat.bVacuumOK OR stat.bVacuum THEN
+			ctrl.bEnable_WarmUp := FALSE;
+	
+			logs.M_LogInfo('Warmup stopped. State is WARM_VACUUM.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+	
+		ELSE
+			ctrl.bEnable_Evac   := FALSE;
+			ctrl.bEnable_WarmUp := FALSE;
+	
+			logs.M_LogInfo('Warmup stopped and vacuum not present. State is WARM_PRESS.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
+		END_IF
+	
+	// Warmup routine reports no longer active. Treat as complete/stopped and classify by physical state.
+	ELSIF NOT warm_up.stat.bActive THEN
+		ctrl.bEnable_WarmUp   := FALSE;
+		ctrl.bEnable_CoolDown := FALSE;
+	
+		IF stat.bOP OR stat.bCold THEN
+			ctrl.bEnable_Evac := TRUE;
+	
+			logs.M_LogInfo('Warmup routine inactive while cryostat is still cold. State is COLD.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.COLD;
+	
+		ELSIF stat.bVacuumOK OR stat.bVacuum THEN
+			ctrl.bEnable_Evac := TRUE;
+	
+			logs.M_LogInfo('Warmup complete. State is WARM_VACUUM.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
+	
+		ELSE
+			ctrl.bEnable_Evac := FALSE;
+	
+			logs.M_LogInfo('Warmup complete. State is WARM_PRESS.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
 		END_IF
 	END_IF
-	M_SetStatus(stat.nState);	
+	
+	M_SetStatus(stat.nState);
 	RETURN;
 	
 	
@@ -1588,20 +1671,51 @@ CASE stat.nState OF
 	E_NOTT_CRYO_CTRL_STATE.ERROR:
 	/////////////////////////////////
 	//
-	// RESET the controller in order to try to 
-	// restart the system and clear the error.
+	// Fault state.
+	// Keep commands and process routines disabled.
+	// Use RESET to restart state estimation through NONE.
 	//
+	
+	// Clear pending top-level command.
+	ctrl.bExecute := FALSE;
+	ctrl.nCommand := E_NOTT_CRYO_CTRL_CMD.NONE;
+	
+	// Disable process enables.
+	// Depending on the failure type, evacuation might eventually need special
+	// handling, but for now keep this simple and conservative.
+	ctrl.bEnable_CoolDown := FALSE;
+	ctrl.bEnable_WarmUp   := FALSE;
+	ctrl.bEnable_Evac     := FALSE;
+	
+	// Permissions are handled centrally in M_SetCmdPermissions().
+	// If desired later, add explicit ERROR handling there to force all permits FALSE.
+	
 	IF ctrl.bReset THEN
-		ctrl.bReset			:= FALSE;	// Clear RESET flag
-		stat.bSystemStarted	:= FALSE;	// This will introduce 10s delay on startup.
-		// Goto NONE state that will execute M_GetState().
-		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.NONE;
-		M_SetStatus(stat.nState);	
-	ELSIF NOT stat.bError  THEN
-		// Goto NONE state
-		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.NONE;
-		M_SetStatus(stat.nState);	
+		ctrl.bReset := FALSE;
+	
+		// Re-run startup/state estimation after reset.
+		stat.bSystemStarted := FALSE;
+		stat.bError         := FALSE;
+		stat.nState         := E_NOTT_CRYO_CTRL_STATE.NONE;
+	
+		logs.M_LogInfo('ERROR reset requested. Restarting state estimation.');
+	
+		M_SetStatus(stat.nState);
+	
+	// auto-recovery.
+
+	(*
+	ELSIF NOT stat.bError THEN
+		stat.bSystemStarted := FALSE;
+		stat.nState := E_NOTT_CRYO_CTRL_STATE.NONE;
+	
+		logs.M_LogInfo('ERROR cleared. Restarting state estimation.');
+	
+		M_SetStatus(stat.nState);
+	*)
 	END_IF
+	
+	M_SetStatus(stat.nState);
 	RETURN;
 
 END_CASE]]></ST>

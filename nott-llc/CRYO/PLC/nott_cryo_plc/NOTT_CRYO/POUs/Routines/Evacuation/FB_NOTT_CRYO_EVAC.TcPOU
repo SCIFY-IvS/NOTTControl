@@ -4,8 +4,6 @@
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CRYO_EVAC EXTENDS FB_CRYO_EVAC_BASE_50
 VAR_INPUT
 END_VAR
-VAR_OUTPUT
-END_VAR
 VAR
 	//
 	// Pumps
@@ -14,6 +12,14 @@ VAR
 	pump_pvp:	FB_NOTT_PUMP_HICUBE_80_NEO;	// Pre-vacuum Pump
 	{attribute 'TcHmiSymbol.Show'}
 	pump_tmp:	FB_NOTT_PUMP_HIPACE80;	// Turbo Molecular Pump
+	
+	{attribute 'TcHmiSymbol.Show'}
+	bPermitStart:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	bPermitStop:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}	
+	bEvacuationActive:		BOOL := FALSE;			// Flag if controller is ACTIVE
 	
 	// Power for pressure sensors (TODO)
 	q_bPower_VAG1	AT %Q*:	BOOL := TRUE;
@@ -52,7 +58,18 @@ M_UpdatePumpCommands();
 
 // M_ExecuteControllers();
 
-q_bPVV1_OFF_Flag := NOT PVV1.Actuator.q_bCtrl;]]></ST>
+q_bPVV1_OFF_Flag := NOT PVV1.Actuator.q_bCtrl;
+
+CASE stat.nState	OF
+		E_CRYO_EVAC_STATE_50.NONE:
+			bEvacuationActive	:= FALSE;
+		
+		E_CRYO_EVAC_STATE_50.OFF:
+			bEvacuationActive	:= FALSE;
+	ELSE
+		
+		bEvacuationActive		:= TRUE;
+END_CASE]]></ST>
     </Implementation>
     <Method Name="M_Configure" Id="{c81ffccd-8665-4123-a26c-ac1ffb1ce34a}">
       <Declaration><![CDATA[METHOD M_Configure
@@ -141,6 +158,26 @@ pump_tmp(
 // Valves are controlled in the base FB
 SUPER^.M_ExecuteControllers();
 ]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PermitStart_Evacuation" Id="{92aeb053-538b-4bc1-a182-06eeca32e23f}">
+      <Declaration><![CDATA[METHOD M_PermitStart_Evacuation
+VAR_INPUT
+	in_bPermissionStart: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitStart := in_bPermissionStart;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PermitStop_Evacuation" Id="{0fa62706-06ec-42d8-b40e-da228420ba59}">
+      <Declaration><![CDATA[METHOD M_PermitStop_Evacuation
+VAR_INPUT
+	in_bPermissionStop: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitStop := in_bPermissionStop;]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_UpdatePumpCommands" Id="{d145e153-9815-4dbb-ac22-92e24b0bb6ee}">

@@ -8,7 +8,8 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[nott_cryo_ctrl();]]></ST>
+      <ST><![CDATA[
+nott_cryo_ctrl();]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

@@ -226,18 +226,18 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{2489BAF0-018C-5FAD-C496-00B13BA061A0}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{6360CF33-3495-5856-D270-CE5FEC180ECC}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx</Name>
 							<Comment><![CDATA[ linked to the EL60xx ]]></Comment>
 							<Type GUID="{79129C14-7549-7C51-1EF4-288B9700CED8}" Namespace="ESO_Cryo_HMI_Library.ESO_LDC_Cryo_Library.Tc2_SerialCom">KL6outData22B</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.q_bCtrlStart</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.q_bCtrlStart</Name>
 							<Comment><![CDATA[ Start control signal]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
@@ -943,29 +943,29 @@
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx</Name>
 							<Comment><![CDATA[ linked to the EL60xx ]]></Comment>
 							<Type GUID="{3CC7D45D-5DD7-F7F9-FC53-EBFF19802130}" Namespace="ESO_Cryo_HMI_Library.ESO_LDC_Cryo_Library.Tc2_SerialCom">KL6inData22B</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.comm.i_nCouplerState</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.comm.i_nCouplerState</Name>
 							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
 							<Type>UINT</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.i_bCompressorRunning</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.i_bCompressorRunning</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.i_bHighPressure</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.i_bHighPressure</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.i_bHighTemperature</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.i_bHighTemperature</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>MAIN.nott_cryo_ctrl.cooler.i_bOK</Name>
+							<Name>MAIN.nott_cryo_ctrl.cool_down.cooler.i_bOK</Name>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
@@ -11137,6 +11137,7 @@ Revision: 1.0
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.i_nCouplerState" VarB="InfoData^State"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_shield.i_nCouplerState" VarB="InfoData^State"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.PVV1.Actuator.q_bCtrl" VarB="DOS Outputs Channel 4^PVV1_bCtrl"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.q_bPower_VAGC" VarB="DOS Outputs Channel 7^Output"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_cpau60.q_bEnable" VarB="DOS Outputs Channel 1^bEnable_BasePlate_HTR"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_cpau60.q_bEnable" VarB="DOS Outputs Channel 2^bEnable_Shield_HTR"/>
 			</OwnerB>
@@ -11312,61 +11313,61 @@ Revision: 1.0
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.evac.pump_tmp.i_bReady" VarB="Channel 7^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N17 (EL2612)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.i_nCouplerState" VarB="InfoData^State"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.bHMIOutEnable" VarB="Channel 2^Output"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.q_bCtrlStart" VarB="Channel 1^Output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.q_bCtrlStart" VarB="Channel 1^Output"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N18_Pump_Start (EL2612)">
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.pump_pvp.q_bStart" VarB="Channel 1^RP_bEnable"/>
 				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.evac.pump_tmp.q_bStart" VarB="Channel 2^TP_bEnable"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N19_PTC_RS485 (EL6021)">
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[0]" VarB="COM TxPDO-Map Inputs^Data In 0"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[10]" VarB="COM TxPDO-Map Inputs^Data In 10"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[11]" VarB="COM TxPDO-Map Inputs^Data In 11"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[12]" VarB="COM TxPDO-Map Inputs^Data In 12"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[13]" VarB="COM TxPDO-Map Inputs^Data In 13"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[14]" VarB="COM TxPDO-Map Inputs^Data In 14"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[15]" VarB="COM TxPDO-Map Inputs^Data In 15"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[16]" VarB="COM TxPDO-Map Inputs^Data In 16"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[17]" VarB="COM TxPDO-Map Inputs^Data In 17"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[18]" VarB="COM TxPDO-Map Inputs^Data In 18"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[19]" VarB="COM TxPDO-Map Inputs^Data In 19"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[1]" VarB="COM TxPDO-Map Inputs^Data In 1"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[20]" VarB="COM TxPDO-Map Inputs^Data In 20"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[21]" VarB="COM TxPDO-Map Inputs^Data In 21"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[2]" VarB="COM TxPDO-Map Inputs^Data In 2"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[3]" VarB="COM TxPDO-Map Inputs^Data In 3"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[4]" VarB="COM TxPDO-Map Inputs^Data In 4"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[5]" VarB="COM TxPDO-Map Inputs^Data In 5"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[6]" VarB="COM TxPDO-Map Inputs^Data In 6"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[7]" VarB="COM TxPDO-Map Inputs^Data In 7"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[8]" VarB="COM TxPDO-Map Inputs^Data In 8"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^D[9]" VarB="COM TxPDO-Map Inputs^Data In 9"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.COMin_EL60xx^Status" VarB="COM TxPDO-Map Inputs^Status"/>
-				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cooler.comm.i_nCouplerState" VarB="InfoData^State"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^Ctrl" VarB="COM RxPDO-Map Outputs^Ctrl"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[0]" VarB="COM RxPDO-Map Outputs^Data Out 0"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[10]" VarB="COM RxPDO-Map Outputs^Data Out 10"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[11]" VarB="COM RxPDO-Map Outputs^Data Out 11"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[12]" VarB="COM RxPDO-Map Outputs^Data Out 12"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[13]" VarB="COM RxPDO-Map Outputs^Data Out 13"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[14]" VarB="COM RxPDO-Map Outputs^Data Out 14"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[15]" VarB="COM RxPDO-Map Outputs^Data Out 15"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[16]" VarB="COM RxPDO-Map Outputs^Data Out 16"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[17]" VarB="COM RxPDO-Map Outputs^Data Out 17"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[18]" VarB="COM RxPDO-Map Outputs^Data Out 18"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[19]" VarB="COM RxPDO-Map Outputs^Data Out 19"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[1]" VarB="COM RxPDO-Map Outputs^Data Out 1"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[20]" VarB="COM RxPDO-Map Outputs^Data Out 20"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[21]" VarB="COM RxPDO-Map Outputs^Data Out 21"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[2]" VarB="COM RxPDO-Map Outputs^Data Out 2"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[3]" VarB="COM RxPDO-Map Outputs^Data Out 3"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[4]" VarB="COM RxPDO-Map Outputs^Data Out 4"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[5]" VarB="COM RxPDO-Map Outputs^Data Out 5"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[6]" VarB="COM RxPDO-Map Outputs^Data Out 6"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[7]" VarB="COM RxPDO-Map Outputs^Data Out 7"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[8]" VarB="COM RxPDO-Map Outputs^Data Out 8"/>
-				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cooler.comm.COMout_EL60xx^D[9]" VarB="COM RxPDO-Map Outputs^Data Out 9"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[0]" VarB="COM TxPDO-Map Inputs^Data In 0"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[10]" VarB="COM TxPDO-Map Inputs^Data In 10"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[11]" VarB="COM TxPDO-Map Inputs^Data In 11"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[12]" VarB="COM TxPDO-Map Inputs^Data In 12"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[13]" VarB="COM TxPDO-Map Inputs^Data In 13"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[14]" VarB="COM TxPDO-Map Inputs^Data In 14"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[15]" VarB="COM TxPDO-Map Inputs^Data In 15"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[16]" VarB="COM TxPDO-Map Inputs^Data In 16"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[17]" VarB="COM TxPDO-Map Inputs^Data In 17"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[18]" VarB="COM TxPDO-Map Inputs^Data In 18"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[19]" VarB="COM TxPDO-Map Inputs^Data In 19"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[1]" VarB="COM TxPDO-Map Inputs^Data In 1"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[20]" VarB="COM TxPDO-Map Inputs^Data In 20"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[21]" VarB="COM TxPDO-Map Inputs^Data In 21"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[2]" VarB="COM TxPDO-Map Inputs^Data In 2"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[3]" VarB="COM TxPDO-Map Inputs^Data In 3"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[4]" VarB="COM TxPDO-Map Inputs^Data In 4"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[5]" VarB="COM TxPDO-Map Inputs^Data In 5"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[6]" VarB="COM TxPDO-Map Inputs^Data In 6"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[7]" VarB="COM TxPDO-Map Inputs^Data In 7"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[8]" VarB="COM TxPDO-Map Inputs^Data In 8"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^D[9]" VarB="COM TxPDO-Map Inputs^Data In 9"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMin_EL60xx^Status" VarB="COM TxPDO-Map Inputs^Status"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^Ctrl" VarB="COM RxPDO-Map Outputs^Ctrl"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[0]" VarB="COM RxPDO-Map Outputs^Data Out 0"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[10]" VarB="COM RxPDO-Map Outputs^Data Out 10"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[11]" VarB="COM RxPDO-Map Outputs^Data Out 11"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[12]" VarB="COM RxPDO-Map Outputs^Data Out 12"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[13]" VarB="COM RxPDO-Map Outputs^Data Out 13"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[14]" VarB="COM RxPDO-Map Outputs^Data Out 14"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[15]" VarB="COM RxPDO-Map Outputs^Data Out 15"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[16]" VarB="COM RxPDO-Map Outputs^Data Out 16"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[17]" VarB="COM RxPDO-Map Outputs^Data Out 17"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[18]" VarB="COM RxPDO-Map Outputs^Data Out 18"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[19]" VarB="COM RxPDO-Map Outputs^Data Out 19"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[1]" VarB="COM RxPDO-Map Outputs^Data Out 1"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[20]" VarB="COM RxPDO-Map Outputs^Data Out 20"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[21]" VarB="COM RxPDO-Map Outputs^Data Out 21"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[2]" VarB="COM RxPDO-Map Outputs^Data Out 2"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[3]" VarB="COM RxPDO-Map Outputs^Data Out 3"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[4]" VarB="COM RxPDO-Map Outputs^Data Out 4"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[5]" VarB="COM RxPDO-Map Outputs^Data Out 5"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[6]" VarB="COM RxPDO-Map Outputs^Data Out 6"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[7]" VarB="COM RxPDO-Map Outputs^Data Out 7"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[8]" VarB="COM RxPDO-Map Outputs^Data Out 8"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.cool_down.cooler.comm.COMout_EL60xx^D[9]" VarB="COM RxPDO-Map Outputs^Data Out 9"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N3_T_Sidecar (EL3202-0010)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_sidecar_1.i_nStatus" VarB="RTD Inputs Channel 1^Status"/>
