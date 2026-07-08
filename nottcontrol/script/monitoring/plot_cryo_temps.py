@@ -27,7 +27,7 @@ from nottcontrol.sensors import (
 DEFAULT_SENSOR_NAMES = (
     "t_shield_vote",
     "t_base_plate_vote",
-    "t_flat_field_vote",
+    "t_flat_field_1",
 )
 
 # Vote (and sidecar-2) sensors for monitor_cryo_temps.py three-panel layout.
@@ -35,7 +35,7 @@ MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
     "Shield & base plate": (
         "t_shield_vote",
         "t_base_plate_vote",
-        "t_flat_field_vote",
+        "t_flat_field_1",
     ),
     "Photonic chip & sidecar": (
         "t_photonic_chip_vote",
@@ -45,7 +45,7 @@ MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
 }
 
 MONITOR_SENSOR_LABELS: dict[str, str] = {
-    "t_flat_field_vote": "shield (side)",
+    "t_flat_field_1": "shield (side)",
 }
 
 MONITOR_FIT_GROUPS = frozenset({"Shield & base plate", "Photonic chip & sidecar"})
@@ -62,12 +62,7 @@ class SensorFitOptions:
 
 
 MONITOR_SENSOR_FIT_OPTIONS: dict[str, SensorFitOptions] = {
-    # Single-term cooling fit with recent-point weighting tracks slow chip cool-down better.
-    "t_photonic_chip_vote": SensorFitOptions(
-        n_exp_terms=1,
-        weight_recent=True,
-        cooling_fit=True,
-    ),
+    "t_photonic_chip_vote": SensorFitOptions(n_exp_terms=2),
 }
 
 DEFAULT_MONITOR_TARGET_K = 90.0
@@ -734,8 +729,8 @@ def plot_cryo_monitor(
             )
             for name in sensor_names
         }
-        if "t_flat_field_vote" in sensor_names:
-            ff_key = monitor_sensor_redis_key("t_flat_field_vote", sensor_map, sensors_ini)
+        if "t_flat_field_1" in sensor_names:
+            ff_key = monitor_sensor_redis_key("t_flat_field_1", sensor_map, sensors_ini)
             print(
                 f"shield (side) Redis keys: primary={ff_key!r}, "
                 f"fallbacks={list(key_candidates_by_key[ff_key])!r}"
