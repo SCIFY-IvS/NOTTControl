@@ -35,6 +35,11 @@ PLOT_COLORS = [
     (100, 100, 100),
 ]
 
+TEMP_CHART_Y_MIN = 0.0
+TEMP_CHART_Y_MAX = 300.0
+PRESSURE_CHART_Y_MIN = 1e-8
+PRESSURE_CHART_Y_MAX = 1000.0
+
 
 @dataclass(frozen=True)
 class SeriesConfig:
@@ -55,8 +60,21 @@ def _downsample(
 class CryoRedisChart(QWidget):
     """Single pyqtgraph chart for Redis TimeSeries history."""
 
-    def __init__(self, title: str, y_label: str, parent=None):
+    def __init__(
+        self,
+        title: str,
+        y_label: str,
+        parent=None,
+        *,
+        y_min: float | None = None,
+        y_max: float | None = None,
+        log_y: bool = False,
+    ):
         super().__init__(parent)
+        self._y_min = y_min
+        self._y_max = y_max
+        self._log_y = log_y
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
@@ -69,7 +87,23 @@ class CryoRedisChart(QWidget):
         self._plot.setLabel("bottom", "Hours from range start")
         self._plot.addLegend(offset=(10, 10))
         self._plot.setTitle(self._title, color=TEAL, size="12pt")
+        if log_y:
+            self._plot.setLogMode(y=True)
         layout.addWidget(self._plot)
+        self._apply_y_limits()
+
+    def _apply_y_limits(self) -> None:
+        if self._y_min is None or self._y_max is None:
+            return
+        view_box = self._plot.getViewBox()
+        view_box.enableAutoRange(axis="y", enable=False)
+        self._plot.setYRange(self._y_min, self._y_max, padding=0)
+        view_box.setLimits(
+            yMin=self._y_min,
+            yMax=self._y_max,
+            minYRange=self._y_max - self._y_min,
+            maxYRange=self._y_max - self._y_min,
+        )
 
     def update_series(
         self,
@@ -88,6 +122,12 @@ class CryoRedisChart(QWidget):
             has_data = True
             x_hours = np.asarray([(t - start_ts) / 3600.0 for t in times], dtype=float)
             y_values = np.asarray(values, dtype=float)
+            if self._log_y:
+                valid = y_values > 0
+                x_hours = x_hours[valid]
+                y_values = y_values[valid]
+                if y_values.size == 0:
+                    continue
             x_hours, y_values = _downsample(x_hours.tolist(), y_values.tolist())
             color = PLOT_COLORS[index % len(PLOT_COLORS)]
             pen = pg.mkPen(color=color, width=2)
@@ -104,6 +144,8 @@ class CryoRedisChart(QWidget):
                 color=TEAL,
                 size="12pt",
             )
+
+        self._apply_y_limits()
 
 
 class CryoHistoryPanel(QWidget):
@@ -130,8 +172,19 @@ class CryoHistoryPanel(QWidget):
         selector_row.addStretch(1)
         layout.addLayout(selector_row)
 
-        self._temp_chart = CryoRedisChart("Temperature history", "Temperature (K)")
-        self._pressure_chart = CryoRedisChart("Pressure history", "Value")
+        self._temp_chart = CryoRedisChart(
+            "Temperature history",
+            "Temperature (K)",
+            y_min=TEMP_CHART_Y_MIN,
+            y_max=TEMP_CHART_Y_MAX,
+        )
+        self._pressure_chart = CryoRedisChart(
+            "Pressure history",
+            "Pressure (mbar)",
+            y_min=PRESSURE_CHART_Y_MIN,
+            y_max=PRESSURE_CHART_Y_MAX,
+            log_y=True,
+        )
         layout.addWidget(self._temp_chart, stretch=1)
         layout.addWidget(self._pressure_chart, stretch=1)
 

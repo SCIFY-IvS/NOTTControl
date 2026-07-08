@@ -16,6 +16,7 @@ from nottcontrol.sensors import (
     load_pressure_sensors,
     load_temperature_sensors,
     pressure_display_name,
+    pressure_unit,
     temperature_group,
 )
 
@@ -88,6 +89,7 @@ class CryostatWindow(QMainWindow):
         pressure_series = [
             SeriesConfig(redis_key, pressure_display_name(tag))
             for redis_key, tag in zip(pressure_redis_keys, pressure_tags)
+            if pressure_unit(tag) in ("mbar", "hPa")
         ]
         self.history_panel.configure(
             parent.redis_client,
