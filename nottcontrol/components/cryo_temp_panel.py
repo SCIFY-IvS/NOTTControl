@@ -250,7 +250,7 @@ class CryoEquipmentPanel(QWidget):
 
 
 class CryoPressurePanel(QWidget):
-    """Vacuum, pressure, and equipment readouts below the delay-lines panel."""
+    """Vacuum, pressure, and equipment readouts below the cryostat temperatures."""
 
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -135,9 +135,10 @@ def pressure_tag(opc_node_id: str) -> str | None:
 def pressure_display_name(tag: str) -> str:
     """Human-readable label for a pressure/vacuum sensor tag."""
     names = {
-        "VAGC.stat.lrRamp": "VAGC ramp",
         "VAGC.stat.lrPressure": "VAGC pressure",
         "evac.pump_pvp.stat.PresSens_lrPressure_hPa": "Pump pressure",
+        "evac.pump_tmp.stat.nPumpSpeed": "TMP speed",
+        "evac.pump_pvp.stat.nPumpSpeed": "PVP speed",
     }
     if tag in names:
         return names[tag]
@@ -147,8 +148,8 @@ def pressure_display_name(tag: str) -> str:
 def pressure_unit(tag: str) -> str:
     if tag.endswith("lrPressure_hPa"):
         return "hPa"
-    if tag.endswith("lrRamp"):
-        return "%"
+    if tag.endswith("nPumpSpeed"):
+        return "rpm"
     if tag.endswith("lrPressure"):
         return "mbar"
     return ""
@@ -163,8 +164,8 @@ def format_pressure_value(tag: str, value: float | None) -> str:
             text = f"{value:.2e}"
         else:
             text = f"{value:.3f}"
-    elif unit == "%":
-        text = f"{value:.1f}"
+    elif unit == "rpm":
+        text = f"{int(round(value))}"
     else:
         if abs(value) < 0.01 and value != 0:
             text = f"{value:.2e}"

@@ -78,7 +78,7 @@ RIGHT_PANEL_W = 370
 DASHBOARD_TOP_Y = 295
 TT_PANEL_TOP_Y = 118
 DL_PANEL_H = 165
-PRESSURE_PANEL_H = 200
+PRESSURE_PANEL_H = 230
 TT_PANEL_H = 285
 SHUTTER_PANEL_H = 165
 TEMP_PANEL_H = 96
@@ -227,11 +227,16 @@ class MainWindow(QMainWindow):
         right_x = scaled(RIGHT_PANEL_X)
         right_w = scaled(RIGHT_PANEL_W)
 
-        y_right = scaled(TT_PANEL_TOP_Y)
-        tt_h = self._panel_height(self.tt_status_panel, TT_PANEL_H)
-        self.tt_status_panel.setGeometry(right_x, y_right, right_w, tt_h)
-        y_right += tt_h + gap
+        y_left = scaled(DASHBOARD_TOP_Y)
+        dl_h = self._panel_height(self.dl_status_panel, DL_PANEL_H)
+        self.dl_status_panel.setGeometry(left_x, y_left, left_w, dl_h)
+        y_left += dl_h + gap
 
+        tt_h = self._panel_height(self.tt_status_panel, TT_PANEL_H)
+        self.tt_status_panel.setGeometry(left_x, y_left, left_w, tt_h)
+        left_bottom = y_left + tt_h
+
+        y_right = scaled(TT_PANEL_TOP_Y)
         shutter_h = self._panel_height(self.shutter_status_panel, SHUTTER_PANEL_H)
         self.shutter_status_panel.setGeometry(right_x, y_right, right_w, shutter_h)
         y_right += shutter_h + gap
@@ -241,18 +246,11 @@ class MainWindow(QMainWindow):
         )
         temp_h = self._panel_height(self.cryo_temp_panel, temp_base_h)
         self.cryo_temp_panel.setGeometry(right_x, y_right, right_w, temp_h)
-        right_bottom = y_right + temp_h
-
-        y_left = scaled(DASHBOARD_TOP_Y)
-        dl_h = self._panel_height(self.dl_status_panel, DL_PANEL_H)
-        self.dl_status_panel.setGeometry(left_x, y_left, left_w, dl_h)
-        y_left += dl_h + gap
+        y_right += temp_h + gap
 
         pressure_h = self._panel_height(self.pressure_panel, PRESSURE_PANEL_H)
-        self.pressure_panel.setGeometry(left_x, y_left, left_w, pressure_h)
-        left_bottom = y_left + pressure_h
-
-        self.pressure_panel.raise_()
+        self.pressure_panel.setGeometry(right_x, y_right, right_w, pressure_h)
+        right_bottom = y_right + pressure_h
 
         dashboard_bottom = max(left_bottom, right_bottom)
         self.resize(max(self.width(), scaled(1040)), dashboard_bottom + scaled(60))
@@ -261,16 +259,17 @@ class MainWindow(QMainWindow):
         button_height = 50
         button_gap = 5
         y = 250
-        for button in (
-            self.ui.pushButton_light_source,
-            self.ui.main_pb_delay_lines,
-            self.ui.pushButton_tiptilt,
-            self.ui.pushButton_piezos,
-            self.ui.pushButton_filter_wheel,
-            self.ui.pushButton_shutters,
-            self.ui.pushButton_cryostat,
+        nav_buttons = (
             self.ui.pushButton_camera,
-        ):
+            self.ui.pushButton_cryostat,
+            self.ui.main_pb_delay_lines,
+            self.ui.pushButton_filter_wheel,
+            self.ui.pushButton_light_source,
+            self.ui.pushButton_piezos,
+            self.ui.pushButton_shutters,
+            self.ui.pushButton_tiptilt,
+        )
+        for button in sorted(nav_buttons, key=lambda btn: btn.text().lower()):
             button.setGeometry(20, y, 200, button_height)
             y += button_height + button_gap
 
