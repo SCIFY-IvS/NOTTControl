@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QFormLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -118,7 +117,7 @@ WINDOW_BOTTOM_BUFFER = 6
 LEFT_COLUMN_X = 10
 LEFT_COLUMN_GAP = 10
 LEFT_PANEL_GAP = 8
-ACQUISITION_PANEL_HEIGHT = 124
+ACQUISITION_PANEL_HEIGHT = 148
 RIGHT_PANEL_WIDTH = 228
 BRIGHTNESS_PANEL_HEIGHT = 152
 CAM_PARAM_FRAMERATE_HZ = 240
@@ -409,10 +408,10 @@ class MainWindow(QMainWindow):
         top_row = QHBoxLayout()
         top_row.setSpacing(12)
 
-        conn_form = QFormLayout()
-        conn_form.setContentsMargins(0, 0, 0, 0)
-        conn_form.setHorizontalSpacing(8)
-        conn_form.setVerticalSpacing(4)
+        conn_grid = QGridLayout()
+        conn_grid.setContentsMargins(0, 0, 0, 0)
+        conn_grid.setHorizontalSpacing(8)
+        conn_grid.setVerticalSpacing(8)
 
         checkbox_style = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
         for widget in (
@@ -426,6 +425,7 @@ class MainWindow(QMainWindow):
         ):
             widget.setStyleSheet(checkbox_style)
 
+        button_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         for button in (
             self.ui.button_connect,
             self.ui.button_record,
@@ -433,15 +433,19 @@ class MainWindow(QMainWindow):
             self.ui.button_parameters,
         ):
             button.setStyleSheet(PANEL_BUTTON_STYLE)
-            button.setMinimumHeight(28)
+            button.setSizePolicy(button_policy)
+            button.setFixedHeight(28)
+            button.setMinimumWidth(scaled(88))
 
-        conn_form.addRow(self.ui.label_connection, self.ui.button_connect)
-        conn_form.addRow(self.ui.label_recording, self.ui.button_record)
+        conn_grid.addWidget(self.ui.label_connection, 0, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        conn_grid.addWidget(self.ui.button_connect, 0, 1, Qt.AlignLeft | Qt.AlignVCenter)
+        conn_grid.addWidget(self.ui.label_recording, 1, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        conn_grid.addWidget(self.ui.button_record, 1, 1, Qt.AlignLeft | Qt.AlignVCenter)
 
         left_col = QVBoxLayout()
         left_col.setContentsMargins(0, 0, 0, 0)
-        left_col.setSpacing(4)
-        left_col.addLayout(conn_form)
+        left_col.setSpacing(6)
+        left_col.addLayout(conn_grid)
         left_col.addWidget(self.ui.checkBox_saveframes)
 
         bg_row = QHBoxLayout()
@@ -999,10 +1003,16 @@ class MainWindow(QMainWindow):
         acquisition_w = content_right - LEFT_COLUMN_X
 
         if hasattr(self, "acquisition_panel"):
+            self.acquisition_panel.setFixedWidth(acquisition_w)
+            self.acquisition_panel.adjustSize()
+            acquisition_panel_h = max(
+                scaled(ACQUISITION_PANEL_HEIGHT),
+                self.acquisition_panel.sizeHint().height(),
+            )
             self.acquisition_panel.setGeometry(
                 LEFT_COLUMN_X, acquisition_y, acquisition_w, acquisition_panel_h
             )
-            self.acquisition_panel.setFixedSize(acquisition_w, acquisition_panel_h)
+            self.acquisition_panel.setFixedHeight(acquisition_panel_h)
 
         content_top = acquisition_y + acquisition_panel_h + left_panel_gap
         detector_y = content_top
