@@ -500,13 +500,14 @@ class MainWindow(QMainWindow):
     
     def read_and_store_sensor_values(self):
         try:
-            if self._cryo_cache.get("sensor_values") is None:
-                if not self._poll_cryo_opc():
-                    return
+            if not self._poll_cryo_opc():
+                return
             cache = self._cryo_cache
-            now = datetime.utcnow()
+            saved_at = cache.get("updated_at")
+            if saved_at is None:
+                return
             saved_count, skipped_keys = self.redis_client.save_sensor_values(
-                now, self.sensor_redis_keys, cache["sensor_values"]
+                saved_at, self.sensor_redis_keys, cache["sensor_values"]
             )
             self._apply_cryo_cache_to_display()
             if skipped_keys:

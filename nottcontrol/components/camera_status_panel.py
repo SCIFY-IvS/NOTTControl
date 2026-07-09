@@ -37,11 +37,11 @@ class CameraStatusPanel(QWidget):
         grid.setVerticalSpacing(6)
 
         rows = (
-            ("Acquisition", "_acquisition_label"),
-            ("Files today", "_files_label"),
-            ("Frame size", "_frame_size_label"),
+            ("Acquisition", "_acquisition_label", None),
+            ("Files today", "_files_label", "_files_name_label"),
+            ("Frame size", "_frame_size_label", None),
         )
-        for row, (name, attr) in enumerate(rows):
+        for row, (name, attr, name_attr) in enumerate(rows):
             name_label = QLabel(name)
             name_label.setStyleSheet('font: 10pt "Segoe UI";')
             value_label = QLabel("—")
@@ -52,6 +52,8 @@ class CameraStatusPanel(QWidget):
             grid.addWidget(name_label, row, 0)
             grid.addWidget(value_label, row, 1)
             setattr(self, attr, value_label)
+            if name_attr is not None:
+                setattr(self, name_attr, name_label)
 
         box.setMinimumHeight(scaled(28) + len(rows) * scaled(26))
         outer.addWidget(box)
@@ -78,10 +80,13 @@ class CameraStatusPanel(QWidget):
         self._acquisition_label.setText(acquisition)
         self._acquisition_label.setStyleSheet(_value_style(style_key))
 
+        if utc_day:
+            self._files_name_label.setText(f"Files today ({utc_day})")
+        else:
+            self._files_name_label.setText("Files today")
+
         if files_today is None:
             files_text = "—"
-        elif utc_day:
-            files_text = f"{files_today:,} ({utc_day})"
         else:
             files_text = f"{files_today:,}"
 
