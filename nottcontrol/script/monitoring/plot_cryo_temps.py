@@ -66,6 +66,7 @@ MONITOR_SENSOR_FIT_OPTIONS: dict[str, SensorFitOptions] = {
 }
 
 DEFAULT_MONITOR_TARGET_K = 90.0
+DEFAULT_HISTORY_HOURS = 24.0
 
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
@@ -785,7 +786,7 @@ def plot_cryo_monitor(
         return 1
 
     fig.suptitle(
-        f"Cryostat monitor — exponential fit ({n_exp_terms} terms)",
+        f"Cryostat monitor — last {hours:g} h — exponential fit ({n_exp_terms} terms)",
         y=1.01,
     )
     axes[-1, 0].set_xlabel("Time (UTC)")
@@ -864,8 +865,8 @@ def main() -> int:
     parser.add_argument(
         "--hours",
         type=float,
-        default=12.0,
-        help="Hours of history to fetch (default: 12)",
+        default=DEFAULT_HISTORY_HOURS,
+        help=f"Hours of history to fetch (default: {DEFAULT_HISTORY_HOURS:g})",
     )
     parser.add_argument(
         "--keys",

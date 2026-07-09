@@ -6,6 +6,7 @@
 #
 # Usage:
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh
+#   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --hours 48
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --sensor-names t_shield_vote t_base_plate_vote
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh --keys "ns=4;s=MAIN.nott_cryo_ctrl.nott_temp.t_base_plate_1.stat.lrTempK"
 #

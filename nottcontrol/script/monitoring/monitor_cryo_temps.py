@@ -17,14 +17,13 @@ from nottcontrol import config, sensor_config_path
 
 from plot_cryo_temps import (
     DEFAULT_FIT_MAX_POINTS,
+    DEFAULT_HISTORY_HOURS,
     DEFAULT_MONITOR_OUTPUT,
     DEFAULT_MONITOR_TARGET_K,
     DEFAULT_PLOT_MAX_POINTS,
     MONITOR_SENSOR_GROUPS,
     plot_cryo_monitor,
 )
-
-DEFAULT_HOURS = 12.0
 
 
 def main() -> int:
@@ -42,8 +41,8 @@ def main() -> int:
     parser.add_argument(
         "--hours",
         type=float,
-        default=DEFAULT_HOURS,
-        help="Hours of history to fetch and fit (default: 12)",
+        default=DEFAULT_HISTORY_HOURS,
+        help=f"Hours of history to fetch and fit (default: {DEFAULT_HISTORY_HOURS:g})",
     )
     parser.add_argument(
         "--sensors-ini",

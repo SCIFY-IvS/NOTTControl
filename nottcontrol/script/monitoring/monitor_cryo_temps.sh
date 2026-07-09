@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Monitor cryostat vote temperatures (three panels, 12 h default).
+# Monitor cryostat vote temperatures (three panels, 24 h default).
 #
 # Default output:
 #   nottcontrol/script/monitoring/cryo_monitor.png
@@ -9,7 +9,8 @@
 # Usage:
 #   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh
 #   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh -o /tmp/cryo_monitor.png
-#   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh --hours 24 --show
+#   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh --hours 48
+#   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh --hours 12 --show
 #
 # Environment:
 #   NOTT_REDIS_URL  override Redis URL (default: nottcontrol/config.ini)
