@@ -5,6 +5,8 @@ from PyQt5.QtWidgets import (
     QFrame,
     QGridLayout,
     QGroupBox,
+    QHBoxLayout,
+    QFormLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -115,9 +117,8 @@ FRAME_READOUT_OVERHEAD_US = config.getint(
 WINDOW_BOTTOM_BUFFER = 6
 LEFT_COLUMN_X = 10
 LEFT_COLUMN_GAP = 10
-FRAMES_TODAY_LABEL_Y = 132
-FRAMES_TODAY_LABEL_HEIGHT = 22
 LEFT_PANEL_GAP = 8
+ACQUISITION_PANEL_HEIGHT = 124
 RIGHT_PANEL_WIDTH = 228
 BRIGHTNESS_PANEL_HEIGHT = 152
 CAM_PARAM_FRAMERATE_HZ = 240
@@ -214,8 +215,8 @@ class MainWindow(QMainWindow):
         self._background_img = None
 
         self._setup_brightness_panel()
+        self._setup_acquisition_panel()
         self._setup_roi_values_panel()
-        self._setup_frames_today_label()
         self._setup_detector_panel()
         self._layout_window()
 
@@ -394,15 +395,79 @@ class MainWindow(QMainWindow):
         self.ui.label.hide()
         self.ui.label_5.hide()
 
-    def _setup_frames_today_label(self) -> None:
-        self.label_frames_today = QLabel(self.ui.centralwidget)
-        self.label_frames_today.setGeometry(
-            LEFT_COLUMN_X, FRAMES_TODAY_LABEL_Y, roi_panel_width(), scaled(20)
-        )
+    def _setup_acquisition_panel(self) -> None:
+        old_conn_host = self.ui.label_connection.parentWidget()
+        old_bg_host = self.ui.button_takebackground.parentWidget()
+
+        self.acquisition_panel = QGroupBox("Acquisition", self.ui.centralwidget)
+        self.acquisition_panel.setStyleSheet(PANEL_GROUP_STYLE)
+
+        outer = QVBoxLayout(self.acquisition_panel)
+        outer.setContentsMargins(8, 12, 8, 8)
+        outer.setSpacing(6)
+
+        top_row = QHBoxLayout()
+        top_row.setSpacing(12)
+
+        conn_form = QFormLayout()
+        conn_form.setContentsMargins(0, 0, 0, 0)
+        conn_form.setHorizontalSpacing(8)
+        conn_form.setVerticalSpacing(4)
+
+        checkbox_style = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
+        for widget in (
+            self.ui.label_connection,
+            self.ui.label_recording,
+        ):
+            widget.setStyleSheet(PANEL_LABEL_STYLE)
+        for widget in (
+            self.ui.checkBox_saveframes,
+            self.ui.checkBox_subtractbackground,
+        ):
+            widget.setStyleSheet(checkbox_style)
+
+        for button in (
+            self.ui.button_connect,
+            self.ui.button_record,
+            self.ui.button_takebackground,
+            self.ui.button_parameters,
+        ):
+            button.setStyleSheet(PANEL_BUTTON_STYLE)
+            button.setMinimumHeight(28)
+
+        conn_form.addRow(self.ui.label_connection, self.ui.button_connect)
+        conn_form.addRow(self.ui.label_recording, self.ui.button_record)
+
+        left_col = QVBoxLayout()
+        left_col.setContentsMargins(0, 0, 0, 0)
+        left_col.setSpacing(4)
+        left_col.addLayout(conn_form)
+        left_col.addWidget(self.ui.checkBox_saveframes)
+
+        bg_row = QHBoxLayout()
+        bg_row.setContentsMargins(0, 0, 0, 0)
+        bg_row.setSpacing(8)
+        bg_row.addWidget(self.ui.button_takebackground)
+        bg_row.addWidget(self.ui.checkBox_subtractbackground)
+
+        top_row.addLayout(left_col)
+        top_row.addStretch(1)
+        top_row.addLayout(bg_row)
+        top_row.addStretch(1)
+        top_row.addWidget(self.ui.button_parameters, 0, Qt.AlignRight | Qt.AlignVCenter)
+        outer.addLayout(top_row)
+
+        self.label_frames_today = QLabel(self.acquisition_panel)
         self.label_frames_today.setStyleSheet(
-            'font: 10pt "Segoe UI"; color: rgb(50, 129, 140);'
+            'font: 9pt "Segoe UI"; color: rgb(70, 70, 70);'
         )
         self._update_frames_today_label(0, datetime.now(timezone.utc).strftime("%Y%m%d"))
+        outer.addWidget(self.label_frames_today)
+
+        for host in (old_conn_host, old_bg_host):
+            if host is not None and host is not self.acquisition_panel:
+                host.hide()
+                host.setFixedSize(0, 0)
 
     def _utc_day_key(self) -> str:
         return datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -917,27 +982,30 @@ class MainWindow(QMainWindow):
 
         camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
         camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
-        top_y = 50
         graph_gap = 8
         panel_width = roi_panel_width()
         panel_height = roi_panel_height()
-        frames_y = FRAMES_TODAY_LABEL_Y
-        frames_label_h = scaled(FRAMES_TODAY_LABEL_HEIGHT)
+        acquisition_panel_h = scaled(ACQUISITION_PANEL_HEIGHT)
         detector_panel_h = scaled(DETECTOR_PANEL_HEIGHT)
         right_panel_w = scaled(RIGHT_PANEL_WIDTH)
         brightness_panel_h = scaled(BRIGHTNESS_PANEL_HEIGHT)
         left_panel_gap = scaled(LEFT_PANEL_GAP)
         left_column_gap = scaled(LEFT_COLUMN_GAP)
+        acquisition_y = scaled(8)
 
-        self.label_frames_today.setGeometry(
-            LEFT_COLUMN_X,
-            frames_y,
-            panel_width,
-            frames_label_h,
-        )
-        self.label_frames_today.setFixedWidth(panel_width)
+        camera_x = LEFT_COLUMN_X + panel_width + left_column_gap
+        right_x = camera_x + camera_w + scaled(12)
+        content_right = right_x + right_panel_w
+        acquisition_w = content_right - LEFT_COLUMN_X
 
-        detector_y = frames_y + frames_label_h + left_panel_gap
+        if hasattr(self, "acquisition_panel"):
+            self.acquisition_panel.setGeometry(
+                LEFT_COLUMN_X, acquisition_y, acquisition_w, acquisition_panel_h
+            )
+            self.acquisition_panel.setFixedSize(acquisition_w, acquisition_panel_h)
+
+        content_top = acquisition_y + acquisition_panel_h + left_panel_gap
+        detector_y = content_top
         roi_y = detector_y + detector_panel_h + left_panel_gap
 
         if hasattr(self, "detector_panel"):
@@ -950,15 +1018,10 @@ class MainWindow(QMainWindow):
         self.roi_panel.setFixedSize(panel_width, panel_height)
 
         self.ui.frame_camera.setMinimumSize(0, 0)
-        camera_x = LEFT_COLUMN_X + panel_width + left_column_gap
-        self.ui.frame_camera.setGeometry(camera_x, top_y, camera_w, camera_h)
+        self.ui.frame_camera.setGeometry(camera_x, content_top, camera_w, camera_h)
         self.ui.frame_camera.setFixedSize(camera_w, camera_h)
 
-        background_bar = self.ui.button_takebackground.parentWidget()
-        if background_bar is not None:
-            background_bar.setGeometry(camera_x, 20, min(camera_w, 320), 32)
-
-        graph_y = top_y + camera_h + graph_gap
+        graph_y = content_top + camera_h + graph_gap
         self.ui.frame_roi_graph.setMinimumSize(0, 0)
         self.ui.frame_roi_graph.setGeometry(camera_x, graph_y, camera_w, GRAPH_HEIGHT)
         self.ui.frame_roi_graph.setFixedSize(camera_w, GRAPH_HEIGHT)
@@ -966,12 +1029,8 @@ class MainWindow(QMainWindow):
         self.ui.frame_roi_graph.raise_()
         self._fit_roi_plot()
 
-        right_x = camera_x + camera_w + scaled(12)
-        self.ui.button_parameters.setGeometry(
-            right_x, 20, right_panel_w, scaled(32)
-        )
         self.ui.groupBox.setGeometry(
-            right_x, 60, right_panel_w, brightness_panel_h
+            right_x, content_top, right_panel_w, brightness_panel_h
         )
         self.ui.groupBox.setFixedSize(right_panel_w, brightness_panel_h)
         self.ui.groupBox_2.hide()
@@ -980,7 +1039,7 @@ class MainWindow(QMainWindow):
             graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER,
             roi_y + panel_height + WINDOW_BOTTOM_BUFFER,
         )
-        window_w = max(right_x + right_panel_w + scaled(24), camera_x + camera_w + scaled(40))
+        window_w = max(content_right + scaled(24), camera_x + camera_w + scaled(40))
         self.ui.centralwidget.setMinimumSize(0, 0)
         self.ui.centralwidget.setFixedSize(window_w, content_h)
         window_h = content_h + self.menuBar().height()
@@ -993,12 +1052,12 @@ class MainWindow(QMainWindow):
 
     def _raise_overlay_widgets(self) -> None:
         self.ui.scrollArea.lower()
+        if hasattr(self, "acquisition_panel"):
+            self.acquisition_panel.show()
+            self.acquisition_panel.raise_()
         if hasattr(self, "roi_panel"):
             self.roi_panel.show()
             self.roi_panel.raise_()
-        if hasattr(self, "label_frames_today"):
-            self.label_frames_today.show()
-            self.label_frames_today.raise_()
         if hasattr(self, "detector_panel"):
             self.detector_panel.raise_()
         self.ui.frame_roi_graph.raise_()
