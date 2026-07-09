@@ -8,7 +8,8 @@ from nottcontrol.opcua import OPCUAConnection
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
-from nottcontrol.camera.infratec.scify import MainWindow as camera_ui
+from nottcontrol.camera.infratec.scify import MainWindow as camera_ui, camera_status_snapshot
+from nottcontrol.components.camera_status_panel import CameraStatusPanel
 from nottcontrol import config, sensor_config_path, cryo_status_config_path
 from nottcontrol.sensors import (
     load_sensor_config,
@@ -88,6 +89,7 @@ PRESSURE_PANEL_H = 200
 TT_PANEL_H = 285
 SHUTTER_PANEL_H = 165
 TEMP_PANEL_H = 96
+CAMERA_PANEL_H = 115
 
 
 class MainWindow(QMainWindow):
@@ -133,6 +135,8 @@ class MainWindow(QMainWindow):
 
         self.shutter_status_opc_nodes, self.shutter_status_keys = shutter_opc_nodes()
         self.shutter_status_panel = ShuttersStatusPanel(self.ui.centralwidget)
+
+        self.camera_status_panel = CameraStatusPanel(self.ui.centralwidget)
 
         self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
         (
@@ -210,6 +214,7 @@ class MainWindow(QMainWindow):
         self.load_dl_status()
         self.load_tt_status()
         self.load_shutter_status()
+        self.load_camera_status()
         self._poll_cryo_opc()
         self._apply_cryo_cache_to_display()
 
@@ -235,7 +240,11 @@ class MainWindow(QMainWindow):
         right_x = scaled(RIGHT_PANEL_X)
         right_w = scaled(RIGHT_PANEL_W)
 
-        y_left = scaled(DASHBOARD_TOP_Y)
+        y_left = scaled(TT_PANEL_TOP_Y)
+        camera_h = self._panel_height(self.camera_status_panel, CAMERA_PANEL_H)
+        self.camera_status_panel.setGeometry(left_x, y_left, left_w, camera_h)
+        y_left += camera_h + gap
+
         dl_h = self._panel_height(self.dl_status_panel, DL_PANEL_H)
         self.dl_status_panel.setGeometry(left_x, y_left, left_w, dl_h)
         y_left += dl_h + gap
@@ -337,12 +346,27 @@ class MainWindow(QMainWindow):
                 self.camera_window.closing.connect(self.clear_camera_window)
             else:
                 self.camera_window.activateWindow()
+            self.load_camera_status()
 
         except Exception as e:
             print(f"Error opening camera window: {e}")
     
     def clear_camera_window(self):
         self.camera_window = None
+        self.load_camera_status()
+
+    def load_camera_status(self):
+        try:
+            status = camera_status_snapshot(self.camera_window)
+            self.camera_status_panel.update_status(
+                connected=bool(status.get("connected")),
+                recording=bool(status.get("recording")),
+                files_today=status.get("files_today"),
+                frame_size=str(status.get("frame_size", "—")),
+                utc_day=status.get("utc_day"),
+            )
+        except Exception as e:
+            print(f"Camera status: {e}")
 
     def resizeEvent(self, event):
         self._layout_title()
@@ -363,6 +387,7 @@ class MainWindow(QMainWindow):
             self.load_dl_status()
             self.load_tt_status()
             self.load_shutter_status()
+            self.load_camera_status()
             if self._poll_cryo_opc():
                 self._apply_cryo_cache_to_display()
         except Exception as e:

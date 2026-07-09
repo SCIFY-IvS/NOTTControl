@@ -74,6 +74,27 @@ else:
     frame_directory = str(config['DEFAULT']['linux_frame_directory'])
 
 
+def count_frames_saved_for_utc_day(utc_day: str) -> int:
+    directory = Path(frame_directory) / utc_day
+    if not directory.is_dir():
+        return 0
+    return sum(1 for path in directory.iterdir() if path.suffix.lower() == ".png")
+
+
+def camera_status_snapshot(camera_window=None) -> dict[str, object]:
+    """Return dashboard camera status from an open window or disk fallback."""
+    if camera_window is not None:
+        return camera_window.get_dashboard_status()
+    utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return {
+        "connected": False,
+        "recording": False,
+        "files_today": count_frames_saved_for_utc_day(utc_day),
+        "utc_day": utc_day,
+        "frame_size": "—",
+    }
+
+
 t=time.perf_counter()
 tLive=t
 
@@ -101,7 +122,7 @@ RIGHT_PANEL_WIDTH = 228
 BRIGHTNESS_PANEL_HEIGHT = 152
 CAM_PARAM_FRAMERATE_HZ = 240
 CAM_PARAM_INTEGRATION_TIME = 262
-DETECTOR_PANEL_HEIGHT = 240
+DETECTOR_PANEL_HEIGHT = 256
 
 PANEL_BUTTON_STYLE = """
     QPushButton {
@@ -488,6 +509,7 @@ class MainWindow(QMainWindow):
         self.label_acq_time = QLabel("Acq. time: —", self.detector_panel)
         self.label_acq_efficiency = QLabel("Acq. efficiency: —", self.detector_panel)
         self.label_measured_rate = QLabel("Measured: —", self.detector_panel)
+        self.label_frame_size = QLabel("Frame size: —", self.detector_panel)
         self.label_recording_elapsed = QLabel("", self.detector_panel)
 
         for label in (
@@ -495,6 +517,7 @@ class MainWindow(QMainWindow):
             self.label_acq_time,
             self.label_acq_efficiency,
             self.label_measured_rate,
+            self.label_frame_size,
         ):
             label.setStyleSheet(summary_style)
             label.setWordWrap(True)
@@ -697,6 +720,14 @@ class MainWindow(QMainWindow):
             "acq_efficiency_pct": acq_efficiency_pct,
         }
 
+    def _frame_size_text(self) -> str:
+        if not self.imageInit:
+            return "—"
+        img = self.image.getImageItem().image
+        if img is None or len(img.shape) < 2:
+            return "—"
+        return f"{int(img.shape[1])} × {int(img.shape[0])}"
+
     def _update_timing_labels(self) -> None:
         if not hasattr(self, "label_total_integ"):
             return
@@ -739,6 +770,8 @@ class MainWindow(QMainWindow):
             )
         else:
             self.label_measured_rate.setText("Measured: —")
+
+        self.label_frame_size.setText(f"Frame size: {self._frame_size_text()}")
 
         if self.recording and self._recording_started_at is not None:
             elapsed = (
@@ -1389,6 +1422,7 @@ class MainWindow(QMainWindow):
 
         self.imageInit = True
         self._fit_detector_image()
+        self._update_timing_labels()
 
         self._setup_roi_plot()
         self._layout_image_view()
@@ -1499,6 +1533,28 @@ class MainWindow(QMainWindow):
     def on_roi_calculations_finished(self, calculator):
         for i in range(len(self.roi_widgets)):
             self.roi_widgets[i].setValues(calculator.results[i])
+
+    def _count_frames_for_utc_day(self, utc_day: str) -> int:
+        return count_frames_saved_for_utc_day(utc_day)
+
+    def get_dashboard_status(self) -> dict[str, object]:
+        utc_day = self._utc_day_key()
+        with self._frames_count_lock:
+            files_today = self._frames_saved_today
+            if self._frames_saved_utc_day != utc_day:
+                files_today = self._count_frames_for_utc_day(utc_day)
+        with self.recording_lock:
+            recording = self.recording
+
+        frame_size = self._frame_size_text()
+
+        return {
+            "connected": self.connected,
+            "recording": recording,
+            "files_today": files_today,
+            "utc_day": utc_day,
+            "frame_size": frame_size,
+        }
 
     def closeEvent(self, *args):
         self.running = False
