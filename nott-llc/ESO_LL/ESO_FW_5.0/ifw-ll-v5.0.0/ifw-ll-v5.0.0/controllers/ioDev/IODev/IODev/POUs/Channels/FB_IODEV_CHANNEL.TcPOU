@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="FB_IODEV_CHANNEL" Id="{5cd2f090-79d0-4419-8b4e-39862b4bf3b7}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CHANNEL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Compute" Id="{d883c9b0-499e-41da-af16-322def6b3a9d}">
+      <Declaration><![CDATA[METHOD M_Compute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{92348419-62cc-4cb8-8025-79fcbbae164f}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_CHANNEL">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CHANNEL.M_Compute">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CHANNEL.M_Reset">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

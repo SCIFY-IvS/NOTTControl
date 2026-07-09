@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_CCC_CTRL" Id="{6bee7cc9-1d75-4952-8d58-33af22ec2b0c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_CCC_CTRL EXTENDS FB_CRYO_BIN_CTRL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Feedback from CCC
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bOn				AT%I*:	BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bOverTemperature	AT%I*:	BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bUnderPressure	AT%I*:	BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set generic error if temperature inputs are not valid
+IF i_bOn  AND  (i_bOverTemperature OR i_bUnderPressure) THEN
+	stat.bCtrlOK	:= FALSE;
+ELSE
+	stat.bCtrlOK	:= TRUE;
+END_IF
+
+// Execute parent FB.
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_User_SetAction" Id="{d7f5d00e-9568-4f96-af07-1eceecd54ca2}">
+      <Declaration><![CDATA[METHOD M_User_SetAction : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+//
+// This method implements the logic for controlling a CCC.
+//
+// If the controller is Enabled, it should be ACTIVE_ON.
+// If the controller is NOT Enabled, it should be OFF.
+// 
+//
+IF	in_bEnable THEN
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.ON;
+ELSE
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_CCC_CTRL">
+      <LineId Id="121" Count="8" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CCC_CTRL.M_User_SetAction">
+      <LineId Id="5" Count="2" />
+      <LineId Id="116" Count="1" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

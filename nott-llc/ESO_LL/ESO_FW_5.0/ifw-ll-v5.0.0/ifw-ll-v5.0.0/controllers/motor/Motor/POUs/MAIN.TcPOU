@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	{attribute 'OPC.UA.DA':='1'}
+	time_data:	FB_TIME;
+	
+	astro:		FB_ASTRO;
+	
+	{attribute 'OPC.UA.DA':='1'}
+	Motor001:		FB_MOTOR;		// Connected to Simulator
+	{attribute 'OPC.UA.DA':='1'}
+	Motor002:		FB_MOTOR;		// Connected to Simulator
+	
+
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Motor001:	FB_SIM_MOTOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Motor002:		FB_SIM_MOTOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_adc_motor1:	FB_SIM_MOTOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_adc_motor2:	FB_SIM_MOTOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_drot_motor:	FB_SIM_MOTOR;
+	
+	ccsDeterministic:	T_ASTRO_POINTING_KERNEL_POSITIONS;
+	
+	{attribute 'OPC.UA.DA':='1'}
+	adc:		FB_MA_ADC;
+	
+    {attribute 'OPC.UA.DA':='1'}
+	drot:       FB_MA_DROT;
+	
+	
+	
+
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Time handling.
+// It handles IEEE1588, NTP, Local and Simulated time.
+//
+time_data();
+
+
+//
+// Simulation of data coming from the TEL via MUDPI.
+//
+astro(	in_TimeStat 		:= time_data.stat, 
+		out_CcsDeterministic => ccsDeterministic);
+
+
+//astro();
+
+//Motor1(sName:='Motor1',nNOVRAM_DevId:=4,nNOVRAM_Offset:=5000);
+//Motor2(sName:='Motor2',nNOVRAM_DevId:=4,nNOVRAM_Offset:=0);
+Motor001(sName:='Motor001',nNOVRAM_DevId:=0);
+Motor002(sName:='Motor002',nNOVRAM_DevId:=0);
+
+
+//
+// Motor simulators
+//
+SIM_Motor001(ptrCfg:=ADR(Motor001.cfg), 	ptrStat:=ADR(Motor001.stat));
+SIM_Motor002(ptrCfg:=ADR(Motor002.cfg), 	ptrStat:=ADR(Motor002.stat));
+
+
+//
+// Multi-Axis device
+//
+// ADC
+adc(sName:='ADC', sMotorAdc1:= 'ADC1', sMotorAdc2:= 'ADC2', 
+	stSiteConstants := astro.AstroData.site,
+	stEnvironmentData := astro.AstroData.environment,
+	stPointingKernel := ccsDeterministic);
+	
+SIM_adc_motor1(ptrCfg:=ADR(adc.motor1.cfg), 	ptrStat:=ADR(adc.motor1.stat));
+SIM_adc_motor2(ptrCfg:=ADR(adc.motor2.cfg), 	ptrStat:=ADR(adc.motor2.stat));
+
+
+//
+// DROT
+//
+drot(sName:='DROT', sMotorName:= 'DrotMotor', 
+	 in_lrRotation :=astro.UserPointingKernel.north_angle,
+	 in_lrPupil := astro.UserPointingKernel.pupil_angle,
+	 in_lrParallactic := astro.UserPointingKernel.parallactic_angle,
+	 nNOVRAM_DevId :=0);
+	 
+SIM_drot_motor(ptrCfg:=ADR(drot.motor.cfg), ptrStat:=ADR(drot.motor.stat));
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="1152" Count="0" />
+      <LineId Id="1148" Count="1" />
+      <LineId Id="1155" Count="0" />
+      <LineId Id="1076" Count="0" />
+      <LineId Id="1153" Count="1" />
+      <LineId Id="1147" Count="0" />
+      <LineId Id="1079" Count="0" />
+      <LineId Id="1157" Count="0" />
+      <LineId Id="1080" Count="0" />
+      <LineId Id="1195" Count="0" />
+      <LineId Id="1083" Count="21" />
+      <LineId Id="1196" Count="3" />
+      <LineId Id="1105" Count="7" />
+      <LineId Id="1200" Count="1" />
+      <LineId Id="1204" Count="0" />
+      <LineId Id="1202" Count="1" />
+      <LineId Id="1113" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

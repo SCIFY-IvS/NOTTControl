@@ -1,0 +1,425 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_SIM_MOTOR" Id="{cdc20ae3-b7e8-4041-8913-f51782748d05}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_MOTOR
+VAR_INPUT
+	ptrCfg:		POINTER TO T_MOTOR_CFG;
+	ptrStat:	POINTER TO T_MOTOR_STAT;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA':='1'}
+	cfg:			T_SIM_MOTOR_CFG;	(* ActiveLow configuration for each signal *)
+	{attribute 'OPC.UA.DA':='1'}
+	stat:			T_SIM_MOTOR_STAT;	(* Simulator status parameters *)
+	
+	{attribute 'OPC.UA.DA':='0'}
+//	nCouplerState:	UINT := 8;       // normal coupler state
+	
+    (* Inputs *)
+	{attribute 'OPC.UA.DA':='0'}
+	i_bBrake_Ctrl	AT %I*:	BOOL;				(* Brake control signal - to be linked to q_bBrake_Ctrl *)
+
+	(* Outputs *)	
+	{attribute 'OPC.UA.DA':='0'}
+	switches		AT %Q*:	T_MOTOR_SWITCHES;	(* Limit switches - to be linked to real Motor switches *)
+	{attribute 'OPC.UA.DA':='0'}
+	q_bBrake_Stat	AT %Q*:	BOOL;				(* Brake feedback signal - to be linked to i_bBrake_Stat  *)
+	{attribute 'OPC.UA.DA':='0'}
+	q_nCouplerState AT %Q*:		UINT := 8;		(* HW state - to be linked to i_nCouplerState *)
+	
+	{attribute 'OPC.UA.DA':='0'}
+	timer_SwitchOn:		TON;
+	{attribute 'OPC.UA.DA':='0'}
+	timer_SwitchOff:	TON;
+	{attribute 'OPC.UA.DA':='0'}
+	timer_Brake:	TON;
+	{attribute 'OPC.UA.DA':='0'}
+	trgBrake:		R_TRIG;	// Trigger for brake activation
+	{attribute 'OPC.UA.DA':='0'}
+	trgInitCmd:		R_TRIG;	// Trigger for INIT command
+	{attribute 'OPC.UA.DA':='0'}
+	trgInitAction:	R_TRIG;	// Trigger for INIT action, e.g. FIND LHW
+	
+	// Action delays
+//	nDelay_SwitchFind:		UDINT := 5000;	// 5 sec delay for finding switch
+//	nDelay_SwitchActive:	UDINT := 7000;	// 7 sec delay for switch being active (exiting switch)
+//	nDelay_Brake:			UDINT :=  500;	// 0.5 sec delay for brake activation
+	
+	{attribute 'OPC.UA.DA':='0'}
+	nInitAction:	DINT := 0;		// No action yet
+	{attribute 'OPC.UA.DA':='0'}
+	bBrake:			BOOL := FALSE;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Check for NULL pointers in input parameters.
+// We cannot continue if any of the pointers is NULL.
+IF ptrCfg = 0  OR  ptrStat = 0 THEN
+	stat.nErrorCode	:= E_MOTOR_ERROR.SIM_NULL_POINTER;
+	stat.sErrorText	:= 'ERROR: Input parameter is a NULL pointer';
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+END_IF
+
+//
+// When the simulator starts, all switches are clear and brakes are disengaged.
+//
+IF NOT stat.bInitialised THEN
+	// Copy the real motor configuration
+	RPC_ResetConfig();
+	
+	// Release brakes
+	// The control signal for brakes MUST be active low - it's hard-coded in FB_MOTOR.
+	// Therefore the feedback should use the inverse of i_bBrake_Ctrl.
+	// Feedback active low is configured with bActiveLowBrake.
+	// q_bBrake_Stat is the simulated feedback to the real motor.
+	bBrake 			:= i_bBrake_Ctrl;
+	q_bBrake_Stat	:= GetLogicalState(NOT i_bBrake_Ctrl, ptrCfg^.bActiveLowBrake);
+	
+	stat.nErrorCode		:= E_MOTOR_ERROR.OK;
+	stat.sErrorText		:= 'OK';
+	stat.sStatus		:= 'OK';
+	stat.bInitialised	:= TRUE;
+END_IF
+
+// If the motor is not initialised and not enabled, reset simulator configuration.
+// This way we avoid deadlock in case both limit switches (HW or STOP) are active.
+IF 	NOT ptrStat^.bInitialised	AND 
+	NOT ptrStat^.bEnabled 		AND
+	((ptrStat^.signals[0].bActive AND ptrStat^.signals[5].bActive) OR
+	 (ptrStat^.signals[1].bActive AND ptrStat^.signals[4].bActive)) THEN
+	// Copy the real motor configuration
+	RPC_ResetConfig();
+END_IF
+
+
+//
+// Wait for events
+// They can be:
+// - New INIT sequence action that envolves activation of limit switches, e.g. FIND LHW.
+// - Brake control change, i.e. apply or release.
+//
+
+//////////////////////////////
+// Handling of limit switches
+//////////////////////////////
+
+// Checking for INIT command.
+// The substate string will become 'INITIALIZING'.
+// At this point, new configuration is written to the PLC.
+// Copy it to the simulator.
+trgInitCmd(CLK:=(ptrStat^.sSubstate = 'INITIALIZING'));
+IF trgInitCmd.Q THEN
+	// Copy the real motor configuration
+	RPC_ResetConfig();
+END_IF
+
+// Clear REF switch at the end of INIT since it remains active in the FIND_REF_LE case.
+IF ptrStat^.bInitialised AND ptrStat^.sStatus = 'STANDING' THEN
+	switches.bREF	:= GetLogicalState(FALSE, cfg.bArrActiveLow[2].bValue);
+END_IF
+
+// Checking for INIT actions that require activation of limit switches
+trgInitAction(CLK:=(nInitAction <> ptrStat^.nInitAction));
+IF trgInitAction.Q THEN
+	// Assign the current value, so we could detect next change.
+	nInitAction := ptrStat^.nInitAction;	
+	IF	nInitAction = MOTOR_INIT_ACTION_FIND_INDEX 	OR
+		nInitAction = MOTOR_INIT_ACTION_FIND_REF_LE OR
+		nInitAction = MOTOR_INIT_ACTION_FIND_REF_UE OR
+		nInitAction = MOTOR_INIT_ACTION_FIND_LHW 	OR
+		nInitAction = MOTOR_INIT_ACTION_FIND_UHW 	THEN 
+		// Delay activation of the corresponding switch by nDelay_SwitchFind ms.
+		timer_SwitchOn(IN:=FALSE);
+		timer_SwitchOn(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nDelay_SwitchFind));
+		
+		IF nInitAction = MOTOR_INIT_ACTION_FIND_REF_LE THEN
+			switches.bREF	:= GetLogicalState(TRUE, cfg.bArrActiveLow[2].bValue);
+		END_IF
+	END_IF
+END_IF
+
+
+// Switch activation
+timer_SwitchOn();
+IF timer_SwitchOn.Q THEN
+	// Reset the timer.
+	timer_SwitchOn(IN:=FALSE);
+	CASE nInitAction OF
+		// Activate the corresponding switch based on the INIT action.
+		MOTOR_INIT_ACTION_FIND_INDEX:
+			switches.bINDEX	:= GetLogicalState(TRUE, cfg.bArrActiveLow[3].bValue);
+		MOTOR_INIT_ACTION_FIND_REF_LE:
+			switches.bREF	:= GetLogicalState(FALSE, cfg.bArrActiveLow[2].bValue);
+		MOTOR_INIT_ACTION_FIND_REF_UE:
+			switches.bREF	:= GetLogicalState(TRUE, cfg.bArrActiveLow[2].bValue);
+		MOTOR_INIT_ACTION_FIND_LHW:
+			switches.bLHW	:= GetLogicalState(TRUE, cfg.bArrActiveLow[1].bValue);
+		MOTOR_INIT_ACTION_FIND_UHW:
+			switches.bUHW	:= GetLogicalState(TRUE, cfg.bArrActiveLow[4].bValue);
+	END_CASE
+
+	// Delay deactivation of the corresponding switch by nDelay_SwitchActive ms,
+	// i.e. keep the switch active for nDelay_SwitchActive ms.
+	timer_SwitchOff(IN:=FALSE);
+	timer_SwitchOff(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nDelay_SwitchActive));
+END_IF
+
+// Switch deactivation
+timer_SwitchOff();
+IF timer_SwitchOff.Q THEN
+	timer_SwitchOff(IN:=FALSE);
+	// Deactivate the switch based on the INIT action.
+	CASE nInitAction OF
+		MOTOR_INIT_ACTION_FIND_INDEX:
+			switches.bINDEX	:= GetLogicalState(FALSE, cfg.bArrActiveLow[3].bValue);
+		MOTOR_INIT_ACTION_FIND_REF_LE:
+			switches.bREF	:= GetLogicalState(TRUE, cfg.bArrActiveLow[2].bValue);
+		MOTOR_INIT_ACTION_FIND_REF_UE:
+			switches.bREF	:= GetLogicalState(FALSE, cfg.bArrActiveLow[2].bValue);
+		MOTOR_INIT_ACTION_FIND_LHW:
+			switches.bLHW	:= GetLogicalState(FALSE, cfg.bArrActiveLow[1].bValue);
+		MOTOR_INIT_ACTION_FIND_UHW:
+			switches.bUHW	:= GetLogicalState(FALSE, cfg.bArrActiveLow[4].bValue);
+	END_CASE
+END_IF
+
+
+//////////////////////////////
+// Handling of brakes
+//////////////////////////////
+
+IF ptrCfg^.bUseBrake THEN
+	// Checking for the change in brake control signal
+	trgBrake(CLK:=(bBrake <> i_bBrake_Ctrl));
+	IF trgBrake.Q THEN
+		// Assign the current value, so we could detect next change.
+		bBrake := i_bBrake_Ctrl;
+		// Bring the brake to set state after the delay of nDelay_Brake ms.
+		timer_Brake(IN:=FALSE);
+		timer_Brake(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nDelay_Brake));
+	END_IF
+	
+	timer_Brake();
+	IF timer_Brake.Q THEN
+		// Reset timer for brake actions
+		timer_Brake(IN:=FALSE);
+		// The control signal for brakes MUST be active low.
+		// Therefore the feedback should use the inverse of i_bBrake_Ctrl.
+		// Feedback active low is configured with bActiveLowBrake.
+		q_bBrake_Stat	:= GetLogicalState(NOT i_bBrake_Ctrl, cfg.bActiveLowBrake);
+	END_IF
+ELSE
+	ptrCfg^.bActiveLowBrake	:= FALSE;
+	cfg.bActiveLowBrake		:= FALSE;
+	q_bBrake_Stat			:= GetLogicalState(FALSE, cfg.bActiveLowBrake);
+END_IF
+
+q_nCouplerState	:= cfg.nCouplerState;	// Set coupler state output
+]]></ST>
+    </Implementation>
+    <Method Name="GetLogicalState" Id="{3a675f1a-7819-414a-ae93-030e56ccbed7}">
+      <Declaration><![CDATA[METHOD GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	GetLogicalState := NOT state;
+ELSE
+	GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_ResetConfig" Id="{cefd105e-0777-45a9-b272-dea41c909353}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_ResetConfig : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Copy relevant configuration to the simulator
+cfg.bArrActiveLow	:= ptrCfg^.bArrActiveLow;
+cfg.bUseBrake		:= ptrCfg^.bUseBrake;
+cfg.bActiveLowBrake	:= ptrCfg^.bActiveLowBrake;
+
+// Deactivate simulated limit switches
+switches.bLSTOP	:= GetLogicalState(FALSE, cfg.bArrActiveLow[0].bValue);
+switches.bLHW	:= GetLogicalState(FALSE, cfg.bArrActiveLow[1].bValue);
+switches.bREF	:= GetLogicalState(FALSE, cfg.bArrActiveLow[2].bValue);
+switches.bINDEX	:= GetLogicalState(FALSE, cfg.bArrActiveLow[3].bValue);
+switches.bUHW	:= GetLogicalState(FALSE, cfg.bArrActiveLow[4].bValue);
+switches.bUSTOP	:= GetLogicalState(FALSE, cfg.bArrActiveLow[5].bValue);
+
+	
+IF NOT cfg.bUseBrake THEN
+	// Brakes not used.
+	// Setting bActiveLowBrake to TRUE would just confuse the user.
+	// Clear the flag.
+	ptrCfg^.bActiveLowBrake	:= FALSE;
+	cfg.bActiveLowBrake		:= FALSE;
+	// Brakes released
+	q_bBrake_Stat	:= GetLogicalState(FALSE, ptrCfg^.bActiveLowBrake);
+ELSE
+	// Remember current brake state.
+	// Use to detect change in brake control signal.
+	bBrake			:= i_bBrake_Ctrl;
+	// Brakes released
+	q_bBrake_Stat	:= GetLogicalState(FALSE, ptrCfg^.bActiveLowBrake);
+END_IF
+
+// Reset INIT action recognition
+trgInitAction(CLK:=FALSE);
+
+cfg.nCouplerState	:= 8;
+nInitAction			:= 0;
+
+RPC_ResetConfig	:= E_MOTOR_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetCouplerState" Id="{45255316-3d56-412d-a07e-b4d5796053d0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetCouplerState : INT
+VAR_INPUT
+	nValue:	UINT;	// Coupler state. 8=OP, any other value is a ERROR, i.e. NON_OP
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nCouplerState	:= nValue;
+
+RPC_SetCouplerState	:= E_MOTOR_RPC_ERROR.OK;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDelay_Brake" Id="{d37c7772-71ab-4b7d-9736-d6e5579c27e4}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDelay_Brake : INT
+VAR_INPUT
+	nDelay:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nDelay_Brake	:= nDelay;
+
+RPC_SetDelay_Brake	:= E_MOTOR_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDelay_SwitchActive" Id="{ce038e10-9e91-4ba1-b9b4-92cde3a88785}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDelay_SwitchActive : INT
+VAR_INPUT
+	nDelay:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nDelay_SwitchActive	:= nDelay;
+
+RPC_SetDelay_SwitchActive:= E_MOTOR_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDelay_SwitchFind" Id="{881c1313-08da-4964-9d38-a5f20a6d981c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDelay_SwitchFind : INT
+VAR_INPUT
+	nDelay:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nDelay_SwitchFind	:= nDelay;
+
+RPC_SetDelay_SwitchFind	:= E_MOTOR_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetFailure_BrakeFeedback" Id="{da5c0f36-d8e6-4603-b82e-a8aa7d522646}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetFailure_BrakeFeedback : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute only if brakes are used
+IF cfg.bUseBrake THEN
+	// Swap brake active low level in order to cause failure
+	cfg.bActiveLowBrake	:= NOT ptrCfg^.bActiveLowBrake;
+END_IF
+
+RPC_SetFailure_BrakeFeedback	:= E_MOTOR_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_MOTOR">
+      <LineId Id="3" Count="29" />
+      <LineId Id="202" Count="2" />
+      <LineId Id="261" Count="2" />
+      <LineId Id="205" Count="3" />
+      <LineId Id="33" Count="123" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.GetLogicalState">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.RPC_ResetConfig">
+      <LineId Id="3" Count="5" />
+      <LineId Id="37" Count="5" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="13" Count="15" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="50" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.RPC_SetCouplerState">
+      <LineId Id="9" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.RPC_SetDelay_Brake">
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.RPC_SetDelay_SwitchActive">
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.RPC_SetDelay_SwitchFind">
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MOTOR.RPC_SetFailure_BrakeFeedback">
+      <LineId Id="3" Count="4" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

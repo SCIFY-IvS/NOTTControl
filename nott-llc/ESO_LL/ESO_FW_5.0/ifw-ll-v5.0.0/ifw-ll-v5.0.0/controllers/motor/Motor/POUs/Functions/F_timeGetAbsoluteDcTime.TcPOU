@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_timeGetAbsoluteDcTime" Id="{6a13050b-7de1-4074-8d3e-b4d423a6ff66}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+ *****************************************************************************
+ * timeGetAbsoluteDcTime: Adjust DC time based on the external time signal
+ *
+ *  IN   ptptime    : External time signal
+ *  IN   leapSecond : Leap Second 
+ *  OUT  dcTIME     : Adjusted TwinCAT DC time
+ ***************************************************************************** 
+ *)
+FUNCTION F_timeGetAbsoluteDcTime : BOOL
+VAR_INPUT
+	ptptime:			T_ASTRO_EL6688_DATA;
+	nLeapSecond:		DINT;
+	DcToExtTimeOffset:	LINT;
+END_VAR
+VAR_IN_OUT
+	dcTime:   ULINT;
+END_VAR
+VAR
+	val:		LINT	:= 0;
+	diff:		LINT	:= 0;
+	one_sec:	LINT	:= 1000000000;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+HRESULT timeGetAbsoluteDcTime(PTPTime ptptime, INT leapSecond, LONGLONG *dcTime)
+{
+	HRESULT hr = S_OK; 
+	LONGLONG val = 0;
+	LONGLONG diff = 0;
+	LONGLONG ONE_SEC = 1000000000;
+	
+	// Check if external time signal is connected
+	if (ptptime.not_connected)
+		return S_FALSE;
+
+	// If both variables are null means most probably they are not mapped.
+	if (ptptime.internal == 0 || ptptime.external == 0)
+		return S_FALSE;
+
+	diff = (ptptime.internal - ptptime.external) + (ONE_SEC * leapSecond) + ptptime.dcTcOffset;
+	*dcTime -=  diff;
+	return hr;
+}*)
+
+// Check if external time signal is connected
+IF ptptime.External_device_not_connected THEN
+	F_timeGetAbsoluteDcTime := FALSE;
+END_IF
+
+// If both variables are null means most probably they are not mapped.
+// TODO: Is it OR or AND ?
+IF ptptime.Internal_time_stamp = 0  OR  ptptime.External_time_stamp = 0 THEN
+	F_timeGetAbsoluteDcTime := FALSE;
+END_IF
+
+diff := (ULINT_TO_LINT(ptptime.Internal_time_stamp) - ULINT_TO_LINT(ptptime.External_time_stamp)) + 
+		(one_sec * nLeapSecond) + DcToExtTimeOffset;
+
+dcTime	:= dcTime - LINT_TO_ULINT(diff);
+
+F_timeGetAbsoluteDcTime := TRUE;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_timeGetAbsoluteDcTime">
+      <LineId Id="7" Count="0" />
+      <LineId Id="19" Count="17" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="65" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_SENSOR_STATUS_PRESS" Id="{4d50d8fe-8fcd-48cd-aae8-e7caae35e930}">
+    <Declaration><![CDATA[TYPE T_CRYO_SENSOR_STATUS_PRESS EXTENDS T_CRYO_SENSOR_STATUS :
+STRUCT
+	nType:		E_CRYO_SENSOR_TYPE_PRESS;
+
+	// Measured and calculated values
+	lrVoltage:		LREAL;	// Voltage [V]
+	lrPressure:		LREAL;	// Pressure [mbar]
+
+	// Status coming from the user evaluation.
+	// These flags indicate if the reading is outside the sensor operational range.
+	// Therefore, the voltage might be correctly measured but
+	// the pressure is outside what the sensor can measure.	
+	bValueInRange:		BOOL;	// Flag if reading is inside SENSOR(!) range
+	bValueOverrange:	BOOL;	// Flag if reading is outside SENSOR(!) range
+	bValueUnderrange:	BOOL;	// Flag if reading is outside SENSOR(!) range
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

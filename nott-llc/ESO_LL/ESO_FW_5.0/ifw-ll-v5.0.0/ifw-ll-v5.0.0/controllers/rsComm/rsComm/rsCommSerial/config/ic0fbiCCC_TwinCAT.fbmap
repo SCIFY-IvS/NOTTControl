@@ -1,0 +1,78 @@
+#*******************************************************************************
+# ESO - VLT Project
+#
+# "@(#) $Id: ic0fbiCCC_TwinCAT.fbmap,v 0.55 2011/09/29 15:55:00 vltsccm Exp $"
+#
+# who       when        what
+# --------  ----------  -------------------------------------------------------
+# dpopovic  2014-02-17  Created
+#
+#*******************************************************************************
+# ic0fbiCCC_TwinCAT.fbmap: Name Mapping File for 1HE and 4HE Cabinet Cooling Controller.
+#*******************************************************************************
+
+################################################################################
+# Firmware Info Mapping:
+#-------------------------------------------------------------------------------
+InfoDate:		info.sDate
+InfoDescription:	info.sDescription
+InfoName:		info.sName
+InfoPlatform:		info.sPlatform
+InfoSynopsis:		info.sSynopsis
+InfoVersionMajor:	info.nVersionMajor
+InfoVersionMinor:	info.nVersionMinor
+#-------------------------------------------------------------------------------
+
+################################################################################
+# General Control Parameters:
+#-------------------------------------------------------------------------------
+CtrlCommand:		ctrl.nCommand
+CtrlExecute:		ctrl.bExecute
+#-------------------------------------------------------------------------------
+
+################################################################################
+# General Status Parameters:
+#-------------------------------------------------------------------------------
+StatErrorCode:          stat.nErrorCode
+StatStatus:             stat.nStatus
+StatErrorText:          stat.sErrorText
+StatStatusText:         stat.sStatus
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Analog Input Signals:
+#
+# Temperatures [degC]
+# Flows [l/h]
+#-------------------------------------------------------------------------------
+StatAnlgIn0:            stat.lrTemp_outlet	# Outlet  Temperature
+StatAnlgIn1:            stat.lrTemp_inlet	# Inlet   Temperature
+StatAnlgIn2:            stat.lrTemp_cabinet	# Cabinet Temperature
+StatAnlgIn3:            stat.lrTemp_ambient	# Ambient Temperature
+StatAnlgIn4:            stat.lrFlow_1    	# Flow Rate 1
+StatAnlgIn5:            stat.lrFlow_2    	# Flow Rate 2 (Main Flow)
+StatAnlgIn6:            stat.lrFlow_3    	# Flow Rate 3
+
+#-------------------------------------------------------------------------------
+# Digital Input Signals:
+#-------------------------------------------------------------------------------
+StatDigIn0:             stat.bWarn_door_open		# Warning: Door open
+StatDigIn1:             stat.bWarn_cabinet_high		# Warning: Cabinet Temp too high
+StatDigIn2:             stat.bWarn_cabinet_no_control	# Warning: Cabinet Temp large error
+StatDigIn3:             stat.bWarn_outlet_high		# Warning: Outlet Temp too high
+StatDigIn4:             stat.bWarn_inlet_high		# Warning: Inlet Temp too high
+StatDigIn5:             stat.bWarn_airflow_insufficient	# Warning: Insufficient airflow
+StatDigIn6:             stat.bWarn_coolant_insufficient	# Warning: Insufficient coolant flow
+StatDigIn7:             stat.bWarn_relay1_warning	# Warning: Relay 1 warning
+StatDigIn8:             stat.bWarn_relay2_alarm		# Warning: Relay 2 alarm
+
+StatDigIn9:             stat.bFault_temp_sensor_ambient	# Fault: T sensor ambient
+StatDigIn10:            stat.bFault_temp_sensor_cabinet	# Fault: T sensor cabinet
+StatDigIn11:            stat.bFault_temp_sensor_inlet	# Fault: T sensor inlet
+StatDigIn12:            stat.bFault_temp_sensor_outlet	# Fault: T sensor outlet
+StatDigIn13:            stat.bFault_analog_supply	# Fault: Analog supply
+StatDigIn14:            stat.bFault_digital_supply	# Fault: Digital supply
+#-------------------------------------------------------------------------------
+
+
+# EOF

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="F_HMI_HEALTH_BUSY_TO_COLOR" Id="{5bee63c4-d21d-4893-ad17-c3b3ce655de5}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_HMI_HEALTH_BUSY_TO_COLOR : T_HMI_COLORS
+VAR_IN_OUT
+    fbHealthStatus : FB_HMI_HEALTH_STATUS;
+    fbBusyStatus   : FB_HMI_BUSY_STATUS;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF fbHealthStatus.bGood THEN
+	IF fbBusyStatus.bBusy THEN
+		F_HMI_HEALTH_BUSY_TO_COLOR.fg := E_HMI_COLORS.WHITE;
+		F_HMI_HEALTH_BUSY_TO_COLOR.bg := E_HMI_COLORS.BLUE;
+	ELSE
+		F_HMI_HEALTH_BUSY_TO_COLOR.fg := E_HMI_COLORS.BLACK;
+		F_HMI_HEALTH_BUSY_TO_COLOR.bg := E_HMI_COLORS.GREEN;
+	END_IF
+ELSIF fbHealthStatus.bBad THEN
+	F_HMI_HEALTH_BUSY_TO_COLOR.fg := E_HMI_COLORS.WHITE;
+	F_HMI_HEALTH_BUSY_TO_COLOR.bg := E_HMI_COLORS.RED;
+ELSIF fbHealthStatus.bWarning THEN
+	F_HMI_HEALTH_BUSY_TO_COLOR.fg := E_HMI_COLORS.WHITE;
+	F_HMI_HEALTH_BUSY_TO_COLOR.bg := E_HMI_COLORS.ORANGE;
+ELSE
+	F_HMI_HEALTH_BUSY_TO_COLOR.fg := E_HMI_COLORS.BLACK;
+	F_HMI_HEALTH_BUSY_TO_COLOR.bg := E_HMI_COLORS.GRAY;
+END_IF
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_HMI_HEALTH_BUSY_TO_COLOR">
+      <LineId Id="125" Count="17" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

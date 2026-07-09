@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_CFG" Id="{32fc4446-4a8f-4d0d-82d6-8ab82b55f48d}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_CFG :
+STRUCT
+	lrTemp_Cold:			LREAL := 283.0;		// Cool temperature limit [K] = 10 C
+	lrTemp_OP:				LREAL := 90.0;		// Operational temperature limit [K]
+	lrTemp_Warm:			LREAL := 293.0;		// Warm temperature limit [K] = 20 C
+	
+	
+	lrTemp_Sidecar:			LREAL := 120.0;		// Heater preamp target temperature [K]
+	lrTemp_DET_Target:		LREAL :=  40.0;		// Target Detector Interface temperature [K]
+	lrTemp_LowLimit:		LREAL :=  40.0;		// Lowest temperature limit [K]
+	
+
+	lrPress_Atm:			LREAL := 700.0;		// Atmospheric pressure limit   [mbar]
+	lrPress_InVac:			LREAL := 10.0E-1;	// In vacuum limit   [mbar]
+	lrPress_GoodVac:		LREAL := 10.0E-4;	// Good Vacuum limit [mbar]
+	
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

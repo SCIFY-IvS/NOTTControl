@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_IODEV_CH_REAL" Id="{8a68b279-065d-4872-9221-f35558df5cec}" SpecialFunc="None">
+    <Declaration><![CDATA[// FB for analog input signals of type REAL.
+// The EL3692 is one of input terminals that provide inputs as REAL.
+FUNCTION_BLOCK FB_IODEV_CH_REAL EXTENDS FB_IODEV_CHANNEL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Configuration parameters
+	// Configured for R/W OPC UA Data Access !!!
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	nConversion:	E_IODEV_CONVERSION	:= CONVERSION_IODEV_NONE;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrPar1:			LREAL 	:= 0.0;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrPar2:			LREAL 	:= 0.0;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrPar3:			LREAL 	:= 0.0;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_IODEV_CH_REAL">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

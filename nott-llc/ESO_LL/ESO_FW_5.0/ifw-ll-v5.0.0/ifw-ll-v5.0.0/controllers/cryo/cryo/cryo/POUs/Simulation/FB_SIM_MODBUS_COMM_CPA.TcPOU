@@ -1,0 +1,212 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_SIM_MODBUS_COMM_CPA" Id="{e00d1754-80cf-4ee4-b64d-13d42ce8724c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_MODBUS_COMM_CPA EXTENDS FB_SIM_MODBUS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ActivityDo();
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetSimReply" Id="{4e07b825-22a3-4144-995d-57762e8bb5ab}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	cmd:	STRING(16);		// MODBUS command. Only first 8 bytes are used
+END_VAR
+VAR
+	sReply:		ARRAY [0..300] OF BYTE;
+	sReply1:	STRING(255);
+	n2Bytes:	ARRAY [0..1] OF BYTE;	// 2 bytes
+	n4Bytes:	ARRAY [0..3] OF BYTE;	// 4 bytes
+	i:			INT;
+	nRegister:	INT;
+	nWords:		INT;
+	nPos:		INT;	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement simulator replies in FBs that EXTEND FB_SIM_MODBUS_COMM_BASE.
+//            Only case where cmd[1] = E_MODBUS_CMD_TYPE.READ should be implemented.
+
+IF cmd[1] = E_MODBUS_CMD_TYPE.WRITE THEN
+// This is a WRITE command.
+// Reply is the same as the command.
+(*
+	FOR i:=0 TO 8 DO
+		sReply[i]	:= cmd[i];
+	END_FOR
+	*)
+	M_GetSimReply := cmd;	
+ELSE
+// This is a READ command
+	// Get register number - cmd[2..3] swapped bytes
+	nRegister	:= M_ByteSwapINT(ADR(cmd[2]));
+
+	// Get number of words - cmd[4..5] swapped bytes
+	nWords	:= M_ByteSwapINT(ADR(cmd[4]));
+
+	sReply[0]	:= cmd[0];
+	sReply[1]	:= cmd[1];
+	sReply[2]	:= INT_TO_BYTE(nWords * 2);
+	
+	IF nRegister = 16#0001 THEN		// common data
+// nOperatingState
+// 30,001 - Operating State
+// 	3: stat.sOperatingState := 'Running';
+// Offset 3 + 0x2 = 3
+		nPos	:= 3;
+		n2Bytes := M_ByteSwap_INT_TO_BYTES(3);
+		M_InsertBytes_INT(s1:=sReply, s2:=n2Bytes, nPos:=nPos);
+
+// nCompressorRunning
+// 30,002 - Compressor Running == 1
+// Offset 3 + 1x2 = 5
+		nPos	:= 5;
+		n2Bytes := M_ByteSwap_INT_TO_BYTES(1);
+		M_InsertBytes_INT(s1:=sReply, s2:=n2Bytes, nPos:=nPos);
+
+// nPos	:= nPos + 2;
+// stat.lrWarningState := M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 7;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(0.0);
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+// nPos	:= nPos + 4;
+// stat.lrAlarmState := M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 11;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(0.0);
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+// lrCoolantInTemp
+// 30,007 - Coolant In Temp
+// Offset 3 + 6x2 = 15
+// nPos	:= nPos + 4;
+// stat.lrCoolantInTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 15;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(17.0,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+// lrCoolantOutTemp
+// 30,009 - Coolant Out Temp
+// Offset 3 + 8x2 = 19
+// nPos	:= nPos + 4;
+// stat.lrCoolantOutTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 19;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(28.5,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+// lrOilTemp
+// 30,011 - Oil Temp
+// Offset 3 + 10x2 = 23
+//nPos	:= nPos + 4;
+//stat.lrOilTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 23;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(25.0,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrHeliumTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 27;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(42.0,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+
+//nPos	:= nPos + 4;
+//stat.lrLowPressure	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 31;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(8.5,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrLowPressureAverage	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 35;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(8.5,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrHighPressure	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 39;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(21.0,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrHighPressureAverage	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 43;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(21.0,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrDeltaPressureAverage	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 47;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(12.0,1.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrMotorCurrent	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 51;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(12.1,0.09));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 4;
+//stat.lrHoursOfOperation	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+		nPos	:= 55;
+		n4Bytes := M_ByteSwap_REAL_TO_BYTES(M_GenerateRandom_REAL(1633.3,0.0));
+		M_InsertBytes_REAL(s1:=sReply, s2:=n4Bytes, nPos:=nPos);
+
+
+//nPos	:= nPos + 4;
+//stat.nPressureScale	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+		nPos	:= 59;
+		n2Bytes := M_ByteSwap_INT_TO_BYTES(1);
+		M_InsertBytes_INT(s1:=sReply, s2:=n2Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 2;
+//stat.nTempScale	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+		nPos	:= 61;
+		n2Bytes := M_ByteSwap_INT_TO_BYTES(1);
+		M_InsertBytes_INT(s1:=sReply, s2:=n2Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 2;
+//pPtr	:= ADR(pBuf[nPos]);
+//stat.nPanelSerialNumber	:= pPtr^;
+		nPos	:= 63;
+		n2Bytes := M_ByteSwap_UINT_TO_BYTES(50464);
+		M_InsertBytes_INT(s1:=sReply, s2:=n2Bytes, nPos:=nPos);
+
+//nPos	:= nPos + 2;
+//stat.nModelMajorMinor	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+		nPos	:= 65;
+		n2Bytes := M_ByteSwap_INT_TO_BYTES(539);
+		M_InsertBytes_INT(s1:=sReply, s2:=n2Bytes, nPos:=nPos);
+
+	END_IF
+
+
+	// TODO
+	// Calculate CRC for the first 6 bytes
+	//	crc	:= M_CRC(ADR(cmd),6);
+	
+	FOR i:=0 TO 254 DO
+		sReply1[i]	:= sReply[i];
+	END_FOR
+
+	M_GetSimReply := sReply1;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_MODBUS_COMM_CPA">
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SIM_MODBUS_COMM_CPA.M_GetSimReply">
+      <LineId Id="577" Count="166" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

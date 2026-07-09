@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcMD2TcDM DataVersion="0.4.0.0">
+	<Name>Motion Designer DL Servo</Name>
+	<DcLinks>
+		<DcLink>
+			<Name>DC link 1</Name>
+			<Umain>
+				<ValueInUnit>12</ValueInUnit>
+				<UnitSystem>VoltageUnit</UnitSystem>
+				<Unit>V</Unit>
+			</Umain>
+			<SupplyType>1</SupplyType>
+			<BrakeResistanceConnection>1</BrakeResistanceConnection>
+			<ChopperThreshold>
+				<ValueInUnit>50</ValueInUnit>
+				<UnitSystem>VoltageUnit</UnitSystem>
+				<Unit>V</Unit>
+			</ChopperThreshold>
+		</DcLink>
+	</DcLinks>
+</TcMD2TcDM>

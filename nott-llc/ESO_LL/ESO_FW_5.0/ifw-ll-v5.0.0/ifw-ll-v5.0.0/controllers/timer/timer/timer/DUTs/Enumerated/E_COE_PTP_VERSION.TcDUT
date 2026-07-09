@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_COE_PTP_VERSION" Id="{6d06dd45-7ee4-41e1-ad0d-1447d3fecea3}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_COE_PTP_VERSION :
+(
+	UNKONWN := -1,
+	PTPv1 := 16,
+	PTPv2 := 32
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_RP_BRANCH_A" Id="{5a11f014-8658-40c3-a394-553fde72265c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_RP_BRANCH_A EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_RP_BRANCH_A">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

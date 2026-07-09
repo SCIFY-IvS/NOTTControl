@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CPA_CFG" Id="{77f440e0-3078-40e0-aeb9-7cd8692b6ba5}">
+    <Declaration><![CDATA[TYPE T_CRYO_CPA_CFG EXTENDS T_RS_BASE_CFG:
+STRUCT
+	// Register Addresses
+	nAddrCommon:		INT	:= 16#0001;	// 16#0001
+
+	// Number of bytes to read
+	// These are ONLY data bytes. Total bytes to read is higher (+5) 
+	nWordsCommon:		INT	:= 32;	// 64w=128 bytes
+	
+	nSlaveID:			BYTE := 1;	// Slave ID
+	bDevUsed:			BOOL := TRUE;	
+
+	nPosOffset:	INT	:= 0;	// byte position in the buffer - for testing
+	
+	// Thresholds for 'service due' warnings.
+	// Warning 'Service due in xxx hours' will appear if less than the threshold is left.
+	lrServiceDue_Compressor:	LREAL	:= 1000.0; // hours
+	lrServiceDue_PulseTube:		LREAL	:= 2000.0; // hours
+	
+	
+//
+// Alarms and warnings
+//
+	
+(*
+7.7.7 Error and warning set points
+==================================
+"High pressure too High!" YES 400 PSIG (27.6bar) 375 PSIG (25.9 bar)
+"High pressure too Low!" YES 150 PSIG (10.3bar) 170 PSIG (11.7 bar)
+“Low Pressure Too Low!” YES 40 PSIG (2.8 bar) 50 PSIG (3.4 bar)
+“Low Pressure Too High!" YES 250 PSIG (17.2 bar) 240 PSIG (16.5 bar)
+"Delta Pressure Too High!" YES 400 PSIG (27.6bar) 275 PSIG (19 bar)
+"Delta Pressure Too Low!" YES 50 PSIG (3.4 bar) 75 PSIG (5.2 bar)
+"Static Pressure Too High!" YES 300 PSIG (20.7 bar) 280 PSIG (19.3 bar)
+"Static Pressure Too Low!" YES 100 PSIG (6.9 bar) 170 PSIG (11.7 bar)
+"Water In Temp Too High" YES 110°F (43°C) 80°F (27°C)
+"Water In Temp Too Low" YES 40°F (4°C) 50°F (10°C)
+“Water Out Temp Too High!” YES 125°F (52°C) 110°F (43°C)
+"Water Out Temp Too Low" YES 40°F (4°C) 50°F (10°C)
+“Helium Temp Too High!” YES 190°F (88°C) 120°F (49°C)
+“Helium Temp Too Low!" YES 40°F (4°C) 50°F (10°C)
+“Oil Temp Too High!” YES 125°F (52°C) 110°F (43°C)
+“Oil Temp Too Low!" YES 40°F (4°C) 50°F (10°C)
+“Compressor Motor Current Too Low!” YES < 5A ≥ 5 A
+
+
+Warning Description Trip / Clear
+================================
+"High Pressure Running High!" 375 PSIG (25.9bar)
+"High Pressure Running Low!" 170 PSIG (11.7bar)
+“Low Pressure Running Low!” 50 PSIG (3.4 bar)
+“Low Pressure Running High!" 240 PSIG (16.5 bar)
+"Delta Pressure Running High!" 275 PSIG (19.0bar)
+"Delta Pressure Running Low!" 75 PSIG (5.2 bar)
+"Static Pressure Running High!" 280 PSIG (19.3 bar)
+"Static Pressure Running Low!" 170 PSIG (11.7 bar)
+"Water In Temp Running High" 85°F (29°C)
+"Water In Temp Running Low" 45°F (7°C)
+“Water Out Temp Running High!” 110°F (43°C)
+"Water Out Temp Running Low" 45°F (7°C)
+“Helium Temp Running High!” 170°F (77°C)
+“Helium Temp Running Low!" 45°F (7°C)
+“Oil Temp Running High!” 110°F (43°C)
+“Oil Temp Running Low!" 45°F (7°C)
+
+*)
+	//
+	// Diagnostics configuration.
+	// Low and high limits for alarms and errors.
+	//
+	aDiag:	ARRAY [0..8] OF T_CRYO_CPA_DIAG_CFG := [ 
+		(sLabel:='Water IN',	sUnits:='ºC',	nBitLow:=1, nBitHigh:=0,
+			rErrorLow:=4.0, 		rAlarmLow_CPA:=7.0,	rAlarmLow_ESO:=7.0,	
+			rAlarmHigh_ESO:=27.0,	rAlarmHigh_CPA:=29.0,	rErrorHigh:=43.0),
+		(sLabel:='Water OUT',	sUnits:='ºC', 	nBitLow:=3, nBitHigh:=2,
+			rErrorLow:=4.0, 		rAlarmLow_CPA:=7.0, 	rAlarmLow_ESO:=7.0, 
+			rAlarmHigh_ESO:=50.0, 	rAlarmHigh_CPA:=43.0, 	rErrorHigh:=52.0),
+		(sLabel:='Oil temperature', sUnits:='ºC',  	nBitLow:=5, nBitHigh:=4,
+			rErrorLow:=4.0, 		rAlarmLow_CPA:=7.0, 	rAlarmLow_ESO:=7.0, 
+			rAlarmHigh_ESO:=50.0, 	rAlarmHigh_CPA:=43.0, 	rErrorHigh:=52.0),
+		(sLabel:='Helium temperature', 				sUnits:='ºC',  	nBitLow:=7, nBitHigh:=6,
+			rErrorLow:=4.0, 		rAlarmLow_CPA:=7.0, 	rAlarmLow_ESO:=7.0, 
+			rAlarmHigh_ESO:=80.0, 	rAlarmHigh_CPA:=77.0, 	rErrorHigh:=88.0),
+		(sLabel:='Operational Helium low pressure',	sUnits:='bar',  	nBitLow:=9, nBitHigh:=8,
+			rErrorLow:=2.8, 		rAlarmLow_CPA:=3.4, 	rAlarmLow_ESO:=4.0, 
+			rAlarmHigh_ESO:=13.0, 	rAlarmHigh_CPA:=16.5, 	rErrorHigh:=17.2),
+		(sLabel:='Operational Helium high pressure',	sUnits:='bar',  	nBitLow:=11, nBitHigh:=10,
+			rErrorLow:=10.3, 		rAlarmLow_CPA:=11.7, 	rAlarmLow_ESO:=17.0, 
+			rAlarmHigh_ESO:=25.0, 	rAlarmHigh_CPA:=25.9, 	rErrorHigh:=27.6),
+		(sLabel:='Delta operational Helium pressure',	sUnits:='bar',  	nBitLow:=13, nBitHigh:=12,
+			rErrorLow:=3.4, 		rAlarmLow_CPA:=5.2, 	rAlarmLow_ESO:=6.0, 
+			rAlarmHigh_ESO:=18.0, 	rAlarmHigh_CPA:=19.0, 	rErrorHigh:=27.6),
+		(sLabel:='Static Helium low pressure',			sUnits:='bar',  	nBitLow:=18, nBitHigh:=17,
+			rErrorLow:=6.9, 		rAlarmLow_CPA:=11.7, 	rAlarmLow_ESO:=12.0, 
+			rAlarmHigh_ESO:=19.0, 	rAlarmHigh_CPA:=19.3, 	rErrorHigh:=20.7),
+		(sLabel:='Static Helium high pressure',		sUnits:='bar',  	nBitLow:=18, nBitHigh:=17,
+			rErrorLow:=6.9, 		rAlarmLow_CPA:=11.7, 	rAlarmLow_ESO:=12.0, 
+			rAlarmHigh_ESO:=19.0, 	rAlarmHigh_CPA:=19.3, 	rErrorHigh:=20.7)];
+	
+	// Dynamic pressure limits.
+	// Limits depend on compressor state 
+	// ON 	- Operational pressure
+	// OFF - Static pressure
+//	stActPressLimit_Low:	T_CRYO_CPA_ACTIVE_LIMITS;
+//	stActPressLimit_High:	T_CRYO_CPA_ACTIVE_LIMITS;
+	// Array of limits. Dynamically set
+	aLimits:	ARRAY [0..6] OF T_CRYO_CPA_ACTIVE_LIMITS;	
+	aLimits_OP:	ARRAY [0..6] OF T_CRYO_CPA_ACTIVE_LIMITS;	
+	aLimits_ST:	ARRAY [0..6] OF T_CRYO_CPA_ACTIVE_LIMITS;	
+
+	
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_TCP_RT_CLIENT_INFO" Id="{194906f4-a9c1-49c8-b657-b84641d4358c}">
+    <Declaration><![CDATA[TYPE T_TCP_RT_CLIENT_INFO :
+STRUCT
+(*
+	Driver Information
+
+	Change LOG:
+	0.1.0.0		- First version.
+*)
+
+	sDate:			STRING(32)	:= '2018-10-09';
+	sDescription:	STRING(80) 	:= 'TCP Client RT';
+	sName:			STRING(64)	:= 'FB_TCP_CLIENT';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'TCP Client RT';
+	nVersionMajor:	DINT		:= 0;
+	nVersionMinor:	DINT		:= 1;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

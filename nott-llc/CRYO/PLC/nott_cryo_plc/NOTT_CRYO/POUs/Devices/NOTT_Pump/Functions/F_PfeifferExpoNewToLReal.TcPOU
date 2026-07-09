@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_PfeifferExpoNewToLReal" Id="{5625a485-d78c-4dbc-8e4e-b8320cc8f8b2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_PfeifferExpoNewToLReal : LREAL
+VAR_INPUT
+	sVal : STRING;   // expected 6 chars, e.g. '100023'
+END_VAR
+VAR
+	sMant : STRING(4);
+	sExp  : STRING(2);
+	nMant : DINT;
+	nExp  : DINT;
+	lrVal : LREAL;
+	i     : DINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[F_PfeifferExpoNewToLReal := 0.0;
+
+IF LEN(sVal) <> 6 THEN
+	RETURN;
+END_IF
+
+sMant := LEFT(sVal, 4);     // aaaa
+sExp  := RIGHT(sVal, 2);    // bb
+
+nMant := STRING_TO_DINT(sMant);
+nExp  := STRING_TO_DINT(sExp) - 20;
+
+// (aaaa / 1000) * 10^(bb-20)
+lrVal := DINT_TO_LREAL(nMant) / 1000.0;
+
+IF nExp > 0 THEN
+	FOR i := 1 TO nExp DO
+		lrVal := lrVal * 10.0;
+	END_FOR
+ELSIF nExp < 0 THEN
+	FOR i := 1 TO -nExp DO
+		lrVal := lrVal / 10.0;
+	END_FOR
+END_IF
+
+F_PfeifferExpoNewToLReal := lrVal;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

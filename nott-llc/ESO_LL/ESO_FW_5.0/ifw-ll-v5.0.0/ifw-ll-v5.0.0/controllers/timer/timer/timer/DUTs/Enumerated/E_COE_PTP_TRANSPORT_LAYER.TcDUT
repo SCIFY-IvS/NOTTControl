@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_COE_PTP_TRANSPORT_LAYER" Id="{6b1bab8c-e7aa-4cb3-92ca-7eed67ffb775}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_COE_PTP_TRANSPORT_LAYER :
+(
+	UNKNOWN := -1,
+	PTP_OVER_ETHERNET := 0,
+	PTP_OVER_UDP := 1
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

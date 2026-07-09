@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="F_Integer2IpAddress" Id="{0b2d4290-56aa-4cb2-a456-9b1b207b370f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_Integer2IpAddress : Tc2_System.T_IPv4Addr
+VAR_INPUT
+	IpAddress : T_IP_ADDRESS;
+END_VAR
+VAR
+	IpAddressArray : Tc2_System.T_IPv4AddrArr;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IpAddressArray[3] := IpAddress.ipAdr[0];
+IpAddressArray[2] := IpAddress.ipAdr[1];
+IpAddressArray[1] := IpAddress.ipAdr[2];
+IpAddressArray[0] := IpAddress.ipAdr[3];
+
+F_Integer2IpAddress := F_CreateIPv4Addr( IpAddressArray );]]></ST>
+    </Implementation>
+    <LineIds Name="F_Integer2IpAddress">
+      <LineId Id="30" Count="4" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="E_TIMER_STATE" Id="{6e31b982-3c20-4935-bd49-546cc974fe82}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TIMER_STATE :
+(
+	STATE_TIMER_NONE				:= -1,
+	STATE_TIMER_NOT_INIT,
+	STATE_TIMER_INIT,
+	STATE_TIMER_IDLE,
+	STATE_TIMER_ARMED,
+	STATE_TIMER_ACTIVE,
+	STATE_TIMER_ERROR
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

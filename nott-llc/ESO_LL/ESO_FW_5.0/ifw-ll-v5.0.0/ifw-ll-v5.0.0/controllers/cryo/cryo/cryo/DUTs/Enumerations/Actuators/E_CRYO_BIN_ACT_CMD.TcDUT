@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_BIN_ACT_CMD" Id="{ad374623-bb86-471f-a131-3c0e9e1b8f68}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_BIN_ACT_CMD :
+(
+	NONE	:= 0,
+	OFF 	:= 1,
+	ON		:= 2
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

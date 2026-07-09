@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="E_MA_ADC_MOUNTING" Id="{50126455-9f14-4bcb-b3a7-40a2b3429cc8}">
+    <Declaration><![CDATA[TYPE E_MA_ADC_MOUNTING :
+(
+	// ADC positions should be the same due to oposite mounting of ADC units,
+	// i.e. ADC2 = ADC1
+	MA_ADC_MOUNTING_OPOSITE_SIDE := 0,
+	// ADC positions should have oposite vales due to the same mounting of both ADC units,
+	// i.e. ADC2 = -ADC1
+	MA_ADC_MOUNTING_SAME_SIDE := 1
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

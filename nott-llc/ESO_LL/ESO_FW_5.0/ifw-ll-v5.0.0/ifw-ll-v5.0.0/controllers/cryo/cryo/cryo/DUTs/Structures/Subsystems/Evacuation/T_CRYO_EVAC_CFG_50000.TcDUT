@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_EVAC_CFG_50000" Id="{0d2d618c-2494-4803-a57f-2ee048d22910}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVAC_CFG_50000 :
+STRUCT
+	// Pressure sensor gauge types
+	nType_VAG1:		E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAG2:		E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAG3:		E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAGF1:	E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAGF2:	E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAGG1:	E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAGG2:	E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+
+	// Flag is pressures are simulated.
+	// TODO: Define individual flags for each sensor.
+	bPressSimulation:	BOOL := FALSE;	
+
+	lrThld_Prevac:			LREAL := 0.1;	// Prevacuum pressure threshold [mbar] 
+	lrThld_PrevacHigh:		LREAL := 5.0;	// Prevacuum pressure too high threshold [mbar]
+	lrThld_Vacuum:			LREAL := 0.0001;// At this Cryo pressure evacuation has started [mbar]
+	
+	tDelay:		TIME := T#3S;	// Delay after closing all valves before stopping Pumps
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

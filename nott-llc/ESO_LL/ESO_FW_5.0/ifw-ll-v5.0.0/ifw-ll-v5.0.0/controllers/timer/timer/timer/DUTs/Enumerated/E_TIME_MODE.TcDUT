@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_TIME_MODE" Id="{1e1076e5-220e-466a-9cda-9ed78b3af750}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TIME_MODE :
+(
+	LOCAL,
+    UTC_PTP,
+	UTC_NTP,
+	UTC,
+    SIMULATION
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_CH_CTRL" Id="{a0281544-98e0-432b-84e2-a4fbfbb47986}">
+    <Declaration><![CDATA[TYPE T_SA_CH_CTRL :
+STRUCT
+	//
+	// Control structure for a single channel/positioner.
+	//
+	
+	//
+	// Active command.
+	// Setting nCmd to something other than NONE will
+	// trigger execution of commands REF, STOP, MOV.
+	//
+	nCmd:	E_SA_CH_CMD := E_SA_CH_CMD.NONE;	// Active command
+
+	lrPos:	LREAL;		// Position in User Units, i.e. [deg] or [mm]
+	lrOff:	LREAL;		// Position offset in User Units, i.e. [deg] or [mm]
+	lrVel:	LREAL;		// Velocity in User Units, i.e. [deg/s] or [mm/sec]
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

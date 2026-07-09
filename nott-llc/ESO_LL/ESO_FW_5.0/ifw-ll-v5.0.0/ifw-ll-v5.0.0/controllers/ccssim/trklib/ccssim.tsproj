@@ -1,0 +1,3621 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.32">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-00000000003E}" TcBaseType="true" HideSubItems="true">IPADDR</Name>
+			<BitSize>32</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>4</Elements>
+			</ArrayInfo>
+			<Format>
+				<Printf>%d.%d.%d.%d</Printf>
+				<Parameter>[3]</Parameter>
+				<Parameter>[2]</Parameter>
+				<Parameter>[1]</Parameter>
+				<Parameter>[0]</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{20B39C3A-F540-49EF-8434-28702C07488B}">PointingKernelPositions</Name>
+			<BitSize>960</BitSize>
+			<SubItem>
+				<Name>target_observed_altaz</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<ArrayInfo>
+					<LBound>0</LBound>
+					<Elements>2</Elements>
+				</ArrayInfo>
+				<BitSize>128</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>current_observed_altaz</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<ArrayInfo>
+					<LBound>0</LBound>
+					<Elements>2</Elements>
+				</ArrayInfo>
+				<BitSize>128</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>time_lst</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>time_tai</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>time_utc</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>north_angle</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pupil_angle</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>elevation_direction_angle</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>576</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>radec_at_altaz_at_requested_xy</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<ArrayInfo>
+					<LBound>0</LBound>
+					<Elements>2</Elements>
+				</ArrayInfo>
+				<BitSize>128</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>observed_altaz_at_requested_xy</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<ArrayInfo>
+					<LBound>0</LBound>
+					<Elements>2</Elements>
+				</ArrayInfo>
+				<BitSize>128</BitSize>
+				<BitOffs>768</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>parallactic_angle</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>896</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000041}" TcBaseType="true" HideSubItems="true" CName="AmsNetId">AMSNETID</Name>
+			<BitSize>48</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>6</Elements>
+			</ArrayInfo>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d</Printf>
+				<Parameter>[0]</Parameter>
+				<Parameter>[1]</Parameter>
+				<Parameter>[2]</Parameter>
+				<Parameter>[3]</Parameter>
+				<Parameter>[4]</Parameter>
+				<Parameter>[5]</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000042}" TcBaseType="true" CName="AmsAddr">AMSADDR</Name>
+			<BitSize>64</BitSize>
+			<SubItem>
+				<Name>netId</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000041}">AMSNETID</Type>
+				<BitSize>48</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>port</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000004}">WORD</Type>
+				<BitSize>16</BitSize>
+				<BitOffs>48</BitOffs>
+			</SubItem>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d:%d</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+			<Format Name="Iec">
+				<Printf>(netId:=[%d.%d.%d.%d.%d.%d], port :=%d)</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{049AFE5A-58E6-4FE5-B980-2A0250BE5D02}">TrkEnvironment</Name>
+			<BitSize>256</BitSize>
+			<SubItem>
+				<Name>temperature</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pressure</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>humidity</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>lapserate</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>192</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{A43B66EE-63AE-492C-8AD4-C14C4511BE67}"/>
+				<Hide GUID="{B79896E1-4F70-4860-9F05-9ADD0041140D}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{B20151A0-127E-4FEC-8580-88B0462A0ED6}">TrkSiteConstants</Name>
+			<BitSize>192</BitSize>
+			<SubItem>
+				<Name>longitude</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>latitude</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>height</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{54E29DB2-5FB7-4CCE-9241-C355A71CBB91}">TrkPolarMotion</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>x</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>y</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{260AC415-F646-450C-B3D0-7610FCDBAEFA}">CcsData</Name>
+			<BitSize>768</BitSize>
+			<SubItem>
+				<Name>environment</Name>
+				<Type GUID="{049AFE5A-58E6-4FE5-B980-2A0250BE5D02}">TrkEnvironment</Type>
+				<BitSize>256</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>site</Name>
+				<Type GUID="{B20151A0-127E-4FEC-8580-88B0462A0ED6}">TrkSiteConstants</Type>
+				<BitSize>192</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>motion</Name>
+				<Type GUID="{54E29DB2-5FB7-4CCE-9241-C355A71CBB91}">TrkPolarMotion</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>dut</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>576</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>equinox</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>wavelength</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{92413486-570E-408C-988A-C47B1BF3BCB2}">TrkMeanCoordinates</Name>
+			<BitSize>512</BitSize>
+			<SubItem>
+				<Name>alpha</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>delta</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>epoch</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>equinox</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>192</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pma</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pmd</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>radvel</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>parallax</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{EA687772-E71C-41D7-9C8E-FAF6CB02A39C}"/>
+				<Hide GUID="{2314B97F-9E96-4AD4-8D64-368F442D233E}"/>
+				<Hide GUID="{5AD99B79-E4B4-49C3-9784-089F322504A5}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{0E053887-731F-93DA-22FF-DBB399F17C43}" AutoDeleteType="true">T_MUDPI_CFG</Name>
+			<BitSize>160</BitSize>
+			<SubItem>
+				<Name>enabled</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+				<Comment><![CDATA[ True if tracking data is sent via MUDPI protocol]]></Comment>
+				<BitSize>8</BitSize>
+				<BitOffs>0</BitOffs>
+				<Default>
+					<Bool>false</Bool>
+				</Default>
+			</SubItem>
+			<SubItem>
+				<Name>address</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<Comment><![CDATA[ Destination IP address for the data as UDINT]]></Comment>
+				<BitSize>32</BitSize>
+				<BitOffs>32</BitOffs>
+				<Default>
+					<Value>0</Value>
+				</Default>
+			</SubItem>
+			<SubItem>
+				<Name>destination_port</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+				<Comment><![CDATA[ Destination port for the data]]></Comment>
+				<BitSize>16</BitSize>
+				<BitOffs>64</BitOffs>
+				<Default>
+					<Value>10000</Value>
+				</Default>
+			</SubItem>
+			<SubItem>
+				<Name>source_port</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+				<Comment><![CDATA[ Source port of the data]]></Comment>
+				<BitSize>16</BitSize>
+				<BitOffs>80</BitOffs>
+				<Default>
+					<Value>8000</Value>
+				</Default>
+			</SubItem>
+			<SubItem>
+				<Name>topic_id</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<Comment><![CDATA[ MUDPI Topic identity]]></Comment>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+				<Default>
+					<Value>500</Value>
+				</Default>
+			</SubItem>
+			<SubItem>
+				<Name>component_id</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+				<Comment><![CDATA[ MUDPI component identity]]></Comment>
+				<BitSize>16</BitSize>
+				<BitOffs>128</BitOffs>
+				<Default>
+					<Value>1</Value>
+				</Default>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library" AutoDeleteType="true">T_TIME_INFO</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>time_offset</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000C}">LINT</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>leap_second</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>time_mode</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+				<Default>
+					<Value>0</Value>
+				</Default>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{0D940E31-94E6-3942-9659-F8BEC0BBACA8}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{1C5E8191-65E5-4B10-A3D9-1D62C87554FF}">TrkPomTerms</Name>
+			<BitSize>576</BitSize>
+			<SubItem>
+				<Name>ia</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>ie</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>tf</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>tx</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>an</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>aw</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>npae</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>ca</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{373C442B-EF1C-4609-94BD-4230EE2B4E82}"/>
+				<Hide GUID="{AB0D9311-049D-4107-ACD0-887379C0CB42}"/>
+				<Hide GUID="{F2D82FAD-AF9E-419E-A5C1-2F26A91CB2C7}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{93C25DB9-32AE-49ED-8BC0-F208B1DA179C}">TimeInfo</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>offset</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000C}">LINT</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>leap_second</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>mode</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{508DE500-D202-454D-8137-65406280714C}"/>
+				<Hide GUID="{FC7990F6-11FB-401D-85AE-8E177B95F8FE}"/>
+				<Hide GUID="{3733B68F-46D2-4A0B-A3BE-9DBFEF6D1BC7}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{FBFA93C8-00C5-4B25-A578-D1C6B8CCAC16}">TrkMappa</Name>
+			<BitSize>1344</BitSize>
+			<SubItem>
+				<Name>par1</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par2</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par3</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par4</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>192</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par5</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par6</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par7</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par8</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par9</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par10</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>576</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par11</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par12</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par13</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>768</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par14</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>832</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par15</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>896</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par16</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>960</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par17</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1024</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par18</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1088</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par19</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1152</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par20</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1216</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par21</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1280</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{D102DB16-1583-4064-B0B2-087EE33ECFA7}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{4C404B50-9D37-4C1A-865B-060330FE7FD8}">TrkAoppa</Name>
+			<BitSize>896</BitSize>
+			<SubItem>
+				<Name>par1</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par2</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par3</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par4</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>192</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par5</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par6</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par7</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par8</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par9</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par10</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>576</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par11</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par12</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par13</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>768</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par14</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>832</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{1FF32D32-AF29-41BE-A456-1166D835F7CE}">SlaParams</Name>
+			<BitSize>2240</BitSize>
+			<SubItem>
+				<Name>mappa</Name>
+				<Type GUID="{FBFA93C8-00C5-4B25-A578-D1C6B8CCAC16}">TrkMappa</Type>
+				<BitSize>1344</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>aoppa</Name>
+				<Type GUID="{4C404B50-9D37-4C1A-865B-060330FE7FD8}">TrkAoppa</Type>
+				<BitSize>896</BitSize>
+				<BitOffs>1344</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{250F9509-3AFF-475A-96D4-FFABBB4AE5B0}">TimeInfo</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>offset</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000C}">LINT</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>leap_second</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000006}">INT</Type>
+				<BitSize>16</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>mode</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{FEC34917-A781-40A2-A88E-BE204582B209}"/>
+				<Hide GUID="{CA651E0A-05F3-41E5-A508-40799E24E77A}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{C54078A5-7668-499A-8F9F-9F7741190E0F}">SlaMappa</Name>
+			<BitSize>1344</BitSize>
+			<SubItem>
+				<Name>par1</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par2</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par3</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par4</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>192</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par5</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par6</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par7</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par8</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par9</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par10</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>576</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par11</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par12</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par13</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>768</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par14</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>832</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par15</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>896</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par16</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>960</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par17</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1024</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par18</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1088</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par19</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1152</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par20</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1216</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par21</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>1280</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{0CA3F4FE-895B-45E5-A58E-18B4A8FBFA43}"/>
+				<Hide GUID="{E4F07E4D-7CE3-46DF-9AE6-30863EC286E8}"/>
+				<Hide GUID="{3374560B-E505-413A-9B26-29BEBC714840}"/>
+				<Hide GUID="{AFEF7166-EA2E-4351-959E-D41EDDF113B6}"/>
+				<Hide GUID="{DDB03F9F-BD11-45A7-977A-AFFB605AAFA8}"/>
+				<Hide GUID="{00E6E742-1E12-4876-B481-98960F833BB9}"/>
+				<Hide GUID="{E5913ACC-9B47-48C2-B753-EF6E7FDF1CC6}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{E87DD8EA-7465-4059-A5D3-DA46B4FBB7E1}">SlaAoppa</Name>
+			<BitSize>896</BitSize>
+			<SubItem>
+				<Name>par1</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par2</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par3</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par4</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>192</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par5</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par6</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>320</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par7</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par8</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>448</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par9</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par10</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>576</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par11</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par12</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par13</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>768</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>par14</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>832</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{4311DDBC-E303-4C4A-9C88-95956A136A3C}"/>
+				<Hide GUID="{E2A456FA-B199-49DF-B140-FFC524DB5F28}"/>
+				<Hide GUID="{E8F8C07F-C0CF-42E1-8281-AE6C041B7F66}"/>
+				<Hide GUID="{0CD4FF7B-BD8D-43F8-B341-B1CAC4286FF4}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{082D96CF-EB15-47FF-931F-C8A4BD575526}">SlaParams</Name>
+			<BitSize>2240</BitSize>
+			<SubItem>
+				<Name>mappa</Name>
+				<Type GUID="{C54078A5-7668-499A-8F9F-9F7741190E0F}">SlaMappa</Type>
+				<BitSize>1344</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>aoppa</Name>
+				<Type GUID="{E87DD8EA-7465-4059-A5D3-DA46B4FBB7E1}">SlaAoppa</Type>
+				<BitSize>896</BitSize>
+				<BitOffs>1344</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010035-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoEthProtocol</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>CheckFrame</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nVLanTag</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nTimeStamp</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>LinkStatusChanged</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>bLinkError</Name>
+					<Type GUID="{9060AE9D-214D-4685-A4C0-CD1082626764}">BOOL32</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" TcBaseType="true">ETYPE_VLAN_HEADER</Name>
+			<BitSize>32</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+		</DataType>
+		<DataType>
+			<Name GUID="{CC07E0A0-FC03-45CD-BFD9-D46B7C731E7C}" TcBaseType="true">ETHERNET_ADDRESS</Name>
+			<BitSize>48</BitSize>
+			<SubItem>
+				<Name>b</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000001}">BYTE</Type>
+				<ArrayInfo>
+					<LBound>0</LBound>
+					<Elements>6</Elements>
+				</ArrayInfo>
+				<BitSize>48</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{F45D8924-F151-4141-9296-7C8BB697BD07}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010096-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoArpPingRecv</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>ArpReply</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>macAddr</Name>
+					<Type GUID="{CC07E0A0-FC03-45CD-BFD9-D46B7C731E7C}">ETHERNET_ADDRESS</Type>
+					<BitSize>48</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>PingReply</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{0301009E-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoArpPing</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>PingRequest</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" Optional="0">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}" Optional="0">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>ArpRequest</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>macAddr</Name>
+					<Type GUID="{CC07E0A0-FC03-45CD-BFD9-D46B7C731E7C}" PointerTo="1" Optional="0">ETHERNET_ADDRESS</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>RegisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010096-0000-0000-E000-000000000064}">ITcIoArpPingRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>UnregisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010096-0000-0000-E000-000000000064}">ITcIoArpPingRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>CheckReceived</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{0301009D-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoIpStackControl</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>DeleteArpCache</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+			<Method>
+				<Name>GetIpData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>pIpAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" PointerTo="1">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pIpSubnetMask</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" PointerTo="1">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pIpGateway</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" PointerTo="1">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010095-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoUdpProtocolRecv</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>ReceiveData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpDestPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpSrcPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010097-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoUdpProtocol</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>SendData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipDestAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpDestPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpSrcPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>bCalcUdpCheckSum</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000030}" Optional="0">BOOL</Type>
+					<BitSize>8</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>CheckReceived</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+			<Method>
+				<Name>RegisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>udpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010095-0000-0000-E000-000000000064}">ITcIoUdpProtocolRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>UnregisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>udpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{7CECC506-F55F-4594-B611-972D650865D2}" TcBaseType="true">TCPIP_EVENT</Name>
+			<BitSize>32</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_NONE]]></Text>
+				<Enum>0</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_ERROR]]></Text>
+				<Enum>1</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_RESET]]></Text>
+				<Enum>2</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_TIMEOUT]]></Text>
+				<Enum>3</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_ESTABLISHED]]></Text>
+				<Enum>4</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_INCOMING]]></Text>
+				<Enum>5</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_CLOSED]]></Text>
+				<Enum>6</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_IDLE]]></Text>
+				<Enum>7</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_DATA_RECEIVED]]></Text>
+				<Enum>8</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_DATA_SENT]]></Text>
+				<Enum>9</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_KEEP_ALIVE]]></Text>
+				<Enum>10</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_LINKCONNECT]]></Text>
+				<Enum>11</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_LINKDISCONNECT]]></Text>
+				<Enum>12</Enum>
+			</EnumInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010099-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoTcpProtocolRecv</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>ReceiveData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>ReceiveEvent</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>tcpEvent</Name>
+					<Type GUID="{7CECC506-F55F-4594-B611-972D650865D2}">TCPIP_EVENT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010098-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoTcpProtocol</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>AllocSocket</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010099-0000-0000-E000-000000000064}">ITcIoTcpProtocolRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>FreeSocket</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Connect</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>ipRemoteAddress</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>tcpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>IsConnected</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Close</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Listen</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>tcpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Accept</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>SendData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nSendData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>CheckReceived</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+			<Method>
+				<Name>GetRemoteIpAddr</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>remoteIpAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>GetFreeSendDataSize</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>nSendCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nSendFailCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>32</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nRecvCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nRecvFailCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{38621CD5-4239-4327-97F7-35F1414B7265}">IpStackDiagnosis</Name>
+			<BitSize>768</BitSize>
+			<SubItem>
+				<Name>ip</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>arpRequest</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>arpReply</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pingRequest</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pingReply</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nLinkStatusChangedCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nAllocFailCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>672</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nArpTimeoutFrames</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nDroppedFrames</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>736</BitOffs>
+			</SubItem>
+		</DataType>
+	</DataTypes>
+	<ImageDatas>
+		<ImageData Id="1000">424de6000000000000007600000028000000100000000e00000001000400000000000000000000000000000000000000000000000000ff00ff0088ee8a0021df25000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001222222222210001222222222222101222222222222221222222222222222222222222222222221222222222222221012222222222221000222222222222000012220222222100000110001222100000000000011100000000000000000000</ImageData>
+		<ImageData Id="1001">424de6000000000000007600000028000000100000000e000000010004000000000070000000000000000000000000000000000000000000000000008000008000000080800080000000800080008080000080808000c0c0c0000000ff0000ff000000ffff00ff000000ff00ff00ffff0000ffffff00ffffffffffffffffff788833338887ffff78883bb38887ffffffff3bb3ffffffffffff8778fffffffffffffffffffffffffffffffff999ffff78f78fffffffffff78f78ffff999ffff78f7888fffffffff78f78f78f999ffff78f78f78ffffffff78f7888ff999ffffffffffffffffff</ImageData>
+	</ImageDatas>
+	<Project ProjectGUID="{D862FD3E-EFA5-4ADA-B7C2-3142319158B8}" TargetNetId="5.74.173.106.1.1" Target64Bit="true" ShowHideConfigurations="#x306">
+		<System>
+			<Settings>
+				<Debugger Priority="61"/>
+			</Settings>
+			<Tasks>
+				<Task Id="3" Priority="20" CycleTime="10000" AmsPort="350" AdtTasks="true">
+					<Name>PlcTask</Name>
+				</Task>
+				<Task Id="4" Priority="6" CycleTime="10000" AmsPort="351" AdtTasks="true">
+					<Name>TrkFastTask</Name>
+				</Task>
+				<Task Id="5" Priority="14" CycleTime="500000" AmsPort="352" AdtTasks="true">
+					<Name>TrkSlowTask</Name>
+				</Task>
+				<Task Id="7" Priority="21" CycleTime="500000" AmsPort="354" AdtTasks="true">
+					<Name>PubTask</Name>
+				</Task>
+			</Tasks>
+			<Modules>
+				<Module Id="#x01010040" KeepUnrestoredLinks="2">
+					<Name>Object1 (TcNtpExternalTimeProvider)</Name>
+					<ImageId>1000</ImageId>
+					<TmcDesc GUID="{7E6D2FDA-2D37-4998-A31F-36958D3A2C8A}">
+						<Name>TcNtpExternalTimeProvider</Name>
+						<CLSID ClassFactory="TcIotDrivers">{7E6D2FDA-2D37-4998-A31F-36958D3A2C8A}</CLSID>
+						<InitSequence>SO</InitSequence>
+						<Contexts>
+							<Context>
+								<Id>1</Id>
+								<ManualConfig>
+									<OTCID>#x02010030</OTCID>
+								</ManualConfig>
+								<Priority>20</Priority>
+								<CycleTime>1000000</CycleTime>
+							</Context>
+						</Contexts>
+						<Interfaces>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{00000012-0000-0000-E000-000000000064}">ITComObject</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000010-0000-0000-E000-000000000064}">ITcCyclic</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000012-0000-0000-E000-000000000064}">ITcADI</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000018-0000-0000-E000-000000000064}">ITcWatchSource</Type>
+							</Interface>
+						</Interfaces>
+						<Parameters>
+							<Parameter HideParameter="true">
+								<Name>TraceLevelMax</Name>
+								<Comment><![CDATA[Controls the amount of log messages.]]></Comment>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{8007AE3B-86BB-40F2-B385-EF87FCC239A4}">TcTraceLevel</BaseType>
+								<Default>
+									<EnumText>tlWarning</EnumText>
+								</Default>
+								<PTCID>#x03002103</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter>
+								<Name>TimeType</Name>
+								<Comment TxtId=""><![CDATA[Type of External Time Provider;]]></Comment>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000009}">DINT</BaseType>
+								<EnumInfo>
+									<Text><![CDATA[None]]></Text>
+									<Enum>0</Enum>
+								</EnumInfo>
+								<EnumInfo>
+									<Text><![CDATA[Hard]]></Text>
+									<Enum>1</Enum>
+								</EnumInfo>
+								<EnumInfo>
+									<Text><![CDATA[Medium]]></Text>
+									<Enum>2</Enum>
+								</EnumInfo>
+								<EnumInfo>
+									<Text><![CDATA[Soft]]></Text>
+									<Enum>3</Enum>
+								</EnumInfo>
+								<Default>
+									<EnumText>Soft</EnumText>
+								</Default>
+								<PTCID>#x03150001</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter ShowSubItems="true">
+								<Name>ClientPara</Name>
+								<BitSize>384</BitSize>
+								<SubItem>
+									<Name>bEnable</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+									<BitSize>8</BitSize>
+									<BitOffs>0</BitOffs>
+									<Default>
+										<EnumText>TRUE</EnumText>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>sServerName</Name>
+									<Type GUID="{18071995-0000-0000-0000-000100000017}">STRING(23)</Type>
+									<Comment TxtId=""><![CDATA[Hostname of NTP Server (set to empty to use nServerAddress);]]></Comment>
+									<BitSize>192</BitSize>
+									<BitOffs>64</BitOffs>
+									<Default>
+										<String><![CDATA[ntp.beckhoff-cloud.com]]></String>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nServerAddress</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<Comment TxtId=""><![CDATA[IP Address (v4) of NTP Server (alternative if sServerName is empty);]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>256</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nServerPort</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+									<Comment TxtId=""><![CDATA[UDP Port (v4) of NTP Server (in case a port other than default port 123 should be used);]]></Comment>
+									<BitSize>16</BitSize>
+									<BitOffs>288</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>tPollInterval</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000048}">TIME</Type>
+									<Comment TxtId=""><![CDATA[Poll Interval:
+Minimum interval between messages;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>320</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+									<Default>
+										<Value>1000</Value>
+									</Default>
+								</SubItem>
+								<PTCID>#x03150011</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter HideParameter="true">
+								<Name>ServerPara</Name>
+								<BitSize>128</BitSize>
+								<SubItem>
+									<Name>bEnable</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+									<BitSize>8</BitSize>
+									<BitOffs>0</BitOffs>
+									<Default>
+										<EnumText>FALSE</EnumText>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nPort</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+									<Comment TxtId=""><![CDATA[UDP Port (v4) of NTP Server (in case a port other than default port 123 should be used);]]></Comment>
+									<BitSize>16</BitSize>
+									<BitOffs>16</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nLeap</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000002}">USINT</Type>
+									<Comment TxtId=""><![CDATA[Leap Indicator as fallback (no superior server):
+0 = none;
+1 = 61 seconds;
+2 = 59 seconds;
+3 = unknown (unsyncronized);]]></Comment>
+									<BitSize>8</BitSize>
+									<BitOffs>32</BitOffs>
+									<Default>
+										<Value>0</Value>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nStratum</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000002}">USINT</Type>
+									<Comment TxtId=""><![CDATA[Stratum as fallback (no superior server):
+0 = unspecified or invalid;
+1 = primary server (e.g. GPS);
+2-15 = secondary server (via NTP);
+16 = unsynchronized;
+17-255 = reserved;]]></Comment>
+									<BitSize>8</BitSize>
+									<BitOffs>40</BitOffs>
+									<Default>
+										<Value>1</Value>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nRoot</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Root identity as fallback (no superior server);]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>64</BitOffs>
+								</SubItem>
+								<PTCID>#x03150012</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter HideParameter="true">
+								<Name>FilterPara</Name>
+								<BitSize>128</BitSize>
+								<SubItem>
+									<Name>eMode</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<EnumInfo>
+										<Text><![CDATA[None]]></Text>
+										<Enum>0</Enum>
+									</EnumInfo>
+									<EnumInfo>
+										<Text><![CDATA[Linear]]></Text>
+										<Enum>1</Enum>
+									</EnumInfo>
+									<BitSize>32</BitSize>
+									<BitOffs>0</BitOffs>
+									<Default>
+										<EnumText>Linear</EnumText>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nFilter</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Number of values to filter. Default = 60;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+									<Default>
+										<Value>60</Value>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nLimiter</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Maximum change of offset within a single cycle. Default = 1us;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>64</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+									<Default>
+										<Value>10</Value>
+									</Default>
+								</SubItem>
+								<SubItem>
+									<Name>nModulo</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Rounding the offset for adaptation to the cycle time. Default = 0.1ms;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>96</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+									<Default>
+										<Value>1000</Value>
+									</Default>
+								</SubItem>
+								<PTCID>#x03150021</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter OnlineParameter="true" ReadOnly="true">
+								<Name>ServerInfo</Name>
+								<BitSize>704</BitSize>
+								<SubItem>
+									<Name>nLeap</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000002}">USINT</Type>
+									<Comment TxtId=""><![CDATA[Leap Indicator:
+0 = none;
+1 = 61 seconds;
+2 = 59 seconds;
+3 = unknown (unsyncronized);]]></Comment>
+									<BitSize>8</BitSize>
+									<BitOffs>0</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nVersion</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000002}">USINT</Type>
+									<Comment TxtId=""><![CDATA[Version Number;]]></Comment>
+									<BitSize>8</BitSize>
+									<BitOffs>8</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nMode</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000002}">USINT</Type>
+									<Comment TxtId=""><![CDATA[Mode Indicator:
+0 = reserved;
+1 = symmetric active;
+2 = symmetric passive;
+3 = client;
+4 = server;
+5 = broadcast;
+6 = control message;
+7 = reserved;]]></Comment>
+									<BitSize>8</BitSize>
+									<BitOffs>16</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nStratum</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000002}">USINT</Type>
+									<Comment TxtId=""><![CDATA[Stratum:
+0 = unspecified or invalid;
+1 = primary server (e.g. GPS);
+2-15 = secondary server (via NTP);
+16 = unsynchronized;
+17-255 = reserved;]]></Comment>
+									<BitSize>8</BitSize>
+									<BitOffs>24</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>tPollIntv</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000048}">TIME</Type>
+									<Comment TxtId=""><![CDATA[Poll Interval:
+Maximum interval between messages;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>fPollPrec</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000000D}">REAL</Type>
+									<Comment TxtId=""><![CDATA[Poll Precision:
+Precision of the clock;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>64</BitOffs>
+									<Unit><![CDATA[[s]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>fRootDelay</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000000D}">REAL</Type>
+									<Comment TxtId=""><![CDATA[Root Delay:
+Total round-trip delay to the reference clock;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>96</BitOffs>
+									<Unit><![CDATA[[s]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>fRootDisp</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000000D}">REAL</Type>
+									<Comment TxtId=""><![CDATA[Root Dispersion:
+Total dispersion to the reference clock;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>128</BitOffs>
+									<Unit><![CDATA[[s]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>sRefId</Name>
+									<Type GUID="{18071995-0000-0000-0000-000100000017}">STRING(23)</Type>
+									<Comment TxtId=""><![CDATA[ReferenceID:
+Identifying the particular server or reference clock;]]></Comment>
+									<BitSize>192</BitSize>
+									<BitOffs>160</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nRefTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Reference Timestamp:
+Time when the clock was last set or corrected;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>384</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nOrgTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Origin Timestamp:
+Time at the client when the request departed for the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>448</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nRecTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Receive Timestamp:
+Time at the server when the request departed for the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>512</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nTmtTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Transmit Timestamp:
+Time at the server when the response left for the client;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>576</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nDstTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Destination Timestamp:
+Time at the client when the reply arrived from the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>640</BitOffs>
+								</SubItem>
+								<PTCID>#x03150a01</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter OnlineParameter="true" HideParameter="true" ReadOnly="true">
+								<Name>SocketDiag</Name>
+								<BitSize>288</BitSize>
+								<SubItem>
+									<Name>nSendCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of sent datagramms;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>0</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nSendFailCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of failed send attempts;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nSendReqCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of sent requests as client;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>64</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nSendResCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of sent responses as server;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>96</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nRecvCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of received datagramms;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>128</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nRecvFailCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of failed receive attempts;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>160</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nRecvResCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of received responses as client;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>192</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nRecvReqCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of received requests as server;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>224</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>nTimeoutCnt</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<Comment TxtId=""><![CDATA[Total amount of timeouts from requests as client;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>256</BitOffs>
+								</SubItem>
+								<PTCID>#x03150a10</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter OnlineParameter="true" HideParameter="true" ReadOnly="true">
+								<Name>ClientDiag</Name>
+								<BitSize>640</BitSize>
+								<SubItem>
+									<Name>nOrgTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Origin Timestamp:
+Time at the client when the request departed for the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>0</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>nSndTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[SendTimestamp:
+Time at the client when the request departed for the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>64</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>nRecTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Receive Timestamp:
+Time at the server when the request departed for the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>128</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>nTmtTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Transmit Timestamp:
+Time at the server when the response left for the client;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>192</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>nDstTime</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000046}">FILETIME</Type>
+									<Comment TxtId=""><![CDATA[Destination Timestamp:
+Time at the client when the reply arrived from the server;]]></Comment>
+									<BitSize>64</BitSize>
+									<BitOffs>256</BitOffs>
+									<Unit><![CDATA[[100ns]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tOffset</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Difference between local system time and external time;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>320</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tOffsetFtr</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Difference between local system time and external time filtered;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>352</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tDelay</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Delay between sending the request and receiving the response;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>384</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tDelayFtr</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Delay between sending the request and receiving the response filtered;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>416</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tError</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Difference between local offset and external offset;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>448</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tErrorFtr</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Difference between local offset and external offset filtered;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>480</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tDrift</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Difference between elapsed local system time and elapsed external time;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>512</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tDriftFtr</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Difference between elapsed local system time and elapsed external time filtered;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>544</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tDeviation</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Deviation between newest and latest offset;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>576</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<SubItem>
+									<Name>tDeviationFtr</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+									<Comment TxtId=""><![CDATA[Deviation between newest and latest offset filtered;]]></Comment>
+									<BitSize>32</BitSize>
+									<BitOffs>608</BitOffs>
+									<Unit><![CDATA[[ms]]]></Unit>
+								</SubItem>
+								<PTCID>#x03150a11</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+						</Parameters>
+						<DataAreas>
+							<DataArea>
+								<AreaNo AreaType="OutputSrc" CreateSymbols="true">1</AreaNo>
+								<Name>Outputs</Name>
+								<ContextId>1</ContextId>
+								<ByteSize>32</ByteSize>
+								<Symbol>
+									<Name>nSysTime</Name>
+									<Comment TxtId=""><![CDATA[Local system time based 100ns ticks since 01.01.1601 (FILETIME);]]></Comment>
+									<BitSize>64</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-00000000000C}">LINT</BaseType>
+									<Unit><![CDATA[[100ns]]]></Unit>
+									<BitOffs>0</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>nExtTime</Name>
+									<Comment TxtId=""><![CDATA[External system time based 100ns ticks since 01.01.1601 (FILETIME);]]></Comment>
+									<BitSize>64</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-00000000000C}">LINT</BaseType>
+									<Unit><![CDATA[[100ns]]]></Unit>
+									<BitOffs>64</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>nSysToExtTimeOffset</Name>
+									<Comment TxtId=""><![CDATA[Difference between local system time and external time;]]></Comment>
+									<BitSize>64</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-00000000000C}">LINT</BaseType>
+									<Unit><![CDATA[[100ns]]]></Unit>
+									<BitOffs>128</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>nSysToExtTimeDeviation</Name>
+									<Comment TxtId=""><![CDATA[Deviation between internal corrected time and external time;]]></Comment>
+									<BitSize>64</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-00000000000C}">LINT</BaseType>
+									<Unit><![CDATA[[100ns/1s]]]></Unit>
+									<BitOffs>192</BitOffs>
+								</Symbol>
+							</DataArea>
+							<DataArea>
+								<AreaNo AreaType="OutputSrc" CreateSymbols="true">2</AreaNo>
+								<Name>Diagnostic</Name>
+								<ContextId>1</ContextId>
+								<ByteSize>16</ByteSize>
+								<Symbol>
+									<Name>bIsConnected</Name>
+									<Comment TxtId=""><![CDATA[NTP Client is connected to the server;]]></Comment>
+									<BitSize>8</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+									<BitOffs>0</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>bIsSynchronized</Name>
+									<Comment TxtId=""><![CDATA[NTP Client is approximately synchronized to the server;]]></Comment>
+									<BitSize>8</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+									<BitOffs>8</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>nLastUpdated</Name>
+									<Comment TxtId=""><![CDATA[Last tiime when received a new external time (FILETIME);]]></Comment>
+									<BitSize>64</BitSize>
+									<BaseType GUID="{18071995-0000-0000-0000-00000000000C}">LINT</BaseType>
+									<Unit><![CDATA[[100ns]]]></Unit>
+									<BitOffs>64</BitOffs>
+								</Symbol>
+							</DataArea>
+						</DataAreas>
+						<InterfacePointers>
+							<InterfacePointer>
+								<PTCID>#x03002060</PTCID>
+								<Name>CyclicCaller</Name>
+								<Type GUID="{0300001E-0000-0000-E000-000000000064}">ITcCyclicCaller</Type>
+								<ContextId>1</ContextId>
+							</InterfacePointer>
+						</InterfacePointers>
+						<ParameterValues>
+							<Value>
+								<Name>TraceLevelMax</Name>
+								<EnumText>tlWarning</EnumText>
+							</Value>
+							<Value>
+								<Name>TimeType</Name>
+								<EnumText>Soft</EnumText>
+							</Value>
+							<Value>
+								<Name>ClientPara.bEnable</Name>
+								<EnumText>TRUE</EnumText>
+							</Value>
+							<Value>
+								<Name>ClientPara.sServerName</Name>
+								<String>ntpvcm.hq.eso.org</String>
+							</Value>
+							<Value>
+								<Name>ClientPara.nServerAddress</Name>
+								<Value>2259368590</Value>
+							</Value>
+							<Value>
+								<Name>ClientPara.nServerPort</Name>
+								<Value>123</Value>
+							</Value>
+							<Value>
+								<Name>ClientPara.tPollInterval</Name>
+								<Value>1000</Value>
+							</Value>
+							<Value>
+								<Name>ServerPara.bEnable</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>ServerPara.nPort</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerPara.nLeap</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerPara.nStratum</Name>
+								<Value>1</Value>
+							</Value>
+							<Value>
+								<Name>ServerPara.nRoot</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>FilterPara.eMode</Name>
+								<EnumText>Linear</EnumText>
+							</Value>
+							<Value>
+								<Name>FilterPara.nFilter</Name>
+								<Value>60</Value>
+							</Value>
+							<Value>
+								<Name>FilterPara.nLimiter</Name>
+								<Value>10</Value>
+							</Value>
+							<Value>
+								<Name>FilterPara.nModulo</Name>
+								<Value>1000</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nLeap</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nVersion</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nMode</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nStratum</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.tPollIntv</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.fPollPrec</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.fRootDelay</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.fRootDisp</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.sRefId</Name>
+								<String></String>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nRefTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nOrgTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nRecTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nTmtTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ServerInfo.nDstTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nSendReqCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nSendResCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nRecvResCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nRecvReqCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>SocketDiag.nTimeoutCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.nOrgTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.nSndTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.nRecTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.nTmtTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.nDstTime</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tOffset</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tOffsetFtr</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tDelay</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tDelayFtr</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tError</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tErrorFtr</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tDrift</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tDriftFtr</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tDeviation</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>ClientDiag.tDeviationFtr</Name>
+								<Value>0</Value>
+							</Value>
+						</ParameterValues>
+						<InterfacePointerValues>
+							<Value>
+								<Name>CyclicCaller</Name>
+								<OTCID>#x02010030</OTCID>
+							</Value>
+						</InterfacePointerValues>
+					</TmcDesc>
+				</Module>
+			</Modules>
+		</System>
+		<Plc>
+			<Project GUID="{E9059E25-4D40-4ECF-963C-6AB27496576B}" Name="ccssim" PrjFilePath="ccssim\ccssim.plcproj" TmcFilePath="ccssim\ccssim.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="ccssim\ccssim.tmc" TmcHash="{0D28DDE0-8050-91A6-54BC-C5ADEA663280}">
+					<Name>ccssim Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.ccs_sim.i_trk_data</Name>
+							<Comment><![CDATA[ Tracking data structure are defined in C++ module]]></Comment>
+							<Type GUID="{20B39C3A-F540-49EF-8434-28702C07488B}">PointingKernelPositions</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_inTime</Name>
+							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_exTime</Name>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_dc2TcOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_dc2ExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_extDevNotConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_syncMode</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_AdsAddr</Name>
+							<Comment><![CDATA[ ADS address structure]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_exNtpExtTime</Name>
+							<Comment><![CDATA[ Input variables from NTP]]></Comment>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_exNtpSysTime</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_exNtpExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_exNtpConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.i_exNtpSynchronized</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.ccs_sim.q_ccs_data</Name>
+							<Type GUID="{260AC415-F646-450C-B3D0-7610FCDBAEFA}">CcsData</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.ccs_sim.q_mean_coordinates</Name>
+							<Type GUID="{92413486-570E-408C-988A-C47B1BF3BCB2}">TrkMeanCoordinates</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.ccs_sim.q_mudpi_cfg</Name>
+							<Type GUID="{0E053887-731F-93DA-22FF-DBB399F17C43}">T_MUDPI_CFG</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimer.q_timeInfo</Name>
+							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="1" ContextId="1" AreaNo="16">
+						<Name>PubTask Inputs</Name>
+						<Var>
+							<Name>MAIN2.i_trk_data</Name>
+							<Type GUID="{20B39C3A-F540-49EF-8434-28702C07488B}">PointingKernelPositions</Type>
+						</Var>
+					</Vars>
+					<UnrestoredVarLinks ImportTime="2021-09-16T10:28:21">
+						<OwnerA Name="InputDst" Prefix="TIPC^ccssim^ccssim Instance" Type="1">
+							<OwnerB Name="TIRC^TcCOM Objects^Object1 (TcNtpExternalTimeProvider)">
+								<Link VarA="MAIN.fbTimer.i_exNtpLocalTime" TypeA="LINT" InOutA="0" GuidA="{18071995-0000-0000-0000-00000000000C}" VarB="Outputs^nSysTime" RestoreInfo="ANotFound"/>
+								<Link VarA="MAIN.fbTimer.i_exNtpTime" TypeA="LINT" InOutA="0" GuidA="{18071995-0000-0000-0000-00000000000C}" VarB="Outputs^nExtTime" RestoreInfo="ANotFound"/>
+							</OwnerB>
+						</OwnerA>
+					</UnrestoredVarLinks>
+					<UnrestoredVarLinks ImportTime="2022-05-09T20:04:28">
+						<OwnerA Name="OutputSrc" Prefix="TIPC^ccssim^ccssim Instance" Type="2">
+							<OwnerB Name="TIPC^ccssim^ccssim Instance">
+								<Link VarA="MAIN.ccs_sim.q_mudpi_cfg" TypeA="MudpiConfig" InOutA="1" GuidA="{59C2F1D2-BD5B-4CDA-979A-394EAEA3313B}" VarB="PubTask Inputs^MAIN2.i_mudpi_cfg" RestoreInfo="BNotFound"/>
+							</OwnerB>
+						</OwnerA>
+					</UnrestoredVarLinks>
+					<Contexts>
+						<Context>
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010030</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>1000000</CycleTime>
+						</Context>
+						<Context>
+							<Id NeedCalleeCall="true">1</Id>
+							<Name>PubTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010070</OTCID>
+							</ManualConfig>
+							<Priority>21</Priority>
+							<CycleTime>50000000</CycleTime>
+						</Context>
+					</Contexts>
+					<InitSymbols>
+						<InitSymbol>
+							<Name>MAIN.fbTimer.fb_SendDiag.oid</Name>
+							<Type GUID="{18071995-0000-0000-0000-00000000000F}">OTCID</Type>
+							<Comment><![CDATA[ TF6311 realtime driver parameters ]]></Comment>
+							<AreaNo>#x00000003</AreaNo>
+							<Data>00000000</Data>
+						</InitSymbol>
+						<InitSymbol>
+							<Name>MAIN2.fbSender.oid</Name>
+							<Type GUID="{18071995-0000-0000-0000-00000000000F}">OTCID</Type>
+							<Comment><![CDATA[ TF6311 realtime driver parameters ]]></Comment>
+							<AreaNo>#x00000013</AreaNo>
+							<Data>30000101</Data>
+						</InitSymbol>
+					</InitSymbols>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+						<TaskPouOid Prio="21" OTCID="#x08502002"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Cpp>
+			<Project GUID="{AAAB356E-532C-4548-A3F6-3C9E7AAEB0EA}" Name="trkmodule" PrjFilePath="trkmodule\trkmodule.vcxproj" TmcFilePath="trkmodule\trkmodule.tmc">
+				<Instance Id="#x01010010" KeepUnrestoredLinks="2">
+					<Name>trkmodule_Obj1 (trkModule)</Name>
+					<TmcDesc GUID="{6F6A340E-378A-4FE4-AB0D-F15C12DFEF0C}">
+						<Name>trkModule</Name>
+						<CLSID ClassFactory="trkmodule">{6F6A340E-378A-4FE4-AB0D-F15C12DFEF0C}</CLSID>
+						<Licenses>
+							<License>
+								<LicenseId>{304D006A-8299-4560-AB79-438534B50288}</LicenseId>
+							</License>
+						</Licenses>
+						<InitSequence>SO</InitSequence>
+						<Contexts>
+							<Context>
+								<Id>1</Id>
+								<ManualConfig>
+									<OTCID>#x02010040</OTCID>
+								</ManualConfig>
+								<Priority>6</Priority>
+								<CycleTime>1000000</CycleTime>
+							</Context>
+						</Contexts>
+						<Interfaces>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{00000012-0000-0000-E000-000000000064}">ITComObject</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03000010-0000-0000-E000-000000000064}">ITcCyclic</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000012-0000-0000-E000-000000000064}">ITcADI</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000018-0000-0000-E000-000000000064}">ITcWatchSource</Type>
+							</Interface>
+						</Interfaces>
+						<Parameters>
+							<Parameter HideParameter="true">
+								<Name>TraceLevelMax</Name>
+								<Comment><![CDATA[Controls the amount of log messages.]]></Comment>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{8007AE3B-86BB-40F2-B385-EF87FCC239A4}">TcTraceLevel</BaseType>
+								<PTCID>#x03002103</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter ShowSubItems="true">
+								<Name>Parameter</Name>
+								<BitSize>128</BitSize>
+								<SubItem>
+									<Name>data1</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>0</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>data2</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>data3</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+									<BitSize>64</BitSize>
+									<BitOffs>64</BitOffs>
+								</SubItem>
+								<PTCID>#x00000001</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+						</Parameters>
+						<DataAreas>
+							<DataArea>
+								<AreaNo AreaType="InputDst">0</AreaNo>
+								<Name>Inputs</Name>
+								<ContextId>1</ContextId>
+								<ByteSize>432</ByteSize>
+								<Symbol CreateSymbol="true">
+									<Name>MeanCoordinates</Name>
+									<BitSize>512</BitSize>
+									<BaseType GUID="{92413486-570E-408C-988A-C47B1BF3BCB2}">TrkMeanCoordinates</BaseType>
+									<Properties>
+										<Property>
+											<Name>OPC.UA.DA</Name>
+											<Value>1</Value>
+										</Property>
+									</Properties>
+									<BitOffs>0</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>Terms</Name>
+									<BitSize>576</BitSize>
+									<BaseType GUID="{1C5E8191-65E5-4B10-A3D9-1D62C87554FF}">TrkPomTerms</BaseType>
+									<BitOffs>512</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>TimeInfo</Name>
+									<BitSize>128</BitSize>
+									<BaseType GUID="{93C25DB9-32AE-49ED-8BC0-F208B1DA179C}">TimeInfo</BaseType>
+									<BitOffs>1088</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>SlaParams</Name>
+									<BitSize>2240</BitSize>
+									<BaseType GUID="{1FF32D32-AF29-41BE-A456-1166D835F7CE}">SlaParams</BaseType>
+									<BitOffs>1216</BitOffs>
+								</Symbol>
+							</DataArea>
+							<DataArea>
+								<AreaNo AreaType="OutputSrc">1</AreaNo>
+								<Name>Outputs</Name>
+								<ContextId>1</ContextId>
+								<ByteSize>120</ByteSize>
+								<Symbol>
+									<Name>CcsDeterministic</Name>
+									<BitSize>960</BitSize>
+									<BaseType GUID="{20B39C3A-F540-49EF-8434-28702C07488B}">PointingKernelPositions</BaseType>
+									<BitOffs>0</BitOffs>
+								</Symbol>
+							</DataArea>
+						</DataAreas>
+						<InterfacePointers>
+							<InterfacePointer>
+								<PTCID>#x03002060</PTCID>
+								<Name>CyclicCaller</Name>
+								<Type GUID="{0300001E-0000-0000-E000-000000000064}">ITcCyclicCaller</Type>
+							</InterfacePointer>
+						</InterfacePointers>
+						<Deployment>
+							<FileEntry TargetPlatform="TwinCAT RT (x86)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x86)\%CLASSFACTORYNAME%.sys</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.sys</DestinationFile>
+							</FileEntry>
+							<FileEntry TargetPlatform="TwinCAT RT (x86)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x86)\%CLASSFACTORYNAME%.pdb</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.pdb</DestinationFile>
+							</FileEntry>
+							<FileEntry TargetPlatform="TwinCAT RT (x64)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x64)\%CLASSFACTORYNAME%.sys</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.sys</DestinationFile>
+							</FileEntry>
+							<FileEntry TargetPlatform="TwinCAT RT (x64)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x64)\%CLASSFACTORYNAME%.pdb</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.pdb</DestinationFile>
+							</FileEntry>
+						</Deployment>
+						<ParameterValues>
+							<Value>
+								<Name>TraceLevelMax</Name>
+								<EnumText>tlAlways</EnumText>
+							</Value>
+							<Value>
+								<Name>Parameter.data1</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>Parameter.data2</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>Parameter.data3</Name>
+								<Value>0</Value>
+							</Value>
+						</ParameterValues>
+						<InterfacePointerValues>
+							<Value>
+								<Name>CyclicCaller</Name>
+								<OTCID>#x02010040</OTCID>
+							</Value>
+						</InterfacePointerValues>
+					</TmcDesc>
+				</Instance>
+			</Project>
+			<Project GUID="{22746C94-3DC4-469C-B9B5-A9A1FC2799AF}" Name="trkparams" PrjFilePath="trkparams\trkparams.vcxproj" TmcFilePath="trkparams\trkparams.tmc">
+				<Instance Id="#x01010020" KeepUnrestoredLinks="2">
+					<Name>trkparams_Obj1 (trkParams)</Name>
+					<TmcDesc GUID="{15952E35-5679-4D71-9F28-196DF14BBD2E}">
+						<Name>trkParams</Name>
+						<CLSID ClassFactory="trkparams">{15952E35-5679-4D71-9F28-196DF14BBD2E}</CLSID>
+						<Licenses>
+							<License>
+								<LicenseId>{304D006A-8299-4560-AB79-438534B50288}</LicenseId>
+							</License>
+						</Licenses>
+						<InitSequence>SO</InitSequence>
+						<Contexts>
+							<Context>
+								<Id>1</Id>
+								<ManualConfig>
+									<OTCID>#x02010050</OTCID>
+								</ManualConfig>
+								<Priority>14</Priority>
+								<CycleTime>50000000</CycleTime>
+							</Context>
+						</Contexts>
+						<Interfaces>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{00000012-0000-0000-E000-000000000064}">ITComObject</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03000010-0000-0000-E000-000000000064}">ITcCyclic</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000012-0000-0000-E000-000000000064}">ITcADI</Type>
+							</Interface>
+							<Interface DisableCodeGeneration="true">
+								<Type GUID="{03000018-0000-0000-E000-000000000064}">ITcWatchSource</Type>
+							</Interface>
+						</Interfaces>
+						<Parameters>
+							<Parameter HideParameter="true">
+								<Name>TraceLevelMax</Name>
+								<Comment><![CDATA[Controls the amount of log messages.]]></Comment>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{8007AE3B-86BB-40F2-B385-EF87FCC239A4}">TcTraceLevel</BaseType>
+								<PTCID>#x03002103</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+							<Parameter ShowSubItems="true">
+								<Name>Parameter</Name>
+								<BitSize>128</BitSize>
+								<SubItem>
+									<Name>data1</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>0</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>data2</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>data3</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000000E}">LREAL</Type>
+									<BitSize>64</BitSize>
+									<BitOffs>64</BitOffs>
+								</SubItem>
+								<PTCID>#x00000001</PTCID>
+								<ContextId>1</ContextId>
+							</Parameter>
+						</Parameters>
+						<DataAreas>
+							<DataArea>
+								<AreaNo AreaType="InputDst">0</AreaNo>
+								<Name>Inputs</Name>
+								<ContextId>1</ContextId>
+								<ByteSize>112</ByteSize>
+								<Symbol>
+									<Name>TimeInfo</Name>
+									<BitSize>128</BitSize>
+									<BaseType GUID="{250F9509-3AFF-475A-96D4-FFABBB4AE5B0}">TimeInfo</BaseType>
+									<BitOffs>0</BitOffs>
+								</Symbol>
+								<Symbol>
+									<Name>CcsData</Name>
+									<BitSize>768</BitSize>
+									<BaseType GUID="{260AC415-F646-450C-B3D0-7610FCDBAEFA}">CcsData</BaseType>
+									<BitOffs>128</BitOffs>
+								</Symbol>
+							</DataArea>
+							<DataArea>
+								<AreaNo AreaType="OutputSrc">1</AreaNo>
+								<Name>Outputs</Name>
+								<ContextId>1</ContextId>
+								<ByteSize>280</ByteSize>
+								<Symbol>
+									<Name>SlaParams</Name>
+									<BitSize>2240</BitSize>
+									<BaseType GUID="{082D96CF-EB15-47FF-931F-C8A4BD575526}">SlaParams</BaseType>
+									<BitOffs>0</BitOffs>
+								</Symbol>
+							</DataArea>
+						</DataAreas>
+						<InterfacePointers>
+							<InterfacePointer>
+								<PTCID>#x03002060</PTCID>
+								<Name>CyclicCaller</Name>
+								<Type GUID="{0300001E-0000-0000-E000-000000000064}">ITcCyclicCaller</Type>
+							</InterfacePointer>
+						</InterfacePointers>
+						<Deployment>
+							<FileEntry TargetPlatform="TwinCAT RT (x86)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x86)\%CLASSFACTORYNAME%.sys</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.sys</DestinationFile>
+							</FileEntry>
+							<FileEntry TargetPlatform="TwinCAT RT (x86)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x86)\%CLASSFACTORYNAME%.pdb</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.pdb</DestinationFile>
+							</FileEntry>
+							<FileEntry TargetPlatform="TwinCAT RT (x64)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x64)\%CLASSFACTORYNAME%.sys</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.sys</DestinationFile>
+							</FileEntry>
+							<FileEntry TargetPlatform="TwinCAT RT (x64)">
+								<SourceFile>%SOLUTIONDEPLOYMENTPATH%TwinCAT RT (x64)\%CLASSFACTORYNAME%.pdb</SourceFile>
+								<DestinationFile>%TC_DRIVERAUTOINSTALLPATH%%CLASSFACTORYNAME%.pdb</DestinationFile>
+							</FileEntry>
+						</Deployment>
+						<ParameterValues>
+							<Value>
+								<Name>TraceLevelMax</Name>
+								<EnumText>tlAlways</EnumText>
+							</Value>
+							<Value>
+								<Name>Parameter.data1</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>Parameter.data2</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>Parameter.data3</Name>
+								<Value>0</Value>
+							</Value>
+						</ParameterValues>
+						<InterfacePointerValues>
+							<Value>
+								<Name>CyclicCaller</Name>
+								<OTCID>#x02010050</OTCID>
+							</Value>
+						</InterfacePointerValues>
+					</TmcDesc>
+				</Instance>
+			</Project>
+		</Cpp>
+		<Io>
+			<Device Id="1" DevType="109" DevFlags="#x0004">
+				<Name>Device 1 (RT-Ethernet Adapter)</Name>
+				<AddressInfo>
+					<Pnp>
+						<DeviceDesc>Ethernet (TwinCAT-Intel PCI Ethernet Adapter (Gigab</DeviceDesc>
+						<DeviceName>\DEVICE\{11CA0869-9F97-492C-B6D9-C07CC0650E06}</DeviceName>
+						<DeviceData>0001054aad6a</DeviceData>
+					</Pnp>
+				</AddressInfo>
+				<Module Id="#x01010030" KeepUnrestoredLinks="2">
+					<Name>Device 1 (RT-Ethernet Adapter)_Obj1 (TCP/UDP RT)</Name>
+					<ImageId>1001</ImageId>
+					<TmcDesc GUID="{080D0399-6A65-408D-80E1-18D8F699496A}">
+						<Name>TCP/UDP RT</Name>
+						<CLSID ClassFactory="TCIOETH">{03010070-0000-0000-F000-000000000064}</CLSID>
+						<Licenses>
+							<License>
+								<LicenseId>{081AC839-28D0-49CA-9792-72680E1F3249}</LicenseId>
+							</License>
+						</Licenses>
+						<InitSequence>PSO</InitSequence>
+						<Contexts>
+							<Context>
+								<Id>1</Id>
+								<ManualConfig>
+									<OTCID>#x02010070</OTCID>
+								</ManualConfig>
+								<Priority>21</Priority>
+								<CycleTime>50000000</CycleTime>
+							</Context>
+						</Contexts>
+						<Interfaces>
+							<Interface>
+								<Type GUID="{00000012-0000-0000-E000-000000000064}">ITComObject</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03010035-0000-0000-E000-000000000064}">ITcIoEthProtocol</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{0301009E-0000-0000-E000-000000000064}">ITcIoArpPing</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{0301009D-0000-0000-E000-000000000064}">ITcIoIpStackControl</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03010097-0000-0000-E000-000000000064}">ITcIoUdpProtocol</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03010098-0000-0000-E000-000000000064}">ITcIoTcpProtocol</Type>
+							</Interface>
+						</Interfaces>
+						<Parameters>
+							<Parameter>
+								<Name>TcIoIpSettings</Name>
+								<BitSize>128</BitSize>
+								<SubItem>
+									<Name>IpAddress</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>0</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>SubnetMask</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>Gateway</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>64</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>DhcpEnable</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+									<BitSize>8</BitSize>
+									<BitOffs>96</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>ManualSettings</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+									<BitSize>8</BitSize>
+									<BitOffs>104</BitOffs>
+								</SubItem>
+								<PTCID>#x03002050</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMaxReceivers</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>4</Value>
+								</Default>
+								<PTCID>#x03011101</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMaxPendingOnArp</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>40</Value>
+								</Default>
+								<PTCID>#x03011103</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMacCacheSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>64</Value>
+								</Default>
+								<PTCID>#x03011104</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMTU</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1514</Value>
+								</Default>
+								<PTCID>#x03011105</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpRecvFrameQueueSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>255</Value>
+								</Default>
+								<PTCID>#x03011115</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>UdpMaxReceivers</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>4</Value>
+								</Default>
+								<PTCID>#x03011111</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>UdpMTU</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1514</Value>
+								</Default>
+								<PTCID>#x03011112</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>UdpCheckCrc</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+								<Default>
+									<EnumText>TRUE</EnumText>
+								</Default>
+								<PTCID>#x03011113</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TTL</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+								<Default>
+									<Value>128</Value>
+								</Default>
+								<PTCID>#x03011106</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>MulticastTTL</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+								<Default>
+									<Value>1</Value>
+								</Default>
+								<PTCID>#x0301110a</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>PassiveMode</Name>
+								<Comment><![CDATA[Ethernet adapter frame processing triggered by other protocol]]></Comment>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+								<PTCID>#x03011133</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>MulticastIpList</Name>
+								<BitSize>0</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</BaseType>
+								<ArrayInfo>
+									<LBound>0</LBound>
+									<Elements Min="0" Max="8">0</Elements>
+								</ArrayInfo>
+								<PTCID>#x0301110d</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpMTU</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1514</Value>
+								</Default>
+								<PTCID>#x03011122</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpCheckCrc</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+								<Default>
+									<EnumText>TRUE</EnumText>
+								</Default>
+								<PTCID>#x03011123</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpMaxSocketCount</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>32</Value>
+								</Default>
+								<PTCID>#x03011124</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpReceiveBufferSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>16192</Value>
+								</Default>
+								<PTCID>#x03011125</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTransmitBufferSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>16192</Value>
+								</Default>
+								<PTCID>#x03011126</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpMaxRetry</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>5</Value>
+								</Default>
+								<PTCID>#x03011127</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTimeoutWait</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>60000</Value>
+								</Default>
+								<PTCID>#x03011128</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTimeoutCon</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>5000</Value>
+								</Default>
+								<PTCID>#x03011129</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTimeoutIdle</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1000</Value>
+								</Default>
+								<PTCID>#x03011130</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpRoundTripTime</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>3000</Value>
+								</Default>
+								<PTCID>#x03011131</PTCID>
+							</Parameter>
+							<Parameter OnlineParameter="true" ShowSubItems="true">
+								<Name>IpStackDiagnosis</Name>
+								<BitSize>768</BitSize>
+								<BaseType GUID="{38621CD5-4239-4327-97F7-35F1414B7265}">IpStackDiagnosis</BaseType>
+								<PTCID>#x03011108</PTCID>
+							</Parameter>
+						</Parameters>
+						<InterfacePointers>
+							<InterfacePointer>
+								<PTCID>#x03002040</PTCID>
+								<Name>ITcIoEthAdapter</Name>
+								<Type GUID="{03010034-0000-0000-E000-000000000064}"></Type>
+							</InterfacePointer>
+						</InterfacePointers>
+						<Properties>
+							<Property>
+								<Name>Category</Name>
+								<Value>NeedEthernetAdapterPort</Value>
+							</Property>
+							<Property>
+								<Name>Category</Name>
+								<Value>NeedIoIdleTask</Value>
+							</Property>
+							<Property>
+								<Name>ChildCategory</Name>
+								<Value>IpProtocol</Value>
+							</Property>
+						</Properties>
+						<ParentOTCID>#x03010010</ParentOTCID>
+						<ParameterValues>
+							<Value>
+								<Name>TcIoIpSettings.IpAddress</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.SubnetMask</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.Gateway</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.DhcpEnable</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.ManualSettings</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>IpMaxReceivers</Name>
+								<Value>4</Value>
+							</Value>
+							<Value>
+								<Name>IpMaxPendingOnArp</Name>
+								<Value>40</Value>
+							</Value>
+							<Value>
+								<Name>IpMacCacheSize</Name>
+								<Value>64</Value>
+							</Value>
+							<Value>
+								<Name>IpMTU</Name>
+								<Value>1514</Value>
+							</Value>
+							<Value>
+								<Name>IpRecvFrameQueueSize</Name>
+								<Value>255</Value>
+							</Value>
+							<Value>
+								<Name>UdpMaxReceivers</Name>
+								<Value>4</Value>
+							</Value>
+							<Value>
+								<Name>UdpMTU</Name>
+								<Value>1514</Value>
+							</Value>
+							<Value>
+								<Name>UdpCheckCrc</Name>
+								<EnumText>TRUE</EnumText>
+							</Value>
+							<Value>
+								<Name>TTL</Name>
+								<Value>128</Value>
+							</Value>
+							<Value>
+								<Name>MulticastTTL</Name>
+								<Value>1</Value>
+							</Value>
+							<Value>
+								<Name>PassiveMode</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>TcpMTU</Name>
+								<Value>1514</Value>
+							</Value>
+							<Value>
+								<Name>TcpCheckCrc</Name>
+								<EnumText>TRUE</EnumText>
+							</Value>
+							<Value>
+								<Name>TcpMaxSocketCount</Name>
+								<Value>32</Value>
+							</Value>
+							<Value>
+								<Name>TcpReceiveBufferSize</Name>
+								<Value>16192</Value>
+							</Value>
+							<Value>
+								<Name>TcpTransmitBufferSize</Name>
+								<Value>16192</Value>
+							</Value>
+							<Value>
+								<Name>TcpMaxRetry</Name>
+								<Value>5</Value>
+							</Value>
+							<Value>
+								<Name>TcpTimeoutWait</Name>
+								<Value>60000</Value>
+							</Value>
+							<Value>
+								<Name>TcpTimeoutCon</Name>
+								<Value>5000</Value>
+							</Value>
+							<Value>
+								<Name>TcpTimeoutIdle</Name>
+								<Value>1000</Value>
+							</Value>
+							<Value>
+								<Name>TcpRoundTripTime</Name>
+								<Value>3000</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nLinkStatusChangedCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nAllocFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nArpTimeoutFrames</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nDroppedFrames</Name>
+								<Value>0</Value>
+							</Value>
+						</ParameterValues>
+						<InterfacePointerValues>
+							<Value>
+								<Name>ITcIoEthAdapter</Name>
+								<OTCID>#x03010010</OTCID>
+							</Value>
+						</InterfacePointerValues>
+					</TmcDesc>
+				</Module>
+				<Ethernet DeviceDesc="Ethernet (TwinCAT-Intel PCI Ethernet Adapter (Gigabit))" Ports="1" VLanIds="0a0014001e00280032003c00460050005a0064006e00780082008c009600a000aa00b400be00c800d200dc00e600f000fa0004010e01180122012c01360140014a0154015e01680172017c01860190019a01a401ae01b801c201cc01d601e001ea01f401fe01080212021c02260230023a0244024e02580262026c0276028002">
+					<Esl SyncSlaveProtocolPort="-1"/>
+				</Ethernet>
+			</Device>
+		</Io>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500840000101}" Id="#x02030040"/>
+		<MappingInfo Identifier="{02010040-2001-0850-1000-010100205008}" Id="#x02030020" Watchdog="04000000040000000400000004000000"/>
+		<MappingInfo Identifier="{02010040-2002-0850-1000-010101205008}" Id="#x02030030" Watchdog="c8000000040000000400000004000000"/>
+		<MappingInfo Identifier="{02010040-0050-0201-1000-010120000101}" Id="#x02030010" Watchdog="c8000000040000000400000004000000"/>
+		<MappingInfo Identifier="{02010050-2001-0850-2000-010100205008}" Id="#x02030050" Watchdog="04000000c80000000400000004000000"/>
+		<OwnerA Name="TIPC^ccssim^ccssim Instance">
+			<OwnerB Name="TIRC^TcCOM Objects^Object1 (TcNtpExternalTimeProvider)">
+				<Link VarA="PlcTask Inputs^MAIN.fbTimer.i_exNtpConnected" VarB="Diagnostic^bIsConnected"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimer.i_exNtpExtOffset" VarB="Outputs^nSysToExtTimeOffset"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimer.i_exNtpExtTime" VarB="Outputs^nExtTime"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimer.i_exNtpSynchronized" VarB="Diagnostic^bIsSynchronized"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimer.i_exNtpSysTime" VarB="Outputs^nSysTime"/>
+			</OwnerB>
+			<OwnerB Name="TIXC^trkmodule^trkmodule_Obj1 (trkModule)">
+				<Link VarA="PlcTask Inputs^MAIN.ccs_sim.i_trk_data" VarB="Outputs^CcsDeterministic"/>
+				<Link VarA="PlcTask Outputs^MAIN.ccs_sim.q_mean_coordinates" VarB="Inputs^MeanCoordinates"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimer.q_timeInfo" VarB="Inputs^TimeInfo"/>
+				<Link VarA="PubTask Inputs^MAIN2.i_trk_data" VarB="Outputs^CcsDeterministic"/>
+			</OwnerB>
+			<OwnerB Name="TIXC^trkparams^trkparams_Obj1 (trkParams)">
+				<Link VarA="PlcTask Outputs^MAIN.ccs_sim.q_ccs_data" VarB="Inputs^CcsData"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimer.q_timeInfo" VarB="Inputs^TimeInfo"/>
+			</OwnerB>
+		</OwnerA>
+		<OwnerA Name="TIXC^trkmodule^trkmodule_Obj1 (trkModule)">
+			<OwnerB Name="TIXC^trkparams^trkparams_Obj1 (trkParams)">
+				<Link VarA="Inputs^SlaParams" VarB="Outputs^SlaParams"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

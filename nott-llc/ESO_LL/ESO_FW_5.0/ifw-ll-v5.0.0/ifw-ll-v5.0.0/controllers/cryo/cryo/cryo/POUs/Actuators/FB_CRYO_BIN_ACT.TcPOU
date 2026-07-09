@@ -1,0 +1,380 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_BIN_ACT" Id="{a86a8470-9348-4fd6-b256-f640707142b8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_BIN_ACT
+VAR_INPUT
+	in_nFeedback:		E_CRYO_BIN_ACT_FEEDBACK := E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY;	// Feedback configuration.
+	in_nTimeout:		UDINT := 10000;	// Timeout for switching on/off [ms]. Default 10000.
+	in_bActiveLowCtrl:	BOOL := FALSE;	// Active Low for Control output
+	in_bActiveLowStat:	BOOL := FALSE;	// Active Low for Status signals, i.e. feedback
+	in_nCommand:		E_CRYO_BIN_ACT_CMD	:= E_CRYO_BIN_ACT_CMD.NONE;	// Command
+	in_bExecute:		BOOL := FALSE;	// Execute trigger
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nCouplerState	AT%I*:	UINT;		// Terminal state. Should be 8, i.e. OP.
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bON			AT%I*:	BOOL;		// Feedback for ON
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bOFF			AT%I*:	BOOL;		// Feedback for OFF
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	q_bCtrl			AT%Q*:	BOOL;		// Control output signal
+	
+	stat:		T_CRYO_BIN_ACT_STATUS;
+
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	timer:		TON;		// Timer for commands
+	{attribute 'OPC.UA.DA' := '0'}
+	trigCMD:	R_TRIG;		// Trigger for new command
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nCommand:	E_CRYO_BIN_ACT_CMD	:= E_CRYO_BIN_ACT_CMD.NONE;	// Command
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Get the feedback
+M_GetFeedback();
+
+// Check for new command
+trigCMD(CLK:=in_bExecute);
+IF trigCMD.Q THEN
+	nCommand			:= in_nCommand;
+	stat.nLastCommand	:= in_nCommand;
+ELSE
+	nCommand		:= E_CRYO_BIN_ACT_CMD.NONE;
+END_IF
+
+// If the system is not operational, this is an error.
+IF i_nCouplerState <> 8 THEN
+	stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+	stat.sState	:= 'ERROR: System not OPERATIONAL';
+	M_SetStatus(stat.nState);	
+END_IF
+
+CASE stat.nState OF
+	/////////////////////////////////
+	E_CRYO_BIN_ACT_STATE.NONE:
+	/////////////////////////////////
+	//
+	// Determine the initial state based on the feedback
+	IF stat.bON	THEN
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ON;
+	ELSIF stat.bOFF	THEN
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.OFF;
+	ELSE
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+		stat.sState	:= 'ERROR';
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_ACT_STATE.OFF:
+	/////////////////////////////////
+	//
+	IF	stat.bON  OR  
+		stat.bError	THEN
+		// This should never happen in state OFF
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+		stat.sState	:= 'ERROR: Lost ON state.';
+		M_SetStatus(stat.nState);	
+	ELSE
+		// Check for command to go ON
+		IF nCommand = E_CRYO_BIN_ACT_CMD.ON THEN
+			// Start the timer
+			timer(IN:=FALSE);
+			timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+			// Activate the output
+			M_SetCtrlOutput(TRUE);
+			// Goto SWITCHING_ON state
+			stat.nState	:= E_CRYO_BIN_ACT_STATE.SWITCHING_ON;
+			M_SetStatus(stat.nState);	
+		END_IF
+	END_IF
+	RETURN;
+	
+	
+	/////////////////////////////////
+	E_CRYO_BIN_ACT_STATE.SWITCHING_ON:
+	/////////////////////////////////
+	//
+	// Check for timeout
+	timer(IN:=TRUE);
+	IF timer.Q THEN
+		// Stop the timer
+		timer(IN:=FALSE);
+		// Goto ERROR state
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+		stat.sState	:= 'ERROR: Timeout switching ON';
+		M_SetStatus(stat.nState);	
+		RETURN;
+	END_IF
+	
+	// Check if we have reached ON state
+	IF stat.bON	AND NOT stat.bOFF	THEN
+		// Stop the timer
+		timer(IN:=FALSE);
+		// Goto ON state
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ON;
+		M_SetStatus(stat.nState);	
+	END_IF
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_ACT_STATE.ON:
+	/////////////////////////////////
+	//
+	IF	stat.bOFF  OR  
+		stat.bError	THEN
+		// This should never happen in state ON
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+		stat.sState	:= 'ERROR: Lost OFF state.';
+		M_SetStatus(stat.nState);	
+	ELSE
+		// Check for command to go OFF
+		IF nCommand = E_CRYO_BIN_ACT_CMD.OFF THEN
+			// Start the timer
+			timer(IN:=FALSE);
+			timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+			// Deactivate the output
+			M_SetCtrlOutput(FALSE);
+			// Goto SWITCHING_OFF state
+			stat.nState	:= E_CRYO_BIN_ACT_STATE.SWITCHING_OFF;
+			M_SetStatus(stat.nState);	
+		END_IF
+	END_IF
+	RETURN;
+	
+	
+	//////////////////////////////////
+	E_CRYO_BIN_ACT_STATE.SWITCHING_OFF:
+	//////////////////////////////////
+	//
+	// Check for timeout
+	timer(IN:=TRUE);
+	IF timer.Q THEN
+		// Stop the timer
+		timer(IN:=FALSE);
+		// Goto ERROR state
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+		stat.sState	:= 'ERROR: Timeout switching OFF';
+		M_SetStatus(stat.nState);	
+		RETURN;
+	END_IF
+	
+	// Check if we have reached OFF state
+	IF stat.bOFF AND NOT stat.bON	THEN
+		// Stop the timer
+		timer(IN:=FALSE);
+		// Goto OFF state
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.OFF;
+		M_SetStatus(stat.nState);	
+	END_IF
+	RETURN;
+	
+	/////////////////////////////////
+	E_CRYO_BIN_ACT_STATE.ERROR:
+	/////////////////////////////////
+	//
+	// Deactivate the output
+	M_SetCtrlOutput(FALSE);
+	
+	// Check for command to go ON
+	IF nCommand = E_CRYO_BIN_ACT_CMD.ON THEN
+		// Start the timer
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		// Activate the output
+		M_SetCtrlOutput(TRUE);
+		// Goto SWITCHING_ON state
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.SWITCHING_ON;
+		M_SetStatus(stat.nState);	
+	// Check for command to go OFF
+	ELSIF nCommand = E_CRYO_BIN_ACT_CMD.OFF THEN
+		// Start the timer
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+		// Deactivate the output
+		M_SetCtrlOutput(FALSE);
+		// Goto SWITCHING_OFF state
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.SWITCHING_OFF;
+		M_SetStatus(stat.nState);	
+	END_IF
+	RETURN;
+
+END_CASE]]></ST>
+    </Implementation>
+    <Method Name="M_GetFeedback" Id="{6a1c4793-9c26-4b81-8add-355258e79ca1}">
+      <Declaration><![CDATA[METHOD M_GetFeedback
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get ON/OFF status based on active low configuration
+IF in_bActiveLowStat	THEN
+	stat.bON	:= NOT i_bON;
+	stat.bOFF	:= NOT i_bOFF;
+ELSE
+	stat.bON	:= i_bON;
+	stat.bOFF	:= i_bOFF;
+END_IF
+
+// Check for possible feedback errors.
+// Also, adjust the OFF signal, if only ON feedback exists.
+IF in_nFeedback = E_CRYO_BIN_ACT_FEEDBACK.ON_AND_OFF  THEN
+	// There are separate signals for ON and OFF.
+	// The status is already properly assigned. Nothing more to do.
+	// If both feedback signals are active, this is an error.
+	(*
+	IF stat.bON AND stat.bOFF	THEN
+		stat.nState	:= E_CRYO_BIN_ACT_STATE.ERROR;
+		stat.sState	:= 'ERROR: Both ON and OFF signals active!';
+		M_SetStatus(stat.nState);	
+	END_IF
+	*)
+	;
+ELSIF in_nFeedback = E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY  THEN
+	// There is only a feedback signal for ON.
+	// Therefore, stat.bOFF := NOT stat.bON
+	stat.bOFF	:= NOT stat.bON;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCtrlOutput" Id="{3150f227-327f-46a1-b449-b7c4f7e17ec8}">
+      <Declaration><![CDATA[METHOD M_SetCtrlOutput
+VAR_INPUT
+	in_bSignal:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Set control output signal based on active low configuration
+IF in_bActiveLowCtrl	THEN
+	q_bCtrl	:= NOT in_bSignal;
+ELSE
+	q_bCtrl	:= in_bSignal;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{6e5813ec-e643-43a0-909e-21bb0fe44089}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_BIN_ACT_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nState OF
+	
+	E_CRYO_BIN_ACT_STATE.OFF,
+	E_CRYO_BIN_ACT_STATE.ON:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	
+	E_CRYO_BIN_ACT_STATE.SWITCHING_ON,
+	E_CRYO_BIN_ACT_STATE.SWITCHING_OFF:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	
+	E_CRYO_BIN_ACT_STATE.ERROR:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= TRUE;
+END_CASE
+
+// Set status string
+CASE stat.nState OF
+	
+	E_CRYO_BIN_ACT_STATE.OFF:
+	stat.sState	:= 'OFF';
+	
+	E_CRYO_BIN_ACT_STATE.ON:
+	stat.sState	:= 'ON';
+	
+	E_CRYO_BIN_ACT_STATE.SWITCHING_ON:
+	stat.sState	:= 'SWITCHING_ON...';
+	
+	E_CRYO_BIN_ACT_STATE.SWITCHING_OFF:
+	stat.sState	:= 'SWITCHING_OFF...';
+	
+	E_CRYO_BIN_ACT_STATE.ERROR:
+	// Error string was set where the error was detected.
+	//	stat.sState	:= 'ERROR';
+	;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_BIN_ACT">
+      <LineId Id="1186" Count="171" />
+      <LineId Id="48" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_ACT.M_GetFeedback">
+      <LineId Id="69" Count="7" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="78" Count="2" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="106" Count="2" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="112" Count="1" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_ACT.M_SetCtrlOutput">
+      <LineId Id="12" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_BIN_ACT.M_SetStatus">
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="64" Count="2" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

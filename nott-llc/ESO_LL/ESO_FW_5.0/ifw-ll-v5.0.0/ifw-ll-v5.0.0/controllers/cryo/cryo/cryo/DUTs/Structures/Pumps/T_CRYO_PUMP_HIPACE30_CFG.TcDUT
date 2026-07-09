@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_PUMP_HIPACE30_CFG" Id="{39bc0834-8823-4328-8a57-cfce0330e027}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_HIPACE30_CFG EXTENDS T_CRYO_PUMP_SERIAL_CFG:
+STRUCT
+// HIPACE30 specific command configuration.
+// Pfeiffer Vacuum protocol for RS-485 interface.
+// Assumed RS-485 device ID=1 (001) !!!
+
+	// Definition of commands
+	C_CMD_NONE:				STRING(16) := '';
+	C_CMD_sCtrlViaInt:		STRING(16) := '0011006003001';	// Control via DIO
+	C_CMD_sFwVersion:		STRING(16) := '0010031202=?';
+	C_CMD_sHwVersion:		STRING(16) := '0010035402=?';
+	C_CMD_nNominalSpeed:	STRING(16) := '0010039902=?';
+	
+	C_CMD_bON:				STRING(16) := '0010002302=?';
+	C_CMD_nCtrlMode:		STRING(16) := '0010006002=?';
+	C_CMD_sErrorCode:		STRING(16) := '0010030302=?';
+	C_CMD_bTargetSpeed:		STRING(16) := '0010030602=?';
+	C_CMD_nMotorCurr:		STRING(16) := '0010031002=?';
+	C_CMD_nPumpHours:		STRING(16) := '0010031102=?';
+	C_CMD_nMotorVolt:		STRING(16) := '0010031302=?';
+	C_CMD_nElecHours:		STRING(16) := '0010031402=?';
+	C_CMD_nElecTemp:		STRING(16) := '0010032602=?';
+	C_CMD_nPumpTemp:		STRING(16) := '0010034602=?';
+	C_CMD_nPumpSpeed:		STRING(16) := '0010039802=?';
+	
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

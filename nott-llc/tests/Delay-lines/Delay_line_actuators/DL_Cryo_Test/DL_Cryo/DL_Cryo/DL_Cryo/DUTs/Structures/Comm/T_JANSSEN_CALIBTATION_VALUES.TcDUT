@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_JANSSEN_CALIBTATION_VALUES" Id="{8e144d06-dc0c-407c-9f07-9e9bd8c39077}">
+    <Declaration><![CDATA[TYPE T_JANSSEN_CALIBTATION_VALUES :
+STRUCT
+	nGainSetting:				DINT;
+	nUpperThresholdValue:		DINT;
+	nLowerThresholdValue:		DINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

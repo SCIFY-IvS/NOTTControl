@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	
+	{attribute 'OPC.UA.DA':='1'}
+	Actuator001:		FB_ACTUATOR;	// Simulated power always
+	{attribute 'OPC.UA.DA':='1'}
+	Actuator002:		FB_ACTUATOR;	// Simulated power always
+	{attribute 'OPC.UA.DA':='1'}
+	Actuator003:		FB_ACTUATOR;	// Real power if connected to a PLC
+	{attribute 'OPC.UA.DA':='1'}
+	Actuator004:		FB_ACTUATOR;	// Real power if connected to a PLC
+
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Actuator001:	FB_SIM_ACTUATOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Actuator002:	FB_SIM_ACTUATOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Actuator003:	FB_SIM_ACTUATOR;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Actuator004:	FB_SIM_ACTUATOR;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Actuator001 configuration:
+// - Go to  OPERATIONAL on PLC reboot
+// - Initial state is OFF
+Actuator001(in_sName:='Actuator001', in_bAutoOp:=TRUE,in_bInitialState:=FALSE);
+
+// Actuator002 configuration:
+// - Go to  OPERATIONAL on PLC reboot
+// - Initial state is ON
+Actuator002(in_sName:='Actuator002', in_bAutoOp:=TRUE,in_bInitialState:=TRUE);
+
+// Actuator003 configuration:
+// - Remain in NOTOP on PLC reboot
+// - Initial state is OFF
+Actuator003(in_sName:='Actuator003', in_bAutoOp:=FALSE,in_bInitialState:=FALSE);
+
+// Actuator004 configuration:
+// - Go to  OPERATIONAL on PLC reboot
+// - Initial state is ON
+Actuator004(in_sName:='Actuator004', in_bAutoOp:=TRUE,in_bInitialState:=TRUE);
+
+
+// Actuator001 Simulator
+SIM_Actuator001(ptrDev:=ADR(Actuator001));
+// Actuator002 Simulator
+SIM_Actuator002(ptrDev:=ADR(Actuator002));
+// Actuator003 Simulator
+SIM_Actuator003(ptrDev:=ADR(Actuator003));
+// Actuator004 Simulator
+SIM_Actuator004(ptrDev:=ADR(Actuator004));
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="342" Count="4" />
+      <LineId Id="359" Count="2" />
+      <LineId Id="347" Count="1" />
+      <LineId Id="362" Count="2" />
+      <LineId Id="349" Count="1" />
+      <LineId Id="365" Count="2" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="352" Count="2" />
+      <LineId Id="356" Count="1" />
+      <LineId Id="373" Count="3" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

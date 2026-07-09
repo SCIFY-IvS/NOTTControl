@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_SIM_CH_STATUS" Id="{6cf30e1e-40da-4226-8f5c-a4d69fa1b8d2}">
+    <Declaration><![CDATA[TYPE T_SA_SIM_CH_STATUS :
+STRUCT
+	//
+	// Positioner State Machine State.
+	// Depending on the State, different command sets will be executed.
+	//
+	nPosState:			E_SA_POS_SM_STATE := E_SA_POS_SM_STATE.NOT_READY;
+	
+
+	//
+	// Channel Configuration parameters read from the controller.
+	// A channel is a Positioner.
+	//
+	nCLIN:				DINT;			// Control Loop Input, 1-SENSOR
+	nTUN_BASE_UNIT:		DINT;			// Positioner Base Unit, 2-meter, 3-degree
+	nTUN_BASE_RES:		DINT;			// Positioner Base Resolution, 1x10-9 or 1x10-12
+	nTUN_MTYP:			DINT;			// Positioner Movement Type, 0-linear, 1-rotation, etc
+	nTUN_RTYP:			DINT;			// Positioner Reference Type, 2-SINGLE_CODED
+
+
+	lnPosTarget:		LINT;			// Target  position in Positioner Units
+	lnPosActual:		LINT;			// Current position in Positioner Units
+	lnPosStart:			LINT;			// Starting position for MOVE in Positioner Units
+	lnDistance:			LINT := 0;		// move distance
+
+
+	bConfigured:		BOOL;			// Flag if M_Configure has been executed.	
+	bError:				BOOL;
+	bInitialised:		BOOL;			// Flag if positioner has been initialised/referenced
+
+	//
+	// Channel State parameters read from the controller
+	// A channel is a Positioner.
+	//
+	nSTATE:				UDINT;			// Positioner State as UDINT
+	stState:			T_SA_CH_STATE;	// Positioner State structure, from nSTATE
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

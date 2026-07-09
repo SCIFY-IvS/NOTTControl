@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="T_COE_PTP_PARAMETERS" Id="{48ee3db5-de67-4827-95ab-91061dbf2da9}">
+    <Declaration><![CDATA[TYPE T_COE_PTP_PARAMETERS :
+STRUCT
+	ptp_version: E_COE_PTP_VERSION := E_COE_PTP_VERSION.UNKONWN;
+	transport_layer: E_COE_PTP_TRANSPORT_LAYER := E_COE_PTP_TRANSPORT_LAYER.UNKNOWN;
+	delay_mechanism : E_COE_PTP_DELAY_MECHANISM :=  E_COE_PTP_DELAY_MECHANISM.UNKNOWN;
+	ethernet_settings: T_COE_PTP_ETHERNET;	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

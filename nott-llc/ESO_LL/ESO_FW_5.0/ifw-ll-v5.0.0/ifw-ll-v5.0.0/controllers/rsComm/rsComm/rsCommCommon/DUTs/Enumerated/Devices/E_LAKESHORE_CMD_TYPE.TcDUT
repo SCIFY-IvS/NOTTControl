@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_LAKESHORE_CMD_TYPE" Id="{b71ba0d7-20f0-4ea3-932a-296a0c8ec369}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_LAKESHORE_CMD_TYPE :
+(
+	INIT := 0,
+	READ,
+	CTRL
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_CCC_CFG" Id="{732eb323-4145-40e3-a59a-83c8c95bec19}">
+    <Declaration><![CDATA[TYPE T_CCC_CFG EXTENDS T_RS_BASE_CFG:
+STRUCT
+	CCC_CMD_GET_VERS:	STRING(8) := '>00V??';
+	CCC_CMD_RESET:		STRING(8) := '>00u??';
+	CCC_CMD_GET_TEMP:	STRING(8) := '>00H??';
+	CCC_CMD_GET_FLOW:	STRING(8) := '>00f??';
+	CCC_CMD_GET_STAT:	STRING(8) := '>00o??';
+	CCC_CMD_SET_HOST:	STRING(8) := '>00J??';
+	CCC_CMD_SET_THST:	STRING(8) := '>00T??';
+	CCC_CMD_SET_TAMB:	STRING(8) := '>00t??';
+
+	(* List of INIT commands *)
+	cmdList_Init:	ARRAY [1..4] OF T_CCC_COMMAND := [
+							(cmd := CCC_CMD_RESET, 		nValues := 0),
+							(cmd := CCC_CMD_GET_VERS, 	nValues := 0),
+							(cmd := '', 				nValues := 0),
+							(cmd := '', 				nValues := 0)];
+
+
+	(*	List of READ commands *)
+	cmdList_Read:	ARRAY [1..4] OF T_CCC_COMMAND := [
+							(cmd := CCC_CMD_GET_STAT, 	nValues := 5), (* 5 bytes *)
+							(cmd := CCC_CMD_GET_TEMP, 	nValues := 5), (* 5 words = 10 bytes*)
+							(cmd := CCC_CMD_GET_FLOW, 	nValues := 3), (* 3 words = 6 bytes *)
+							(cmd := '', 				nValues := 0)];
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

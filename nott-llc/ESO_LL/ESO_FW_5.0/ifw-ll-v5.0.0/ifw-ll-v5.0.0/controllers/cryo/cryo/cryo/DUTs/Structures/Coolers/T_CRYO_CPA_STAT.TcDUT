@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CPA_STAT" Id="{b1d3fe54-f7d6-48b2-87f4-872a7548ec17}">
+    <Declaration><![CDATA[TYPE T_CRYO_CPA_STAT EXTENDS T_RS_BASE_STAT:
+STRUCT
+	bSystemOn:				BOOL := FALSE;
+
+	nRetries:				INT := 0;	// Total number of retries in case of communication problems
+	
+	nInputBuffer: 			ARRAY [0..300] OF BYTE;	// Binary data read from JUMO
+	
+	// Parameters read from the compressor
+	nOperatingState:		INT	:= 0;
+	nCompressorRunning:		INT	:= 0;
+	lrWarningState:			LREAL	:= 0.0;
+	lrAlarmState:			LREAL	:= 0.0;
+	lrCoolantInTemp:		LREAL	:= 0.0;
+	lrCoolantOutTemp:		LREAL	:= 0.0;
+	lrOilTemp:				LREAL	:= 0.0;
+	lrHeliumTemp:			LREAL	:= 0.0;
+	lrLowPressure:			LREAL	:= 0.0;
+	lrLowPressureAverage:	LREAL	:= 0.0;
+	lrHighPressure:			LREAL	:= 0.0;
+	lrHighPressureAverage:	LREAL	:= 0.0;
+	lrDeltaPressureAverage:	LREAL	:= 0.0;
+	lrMotorCurrent:			LREAL	:= 0.0;
+	lrHoursOfOperation:		LREAL	:= 0.0;
+	nPressureScale:			INT		:= 0;
+	nTempScale:				INT		:= 0;
+	nPanelSerialNumber:		UINT	:= 0;
+	nModelMajorMinor:		INT		:= 0;
+
+	// Calculated values
+	sOperatingState:		STRING(32);
+	sModelNumber:			STRING	:= 'CRYOMECH CPAxxxx';
+
+	sServiceDue_Compressor:	STRING	:= ''; 		// Warning string for compressor service
+	sServiceDue_PulseTube:	STRING	:= ''; 		// Warning string for pulse tube service
+	
+
+	bServiceDue_Compressor:	BOOL	:= FALSE;	// Warning for compressor service
+	bServiceDue_PulseTube:	BOOL	:= FALSE;	// Warning for pulse tube service
+	
+	wColour_Compressor:		DWORD;	// Warning colour for compressor service
+	wColour_PulseTube:		DWORD;	// Warning colour for pulse tube service
+
+	
+	
+(*	
+Input Register 30005: (Errors)
+0: No Errors
+-1: CoolantInHigh
+-2: CoolantInLow
+-4: CoolantOutHigh
+-8: CoolantOutLow
+-16: OilHigh
+-32: OilLow
+-64: HeliumHigh
+-128: HeliumLow
+-256: LowPressureHigh
+-512: LowPressureLow
+-1024: HighPressureHigh
+-2048: HighPressureLow
+-4096: DeltaPressureHigh
+-8192: DeltaPressureLow
+-16384: MotorCurrentLow
+-32768: ThreePhaseError
+-65536: PowerSupplyError
+-131072: StaticPressureHigh
+-262144: StaticPressureLow
+*)
+	
+	
+	// Readings in array
+	aReadings:	ARRAY [0..6] OF LREAL;	// For index, see E_CRYO_CPA_DIAG_IDX
+	
+	// Alarms in array
+	arrAlarms:		ARRAY [0..8] OF INT;
+	// Errors in array
+	arrErrors:		ARRAY [0..8] OF INT;
+	
+	// Alarm text, e.g. 
+	// ‘Alarm: high pressure running high, compressor will shut off at 27.6 bar’
+	sAlarm:		STRING(128)	:= '';	
+	// Error text, e.g. 
+	// ‘Error: high pressure running high, compressor shut off at 27.6 bar’
+	sError:		STRING(128)	:= '';	
+	sStatusOK:	STRING(128)	:= 'Running Normally';	
+	
+	nStatusCode:	INT	:= 0;	// 0-OK, 1-Alarm, 2-Error
+
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

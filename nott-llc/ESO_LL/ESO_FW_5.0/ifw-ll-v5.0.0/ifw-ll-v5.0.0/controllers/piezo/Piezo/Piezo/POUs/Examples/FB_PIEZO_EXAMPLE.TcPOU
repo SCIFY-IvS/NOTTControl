@@ -1,0 +1,295 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PIEZO_EXAMPLE" Id="{1cb0f4e0-da22-4f09-b830-732d2f4f14b3}" SpecialFunc="None">
+    <Declaration><![CDATA[// Example of piezo with 3 axes
+FUNCTION_BLOCK FB_PIEZO_EXAMPLE EXTENDS FB_PIEZO_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// NOTE: In this example we didn't extend any of the structures 
+	//       but this could have been done.
+	//    Example:
+	//       T_PIEZO_CFG_EXAMPLE EXTENDS T_PIEZO_CFG
+	//       cfg:	T_PIEZO_CFG_EXAMPLE;
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_PIEZO_CFG;	
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_PIEZO_CTRL;	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_PIEZO_STAT;	(* ReadOnly *)
+	
+	(***** Local variables *****)
+	{attribute 'OPC.UA.DA' := '0'}
+	nSetVal:		ARRAY [0..2] OF INT;	// Current set value [bit]
+	{attribute 'OPC.UA.DA' := '0'}
+	nLastCorr:		ARRAY [0..2] OF INT;	// Last correction [bit]
+	{attribute 'OPC.UA.DA' := '0'}
+	nScale:			ARRAY [0..2] OF INT := [1,1,1];	// +1 or -1 (going up or down)
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references !!! a MUST !!!
+RefCfg	REF=cfg;
+RefCtrl	REF=ctrl;
+RefStat	REF=stat;
+
+// Execute the base class object FB_LAMP_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityAuto" Id="{0aff2a37-5595-4d7e-bb87-d387b85c7afa}">
+      <Declaration><![CDATA[METHOD ActivityAuto
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+	nCorrection:	INT	:= 0;
+	nNextVal:		INT	:= 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// This method should be overloaded by a User Method with specific behaviour.
+//
+
+// Add here code to automatically update piezo position.
+// This is a dummy implementation where we want the following:
+// Increment the output by 10 bits on every cycle.
+// If upper limit is reached, start decrementing.
+// If lower limit is reached, start incrementing.
+// Ensure that the feedback reading equals the set value.
+// To do this, the output might be slightly adjusted by the difference
+// between the last set value and the actual value.
+
+// Analog input channels as Int16
+//  0 V = 0 bit
+// 10 V = 32767 bit
+
+// Don't move piezos if error is active.
+IF stat.nErrorCode <> E_PIEZO_ERROR.OK THEN
+	RETURN;
+END_IF
+
+FOR i:=0 TO cfg.nNumAxes-1 DO
+	// Read feedback
+	stat.nActPosBit[i].nValue	:= INT_TO_DINT(i_nActVal_Int16[i]);
+	// Convert feedback to User Units [UU]
+	IF cfg.lrUser2Bit_Get[i].lrValue <> 0.0 THEN
+		stat.lrActPosUsr[i].lrValue := 
+		   (stat.nActPosBit[i].nValue - cfg.nUserOffsetBit_Get[i].nValue) / cfg.lrUser2Bit_Get[i].lrValue;
+	END_IF
+	
+	// Apply only small corrections.
+	// The initial error could be huge and we want to avoid correcting it.
+	IF ABS(nSetVal[i]) <> 32767 THEN
+		nCorrection		:= 	nSetVal[i] - i_nActVal_Int16[i];
+		IF ABS(nCorrection) < 100 THEN
+			nLastCorr[i]	:= 	nCorrection;
+		ELSE
+			nLastCorr[i]	:= 	0;
+		END_IF
+	END_IF
+
+	// nSetVal is the value we would like to get from the feedback
+	nNextVal	:= nSetVal[i] + nScale[i]*10;
+	IF ((nScale[i] = 1) AND (nNextVal >= cfg.nLimitHigh[i].nValue)) THEN	// overrun
+		nSetVal[i] := cfg.nLimitHigh[i].nValue;
+		nScale[i]	:= -1;
+	ELSIF ((nScale[i] = -1) AND (nNextVal <= cfg.nLimitLow[i].nValue)) THEN
+		nSetVal[i] := cfg.nLimitLow[i].nValue;
+		nScale[i]	:= 1;
+	ELSE
+		nSetVal[i] := nNextVal;
+	END_IF
+
+	// Set the output that includes the correction in order to get i_nActVal[i] = nSetVal[i].
+	q_nCtrl[i] := nSetVal[i] + nLastCorr[i];
+	
+		
+	// Convert bits [bit] into user units [UU]
+	stat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+	IF cfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+		stat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - cfg.nUserOffsetBit_Set[i].nValue) / 
+										cfg.lrUser2Bit_Set[i].lrValue;
+	END_IF
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityPos" Id="{bca5b047-db45-4e74-957c-6373b6197150}">
+      <Declaration><![CDATA[METHOD ActivityPos
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// This method should be overloaded by a User Method with specific behaviour.
+//
+
+// Dummy implementation.
+// Update feedback
+FOR i:=0 TO cfg.nNumAxes-1 DO
+	// Read feedback
+	stat.nActPosBit[i].nValue	:= INT_TO_DINT(i_nActVal_Int16[i]);
+	// Convert feedback to User Units [UU]
+	IF cfg.lrUser2Bit_Get[i].lrValue <> 0.0 THEN
+		stat.lrActPosUsr[i].lrValue := 
+		   (stat.nActPosBit[i].nValue - cfg.nUserOffsetBit_Get[i].nValue) / cfg.lrUser2Bit_Get[i].lrValue;
+	END_IF
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{d19e8399-2cd2-4123-a45a-5581f6f2c032}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+	fbGetCurTaskIdx:	GETCURTASKINDEX;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If device is ready, there is nothing to configure.
+IF bDeviceReady THEN
+	RETURN;
+END_IF
+
+// TODO USER
+// Customise the configuration starting from the COMPLETE FB_PIEZO_BASE::M_Configure().
+// Modify the code between USER_START and USER_END
+
+//
+// USER_START
+//
+
+// If first cycle, copy configuration AND RETURN in order for the system to read all inputs before doing any work
+IF stat.nCycleCounter = 0 THEN
+	// Up to C_nNumAxes axes are supported
+	// NOTE: In applications using Piezo.library, 
+	//       GVL.C_nNumAxes has to be replaced with ESO_LDC_Piezo_Library.GVL.C_nNumAxes.
+	IF in_nNumAxes > GVL.C_nNumAxes THEN
+		cfg.nNumAxes	:= GVL.C_nNumAxes;
+	ELSE
+		cfg.nNumAxes	:=	in_nNumAxes;
+	END_IF
+	
+	// Get cycle time in microsec.
+	// CycleTime in _TaskInfo is given in 100 ns. 1 us = 1000 ns
+	fbGetCurTaskIdx();	// Get the task index.
+	RefStat.nCycleTime	:= TwinCAT_SystemInfoVarList._TaskInfo[fbGetCurTaskIdx.index].CycleTime/10;
+	// Monitored attributes will change on every cycle, e.g. at 1 kHz.
+	// In order to reduce load of OPC UA Server, update these attributes every 100 ms (100,000 us)
+	RefStat.nMonSkipCycles	:= 100000 / UDINT_TO_DINT(RefStat.nCycleTime);
+	
+	// Hard code EXAMPLE configuration.
+	// Note: Apart from the setting of cfg.nNumAxes, 
+	//       the rest could be configured from the WS.
+	// Note: The configuration can still be overwritten on INIT !!!
+
+	// Assign input parameters to the configuration.
+	cfg.sName		:=	in_sName;
+	cfg.nMaxOn		:=	in_nMaxOn;	
+
+	// Populate arrays in the configuration
+	FOR i:= 0 TO (cfg.nNumAxes-1) DO
+		cfg.nFullRange[i].nValue	:=	32767;
+		cfg.nHome[i].nValue			:=	10 * i;	// Dummy value just to be <> 0
+		cfg.nLimitLow[i].nValue		:=	100;
+		cfg.nLimitHigh[i].nValue	:=	32500;
+		//
+		// Conversion from User units (UU) to [bit], e.g. [V] to [bit] for OUTPUTS
+		// stat.nPosBit[i] := cfg.nUserOffset[i]  +  stat.lrPosUsr[i] * cfg.lrUser2Bit[i]   (units [bit])
+		//
+		cfg.lrUser2Bit_Set[i].lrValue		:=	3276.7;	// 1V = 3276.7 bits
+		cfg.nUserOffsetBit_Set[i].nValue	:=	0;
+
+		//
+		// Conversion from User units (UU) to [bit], e.g. [V] to [bit] for INPUTS, i.e. feedback
+		// stat.nPosBit[i] := cfg.nUserOffset[i]  +  stat.lrPosUsr[i] * cfg.lrUser2Bit[i]   (units [bit])
+		//
+		cfg.lrUser2Bit_Get[i].lrValue		:=	3276.7;	// 1V = 3276.7 bits
+		cfg.nUserOffsetBit_Get[i].nValue	:=	0;
+	END_FOR
+
+
+	// Get the version number 
+	stat.sLibVersion	:= stLibVersion_ESO_LDC_Piezo_Library.sVersion;
+
+	// Increment counter.
+	stat.nCycleCounter	:= stat.nCycleCounter + 1;
+	RETURN;
+ELSIF (stat.nCycleCounter * stat.nCycleTime) < 5000000 THEN
+	// EtherCAT is normally ready after 3.5 sec.
+	// We give it 5 sec to consider it to be ready.
+	// Increment counter.
+	stat.nCycleCounter	:= stat.nCycleCounter + 1;
+	RETURN;
+END_IF
+
+//
+// USER_END
+//
+
+// Don't touch the code below !!!
+
+// After 100 cycles the system is ready, e.g. coupler state is 8.
+
+// Create Event instances
+fbEventStart.CreateEx	(TC_EVENTS.PiezoOpsEventClass.ActionStart,0);
+fbEventEnd.CreateEx		(TC_EVENTS.PiezoOpsEventClass.ActionEnd,0);
+fbEventError.CreateEx	(TC_EVENTS.PiezoOpsEventClass.Error,0);
+fbEventDebug.CreateEx	(TC_EVENTS.PiezoOpsEventClass.Debug,0);
+fbEventGeneral.CreateEx	(TC_EVENTS.PiezoOpsEventClass.General,0);
+
+// The device is ready now.
+bDeviceReady := TRUE;
+
+
+// Clear errors
+stat.nErrorCode		:= E_PIEZO_ERROR.OK;
+stat.sErrorText		:= 'OK';	
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PIEZO_EXAMPLE">
+      <LineId Id="65" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="40" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_EXAMPLE.ActivityAuto">
+      <LineId Id="161" Count="65" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_EXAMPLE.ActivityPos">
+      <LineId Id="13" Count="3" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="20" Count="7" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_EXAMPLE.M_Configure">
+      <LineId Id="510" Count="4" />
+      <LineId Id="418" Count="18" />
+      <LineId Id="515" Count="6" />
+      <LineId Id="442" Count="37" />
+      <LineId Id="522" Count="3" />
+      <LineId Id="483" Count="26" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

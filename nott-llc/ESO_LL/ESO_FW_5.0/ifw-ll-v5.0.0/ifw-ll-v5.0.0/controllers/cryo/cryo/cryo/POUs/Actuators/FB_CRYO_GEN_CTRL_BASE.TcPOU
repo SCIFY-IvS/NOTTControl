@@ -1,0 +1,779 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_CRYO_GEN_CTRL_BASE" Id="{1047c5f6-4942-4f6f-9044-96fdf18d81d8}" SpecialFunc="None">
+    <Declaration><![CDATA[// Generic Controller
+FUNCTION_BLOCK FB_CRYO_GEN_CTRL_BASE
+VAR_INPUT
+	in_bEnable:			BOOL := FALSE;	// Controller active while in_bEnable is TRUE
+	in_nTimeout:		UDINT := 10000;	// Timeout for switching on/off [ms]. Default 10000.
+	(*
+		TODO USER: Add all specific input parameters, e.g.
+		- Configuration parameters
+		- External variables, e.g. temperature, pressure, etc.
+	*)
+END_VAR
+VAR
+	(*
+		TODO USER: Add all system actuators, variables and I/O signals, e.g.
+		
+		{attribute 'OPC.UA.DA' := '1'}
+		Actuator:	FB_CRYO_BIN_ACT;	// Heater, valve, etc.
+	*)
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	statRef:	REFERENCE TO T_CRYO_GEN_CTRL_STATUS_BASE;
+
+	(*
+		TODO USER:	Add a 'stat' structure.
+					It can be the T_CRYO_GEN_CTRL_STATUS or a struct that EXTENDS T_CRYO_GEN_CTRL_STATUS.
+					For example:
+						stat:	T_CRYO_BIN_CTRL_STATUS;
+	*)
+	
+	nEvent:		E_CRYO_GEN_CTRL_EVENT := E_CRYO_GEN_CTRL_EVENT.NONE;
+
+	{attribute 'OPC.UA.DA' := '0'}
+	timer:		TON;		// Timer for commands
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	trgEnable:	R_TRIG;		// Rising trigger of in_bEnable
+	
+	// This flag will be set once M_Configure() is executed.
+	bConfigured:	BOOL := FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Don't do anything until the controller is configured
+IF NOT bConfigured THEN
+	M_Configure();
+	RETURN;
+END_IF
+
+// Increment cycle counter
+statRef.nCycleCounter := statRef.nCycleCounter + 1;
+
+
+
+M_ReadInputs();
+
+
+M_ExecuteActuators();
+
+
+M_SetStatus();
+
+
+M_CheckForEvents();
+
+
+M_ProcessEvents();
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ActionOffExecute" Id="{a5136b6b-5232-46bb-a051-6effa27c8e95}">
+      <Declaration><![CDATA[METHOD M_ActionOffExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// In this method the user shall turn off the actuator(s) such as valves, heaters, coolers, etc.
+// Normally this is done by setting the in_bEnable flag of the actuator to FALSE.
+// In the corresponding Activity M_ActivitySwitchingOff(), the completion of the OFF command shall be checked.
+//
+timer(IN:=FALSE);	// Reset Timer - mandatory!
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActionOnExecute" Id="{e794f433-93f1-4449-bfba-12ebd55dcb6e}">
+      <Declaration><![CDATA[METHOD M_ActionOnExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// In this method the user shall turn on the actuator(s) such as valves, heaters, coolers, etc.
+// Normally this is done by setting the in_bEnable flag of the actuator to TRUE.
+// In the corresponding Activity M_ActivitySwitchingOn(), the completion of the ON command shall be checked.
+timer(IN:=FALSE);	// Reset Timer
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActivitySwitchingOff" Id="{10a8dfd7-81c7-4d45-8b28-2bfa23185e31}">
+      <Declaration><![CDATA[METHOD M_ActivitySwitchingOff : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// In this method the user shall wait until the actuator is turned OFF.
+// The actuator state is available in the status structure.
+// When complete, the method shall return TRUE, otherwise FALSE.
+
+
+// Dummy implementation.
+// Complete after 5 sec.
+//
+timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+	
+IF timer.ET >= T#5S THEN
+	M_ActivitySwitchingOff := TRUE;
+ELSE
+	M_ActivitySwitchingOff := FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActivitySwitchingOn" Id="{66272372-c488-4ad6-ac32-ee20c652e651}">
+      <Declaration><![CDATA[METHOD M_ActivitySwitchingOn : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// In this method the user shall wait until the actuator is turned ON.
+// The actuator state is available in the status structure.
+// When complete, the method shall return TRUE, otherwise FALSE.
+
+
+// Dummy implementation.
+// Complete after 5 sec.
+//
+timer(IN:=TRUE, PT:=UDINT_TO_TIME(in_nTimeout));
+	
+IF timer.ET >= T#5S THEN
+	M_ActivitySwitchingOn := TRUE;
+ELSE
+	M_ActivitySwitchingOn := FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckForEvents" Id="{6f0c7f0a-8fe4-4d98-9344-2276ba88f066}">
+      <Declaration><![CDATA[METHOD M_CheckForEvents
+VAR_INPUT
+END_VAR
+VAR
+	nEventTmp:	E_CRYO_GEN_CTRL_EVENT := E_CRYO_GEN_CTRL_EVENT.NONE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+//
+
+nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.NONE;
+
+// Check for the Enable trigger
+trgEnable(CLK := in_bEnable);
+
+
+CASE statRef.nState OF
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.NONE:
+	/////////////////////////////////
+	//
+	// This is the state on power-up.
+	statRef.nState	:= E_CRYO_BIN_CTRL_STATE.OFF;
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.OFF:
+	/////////////////////////////////
+	//
+	IF	trgEnable.Q  THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.ENABLE;
+	END_IF
+	
+	
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+	/////////////////////////////////
+	//
+	IF NOT in_bEnable  THEN
+		// Goto Off.
+		//
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.DISABLE;
+	ELSIF M_ControlLoop() = TRUE THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.ON;
+	END_IF
+	
+	
+	//////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+	//////////////////////////////////////////
+	//
+	IF NOT in_bEnable  THEN
+		// Goto ACTIVE_OF first.
+		//
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.OFF;
+	ELSIF timer.Q THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.ERROR;
+	ELSIF M_ControlLoop() = FALSE THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.OFF;
+	ELSIF M_ActivitySwitchingOn() THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.IS_ON;
+	END_IF
+	
+
+	//////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+	//////////////////////////////////////////
+	//
+	IF NOT in_bEnable  THEN
+		// Goto ACTIVE_OFF first.
+		//
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.OFF;
+	ELSIF M_ControlLoop() = FALSE THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.OFF;
+	END_IF
+	
+
+	///////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+	///////////////////////////////////////////
+	//
+	IF NOT in_bEnable  THEN
+		// Goto Off.
+		//
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.DISABLE;
+	ELSIF timer.Q THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.ERROR;
+	ELSIF M_ControlLoop() = TRUE THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.ON;
+	ELSIF M_ActivitySwitchingOff() THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.IS_OFF;
+	END_IF
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+	/////////////////////////////////
+	//
+	IF	trgEnable.Q  THEN
+		nEventTmp	:= E_CRYO_GEN_CTRL_EVENT.ENABLE;
+	END_IF
+	
+END_CASE
+
+nEvent	:= nEventTmp;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{fcbb4079-37b6-4b34-9526-1a25224b7ae4}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Configure the system and set the bConfigured flag to TRUE.
+
+(*
+	TODO USER: 
+	- Set references to extended structures. e.g.
+	- Configure the system, if any.
+	
+	MUST be the very first line!!!
+	     statRef REF=stat;
+*)
+
+// The system has been configured
+bConfigured := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ControlLoop" Id="{119bfb3c-0ede-4201-8e3f-99a239ad0163}">
+      <Declaration><![CDATA[METHOD M_ControlLoop : BOOL
+VAR_INPUT
+END_VAR
+VAR_INST
+	timerDummy:	TON;	// Dummy timer
+	nDummy:		UDINT;	// Dummy counter
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Dummy implementation of the control loop.
+// The return value says if the loop should be ACTIVE/TRUE or INACTIVE/FALSE
+
+IF nDummy = 0 THEN
+	timerDummy(IN:=FALSE);	// Reset timer
+END_IF
+nDummy	:= nDummy + 1;
+
+timerDummy(IN:=TRUE, PT:=T#10S);
+
+CASE statRef.nState OF
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF,
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+		IF timerDummy.Q THEN
+			nDummy := 0;
+			// This will create ON event.
+			M_ControlLoop	:= TRUE;
+		ELSE
+			// Remain OFF
+			M_ControlLoop	:= FALSE;
+		END_IF
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON,
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+		IF timerDummy.Q THEN
+			nDummy := 0;
+			// This will create OFF event.
+			M_ControlLoop	:= FALSE;
+		ELSE
+			// Remain ON
+			M_ControlLoop	:= TRUE;
+		END_IF
+	ELSE
+		M_ControlLoop	:= FALSE;
+END_CASE
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteActuators" Id="{234627e2-d656-4785-9067-ff9abfa8fac7}">
+      <Declaration><![CDATA[METHOD M_ExecuteActuators
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*
+	TODO USER: Execute all actuators, e.g. valve, heater, etc.
+
+
+// Example: Execute Actuator FB instance
+Actuator(
+	in_nFeedback		:= in_nFeedback,
+	in_nTimeout			:= in_nTimeout,
+	in_bActiveLowCtrl	:= in_bActiveLowCtrl,
+	in_bActiveLowStat	:= in_bActiveLowStat);
+
+
+*)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsError" Id="{9f2da8f0-6583-4c88-a9b1-0fee074dcd06}">
+      <Declaration><![CDATA[METHOD M_IsError : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*
+	TODO USER: Do all the checks and return TRUE if error.
+	Otherwise, return FALSE (no error).
+*)
+
+M_IsError	:= FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ProcessEvents" Id="{02c20186-0172-4a56-887d-c75dd567cfd1}">
+      <Declaration><![CDATA[METHOD M_ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+//
+
+
+CASE statRef.nState OF
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.NONE:
+	/////////////////////////////////
+	//
+	// Nothing to do.
+	;
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.OFF:
+	/////////////////////////////////
+	//
+	IF	nEvent = E_CRYO_GEN_CTRL_EVENT.ENABLE  THEN
+		// Activate the control loop.
+		// Goto Active_Off first.
+		//
+		M_ActionOffExecute();		
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF;
+	END_IF
+	
+	
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+	/////////////////////////////////
+	//
+	IF	nEvent = E_CRYO_GEN_CTRL_EVENT.DISABLE  THEN
+		// Goto Off.
+		//
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.OFF;
+	ELSIF nEvent = E_CRYO_GEN_CTRL_EVENT.ON THEN
+		M_ActionOnExecute();
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON;
+	END_IF
+	
+	
+	//////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+	//////////////////////////////////////////
+	//
+	// Check for timeout
+	IF timer.Q THEN
+		// Goto ERROR state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF nEvent = E_CRYO_GEN_CTRL_EVENT.OFF THEN
+		M_ActionOffExecute();
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF;
+	ELSIF M_ActivitySwitchingOn() THEN
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_ON;
+	END_IF
+	
+
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+	/////////////////////////////////
+	//
+	IF	nEvent = E_CRYO_GEN_CTRL_EVENT.DISABLE  THEN
+		// Goto Off.
+		//
+		M_ActionOffExecute();
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF;
+	ELSIF nEvent = E_CRYO_GEN_CTRL_EVENT.OFF THEN
+		M_ActionOffExecute();
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF;
+	END_IF
+	
+	
+	///////////////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+	///////////////////////////////////////////
+	//
+	// Check for timeout
+	IF timer.Q THEN
+		// Goto ERROR state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF nEvent = E_CRYO_GEN_CTRL_EVENT.ON THEN
+		M_ActionOnExecute();
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON;
+	ELSIF M_ActivitySwitchingOff() THEN
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF;
+	END_IF
+
+	
+	/////////////////////////////////
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+	/////////////////////////////////
+	//
+	IF	nEvent = E_CRYO_GEN_CTRL_EVENT.ENABLE  THEN
+		// Activate the control loop.
+		// Goto Active_Off first.
+		//
+		// Set next state
+		statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF;
+	END_IF
+	
+END_CASE
+
+
+// If error, goto ERROR state.
+IF M_IsError() THEN
+	statRef.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+END_IF
+
+// Set status
+M_SetStatus();	
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadInputs" Id="{cff98d3d-5d83-41af-acff-cd7c179a11d9}">
+      <Declaration><![CDATA[METHOD M_ReadInputs
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*
+	TODO USER: Read all inputs and assign values to variables.
+	Inputs can be pressure, temperature, etc.
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{4f9c5e5e-b529-411e-85a3-fbf8ffd4bd23}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE statRef.nState OF
+	
+	E_CRYO_BIN_CTRL_STATE.OFF:
+	statRef.bDone	:= TRUE;
+	statRef.bBusy	:= FALSE;
+	statRef.bError	:= FALSE;
+	statRef.bActive	:= FALSE;
+	statRef.sState	:= 'OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF:
+	statRef.bDone	:= TRUE;
+	statRef.bBusy	:= FALSE;
+	statRef.bError	:= FALSE;
+	statRef.bActive	:= TRUE;
+	statRef.sState	:= 'ACTIVE_OFF';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_ON:
+	statRef.bDone	:= TRUE;
+	statRef.bBusy	:= FALSE;
+	statRef.bError	:= FALSE;
+	statRef.bActive	:= TRUE;
+	statRef.sState	:= 'ACTIVE_ON';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_ON:
+	statRef.bDone	:= FALSE;
+	statRef.bBusy	:= TRUE;
+	statRef.bError	:= FALSE;
+	statRef.bActive	:= TRUE;
+	statRef.sState	:= 'ACTIVE_SWITCHING_ON...';
+	
+	E_CRYO_BIN_CTRL_STATE.ACTIVE_SWITCHING_OFF:
+	statRef.bDone	:= FALSE;
+	statRef.bBusy	:= TRUE;
+	statRef.bError	:= FALSE;
+	statRef.bActive	:= TRUE;
+	statRef.sState	:= 'ACTIVE_SWITCHING_OFF...';
+	
+	E_CRYO_BIN_CTRL_STATE.ERROR:
+	statRef.bDone	:= TRUE;
+	statRef.bBusy	:= FALSE;
+	statRef.bError	:= TRUE;
+	statRef.bActive	:= FALSE;
+	statRef.sState	:= 'ERROR';
+
+END_CASE
+
+IF NOT statRef.bError THEN
+	statRef.sError := 'OK';
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE">
+      <LineId Id="2155" Count="4" />
+      <LineId Id="2181" Count="3" />
+      <LineId Id="2160" Count="5" />
+      <LineId Id="2175" Count="1" />
+      <LineId Id="2174" Count="0" />
+      <LineId Id="2166" Count="7" />
+      <LineId Id="48" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ActionOffExecute">
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ActionOnExecute">
+      <LineId Id="11" Count="2" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ActivitySwitchingOff">
+      <LineId Id="22" Count="7" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ActivitySwitchingOn">
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_CheckForEvents">
+      <LineId Id="154" Count="1" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="6" Count="5" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="24" Count="5" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="44" Count="5" />
+      <LineId Id="52" Count="2" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="73" Count="5" />
+      <LineId Id="212" Count="3" />
+      <LineId Id="266" Count="1" />
+      <LineId Id="216" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="95" Count="1" />
+      <LineId Id="230" Count="1" />
+      <LineId Id="233" Count="2" />
+      <LineId Id="268" Count="2" />
+      <LineId Id="239" Count="1" />
+      <LineId Id="243" Count="2" />
+      <LineId Id="124" Count="3" />
+      <LineId Id="246" Count="3" />
+      <LineId Id="262" Count="1" />
+      <LineId Id="250" Count="6" />
+      <LineId Id="145" Count="3" />
+      <LineId Id="257" Count="2" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="189" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_Configure">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ControlLoop">
+      <LineId Id="55" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="66" Count="2" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="73" Count="3" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ExecuteActuators">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="9" Count="8" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_IsError">
+      <LineId Id="12" Count="2" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ProcessEvents">
+      <LineId Id="151" Count="2" />
+      <LineId Id="157" Count="17" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="333" Count="0" />
+      <LineId Id="177" Count="13" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="201" Count="9" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="326" Count="3" />
+      <LineId Id="217" Count="1" />
+      <LineId Id="223" Count="6" />
+      <LineId Id="297" Count="2" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="300" Count="6" />
+      <LineId Id="249" Count="5" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="312" Count="1" />
+      <LineId Id="322" Count="3" />
+      <LineId Id="314" Count="1" />
+      <LineId Id="320" Count="1" />
+      <LineId Id="269" Count="8" />
+      <LineId Id="279" Count="13" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_ReadInputs">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_GEN_CTRL_BASE.M_SetStatus">
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="101" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="109" Count="2" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="144" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

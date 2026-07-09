@@ -1,0 +1,41 @@
+﻿{
+  "modules": [
+    {
+      "type": "Package",
+      "nugetId": "Beckhoff.TwinCAT.HMI.Framework"
+    },
+    {
+      "type": "Control",
+      "basePath": "./Controls/pump",
+      "descriptionFile": "Description.json",
+      "toolboxCategory": "Cryo"
+    },
+    {
+      "type": "Control",
+      "basePath": "./Controls/signalbox",
+      "descriptionFile": "Description.json",
+      "toolboxCategory": "Cryo"
+    },
+    {
+      "type": "Control",
+      "basePath": "./Controls/led",
+      "descriptionFile": "Description.json",
+      "toolboxCategory": "Cryo"
+    },
+    {
+      "type": "Control",
+      "basePath": "./Controls/valve",
+      "descriptionFile": "Description.json",
+      "toolboxCategory": "Cryo"
+    }
+  ],
+  "provideMetadata": {
+    "toolbox": {
+      "cryo_framework": {
+        "200": "cryo_framework"
+      }
+    }
+  },
+  "$schema": ".hmiframework/Schema/Manifest.Schema.json",
+  "apiVersion": 1
+}

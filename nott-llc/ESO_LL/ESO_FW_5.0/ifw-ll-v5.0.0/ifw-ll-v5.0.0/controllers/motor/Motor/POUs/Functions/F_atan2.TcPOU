@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_atan2" Id="{a975d600-9d78-4379-9d76-f7bbd5a83222}" SpecialFunc="None">
+    <Declaration><![CDATA[// atan2(y,x)
+FUNCTION F_atan2 : LREAL
+VAR_INPUT
+	y:	LREAL;
+	x:	LREAL;
+END_VAR
+VAR
+	atan2val:	LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF (x > 0) THEN
+	atan2val := ATAN(y/x);
+ELSIF ((x < 0) AND (y >= 0)) THEN
+	atan2val := ATAN(y/x) + GCL.C_PI;
+ELSIF ((x < 0) AND (y < 0)) THEN
+	atan2val := ATAN(y/x) - GCL.C_PI;
+ELSIF ((x = 0) AND (y > 0)) THEN
+	atan2val := GCL.C_PI2;
+ELSIF ((x = 0) AND (y < 0)) THEN
+	atan2val := -GCL.C_PI2;
+ELSIF ((x = 0) AND (y = 0)) THEN
+	atan2val := 1000;  //represents undefined
+END_IF             
+
+F_atan2	:= atan2val;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_atan2">
+      <LineId Id="63" Count="14" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

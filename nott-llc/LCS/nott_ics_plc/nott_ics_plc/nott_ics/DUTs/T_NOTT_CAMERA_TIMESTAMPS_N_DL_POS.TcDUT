@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <DUT Name="T_NOTT_CAMERA_TIMESTAMPS_N_DL_POS" Id="{c3d0655b-e247-4e70-89b9-c7c0d0584f09}">
+    <Declaration><![CDATA[TYPE T_NOTT_CAMERA_TIMESTAMPS_N_DL_POS :
+STRUCT
+	TimeStamp:		ULINT;
+	lrActPos_DL1:	LREAL;
+	lrActPos_DL2:	LREAL;
+	lrActPos_DL3:	LREAL;
+	lrActPos_DL4:	LREAL;	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

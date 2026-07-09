@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_SA_RPC_ERROR" Id="{f86701ce-ec0e-4a60-ae26-92937b43db1a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{attribute 'strict'}
+TYPE E_SA_RPC_ERROR :
+(
+	OK						:= 0,
+	NOT_OP					:= -1,			
+	NOT_NOTOP_READY			:= -2,			
+	NOT_NOTOP_NOTREADY		:= -3,			
+	LOCAL					:= -4,			
+	SW_LIMIT_LOWER			:= -5,			
+	SW_LIMIT_UPPER			:= -6,			
+	CHANNEL					:= -7,			
+	VEL_ZERO				:= -8,			
+	VEL_NEG					:= -9,			
+	VEL_MAX					:= -10,			
+	CH_NOT_OP				:= -11,
+	CTRL_ERROR				:= -12,
+	MOVING					:= -13,
+	COMM					:= -14	// MCS2 Controller communication problem			
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

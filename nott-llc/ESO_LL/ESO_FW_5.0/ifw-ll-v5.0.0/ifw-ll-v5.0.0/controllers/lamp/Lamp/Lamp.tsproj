@@ -1,0 +1,204 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.35">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{00341EA5-A92A-4EB7-95B7-BF7EFFAD2A22}" PersistentType="true">LampOpsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[Function Actions]]></DisplayName>
+			<EventId>
+				<Name Id="1">ActionStart</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} started.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">ActionEnd</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} completed.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="4">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="5">General</Name>
+				<DisplayName TxtId=""><![CDATA[{0}]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{0453E329-2A52-4968-A669-995A1C429375}"/>
+				<Hide GUID="{7226A70E-1C73-44EC-B4B7-AE6E69B8E85A}"/>
+				<Hide GUID="{3A708050-4B35-4837-B766-2FA0B37B033E}"/>
+				<Hide GUID="{7E6700A4-5807-4B8F-B6D9-5492ADA12264}"/>
+				<Hide GUID="{D266071C-CAE3-478B-841A-AB5290BE4F2E}"/>
+			</Hides>
+		</DataType>
+	</DataTypes>
+	<Project SccProjectName="Svn" SccAuxPath="Svn" SccLocalPath="Svn" SccProvider="SubversionScc" ProjectGUID="{01FE205C-C1CC-4B78-B1B6-DA607CBDF11F}" Target64Bit="true" ShowHideConfigurations="#x106">
+		<System>
+			<Tasks>
+				<Task Id="1" Priority="20" CycleTime="100000" AmsPort="350">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{A79B41B2-0BFE-47F8-ACC7-481E57970DAE}" Name="Lamp" PrjFilePath="Lamp\Lamp.plcProj" TmcFilePath="Lamp\Lamp.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" TmcPath="Lamp\Lamp.tmc" TmcHash="{957440D9-D300-4D2D-2E16-AA44C8226F91}">
+					<Name>Lamp Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.Lamp001.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp001.i_bFault</Name>
+							<Comment><![CDATA[ HW fault signal ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp001.i_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp001.i_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp002.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp002.i_bFault</Name>
+							<Comment><![CDATA[ HW fault signal ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp002.i_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp002.i_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp001.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp002.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.Lamp001.q_bSwitch</Name>
+							<Comment><![CDATA[ Lamp control digital output ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp001.q_nIntensity</Name>
+							<Comment><![CDATA[ Analog OUT [bit] ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp002.q_bSwitch</Name>
+							<Comment><![CDATA[ Lamp control digital output ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Lamp002.q_nIntensity</Name>
+							<Comment><![CDATA[ Analog OUT [bit] ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp001.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp001.q_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp001.q_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp001.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp002.q_bFault</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp002.q_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp002.q_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Lamp002.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+					</Vars>
+					<Contexts>
+						<Context>
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010010</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>10000000</CycleTime>
+						</Context>
+					</Contexts>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io/>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500800205008}" Id="#x02030010"/>
+		<OwnerA Name="TIPC^Lamp^Lamp Instance">
+			<OwnerB Name="TIPC^Lamp^Lamp Instance">
+				<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Lamp001.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Lamp001.q_bOn"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Lamp001.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp001.i_nOn" VarB="PlcTask Outputs^MAIN.SIM_Lamp001.q_nOn"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Lamp002.q_bFault"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Lamp002.q_bOn"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Lamp002.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Lamp002.i_nOn" VarB="PlcTask Outputs^MAIN.SIM_Lamp002.q_nOn"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Lamp001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Lamp001.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Lamp002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Lamp002.q_bSwitch"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

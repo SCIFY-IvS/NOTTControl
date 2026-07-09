@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	
+	{attribute 'OPC.UA.DA':='1'}
+	Piezo001:		FB_PIEZO_EXAMPLE;	// Piezo #1
+	{attribute 'OPC.UA.DA':='1'}
+	Piezo002:		FB_PIEZO_EXAMPLE;	// Piezo #2
+	
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Piezo001:	FB_SIM_PIEZO;		// Simulator for Piezo #1 (if simulated)
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Piezo002:	FB_SIM_PIEZO;		// Simulator for Piezo #2 (always simulated)
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Piezo001(in_sName:='Piezo001', in_nNumAxes:=3);
+
+Piezo002(in_sName:='Piezo002', in_nNumAxes:=3);
+
+SIM_Piezo001();
+SIM_Piezo002();
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="89" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="92" Count="1" />
+      <LineId Id="28" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

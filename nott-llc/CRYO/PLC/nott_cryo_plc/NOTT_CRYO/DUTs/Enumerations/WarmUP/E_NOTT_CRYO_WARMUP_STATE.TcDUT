@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="E_NOTT_CRYO_WARMUP_STATE" Id="{0ec504a0-e223-41fc-9917-786034591697}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_NOTT_CRYO_WARMUP_STATE :
+(
+    NONE := 0,                     // Undefined state.
+    OFF,                           // Warm-up disabled.
+
+    START_DETECTOR_PROTECTION,     // Enable detector heaters and temperature control.
+    WAIT_DETECTOR_SAFE,            // Wait until detector is above the protection offset.
+
+    START_WARMUP,                  // Enable remaining heaters.
+    WARMING_UP,                    // Warm the cryostat.
+
+    WARM_TEMPERATURE_ACHIEVED,     // All temperatures above warm threshold.
+
+    STOP_WARMUP                    // Disable warm-up and return to OFF.
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

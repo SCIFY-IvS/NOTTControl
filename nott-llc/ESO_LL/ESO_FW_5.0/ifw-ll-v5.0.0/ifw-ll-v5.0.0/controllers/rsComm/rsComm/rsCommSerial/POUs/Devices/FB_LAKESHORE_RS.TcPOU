@@ -1,0 +1,283 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_LAKESHORE_RS" Id="{06e4b473-dfa5-4fe9-8831-90f07d1bac74}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_LAKESHORE_RS EXTENDS FB_LAKESHORE_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_RS_COMM_LAKESHORE;	// Instance of Lakeshore customized comm 
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+//cfgRef	REF=cfg;
+//ctrlRef	REF=ctrl;
+//statRef	REF=stat;
+
+
+(* Execute comm instance *)
+comm(	in_bSimulation	:= in_bSimulation,
+		in_nModel		:= in_nModel,
+		in_sCmdSuffix	:= in_sCmdSuffix, 
+		in_sReplySuffix	:= in_sReplySuffix, 
+		in_nTimeout		:= 2000);
+
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{e9820345-2b3d-4610-9f5d-628ecd96246b}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	cmdList_Init_218:	ARRAY [1..8] OF T_LAKESHORE_COMMAND := [
+							(cmd := '*RST', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '*CLS', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '*IDN?', 	nReplies := 1, 	nValues := 1,	offset := 0),
+							(cmd := 'MODE 1', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+	cmdList_Init_340:	ARRAY [1..8] OF T_LAKESHORE_COMMAND := [
+							(cmd := '*RST', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '*CLS', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '*IDN?', 	nReplies := 1, 	nValues := 1,	offset := 0),
+							(cmd := 'MODE 2', 	nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+
+	(*	List of READ commands *)
+	(* Lakeshore 218 commands:
+		Command "KRDG? 0" requests all 8 temperature values in K.
+		Command "CRDG? 0" requests all 8 temperature values in C.
+		Reply format: 
+			+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn,+nn.nnn<CR><LF>
+	*)
+	cmdList_Read_218:	ARRAY [1..16] OF T_LAKESHORE_COMMAND := [
+							(cmd := 'KRDG? 0', 	nReplies := 1, 	nValues := 8,	offset := 0),
+							(cmd := 'CRDG? 0', 	nReplies := 1, 	nValues := 8,	offset := 8),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+	cmdList_Read_340:	ARRAY [1..16] OF T_LAKESHORE_COMMAND := [
+							(cmd := 'KRDG? A', 	nReplies := 1, 	nValues := 1,	offset := 0),
+							(cmd := 'KRDG? B', 	nReplies := 1, 	nValues := 1,	offset := 1),
+							(cmd := 'SETP? 1', 	nReplies := 1, 	nValues := 1,	offset := 2),
+							(cmd := 'PID? 1', 	nReplies := 1, 	nValues := 3,	offset := 3),
+							(cmd := 'RAMP? 1', 	nReplies := 1, 	nValues := 2,	offset := 6),
+							(cmd := 'RANGE?', 	nReplies := 1, 	nValues := 1,	offset := 8),
+							(cmd := 'HTR?', 	nReplies := 1, 	nValues := 1,	offset := 9),
+							(cmd := 'AOUT? 1', 	nReplies := 1, 	nValues := 1,	offset := 10),
+							(cmd := 'AOUT? 2', 	nReplies := 1, 	nValues := 1,	offset := 11),
+							(cmd := 'SETP? 2', 	nReplies := 1, 	nValues := 1,	offset := 12),
+							(cmd := 'PID? 2', 	nReplies := 1, 	nValues := 3,	offset := 13),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0),
+							(cmd := '', 		nReplies := 0, 	nValues := 0,	offset := 0)];
+
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute base FB M_Configure().
+// This will set cfg.nModel
+SUPER^.M_Configure();
+
+// TODO
+// Populate cfg.cmdList_Init and cmdList_Read tables for the specific cfg.nModel.
+IF cfg.nModel = 218 THEN
+	cfg.cmdList_Init	:= cmdList_Init_218;
+	cfg.cmdList_Read	:= cmdList_Read_218;
+ELSIF cfg.nModel = 340 THEN
+	cfg.cmdList_Init	:= cmdList_Init_340;
+	cfg.cmdList_Read	:= cmdList_Read_340;
+END_IF
+
+
+// Set pointers to comm, i.e.
+ptrCommCfg	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+ptrCommCtrl	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+ptrCommStat	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+
+// Set comm suffixes for commands and replies
+ptrCommCfg^.sCmdSuffix		:= in_sCmdSuffix;
+ptrCommCfg^.sReplySuffix	:= in_sReplySuffix;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommInitialised" Id="{cf324a7d-f4b3-4a39-a7ee-aa5b7d67d308}">
+      <Declaration><![CDATA[METHOD M_GetCommInitialised : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: In each extended FB add the following:
+// M_GetCommInitialised	:= comm.M_GetInitialised();
+
+// This is just a dummy method for BASE FB
+M_GetCommInitialised	:= comm.M_GetInitialised();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommStatus" Id="{2c1570a6-10c4-4a82-8fea-ca57397a9f76}">
+      <Declaration><![CDATA[METHOD M_GetCommStatus : E_RS_COMM_STATUS
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetCommStatus	:= comm.M_GetStatus();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{b1155036-92e0-4f31-9c2f-56c6329c7977}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF comm.i_nCouplerState = 8  OR  in_bSimulation  THEN
+	M_GetCouplerState	:= TRUE;	
+ELSE
+	M_GetCouplerState	:= FALSE;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{6e0ad8bf-156c-43e1-b890-505c069a8265}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO
+//
+// Copy values from stat.lrReadings to correspondig stat variables.
+// Check M_Configure(). It has to match!
+//
+// This is an example for model 340.
+// This method has to match the list of commands in T_LAKESHORE_CFG::cmdList_Read
+IF cfg.nModel = 218 THEN
+	// Nothing to do.
+	// NOTE: 8 readings [K]: stat.lrArrReadings[0..7]
+	// NOTE: 8 readings [C]: stat.lrArrReadings[8..15]
+	;	
+ELSIF cfg.nModel = 340 THEN
+	stat.lrKRDG_A	:= stat.lrArrReadings[0].lrValue;
+	stat.lrCRDG_A	:= stat.lrKRDG_A - 273.15;
+	stat.lrKRDG_B	:= stat.lrArrReadings[1].lrValue;
+	stat.lrCRDG_B	:= stat.lrKRDG_B - 273.15;
+	stat.lrSETP		:= stat.lrArrReadings[2].lrValue;
+	stat.nPID_P		:= LREAL_TO_UINT(stat.lrArrReadings[3].lrValue);
+	stat.nPID_I		:= LREAL_TO_UINT(stat.lrArrReadings[4].lrValue);
+	stat.nPID_D		:= LREAL_TO_UINT(stat.lrArrReadings[5].lrValue);
+	stat.bRAMP_On	:= LREAL_TO_BOOL(stat.lrArrReadings[6].lrValue);
+	stat.lrRAMP_Rate:= stat.lrArrReadings[7].lrValue;
+	stat.nRANGE		:= LREAL_TO_UINT(stat.lrArrReadings[8].lrValue);
+	stat.lrHTR		:= stat.lrArrReadings[9].lrValue;
+	stat.lrAOUT1	:= stat.lrArrReadings[10].lrValue;
+	stat.lrAOUT2	:= stat.lrArrReadings[11].lrValue;
+	stat.lrSETP2	:= stat.lrArrReadings[12].lrValue;
+	stat.nPID2_P	:= LREAL_TO_UINT(stat.lrArrReadings[13].lrValue);
+	stat.nPID2_I	:= LREAL_TO_UINT(stat.lrArrReadings[14].lrValue);
+	stat.nPID2_D	:= LREAL_TO_UINT(stat.lrArrReadings[15].lrValue);
+END_IF
+		]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_LAKESHORE_RS">
+      <LineId Id="120" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="158" Count="2" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="219" Count="2" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_RS.M_Configure">
+      <LineId Id="183" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="184" Count="1" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="263" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_RS.M_GetCommInitialised">
+      <LineId Id="7" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_RS.M_GetCommStatus">
+      <LineId Id="8" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_RS.M_GetCouplerState">
+      <LineId Id="6" Count="1" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAKESHORE_RS.M_UpdateStatus">
+      <LineId Id="85" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="87" Count="3" />
+      <LineId Id="110" Count="2" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="95" Count="3" />
+      <LineId Id="125" Count="5" />
+      <LineId Id="119" Count="3" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="76" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

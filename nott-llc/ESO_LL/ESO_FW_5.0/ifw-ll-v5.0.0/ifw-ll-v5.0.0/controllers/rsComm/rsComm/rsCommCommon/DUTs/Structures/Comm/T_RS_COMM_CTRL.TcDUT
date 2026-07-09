@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_RS_COMM_CTRL" Id="{c6e0cb2a-98f5-4fee-b36a-c23c0b2773e4}">
+    <Declaration><![CDATA[TYPE T_RS_COMM_CTRL :
+STRUCT
+	(* CTRL *)
+	nCommand:		E_RS_COMM_CMD := E_RS_COMM_CMD.NONE;	(* Command Number, e.g. to INIT or SEND a command *)
+	bExecute:		BOOL;						(* Setting to TRUE activates command *)
+
+	sCmd:			STRING := '';				(* Command to be sent, e.g. '*IDN?' to get Lakeshore ID*)
+
+	bHasReply:		BOOL;						(* If TRUE, there is a reply to the command *)
+
+	nNumReplies:	DINT := 1;	(* Number of replies, i.e. number of cfg.sReplySuffix strings expected in the reply *)
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <GVL Name="GVL_TimeConstants" Id="{286ff18b-e298-44d4-9211-6384dfcdf1f5}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	C_INVALID:    DINT := -9999;
+	C_ONE_SEC:    LINT := 1000000000;
+	C_STAT_OK:    DINT := 0;
+	C_NS2MSEC:    LREAL := 1/1E+6;
+	C_NS2SEC:     LREAL := 1/1E+9;
+	C_UNIX_OFFSET_SEC: ULINT := DATE_TO_ULINT(DATE#2000-01-01); // 946,684,800 seconds = 15,778,080 minutes = 262,968 hours
+	C_UNIX_OFFSET_MICROSEC:  ULINT := C_UNIX_OFFSET_SEC * 10#1000_000;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

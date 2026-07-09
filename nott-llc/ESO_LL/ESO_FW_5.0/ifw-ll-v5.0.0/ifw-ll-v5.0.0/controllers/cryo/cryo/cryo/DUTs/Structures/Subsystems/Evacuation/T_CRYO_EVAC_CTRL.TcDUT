@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_EVAC_CTRL" Id="{d7d528f9-11be-49f2-a9f9-53b9a0419b48}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVAC_CTRL :
+STRUCT
+	bEnable_RP:		BOOL := FALSE;
+	bEnable_TP:		BOOL := FALSE;
+	bEnable_Valve:	BOOL := FALSE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

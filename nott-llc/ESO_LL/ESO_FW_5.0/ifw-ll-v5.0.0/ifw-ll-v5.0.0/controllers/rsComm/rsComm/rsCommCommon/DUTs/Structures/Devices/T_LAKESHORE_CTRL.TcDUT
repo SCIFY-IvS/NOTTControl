@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_LAKESHORE_CTRL" Id="{c8c6ad8c-7e07-46da-94cc-ba69cb291857}">
+    <Declaration><![CDATA[TYPE T_LAKESHORE_CTRL EXTENDS T_RS_BASE_CTRL:
+STRUCT
+	sCmdUser:	T_LAKESHORE_COMMAND := (cmd := '*IDN?', nReplies := 1, nValues := 1, offset := 0);
+
+	cmdList_Ctrl:	ARRAY [1..8] OF T_LAKESHORE_COMMAND;	// List of up to 8 Ctrl Commands (no '?')
+
+	
+	nPID_A_P:			UINT;		// P controller value
+	nPID_A_I:			UINT;		// I controller value
+	nPID_A_D:			UINT;		// D controller value
+	nHeaterRange:		UINT;		// Resistance power range
+	lrCtrlRamp:			LREAL;		// Delta-T Kelvin per minutes
+	lrSetpoint_A:		LREAL;		// Setpoint [K]
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

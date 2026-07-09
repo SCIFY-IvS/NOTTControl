@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="E_SA_DEV_STATE" Id="{4e268f7f-922b-42a8-b2bb-37e2030f5d2a}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_DEV_STATE :
+(
+	BIT_HM_PRESENT				:= 16#00000001,
+	BIT_MOVEMENT_LOCKED			:= 16#00000002,
+	BIT_AMPLIFIER_LOCKED		:= 16#00000004,
+	BIT_IO_MODULE_INPUT			:= 16#00000008,
+	BIT_GLOBAL_INPUT			:= 16#00000010,
+	BIT_INTERNAL_COMM_FAILURE	:= 16#00000100,
+	BIT_IS_STREAMING			:= 16#00001000
+) UDINT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

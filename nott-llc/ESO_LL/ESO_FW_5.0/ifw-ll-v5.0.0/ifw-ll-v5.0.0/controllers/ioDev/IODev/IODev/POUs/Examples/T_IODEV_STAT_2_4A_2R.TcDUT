@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_IODEV_STAT_2_4A_2R" Id="{423623ef-7572-4be8-8ec7-729824c20d53}">
+    <Declaration><![CDATA[// EXAMPLE:	Extension of T_IODEV_STAT with 2 DI and 4 AI of type INT and 2 AI of type REAL.
+// 			Used in FB_SENS_2_4A_2R_USER_CONFIG.
+TYPE T_IODEV_STAT_2_4A_2R EXTENDS T_IODEV_STAT :
+STRUCT
+	//
+	// Signals, inputs.
+	//
+	arrDI:	ARRAY [0..1] OF FB_IODEV_CH_DIG_IN;		// 2 digital inputs
+	arrAI:	ARRAY [0..3] OF FB_IODEV_CH_ANLG_IN;	// 4 analog inputs of type INT
+	arrRI:	ARRAY [0..1] OF FB_IODEV_CH_REAL_IN;	// 2 analog inputs of type REAL
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

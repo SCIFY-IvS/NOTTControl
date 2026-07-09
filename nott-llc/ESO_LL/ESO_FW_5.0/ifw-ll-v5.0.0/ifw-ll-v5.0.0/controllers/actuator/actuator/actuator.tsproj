@@ -1,0 +1,221 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.7">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{DF34206C-C6AB-4FBE-A334-EC22A6715475}" PersistentType="true">ActuatorOpsEventClass</Name>
+			<DisplayName TxtId=""><![CDATA[ActuatorOpsEventClass]]></DisplayName>
+			<EventId>
+				<Name Id="1">ActionStart</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} started.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="2">ActionEnd</Name>
+				<DisplayName TxtId=""><![CDATA[Action {0} completed.]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="3">Error</Name>
+				<DisplayName TxtId=""><![CDATA[Error: {0}]]></DisplayName>
+				<Severity>Error</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="4">Debug</Name>
+				<DisplayName TxtId=""><![CDATA[Debug: {0}]]></DisplayName>
+				<Severity>Verbose</Severity>
+			</EventId>
+			<EventId>
+				<Name Id="5">General</Name>
+				<DisplayName TxtId=""><![CDATA[{0}]]></DisplayName>
+				<Severity>Info</Severity>
+			</EventId>
+			<Hides>
+				<Hide GUID="{73868F48-2B25-4BB8-B0ED-28FC7DA56D71}"/>
+				<Hide GUID="{45EECBCB-5517-4C11-80C5-4E2270F271DB}"/>
+			</Hides>
+		</DataType>
+	</DataTypes>
+	<Project SccProjectName="Svn" SccAuxPath="Svn" SccLocalPath="Svn" SccProvider="SubversionScc" ProjectGUID="{01FE205C-C1CC-4B78-B1B6-DA607CBDF11F}" Target64Bit="true" ShowHideConfigurations="#x3c7">
+		<System>
+			<Settings MaxCpus="4"/>
+			<Tasks>
+				<Task Id="1" Priority="20" CycleTime="10000" AmsPort="350">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{A79B41B2-0BFE-47F8-ACC7-481E57970DAE}" Name="actuator" PrjFilePath="actuator\actuator.plcProj" TmcFilePath="actuator\actuator.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" TmcPath="actuator\actuator.tmc">
+					<Name>actuator Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.Actuator001.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator001.i_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator001.i_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator002.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator002.i_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator002.i_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator003.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator003.i_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator003.i_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator004.i_nCouplerState</Name>
+							<Comment><![CDATA[ Link it to Coupler->InfoData->State]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator004.i_bOn</Name>
+							<Comment><![CDATA[ Digital feedback signal]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator004.i_nOn</Name>
+							<Comment><![CDATA[ Analog feedback signal]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator001.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator002.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator003.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator004.i_bSwitch</Name>
+							<Comment><![CDATA[ Inputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.Actuator001.q_bSwitch</Name>
+							<Comment><![CDATA[// Physical signals - to be mapped!!! /////]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator002.q_bSwitch</Name>
+							<Comment><![CDATA[// Physical signals - to be mapped!!! /////]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator003.q_bSwitch</Name>
+							<Comment><![CDATA[// Physical signals - to be mapped!!! /////]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.Actuator004.q_bSwitch</Name>
+							<Comment><![CDATA[// Physical signals - to be mapped!!! /////]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator001.q_bOn</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator001.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator002.q_bOn</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator002.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator003.q_bOn</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator003.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator004.q_bOn</Name>
+							<Comment><![CDATA[ Outputs ]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.SIM_Actuator004.q_nCouplerState</Name>
+							<Type>UINT</Type>
+						</Var>
+					</Vars>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io/>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500800205008}" Id="#x02030010"/>
+		<OwnerA Name="TIPC^actuator^actuator Instance">
+			<OwnerB Name="TIPC^actuator^actuator Instance">
+				<Link VarA="PlcTask Inputs^MAIN.Actuator001.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Actuator001.q_bOn"/>
+				<Link VarA="PlcTask Inputs^MAIN.Actuator002.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Actuator002.q_bOn"/>
+				<Link VarA="PlcTask Inputs^MAIN.Actuator002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Actuator002.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Actuator003.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Actuator003.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.Actuator004.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Actuator004.q_nCouplerState"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator001.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator002.q_bSwitch"/>
+				<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator003.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator003.q_bSwitch"/>
+				<Link VarA="PlcTask Outputs^MAIN.Actuator004.q_bSwitch" VarB="PlcTask Inputs^MAIN.SIM_Actuator004.i_bSwitch"/>
+				<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator001.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Actuator001.i_nCouplerState"/>
+				<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator003.q_bOn" VarB="PlcTask Inputs^MAIN.Actuator003.i_bOn"/>
+				<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator004.q_bOn" VarB="PlcTask Inputs^MAIN.Actuator004.i_bOn"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

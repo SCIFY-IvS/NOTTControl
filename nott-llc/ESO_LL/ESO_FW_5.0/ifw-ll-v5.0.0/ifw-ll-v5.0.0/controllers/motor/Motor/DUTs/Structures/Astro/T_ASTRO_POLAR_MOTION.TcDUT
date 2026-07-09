@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_ASTRO_POLAR_MOTION" Id="{f8dec1da-498d-4142-8fcd-3a200b59e940}">
+    <Declaration><![CDATA[TYPE T_ASTRO_POLAR_MOTION :
+STRUCT
+	x : LREAL := 0.0;
+	y : LREAL := 0.0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_MODBUS_COMM_CPA" Id="{477fd324-dcf2-472f-8f7c-af879eac2007}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MODBUS_COMM_CPA EXTENDS FB_MODBUS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	sim:		FB_SIM_MODBUS_COMM_CPA;	// Reference to COMM simulator
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[simRef	REF=sim;
+
+// Execute base FB, i.e. FB_MODBUS_COMM_BASE.
+SUPER^();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_MODBUS_COMM_CPA">
+      <LineId Id="904" Count="0" />
+      <LineId Id="906" Count="0" />
+      <LineId Id="905" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

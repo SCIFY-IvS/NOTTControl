@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="E_NOTT_CRYO_COOLDOWN_STATE" Id="{bf3d454f-de50-4c1e-989a-671d881fb363}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_NOTT_CRYO_COOLDOWN_STATE :
+(
+	NONE := 0,							// Undefined state.
+	OFF,								// Everything is OFF.
+	START_PTC,							// Start Pulse Tube Cooler
+	START_RAMPDOWN_DETECTOR,			// Start ramp down the detector temperature
+	COOLING,
+	OPERATIONAL_TEMPERATURE_ACHIEVED,
+	STOP_COOLDOWN
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

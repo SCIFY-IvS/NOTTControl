@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="PRG_HMI" Id="{f165e508-eba2-4be0-aa3b-108e1b3798d8}" SpecialFunc="None">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA' := '0'}
+PROGRAM PRG_HMI
+VAR
+    // System health & busy status
+    fbHealthStatus: 		FB_HMI_HEALTH_STATUS;
+    fbBusyStatus: 			FB_HMI_BUSY_STATUS;
+    fbStatusColor: 			T_HMI_COLORS;
+    
+    // BUTTONS
+    // ===============================================================================================
+    
+    // buttons at the main screen
+    fbHomeButton: 			FB_HMI_BUTTON('Home'     , 		'Start'      , 	E_HMI_TABS.HOME);
+    fbServicesButton : 		FB_HMI_BUTTON('Services' , 		'Services'   , 	E_HMI_TABS.SERVICES);	
+	fbEventsButton: 		FB_HMI_BUTTON('Events' , 		'Events', 		E_HMI_TABS.EVENTS);
+	fbCryoInterlocksButton: FB_HMI_BUTTON('Cryo Interlocks' ,'Interlock', 	E_HMI_TABS.CRYO_INTERLOCKS);
+	
+	// ICS Subsystem buttons
+	fbShuttersButton: 		FB_HMI_BUTTON('Shutters' , 		'', 			E_HMI_TABS.SHUTTERS);
+	fbTipTiltButton: 		FB_HMI_BUTTON('Tip Tilt' , 		'', 			E_HMI_TABS.TIP_TILT);
+	fbDelayLinesButton: 	FB_HMI_BUTTON('Delay Lines' , 	'', 			E_HMI_TABS.DELAY_LINES);
+	fbCO2TransStagesButton: FB_HMI_BUTTON('CO2 Translation','', 			E_HMI_TABS.CO2_TRANSLATION_STAGES);
+	fbZnSeActuatorsButton: 	FB_HMI_BUTTON('ZnSe Actuators' ,'', 			E_HMI_TABS.ZNSE_ACTUATORS);
+	fbBirefringenceButton: 	FB_HMI_BUTTON('Birefringence' , '', 			E_HMI_TABS.BIREFRINGENCE_ACTUATORS);
+	fbBeamSplitterButton: 	FB_HMI_BUTTON('Beam Splitter' , '', 			E_HMI_TABS.CALIBRATION_UNIT_BEAM_SPLITER);
+	fbCO2PressureButton: 	FB_HMI_BUTTON('CO2 Pressure' , 	'', 			E_HMI_TABS.CO2_PRESSURE_CONTROL);
+	
+    // COMPONENTS
+    // ===============================================================================================
+
+    {attribute 'OPC.UA.DA' := '0'}
+    fbServices: 			FB_HMI_SERVICES;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEvents: 				FB_HMI_EVENTS;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbCryoInterlocks: 		FB_HMI_CRYO_INTERLOCKS;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	fbShutters:				FB_HMI_SHUTTERS;
+	{attribute 'OPC.UA.DA' := '0'}	
+	fbTipTilt:				FB_HMI_TIP_TILT;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbDelayLines:	        FB_HMI_DELAY_LINES;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbCO2TransStages:       FB_HMI_CO2_TRANS_STAGES;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbZnSeActuators:        FB_HMI_ZNSE_ACTUATORS;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbBirefringence:	    FB_HMI_BIREFRINGENCE;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbBeamSplitter:         FB_HMI_CALIBRATION_BEAM_SPLITTER;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbCO2Pressure:          FB_HMI_CO2_PRESSURE_CONTROL;
+
+    
+    // active tab of the main frame
+    eActiveTab : E_HMI_TABS := E_HMI_TABS.HOME;
+    sActiveName : STRING;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//// update the components
+fbServices(fbInstance := MAIN.fbServices);
+fbEvents(); 				
+fbCryoInterlocks(fbInstance := MAIN.nott_ics.Cryo_Interlocks); 		
+
+// SubSystems
+fbShutters(fbInstance := MAIN.nott_ics.Shutters);			
+fbTipTilt(fbInstance := MAIN.nott_ics.TipTilt);		
+fbDelayLines(fbInstance := MAIN.nott_ics.Delay_Lines);			
+fbCO2TransStages(fbInstance := MAIN.nott_ics.CO2TransStages);					
+fbZnSeActuators(fbInstance := MAIN.nott_ics.ZnSeActuators);	 		
+fbBirefringence(fbInstance := MAIN.nott_ics.Birefringence);		
+fbBeamSplitter(fbInstance := MAIN.nott_ics.Calibration_Unit_Beam_Splitter);				
+fbCO2Pressure(fbInstance := MAIN.nott_ics.CO2_Pressure_Control);
+
+// update the status
+M_UpdateStatus();
+
+// update the system-level buttons
+fbHomeButton(stColor := fbStatusColor, nActiveTab := eActiveTab, sActiveName := sActiveName);
+// buttons at the main screen 
+fbServicesButton(stColor := fbServices.fbStatusColor, nActiveTab := eActiveTab, sActiveName := sActiveName);	
+fbEventsButton(stColor:= fbEvents.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName);		
+fbCryoInterlocksButton(stColor:= fbCryoInterlocks.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 	
+
+fbShuttersButton(stColor:= fbShutters.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 			
+fbTipTiltButton(stColor:= fbTipTilt.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 		
+fbDelayLinesButton(stColor:= fbDelayLines.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 	
+fbCO2TransStagesButton(stColor:= fbCO2TransStages.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 				
+fbZnSeActuatorsButton(stColor:= fbZnSeActuators.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 		
+fbBirefringenceButton(stColor:= fbBirefringence.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 		
+fbBeamSplitterButton(stColor:= fbBeamSplitter.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 			
+fbCO2PressureButton(stColor:= fbCO2Pressure.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 
+]]></ST>
+    </Implementation>
+    <Method Name="M_UpdateStatus" Id="{1c6d8a76-0f00-40bc-a1a9-67a464c290fe}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// update the health & busy statuses
+//fbHealthStatus(
+//    bIsEnabled :=   fbImg.fbHealthStatus.bEnabled
+//                AND fbSca.fbHealthStatus.bEnabled,
+//    bIsGood :=      fbImg.fbHealthStatus.bGood
+//                AND fbSca.fbHealthStatus.bGood);
+              //AND fbServices.fbHealthStatus.bGood
+              //AND fbLms.fbHealthStatus.bGood (* AND ... *));
+//fbBusyStatus(
+//    bIsEnabled :=   fbImg.fbBusyStatus.bEnabled
+//                AND fbSca.fbBusyStatus.bEnabled,
+//    bIsBusy := fbServices.fbBusyStatus.bBusy 
+//                 OR fbImg.fbBusyStatus.bBusy 
+//                 OR fbLms.fbBusyStatus.bBusy 
+//                 OR fbSca.fbBusyStatus.bBusy);
+
+fbStatusColor := F_HMI_HEALTH_BUSY_TO_COLOR(fbHealthStatus, fbBusyStatus);]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="PRG_HMI">
+      <LineId Id="34" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="232" Count="1" />
+      <LineId Id="243" Count="3" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="1159" Count="1" />
+      <LineId Id="1147" Count="0" />
+      <LineId Id="1162" Count="5" />
+      <LineId Id="1161" Count="0" />
+      <LineId Id="1148" Count="0" />
+      <LineId Id="1152" Count="6" />
+      <LineId Id="1149" Count="0" />
+      <LineId Id="1146" Count="0" />
+    </LineIds>
+    <LineIds Name="PRG_HMI.M_UpdateStatus">
+      <LineId Id="8" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="37" Count="5" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

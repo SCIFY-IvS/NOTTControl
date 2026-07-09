@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="E_TEST_STATE" Id="{bf083e7b-1225-46ec-91eb-dd5285cd4b2c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TEST_STATE :
+(
+	STATE_TEST_OFF				:= 0,
+	STATE_TEST_RUNNING
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
