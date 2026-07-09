@@ -5,6 +5,12 @@ import zmq
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+from enum import Enum
+
+class DetectorMode(Enum):
+    SLOW = 1
+    FAST = 2
+
 #Usage: calling init_camera puts the camera in a state where it is ready to acquire images.
 #By using the python 'with' statement, you can ensure that both the initialization and the de-initialization are done
 class MacieInterface():
@@ -57,7 +63,8 @@ class MacieInterface():
     
     def get_power(self):
         self._socket.send_string("getpower")
-        return self._receive_and_parse_reply()
+        result = self._receive_and_parse_reply()
+        return result == "true"
     
     def close(self):
         self._closing.set()
@@ -81,10 +88,52 @@ class MacieInterface():
         self._socket.send_string(message)
         return self._receive_and_parse_reply()
     
+    def read_exposure_settings(self):
+        message = "rexpsettings"
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+        
+        save = True if answer[0] == "true" else False
+        ncoadds = answer[1]
+        nsaved_ramps = answer[2]
+        ngroups = answer[3]
+        nreads = answer[4]
+        ndrops = answer[5]
+        nresets = answer[6]
+        return (save, ncoadds, nsaved_ramps, ngroups, nreads, ndrops, nresets)
+    
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
         message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
         self._socket.send_string(message)
         return self._receive_and_parse_reply()
+    
+    def read_frame_settings(self):
+        message = "rframesettings"
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+
+        xWindow = True if answer[0] == "true" else False
+        yWindow = True if answer[1] == "true" else False
+        x1 = answer[2]
+        x2 = answer[3]
+        y1 = answer[4]
+        y2 = answer[5]
+
+        return (xWindow, yWindow, x1, x2, y1, y2)
+    
+
+    
+    def get_detector_mode(self):
+        """ Get the current detector mode (fast/slow)"""
+        message = "getmode"
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+        if answer == "fast":
+            return DetectorMode.FAST
+        elif answer == "slow":
+            return DetectorMode.SLOW
+        else:
+            raise Exception("Unexpected reply to getmode")
     
     def start_continuous_acquisition(self):
         self._acquiring.set()
@@ -106,7 +155,9 @@ class MacieInterface():
         if tokens[0] == "ok":
             if len(tokens) == 1:
                 return
-            else:
+            if len(tokens) == 2:
                 return tokens[1]
+            else:
+                return tokens[1:]
         else:
             raise Exception(f"Operation failed: {tokens[1]}")

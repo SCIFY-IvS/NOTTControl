@@ -301,8 +301,12 @@ extern double exposure_efficiency(MACIE_Settings *ptUserData);
 
 extern bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
     uint ncoadds, uint nsaved_ramps, uint ngroups, uint nreads, uint ndrops, uint nresets);
+extern void load_exposure_settings(MACIE_Settings *ptUserData, bool &bSave,
+                           uint &ncoadds, uint &nsaved_ramps, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets);
 extern bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin,
     uint x1, uint x2, uint y1, uint y2);
+extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
+    uint &x1, uint &x2, uint &y1, uint &y2);
 extern bool calc_ramp_settings(MACIE_Settings *ptUserData, double tint_ms, int ngmax,
     uint *ngroups, uint *ndrops, uint *nreads);
 
