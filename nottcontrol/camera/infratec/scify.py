@@ -384,7 +384,12 @@ class MainWindow(QMainWindow):
         ]
         for index, color in enumerate(colors, start=1):
             roi_widget = RoiWidget(
-                grid_host, grid, index, index, color, deque_length=deque_length
+                grid_host,
+                grid,
+                index,
+                index,
+                color,
+                deque_length=ROI_TIME_PLOT_DEQUE_LENGTH,
             )
             roi_widget.enable_profile_click(self._show_roi_profile)
             roi_widget.plot_checkbox.stateChanged.connect(
