@@ -78,7 +78,7 @@ class RoiWidget:
 
         self.plot_checkbox = QCheckBox(parent)
         self.plot_checkbox.setFixedWidth(scaled(PLOT_WIDTH))
-        self.plot_checkbox.setToolTip("Plot in ROI graph")
+        self.plot_checkbox.setToolTip("Plot time series and 1D profile")
 
         self.min_label = self._make_value_label(parent, row_height)
         self.max_label = self._make_value_label(parent, row_height)
@@ -116,7 +116,7 @@ class RoiWidget:
         self.avg_label.setText(f"{brightnessResults.avg:.1f}")
 
     def enable_profile_click(self, callback) -> None:
-        tooltip = "Click to show 1D profile"
+        tooltip = "Click to add to profile plot"
 
         def bind_click(label: QLabel) -> None:
             def on_press(event):

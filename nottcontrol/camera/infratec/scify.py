@@ -309,7 +309,6 @@ class MainWindow(QMainWindow):
         self.dropped_frames = 0
 
         self._last_roi_regions = None
-        self._profile_roi_widget = None
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
@@ -371,6 +370,9 @@ class MainWindow(QMainWindow):
         for index, color in enumerate(colors, start=1):
             roi_widget = RoiWidget(grid_host, grid, index, index, color)
             roi_widget.enable_profile_click(self._show_roi_profile)
+            roi_widget.plot_checkbox.stateChanged.connect(
+                self._on_roi_plot_selection_changed
+            )
             self.roi_widgets.append(roi_widget)
 
         outer = QGridLayout(self.roi_panel)
@@ -1207,7 +1209,9 @@ class MainWindow(QMainWindow):
         profile_layout.setContentsMargins(0, 0, 0, 0)
         profile_layout.setSpacing(2)
 
-        self._profile_title = QLabel("ROI profile — click an ROI", profile_host)
+        self._profile_title = QLabel(
+            "ROI profile — check Plot or click an ROI", profile_host
+        )
         self._profile_title.setStyleSheet(PANEL_LABEL_STYLE)
         profile_layout.addWidget(self._profile_title)
 
@@ -1215,6 +1219,7 @@ class MainWindow(QMainWindow):
         self.pw_roi_profile.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.pw_roi_profile.showGrid(x=True, y=True, alpha=0.25)
         profile_plot_item = self.pw_roi_profile.getPlotItem()
+        profile_plot_item.addLegend(offset=(8, 8))
         profile_plot_item.setLabel(axis='left', text='ADU')
         profile_plot_item.setLabel(axis='bottom', text='Pixel index')
         profile_plot_item.getAxis('left').setWidth(58)
@@ -1648,38 +1653,89 @@ class MainWindow(QMainWindow):
 
         roi.mouseClickEvent = mouse_click_event
 
-    def _show_roi_profile(self, roi_widget) -> None:
-        self._profile_roi_widget = roi_widget
-        self._profile_title.setText(f"{roi_widget.name} — 1D profile")
+    def _on_roi_plot_selection_changed(self, _state: int = 0) -> None:
+        self._refresh_roi_time_plot()
         self._refresh_roi_profile()
+
+    def _show_roi_profile(self, roi_widget) -> None:
+        if not roi_widget.isChecked():
+            roi_widget.plot_checkbox.setChecked(True)
+        else:
+            self._refresh_roi_profile()
+
+    def _update_profile_title(self) -> None:
+        selected = [w.name for w in self.roi_widgets if w.isChecked()]
+        if not selected:
+            self._profile_title.setText(
+                "ROI profile — check Plot or click an ROI"
+            )
+        elif len(selected) == 1:
+            self._profile_title.setText(f"{selected[0]} — 1D profile")
+        elif len(selected) <= 3:
+            self._profile_title.setText(
+                f"ROI profiles — {', '.join(selected)}"
+            )
+        else:
+            self._profile_title.setText(
+                f"ROI profiles ({len(selected)} selected)"
+            )
+
+    def _refresh_roi_time_plot(self) -> None:
+        if not hasattr(self, "pw_roi"):
+            return
+        self.pw_roi.clear()
+        plotted = False
+        for roi_widget in self.roi_widgets:
+            if roi_widget.isChecked():
+                self.pw_roi.plot(
+                    list(self.timestamps),
+                    list(roi_widget.max_values),
+                    name=roi_widget.name,
+                    pen=roi_widget.color,
+                )
+                plotted = True
+        if plotted:
+            plot_item = self.pw_roi.getPlotItem()
+            plot_item.enableAutoRange(axis="y", enable=True)
+            plot_item.getViewBox().autoRange(padding=0.08)
 
     def _refresh_roi_profile(self) -> None:
         if not hasattr(self, "pw_roi_profile"):
             return
         self.pw_roi_profile.clear()
-        if self._profile_roi_widget is None or not self._last_roi_regions:
+        self._update_profile_title()
+        if not self._last_roi_regions:
             return
-        try:
-            index = self.roi_widgets.index(self._profile_roi_widget)
-        except ValueError:
-            return
-        if index >= len(self._last_roi_regions):
-            return
-        profile = roi_profile_1d(self._last_roi_regions[index])
-        if profile.size == 0:
-            return
-        pen = pg.mkPen(
-            color=(
-                self._profile_roi_widget.color.red(),
-                self._profile_roi_widget.color.green(),
-                self._profile_roi_widget.color.blue(),
-            ),
-            width=2,
-        )
-        self.pw_roi_profile.plot(numpy.arange(profile.size), profile, pen=pen)
-        plot_item = self.pw_roi_profile.getPlotItem()
-        plot_item.enableAutoRange(axis="y", enable=True)
-        plot_item.getViewBox().autoRange(padding=0.08)
+
+        plotted = False
+        for index, roi_widget in enumerate(self.roi_widgets):
+            if not roi_widget.isChecked():
+                continue
+            if index >= len(self._last_roi_regions):
+                continue
+            profile = roi_profile_1d(self._last_roi_regions[index])
+            if profile.size == 0:
+                continue
+            pen = pg.mkPen(
+                color=(
+                    roi_widget.color.red(),
+                    roi_widget.color.green(),
+                    roi_widget.color.blue(),
+                ),
+                width=2,
+            )
+            self.pw_roi_profile.plot(
+                numpy.arange(profile.size),
+                profile,
+                pen=pen,
+                name=roi_widget.name,
+            )
+            plotted = True
+
+        if plotted:
+            plot_item = self.pw_roi_profile.getPlotItem()
+            plot_item.enableAutoRange(axis="y", enable=True)
+            plot_item.getViewBox().autoRange(padding=0.08)
     
     def get_roi_from_config(self, roi_config:Roi, pen):
         return pg.RectROI([roi_config.x, roi_config.y], [roi_config.w, roi_config.h], pen = pen)
@@ -1694,26 +1750,8 @@ class MainWindow(QMainWindow):
             self.image.getImageItem().setImage(img, autoLevels = False)
             self._fit_detector_image()
 
-        if not hasattr(self, "pw_roi"):
-            return
-
-        self.pw_roi.clear()
-
-        plotted = False
-        for roi_widget in self.roi_widgets:
-            if roi_widget.isChecked():
-                self.pw_roi.plot(
-                    list(self.timestamps),
-                    list(roi_widget.max_values),
-                    name=roi_widget.name,
-                    pen=roi_widget.color,
-                )
-                plotted = True
-
-        if plotted:
-            plot_item = self.pw_roi.getPlotItem()
-            plot_item.enableAutoRange(axis='y', enable=True)
-            plot_item.getViewBox().autoRange(padding=0.08)
+        if hasattr(self, "pw_roi"):
+            self._refresh_roi_time_plot()
                 
     def process_roi(self, img, timestamp, coadded_frame):
         img = self._image_for_analysis(img)
