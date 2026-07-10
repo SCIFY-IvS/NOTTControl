@@ -113,7 +113,7 @@ GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
 ROI_GRAPHS_MIN_HEIGHT = 260
 ROI_PLOT_REFRESH_HZ = config.getfloat("CAMERA", "roi_plot_refresh_hz", fallback=1.0)
 ROI_PLOT_REFRESH_INTERVAL_MS = max(1, round(1000 / ROI_PLOT_REFRESH_HZ))
-ROI_TIME_PLOT_REFRESH_MS = max(100, ROI_PLOT_REFRESH_INTERVAL_MS // 5)
+ROI_IDLE_PROCESS_STRIDE = config.getint("CAMERA", "roi_idle_process_stride", fallback=24)
 ROI_TIME_PLOT_WINDOW_SECONDS = config.getint(
     "CAMERA", "roi_time_plot_window_seconds", fallback=60
 )
@@ -134,6 +134,7 @@ CAM_PARAM_FRAMERATE_HZ = 240
 CAM_PARAM_INTEGRATION_TIME = 262
 DETECTOR_PANEL_HEIGHT = 256
 CURSOR_READOUT_HEIGHT = 22
+CURSOR_READOUT_INTERVAL_MS = 50
 
 PANEL_BUTTON_STYLE = """
     QPushButton {
@@ -289,6 +290,10 @@ class MainWindow(QMainWindow):
         self._timing_labels_debounce.setSingleShot(True)
         self._timing_labels_debounce.timeout.connect(self._update_timing_labels)
 
+        self._cursor_readout_timer = QTimer()
+        self._cursor_readout_timer.setSingleShot(True)
+        self._cursor_readout_timer.timeout.connect(self._flush_cursor_readout)
+
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
         self.calculating_roi = False
@@ -320,10 +325,14 @@ class MainWindow(QMainWindow):
         self._last_roi_profiles = None
         self._latest_brightness_results = None
         self._latest_display_img = None
+        self._latest_display_img_for_gui = None
         self._roi_data_lock = threading.Lock()
         self._roi_emit_lock = threading.Lock()
         self._last_roi_gui_emit = 0.0
+        self._idle_roi_frame_counter = 0
         self._profile_selection: tuple[str, ...] = ()
+        self._profile_pens: dict[str, object] = {}
+        self._cursor_readout_pending = None
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
@@ -1060,7 +1069,35 @@ class MainWindow(QMainWindow):
                 return roi_widget.name
         return None
 
+    def _should_process_roi_frame(self, recording: bool) -> bool:
+        if recording:
+            return True
+        self._idle_roi_frame_counter += 1
+        return self._idle_roi_frame_counter % ROI_IDLE_PROCESS_STRIDE == 0
+
+    def _profile_pen(self, roi_widget) -> object:
+        pen = self._profile_pens.get(roi_widget.name)
+        if pen is None:
+            pen = pg.mkPen(
+                color=(
+                    roi_widget.color.red(),
+                    roi_widget.color.green(),
+                    roi_widget.color.blue(),
+                ),
+                width=2,
+            )
+            self._profile_pens[roi_widget.name] = pen
+        return pen
+
     def _update_cursor_readout(self, pos) -> None:
+        self._cursor_readout_pending = pos
+        if not self._cursor_readout_timer.isActive():
+            self._cursor_readout_timer.start(CURSOR_READOUT_INTERVAL_MS)
+
+    def _flush_cursor_readout(self) -> None:
+        pos = self._cursor_readout_pending
+        if pos is None:
+            return
         if not getattr(self, "imageInit", False):
             self._cursor_readout.setText("Pixel: —")
             return
@@ -1195,11 +1232,27 @@ class MainWindow(QMainWindow):
         if hasattr(self, "pw_roi"):
             return
 
-        outer = QHBoxLayout(self.ui.frame_roi_graph)
-        outer.setContentsMargins(4, 4, 4, 4)
+        root = QVBoxLayout(self.ui.frame_roi_graph)
+        root.setContentsMargins(4, 4, 4, 4)
+        root.setSpacing(2)
+
+        toolbar = QHBoxLayout()
+        toolbar.addStretch()
+        self.btn_rescale_roi_y = QPushButton("Rescale Y", self.ui.frame_roi_graph)
+        self.btn_rescale_roi_y.setStyleSheet(PANEL_BUTTON_STYLE)
+        self.btn_rescale_roi_y.setToolTip(
+            "Auto-scale the Y axis on both ROI plots"
+        )
+        self.btn_rescale_roi_y.clicked.connect(self._rescale_roi_plots_y)
+        toolbar.addWidget(self.btn_rescale_roi_y)
+        root.addLayout(toolbar)
+
+        plots_host = QWidget(self.ui.frame_roi_graph)
+        outer = QHBoxLayout(plots_host)
+        outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(scaled(8))
 
-        time_host = QWidget(self.ui.frame_roi_graph)
+        time_host = QWidget(plots_host)
         time_layout = QVBoxLayout(time_host)
         time_layout.setContentsMargins(0, 0, 0, 0)
         time_layout.setSpacing(2)
@@ -1224,13 +1277,10 @@ class MainWindow(QMainWindow):
 
         self._time_plot_curves = {}
         self._time_plot_y_autorange = True
-        self._time_plot_timer = QTimer()
-        self._time_plot_timer.timeout.connect(self._refresh_roi_time_plot)
-        self._time_plot_timer.start(ROI_TIME_PLOT_REFRESH_MS)
         time_layout.addWidget(self.pw_roi)
         outer.addWidget(time_host, stretch=1, alignment=Qt.AlignTop)
 
-        profile_host = QWidget(self.ui.frame_roi_graph)
+        profile_host = QWidget(plots_host)
         profile_layout = QVBoxLayout(profile_host)
         profile_layout.setContentsMargins(0, 0, 0, 0)
         profile_layout.setSpacing(2)
@@ -1251,12 +1301,20 @@ class MainWindow(QMainWindow):
         profile_plot_item.getAxis('left').setWidth(58)
         profile_plot_item.layout.setContentsMargins(8, 8, 8, 8)
         profile_plot_item.enableAutoRange(axis='y', enable=True)
+        self._profile_plot_curves = {}
         self._profile_y_autorange = True
         profile_layout.addWidget(self.pw_roi_profile)
         outer.addWidget(profile_host, stretch=1, alignment=Qt.AlignTop)
 
         outer.setStretch(0, 1)
         outer.setStretch(1, 1)
+        root.addWidget(plots_host, stretch=1)
+
+    def _rescale_roi_plots_y(self) -> None:
+        if hasattr(self, "pw_roi"):
+            self._auto_range_plot(self.pw_roi)
+        if hasattr(self, "pw_roi_profile"):
+            self._auto_range_plot(self.pw_roi_profile)
 
     def _fit_roi_plot(self) -> None:
         if hasattr(self, "pw_roi"):
@@ -1341,8 +1399,9 @@ class MainWindow(QMainWindow):
             if save_frame:
                 self.save_frame_write_redis(filepath, img, timestamp)
 
-            if recording or not self.is_coadd_enabled(): #always process individual frames if recording; always process all frames if not coadding
-                self.process_roi(img, timestamp, coadded_frame=False)
+            if recording or not self.is_coadd_enabled():
+                if self._should_process_roi_frame(recording):
+                    self.process_roi(img, timestamp, coadded_frame=False)
                 
             #If coadding, check to see if we have the required amount of frames
             coadd_in_process = False
@@ -1683,9 +1742,9 @@ class MainWindow(QMainWindow):
         if timestamps.size == 0:
             return timestamps, values
 
-        order = numpy.argsort(timestamps)
-        timestamps = timestamps[order]
-        values = values[order]
+        # Deques are filled with appendleft (newest first); reverse for plotting.
+        timestamps = timestamps[::-1]
+        values = values[::-1]
 
         latest = timestamps[-1]
         cutoff = latest - ROI_TIME_PLOT_WINDOW_SECONDS
@@ -1727,6 +1786,8 @@ class MainWindow(QMainWindow):
         self._update_profile_title()
         self._clear_plot(self.pw_roi)
         self._time_plot_curves.clear()
+        self._clear_plot(self.pw_roi_profile)
+        self._profile_plot_curves.clear()
         self._refresh_roi_time_plot()
         self._refresh_roi_profile()
 
@@ -1799,10 +1860,15 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "pw_roi_profile"):
             return
         profiles = self._last_roi_profiles
-        self._clear_plot(self.pw_roi_profile)
         if not profiles:
+            plot_item = self.pw_roi_profile.getPlotItem()
+            self._remove_inactive_plot_curves(
+                plot_item, self._profile_plot_curves, set()
+            )
             return
 
+        plot_item = self.pw_roi_profile.getPlotItem()
+        active_names: set[str] = set()
         plotted = False
         for index, roi_widget in enumerate(self.roi_widgets):
             if not roi_widget.isChecked():
@@ -1812,23 +1878,24 @@ class MainWindow(QMainWindow):
             profile = profiles[index]
             if profile.size == 0:
                 continue
-            pen = pg.mkPen(
-                color=(
-                    roi_widget.color.red(),
-                    roi_widget.color.green(),
-                    roi_widget.color.blue(),
-                ),
-                width=2,
-            )
+            active_names.add(roi_widget.name)
             x = numpy.arange(profile.size, dtype=numpy.float64)
-            self.pw_roi_profile.plot(
-                x,
-                profile,
-                pen=pen,
-                name=roi_widget.name,
-            )
+            curve = self._profile_plot_curves.get(roi_widget.name)
+            if curve is None:
+                curve = self.pw_roi_profile.plot(
+                    x,
+                    profile,
+                    pen=self._profile_pen(roi_widget),
+                    name=roi_widget.name,
+                )
+                self._profile_plot_curves[roi_widget.name] = curve
+            else:
+                curve.setData(x, profile)
             plotted = True
 
+        self._remove_inactive_plot_curves(
+            plot_item, self._profile_plot_curves, active_names
+        )
         if plotted and self._profile_y_autorange:
             self._auto_range_plot(self.pw_roi_profile)
             self._profile_y_autorange = False
@@ -1855,9 +1922,13 @@ class MainWindow(QMainWindow):
             self.roi_tracking_frames += 1
         
         if coadded_frame or not self.is_coadd_enabled():
-            self.update_gui_with_newroi(timestamp, calculator, img)
+            self.update_gui_with_newroi(
+                timestamp, calculator, img, analysis_img
+            )
             
-    def update_gui_with_newroi(self, timestamp, calculator, img):
+    def update_gui_with_newroi(
+        self, timestamp, calculator, img, analysis_img
+    ):
         with self._roi_data_lock:
             self.timestamps.appendleft(datetime.timestamp(timestamp))
             for i in range(len(self.roi_widgets)):
@@ -1873,6 +1944,7 @@ class MainWindow(QMainWindow):
                     roi_profile_1d(region) for region in calculator.rois
                 )
                 self._latest_brightness_results = calculator.results
+                self._latest_display_img_for_gui = analysis_img
                 should_emit = True
             else:
                 should_emit = False
@@ -1922,12 +1994,11 @@ class MainWindow(QMainWindow):
             for i in range(len(self.roi_widgets)):
                 self.roi_widgets[i].setValues(results[i])
 
-        img = self._latest_display_img
-        if img is not None and self.imageInit:
-            display_img = self._image_for_analysis(img)
+        display_img = self._latest_display_img_for_gui
+        if display_img is not None and self.imageInit:
             self.image.getImageItem().setImage(display_img, autoLevels=False)
-            self._fit_detector_image()
 
+        self._refresh_roi_time_plot()
         self._refresh_roi_profile()
 
     def _count_frames_for_utc_day(self, utc_day: str) -> int:
