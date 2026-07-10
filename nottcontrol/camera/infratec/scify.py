@@ -123,6 +123,7 @@ BRIGHTNESS_PANEL_HEIGHT = 152
 CAM_PARAM_FRAMERATE_HZ = 240
 CAM_PARAM_INTEGRATION_TIME = 262
 DETECTOR_PANEL_HEIGHT = 256
+CURSOR_READOUT_HEIGHT = 22
 
 PANEL_BUTTON_STYLE = """
     QPushButton {
@@ -231,6 +232,7 @@ class MainWindow(QMainWindow):
         
         self.image.getView().setMouseEnabled(x = True, y = True)
         self.image.getView().setAspectLocked(True)
+        self._setup_cursor_readout()
         
         self.request_image_update.connect(self.update_image, Qt.QueuedConnection)
         self.roi_calculation_finished.connect(
@@ -978,7 +980,66 @@ class MainWindow(QMainWindow):
         width = max(1, self.ui.frame_camera.width())
         height = max(1, self.ui.frame_camera.height())
         self.image.setGeometry(0, 0, width, height)
+        if hasattr(self, "_cursor_readout"):
+            readout_h = scaled(CURSOR_READOUT_HEIGHT)
+            self._cursor_readout.setGeometry(0, height - readout_h, width, readout_h)
+            self._cursor_readout.raise_()
         self._fit_detector_image()
+
+    def _setup_cursor_readout(self) -> None:
+        self._cursor_readout = QLabel(self.ui.frame_camera)
+        self._cursor_readout.setText("Pixel: —")
+        self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self._cursor_readout.setStyleSheet(
+            'font: 9pt "Consolas", monospace;'
+            " color: rgb(50, 50, 50);"
+            " background-color: rgba(255, 255, 255, 215);"
+            " padding-left: 6px;"
+        )
+        scene = self.image.getView().scene()
+        self._cursor_proxy = pg.SignalProxy(
+            scene.sigMouseMoved,
+            rateLimit=30,
+            slot=self._update_cursor_readout,
+        )
+
+    def _roi_name_at(self, x: int, y: int) -> str | None:
+        for roi_widget in self.roi_widgets:
+            roi = roi_widget.roi
+            if roi is None:
+                continue
+            rx, ry = roi.pos()
+            rw, rh = roi.size()
+            if rx <= x < rx + rw and ry <= y < ry + rh:
+                return roi_widget.name
+        return None
+
+    def _update_cursor_readout(self, pos) -> None:
+        if not getattr(self, "imageInit", False):
+            self._cursor_readout.setText("Pixel: —")
+            return
+
+        img = self.image.getImageItem().image
+        if img is None:
+            self._cursor_readout.setText("Pixel: —")
+            return
+
+        mouse = self.image.getView().mapSceneToView(pos)
+        x = int(mouse.x())
+        y = int(mouse.y())
+        img_h, img_w = img.shape[:2]
+        if x < 0 or y < 0 or x >= img_w or y >= img_h:
+            self._cursor_readout.setText("Pixel: —")
+            return
+
+        adu = float(img[y, x])
+        roi_name = self._roi_name_at(x, y)
+        if roi_name:
+            self._cursor_readout.setText(
+                f"Pixel: x={x}, y={y}  ADU={adu:.1f}  [{roi_name}]"
+            )
+        else:
+            self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
 
     def _layout_window(self) -> None:
         img_h = config.getint("CAMERA", "window_h")
@@ -1074,6 +1135,8 @@ class MainWindow(QMainWindow):
         if hasattr(self, "image"):
             self.image.show()
             self.image.raise_()
+        if hasattr(self, "_cursor_readout"):
+            self._cursor_readout.raise_()
 
     def _setup_roi_plot(self) -> None:
         if hasattr(self, "pw_roi"):
