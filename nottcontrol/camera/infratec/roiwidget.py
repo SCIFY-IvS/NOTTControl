@@ -43,9 +43,9 @@ def roi_panel_height() -> int:
 def roi_panel_width() -> int:
     grid_width = (
         scaled(NAME_WIDTH)
-        + scaled(PLOT_WIDTH)
+        + scaled(PLOT_WIDTH) * 2
         + scaled(VALUE_WIDTH) * 3
-        + scaled(GRID_H_SPACING) * 4
+        + scaled(GRID_H_SPACING) * 5
     )
     return grid_width + scaled(PANEL_SIDE_MARGIN) * 2
 
@@ -76,19 +76,24 @@ class RoiWidget:
         self.name_label.setFixedHeight(row_height)
         self.name_label.setStyleSheet(self._row_bg)
 
-        self.plot_checkbox = QCheckBox(parent)
-        self.plot_checkbox.setFixedWidth(scaled(PLOT_WIDTH))
-        self.plot_checkbox.setToolTip("Plot time series and 1D profile")
+        self.time_plot_checkbox = QCheckBox(parent)
+        self.time_plot_checkbox.setFixedWidth(scaled(PLOT_WIDTH))
+        self.time_plot_checkbox.setToolTip("Plot brightness vs time")
+
+        self.profile_plot_checkbox = QCheckBox(parent)
+        self.profile_plot_checkbox.setFixedWidth(scaled(PLOT_WIDTH))
+        self.profile_plot_checkbox.setToolTip("Plot 1D profile")
 
         self.min_label = self._make_value_label(parent, row_height)
         self.max_label = self._make_value_label(parent, row_height)
         self.avg_label = self._make_value_label(parent, row_height)
 
         grid.addWidget(self.name_label, row, 0)
-        grid.addWidget(self.plot_checkbox, row, 1, Qt.AlignCenter)
-        grid.addWidget(self.min_label, row, 2, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.max_label, row, 3, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.avg_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.time_plot_checkbox, row, 1, Qt.AlignCenter)
+        grid.addWidget(self.profile_plot_checkbox, row, 2, Qt.AlignCenter)
+        grid.addWidget(self.min_label, row, 3, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.max_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.avg_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
 
         self.setColor(color)
 
@@ -116,7 +121,7 @@ class RoiWidget:
         self.avg_label.setText(f"{brightnessResults.avg:.1f}")
 
     def enable_profile_click(self, callback) -> None:
-        tooltip = "Click to add to profile plot"
+        tooltip = "Click to enable 1D profile plot"
 
         def bind_click(label: QLabel) -> None:
             def on_press(event):
@@ -136,8 +141,11 @@ class RoiWidget:
         ):
             bind_click(label)
 
-    def isChecked(self) -> bool:
-        return self.plot_checkbox.isChecked()
+    def is_time_plot_checked(self) -> bool:
+        return self.time_plot_checkbox.isChecked()
+
+    def is_profile_plot_checked(self) -> bool:
+        return self.profile_plot_checkbox.isChecked()
 
     def setConfig(self, config: Roi) -> None:
         self.config = config

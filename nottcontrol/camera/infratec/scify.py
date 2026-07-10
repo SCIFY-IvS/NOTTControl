@@ -363,7 +363,8 @@ class MainWindow(QMainWindow):
         for column, (text, width, alignment) in enumerate(
             (
                 ("", NAME_WIDTH, Qt.AlignLeft),
-                ("Plot", PLOT_WIDTH, Qt.AlignCenter),
+                ("Time", PLOT_WIDTH, Qt.AlignCenter),
+                ("1D", PLOT_WIDTH, Qt.AlignCenter),
                 ("Min", VALUE_WIDTH, Qt.AlignRight),
                 ("Max", VALUE_WIDTH, Qt.AlignRight),
                 ("Avg", VALUE_WIDTH, Qt.AlignRight),
@@ -375,7 +376,7 @@ class MainWindow(QMainWindow):
             header.setStyleSheet(header_style())
             header.setAlignment(alignment | Qt.AlignVCenter)
             grid.addWidget(header, 0, column)
-            if column >= 2:
+            if column >= 3:
                 grid.setColumnStretch(column, 1)
 
         self.roi_widgets = []
@@ -401,7 +402,10 @@ class MainWindow(QMainWindow):
                 deque_length=ROI_TIME_PLOT_DEQUE_LENGTH,
             )
             roi_widget.enable_profile_click(self._show_roi_profile)
-            roi_widget.plot_checkbox.stateChanged.connect(
+            roi_widget.time_plot_checkbox.stateChanged.connect(
+                self._on_roi_plot_selection_changed
+            )
+            roi_widget.profile_plot_checkbox.stateChanged.connect(
                 self._on_roi_plot_selection_changed
             )
             self.roi_widgets.append(roi_widget)
@@ -1286,7 +1290,7 @@ class MainWindow(QMainWindow):
         profile_layout.setSpacing(2)
 
         self._profile_title = QLabel(
-            "ROI profile — check Plot or click an ROI", profile_host
+            "ROI profile — check 1D or click an ROI", profile_host
         )
         self._profile_title.setStyleSheet(PANEL_LABEL_STYLE)
         profile_layout.addWidget(self._profile_title)
@@ -1792,22 +1796,23 @@ class MainWindow(QMainWindow):
         self._refresh_roi_profile()
 
     def _show_roi_profile(self, roi_widget) -> None:
-        if not roi_widget.isChecked():
-            roi_widget.plot_checkbox.setChecked(True)
+        if not roi_widget.is_profile_plot_checked():
+            roi_widget.profile_plot_checkbox.setChecked(True)
         else:
-            self._time_plot_y_autorange = True
             self._profile_y_autorange = True
             self._update_profile_title()
             self._refresh_roi_profile()
 
     def _update_profile_title(self) -> None:
-        selected = tuple(w.name for w in self.roi_widgets if w.isChecked())
+        selected = tuple(
+            w.name for w in self.roi_widgets if w.is_profile_plot_checked()
+        )
         if selected == self._profile_selection:
             return
         self._profile_selection = selected
         if not selected:
             self._profile_title.setText(
-                "ROI profile — check Plot or click an ROI"
+                "ROI profile — check 1D or click an ROI"
             )
         elif len(selected) == 1:
             self._profile_title.setText(f"{selected[0]} — 1D profile")
@@ -1828,7 +1833,7 @@ class MainWindow(QMainWindow):
         plotted = False
         window_latest = None
         for roi_widget in self.roi_widgets:
-            if not roi_widget.isChecked():
+            if not roi_widget.is_time_plot_checked():
                 continue
             active_names.add(roi_widget.name)
             timestamps, values = self._time_series_in_window(roi_widget)
@@ -1871,7 +1876,7 @@ class MainWindow(QMainWindow):
         active_names: set[str] = set()
         plotted = False
         for index, roi_widget in enumerate(self.roi_widgets):
-            if not roi_widget.isChecked():
+            if not roi_widget.is_profile_plot_checked():
                 continue
             if index >= len(profiles):
                 continue
