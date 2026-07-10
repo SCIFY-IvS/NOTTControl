@@ -30,7 +30,6 @@ from PyQt5.QtGui import QColorConstants
 from nottcontrol.camera.infratec.infratec_interface import InfratecInterface, Image
 
 import numpy
-import cv2
 from nottcontrol.camera.infratec.frame_writer import FrameWriter
 from nottcontrol.camera.infratec.brightness_calculator import BrightnessCalculator
 from nottcontrol.camera.infratec.detector_options import (
@@ -111,8 +110,20 @@ IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
 IMAGE_BORDER = 0
 GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
 ROI_GRAPHS_MIN_HEIGHT = 260
+IMAGE_DISPLAY_REFRESH_HZ = config.getfloat(
+    "CAMERA", "image_display_refresh_hz", fallback=2.0
+)
+ROI_VALUES_REFRESH_HZ = config.getfloat("CAMERA", "roi_values_refresh_hz", fallback=2.0)
 ROI_PLOT_REFRESH_HZ = config.getfloat("CAMERA", "roi_plot_refresh_hz", fallback=1.0)
-ROI_PLOT_REFRESH_INTERVAL_MS = max(1, round(1000 / ROI_PLOT_REFRESH_HZ))
+
+
+def _refresh_interval_ms(hz: float) -> int:
+    return max(1, round(1000 / hz))
+
+
+IMAGE_DISPLAY_REFRESH_INTERVAL_MS = _refresh_interval_ms(IMAGE_DISPLAY_REFRESH_HZ)
+ROI_VALUES_REFRESH_INTERVAL_MS = _refresh_interval_ms(ROI_VALUES_REFRESH_HZ)
+ROI_PLOT_REFRESH_INTERVAL_MS = _refresh_interval_ms(ROI_PLOT_REFRESH_HZ)
 ROI_IDLE_PROCESS_STRIDE = config.getint("CAMERA", "roi_idle_process_stride", fallback=24)
 ROI_TIME_PLOT_WINDOW_SECONDS = config.getint(
     "CAMERA", "roi_time_plot_window_seconds", fallback=60
@@ -217,7 +228,9 @@ def roi_profile_1d(region: numpy.ndarray) -> numpy.ndarray:
 
 class MainWindow(QMainWindow):
     request_image_update = pyqtSignal(numpy.ndarray)
-    roi_calculation_finished = pyqtSignal()
+    image_display_update = pyqtSignal()
+    roi_values_update = pyqtSignal()
+    roi_plots_update = pyqtSignal()
     frames_saved_today_updated = pyqtSignal(int, str)
     closing = pyqtSignal()
     
@@ -267,8 +280,14 @@ class MainWindow(QMainWindow):
         self._setup_cursor_readout()
         
         self.request_image_update.connect(self.update_image, Qt.QueuedConnection)
-        self.roi_calculation_finished.connect(
-            self.on_roi_calculations_finished, Qt.QueuedConnection
+        self.image_display_update.connect(
+            self.on_image_display_update, Qt.QueuedConnection
+        )
+        self.roi_values_update.connect(
+            self.on_roi_values_update, Qt.QueuedConnection
+        )
+        self.roi_plots_update.connect(
+            self.on_roi_plots_update, Qt.QueuedConnection
         )
         self.frames_saved_today_updated.connect(
             self._update_frames_today_label, Qt.QueuedConnection
@@ -328,7 +347,12 @@ class MainWindow(QMainWindow):
         self._latest_display_img_for_gui = None
         self._roi_data_lock = threading.Lock()
         self._roi_emit_lock = threading.Lock()
-        self._last_roi_gui_emit = 0.0
+        self._last_image_emit = 0.0
+        self._last_values_emit = 0.0
+        self._last_plots_emit = 0.0
+        self._plot_flags_lock = threading.Lock()
+        self._any_time_plot_enabled = False
+        self._any_profile_plot_enabled = False
         self._idle_roi_frame_counter = 0
         self._profile_selection: tuple[str, ...] = ()
         self._profile_pens: dict[str, object] = {}
@@ -410,6 +434,7 @@ class MainWindow(QMainWindow):
             )
             self.roi_widgets.append(roi_widget)
 
+        self._refresh_plot_enable_flags()
         outer = QGridLayout(self.roi_panel)
         outer.setContentsMargins(6, 10, 6, 4)
         outer.addWidget(grid_host, 0, 0)
@@ -1492,7 +1517,19 @@ class MainWindow(QMainWindow):
         background = self._background_img
         if background is None or background.shape != img.shape:
             return img
-        return cv2.subtract(img, background)
+        diff = img.astype(numpy.int32) - background.astype(numpy.int32)
+        return numpy.clip(
+            diff,
+            numpy.iinfo(numpy.int16).min,
+            numpy.iinfo(numpy.int16).max,
+        ).astype(numpy.int16)
+
+    def _refresh_plot_enable_flags(self) -> None:
+        any_time = any(w.is_time_plot_checked() for w in self.roi_widgets)
+        any_profile = any(w.is_profile_plot_checked() for w in self.roi_widgets)
+        with self._plot_flags_lock:
+            self._any_time_plot_enabled = any_time
+            self._any_profile_plot_enabled = any_profile
 
     def set_brightness_auto(self):
         min, max = self.image.imageItem.quickMinMax()
@@ -1785,6 +1822,7 @@ class MainWindow(QMainWindow):
         plot_item.getViewBox().autoRange(padding=0.08)
 
     def _on_roi_plot_selection_changed(self, _state: int = 0) -> None:
+        self._refresh_plot_enable_flags()
         self._time_plot_y_autorange = True
         self._profile_y_autorange = True
         self._update_profile_title()
@@ -1940,21 +1978,39 @@ class MainWindow(QMainWindow):
                 self.roi_widgets[i].add_max_value(calculator.results[i].max)
 
         self._latest_display_img = img
+        calculator_results = calculator.results
+        calculator_rois = calculator.rois
+        with self._plot_flags_lock:
+            any_time_plot = self._any_time_plot_enabled
+            any_profile_plot = self._any_profile_plot_enabled
+        plots_enabled = any_time_plot or any_profile_plot
         now = time.monotonic()
         with self._roi_emit_lock:
-            elapsed = now - self._last_roi_gui_emit
-            if elapsed >= ROI_PLOT_REFRESH_INTERVAL_MS / 1000.0:
-                self._last_roi_gui_emit = now
-                self._last_roi_profiles = tuple(
-                    roi_profile_1d(region) for region in calculator.rois
-                )
-                self._latest_brightness_results = calculator.results
+            elapsed_image = now - self._last_image_emit
+            if elapsed_image >= IMAGE_DISPLAY_REFRESH_INTERVAL_MS / 1000.0:
+                self._last_image_emit = now
                 self._latest_display_img_for_gui = analysis_img
-                should_emit = True
-            else:
-                should_emit = False
-        if should_emit:
-            self.roi_calculation_finished.emit()
+                self.image_display_update.emit()
+
+            elapsed_values = now - self._last_values_emit
+            if elapsed_values >= ROI_VALUES_REFRESH_INTERVAL_MS / 1000.0:
+                self._last_values_emit = now
+                self._latest_brightness_results = calculator_results
+                self.roi_values_update.emit()
+
+            elapsed_plots = now - self._last_plots_emit
+            if (
+                plots_enabled
+                and elapsed_plots >= ROI_PLOT_REFRESH_INTERVAL_MS / 1000.0
+            ):
+                self._last_plots_emit = now
+                if any_profile_plot:
+                    self._last_roi_profiles = tuple(
+                        roi_profile_1d(region) for region in calculator_rois
+                    )
+                else:
+                    self._last_roi_profiles = None
+                self.roi_plots_update.emit()
 
     def run_roi_calculator(self, img):
         regions = self._extract_roi_regions(img)
@@ -1993,18 +2049,26 @@ class MainWindow(QMainWindow):
     def store_integtime_to_db(self, timestamp, integtime):
         self.redisclient.add_cam_integtime(timestamp,integtime)
         
-    def on_roi_calculations_finished(self):
-        results = self._latest_brightness_results
-        if results is not None:
-            for i in range(len(self.roi_widgets)):
-                self.roi_widgets[i].setValues(results[i])
-
+    def on_image_display_update(self) -> None:
         display_img = self._latest_display_img_for_gui
         if display_img is not None and self.imageInit:
             self.image.getImageItem().setImage(display_img, autoLevels=False)
 
-        self._refresh_roi_time_plot()
-        self._refresh_roi_profile()
+    def on_roi_values_update(self) -> None:
+        results = self._latest_brightness_results
+        if results is None:
+            return
+        for i in range(len(self.roi_widgets)):
+            self.roi_widgets[i].setValues(results[i])
+
+    def on_roi_plots_update(self) -> None:
+        with self._plot_flags_lock:
+            refresh_time = self._any_time_plot_enabled
+            refresh_profile = self._any_profile_plot_enabled
+        if refresh_time:
+            self._refresh_roi_time_plot()
+        if refresh_profile:
+            self._refresh_roi_profile()
 
     def _count_frames_for_utc_day(self, utc_day: str) -> int:
         return count_frames_saved_for_utc_day(utc_day)
