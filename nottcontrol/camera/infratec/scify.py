@@ -114,6 +114,12 @@ ROI_GRAPHS_MIN_HEIGHT = 260
 ROI_PLOT_REFRESH_HZ = config.getfloat("CAMERA", "roi_plot_refresh_hz", fallback=1.0)
 ROI_PLOT_REFRESH_INTERVAL_MS = max(1, round(1000 / ROI_PLOT_REFRESH_HZ))
 ROI_TIME_PLOT_REFRESH_MS = max(100, ROI_PLOT_REFRESH_INTERVAL_MS // 5)
+ROI_TIME_PLOT_WINDOW_SECONDS = config.getint(
+    "CAMERA", "roi_time_plot_window_seconds", fallback=60
+)
+ROI_TIME_PLOT_DEQUE_LENGTH = ROI_TIME_PLOT_WINDOW_SECONDS * config.getint(
+    "CAMERA", "roi_time_plot_max_framerate", fallback=240
+)
 FRAME_READOUT_OVERHEAD_US = config.getint(
     "CAMERA", "frame_readout_overhead_us", fallback=5000
 )
@@ -303,8 +309,8 @@ class MainWindow(QMainWindow):
         self.ui.actionLoad_from_config.triggered.connect(self.load_roi_positions_from_config)
         self.ui.actionSave_to_config.triggered.connect(self.save_roi_positions_to_config)
 
-        #This should translate to roughly 30s, assuming 200 Hz
-        deque_length = 6000
+        # Keep enough history for the rolling time-plot window.
+        deque_length = ROI_TIME_PLOT_DEQUE_LENGTH
 
         self.timestamps = deque(maxlen = deque_length)
         self.coadd_frames_buffer = []
@@ -377,7 +383,9 @@ class MainWindow(QMainWindow):
             QColorConstants.DarkYellow,
         ]
         for index, color in enumerate(colors, start=1):
-            roi_widget = RoiWidget(grid_host, grid, index, index, color)
+            roi_widget = RoiWidget(
+                grid_host, grid, index, index, color, deque_length=deque_length
+            )
             roi_widget.enable_profile_click(self._show_roi_profile)
             roi_widget.plot_checkbox.stateChanged.connect(
                 self._on_roi_plot_selection_changed
@@ -1661,13 +1669,29 @@ class MainWindow(QMainWindow):
 
         roi.mouseClickEvent = mouse_click_event
 
-    def _locked_time_series_arrays(
+    def _time_series_in_window(
         self, roi_widget
     ) -> tuple[numpy.ndarray, numpy.ndarray]:
         with self._roi_data_lock:
             timestamps = numpy.array(self.timestamps, dtype=numpy.float64)
             values = numpy.array(roi_widget.max_values, dtype=numpy.float64)
-        return timestamps, values
+        if timestamps.size == 0:
+            return timestamps, values
+
+        order = numpy.argsort(timestamps)
+        timestamps = timestamps[order]
+        values = values[order]
+
+        latest = timestamps[-1]
+        cutoff = latest - ROI_TIME_PLOT_WINDOW_SECONDS
+        mask = timestamps >= cutoff
+        return timestamps[mask], values[mask]
+
+    def _update_time_plot_x_range(self, latest_timestamp: float) -> None:
+        plot_item = self.pw_roi.getPlotItem()
+        x_max = latest_timestamp
+        x_min = x_max - ROI_TIME_PLOT_WINDOW_SECONDS
+        plot_item.setXRange(x_min, x_max, padding=0)
 
     def _remove_inactive_plot_curves(
         self, plot_item, curves_dict: dict, active_names: set[str]
@@ -1736,13 +1760,15 @@ class MainWindow(QMainWindow):
         plot_item = self.pw_roi.getPlotItem()
         active_names: set[str] = set()
         plotted = False
+        window_latest = None
         for roi_widget in self.roi_widgets:
             if not roi_widget.isChecked():
                 continue
             active_names.add(roi_widget.name)
-            timestamps, values = self._locked_time_series_arrays(roi_widget)
+            timestamps, values = self._time_series_in_window(roi_widget)
             if timestamps.size == 0:
                 continue
+            window_latest = float(timestamps[-1])
             curve = self._time_plot_curves.get(roi_widget.name)
             if curve is None:
                 curve = self.pw_roi.plot(
@@ -1758,6 +1784,8 @@ class MainWindow(QMainWindow):
         self._remove_inactive_plot_curves(
             plot_item, self._time_plot_curves, active_names
         )
+        if window_latest is not None:
+            self._update_time_plot_x_range(window_latest)
         if plotted and self._time_plot_y_autorange:
             self._auto_range_plot(self.pw_roi)
             self._time_plot_y_autorange = False
