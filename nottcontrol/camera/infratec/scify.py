@@ -258,6 +258,9 @@ class MainWindow(QMainWindow):
         self._applying_detector = False
         self._subtract_background_enabled = False
         self._background_img = None
+        self._plot_flags_lock = threading.Lock()
+        self._any_time_plot_enabled = False
+        self._any_profile_plot_enabled = False
 
         self._setup_brightness_panel()
         self._setup_acquisition_panel()
@@ -350,9 +353,6 @@ class MainWindow(QMainWindow):
         self._last_image_emit = 0.0
         self._last_values_emit = 0.0
         self._last_plots_emit = 0.0
-        self._plot_flags_lock = threading.Lock()
-        self._any_time_plot_enabled = False
-        self._any_profile_plot_enabled = False
         self._idle_roi_frame_counter = 0
         self._profile_selection: tuple[str, ...] = ()
         self._profile_pens: dict[str, object] = {}
