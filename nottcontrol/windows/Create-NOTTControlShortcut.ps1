@@ -5,8 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$IconPath = Join-Path $RepoRoot "nottcontrol\windows\NOTT.ico"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$IconPath = (Join-Path $RepoRoot "nottcontrol\windows\NOTT.ico")
 $Pythonw = $null
 
 $candidates = @(
@@ -40,7 +40,16 @@ if (-not $Pythonw) {
 }
 
 if (-not (Test-Path $IconPath)) {
-    throw "Missing icon file: $IconPath. Run nottcontrol/windows/build_assets.py first."
+    throw "Missing icon file: $IconPath. Run: python nottcontrol/windows/build_assets.py"
+}
+
+$Destination = [System.IO.Path]::GetFullPath($Destination)
+$DestinationDir = Split-Path -Parent $Destination
+if (-not (Test-Path $DestinationDir)) {
+    New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
+}
+if (Test-Path $Destination) {
+    Remove-Item $Destination -Force
 }
 
 $shell = New-Object -ComObject WScript.Shell
@@ -50,7 +59,7 @@ $shortcut.Arguments = "-m nottcontrol.main"
 $shortcut.WorkingDirectory = $RepoRoot
 $shortcut.WindowStyle = 1
 $shortcut.Description = "NOTT instrument control"
-$shortcut.IconLocation = "$IconPath,0"
+$shortcut.IconLocation = "$(Resolve-Path $IconPath),0"
 $shortcut.Save()
 
 Write-Host "Created shortcut: $Destination"

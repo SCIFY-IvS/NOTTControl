@@ -116,15 +116,25 @@ class RoiWidget:
         self.avg_label.setText(f"{brightnessResults.avg:.1f}")
 
     def enable_profile_click(self, callback) -> None:
-        self.name_label.setCursor(Qt.PointingHandCursor)
-        self.name_label.setToolTip("Click to show 1D profile")
+        tooltip = "Click to show 1D profile"
 
-        def on_press(event):
-            if event.button() == Qt.LeftButton:
-                callback(self)
-            QLabel.mousePressEvent(self.name_label, event)
+        def bind_click(label: QLabel) -> None:
+            def on_press(event):
+                if event.button() == Qt.LeftButton:
+                    callback(self)
+                QLabel.mousePressEvent(label, event)
 
-        self.name_label.mousePressEvent = on_press
+            label.setCursor(Qt.PointingHandCursor)
+            label.setToolTip(tooltip)
+            label.mousePressEvent = on_press
+
+        for label in (
+            self.name_label,
+            self.min_label,
+            self.max_label,
+            self.avg_label,
+        ):
+            bind_click(label)
 
     def isChecked(self) -> bool:
         return self.plot_checkbox.isChecked()

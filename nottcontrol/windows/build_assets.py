@@ -13,6 +13,16 @@ def main() -> int:
     app = QApplication(sys.argv)
     path = save_app_icon_ico()
     print(f"Wrote {path}")
+    if sys.platform == "win32":
+        try:
+            from nottcontrol.windows.create_desktop_shortcut import (
+                create_desktop_shortcut,
+            )
+
+            shortcut = create_desktop_shortcut()
+            print(f"Updated Desktop shortcut: {shortcut}")
+        except Exception as exc:
+            print(f"Desktop shortcut not updated: {exc}")
     return 0
 
 

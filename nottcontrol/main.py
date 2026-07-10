@@ -37,4 +37,10 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] in ("--create-shortcut", "--shortcut"):
+        from nottcontrol.windows.create_desktop_shortcut import create_desktop_shortcut
+
+        shortcut = create_desktop_shortcut()
+        print(f"Created shortcut: {shortcut}")
+        raise SystemExit(0)
     main()

@@ -66,19 +66,29 @@ open NOTTControl.app
 
 You can drag `NOTTControl.app` to the Dock or Applications folder. The app bundle runs `python -m nottcontrol.main` using your project virtual environment (`.venv` / `venv`) when present.
 
-On **Windows**, create a Desktop shortcut with the NOTT icon:
+On **Windows**, create or refresh a Desktop shortcut with the NOTT icon (not the default Python logo):
+
+```bat
+Create-NOTTControlShortcut.bat
+```
+
+Or:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File nottcontrol\windows\Create-NOTTControlShortcut.ps1
 ```
 
-You can also double-click `NOTTControl.bat` in the repository root. It launches the GUI with `pythonw` and uses the NOTT icon in the taskbar while the app is running.
+```bash
+python -m nottcontrol.main --create-shortcut
+```
 
-To rebuild the Windows `.ico` asset after changing the logo:
+If an older shortcut still shows the Python icon, delete it and run one of the commands above. Rebuilding assets also refreshes the shortcut:
 
 ```bash
 python nottcontrol/windows/build_assets.py
 ```
+
+You can also double-click `NOTTControl.bat` in the repository root. It launches the GUI with `pythonw` and uses the NOTT icon in the taskbar while the app is running.
 
 Alternatively, from the `nottcontrol` directory (so relative paths resolve as in development):
 
