@@ -327,8 +327,6 @@ class MainWindow(QMainWindow):
         self._roi_emit_lock = threading.Lock()
         self._last_roi_gui_emit = 0.0
         self._profile_selection: tuple[str, ...] = ()
-        self._profile_pens: dict[str, object] = {}
-        self._roi_plot_ticks = 0
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
@@ -1220,7 +1218,6 @@ class MainWindow(QMainWindow):
         plot_item.enableAutoRange(axis='y', enable=True)
         plot_item.enableAutoRange(axis='x', enable=False)
 
-        self._time_plot_curves = {}
         self._time_plot_y_autorange = True
         time_layout.addWidget(self.pw_roi)
         outer.addWidget(time_host, stretch=1, alignment=Qt.AlignTop)
@@ -1246,7 +1243,6 @@ class MainWindow(QMainWindow):
         profile_plot_item.getAxis('left').setWidth(58)
         profile_plot_item.layout.setContentsMargins(8, 8, 8, 8)
         profile_plot_item.enableAutoRange(axis='y', enable=True)
-        self._profile_plot_curves = {}
         self._profile_y_autorange = True
         profile_layout.addWidget(self.pw_roi_profile)
         outer.addWidget(profile_host, stretch=1, alignment=Qt.AlignTop)
@@ -1676,42 +1672,20 @@ class MainWindow(QMainWindow):
 
         roi.mouseClickEvent = mouse_click_event
 
-    def _profile_pen(self, roi_widget) -> object:
-        pen = self._profile_pens.get(roi_widget.name)
-        if pen is None:
-            pen = pg.mkPen(
-                color=(
-                    roi_widget.color.red(),
-                    roi_widget.color.green(),
-                    roi_widget.color.blue(),
-                ),
-                width=2,
-            )
-            self._profile_pens[roi_widget.name] = pen
-        return pen
-
     def _locked_time_series_arrays(
         self, roi_widget
     ) -> tuple[numpy.ndarray, numpy.ndarray]:
         with self._roi_data_lock:
-            timestamps = numpy.asarray(self.timestamps, dtype=numpy.float64)
-            values = numpy.asarray(roi_widget.max_values, dtype=numpy.float64)
+            timestamps = numpy.array(self.timestamps, dtype=numpy.float64)
+            values = numpy.array(roi_widget.max_values, dtype=numpy.float64)
         return _downsample_xy(timestamps, values, ROI_PLOT_MAX_POINTS)
 
-    def _configure_plot_curve(self, curve) -> None:
-        curve.setClipToView(True)
-        curve.setDownsampling(ds=1, auto=True, mode="peak")
-
-    def _remove_inactive_plot_curves(
-        self, plot_item, curves_dict: dict, active_names: set[str]
-    ) -> None:
+    def _clear_plot(self, plot_widget: pg.PlotWidget) -> None:
+        plot_item = plot_widget.getPlotItem()
+        plot_item.clear()
         legend = plot_item.legend
-        for name in list(curves_dict):
-            if name not in active_names:
-                curve = curves_dict.pop(name)
-                plot_item.removeItem(curve)
-                if legend is not None:
-                    legend.removeItem(curve)
+        if legend is not None:
+            legend.clear()
 
     def _auto_range_plot(self, plot_widget: pg.PlotWidget) -> None:
         plot_item = plot_widget.getPlotItem()
@@ -1760,29 +1734,21 @@ class MainWindow(QMainWindow):
     def _refresh_roi_time_plot(self) -> None:
         if not hasattr(self, "pw_roi"):
             return
-        plot_item = self.pw_roi.getPlotItem()
-        active_names: set[str] = set()
+        self._clear_plot(self.pw_roi)
         plotted = False
         for roi_widget in self.roi_widgets:
             if not roi_widget.isChecked():
                 continue
-            active_names.add(roi_widget.name)
-            curve = self._time_plot_curves.get(roi_widget.name)
-            if curve is None:
-                curve = self.pw_roi.plot(
-                    name=roi_widget.name,
-                    pen=roi_widget.color,
-                )
-                self._configure_plot_curve(curve)
-                self._time_plot_curves[roi_widget.name] = curve
             timestamps, values = self._locked_time_series_arrays(roi_widget)
             if timestamps.size == 0:
                 continue
-            curve.setData(timestamps, values)
+            self.pw_roi.plot(
+                timestamps,
+                values,
+                name=roi_widget.name,
+                pen=roi_widget.color,
+            )
             plotted = True
-        self._remove_inactive_plot_curves(
-            plot_item, self._time_plot_curves, active_names
-        )
         if plotted and self._time_plot_y_autorange:
             self._auto_range_plot(self.pw_roi)
             self._time_plot_y_autorange = False
@@ -1791,15 +1757,10 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "pw_roi_profile"):
             return
         profiles = self._last_roi_profiles
+        self._clear_plot(self.pw_roi_profile)
         if not profiles:
-            plot_item = self.pw_roi_profile.getPlotItem()
-            self._remove_inactive_plot_curves(
-                plot_item, self._profile_plot_curves, set()
-            )
             return
 
-        plot_item = self.pw_roi_profile.getPlotItem()
-        active_names: set[str] = set()
         plotted = False
         for index, roi_widget in enumerate(self.roi_widgets):
             if not roi_widget.isChecked():
@@ -1809,25 +1770,23 @@ class MainWindow(QMainWindow):
             profile = profiles[index]
             if profile.size == 0:
                 continue
-            active_names.add(roi_widget.name)
-            curve = self._profile_plot_curves.get(roi_widget.name)
+            pen = pg.mkPen(
+                color=(
+                    roi_widget.color.red(),
+                    roi_widget.color.green(),
+                    roi_widget.color.blue(),
+                ),
+                width=2,
+            )
             x = numpy.arange(profile.size, dtype=numpy.float64)
-            if curve is None:
-                curve = self.pw_roi_profile.plot(
-                    x,
-                    profile,
-                    pen=self._profile_pen(roi_widget),
-                    name=roi_widget.name,
-                )
-                self._configure_plot_curve(curve)
-                self._profile_plot_curves[roi_widget.name] = curve
-            else:
-                curve.setData(x, profile)
+            self.pw_roi_profile.plot(
+                x,
+                profile,
+                pen=pen,
+                name=roi_widget.name,
+            )
             plotted = True
 
-        self._remove_inactive_plot_curves(
-            plot_item, self._profile_plot_curves, active_names
-        )
         if plotted and self._profile_y_autorange:
             self._auto_range_plot(self.pw_roi_profile)
             self._profile_y_autorange = False
@@ -1920,10 +1879,6 @@ class MainWindow(QMainWindow):
             return
         for i in range(len(self.roi_widgets)):
             self.roi_widgets[i].setValues(results[i])
-        self._roi_plot_ticks += 1
-        if self._roi_plot_ticks % 15 == 0:
-            self._time_plot_y_autorange = True
-            self._profile_y_autorange = True
         self._refresh_roi_plots()
 
     def _count_frames_for_utc_day(self, utc_day: str) -> int:
