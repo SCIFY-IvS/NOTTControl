@@ -25,7 +25,7 @@ import os
 from datetime import datetime, timedelta, timezone
 import ctypes,_ctypes
 import pyqtgraph as pg
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt5.QtGui import QColorConstants
 from nottcontrol.camera.infratec.infratec_interface import InfratecInterface, Image
 
@@ -110,6 +110,7 @@ PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
 IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
 IMAGE_BORDER = 0
 GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
+ROI_GRAPHS_MIN_HEIGHT = 260
 FRAME_READOUT_OVERHEAD_US = config.getint(
     "CAMERA", "frame_readout_overhead_us", fallback=5000
 )
@@ -182,6 +183,14 @@ def callback(context,*args):#, aHandle, aStreamIndex):
     global img_timestamp_ref
     
     context.load_image(recording_timestamp,use_camera_time)
+
+def _normalize_scene_pos(pos) -> QPointF:
+    """Accept QPointF or nested tuples from pyqtgraph signal/proxy variants."""
+    while isinstance(pos, (tuple, list)) and len(pos) == 1:
+        pos = pos[0]
+    if isinstance(pos, (tuple, list)) and len(pos) >= 2:
+        return QPointF(float(pos[0]), float(pos[1]))
+    return pos
 
 def roi_profile_1d(region: numpy.ndarray) -> numpy.ndarray:
     """Collapse a 2D ROI array to a 1D profile (mean across the narrow axis)."""
@@ -1014,11 +1023,7 @@ class MainWindow(QMainWindow):
             " padding-left: 6px;"
         )
         scene = self.image.getView().scene()
-        self._cursor_proxy = pg.SignalProxy(
-            scene.sigMouseMoved,
-            rateLimit=30,
-            slot=self._update_cursor_readout,
-        )
+        scene.sigMouseMoved.connect(self._update_cursor_readout)
 
     def _roi_name_at(self, x: int, y: int) -> str | None:
         for roi_widget in self.roi_widgets:
@@ -1041,7 +1046,11 @@ class MainWindow(QMainWindow):
             self._cursor_readout.setText("Pixel: —")
             return
 
-        mouse = self.image.getView().mapSceneToView(pos)
+        try:
+            scene_pos = _normalize_scene_pos(pos)
+            mouse = self.image.getView().mapSceneToView(scene_pos)
+        except (TypeError, ValueError):
+            return
         x = int(mouse.x())
         y = int(mouse.y())
         img_h, img_w = img.shape[:2]
@@ -1109,10 +1118,13 @@ class MainWindow(QMainWindow):
         self.ui.frame_camera.setGeometry(camera_x, content_top, camera_w, camera_h)
         self.ui.frame_camera.setFixedSize(camera_w, camera_h)
 
-        graph_y = content_top + camera_h + graph_gap
+        graphs_height = scaled(max(GRAPH_HEIGHT, ROI_GRAPHS_MIN_HEIGHT))
+        upper_bottom = max(content_top + camera_h, roi_y + panel_height)
+        graph_y = upper_bottom + graph_gap
+        graphs_w = content_right - LEFT_COLUMN_X
         self.ui.frame_roi_graph.setMinimumSize(0, 0)
-        self.ui.frame_roi_graph.setGeometry(camera_x, graph_y, camera_w, GRAPH_HEIGHT)
-        self.ui.frame_roi_graph.setFixedSize(camera_w, GRAPH_HEIGHT)
+        self.ui.frame_roi_graph.setGeometry(LEFT_COLUMN_X, graph_y, graphs_w, graphs_height)
+        self.ui.frame_roi_graph.setFixedSize(graphs_w, graphs_height)
         self.ui.frame_roi_graph.show()
         self.ui.frame_roi_graph.raise_()
         self._fit_roi_plot()
@@ -1124,7 +1136,7 @@ class MainWindow(QMainWindow):
         self.ui.groupBox_2.hide()
 
         content_h = max(
-            graph_y + GRAPH_HEIGHT + WINDOW_BOTTOM_BUFFER,
+            graph_y + graphs_height + WINDOW_BOTTOM_BUFFER,
             roi_y + panel_height + WINDOW_BOTTOM_BUFFER,
         )
         window_w = max(content_right + scaled(24), camera_x + camera_w + scaled(40))
@@ -1188,7 +1200,7 @@ class MainWindow(QMainWindow):
 
         self.plot_data_item_roi = self.pw_roi.plot()
         time_layout.addWidget(self.pw_roi)
-        outer.addWidget(time_host, stretch=1)
+        outer.addWidget(time_host, stretch=1, alignment=Qt.AlignTop)
 
         profile_host = QWidget(self.ui.frame_roi_graph)
         profile_layout = QVBoxLayout(profile_host)
@@ -1209,7 +1221,10 @@ class MainWindow(QMainWindow):
         profile_plot_item.layout.setContentsMargins(8, 8, 8, 8)
         profile_plot_item.enableAutoRange(axis='y', enable=True)
         profile_layout.addWidget(self.pw_roi_profile)
-        outer.addWidget(profile_host, stretch=1)
+        outer.addWidget(profile_host, stretch=1, alignment=Qt.AlignTop)
+
+        outer.setStretch(0, 1)
+        outer.setStretch(1, 1)
 
     def _fit_roi_plot(self) -> None:
         if hasattr(self, "pw_roi"):
