@@ -113,6 +113,7 @@ GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
 ROI_GRAPHS_MIN_HEIGHT = 260
 ROI_PLOT_REFRESH_HZ = config.getfloat("CAMERA", "roi_plot_refresh_hz", fallback=1.0)
 ROI_PLOT_REFRESH_INTERVAL_MS = max(1, round(1000 / ROI_PLOT_REFRESH_HZ))
+ROI_PLOT_MAX_POINTS = config.getint("CAMERA", "roi_plot_max_points", fallback=1200)
 FRAME_READOUT_OVERHEAD_US = config.getint(
     "CAMERA", "frame_readout_overhead_us", fallback=5000
 )
@@ -207,6 +208,16 @@ def roi_profile_1d(region: numpy.ndarray) -> numpy.ndarray:
     return numpy.mean(data, axis=0)
 
 
+def _downsample_xy(
+    x: numpy.ndarray, y: numpy.ndarray, max_points: int
+) -> tuple[numpy.ndarray, numpy.ndarray]:
+    count = x.size
+    if count <= max_points:
+        return x, y
+    step = (count + max_points - 1) // max_points
+    return x[::step], y[::step]
+
+
 class MainWindow(QMainWindow):
     request_image_update = pyqtSignal(numpy.ndarray)
     roi_calculation_finished = pyqtSignal()
@@ -282,10 +293,6 @@ class MainWindow(QMainWindow):
         self._timing_labels_debounce.setSingleShot(True)
         self._timing_labels_debounce.timeout.connect(self._update_timing_labels)
 
-        self._roi_plot_refresh_timer = QTimer()
-        self._roi_plot_refresh_timer.setSingleShot(True)
-        self._roi_plot_refresh_timer.timeout.connect(self._refresh_roi_plots)
-
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
         self.calculating_roi = False
@@ -314,10 +321,14 @@ class MainWindow(QMainWindow):
         self.roi_queue = queue.Queue(maxsize=FRAME_QUEUE_SIZE)
         self.dropped_frames = 0
 
-        self._last_roi_regions = None
-        self._latest_roi_calculator = None
+        self._last_roi_profiles = None
+        self._latest_brightness_results = None
+        self._roi_data_lock = threading.Lock()
         self._roi_emit_lock = threading.Lock()
         self._last_roi_gui_emit = 0.0
+        self._profile_selection: tuple[str, ...] = ()
+        self._profile_pens: dict[str, object] = {}
+        self._roi_plot_ticks = 0
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
@@ -1210,6 +1221,7 @@ class MainWindow(QMainWindow):
         plot_item.enableAutoRange(axis='x', enable=False)
 
         self._time_plot_curves = {}
+        self._time_plot_y_autorange = True
         time_layout.addWidget(self.pw_roi)
         outer.addWidget(time_host, stretch=1, alignment=Qt.AlignTop)
 
@@ -1235,6 +1247,7 @@ class MainWindow(QMainWindow):
         profile_plot_item.layout.setContentsMargins(8, 8, 8, 8)
         profile_plot_item.enableAutoRange(axis='y', enable=True)
         self._profile_plot_curves = {}
+        self._profile_y_autorange = True
         profile_layout.addWidget(self.pw_roi_profile)
         outer.addWidget(profile_host, stretch=1, alignment=Qt.AlignTop)
 
@@ -1663,6 +1676,32 @@ class MainWindow(QMainWindow):
 
         roi.mouseClickEvent = mouse_click_event
 
+    def _profile_pen(self, roi_widget) -> object:
+        pen = self._profile_pens.get(roi_widget.name)
+        if pen is None:
+            pen = pg.mkPen(
+                color=(
+                    roi_widget.color.red(),
+                    roi_widget.color.green(),
+                    roi_widget.color.blue(),
+                ),
+                width=2,
+            )
+            self._profile_pens[roi_widget.name] = pen
+        return pen
+
+    def _locked_time_series_arrays(
+        self, roi_widget
+    ) -> tuple[numpy.ndarray, numpy.ndarray]:
+        with self._roi_data_lock:
+            timestamps = numpy.asarray(self.timestamps, dtype=numpy.float64)
+            values = numpy.asarray(roi_widget.max_values, dtype=numpy.float64)
+        return _downsample_xy(timestamps, values, ROI_PLOT_MAX_POINTS)
+
+    def _configure_plot_curve(self, curve) -> None:
+        curve.setClipToView(True)
+        curve.setDownsampling(ds=1, auto=True, mode="peak")
+
     def _remove_inactive_plot_curves(
         self, plot_item, curves_dict: dict, active_names: set[str]
     ) -> None:
@@ -1680,26 +1719,29 @@ class MainWindow(QMainWindow):
         plot_item.getViewBox().autoRange(padding=0.08)
 
     def _on_roi_plot_selection_changed(self, _state: int = 0) -> None:
+        self._time_plot_y_autorange = True
+        self._profile_y_autorange = True
+        self._update_profile_title()
         self._refresh_roi_plots()
 
     def _show_roi_profile(self, roi_widget) -> None:
         if not roi_widget.isChecked():
             roi_widget.plot_checkbox.setChecked(True)
         else:
-            self._refresh_roi_profile()
-
-    def _schedule_roi_plots_refresh(self) -> None:
-        if not hasattr(self, "pw_roi"):
-            return
-        if not self._roi_plot_refresh_timer.isActive():
-            self._roi_plot_refresh_timer.start(ROI_PLOT_REFRESH_INTERVAL_MS)
+            self._time_plot_y_autorange = True
+            self._profile_y_autorange = True
+            self._update_profile_title()
+            self._refresh_roi_plots()
 
     def _refresh_roi_plots(self) -> None:
         self._refresh_roi_time_plot()
         self._refresh_roi_profile()
 
     def _update_profile_title(self) -> None:
-        selected = [w.name for w in self.roi_widgets if w.isChecked()]
+        selected = tuple(w.name for w in self.roi_widgets if w.isChecked())
+        if selected == self._profile_selection:
+            return
+        self._profile_selection = selected
         if not selected:
             self._profile_title.setText(
                 "ROI profile — check Plot or click an ROI"
@@ -1731,25 +1773,25 @@ class MainWindow(QMainWindow):
                     name=roi_widget.name,
                     pen=roi_widget.color,
                 )
+                self._configure_plot_curve(curve)
                 self._time_plot_curves[roi_widget.name] = curve
-            else:
-                curve.setPen(roi_widget.color)
-            curve.setData(
-                list(self.timestamps),
-                list(roi_widget.max_values),
-            )
+            timestamps, values = self._locked_time_series_arrays(roi_widget)
+            if timestamps.size == 0:
+                continue
+            curve.setData(timestamps, values)
             plotted = True
         self._remove_inactive_plot_curves(
             plot_item, self._time_plot_curves, active_names
         )
-        if plotted:
+        if plotted and self._time_plot_y_autorange:
             self._auto_range_plot(self.pw_roi)
+            self._time_plot_y_autorange = False
 
     def _refresh_roi_profile(self) -> None:
         if not hasattr(self, "pw_roi_profile"):
             return
-        self._update_profile_title()
-        if not self._last_roi_regions:
+        profiles = self._last_roi_profiles
+        if not profiles:
             plot_item = self.pw_roi_profile.getPlotItem()
             self._remove_inactive_plot_curves(
                 plot_item, self._profile_plot_curves, set()
@@ -1762,40 +1804,33 @@ class MainWindow(QMainWindow):
         for index, roi_widget in enumerate(self.roi_widgets):
             if not roi_widget.isChecked():
                 continue
-            if index >= len(self._last_roi_regions):
+            if index >= len(profiles):
                 continue
-            profile = roi_profile_1d(self._last_roi_regions[index])
+            profile = profiles[index]
             if profile.size == 0:
                 continue
             active_names.add(roi_widget.name)
-            pen = pg.mkPen(
-                color=(
-                    roi_widget.color.red(),
-                    roi_widget.color.green(),
-                    roi_widget.color.blue(),
-                ),
-                width=2,
-            )
             curve = self._profile_plot_curves.get(roi_widget.name)
-            x = numpy.arange(profile.size)
+            x = numpy.arange(profile.size, dtype=numpy.float64)
             if curve is None:
                 curve = self.pw_roi_profile.plot(
                     x,
                     profile,
-                    pen=pen,
+                    pen=self._profile_pen(roi_widget),
                     name=roi_widget.name,
                 )
+                self._configure_plot_curve(curve)
                 self._profile_plot_curves[roi_widget.name] = curve
             else:
-                curve.setPen(pen)
                 curve.setData(x, profile)
             plotted = True
 
         self._remove_inactive_plot_curves(
             plot_item, self._profile_plot_curves, active_names
         )
-        if plotted:
+        if plotted and self._profile_y_autorange:
             self._auto_range_plot(self.pw_roi_profile)
+            self._profile_y_autorange = False
     
     def get_roi_from_config(self, roi_config:Roi, pen):
         return pg.RectROI([roi_config.x, roi_config.y], [roi_config.w, roi_config.h], pen = pen)
@@ -1809,9 +1844,6 @@ class MainWindow(QMainWindow):
             img = self._image_for_analysis(img)
             self.image.getImageItem().setImage(img, autoLevels = False)
             self._fit_detector_image()
-
-        if hasattr(self, "pw_roi"):
-            self._schedule_roi_plots_refresh()
                 
     def process_roi(self, img, timestamp, coadded_frame):
         img = self._image_for_analysis(img)
@@ -1825,16 +1857,20 @@ class MainWindow(QMainWindow):
             self.update_gui_with_newroi(timestamp, calculator)
             
     def update_gui_with_newroi(self, timestamp, calculator):
-        self.timestamps.appendleft(datetime.timestamp(timestamp))
-        for i in range(len(self.roi_widgets)):
-            self.roi_widgets[i].add_max_value(calculator.results[i].max)
+        with self._roi_data_lock:
+            self.timestamps.appendleft(datetime.timestamp(timestamp))
+            for i in range(len(self.roi_widgets)):
+                self.roi_widgets[i].add_max_value(calculator.results[i].max)
 
-        self._latest_roi_calculator = calculator
         now = time.monotonic()
         with self._roi_emit_lock:
             elapsed = now - self._last_roi_gui_emit
             if elapsed >= ROI_PLOT_REFRESH_INTERVAL_MS / 1000.0:
                 self._last_roi_gui_emit = now
+                self._last_roi_profiles = tuple(
+                    roi_profile_1d(region) for region in calculator.rois
+                )
+                self._latest_brightness_results = calculator.results
                 should_emit = True
             else:
                 should_emit = False
@@ -1879,13 +1915,16 @@ class MainWindow(QMainWindow):
         self.redisclient.add_cam_integtime(timestamp,integtime)
         
     def on_roi_calculations_finished(self):
-        calculator = self._latest_roi_calculator
-        if calculator is None:
+        results = self._latest_brightness_results
+        if results is None:
             return
-        self._last_roi_regions = [region.copy() for region in calculator.rois]
         for i in range(len(self.roi_widgets)):
-            self.roi_widgets[i].setValues(calculator.results[i])
-        self._schedule_roi_plots_refresh()
+            self.roi_widgets[i].setValues(results[i])
+        self._roi_plot_ticks += 1
+        if self._roi_plot_ticks % 15 == 0:
+            self._time_plot_y_autorange = True
+            self._profile_y_autorange = True
+        self._refresh_roi_plots()
 
     def _count_frames_for_utc_day(self, utc_day: str) -> int:
         return count_frames_saved_for_utc_day(utc_day)
