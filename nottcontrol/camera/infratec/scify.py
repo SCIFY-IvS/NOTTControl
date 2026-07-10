@@ -183,6 +183,19 @@ def callback(context,*args):#, aHandle, aStreamIndex):
     
     context.load_image(recording_timestamp,use_camera_time)
 
+def roi_profile_1d(region: numpy.ndarray) -> numpy.ndarray:
+    """Collapse a 2D ROI array to a 1D profile (mean across the narrow axis)."""
+    if region.ndim == 1:
+        return region.astype(float, copy=False)
+    if region.size == 0:
+        return numpy.array([], dtype=float)
+    height, width = region.shape[:2]
+    data = region.astype(float, copy=False)
+    if width <= height:
+        return numpy.mean(data, axis=1)
+    return numpy.mean(data, axis=0)
+
+
 class MainWindow(QMainWindow):
     request_image_update = pyqtSignal(numpy.ndarray)
     roi_calculation_finished = pyqtSignal(BrightnessCalculator)
@@ -285,6 +298,9 @@ class MainWindow(QMainWindow):
         self.coadd_frames_buffer = []
         self.roi_queue = queue.Queue(maxsize=FRAME_QUEUE_SIZE)
         self.dropped_frames = 0
+
+        self._last_roi_regions = None
+        self._profile_roi_widget = None
         
         self.running = True
         threading.Thread(target=self.socket_server, daemon=True).start()
@@ -345,6 +361,7 @@ class MainWindow(QMainWindow):
         ]
         for index, color in enumerate(colors, start=1):
             roi_widget = RoiWidget(grid_host, grid, index, index, color)
+            roi_widget.enable_profile_click(self._show_roi_profile)
             self.roi_widgets.append(roi_widget)
 
         outer = QGridLayout(self.roi_panel)
@@ -1142,9 +1159,18 @@ class MainWindow(QMainWindow):
         if hasattr(self, "pw_roi"):
             return
 
-        layout = QVBoxLayout(self.ui.frame_roi_graph)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(0)
+        outer = QHBoxLayout(self.ui.frame_roi_graph)
+        outer.setContentsMargins(4, 4, 4, 4)
+        outer.setSpacing(scaled(8))
+
+        time_host = QWidget(self.ui.frame_roi_graph)
+        time_layout = QVBoxLayout(time_host)
+        time_layout.setContentsMargins(0, 0, 0, 0)
+        time_layout.setSpacing(2)
+
+        time_title = QLabel("ROI brightness vs time", time_host)
+        time_title.setStyleSheet(PANEL_LABEL_STYLE)
+        time_layout.addWidget(time_title)
 
         axis = pg.DateAxisItem(orientation='bottom')
         self.pw_roi = pg.PlotWidget(axisItems={'bottom': axis})
@@ -1161,12 +1187,35 @@ class MainWindow(QMainWindow):
         plot_item.enableAutoRange(axis='x', enable=False)
 
         self.plot_data_item_roi = self.pw_roi.plot()
-        layout.addWidget(self.pw_roi)
+        time_layout.addWidget(self.pw_roi)
+        outer.addWidget(time_host, stretch=1)
+
+        profile_host = QWidget(self.ui.frame_roi_graph)
+        profile_layout = QVBoxLayout(profile_host)
+        profile_layout.setContentsMargins(0, 0, 0, 0)
+        profile_layout.setSpacing(2)
+
+        self._profile_title = QLabel("ROI profile — click an ROI", profile_host)
+        self._profile_title.setStyleSheet(PANEL_LABEL_STYLE)
+        profile_layout.addWidget(self._profile_title)
+
+        self.pw_roi_profile = pg.PlotWidget()
+        self.pw_roi_profile.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.pw_roi_profile.showGrid(x=True, y=True, alpha=0.25)
+        profile_plot_item = self.pw_roi_profile.getPlotItem()
+        profile_plot_item.setLabel(axis='left', text='ADU')
+        profile_plot_item.setLabel(axis='bottom', text='Pixel index')
+        profile_plot_item.getAxis('left').setWidth(58)
+        profile_plot_item.layout.setContentsMargins(8, 8, 8, 8)
+        profile_plot_item.enableAutoRange(axis='y', enable=True)
+        profile_layout.addWidget(self.pw_roi_profile)
+        outer.addWidget(profile_host, stretch=1)
 
     def _fit_roi_plot(self) -> None:
-        if not hasattr(self, "pw_roi"):
-            return
-        self.pw_roi.updateGeometry()
+        if hasattr(self, "pw_roi"):
+            self.pw_roi.updateGeometry()
+        if hasattr(self, "pw_roi_profile"):
+            self.pw_roi_profile.updateGeometry()
     
     def socket_server(self):
         context = zmq.Context()
@@ -1570,8 +1619,52 @@ class MainWindow(QMainWindow):
             if roi_widget.roi is not None:
                 self.image.getView().removeItem(roi_widget.roi)
             roi = roi_widget.createRoi()
+            self._bind_roi_image_profile_click(roi_widget)
             self.image.getView().addItem(roi)
         self.image.getView().update()
+
+    def _bind_roi_image_profile_click(self, roi_widget) -> None:
+        roi = roi_widget.roi
+
+        def mouse_click_event(event):
+            if event.button() == Qt.LeftButton:
+                self._show_roi_profile(roi_widget)
+            pg.ROI.mouseClickEvent(roi, event)
+
+        roi.mouseClickEvent = mouse_click_event
+
+    def _show_roi_profile(self, roi_widget) -> None:
+        self._profile_roi_widget = roi_widget
+        self._profile_title.setText(f"{roi_widget.name} — 1D profile")
+        self._refresh_roi_profile()
+
+    def _refresh_roi_profile(self) -> None:
+        if not hasattr(self, "pw_roi_profile"):
+            return
+        self.pw_roi_profile.clear()
+        if self._profile_roi_widget is None or not self._last_roi_regions:
+            return
+        try:
+            index = self.roi_widgets.index(self._profile_roi_widget)
+        except ValueError:
+            return
+        if index >= len(self._last_roi_regions):
+            return
+        profile = roi_profile_1d(self._last_roi_regions[index])
+        if profile.size == 0:
+            return
+        pen = pg.mkPen(
+            color=(
+                self._profile_roi_widget.color.red(),
+                self._profile_roi_widget.color.green(),
+                self._profile_roi_widget.color.blue(),
+            ),
+            width=2,
+        )
+        self.pw_roi_profile.plot(numpy.arange(profile.size), profile, pen=pen)
+        plot_item = self.pw_roi_profile.getPlotItem()
+        plot_item.enableAutoRange(axis="y", enable=True)
+        plot_item.getViewBox().autoRange(padding=0.08)
     
     def get_roi_from_config(self, roi_config:Roi, pen):
         return pg.RectROI([roi_config.x, roi_config.y], [roi_config.w, roi_config.h], pen = pen)
@@ -1663,8 +1756,10 @@ class MainWindow(QMainWindow):
         self.redisclient.add_cam_integtime(timestamp,integtime)
         
     def on_roi_calculations_finished(self, calculator):
+        self._last_roi_regions = calculator.rois
         for i in range(len(self.roi_widgets)):
             self.roi_widgets[i].setValues(calculator.results[i])
+        self._refresh_roi_profile()
 
     def _count_frames_for_utc_day(self, utc_day: str) -> int:
         return count_frames_saved_for_utc_day(utc_day)
