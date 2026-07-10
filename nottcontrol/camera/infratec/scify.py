@@ -346,11 +346,12 @@ class MainWindow(QMainWindow):
 
         self._last_roi_profiles = None
         self._latest_brightness_results = None
-        self._latest_display_img = None
-        self._latest_display_img_for_gui = None
+        self._latest_frame_for_display = None
+        self._latest_frame_lock = threading.Lock()
+        self._display_emit_lock = threading.Lock()
+        self._last_display_emit = 0.0
         self._roi_data_lock = threading.Lock()
         self._roi_emit_lock = threading.Lock()
-        self._last_image_emit = 0.0
         self._last_values_emit = 0.0
         self._last_plots_emit = 0.0
         self._idle_roi_frame_counter = 0
@@ -584,6 +585,13 @@ class MainWindow(QMainWindow):
             count = self._frames_saved_today
             day = self._frames_saved_utc_day
         self.frames_saved_today_updated.emit(count, day)
+
+    def _maybe_refresh_frames_saved_on_day_change(self) -> None:
+        utc_day = self._utc_day_key()
+        with self._frames_count_lock:
+            if self._frames_saved_utc_day == utc_day:
+                return
+        self._refresh_frames_saved_today()
 
     def _on_frame_saved_to_disk(self, filepath: str) -> None:
         saved_day = Path(filepath).parent.name
@@ -1562,7 +1570,7 @@ class MainWindow(QMainWindow):
                 f'save={self.frame_writer.dropped}, '
                 f'save queue={self.frame_writer.pending()}'
             )
-        self._refresh_frames_saved_today()
+        self._maybe_refresh_frames_saved_on_day_change()
         self._update_timing_labels()
         
         self.nbCameraImages = 0
@@ -1725,7 +1733,9 @@ class MainWindow(QMainWindow):
         else:
             timestamp = img_timestamp_ref + timedelta(milliseconds=timestamp_offset)
         #print(f"Delay: {recording_timestamp - timestamp}")
-        
+
+        self._publish_latest_frame_for_display(img)
+
         if(self.roi_queue.full()):
             self.dropped_frames += 1
             if self.dropped_frames == 1 or self.dropped_frames % 100 == 0:
@@ -1743,6 +1753,8 @@ class MainWindow(QMainWindow):
         self.initialize_roi(img)
 
         self.imageInit = True
+        with self._latest_frame_lock:
+            self._latest_frame_for_display = numpy.asarray(img).copy()
         self._fit_detector_image()
         self._update_timing_labels()
 
@@ -1951,10 +1963,18 @@ class MainWindow(QMainWindow):
             self.set_window()
             self.initialize_image_display(img)
             self.set_brightness_auto()
-        else:
-            img = self._image_for_analysis(img)
-            self.image.getImageItem().setImage(img, autoLevels = False)
-            self._fit_detector_image()
+
+    def _publish_latest_frame_for_display(self, img: numpy.ndarray) -> None:
+        if not self.imageInit:
+            return
+        with self._latest_frame_lock:
+            self._latest_frame_for_display = numpy.asarray(img).copy()
+        now = time.monotonic()
+        with self._display_emit_lock:
+            elapsed = now - self._last_display_emit
+            if elapsed >= IMAGE_DISPLAY_REFRESH_INTERVAL_MS / 1000.0:
+                self._last_display_emit = now
+                self.image_display_update.emit()
                 
     def process_roi(self, img, timestamp, coadded_frame):
         analysis_img = self._image_for_analysis(img)
@@ -1965,19 +1985,14 @@ class MainWindow(QMainWindow):
             self.roi_tracking_frames += 1
         
         if coadded_frame or not self.is_coadd_enabled():
-            self.update_gui_with_newroi(
-                timestamp, calculator, img, analysis_img
-            )
+            self.update_gui_with_newroi(timestamp, calculator)
             
-    def update_gui_with_newroi(
-        self, timestamp, calculator, img, analysis_img
-    ):
+    def update_gui_with_newroi(self, timestamp, calculator):
         with self._roi_data_lock:
             self.timestamps.appendleft(datetime.timestamp(timestamp))
             for i in range(len(self.roi_widgets)):
                 self.roi_widgets[i].add_max_value(calculator.results[i].max)
 
-        self._latest_display_img = img
         calculator_results = calculator.results
         calculator_rois = calculator.rois
         with self._plot_flags_lock:
@@ -1986,12 +2001,6 @@ class MainWindow(QMainWindow):
         plots_enabled = any_time_plot or any_profile_plot
         now = time.monotonic()
         with self._roi_emit_lock:
-            elapsed_image = now - self._last_image_emit
-            if elapsed_image >= IMAGE_DISPLAY_REFRESH_INTERVAL_MS / 1000.0:
-                self._last_image_emit = now
-                self._latest_display_img_for_gui = analysis_img
-                self.image_display_update.emit()
-
             elapsed_values = now - self._last_values_emit
             if elapsed_values >= ROI_VALUES_REFRESH_INTERVAL_MS / 1000.0:
                 self._last_values_emit = now
@@ -2050,9 +2059,14 @@ class MainWindow(QMainWindow):
         self.redisclient.add_cam_integtime(timestamp,integtime)
         
     def on_image_display_update(self) -> None:
-        display_img = self._latest_display_img_for_gui
-        if display_img is not None and self.imageInit:
-            self.image.getImageItem().setImage(display_img, autoLevels=False)
+        if not self.imageInit:
+            return
+        with self._latest_frame_lock:
+            frame = self._latest_frame_for_display
+        if frame is None:
+            return
+        display_img = self._image_for_analysis(frame)
+        self.image.getImageItem().setImage(display_img, autoLevels=False)
 
     def on_roi_values_update(self) -> None:
         results = self._latest_brightness_results
