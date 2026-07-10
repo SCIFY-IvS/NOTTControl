@@ -226,7 +226,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{6360CF33-3495-5856-D270-CE5FEC180ECC}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{18789C78-C703-20B6-A2E0-2A315B8BA47A}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">

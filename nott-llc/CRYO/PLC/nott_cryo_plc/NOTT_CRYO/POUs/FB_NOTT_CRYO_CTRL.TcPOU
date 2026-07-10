@@ -1144,14 +1144,23 @@ ELSIF stat.bOP THEN
 	bPermitStartWarmUp		:= TRUE;
 	bPermitStopWarmUp		:= TRUE;
 
+// ELSIF stat.bCold THEN
+// 	// Cold but not operational
+// 	bPermitStartEvacuation	:= TRUE;
+// 	bPermitStopEvacuation	:= FALSE;
+// 	bPermitStartCoolDown	:= TRUE;
+// 	bPermitStopCoolDown		:= TRUE;
+// 	bPermitStartWarmUp		:= FALSE;
+// 	bPermitStopWarmUp		:= FALSE;
+
 ELSIF stat.bCold THEN
-	// Cold but not operational
-	bPermitStartEvacuation	:= TRUE;
-	bPermitStopEvacuation	:= FALSE;
-	bPermitStartCoolDown	:= TRUE;
-	bPermitStopCoolDown		:= TRUE;
-	bPermitStartWarmUp		:= FALSE;
-	bPermitStopWarmUp		:= FALSE;
+    // Cold but not operational
+    bPermitStartEvacuation := TRUE;
+    bPermitStopEvacuation  := FALSE;
+    bPermitStartCoolDown   := TRUE;
+    bPermitStopCoolDown    := TRUE;
+    bPermitStartWarmUp     := TRUE;  // Change from FALSE
+    bPermitStopWarmUp      := FALSE;
 
 ELSIF evac.bEvacuationActive THEN
 	// Evacuating
