@@ -111,6 +111,7 @@ IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
 IMAGE_BORDER = 0
 GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
 ROI_GRAPHS_MIN_HEIGHT = 260
+ROI_PLOT_REFRESH_INTERVAL_MS = 200  # 5 Hz
 FRAME_READOUT_OVERHEAD_US = config.getint(
     "CAMERA", "frame_readout_overhead_us", fallback=5000
 )
@@ -279,6 +280,10 @@ class MainWindow(QMainWindow):
         self._timing_labels_debounce = QTimer()
         self._timing_labels_debounce.setSingleShot(True)
         self._timing_labels_debounce.timeout.connect(self._update_timing_labels)
+
+        self._roi_plot_refresh_timer = QTimer()
+        self._roi_plot_refresh_timer.setSingleShot(True)
+        self._roi_plot_refresh_timer.timeout.connect(self._refresh_roi_plots)
 
         self.nbCameraImages = 0
         self.roi_tracking_frames = 0
@@ -1654,14 +1659,23 @@ class MainWindow(QMainWindow):
         roi.mouseClickEvent = mouse_click_event
 
     def _on_roi_plot_selection_changed(self, _state: int = 0) -> None:
-        self._refresh_roi_time_plot()
-        self._refresh_roi_profile()
+        self._refresh_roi_plots()
 
     def _show_roi_profile(self, roi_widget) -> None:
         if not roi_widget.isChecked():
             roi_widget.plot_checkbox.setChecked(True)
         else:
             self._refresh_roi_profile()
+
+    def _schedule_roi_plots_refresh(self) -> None:
+        if not hasattr(self, "pw_roi"):
+            return
+        if not self._roi_plot_refresh_timer.isActive():
+            self._roi_plot_refresh_timer.start(ROI_PLOT_REFRESH_INTERVAL_MS)
+
+    def _refresh_roi_plots(self) -> None:
+        self._refresh_roi_time_plot()
+        self._refresh_roi_profile()
 
     def _update_profile_title(self) -> None:
         selected = [w.name for w in self.roi_widgets if w.isChecked()]
@@ -1751,7 +1765,7 @@ class MainWindow(QMainWindow):
             self._fit_detector_image()
 
         if hasattr(self, "pw_roi"):
-            self._refresh_roi_time_plot()
+            self._schedule_roi_plots_refresh()
                 
     def process_roi(self, img, timestamp, coadded_frame):
         img = self._image_for_analysis(img)
@@ -1812,7 +1826,7 @@ class MainWindow(QMainWindow):
         self._last_roi_regions = calculator.rois
         for i in range(len(self.roi_widgets)):
             self.roi_widgets[i].setValues(calculator.results[i])
-        self._refresh_roi_profile()
+        self._schedule_roi_plots_refresh()
 
     def _count_frames_for_utc_day(self, utc_day: str) -> int:
         return count_frames_saved_for_utc_day(utc_day)
