@@ -24054,11 +24054,11 @@
             },
             "USEMAPPING": true
         },
-        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cooler": {
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.cooler": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
             "DYNAMIC": true,
-            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cooler",
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cool_down::cooler",
             "SCHEMA": {
                 "allOf": [
                     {
@@ -28854,7 +28854,7 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStop": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.bActive": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.sStatus": 3,
-                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cooler": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.cooler": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_CoolDown": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_Evac": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_WarmUp": 3,

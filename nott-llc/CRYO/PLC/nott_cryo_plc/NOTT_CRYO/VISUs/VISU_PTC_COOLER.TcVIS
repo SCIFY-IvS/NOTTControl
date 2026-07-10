@@ -454,7 +454,7 @@
                         <l n="TypeNodeChildren" t="ArrayList" cet="BasicTypeNode">
                           <o>
                             <v n="Flags">2L</v>
-                            <v n="BasicTypeNodeValue">"MAIN.nott_cryo_ctrl.cooler"</v>
+                            <v n="BasicTypeNodeValue">"MAIN.nott_cryo_ctrl.cool_down.cooler"</v>
                             <v n="BasicTypeNodeAcceptsExpression">true</v>
                             <n n="BasicTypeNodeFastAccess" />
                             <a n="BasicTypeNodeEnumValues" et="String" />
@@ -548,7 +548,7 @@
                     </o>
                     <o>
                       <v n="Id">2476463590L</v>
-                      <v n="Value">"MAIN.nott_cryo_ctrl.cooler"</v>
+                      <v n="Value">"MAIN.nott_cryo_ctrl.cool_down.cooler"</v>
                     </o>
                     <o>
                       <v n="Id">2972650460L</v>
