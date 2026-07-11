@@ -12,10 +12,10 @@ from nottcontrol import config
 
 MACIE_DIR = Path(__file__).resolve().parent
 DEFAULT_ZMQ_ADDRESS = config.get(
-    "MACIE", "zmq_address", fallback="tcp://localhost:65534"
+    "MACIE", "zmq_address", fallback="tcp://nott-server.ster.kuleuven.be:65534"
 )
 AUTO_START_ZMQ_SERVER = config.getboolean(
-    "MACIE", "auto_start_zmq_server", fallback=True
+    "MACIE", "auto_start_zmq_server", fallback=False
 )
 ZMQ_SERVER_EXECUTABLE = config.get(
     "MACIE", "zmq_server_executable", fallback="macie_exe/zmq_server"
@@ -81,7 +81,8 @@ class MacieZmqServerProcess:
             return
         if not AUTO_START_ZMQ_SERVER:
             raise RuntimeError(
-                "MACIE ZMQ server is not running and auto_start_zmq_server is disabled"
+                f"MACIE ZMQ server is not reachable at {self._zmq_address}. "
+                "Ensure zmq_server is running on nott-server."
             )
 
         executable = resolve_zmq_server_executable()

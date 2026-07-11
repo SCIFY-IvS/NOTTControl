@@ -115,7 +115,9 @@ class H2rgMainWindow(QMainWindow):
             if self._zmq_server.started_by_gui:
                 self.status_updated.emit("ZMQ server started")
             else:
-                self.status_updated.emit("ZMQ server ready")
+                self.status_updated.emit(
+                    f"Connected to ZMQ server at {MACIE_ZMQ_ADDRESS}"
+                )
         except Exception as exc:
             self.operation_failed.emit(str(exc))
 
