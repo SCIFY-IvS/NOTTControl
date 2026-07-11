@@ -9,7 +9,6 @@ from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
 from nottcontrol.camera.infratec.scify import MainWindow as camera_ui, camera_status_snapshot
-from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
 from nottcontrol.components.camera_status_panel import CameraStatusPanel
 from nottcontrol import config, sensor_config_path, cryo_status_config_path
 from nottcontrol.sensors import (
@@ -361,6 +360,8 @@ class MainWindow(QMainWindow):
 
     def open_h2rg_interface(self):
         try:
+            from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
+
             if self.h2rg_window is None:
                 self.h2rg_window = H2rgMainWindow()
                 self.h2rg_window.show()

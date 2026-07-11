@@ -65,8 +65,11 @@ class Config:
     def getfloat(self, section, key, fallback=None):
         return self.config_parser.getfloat(section, key, fallback=fallback)
 
-    def getboolean(self, section, key):
-        return self.config_parser.getboolean(section, key)
+    def get(self, section, key, fallback=None):
+        return self.config_parser.get(section, key, fallback=fallback)
+
+    def getboolean(self, section, key, fallback=None):
+        return self.config_parser.getboolean(section, key, fallback=fallback)
 
     def write(self):
         with open(self._path, 'w') as configfile:
