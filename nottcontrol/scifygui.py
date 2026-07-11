@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUi
@@ -49,6 +49,7 @@ from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
 from nottcontrol.cryostat_window import CryostatWindow
 import json
+import threading
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
 #     method_node = opcua_client.get_node(node_id)
@@ -90,9 +91,13 @@ TT_PANEL_H = 285
 SHUTTER_PANEL_H = 165
 TEMP_PANEL_H = 96
 CAMERA_PANEL_H = 115
+NAV_BUTTONS_TOP_Y = 118
 
 
 class MainWindow(QMainWindow):
+    _h2rg_module_ready = pyqtSignal()
+    _h2rg_module_failed = pyqtSignal(str)
+
     def __init__(self, opcua_conn):
         super(MainWindow, self).__init__()
         # save the OPC UA connection
@@ -100,6 +105,7 @@ class MainWindow(QMainWindow):
 
         self.camera_window = None
         self.h2rg_window = None
+        self._h2rg_opening = False
         self.delayline_window = None
         self.shutter_window = None
         self.tiptilt_window = None
@@ -126,6 +132,12 @@ class MainWindow(QMainWindow):
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
         self.ui.pushButton_h2rg.clicked.connect(self.open_h2rg_interface)
+        self._h2rg_module_ready.connect(
+            self._instantiate_h2rg_window, Qt.QueuedConnection
+        )
+        self._h2rg_module_failed.connect(
+            self._on_h2rg_open_failed, Qt.QueuedConnection
+        )
 
         self.dl_status_opc_nodes, self.dl_status_keys = delay_line_opc_nodes()
         self.dl_status_panel = DelayLinesStatusPanel(self.ui.centralwidget)
@@ -277,7 +289,7 @@ class MainWindow(QMainWindow):
     def _layout_nav_buttons(self) -> None:
         button_height = 50
         button_gap = 5
-        y = 250
+        y = scaled(NAV_BUTTONS_TOP_Y)
         nav_buttons = (
             self.ui.pushButton_camera,
             self.ui.pushButton_h2rg,
@@ -359,17 +371,51 @@ class MainWindow(QMainWindow):
         self.load_camera_status()
 
     def open_h2rg_interface(self):
+        if self.h2rg_window is not None:
+            self.h2rg_window.activateWindow()
+            return
+        if self._h2rg_opening:
+            return
+
+        self._h2rg_opening = True
+        self.ui.pushButton_h2rg.setEnabled(False)
+        self.ui.pushButton_h2rg.setText("Opening…")
+        QApplication.processEvents()
+
+        def preload_h2rg() -> None:
+            try:
+                import importlib
+
+                import pyqtgraph  # noqa: F401 — preload before main-thread ImageView setup
+
+                importlib.import_module("nottcontrol.camera.macie.h2rg_gui")
+                self._h2rg_module_ready.emit()
+            except Exception as exc:
+                self._h2rg_module_failed.emit(str(exc))
+
+        threading.Thread(target=preload_h2rg, daemon=True).start()
+
+    def _instantiate_h2rg_window(self) -> None:
         try:
             from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
 
-            if self.h2rg_window is None:
-                self.h2rg_window = H2rgMainWindow()
-                self.h2rg_window.show()
-                self.h2rg_window.closing.connect(self.clear_h2rg_window)
-            else:
-                self.h2rg_window.activateWindow()
-        except Exception as e:
-            print(f"Error opening H2RG window: {e}")
+            self.h2rg_window = H2rgMainWindow()
+            self.h2rg_window.show()
+            self.h2rg_window.closing.connect(self.clear_h2rg_window)
+        except Exception as exc:
+            self._on_h2rg_open_failed(str(exc))
+        else:
+            self._reset_h2rg_open_button()
+
+    def _on_h2rg_open_failed(self, message: str) -> None:
+        print(f"Error opening H2RG window: {message}")
+        QMessageBox.warning(self, "Camera cold", message)
+        self._reset_h2rg_open_button()
+
+    def _reset_h2rg_open_button(self) -> None:
+        self._h2rg_opening = False
+        self.ui.pushButton_h2rg.setEnabled(True)
+        self.ui.pushButton_h2rg.setText("Camera cold")
 
     def clear_h2rg_window(self):
         self.h2rg_window = None

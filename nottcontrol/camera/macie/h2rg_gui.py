@@ -89,6 +89,8 @@ IMAGE_FRAME_STYLE = """
 
 CHECKBOX_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50); spacing: 6px;'
 
+_MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
+
 
 def macie_config_path(config_name: str) -> Path:
     base = Path(__file__).resolve().parent / "macie_exe" / "config_files"
@@ -173,7 +175,7 @@ class H2rgMainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.ui = loadUi("camera/macie/ui/MacieControl.ui", self)
+        self.ui = loadUi(str(_MACIE_UI), self)
         self.setCentralWidget(self.ui)
         self.setWindowTitle("H2RG / MACIE")
         self.setMinimumSize(1050, 650)
@@ -204,6 +206,7 @@ class H2rgMainWindow(QMainWindow):
         self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
 
         QTimer.singleShot(0, self._finish_setup)
+        self.show()
 
     def _finish_setup(self) -> None:
         import pyqtgraph as pg
@@ -214,10 +217,9 @@ class H2rgMainWindow(QMainWindow):
 
         self._rebuild_layout()
         self._apply_styles()
-        self._setup_image_view(pg)
         self._populate_comboboxes()
         self._set_status("Not connected")
-
+        QTimer.singleShot(0, lambda: self._setup_image_view(pg))
         threading.Thread(target=self._background_startup, daemon=True).start()
 
     def _background_startup(self) -> None:
