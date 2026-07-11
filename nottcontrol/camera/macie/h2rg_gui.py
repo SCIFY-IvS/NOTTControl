@@ -13,7 +13,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMainWindow,
     QMessageBox,
+    QSizePolicy,
     QVBoxLayout,
+    QWidget,
 )
 from PyQt5.uic import loadUi
 
@@ -90,6 +92,7 @@ IMAGE_FRAME_STYLE = """
 CHECKBOX_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50); spacing: 6px;'
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
+RIGHT_PANEL_WIDTH = 360
 
 
 def macie_config_path(config_name: str) -> Path:
@@ -176,7 +179,7 @@ class H2rgMainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("H2RG / MACIE")
-        self.setMinimumSize(1050, 650)
+        self.setMinimumSize(880, 650)
         self.ui = None
         self._init_runtime_state()
 
@@ -312,18 +315,28 @@ class H2rgMainWindow(QMainWindow):
         outer.setSpacing(16)
 
         self.ui.frame_camera.setMinimumWidth(480)
-        outer.addWidget(self.ui.frame_camera, stretch=3)
+        outer.addWidget(self.ui.frame_camera, stretch=1)
 
-        right = QVBoxLayout()
+        right_host = QWidget()
+        right_host.setFixedWidth(RIGHT_PANEL_WIDTH)
+        right = QVBoxLayout(right_host)
+        right.setContentsMargins(0, 0, 0, 0)
         right.setSpacing(12)
-        for box in (
-            self.ui.groupBox_conf,
-            self.ui.groupBox_acquisition,
-            self.ui.groupBox_visualisation,
-        ):
+
+        panel_sizes = (
+            (self.ui.groupBox_conf, 331, 131),
+            (self.ui.groupBox_acquisition, 341, 241),
+            (self.ui.groupBox_visualisation, 341, 211),
+        )
+        fixed_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        for box, _width, height in panel_sizes:
+            box.setMinimumHeight(height)
+            box.setMaximumHeight(height)
+            box.setSizePolicy(fixed_policy)
             right.addWidget(box)
+
         right.addStretch()
-        outer.addLayout(right, stretch=1)
+        outer.addWidget(right_host, stretch=0)
 
     def _apply_styles(self) -> None:
         self.setStyleSheet(WINDOW_STYLE)
