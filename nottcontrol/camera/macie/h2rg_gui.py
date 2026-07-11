@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -17,7 +18,6 @@ from PyQt5.QtWidgets import (
 from PyQt5.uic import loadUi
 
 from nottcontrol import config
-from nottcontrol.camera.macie.macie_interface import DetectorMode
 
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="basic_warm_slow.cfg"
@@ -175,15 +175,32 @@ class H2rgMainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.ui = loadUi(str(_MACIE_UI), self)
-        self.setCentralWidget(self.ui)
         self.setWindowTitle("H2RG / MACIE")
         self.setMinimumSize(1050, 650)
+        self.ui = None
+        self._init_runtime_state()
 
+        self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
+        self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
+        self.status_updated.connect(self._set_status, Qt.QueuedConnection)
+        self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
+        self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
+
+        loading = QLabel("Loading H2RG controls…", self)
+        loading.setAlignment(Qt.AlignCenter)
+        loading.setStyleSheet(
+            'font: 13pt "Segoe UI"; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
+        )
+        self.setCentralWidget(loading)
+        self.show()
+        QApplication.processEvents()
+        QTimer.singleShot(0, self._stage_load_ui)
+
+    def _init_runtime_state(self) -> None:
         self._config_path = macie_config_path(MACIE_CONFIG_FILE)
         self._save_dir = resolve_fits_save_dir(self._config_path)
         self._fits_dir_ok: bool | None = None
-        self._macie: MacieInterface | None = None
+        self._macie = None
         self._live_active = False
         self._background: numpy.ndarray | None = None
         self._current_frame: numpy.ndarray | None = None
@@ -195,22 +212,24 @@ class H2rgMainWindow(QMainWindow):
         self.image = None
         self._image_placeholder: QLabel | None = None
 
+    def _stage_load_ui(self) -> None:
+        QApplication.processEvents()
+        self.ui = loadUi(str(_MACIE_UI))
+        self.setCentralWidget(self.ui)
+        QTimer.singleShot(0, self._stage_connect_ui)
+
+    def _stage_connect_ui(self) -> None:
+        QApplication.processEvents()
         self._connect_signals()
         self._set_status("Loading…")
         self._set_controls_enabled(False)
         self.ui.checkBox_substract_background.setEnabled(False)
-
-        self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
-        self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
-        self.status_updated.connect(self._set_status, Qt.QueuedConnection)
-        self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
-        self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
-
         QTimer.singleShot(0, self._finish_setup)
-        self.show()
 
     def _finish_setup(self) -> None:
+        QApplication.processEvents()
         self._rebuild_layout()
+        QApplication.processEvents()
         self._apply_styles()
         self._setup_image_placeholder()
         self._populate_comboboxes()
@@ -393,9 +412,13 @@ class H2rgMainWindow(QMainWindow):
             widget.editingFinished.connect(self._update_total_integration_label)
 
     def _set_status(self, message: str) -> None:
+        if self.ui is None:
+            return
         self.ui.lineEdit_status.setText(message)
 
     def _set_controls_enabled(self, enabled: bool) -> None:
+        if self.ui is None:
+            return
         for name in (
             "button_powerOn",
             "button_powerOff",
@@ -447,7 +470,7 @@ class H2rgMainWindow(QMainWindow):
     def power_off(self) -> None:
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
 
-    def _apply_exposure_settings(self, macie: MacieInterface) -> None:
+    def _apply_exposure_settings(self, macie) -> None:
         (
             save,
             ncoadds,
@@ -549,7 +572,9 @@ class H2rgMainWindow(QMainWindow):
         self.ui.checkBox_substract_background.setEnabled(True)
         self._set_status("Background stored")
 
-    def _refresh_readouts(self, macie: MacieInterface) -> None:
+    def _refresh_readouts(self, macie) -> None:
+        from nottcontrol.camera.macie.macie_interface import DetectorMode
+
         mode = macie.get_detector_mode()
         x_window, y_window, x1, x2, y1, y2 = macie.read_frame_settings()
         (

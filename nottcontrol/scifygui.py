@@ -371,9 +371,21 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_h2rg.setEnabled(False)
         self.ui.pushButton_h2rg.setText("Opening…")
         QApplication.processEvents()
-        QTimer.singleShot(0, self._instantiate_h2rg_window)
+        QTimer.singleShot(0, self._h2rg_open_step_import)
 
-    def _instantiate_h2rg_window(self) -> None:
+    def _h2rg_open_step_import(self) -> None:
+        QApplication.processEvents()
+        try:
+            import importlib
+
+            importlib.import_module("nottcontrol.camera.macie.h2rg_gui")
+        except Exception as exc:
+            self._on_h2rg_open_failed(str(exc))
+            return
+        QTimer.singleShot(0, self._h2rg_open_step_create)
+
+    def _h2rg_open_step_create(self) -> None:
+        QApplication.processEvents()
         try:
             from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
 
