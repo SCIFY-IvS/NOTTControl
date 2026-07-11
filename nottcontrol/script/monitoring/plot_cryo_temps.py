@@ -76,19 +76,35 @@ DEFAULT_MONITOR_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_monitor.png"
 DEFAULT_CRYO_PLOT_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_temps.png"
 
 
+def timestamped_filename(path: Path, when: datetime | None = None) -> Path:
+    """Insert a UTC timestamp before the file suffix."""
+    when = when or datetime.utcnow()
+    stamp = when.strftime("%Y%m%d_%H%M%S")
+    return path.with_name(f"{path.stem}_{stamp}{path.suffix}")
+
+
 def resolve_output_path(output: str | None, default: Path) -> Path:
     """Return an absolute output path, expanding ~ if needed."""
     path = Path(output).expanduser() if output else default
     return path.resolve()
 
 
-def save_figure(fig: plt.Figure, output: str | None, default: Path, show: bool) -> Path | None:
+def save_figure(
+    fig: plt.Figure,
+    output: str | None,
+    default: Path,
+    show: bool,
+    *,
+    timestamp_filename: bool = True,
+) -> Path | None:
     """Save or show a figure. Returns the path written, if any."""
     if show:
         plt.show()
         return None
 
     out_path = resolve_output_path(output, default)
+    if timestamp_filename:
+        out_path = timestamped_filename(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"saved plot to {out_path}")
@@ -917,7 +933,10 @@ def main() -> int:
     parser.add_argument(
         "-o",
         "--output",
-        help=f"Output image path (default: {DEFAULT_CRYO_PLOT_OUTPUT})",
+        help=(
+            f"Output image path stem (default: {DEFAULT_CRYO_PLOT_OUTPUT.name} "
+            "with UTC timestamp inserted before .png)"
+        ),
     )
     parser.add_argument(
         "--show",

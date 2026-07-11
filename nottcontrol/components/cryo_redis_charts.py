@@ -41,6 +41,26 @@ PRESSURE_CHART_LOG_Y_MIN = -8.0  # log10(mbar)
 PRESSURE_CHART_LOG_Y_MAX = 3.0   # log10(1000 mbar)
 
 
+class UtcTimeAxis(pg.AxisItem):
+    """Bottom axis labeling unix timestamps as UTC clock time."""
+
+    def tickStrings(self, values, scale, spacing):
+        labels = []
+        for value in values:
+            try:
+                dt = datetime.utcfromtimestamp(value)
+            except (OSError, OverflowError, ValueError):
+                labels.append("")
+                continue
+            if spacing >= 3600 * 6:
+                labels.append(dt.strftime("%d %b %H:%M"))
+            elif spacing >= 120:
+                labels.append(dt.strftime("%H:%M"))
+            else:
+                labels.append(dt.strftime("%H:%M:%S"))
+        return labels
+
+
 class PressureLogAxis(pg.AxisItem):
     """Left axis with log10 pressure coordinates labeled in mbar."""
 
@@ -109,14 +129,14 @@ class CryoRedisChart(QWidget):
         layout.setSpacing(4)
 
         self._title = title
-        plot_kwargs = {}
+        plot_kwargs = {"axisItems": {"bottom": UtcTimeAxis(orientation="bottom")}}
         if log_pressure:
-            plot_kwargs["axisItems"] = {"left": PressureLogAxis(orientation="left")}
+            plot_kwargs["axisItems"]["left"] = PressureLogAxis(orientation="left")
         self._plot = pg.PlotWidget(**plot_kwargs)
         self._plot.setBackground("w")
         self._plot.showGrid(x=True, y=True, alpha=0.25)
         self._plot.setLabel("left", y_label)
-        self._plot.setLabel("bottom", "Hours from range start")
+        self._plot.setLabel("bottom", "Time (UTC)")
         _styled_legend(self._plot)
         self._plot.setTitle(self._title, color=TEAL, size="12pt")
         layout.addWidget(self._plot)
@@ -139,31 +159,29 @@ class CryoRedisChart(QWidget):
     def update_series(
         self,
         series_data: list[tuple[SeriesConfig, list[float], list[float]]],
-        window_start: datetime,
     ) -> None:
         self._plot.clear()
         _styled_legend(self._plot)
         self._plot.setTitle(self._title, color=TEAL, size="12pt")
-        start_ts = window_start.timestamp()
 
         has_data = False
         for index, (series, times, values) in enumerate(series_data):
             if not times:
                 continue
             has_data = True
-            x_hours = np.asarray([(t - start_ts) / 3600.0 for t in times], dtype=float)
+            x_times = np.asarray(times, dtype=float)
             y_values = np.asarray(values, dtype=float)
             if self._log_pressure:
                 valid = y_values > 0
-                x_hours = x_hours[valid]
+                x_times = x_times[valid]
                 y_values = np.log10(y_values[valid])
                 if y_values.size == 0:
                     continue
-            x_hours, y_values = _downsample(x_hours.tolist(), y_values.tolist())
+            x_times, y_values = _downsample(x_times.tolist(), y_values.tolist())
             color = PLOT_COLORS[index % len(PLOT_COLORS)]
             pen = pg.mkPen(color=color, width=2)
             self._plot.plot(
-                x_hours,
+                x_times,
                 y_values,
                 pen=pen,
                 name=series.label,
@@ -201,6 +219,11 @@ class CryoHistoryPanel(QWidget):
         self._timespan_combo.currentIndexChanged.connect(self.refresh)
         selector_row.addWidget(self._timespan_combo)
         selector_row.addStretch(1)
+        self._updated_label = QLabel("Updated: —")
+        self._updated_label.setStyleSheet(
+            'font: 9pt "Segoe UI"; color: rgb(100, 100, 100);'
+        )
+        selector_row.addWidget(self._updated_label)
         layout.addLayout(selector_row)
 
         self._temp_chart = CryoRedisChart(
@@ -246,11 +269,14 @@ class CryoHistoryPanel(QWidget):
 
         self._temp_chart.update_series(
             self._load_series(self._temp_series, start_ms, end_ms),
-            window_start,
         )
         self._pressure_chart.update_series(
             self._load_series(self._pressure_series, start_ms, end_ms),
-            window_start,
+        )
+        self._updated_label.setText(
+            "Updated: "
+            f"{window_end.strftime('%H:%M:%S')} UTC  "
+            f"({window_start.strftime('%H:%M')} – {window_end.strftime('%H:%M')} UTC)"
         )
 
     def _load_series(

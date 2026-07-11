@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Fetch cryostat temperature TimeSeries from NOTT Redis and plot them.
 #
-# Default output:
-#   nottcontrol/script/monitoring/cryo_temps.png
+# Default output (UTC timestamp inserted before .png):
+#   nottcontrol/script/monitoring/cryo_temps_YYYYMMDD_HHMMSS.png
 #
 # Usage:
 #   ./nottcontrol/script/monitoring/plot_cryo_temps.sh

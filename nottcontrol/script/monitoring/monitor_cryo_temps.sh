@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Monitor cryostat vote temperatures (three panels, 24 h default).
 #
-# Default output:
-#   nottcontrol/script/monitoring/cryo_monitor.png
+# Default output (UTC timestamp inserted before .png):
+#   nottcontrol/script/monitoring/cryo_monitor_YYYYMMDD_HHMMSS.png
 #
 # Redis keys are OPC UA node ids from nottcontrol/sensors.ini.
 #
 # Usage:
 #   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh
 #   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh -o /tmp/cryo_monitor.png
+#     → saves /tmp/cryo_monitor_YYYYMMDD_HHMMSS.png
 #   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh --hours 48
 #   ./nottcontrol/script/monitoring/monitor_cryo_temps.sh --hours 12 --show
 #

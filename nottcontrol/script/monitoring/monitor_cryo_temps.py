@@ -85,8 +85,10 @@ def main() -> int:
     parser.add_argument(
         "-o",
         "--output",
-        default=str(DEFAULT_MONITOR_OUTPUT),
-        help=f"Output image path (default: {DEFAULT_MONITOR_OUTPUT})",
+        help=(
+            f"Output image path stem (default: {DEFAULT_MONITOR_OUTPUT.name} "
+            "with UTC timestamp inserted before .png)"
+        ),
     )
     parser.add_argument(
         "--show",
