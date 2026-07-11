@@ -6,15 +6,11 @@ import threading
 from pathlib import Path
 
 import numpy
-import pyqtgraph as pg
-from astropy.io import fits
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QHBoxLayout,
-    QLabel,
     QMainWindow,
     QMessageBox,
-    QPushButton,
     QVBoxLayout,
 )
 from PyQt5.uic import loadUi
@@ -31,6 +27,9 @@ MACIE_ZMQ_ADDRESS = config.get(
 )
 MACIE_OFFLINE_MODE = config.getboolean("MACIE", "offline_mode", fallback=False)
 MACIE_IMAGE_SCALE = config.getint("MACIE", "image_display_scale", fallback=2)
+FITS_DIR_CHECK_TIMEOUT_S = config.getfloat(
+    "MACIE", "fits_directory_check_timeout_s", fallback=1.0
+)
 
 PANEL_BUTTON_STYLE = """
     QPushButton {
@@ -119,14 +118,35 @@ def resolve_fits_save_dir(config_path: Path) -> Path:
     return parse_macie_save_dir(config_path)
 
 
-def newest_fits_file(directory: Path) -> Path | None:
-    if not directory.is_dir():
+def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -> bool:
+    result: list[bool | None] = [None]
+
+    def probe() -> None:
+        try:
+            result[0] = path.is_dir()
+        except OSError:
+            result[0] = False
+
+    thread = threading.Thread(target=probe, daemon=True)
+    thread.start()
+    thread.join(timeout=timeout_s)
+    if result[0] is None:
+        return False
+    return result[0]
+
+
+def newest_fits_file(directory: Path, *, dir_ok: bool | None = None) -> Path | None:
+    if dir_ok is False:
         return None
+    if dir_ok is None:
+        try:
+            if not directory.is_dir():
+                return None
+        except OSError:
+            return None
     candidates = [
         *directory.glob("*.fits"),
         *directory.glob("*.FITS"),
-        *directory.glob("**/*.fits"),
-        *directory.glob("**/*.FITS"),
     ]
     if not candidates:
         return None
@@ -134,6 +154,8 @@ def newest_fits_file(directory: Path) -> Path | None:
 
 
 def load_fits_image(filepath: Path) -> numpy.ndarray:
+    from astropy.io import fits
+
     with fits.open(filepath, memmap=False) as hdul:
         data = numpy.asarray(hdul[0].data, dtype=numpy.float32)
     while data.ndim > 2:
@@ -156,12 +178,9 @@ class H2rgMainWindow(QMainWindow):
         self.setWindowTitle("H2RG / MACIE")
         self.setMinimumSize(1050, 650)
 
-        pg.setConfigOptions(imageAxisOrder="row-major")
-        pg.setConfigOption("background", "#1a1a2e")
-        pg.setConfigOption("foreground", "w")
-
         self._config_path = macie_config_path(MACIE_CONFIG_FILE)
         self._save_dir = resolve_fits_save_dir(self._config_path)
+        self._fits_dir_ok: bool | None = None
         self._macie: MacieInterface | None = None
         self._live_active = False
         self._background: numpy.ndarray | None = None
@@ -171,13 +190,10 @@ class H2rgMainWindow(QMainWindow):
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = MacieZmqServerProcess(MACIE_ZMQ_ADDRESS)
+        self.image = None
 
-        self._rebuild_layout()
-        self._apply_styles()
-        self._setup_image_view()
-        self._populate_comboboxes()
         self._connect_signals()
-        self._set_status(self._initial_status_message())
+        self._set_status("Loading…")
         self._set_controls_enabled(False)
         self.ui.checkBox_substract_background.setEnabled(False)
 
@@ -187,16 +203,45 @@ class H2rgMainWindow(QMainWindow):
         self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
         self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
 
-        threading.Thread(target=self._ensure_zmq_server, daemon=True).start()
+        QTimer.singleShot(0, self._finish_setup)
 
-    def _initial_status_message(self) -> str:
-        if self._save_dir.is_dir():
-            return "Not connected"
-        if sys.platform == "win32":
-            return (
+    def _finish_setup(self) -> None:
+        import pyqtgraph as pg
+
+        pg.setConfigOptions(imageAxisOrder="row-major")
+        pg.setConfigOption("background", "#1a1a2e")
+        pg.setConfigOption("foreground", "w")
+
+        self._rebuild_layout()
+        self._apply_styles()
+        self._setup_image_view(pg)
+        self._populate_comboboxes()
+        self._set_status("Not connected")
+
+        threading.Thread(target=self._background_startup, daemon=True).start()
+
+    def _background_startup(self) -> None:
+        self._fits_dir_ok = path_is_directory(self._save_dir)
+        if not self._fits_dir_ok and sys.platform == "win32":
+            self.status_updated.emit(
                 "Not connected — set [MACIE] fits_directory to the server FITS share"
             )
-        return f"Not connected — FITS directory not found: {self._save_dir}"
+
+        try:
+            self._zmq_server.ensure_running()
+            if self._zmq_server.started_by_gui:
+                self.status_updated.emit("ZMQ server started")
+            elif self._fits_dir_ok is not False:
+                self.status_updated.emit(
+                    f"Connected to ZMQ server at {MACIE_ZMQ_ADDRESS}"
+                )
+        except Exception as exc:
+            message = str(exc)
+            if self._fits_dir_ok is False and sys.platform == "win32":
+                message = (
+                    f"{message} — also set [MACIE] fits_directory for FITS preview"
+                )
+            self.status_updated.emit(message)
 
     def _rebuild_layout(self) -> None:
         form = self.ui
@@ -231,11 +276,28 @@ class H2rgMainWindow(QMainWindow):
         ):
             box.setStyleSheet(PANEL_GROUP_STYLE)
 
-        for button in self.ui.findChildren(QPushButton):
-            button.setStyleSheet(PANEL_BUTTON_STYLE)
+        for name in (
+            "button_init",
+            "button_powerOn",
+            "button_powerOff",
+            "button_take_background",
+            "button_live",
+            "button_acquire",
+            "button_halt",
+        ):
+            getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
 
-        for label in self.ui.findChildren(QLabel):
-            label.setStyleSheet(PANEL_LABEL_STYLE)
+        for name in (
+            "label",
+            "label_2",
+            "label_3",
+            "label_4",
+            "label_5",
+            "label_6",
+            "label_7",
+            "label_8",
+        ):
+            getattr(self.ui, name).setStyleSheet(PANEL_LABEL_STYLE)
 
         for name in (
             "lineEdit_status",
@@ -266,19 +328,7 @@ class H2rgMainWindow(QMainWindow):
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
         )
 
-    def _ensure_zmq_server(self) -> None:
-        try:
-            self._zmq_server.ensure_running()
-            if self._zmq_server.started_by_gui:
-                self.status_updated.emit("ZMQ server started")
-            else:
-                self.status_updated.emit(
-                    f"Connected to ZMQ server at {MACIE_ZMQ_ADDRESS}"
-                )
-        except Exception as exc:
-            self.operation_failed.emit(str(exc))
-
-    def _setup_image_view(self) -> None:
+    def _setup_image_view(self, pg) -> None:
         layout = QVBoxLayout(self.ui.frame_camera)
         layout.setContentsMargins(4, 4, 4, 4)
 
@@ -404,7 +454,7 @@ class H2rgMainWindow(QMainWindow):
         self._run_macie_operation("Acquire", operation)
 
     def _missing_fits_status(self) -> str:
-        if not self._save_dir.is_dir():
+        if self._fits_dir_ok is False:
             if sys.platform == "win32":
                 return (
                     "Acquire complete — no FITS (set [MACIE] fits_directory "
@@ -412,6 +462,9 @@ class H2rgMainWindow(QMainWindow):
                 )
             return f"Acquire complete — FITS directory not found: {self._save_dir}"
         return f"Acquire complete — no new FITS in {self._save_dir}"
+
+    def _newest_fits_file(self) -> Path | None:
+        return newest_fits_file(self._save_dir, dir_ok=self._fits_dir_ok)
 
     def live_clicked(self) -> None:
         if self._macie is None:
@@ -509,7 +562,7 @@ class H2rgMainWindow(QMainWindow):
             self.ui.lineEdit_integration_time_total.setText("—")
 
     def _latest_fits_mtime(self) -> float:
-        path = newest_fits_file(self._save_dir)
+        path = self._newest_fits_file()
         if path is None:
             return 0.0
         return path.stat().st_mtime
@@ -521,7 +574,7 @@ class H2rgMainWindow(QMainWindow):
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            path = newest_fits_file(self._save_dir)
+            path = self._newest_fits_file()
             if path is not None and path.stat().st_mtime > before_mtime:
                 return self._load_fits_from_path(path), path
             time.sleep(0.2)
@@ -534,12 +587,13 @@ class H2rgMainWindow(QMainWindow):
     def _load_fits_from_path(self, path: Path) -> numpy.ndarray:
         self._last_fits_path = path
         self._last_fits_mtime = path.stat().st_mtime
+        self._fits_dir_ok = True
         return load_fits_image(path)
 
     def _load_latest_frame(
         self, force: bool = False
     ) -> tuple[numpy.ndarray, Path] | None:
-        path = newest_fits_file(self._save_dir)
+        path = self._newest_fits_file()
         if path is None:
             return None
         mtime = path.stat().st_mtime
@@ -552,6 +606,8 @@ class H2rgMainWindow(QMainWindow):
             self._display_frame(self._current_frame)
 
     def _display_frame(self, frame: numpy.ndarray) -> None:
+        if self.image is None:
+            return
         self._current_frame = frame
         display = frame
         if (
