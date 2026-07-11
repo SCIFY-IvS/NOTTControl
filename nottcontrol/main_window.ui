@@ -582,6 +582,24 @@ color: rgb(255, 255, 255);</string>
      <string>Camera</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="pushButton_h2rg">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>665</y>
+      <width>200</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(50, 129, 140);
+font: 700 14pt &quot;Segoe UI&quot;;
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>H2RG</string>
+    </property>
+   </widget>
    <widget class="QPushButton" name="pushButton_tiptilt">
     <property name="geometry">
      <rect>

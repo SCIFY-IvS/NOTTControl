@@ -9,6 +9,7 @@ from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
 from nottcontrol.camera.infratec.scify import MainWindow as camera_ui, camera_status_snapshot
+from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
 from nottcontrol.components.camera_status_panel import CameraStatusPanel
 from nottcontrol import config, sensor_config_path, cryo_status_config_path
 from nottcontrol.sensors import (
@@ -99,6 +100,7 @@ class MainWindow(QMainWindow):
         self.opcua_conn = opcua_conn
 
         self.camera_window = None
+        self.h2rg_window = None
         self.delayline_window = None
         self.shutter_window = None
         self.tiptilt_window = None
@@ -124,6 +126,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_cryostat.clicked.connect(self.open_cryostat_window)
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
+        self.ui.pushButton_h2rg.clicked.connect(self.open_h2rg_interface)
 
         self.dl_status_opc_nodes, self.dl_status_keys = delay_line_opc_nodes()
         self.dl_status_panel = DelayLinesStatusPanel(self.ui.centralwidget)
@@ -278,6 +281,7 @@ class MainWindow(QMainWindow):
         y = 250
         nav_buttons = (
             self.ui.pushButton_camera,
+            self.ui.pushButton_h2rg,
             self.ui.pushButton_cryostat,
             self.ui.main_pb_delay_lines,
             self.ui.pushButton_filter_wheel,
@@ -355,6 +359,20 @@ class MainWindow(QMainWindow):
         self.camera_window = None
         self.load_camera_status()
 
+    def open_h2rg_interface(self):
+        try:
+            if self.h2rg_window is None:
+                self.h2rg_window = H2rgMainWindow()
+                self.h2rg_window.show()
+                self.h2rg_window.closing.connect(self.clear_h2rg_window)
+            else:
+                self.h2rg_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening H2RG window: {e}")
+
+    def clear_h2rg_window(self):
+        self.h2rg_window = None
+
     def load_camera_status(self):
         try:
             status = camera_status_snapshot(self.camera_window)
@@ -376,6 +394,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, *args):
         if self.camera_window is not None:
             self.camera_window.close()
+        if self.h2rg_window is not None:
+            self.h2rg_window.close()
         self.t.stop()
         self.opcua_conn.disconnect()
         self.t2.stop()

@@ -15,10 +15,15 @@ class DetectorMode(Enum):
 #By using the python 'with' statement, you can ensure that both the initialization and the de-initialization are done
 class MacieInterface():
     
-    def __init__(self, offline_mode = False, config_file="basic_warm_slow.cfg"):
+    def __init__(
+        self,
+        offline_mode=False,
+        config_file="basic_warm_slow.cfg",
+        zmq_address="tcp://localhost:65534",
+    ):
         self._context = zmq.Context()
         self._socket = self._context.socket(zmq.REQ)
-        self._socket.connect("tcp://localhost:65534")
+        self._socket.connect(zmq_address)
 
         #Load ctypes dll, and call initialize
         file = os.path.join(BASE_DIR + "/macie_exe/config_files", config_file)
