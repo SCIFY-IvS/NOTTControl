@@ -9,6 +9,7 @@ import numpy
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QHBoxLayout,
+    QLabel,
     QMainWindow,
     QMessageBox,
     QVBoxLayout,
@@ -16,8 +17,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.uic import loadUi
 
 from nottcontrol import config
-from nottcontrol.camera.macie.macie_interface import DetectorMode, MacieInterface
-from nottcontrol.camera.macie.zmq_server_manager import MacieZmqServerProcess
+from nottcontrol.camera.macie.macie_interface import DetectorMode
 
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="basic_warm_slow.cfg"
@@ -191,8 +191,9 @@ class H2rgMainWindow(QMainWindow):
         self._last_fits_path: Path | None = None
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
-        self._zmq_server = MacieZmqServerProcess(MACIE_ZMQ_ADDRESS)
+        self._zmq_server = None
         self.image = None
+        self._image_placeholder: QLabel | None = None
 
         self._connect_signals()
         self._set_status("Loading…")
@@ -209,20 +210,58 @@ class H2rgMainWindow(QMainWindow):
         self.show()
 
     def _finish_setup(self) -> None:
+        self._rebuild_layout()
+        self._apply_styles()
+        self._setup_image_placeholder()
+        self._populate_comboboxes()
+        self._set_status("Not connected")
+        threading.Thread(target=self._background_startup, daemon=True).start()
+
+    def _setup_image_placeholder(self) -> None:
+        layout = QVBoxLayout(self.ui.frame_camera)
+        layout.setContentsMargins(4, 4, 4, 4)
+        self._image_placeholder = QLabel("No image yet")
+        self._image_placeholder.setAlignment(Qt.AlignCenter)
+        self._image_placeholder.setStyleSheet(
+            'color: rgb(180, 180, 200); font: 11pt "Segoe UI";'
+        )
+        layout.addWidget(self._image_placeholder)
+
+    def _ensure_image_view(self) -> None:
+        if self.image is not None:
+            return
+
         import pyqtgraph as pg
 
         pg.setConfigOptions(imageAxisOrder="row-major")
         pg.setConfigOption("background", "#1a1a2e")
         pg.setConfigOption("foreground", "w")
 
-        self._rebuild_layout()
-        self._apply_styles()
-        self._populate_comboboxes()
-        self._set_status("Not connected")
-        QTimer.singleShot(0, lambda: self._setup_image_view(pg))
-        threading.Thread(target=self._background_startup, daemon=True).start()
+        layout = self.ui.frame_camera.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.ui.frame_camera)
+            layout.setContentsMargins(4, 4, 4, 4)
+
+        if self._image_placeholder is not None:
+            layout.removeWidget(self._image_placeholder)
+            self._image_placeholder.deleteLater()
+            self._image_placeholder = None
+
+        self.image = pg.ImageView()
+        self.image.ui.histogram.hide()
+        self.image.ui.roiBtn.hide()
+        self.image.ui.menuBtn.hide()
+        self.image.getView().setAspectLocked(True)
+        layout.addWidget(self.image)
+
+        if self._current_frame is not None:
+            self._display_frame(self._current_frame)
 
     def _background_startup(self) -> None:
+        from nottcontrol.camera.macie.zmq_server_manager import MacieZmqServerProcess
+
+        if self._zmq_server is None:
+            self._zmq_server = MacieZmqServerProcess(MACIE_ZMQ_ADDRESS)
         self._fits_dir_ok = path_is_directory(self._save_dir)
         if not self._fits_dir_ok and sys.platform == "win32":
             self.status_updated.emit(
@@ -330,17 +369,6 @@ class H2rgMainWindow(QMainWindow):
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
         )
 
-    def _setup_image_view(self, pg) -> None:
-        layout = QVBoxLayout(self.ui.frame_camera)
-        layout.setContentsMargins(4, 4, 4, 4)
-
-        self.image = pg.ImageView()
-        self.image.ui.histogram.hide()
-        self.image.ui.roiBtn.hide()
-        self.image.ui.menuBtn.hide()
-        self.image.getView().setAspectLocked(True)
-        layout.addWidget(self.image)
-
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
         self.ui.comboBox_detector_mode.addItems(["Slow", "Fast"])
@@ -382,7 +410,9 @@ class H2rgMainWindow(QMainWindow):
         self._set_status(message)
         QMessageBox.warning(self, "H2RG", message)
 
-    def _ensure_macie(self) -> MacieInterface:
+    def _ensure_macie(self):
+        from nottcontrol.camera.macie.macie_interface import MacieInterface
+
         if self._macie is None:
             self._macie = MacieInterface(
                 offline_mode=MACIE_OFFLINE_MODE,
@@ -608,6 +638,7 @@ class H2rgMainWindow(QMainWindow):
             self._display_frame(self._current_frame)
 
     def _display_frame(self, frame: numpy.ndarray) -> None:
+        self._ensure_image_view()
         if self.image is None:
             return
         self._current_frame = frame
@@ -650,6 +681,7 @@ class H2rgMainWindow(QMainWindow):
             except Exception:
                 pass
             self._macie = None
-        self._zmq_server.stop()
+        if self._zmq_server is not None:
+            self._zmq_server.stop()
         self.closing.emit()
         super().closeEvent(event)
