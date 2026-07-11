@@ -579,7 +579,7 @@ font: 700 14pt &quot;Segoe UI&quot;;
 color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>Camera</string>
+     <string>Camera warm</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_h2rg">
@@ -597,7 +597,7 @@ font: 700 14pt &quot;Segoe UI&quot;;
 color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>H2RG</string>
+     <string>Camera cold</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_tiptilt">
