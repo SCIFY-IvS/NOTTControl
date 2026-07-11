@@ -9,6 +9,7 @@ import numpy
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -231,6 +232,7 @@ class H2rgMainWindow(QMainWindow):
 
     def _finish_setup(self) -> None:
         QApplication.processEvents()
+        self._relayout_control_panels()
         self._rebuild_layout()
         QApplication.processEvents()
         self._apply_styles()
@@ -306,6 +308,102 @@ class H2rgMainWindow(QMainWindow):
                 )
             self.status_updated.emit(message)
 
+    def _relayout_control_panels(self) -> None:
+        self._layout_conf_panel()
+        self._layout_acquisition_panel()
+        self._layout_visualisation_panel()
+
+    def _layout_conf_panel(self) -> None:
+        box = self.ui.groupBox_conf
+        outer = QHBoxLayout(box)
+        outer.setContentsMargins(8, 12, 8, 8)
+        outer.setSpacing(8)
+
+        buttons = QVBoxLayout()
+        buttons.setSpacing(6)
+        for name in ("button_init", "button_powerOn", "button_powerOff"):
+            buttons.addWidget(getattr(self.ui, name))
+        outer.addLayout(buttons)
+
+        form = QGridLayout()
+        form.setHorizontalSpacing(8)
+        form.setVerticalSpacing(6)
+        form.addWidget(self.ui.label, 0, 0)
+        form.addWidget(self.ui.comboBox_detector_mode, 0, 1)
+        form.addWidget(self.ui.label_2, 1, 0)
+        form.addWidget(self.ui.comboBox_window_mode, 1, 1)
+        form.addWidget(self.ui.label_3, 2, 0)
+        form.addWidget(self.ui.lineEdit_status, 2, 1)
+        form.setColumnStretch(1, 1)
+        outer.addLayout(form, stretch=1)
+
+    def _layout_acquisition_panel(self) -> None:
+        box = self.ui.groupBox_acquisition
+        outer = QVBoxLayout(box)
+        outer.setContentsMargins(8, 12, 8, 8)
+        outer.setSpacing(8)
+
+        form = QGridLayout()
+        form.setHorizontalSpacing(8)
+        form.setVerticalSpacing(6)
+        rows = (
+            ("label_5", "lineEdit_integration_time"),
+            ("label_6", "lineEdit_nb_coadd"),
+            ("label_7", "lineEdit_nb_frames"),
+            ("label_4", "lineEdit_integration_time_total"),
+            ("label_8", "lineEdit_frame_nb"),
+        )
+        for row, (label_name, field_name) in enumerate(rows):
+            form.addWidget(getattr(self.ui, label_name), row, 0)
+            form.addWidget(getattr(self.ui, field_name), row, 1)
+        form.setColumnStretch(1, 1)
+        outer.addLayout(form)
+
+        self.ui.button_take_background.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Fixed
+        )
+        outer.addWidget(self.ui.button_take_background)
+
+        actions = QHBoxLayout()
+        actions.setSpacing(6)
+        for name in ("button_live", "button_acquire", "button_halt"):
+            button = getattr(self.ui, name)
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            actions.addWidget(button)
+        outer.addLayout(actions)
+
+    def _layout_visualisation_panel(self) -> None:
+        box = self.ui.groupBox_visualisation
+        outer = QHBoxLayout(box)
+        outer.setContentsMargins(8, 12, 8, 8)
+        outer.setSpacing(12)
+
+        left = QVBoxLayout()
+        left.setSpacing(4)
+        for name in (
+            "checkBox_substract_background",
+            "checkBox_avg",
+            "checkBox_max",
+            "checkBox_min",
+        ):
+            left.addWidget(getattr(self.ui, name))
+        left.addStretch()
+        outer.addLayout(left, stretch=1)
+
+        middle = QVBoxLayout()
+        middle.setSpacing(4)
+        for index in range(1, 6):
+            middle.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
+        middle.addStretch()
+        outer.addLayout(middle, stretch=1)
+
+        right = QVBoxLayout()
+        right.setSpacing(4)
+        for index in range(6, 11):
+            right.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
+        right.addStretch()
+        outer.addLayout(right, stretch=1)
+
     def _rebuild_layout(self) -> None:
         form = self.ui
         form.setObjectName("h2rg_root")
@@ -323,16 +421,13 @@ class H2rgMainWindow(QMainWindow):
         right.setContentsMargins(0, 0, 0, 0)
         right.setSpacing(12)
 
-        panel_sizes = (
-            (self.ui.groupBox_conf, 331, 131),
-            (self.ui.groupBox_acquisition, 341, 241),
-            (self.ui.groupBox_visualisation, 341, 211),
-        )
-        fixed_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        for box, _width, height in panel_sizes:
-            box.setMinimumHeight(height)
-            box.setMaximumHeight(height)
-            box.setSizePolicy(fixed_policy)
+        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        for box in (
+            self.ui.groupBox_conf,
+            self.ui.groupBox_acquisition,
+            self.ui.groupBox_visualisation,
+        ):
+            box.setSizePolicy(panel_policy)
             right.addWidget(box)
 
         right.addStretch()
