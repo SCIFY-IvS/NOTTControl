@@ -1,18 +1,27 @@
 import os
 import ctypes
+from enum import Enum
 from threading import Thread, Event
 import zmq
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILES_DIR = "macie_exe/config_files"
 
-from enum import Enum
+
+def server_config_path(config_file: str) -> str:
+    """Path sent to zmq_server, relative to the camera/macie working directory."""
+    name = os.path.basename(config_file.replace("\\", "/"))
+    return f"{CONFIG_FILES_DIR}/{name}"
+
 
 class DetectorMode(Enum):
     SLOW = 1
     FAST = 2
 
-#Usage: calling init_camera puts the camera in a state where it is ready to acquire images.
-#By using the python 'with' statement, you can ensure that both the initialization and the de-initialization are done
+
+# Usage: calling init_camera puts the camera in a state where it is ready to acquire images.
+# By using the python 'with' statement, you can ensure that both the initialization
+# and the de-initialization are done
 class MacieInterface():
     
     def __init__(
@@ -25,15 +34,13 @@ class MacieInterface():
         self._socket = self._context.socket(zmq.REQ)
         self._socket.connect(zmq_address)
 
-        #Load ctypes dll, and call initialize
-        file = os.path.join(BASE_DIR + "/macie_exe/config_files", config_file)
-        self.initialize(file, offline_mode)
+        self.initialize(server_config_path(config_file), offline_mode)
 
         self.continuous_acquisition_running = False
         self._acquiring = Event()
         self._acquiring.clear()
         self._closing = Event()
-    
+
     def __enter__(self):
         self.init_camera()
         return self
