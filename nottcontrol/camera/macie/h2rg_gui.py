@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 from pathlib import Path
 
@@ -8,7 +9,14 @@ import numpy
 import pyqtgraph as pg
 from astropy.io import fits
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QMainWindow, QMessageBox
+from PyQt5.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+)
 from PyQt5.uic import loadUi
 
 from nottcontrol import config
@@ -23,6 +31,64 @@ MACIE_ZMQ_ADDRESS = config.get(
 )
 MACIE_OFFLINE_MODE = config.getboolean("MACIE", "offline_mode", fallback=False)
 MACIE_IMAGE_SCALE = config.getint("MACIE", "image_display_scale", fallback=2)
+
+PANEL_BUTTON_STYLE = """
+    QPushButton {
+        font: 10pt "Segoe UI";
+        color: white;
+        background: rgb(50, 129, 140);
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        min-height: 28px;
+    }
+    QPushButton:hover {
+        background: rgb(42, 110, 120);
+    }
+    QPushButton:disabled {
+        background: rgb(180, 190, 192);
+        color: rgb(240, 240, 240);
+    }
+"""
+
+PANEL_FIELD_STYLE = (
+    'font: 9pt "Segoe UI";'
+    "QComboBox, QSpinBox, QLineEdit { padding: 1px 4px; min-height: 22px; }"
+)
+PANEL_LABEL_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
+
+PANEL_GROUP_STYLE = """
+    QGroupBox {
+        font: 700 10pt "Segoe UI";
+        color: rgb(50, 129, 140);
+        border: 1px solid rgb(50, 129, 140);
+        border-radius: 6px;
+        margin-top: 10px;
+        padding-top: 6px;
+        background: white;
+    }
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 10px;
+        padding: 0 4px;
+    }
+"""
+
+WINDOW_STYLE = """
+    QMainWindow, QWidget#h2rg_root {
+        background: rgb(245, 248, 249);
+    }
+"""
+
+IMAGE_FRAME_STYLE = """
+    QFrame#frame_camera {
+        background: rgb(26, 26, 46);
+        border: 1px solid rgb(50, 129, 140);
+        border-radius: 6px;
+    }
+"""
+
+CHECKBOX_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50); spacing: 6px;'
 
 
 def macie_config_path(config_name: str) -> Path:
@@ -44,6 +110,13 @@ def parse_macie_save_dir(config_path: Path) -> Path:
     if save_dir is None:
         return Path.home() / "test_data"
     return Path(os.path.expanduser(save_dir))
+
+
+def resolve_fits_save_dir(config_path: Path) -> Path:
+    configured = config.get("MACIE", "fits_directory", fallback="").strip()
+    if configured:
+        return Path(os.path.expanduser(configured))
+    return parse_macie_save_dir(config_path)
 
 
 def newest_fits_file(directory: Path) -> Path | None:
@@ -79,25 +152,32 @@ class H2rgMainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.ui = loadUi("camera/macie/ui/MacieControl.ui", self)
+        self.setCentralWidget(self.ui)
         self.setWindowTitle("H2RG / MACIE")
+        self.setMinimumSize(1050, 650)
 
         pg.setConfigOptions(imageAxisOrder="row-major")
-        pg.setConfigOption("background", "w")
-        pg.setConfigOption("foreground", "k")
+        pg.setConfigOption("background", "#1a1a2e")
+        pg.setConfigOption("foreground", "w")
 
         self._config_path = macie_config_path(MACIE_CONFIG_FILE)
-        self._save_dir = parse_macie_save_dir(self._config_path)
+        self._save_dir = resolve_fits_save_dir(self._config_path)
         self._macie: MacieInterface | None = None
         self._live_active = False
         self._background: numpy.ndarray | None = None
+        self._current_frame: numpy.ndarray | None = None
         self._last_fits_mtime = 0.0
+        self._last_fits_path: Path | None = None
+        self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = MacieZmqServerProcess(MACIE_ZMQ_ADDRESS)
 
+        self._rebuild_layout()
+        self._apply_styles()
         self._setup_image_view()
         self._populate_comboboxes()
         self._connect_signals()
-        self._set_status("Not connected")
+        self._set_status(self._initial_status_message())
         self._set_controls_enabled(False)
         self.ui.checkBox_substract_background.setEnabled(False)
 
@@ -108,6 +188,83 @@ class H2rgMainWindow(QMainWindow):
         self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
 
         threading.Thread(target=self._ensure_zmq_server, daemon=True).start()
+
+    def _initial_status_message(self) -> str:
+        if self._save_dir.is_dir():
+            return "Not connected"
+        if sys.platform == "win32":
+            return (
+                "Not connected — set [MACIE] fits_directory to the server FITS share"
+            )
+        return f"Not connected — FITS directory not found: {self._save_dir}"
+
+    def _rebuild_layout(self) -> None:
+        form = self.ui
+        form.setObjectName("h2rg_root")
+
+        outer = QHBoxLayout(form)
+        outer.setContentsMargins(12, 12, 12, 12)
+        outer.setSpacing(16)
+
+        self.ui.frame_camera.setMinimumWidth(480)
+        outer.addWidget(self.ui.frame_camera, stretch=3)
+
+        right = QVBoxLayout()
+        right.setSpacing(12)
+        for box in (
+            self.ui.groupBox_conf,
+            self.ui.groupBox_acquisition,
+            self.ui.groupBox_visualisation,
+        ):
+            right.addWidget(box)
+        right.addStretch()
+        outer.addLayout(right, stretch=1)
+
+    def _apply_styles(self) -> None:
+        self.setStyleSheet(WINDOW_STYLE)
+        self.ui.frame_camera.setStyleSheet(IMAGE_FRAME_STYLE)
+
+        for box in (
+            self.ui.groupBox_conf,
+            self.ui.groupBox_acquisition,
+            self.ui.groupBox_visualisation,
+        ):
+            box.setStyleSheet(PANEL_GROUP_STYLE)
+
+        for button in self.ui.findChildren(QPushButton):
+            button.setStyleSheet(PANEL_BUTTON_STYLE)
+
+        for label in self.ui.findChildren(QLabel):
+            label.setStyleSheet(PANEL_LABEL_STYLE)
+
+        for name in (
+            "lineEdit_status",
+            "lineEdit_integration_time",
+            "lineEdit_nb_coadd",
+            "lineEdit_nb_frames",
+            "lineEdit_integration_time_total",
+            "lineEdit_frame_nb",
+            "comboBox_detector_mode",
+            "comboBox_window_mode",
+        ):
+            getattr(self.ui, name).setStyleSheet(PANEL_FIELD_STYLE)
+
+        for name in (
+            "checkBox_substract_background",
+            "checkBox_avg",
+            "checkBox_max",
+            "checkBox_min",
+        ):
+            getattr(self.ui, name).setStyleSheet(CHECKBOX_STYLE)
+
+        for index in range(1, 11):
+            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
+            if checkbox is not None:
+                checkbox.setStyleSheet(CHECKBOX_STYLE)
+
+        self.ui.lineEdit_status.setStyleSheet(
+            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+        )
 
     def _ensure_zmq_server(self) -> None:
         try:
@@ -122,13 +279,15 @@ class H2rgMainWindow(QMainWindow):
             self.operation_failed.emit(str(exc))
 
     def _setup_image_view(self) -> None:
-        self.image = pg.ImageView(self.ui.frame_camera)
+        layout = QVBoxLayout(self.ui.frame_camera)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self.image = pg.ImageView()
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
-        self.image.setGeometry(0, 0, self.ui.frame_camera.width(), self.ui.frame_camera.height())
-        self.image.show()
         self.image.getView().setAspectLocked(True)
+        layout.addWidget(self.image)
 
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
@@ -144,6 +303,7 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_live.clicked.connect(self.live_clicked)
         self.ui.button_acquire.clicked.connect(self.acquire)
         self.ui.button_halt.clicked.connect(self.halt)
+        self.ui.checkBox_substract_background.toggled.connect(self._refresh_display)
 
         for widget in (
             self.ui.lineEdit_integration_time,
@@ -233,12 +393,25 @@ class H2rgMainWindow(QMainWindow):
             self._apply_exposure_settings(macie)
             before_mtime = self._latest_fits_mtime()
             macie.acquire()
-            frame = self._wait_for_new_frame(before_mtime)
+            frame, path = self._wait_for_new_frame(before_mtime)
             if frame is not None:
+                self._last_fits_path = path
                 self.frame_ready.emit(frame)
-            self.status_updated.emit("Acquire complete")
+                self.status_updated.emit("Acquire complete")
+            else:
+                self.status_updated.emit(self._missing_fits_status())
 
         self._run_macie_operation("Acquire", operation)
+
+    def _missing_fits_status(self) -> str:
+        if not self._save_dir.is_dir():
+            if sys.platform == "win32":
+                return (
+                    "Acquire complete — no FITS (set [MACIE] fits_directory "
+                    "to the server share)"
+                )
+            return f"Acquire complete — FITS directory not found: {self._save_dir}"
+        return f"Acquire complete — no new FITS in {self._save_dir}"
 
     def live_clicked(self) -> None:
         if self._macie is None:
@@ -260,8 +433,9 @@ class H2rgMainWindow(QMainWindow):
             import time
 
             while self._live_active and self._macie is not None:
-                frame = self._load_latest_frame()
-                if frame is not None:
+                loaded = self._load_latest_frame()
+                if loaded is not None:
+                    frame, _path = loaded
                     self.frame_ready.emit(frame)
                 time.sleep(0.5)
 
@@ -278,10 +452,14 @@ class H2rgMainWindow(QMainWindow):
         self._set_status("Halted")
 
     def take_background(self) -> None:
-        frame = self._load_latest_frame()
-        if frame is None:
-            self._on_operation_failed("No FITS frame available for background")
-            return
+        if self._current_frame is None:
+            loaded = self._load_latest_frame()
+            if loaded is None:
+                self._on_operation_failed("No FITS frame available for background")
+                return
+            frame, _path = loaded
+        else:
+            frame = self._current_frame
         self._background = frame.copy()
         self.ui.checkBox_substract_background.setEnabled(True)
         self._set_status("Background stored")
@@ -338,28 +516,43 @@ class H2rgMainWindow(QMainWindow):
 
     def _wait_for_new_frame(
         self, before_mtime: float, timeout_s: float = 30.0
-    ) -> numpy.ndarray | None:
+    ) -> tuple[numpy.ndarray | None, Path | None]:
         import time
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
             path = newest_fits_file(self._save_dir)
             if path is not None and path.stat().st_mtime > before_mtime:
-                return load_fits_image(path)
+                return self._load_fits_from_path(path), path
             time.sleep(0.2)
-        return self._load_latest_frame()
+        loaded = self._load_latest_frame(force=True)
+        if loaded is None:
+            return None, None
+        frame, path = loaded
+        return frame, path
 
-    def _load_latest_frame(self) -> numpy.ndarray | None:
+    def _load_fits_from_path(self, path: Path) -> numpy.ndarray:
+        self._last_fits_path = path
+        self._last_fits_mtime = path.stat().st_mtime
+        return load_fits_image(path)
+
+    def _load_latest_frame(
+        self, force: bool = False
+    ) -> tuple[numpy.ndarray, Path] | None:
         path = newest_fits_file(self._save_dir)
         if path is None:
             return None
         mtime = path.stat().st_mtime
-        if mtime == self._last_fits_mtime:
+        if not force and mtime == self._last_fits_mtime:
             return None
-        self._last_fits_mtime = mtime
-        return load_fits_image(path)
+        return self._load_fits_from_path(path), path
+
+    def _refresh_display(self) -> None:
+        if self._current_frame is not None:
+            self._display_frame(self._current_frame)
 
     def _display_frame(self, frame: numpy.ndarray) -> None:
+        self._current_frame = frame
         display = frame
         if (
             self.ui.checkBox_substract_background.isChecked()
@@ -368,10 +561,13 @@ class H2rgMainWindow(QMainWindow):
         ):
             display = frame - self._background
 
-        self.image.getImageItem().setImage(display, autoLevels=False)
-        path = newest_fits_file(self._save_dir)
-        if path is not None:
-            self.ui.lineEdit_frame_nb.setText(path.name)
+        auto_levels = self._auto_levels_next
+        self.image.setImage(display, autoLevels=auto_levels)
+        if auto_levels:
+            self._auto_levels_next = False
+
+        if self._last_fits_path is not None:
+            self.ui.lineEdit_frame_nb.setText(self._last_fits_path.name)
 
     def get_dashboard_status(self) -> dict[str, object]:
         powered = None
