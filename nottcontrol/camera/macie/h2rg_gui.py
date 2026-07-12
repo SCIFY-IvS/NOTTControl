@@ -11,6 +11,7 @@ import numpy
 from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
+    QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -145,12 +146,12 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
     half = array_size // 2
     return (
         WindowMode("Full frame", False, False, 0, full_span, 0, full_span),
-        WindowMode("Lower left 1024x1024", True, True, *_window_region(0, 0, 1024)),
-        WindowMode("Lower right 1024x1024", True, True, *_window_region(half, 0, 1024)),
-        WindowMode("Upper left 1024x1024", True, True, *_window_region(0, half, 1024)),
-        WindowMode("Upper right 1024x1024", True, True, *_window_region(half, half, 1024)),
-        WindowMode("Central 1024x1024", True, True, *_centered_window(1024, array_size)),
-        WindowMode("Central 512x512", True, True, *_centered_window(512, array_size)),
+        WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
+        WindowMode("LR 1024x1024", True, True, *_window_region(half, 0, 1024)),
+        WindowMode("UL 1024x1024", True, True, *_window_region(0, half, 1024)),
+        WindowMode("UR 1024x1024", True, True, *_window_region(half, half, 1024)),
+        WindowMode("Center 1024x1024", True, True, *_centered_window(1024, array_size)),
+        WindowMode("Center 512x512", True, True, *_centered_window(512, array_size)),
     )
 
 
@@ -616,6 +617,12 @@ class H2rgMainWindow(QMainWindow):
         form.addWidget(self.ui.label_3, 2, 0)
         form.addWidget(self.ui.lineEdit_status, 2, 1)
         form.setColumnStretch(1, 1)
+        combo_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        for combo in (self.ui.comboBox_detector_mode, self.ui.comboBox_window_mode):
+            combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(12)
+            combo.setMaximumWidth(132)
+            combo.setSizePolicy(combo_policy)
         outer.addLayout(form, stretch=1)
 
     def _layout_acquisition_panel(self) -> None:
@@ -822,7 +829,6 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_detector_mode.addItems(["Slow", "Fast"])
         self.ui.comboBox_window_mode.clear()
         self.ui.comboBox_window_mode.addItems([mode.label for mode in WINDOW_MODES])
-        self.ui.comboBox_window_mode.setMinimumWidth(200)
 
     def _connect_signals(self) -> None:
         self.ui.button_init.clicked.connect(self.init_camera)
