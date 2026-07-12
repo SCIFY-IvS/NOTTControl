@@ -5,7 +5,8 @@ from PyQt5.uic import loadUi
 
 from nottcontrol import config
 from nottcontrol.components.pypiezo import piezointerface
-from nottcontrol.piezowidget import PiezoWidget
+from nottcontrol.app_icon import install_nott_logo_header
+from nottcontrol.theme import PANEL_LABEL_STYLE
 
 
 class PiezosWindow(QMainWindow):
@@ -26,6 +27,8 @@ class PiezosWindow(QMainWindow):
             self._piezo_interf.listening = False
 
         self.ui = loadUi("piezos.ui", self)
+        install_nott_logo_header(self, title="Piezo Control")
+        self.ui.label_connection.setStyleSheet(PANEL_LABEL_STYLE)
 
         port = config["PIEZO"].get("port", "/dev/ttyACM0")
         if self._piezo_interf.ser is None:

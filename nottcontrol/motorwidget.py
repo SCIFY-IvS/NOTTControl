@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import QWidget, QMenu
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 
+from nottcontrol.theme import style_motor_widget
+
 from datetime import datetime, timezone
 import time
 
@@ -22,6 +24,7 @@ class MotorWidget(QWidget):
         self.current_speed = 0.0
 
         self.ui = loadUi('motorwidget.ui', self)
+        style_motor_widget(self)
 
         self.engineering_menu = QMenu()
         reset = self.engineering_menu.addAction("Reset")

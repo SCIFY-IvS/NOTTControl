@@ -3,22 +3,7 @@ from __future__ import annotations
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
-TEAL = "rgb(50, 129, 140)"
-PANEL_STYLE = f"""
-QGroupBox {{
-    font: 700 11pt "Segoe UI";
-    color: {TEAL};
-    border: 1px solid {TEAL};
-    border-radius: 6px;
-    margin-top: 10px;
-    padding-top: 8px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    left: 10px;
-    padding: 0 4px;
-}}
-"""
+from nottcontrol.theme import PANEL_STYLE, TEAL
 
 DELAY_LINE_PREFIXES = (
     ("DL 1", "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1"),

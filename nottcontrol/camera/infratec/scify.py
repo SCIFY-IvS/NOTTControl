@@ -45,6 +45,13 @@ from nottcontrol.camera.infratec.detector_options import (
 )
 from nottcontrol.camera.infratec.parametersdialog import ParametersDialog
 from nottcontrol.redisclient import RedisClient
+from nottcontrol.app_icon import install_nott_logo_header
+from nottcontrol.theme import (
+    PANEL_BUTTON_STYLE,
+    PANEL_FIELD_STYLE,
+    PANEL_GROUP_STYLE,
+    PANEL_LABEL_STYLE,
+)
 from nottcontrol import config
 from collections import deque
 from enum import Enum
@@ -147,48 +154,6 @@ DETECTOR_PANEL_HEIGHT = 256
 CURSOR_READOUT_HEIGHT = 22
 CURSOR_READOUT_INTERVAL_MS = 50
 
-PANEL_BUTTON_STYLE = """
-    QPushButton {
-        font: 10pt "Segoe UI";
-        color: white;
-        background: rgb(50, 129, 140);
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-    }
-    QPushButton:hover {
-        background: rgb(42, 110, 120);
-    }
-    QPushButton:disabled {
-        background: rgb(180, 190, 192);
-        color: rgb(240, 240, 240);
-    }
-"""
-
-PANEL_FIELD_STYLE = (
-    'font: 9pt "Segoe UI";'
-    "QComboBox, QSpinBox, QLineEdit { padding: 1px 4px; min-height: 22px; }"
-)
-PANEL_LABEL_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
-
-PANEL_GROUP_STYLE = """
-    QGroupBox {
-        font: 700 10pt "Segoe UI";
-        color: rgb(50, 129, 140);
-        border: 1px solid rgb(50, 129, 140);
-        border-radius: 6px;
-        margin-top: 10px;
-        padding-top: 6px;
-        background: white;
-    }
-    QGroupBox::title {
-        subcontrol-origin: margin;
-        left: 10px;
-        padding: 0 4px;
-    }
-"""
-
-
 def _camera_log(*args, **kwargs) -> None:
     if CAMERA_VERBOSE:
         print(*args, **kwargs)
@@ -267,6 +232,7 @@ class MainWindow(QMainWindow):
         self._setup_roi_values_panel()
         self._setup_detector_panel()
         self._layout_window()
+        install_nott_logo_header(self, title="Camera warm")
 
         self.connectSignalSlots()
         
@@ -1166,8 +1132,8 @@ class MainWindow(QMainWindow):
             self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
 
     def _layout_window(self) -> None:
-        img_h = config.getint("CAMERA", "window_h")
-        img_w = config.getint("CAMERA", "window_w")
+        img_h = config.getint("CAMERA", "window_h", fallback=150)
+        img_w = config.getint("CAMERA", "window_w", fallback=160)
 
         camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
         camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
@@ -1475,7 +1441,12 @@ class MainWindow(QMainWindow):
         roi_dimensions = roi_string.split(',')
         if len(roi_dimensions) != 4:
             raise Exception('Invalid Roi config')
-        return Roi(int(roi_dimensions[0])-config['CAMERA'].getint('window_x'), int(roi_dimensions[1])-config['CAMERA'].getint('window_y'), roi_dimensions[2], roi_dimensions[3])
+        return Roi(
+            int(roi_dimensions[0]) - config.getint("CAMERA", "window_x", fallback=0),
+            int(roi_dimensions[1]) - config.getint("CAMERA", "window_y", fallback=0),
+            roi_dimensions[2],
+            roi_dimensions[3],
+        )
     
     def load_roi_positions_from_config(self):
         self.load_roi_config(config)
@@ -1616,10 +1587,10 @@ class MainWindow(QMainWindow):
         
         # Large frame to small frame
         #if w_cur*h_cur > w_con*h_con:
-        self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
-        self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
-        self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
-        self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        self.interface.setparam_int32(294, config.getint("CAMERA", "window_w", fallback=160))
+        self.interface.setparam_int32(295, config.getint("CAMERA", "window_h", fallback=150))
+        self.interface.setparam_int32(292, config.getint("CAMERA", "window_x", fallback=0))
+        self.interface.setparam_int32(293, config.getint("CAMERA", "window_y", fallback=0))
         #else:
         # Small frame to large frame
         #    self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))

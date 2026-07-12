@@ -1,11 +1,21 @@
 import os
 import ctypes
+from collections.abc import Callable
 from enum import Enum
 from threading import Thread, Event, Lock
 import zmq
 
+from nottcontrol import config
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILES_DIR = "macie_exe/config_files"
+
+ZMQ_REQUEST_TIMEOUT_MS = config.getint(
+    "MACIE", "zmq_request_timeout_ms", fallback=120_000
+)
+ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
+    "MACIE", "zmq_acquire_timeout_ms", fallback=300_000
+)
 
 
 def server_config_path(config_file: str) -> str:
@@ -31,7 +41,7 @@ class DetectorMode(Enum):
 # By using the python 'with' statement, you can ensure that both the initialization
 # and the de-initialization are done
 class MacieInterface():
-    
+
     def __init__(
         self,
         offline_mode=False,
@@ -40,11 +50,13 @@ class MacieInterface():
     ):
         self._config_file = server_config_path(config_file)
         self._offline_mode = offline_mode
+        self._zmq_address = zmq_address
+        self._request_timeout_ms = ZMQ_REQUEST_TIMEOUT_MS
         self._context = zmq.Context()
-        self._socket = self._context.socket(zmq.REQ)
-        self._socket.connect(zmq_address)
         self._lock = Lock()
         self._continuous_thread: Thread | None = None
+        self._socket = None
+        self._create_socket()
 
         self.initialize(self._config_file, self._offline_mode)
 
@@ -52,22 +64,68 @@ class MacieInterface():
         self._acquiring = Event()
         self._acquiring.clear()
         self._closing = Event()
+        self._pause_live = Event()
+        self._live_error_callback: Callable[[Exception], None] | None = None
+
+    def set_live_error_callback(
+        self, callback: Callable[[Exception], None] | None
+    ) -> None:
+        self._live_error_callback = callback
+
+    def _attempt_halt_after_timeout(self) -> None:
+        try:
+            self._socket.send_string("halt")
+            self._receive_and_parse_reply()
+        except Exception as exc:
+            print(f"MACIE halt after timeout failed: {exc}")
+
+    def _handle_timeout(self, message: str, exc: zmq.Again) -> TimeoutError:
+        command = message.split(";", 1)[0]
+        self._reset_socket()
+        if command in ("acquire", "fetchnewestfits"):
+            # _request / _request_multipart already hold self._lock.
+            self._attempt_halt_after_timeout()
+        return TimeoutError(f"ZMQ request timed out ({command})") from exc
 
     def __enter__(self):
         self.init_camera()
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
-    
+
+    def _create_socket(self) -> None:
+        if self._socket is not None:
+            try:
+                self._socket.close(linger=0)
+            except Exception:
+                pass
+        self._socket = self._context.socket(zmq.REQ)
+        self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
+        self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+        self._socket.setsockopt(zmq.LINGER, 0)
+        self._socket.connect(self._zmq_address)
+
+    def _reset_socket(self) -> None:
+        self._create_socket()
+
     def initialize(self, config_file, offline_mode):
-        with self._lock:
-            self._socket.send_string(f"init;{config_file};{str(offline_mode).lower()}")
-            return self._receive_and_parse_reply()
-    
+        self._config_file = server_config_path(config_file)
+        return self._request(
+            f"init;{self._config_file};{str(offline_mode).lower()}"
+        )
+
+    def set_config_file(self, config_file: str) -> None:
+        self._config_file = server_config_path(config_file)
+
+    def reinit_camera(self, config_file: str | None = None) -> None:
+        if config_file is not None:
+            self.set_config_file(config_file)
+        self.init_camera()
+
     def power_off(self):
         return self._request("poweroff")
-    
+
     def power_on(self):
         return self._request("poweron")
 
@@ -75,28 +133,54 @@ class MacieInterface():
         # Re-send init so initcamera works after a zmq_server restart or a
         # stale client session that skipped the init command on the server.
         self.initialize(self._config_file, self._offline_mode)
-        with self._lock:
-            self._socket.send_string("initcamera")
-            self._receive_and_parse_reply()
+        self._request("initcamera")
 
         if self._continuous_thread is None or not self._continuous_thread.is_alive():
             self._continuous_thread = Thread(
                 target=self.continuous_acquisition, daemon=True
             )
             self._continuous_thread.start()
-    
-    def _request(self, message: str):
-        with self._lock:
-            self._socket.send_string(message)
-            return self._receive_and_parse_reply()
 
-    def _request_multipart(self, message: str):
+    def _request(self, message: str, *, timeout_ms: int | None = None):
         with self._lock:
-            self._socket.send_string(message)
-            return self._socket.recv_multipart()
-    
-    def acquire(self, no_recon = False):
-        return self._request(f"acquire;{str(no_recon).lower()}")
+            restore_timeout = False
+            if timeout_ms is not None and timeout_ms != self._request_timeout_ms:
+                self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+                self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+                restore_timeout = True
+            try:
+                self._socket.send_string(message)
+                return self._receive_and_parse_reply()
+            except zmq.Again as exc:
+                raise self._handle_timeout(message, exc) from exc
+            finally:
+                if restore_timeout:
+                    self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
+                    self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+
+    def _request_multipart(self, message: str, *, timeout_ms: int | None = None):
+        with self._lock:
+            restore_timeout = False
+            if timeout_ms is not None and timeout_ms != self._request_timeout_ms:
+                self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+                self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+                restore_timeout = True
+            try:
+                self._socket.send_string(message)
+                parts = self._socket.recv_multipart()
+            except zmq.Again as exc:
+                raise self._handle_timeout(message, exc) from exc
+            finally:
+                if restore_timeout:
+                    self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
+                    self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
+            return parts
+
+    def acquire(self, no_recon=False):
+        return self._request(
+            f"acquire;{str(no_recon).lower()}",
+            timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
+        )
 
     def get_save_dir(self) -> str | None:
         return self._request("getsavedir")
@@ -105,7 +189,10 @@ class MacieInterface():
         return self._request("newestfits")
 
     def fetch_newest_fits(self) -> tuple[str, bytes] | None:
-        parts = self._request_multipart("fetchnewestfits")
+        parts = self._request_multipart(
+            "fetchnewestfits",
+            timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
+        )
         if not parts:
             return None
         header = parts[0].decode("utf-8")
@@ -119,11 +206,11 @@ class MacieInterface():
         if isinstance(payload, str):
             payload = payload.encode("latin1")
         return filename, bytes(payload)
-    
+
     def get_power(self):
         result = self._request("getpower")
         return result == "true"
-    
+
     def close(self):
         self._closing.set()
         self._acquiring.clear()
@@ -134,16 +221,24 @@ class MacieInterface():
             print(e)
 
         with self._lock:
-            self._socket.close()
-            self._context.term()
-    
+            if self._socket is not None:
+                try:
+                    self._socket.close(linger=0)
+                except Exception:
+                    pass
+                self._socket = None
+            try:
+                self._context.term()
+            except Exception:
+                pass
+
     def halt_acquisition(self):
         return self._request("halt")
-    
+
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
         return self._request(message)
-    
+
     def set_integration_time(
         self,
         tint_s: float,
@@ -178,10 +273,10 @@ class MacieInterface():
             "efficiency": parse_zmq_float(answer[3]),
             "frametime_s": parse_zmq_float(answer[4]) / 1000.0,
         }
-    
+
     def read_exposure_settings(self):
         answer = self._request("rexpsettings")
-        
+
         save = True if answer[0] == "true" else False
         ncoadds = answer[1]
         nsaved_ramps = answer[2]
@@ -190,11 +285,11 @@ class MacieInterface():
         ndrops = answer[5]
         nresets = answer[6]
         return (save, ncoadds, nsaved_ramps, ngroups, nreads, ndrops, nresets)
-    
+
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
         message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
         return self._request(message)
-    
+
     def read_frame_settings(self):
         answer = self._request("rframesettings")
 
@@ -206,9 +301,7 @@ class MacieInterface():
         y2 = answer[5]
 
         return (xWindow, yWindow, x1, x2, y1, y2)
-    
 
-    
     def get_detector_mode(self):
         """ Get the current detector mode (fast/slow)"""
         answer = self._request("getmode")
@@ -218,19 +311,37 @@ class MacieInterface():
             return DetectorMode.SLOW
         else:
             raise Exception("Unexpected reply to getmode")
-    
+
     def start_continuous_acquisition(self):
         self._acquiring.set()
-    
+
     def stop_continuous_acquisition(self):
         self._acquiring.clear()
-    
+
+    def pause_live_acquisition(self) -> None:
+        self._pause_live.set()
+
+    def resume_live_acquisition(self) -> None:
+        self._pause_live.clear()
+
     def continuous_acquisition(self):
-        #Run for as long as the interface is not closed
+        # Run for as long as the interface is not closed
         while not self._closing.is_set():
-            if (self._acquiring.wait(0.1)):
-                self.acquire()
-    
+            if self._acquiring.wait(0.1):
+                if self._pause_live.is_set():
+                    continue
+                try:
+                    self.acquire()
+                except Exception as exc:
+                    print(f"Live acquire failed: {exc}")
+                    self._acquiring.clear()
+                    callback = self._live_error_callback
+                    if callback is not None:
+                        try:
+                            callback(exc)
+                        except Exception as callback_exc:
+                            print(f"Live error callback failed: {callback_exc}")
+
     def _receive_and_parse_reply(self):
         reply = self._socket.recv_string()
         print (f"Received reply {reply}")

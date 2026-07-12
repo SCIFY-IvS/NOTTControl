@@ -3,8 +3,9 @@ from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUi
 from pathlib import Path
-from nottcontrol.app_icon import load_app_icon
+from nottcontrol.app_icon import install_nott_logo_header, load_app_icon, make_nott_logo_title_header
 from nottcontrol.opcua import OPCUAConnection
+from nottcontrol.theme import apply_main_window_styles
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
@@ -114,9 +115,9 @@ class MainWindow(QMainWindow):
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
         self.setWindowTitle("NOTT instrument control")
+        apply_main_window_styles(self)
         self._load_header_logos()
         self._layout_nav_buttons()
-        self.ui.label_2.setStyleSheet("background: transparent;")
 
         # print("self.opcua_conn in MainWindow", self.opcua_conn)
         # Show Delay line window
@@ -316,16 +317,16 @@ class MainWindow(QMainWindow):
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
 
-        nott_logo_path = assets_dir / "NOTT.png"
+        self.ui.label.hide()
+        self.ui.label_2.hide()
 
-        self.ui.label.setGeometry(10, 30, 210, 82)
-        self._set_logo_label(self.ui.label, assets_dir / "NOTT.png", 210, 82)
+        self._header_title = make_nott_logo_title_header("Instrument control")
+        self._header_title.setParent(self.ui.centralwidget)
 
         self._asgard_logo_label = QLabel(self.ui.centralwidget)
         self._set_logo_label(self._asgard_logo_label, assets_dir / "ASGARD.png", 96, 96)
+        self._layout_header_title()
         self._layout_asgard_logo()
-
-        self._layout_title()
 
     def _layout_asgard_logo(self) -> None:
         if not hasattr(self, "_asgard_logo_label"):
@@ -339,9 +340,22 @@ class MainWindow(QMainWindow):
             logo_size,
         )
 
+    def _layout_header_title(self) -> None:
+        if not hasattr(self, "_header_title"):
+            return
+        margin_x = 10
+        margin_y = 12
+        header_height = 56
+        self._header_title.setGeometry(
+            margin_x,
+            margin_y,
+            min(480, max(320, self.width() - 140)),
+            header_height,
+        )
+        self._header_title.raise_()
+
     def _layout_title(self) -> None:
-        self.ui.label_2.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.ui.label_2.setGeometry(0, 28, self.width(), 56)
+        self._layout_header_title()
 
     def open_camera_interface(self):
         try:
@@ -702,6 +716,7 @@ class DelayLinesWindow(QMainWindow):
 
         # set up the delay lines window
         self.ui = loadUi('delay_lines.ui', self)
+        install_nott_logo_header(self, title="Delay Lines")
         # Dl statuses
         #self.dl1_status()
 
