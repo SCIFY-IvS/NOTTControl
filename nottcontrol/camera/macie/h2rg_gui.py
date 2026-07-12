@@ -468,6 +468,14 @@ class H2rgMainWindow(QMainWindow):
             'color: rgb(180, 180, 200); font: 11pt "Segoe UI";'
         )
 
+    def _clear_widget_layout(self, widget: QWidget) -> None:
+        layout = widget.layout()
+        if layout is None:
+            return
+        while layout.count():
+            layout.takeAt(0)
+        QWidget().setLayout(layout)
+
     def _clear_frame_camera_layout(self) -> None:
         layout = self.ui.frame_camera.layout()
         if layout is None:
@@ -744,6 +752,7 @@ class H2rgMainWindow(QMainWindow):
 
     def _layout_conf_panel(self) -> None:
         box = self.ui.groupBox_conf
+        self._clear_widget_layout(box)
         outer = QHBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(8)
@@ -774,6 +783,8 @@ class H2rgMainWindow(QMainWindow):
 
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
+        self._clear_widget_layout(box)
+        box.setMinimumHeight(340)
         outer = QVBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(8)
@@ -789,15 +800,21 @@ class H2rgMainWindow(QMainWindow):
         self.ui.label_5.setText("Integration time (ms):")
         self.ui.label_4.setText("Total integration time (ms):")
         for row, (label_name, field_name) in enumerate(editable_rows):
-            form.addWidget(getattr(self.ui, label_name), row, 0)
-            form.addWidget(getattr(self.ui, field_name), row, 1)
+            label = getattr(self.ui, label_name)
+            field = getattr(self.ui, field_name)
+            label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+            field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            form.addWidget(label, row, 0)
+            form.addWidget(field, row, 1)
 
-        self._button_set_exposure = QPushButton("Set")
+        if not hasattr(self, "_button_set_exposure"):
+            self._button_set_exposure = QPushButton("Set")
         self._button_set_exposure.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_set_exposure.setMinimumHeight(28)
-        form.addWidget(self._button_set_exposure, len(editable_rows), 1)
+        self._button_set_exposure.setFixedSize(52, 28)
+        self._button_set_exposure.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        form.addWidget(self._button_set_exposure, 2, 2)
 
-        timing_row = len(editable_rows) + 1
+        timing_row = len(editable_rows)
         self._label_photon_time = QLabel("Photon time (s):")
         self._lineEdit_photon_time = QLineEdit("—")
         self._lineEdit_photon_time.setReadOnly(True)
@@ -818,6 +835,8 @@ class H2rgMainWindow(QMainWindow):
             field.setStyleSheet(
                 PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
             )
+            label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+            field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             form.addWidget(label, timing_row + offset, 0)
             form.addWidget(field, timing_row + offset, 1)
 
@@ -828,9 +847,14 @@ class H2rgMainWindow(QMainWindow):
                 ("label_8", "lineEdit_frame_nb"),
             )
         ):
-            form.addWidget(getattr(self.ui, label_name), footer_row + offset, 0)
-            form.addWidget(getattr(self.ui, field_name), footer_row + offset, 1)
+            label = getattr(self.ui, label_name)
+            field = getattr(self.ui, field_name)
+            label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+            field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            form.addWidget(label, footer_row + offset, 0)
+            form.addWidget(field, footer_row + offset, 1)
         form.setColumnStretch(1, 1)
+        form.setColumnStretch(2, 0)
         outer.addLayout(form)
 
         self.ui.button_take_background.setSizePolicy(
@@ -848,6 +872,7 @@ class H2rgMainWindow(QMainWindow):
 
     def _layout_visualisation_panel(self) -> None:
         box = self.ui.groupBox_visualisation
+        self._clear_widget_layout(box)
         outer = QHBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(12)

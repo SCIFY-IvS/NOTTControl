@@ -140,6 +140,7 @@ class CryoRedisChart(QWidget):
         self,
         series_data: list[tuple[SeriesConfig, list[float], list[float]]],
         window_start: datetime,
+        window_hours: float,
     ) -> None:
         self._plot.clear()
         _styled_legend(self._plot)
@@ -176,6 +177,9 @@ class CryoRedisChart(QWidget):
                 size="12pt",
             )
 
+        view_box = self._plot.getViewBox()
+        view_box.enableAutoRange(axis="x", enable=False)
+        self._plot.setXRange(0.0, window_hours, padding=0)
         self._apply_y_limits()
 
 
@@ -239,6 +243,7 @@ class CryoHistoryPanel(QWidget):
             return
 
         minutes = self.selected_minutes()
+        window_hours = minutes / 60.0
         window_end = datetime.utcnow()
         window_start = window_end - timedelta(minutes=minutes)
         start_ms = self._redis_client.unix_time_ms(window_start)
@@ -247,10 +252,12 @@ class CryoHistoryPanel(QWidget):
         self._temp_chart.update_series(
             self._load_series(self._temp_series, start_ms, end_ms),
             window_start,
+            window_hours,
         )
         self._pressure_chart.update_series(
             self._load_series(self._pressure_series, start_ms, end_ms),
             window_start,
+            window_hours,
         )
 
     def _load_series(
