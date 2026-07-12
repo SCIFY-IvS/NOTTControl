@@ -27,7 +27,7 @@ class ShutterWindow(QMainWindow):
         self.redis_client = redis_client
 
         self.ui = loadUi('shutters.ui', self)
-        install_nott_logo_header(self)
+        install_nott_logo_header(self, title="Shutter Control")
 
         self.ui.shutter_widget_1.setup(self.opcua_conn, self.redis_client, self._shutter1)
         self.ui.shutter_widget_2.setup(self.opcua_conn, self.redis_client, self._shutter2)

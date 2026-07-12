@@ -1,5 +1,6 @@
 import os
 import ctypes
+from collections.abc import Callable
 from enum import Enum
 from threading import Thread, Event, Lock
 import zmq
@@ -64,6 +65,27 @@ class MacieInterface():
         self._acquiring.clear()
         self._closing = Event()
         self._pause_live = Event()
+        self._live_error_callback: Callable[[Exception], None] | None = None
+
+    def set_live_error_callback(
+        self, callback: Callable[[Exception], None] | None
+    ) -> None:
+        self._live_error_callback = callback
+
+    def _attempt_halt_after_timeout(self) -> None:
+        try:
+            self._socket.send_string("halt")
+            self._receive_and_parse_reply()
+        except Exception as exc:
+            print(f"MACIE halt after timeout failed: {exc}")
+
+    def _handle_timeout(self, message: str, exc: zmq.Again) -> TimeoutError:
+        command = message.split(";", 1)[0]
+        self._reset_socket()
+        if command in ("acquire", "fetchnewestfits"):
+            # _request / _request_multipart already hold self._lock.
+            self._attempt_halt_after_timeout()
+        return TimeoutError(f"ZMQ request timed out ({command})") from exc
 
     def __enter__(self):
         self.init_camera()
@@ -130,11 +152,7 @@ class MacieInterface():
                 self._socket.send_string(message)
                 return self._receive_and_parse_reply()
             except zmq.Again as exc:
-                self._reset_socket()
-                command = message.split(";", 1)[0]
-                raise TimeoutError(
-                    f"ZMQ request timed out ({command})"
-                ) from exc
+                raise self._handle_timeout(message, exc) from exc
             finally:
                 if restore_timeout:
                     self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
@@ -151,11 +169,7 @@ class MacieInterface():
                 self._socket.send_string(message)
                 parts = self._socket.recv_multipart()
             except zmq.Again as exc:
-                self._reset_socket()
-                command = message.split(";", 1)[0]
-                raise TimeoutError(
-                    f"ZMQ request timed out ({command})"
-                ) from exc
+                raise self._handle_timeout(message, exc) from exc
             finally:
                 if restore_timeout:
                     self._socket.setsockopt(zmq.RCVTIMEO, self._request_timeout_ms)
@@ -321,6 +335,12 @@ class MacieInterface():
                 except Exception as exc:
                     print(f"Live acquire failed: {exc}")
                     self._acquiring.clear()
+                    callback = self._live_error_callback
+                    if callback is not None:
+                        try:
+                            callback(exc)
+                        except Exception as callback_exc:
+                            print(f"Live error callback failed: {callback_exc}")
 
     def _receive_and_parse_reply(self):
         reply = self._socket.recv_string()

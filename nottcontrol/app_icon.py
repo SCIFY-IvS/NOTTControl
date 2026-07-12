@@ -13,7 +13,16 @@ from PyQt5.QtGui import (
     QPen,
     QPixmap,
 )
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+)
+
+from nottcontrol.theme import BORDER, NOTT_HEADER_TITLE_STYLE, apply_instrument_window_style
 
 TEAL = QColor(50, 129, 140)
 TEAL_DARK = QColor(18, 48, 54)
@@ -144,6 +153,45 @@ def make_nott_logo_label(
     return label
 
 
+def make_nott_window_title_label(title: str) -> QLabel:
+    label = QLabel(title)
+    label.setStyleSheet(NOTT_HEADER_TITLE_STYLE)
+    label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+    return label
+
+
+def make_nott_logo_title_header(
+    title: str,
+    *,
+    logo_width: int = NOTT_LOGO_BANNER_WIDTH,
+    logo_height: int = NOTT_LOGO_BANNER_HEIGHT,
+) -> QWidget:
+    header = QWidget()
+    header.setStyleSheet(
+        f"background: transparent; border-bottom: 1px solid {BORDER}; padding-bottom: 6px;"
+    )
+    layout = QHBoxLayout(header)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(12)
+    layout.addWidget(
+        make_nott_logo_label(logo_width, logo_height),
+        alignment=Qt.AlignLeft | Qt.AlignVCenter,
+    )
+    layout.addWidget(
+        make_nott_window_title_label(title),
+        stretch=1,
+        alignment=Qt.AlignLeft | Qt.AlignVCenter,
+    )
+    return header
+
+
+def _hide_duplicate_title_labels(container: QWidget) -> None:
+    for name in ("label_2", "label_title"):
+        label = container.findChild(QLabel, name)
+        if label is not None:
+            label.hide()
+
+
 def apply_window_icon(widget: QWidget) -> None:
     icon = load_app_icon()
     if icon.isNull():
@@ -169,23 +217,32 @@ def _hook_widget_resize(widget: QWidget, callback) -> None:
 def install_nott_logo_on_form(
     form: QWidget,
     *,
-    width: int = NOTT_LOGO_BANNER_WIDTH,
-    height: int = NOTT_LOGO_BANNER_HEIGHT,
+    title: str | None = None,
+    logo_width: int = NOTT_LOGO_BANNER_WIDTH,
+    logo_height: int = NOTT_LOGO_BANNER_HEIGHT,
     x: int = 12,
     y: int = 8,
-) -> QLabel:
-    """Place the NOTT logo on a loadUi form that uses absolute geometry."""
+) -> QWidget:
+    """Place the NOTT logo and window title on a loadUi form."""
     apply_window_icon(form)
-    logo = make_nott_logo_label(width, height)
-    logo.setParent(form)
+    apply_instrument_window_style(form)
+    if title is None:
+        title = form.windowTitle()
+    _hide_duplicate_title_labels(form)
+    header = make_nott_logo_title_header(
+        title,
+        logo_width=logo_width,
+        logo_height=logo_height,
+    )
+    header.setParent(form)
 
     def place() -> None:
-        logo.setGeometry(x, y, width, height)
-        logo.raise_()
+        header.setGeometry(x, y, max(logo_width + 320, form.width() - x - 12), logo_height)
+        header.raise_()
 
     _hook_widget_resize(form, place)
     place()
-    return logo
+    return header
 
 
 def _logo_header_extra_height(
@@ -199,25 +256,33 @@ def _logo_header_extra_height(
 def install_nott_logo_header(
     window: QMainWindow,
     *,
-    logo_width: int = NOTT_LOGO_WIDTH,
-    logo_height: int = NOTT_LOGO_HEIGHT,
+    title: str | None = None,
+    logo_width: int = NOTT_LOGO_BANNER_WIDTH,
+    logo_height: int = NOTT_LOGO_BANNER_HEIGHT,
     margins: tuple[int, int, int, int] = (8, 8, 8, 8),
     spacing: int = 8,
 ) -> None:
-    """Prepend a NOTT logo row above the central widget."""
+    """Prepend a NOTT logo + window title row above the central widget."""
     apply_window_icon(window)
+    apply_instrument_window_style(window)
+    if title is None:
+        title = window.windowTitle()
     content = window.takeCentralWidget()
     if content is None:
         return
+
+    _hide_duplicate_title_labels(content)
+    header = make_nott_logo_title_header(
+        title,
+        logo_width=logo_width,
+        logo_height=logo_height,
+    )
 
     wrapper = QWidget()
     layout = QVBoxLayout(wrapper)
     layout.setContentsMargins(*margins)
     layout.setSpacing(spacing)
-    layout.addWidget(
-        make_nott_logo_label(logo_width, logo_height),
-        alignment=Qt.AlignHCenter,
-    )
+    layout.addWidget(header, alignment=Qt.AlignLeft)
     layout.addWidget(content, stretch=1)
     window.setCentralWidget(wrapper)
 

@@ -3,6 +3,8 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 from datetime import datetime
 
+from nottcontrol.theme import style_shutter_widget
+
 class ShutterWidget(QWidget):
     closing = pyqtSignal()
 
@@ -16,6 +18,7 @@ class ShutterWidget(QWidget):
         self.timestamp = None
 
         self.ui = loadUi('shutter_widget.ui', self)
+        style_shutter_widget(self)
 
         self.ui.pb_reset.clicked.connect(self.reset)
         self.ui.pb_init.clicked.connect(self.init)

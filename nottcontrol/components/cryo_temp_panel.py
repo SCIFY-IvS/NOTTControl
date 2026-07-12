@@ -14,38 +14,7 @@ from nottcontrol.sensors import (
 from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 
-TEAL = "rgb(50, 129, 140)"
-PANEL_STYLE = f"""
-QGroupBox {{
-    font: 700 11pt "Segoe UI";
-    color: {TEAL};
-    border: 1px solid {TEAL};
-    border-radius: 6px;
-    margin-top: 10px;
-    padding-top: 8px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    left: 10px;
-    padding: 0 4px;
-}}
-"""
-
-PANEL_STYLE_DENSE = f"""
-QGroupBox {{
-    font: 700 10pt "Segoe UI";
-    color: {TEAL};
-    border: 1px solid {TEAL};
-    border-radius: 6px;
-    margin-top: 8px;
-    padding-top: 4px;
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    left: 8px;
-    padding: 0 3px;
-}}
-"""
+from nottcontrol.theme import PANEL_STYLE, PANEL_STYLE_DENSE, TEAL
 
 _TEMP_GROUP_ORDER = [
     "Detector",

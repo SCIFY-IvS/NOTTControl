@@ -7,6 +7,7 @@ from PyQt5.uic import loadUi
 
 from nottcontrol import config
 from nottcontrol.components.pypiezo import piezointerface
+from nottcontrol.theme import style_piezo_widget
 
 
 class PiezoScanWorker(QThread):
@@ -72,6 +73,7 @@ class PiezoWidget(QWidget):
         )
 
         self.ui = loadUi("piezo_widget.ui", self)
+        style_piezo_widget(self)
         self.ui.label_name.setText(name)
 
         self.ui.pb_move_abs.clicked.connect(self.move_abs)

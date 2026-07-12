@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.uic import loadUi
 
 from nottcontrol import config
-from nottcontrol.app_icon import load_app_icon, make_nott_logo_label
+from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
     load_science_image,
@@ -68,63 +68,15 @@ MACIE_SAVE_SCIENCE_FITS = config.getboolean(
     "MACIE", "save_science_fits", fallback=True
 )
 
-PANEL_BUTTON_STYLE = """
-    QPushButton {
-        font: 10pt "Segoe UI";
-        color: white;
-        background: rgb(50, 129, 140);
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        min-height: 28px;
-    }
-    QPushButton:hover {
-        background: rgb(42, 110, 120);
-    }
-    QPushButton:disabled {
-        background: rgb(180, 190, 192);
-        color: rgb(240, 240, 240);
-    }
-"""
-
-PANEL_FIELD_STYLE = (
-    'font: 9pt "Segoe UI";'
-    "QComboBox, QSpinBox, QLineEdit { padding: 1px 4px; min-height: 22px; }"
+from nottcontrol.theme import (
+    CHECKBOX_STYLE,
+    H2RG_WINDOW_STYLE,
+    IMAGE_FRAME_STYLE,
+    PANEL_BUTTON_STYLE,
+    PANEL_FIELD_STYLE,
+    PANEL_GROUP_STYLE,
+    PANEL_LABEL_STYLE,
 )
-PANEL_LABEL_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50);'
-
-PANEL_GROUP_STYLE = """
-    QGroupBox {
-        font: 700 10pt "Segoe UI";
-        color: rgb(50, 129, 140);
-        border: 1px solid rgb(50, 129, 140);
-        border-radius: 6px;
-        margin-top: 10px;
-        padding-top: 6px;
-        background: white;
-    }
-    QGroupBox::title {
-        subcontrol-origin: margin;
-        left: 10px;
-        padding: 0 4px;
-    }
-"""
-
-WINDOW_STYLE = """
-    QMainWindow, QWidget#h2rg_root {
-        background: rgb(245, 248, 249);
-    }
-"""
-
-IMAGE_FRAME_STYLE = """
-    QFrame#frame_camera {
-        background: rgb(26, 26, 46);
-        border: 1px solid rgb(50, 129, 140);
-        border-radius: 6px;
-    }
-"""
-
-CHECKBOX_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50); spacing: 6px;'
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
@@ -360,6 +312,7 @@ class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
     operation_failed = pyqtSignal(str)
+    live_acquisition_failed = pyqtSignal(str)
     status_updated = pyqtSignal(str)
     controls_enabled = pyqtSignal(bool)
     readouts_updated = pyqtSignal(object)
@@ -378,6 +331,9 @@ class H2rgMainWindow(QMainWindow):
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
+        self.live_acquisition_failed.connect(
+            self._on_live_acquisition_failed, Qt.QueuedConnection
+        )
         self.status_updated.connect(self._set_status, Qt.QueuedConnection)
         self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
         self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
@@ -510,7 +466,7 @@ class H2rgMainWindow(QMainWindow):
         parent_layout.addLayout(row)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
-        parent_layout.addWidget(make_nott_logo_label())
+        parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
 
     def _setup_image_statistics_panel(self) -> QGroupBox:
         group = QGroupBox("Image statistics")
@@ -943,7 +899,7 @@ class H2rgMainWindow(QMainWindow):
         outer.addWidget(right_host, stretch=0)
 
     def _apply_styles(self) -> None:
-        self.setStyleSheet(WINDOW_STYLE)
+        self.setStyleSheet(H2RG_WINDOW_STYLE)
         self.ui.frame_camera.setStyleSheet(IMAGE_FRAME_STYLE)
 
         for box in (
@@ -1184,6 +1140,39 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_take_background.setEnabled(enabled)
         self.ui.comboBox_detector_mode.setEnabled(enabled)
         self.ui.comboBox_window_mode.setEnabled(enabled)
+        self.ui.button_init.setEnabled(enabled)
+        self.ui.button_powerOn.setEnabled(enabled)
+        self.ui.button_powerOff.setEnabled(enabled)
+
+    def _stop_live_ui(self) -> None:
+        self._live_active = False
+        self._live_poll_stop.set()
+        if self.ui is not None:
+            self.ui.button_live.setText("Live")
+        self._set_live_dependent_controls(False)
+
+    def _activate_live_ui(self) -> None:
+        self._live_active = True
+        self._live_poll_stop.clear()
+        if self.ui is not None:
+            self.ui.button_live.setText("Stop live")
+        self._set_live_dependent_controls(True)
+
+        def poll_frames() -> None:
+            import time
+
+            while (
+                self._live_active
+                and self._macie is not None
+                and not self._live_poll_stop.is_set()
+            ):
+                loaded = self._load_latest_frame(force=False, macie=self._macie)
+                if loaded is not None:
+                    frame, _path = loaded
+                    self.frame_ready.emit(frame)
+                time.sleep(0.5)
+
+        threading.Thread(target=poll_frames, daemon=True).start()
 
     def _fits_snapshot_before_acquire(self, macie) -> tuple[float, str | None]:
         before_mtime = self._latest_fits_mtime()
@@ -1347,6 +1336,19 @@ class H2rgMainWindow(QMainWindow):
         self._set_status(message)
         QMessageBox.warning(self, "H2RG", message)
 
+    def _on_live_macie_error(self, exc: Exception) -> None:
+        self.live_acquisition_failed.emit(str(exc))
+
+    def _on_live_acquisition_failed(self, message: str) -> None:
+        if self._macie is not None:
+            try:
+                self._macie.stop_continuous_acquisition()
+            except Exception:
+                pass
+        self._stop_live_ui()
+        self._set_status(f"Live acquisition stopped: {message}")
+        QMessageBox.warning(self, "H2RG", f"Live acquisition stopped: {message}")
+
     def _ensure_macie(self, config_file: str | None = None):
         from nottcontrol.camera.macie.macie_interface import MacieInterface
 
@@ -1362,6 +1364,7 @@ class H2rgMainWindow(QMainWindow):
             )
         else:
             self._macie.set_config_file(config_file)
+        self._macie.set_live_error_callback(self._on_live_macie_error)
         return self._macie
 
     def _run_macie_operation(self, label: str, operation) -> None:
@@ -1381,6 +1384,9 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def init_camera(self) -> None:
+        if self._live_active:
+            self._on_operation_failed("Stop live mode before initializing")
+            return
         self.init_button_state.emit("busy")
         self.status_updated.emit("Initializing…")
         window_index = self.ui.comboBox_window_mode.currentIndex()
@@ -1409,9 +1415,15 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def power_on(self) -> None:
+        if self._live_active:
+            self._on_operation_failed("Stop live mode before power on")
+            return
         self._run_macie_operation("Power on", lambda: self._ensure_macie().power_on())
 
     def power_off(self) -> None:
+        if self._live_active:
+            self._on_operation_failed("Stop live mode before power off")
+            return
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
 
     def _apply_exposure_settings(self, macie) -> None:
@@ -1488,6 +1500,7 @@ class H2rgMainWindow(QMainWindow):
             save_science_fits(
                 output_path,
                 frame,
+                source_header=self._raw_fits_header,
                 tint_ms=self._last_tint_ms,
             )
             return output_path
@@ -1638,43 +1651,27 @@ class H2rgMainWindow(QMainWindow):
             return
         if self._live_active:
             self._macie.stop_continuous_acquisition()
-            self._live_active = False
-            self._live_poll_stop.set()
-            self.ui.button_live.setText("Live")
-            self._set_live_dependent_controls(False)
+            self._stop_live_ui()
             self._set_status("Live stopped")
             return
 
-        self._live_active = True
-        self._live_poll_stop.clear()
-        self.ui.button_live.setText("Stop live")
-        self._set_live_dependent_controls(True)
-        self._set_status("Live acquiring…")
-        self._macie.start_continuous_acquisition()
+        self._set_status("Starting live acquisition…")
 
-        def poll_frames() -> None:
-            import time
+        def worker() -> None:
+            try:
+                self._apply_exposure_settings(self._macie)
+                self._macie.start_continuous_acquisition()
+                QTimer.singleShot(0, self._activate_live_ui)
+                self.status_updated.emit("Live acquiring…")
+            except Exception as exc:
+                self.live_acquisition_failed.emit(str(exc))
 
-            while (
-                self._live_active
-                and self._macie is not None
-                and not self._live_poll_stop.is_set()
-            ):
-                loaded = self._load_latest_frame(force=False, macie=self._macie)
-                if loaded is not None:
-                    frame, _path = loaded
-                    self.frame_ready.emit(frame)
-                time.sleep(0.5)
-
-        threading.Thread(target=poll_frames, daemon=True).start()
+        threading.Thread(target=worker, daemon=True).start()
 
     def halt(self) -> None:
         if self._live_active and self._macie is not None:
             self._macie.stop_continuous_acquisition()
-            self._live_active = False
-            self._live_poll_stop.set()
-            self.ui.button_live.setText("Live")
-            self._set_live_dependent_controls(False)
+            self._stop_live_ui()
 
         if self._macie is not None:
             self._run_macie_operation("Halt", self._macie.halt_acquisition)
@@ -1939,9 +1936,7 @@ class H2rgMainWindow(QMainWindow):
     def closeEvent(self, event) -> None:
         if self._live_active and self._macie is not None:
             self._macie.stop_continuous_acquisition()
-            self._live_active = False
-            self._live_poll_stop.set()
-            self._set_live_dependent_controls(False)
+            self._stop_live_ui()
 
         if self._macie is not None:
             if self._operation_lock.acquire(timeout=5.0):

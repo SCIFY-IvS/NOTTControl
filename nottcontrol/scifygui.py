@@ -3,8 +3,9 @@ from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUi
 from pathlib import Path
-from nottcontrol.app_icon import load_app_icon
+from nottcontrol.app_icon import install_nott_logo_header, load_app_icon
 from nottcontrol.opcua import OPCUAConnection
+from nottcontrol.theme import apply_main_window_styles
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
@@ -44,7 +45,6 @@ from nottcontrol.components.device_polling import (
     split_motor_position_values,
     split_motor_status_values,
 )
-from nottcontrol.app_icon import install_nott_logo_header
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
@@ -115,6 +115,7 @@ class MainWindow(QMainWindow):
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
         self.setWindowTitle("NOTT instrument control")
+        apply_main_window_styles(self)
         self._load_header_logos()
         self._layout_nav_buttons()
         self.ui.label_2.setStyleSheet("background: transparent;")
@@ -703,7 +704,7 @@ class DelayLinesWindow(QMainWindow):
 
         # set up the delay lines window
         self.ui = loadUi('delay_lines.ui', self)
-        install_nott_logo_header(self)
+        install_nott_logo_header(self, title="Delay Lines")
         # Dl statuses
         #self.dl1_status()
 
