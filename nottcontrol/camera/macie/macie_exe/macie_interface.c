@@ -257,6 +257,14 @@ static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
         {
             continue;
         }
+        if (name.size() >= 14)
+        {
+            std::string suffix = name.substr(name.size() - 14);
+            if (suffix == "_science.fits" || suffix == "_science.FITS")
+            {
+                continue;
+            }
+        }
 
         std::string full = strDir + name;
         struct stat st;
