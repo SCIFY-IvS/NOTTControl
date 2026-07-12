@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QGridLayout, QMainWindow, QSizePolicy
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from nottcontrol import config
@@ -28,6 +28,8 @@ class ShutterWindow(QMainWindow):
 
         self.ui = loadUi('shutters.ui', self)
         install_nott_logo_header(self, title="Shutter Control")
+        self._layout_shutter_panels()
+        self.setMinimumSize(1100, 680)
 
         self.ui.shutter_widget_1.setup(self.opcua_conn, self.redis_client, self._shutter1)
         self.ui.shutter_widget_2.setup(self.opcua_conn, self.redis_client, self._shutter2)
@@ -57,6 +59,24 @@ class ShutterWindow(QMainWindow):
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
         self.t.start(200)
+
+    def _layout_shutter_panels(self) -> None:
+        container = self.ui.centralwidget
+        if container.layout() is not None:
+            return
+        layout = QGridLayout(container)
+        layout.setContentsMargins(12, 8, 12, 12)
+        layout.setSpacing(12)
+        widgets = (
+            self.ui.shutter_widget_1,
+            self.ui.shutter_widget_2,
+            self.ui.shutter_widget_3,
+            self.ui.shutter_widget_4,
+        )
+        for index, widget in enumerate(widgets):
+            widget.setMinimumHeight(200)
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            layout.addWidget(widget, index // 2, index % 2)
 
     def closeEvent(self, *args):
         self.t.stop()

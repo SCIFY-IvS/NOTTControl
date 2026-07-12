@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QLineEdit, QPushButton, QLabel, QMainWindow, QWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QMainWindow, QVBoxLayout, QWidget
 
 TEAL = "rgb(50, 129, 140)"
 TEAL_HOVER = "rgb(42, 110, 120)"
@@ -152,7 +153,7 @@ QMainWindow, QWidget#h2rg_root {{
 """
 
 CARD_STYLE = f"""
-QWidget {{
+QWidget#shutter_card, QWidget#motor_card, QWidget#piezo_card {{
     background: {BG_WHITE};
     border: 1px solid {BORDER};
     border-radius: 8px;
@@ -214,6 +215,7 @@ def style_line_edits(widget: QWidget, *names: str) -> None:
 
 
 def style_motor_widget(widget: QWidget) -> None:
+    widget.setObjectName("motor_card")
     widget.setStyleSheet(CARD_STYLE)
     name = _label(widget, "label_name")
     if name is not None:
@@ -262,7 +264,93 @@ def style_motor_widget(widget: QWidget) -> None:
     style_line_edits(widget, "lineEdit_pos", "lineEdit_relpos")
 
 
+def layout_shutter_widget(widget: QWidget) -> None:
+    """Replace absolute geometry with a structured layout."""
+    widget.setObjectName("shutter_card")
+
+    layout_host = widget.findChild(QWidget, "layoutWidget")
+    if layout_host is not None:
+        layout_host.hide()
+
+    buttons = [
+        widget.findChild(QPushButton, name)
+        for name in ("pb_reset", "pb_init", "pb_enable", "pb_disable", "pb_stop")
+    ]
+    buttons = [btn for btn in buttons if btn is not None]
+
+    name = _label(widget, "label_name")
+    headers = (
+        (_label(widget, "label_6"), _label(widget, "label_status")),
+        (_label(widget, "label_7"), _label(widget, "label_state")),
+        (_label(widget, "label_8"), _label(widget, "label_subState")),
+    )
+    position_header = _label(widget, "label_9")
+    position_value = _label(widget, "label_opened")
+    pb_open = widget.findChild(QPushButton, "pb_open")
+    pb_close = widget.findChild(QPushButton, "pb_close")
+    error = _label(widget, "label_error")
+
+    if widget.layout() is not None:
+        return
+
+    outer = QVBoxLayout(widget)
+    outer.setContentsMargins(12, 10, 12, 10)
+    outer.setSpacing(8)
+
+    if name is not None:
+        outer.addWidget(name)
+
+    if buttons:
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(6)
+        for button in buttons:
+            button.setMinimumHeight(28)
+            button.setSizePolicy(
+                button.sizePolicy().horizontalPolicy(),
+                button.sizePolicy().verticalPolicy(),
+            )
+            btn_row.addWidget(button)
+        outer.addLayout(btn_row)
+
+    status_grid = QGridLayout()
+    status_grid.setHorizontalSpacing(16)
+    status_grid.setVerticalSpacing(4)
+    for column, (header, value) in enumerate(headers):
+        if header is None or value is None:
+            continue
+        header.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        value.setMinimumHeight(28)
+        status_grid.addWidget(header, 0, column)
+        status_grid.addWidget(value, 1, column)
+    outer.addLayout(status_grid)
+
+    control_row = QHBoxLayout()
+    control_row.setSpacing(8)
+    if position_header is not None:
+        position_header.setText("Position")
+        control_row.addWidget(position_header)
+    if position_value is not None:
+        position_value.setMinimumWidth(96)
+        position_value.setAlignment(Qt.AlignCenter)
+        control_row.addWidget(position_value)
+    control_row.addStretch()
+    if pb_open is not None:
+        pb_open.setMinimumWidth(88)
+        pb_open.setMinimumHeight(32)
+        control_row.addWidget(pb_open)
+    if pb_close is not None:
+        pb_close.setMinimumWidth(88)
+        pb_close.setMinimumHeight(32)
+        control_row.addWidget(pb_close)
+    outer.addLayout(control_row)
+
+    if error is not None:
+        outer.addWidget(error)
+
+
 def style_shutter_widget(widget: QWidget) -> None:
+    layout_shutter_widget(widget)
     widget.setStyleSheet(CARD_STYLE)
     name = _label(widget, "label_name")
     if name is not None:
@@ -274,7 +362,7 @@ def style_shutter_widget(widget: QWidget) -> None:
     for label_name in ("label_status", "label_state", "label_subState", "label_opened"):
         label = _label(widget, label_name)
         if label is not None:
-            label.setStyleSheet(PANEL_LABEL_STYLE)
+            label.setStyleSheet(VALUE_READOUT_STYLE)
     error = _label(widget, "label_error")
     if error is not None:
         error.setStyleSheet(ERROR_LABEL_STYLE)
@@ -295,6 +383,7 @@ def style_shutter_widget(widget: QWidget) -> None:
 
 
 def style_piezo_widget(widget: QWidget) -> None:
+    widget.setObjectName("piezo_card")
     widget.setStyleSheet(CARD_STYLE)
     name = _label(widget, "label_name")
     if name is not None:
