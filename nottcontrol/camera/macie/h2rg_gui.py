@@ -971,9 +971,13 @@ class H2rgMainWindow(QMainWindow):
         }
 
     def closeEvent(self, event) -> None:
+        if self._live_active and self._macie is not None:
+            self._macie.stop_continuous_acquisition()
+            self._live_active = False
+
         if self._macie is not None:
-            if self._live_active:
-                self._macie.stop_continuous_acquisition()
+            if self._operation_lock.acquire(timeout=5.0):
+                self._operation_lock.release()
             try:
                 self._macie.close()
             except Exception:

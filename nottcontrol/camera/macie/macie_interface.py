@@ -1,7 +1,7 @@
 import os
 import ctypes
 from enum import Enum
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 import zmq
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,11 +30,15 @@ class MacieInterface():
         config_file="basic_warm_slow.cfg",
         zmq_address="tcp://localhost:65534",
     ):
+        self._config_file = server_config_path(config_file)
+        self._offline_mode = offline_mode
         self._context = zmq.Context()
         self._socket = self._context.socket(zmq.REQ)
         self._socket.connect(zmq_address)
+        self._lock = Lock()
+        self._continuous_thread: Thread | None = None
 
-        self.initialize(server_config_path(config_file), offline_mode)
+        self.initialize(self._config_file, self._offline_mode)
 
         self.continuous_acquisition_running = False
         self._acquiring = Event()
@@ -49,41 +53,51 @@ class MacieInterface():
         self.close()
     
     def initialize(self, config_file, offline_mode):
-        self._socket.send_string(f"init;{config_file};{str(offline_mode).lower()}")
-        return self._receive_and_parse_reply()
+        with self._lock:
+            self._socket.send_string(f"init;{config_file};{str(offline_mode).lower()}")
+            return self._receive_and_parse_reply()
     
     def power_off(self):
-        self._socket.send_string("poweroff")
-        return self._receive_and_parse_reply()
+        return self._request("poweroff")
     
     def power_on(self):
-        self._socket.send_string("poweron")
-        return self._receive_and_parse_reply()
+        return self._request("poweron")
 
     def init_camera(self):
-        self._socket.send_string("initcamera")
-        
-        self._receive_and_parse_reply()
+        # Re-send init so initcamera works after a zmq_server restart or a
+        # stale client session that skipped the init command on the server.
+        self.initialize(self._config_file, self._offline_mode)
+        with self._lock:
+            self._socket.send_string("initcamera")
+            self._receive_and_parse_reply()
 
-        #Start the thread for continuous acquisition - it won't execute anything until start_continuous_acquisition is called
-        thread = Thread(target = self.continuous_acquisition)
-        thread.start()
+        if self._continuous_thread is None or not self._continuous_thread.is_alive():
+            self._continuous_thread = Thread(
+                target=self.continuous_acquisition, daemon=True
+            )
+            self._continuous_thread.start()
+    
+    def _request(self, message: str):
+        with self._lock:
+            self._socket.send_string(message)
+            return self._receive_and_parse_reply()
+
+    def _request_multipart(self, message: str):
+        with self._lock:
+            self._socket.send_string(message)
+            return self._socket.recv_multipart()
     
     def acquire(self, no_recon = False):
-        self._socket.send_string(f"acquire;{str(no_recon).lower()}")
-        return self._receive_and_parse_reply()
+        return self._request(f"acquire;{str(no_recon).lower()}")
 
     def get_save_dir(self) -> str | None:
-        self._socket.send_string("getsavedir")
-        return self._receive_and_parse_reply()
+        return self._request("getsavedir")
 
     def get_newest_fits_path(self) -> str | None:
-        self._socket.send_string("newestfits")
-        return self._receive_and_parse_reply()
+        return self._request("newestfits")
 
     def fetch_newest_fits(self) -> tuple[str, bytes] | None:
-        self._socket.send_string("fetchnewestfits")
-        parts = self._socket.recv_multipart()
+        parts = self._request_multipart("fetchnewestfits")
         if not parts:
             return None
         header = parts[0].decode("utf-8")
@@ -99,31 +113,28 @@ class MacieInterface():
         return filename, bytes(payload)
     
     def get_power(self):
-        self._socket.send_string("getpower")
-        result = self._receive_and_parse_reply()
+        result = self._request("getpower")
         return result == "true"
     
     def close(self):
         self._closing.set()
+        self._acquiring.clear()
 
-        self._socket.send_string("close")
         try:
-            self._receive_and_parse_reply()
+            self._request("close")
         except Exception as e:
             print(e)
-            pass #Best effort, clean up resources on our end anyway
 
-        self._socket.close()
-        self._context.term()
+        with self._lock:
+            self._socket.close()
+            self._context.term()
     
     def halt_acquisition(self):
-        self._socket.send_string("halt")
-        return self._receive_and_parse_reply()
+        return self._request("halt")
     
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
-        self._socket.send_string(message)
-        return self._receive_and_parse_reply()
+        return self._request(message)
     
     def set_integration_time(
         self,
@@ -142,20 +153,16 @@ class MacieInterface():
         message = (
             f"inttime;{tint_ms};{ngmax};{ncoadds};{nseq};{str(save).lower()}"
         )
-        self._socket.send_string(message)
-        answer = self._receive_and_parse_reply()
+        answer = self._request(message)
         actual_ms = float(answer[0])
         return actual_ms, int(answer[1]), int(answer[2]), int(answer[3])
 
     def read_integration_time_s(self) -> float:
-        self._socket.send_string("readinttime")
-        answer = self._receive_and_parse_reply()
+        answer = self._request("readinttime")
         return float(answer) / 1000.0
     
     def read_exposure_settings(self):
-        message = "rexpsettings"
-        self._socket.send_string(message)
-        answer = self._receive_and_parse_reply()
+        answer = self._request("rexpsettings")
         
         save = True if answer[0] == "true" else False
         ncoadds = answer[1]
@@ -168,13 +175,10 @@ class MacieInterface():
     
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
         message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
-        self._socket.send_string(message)
-        return self._receive_and_parse_reply()
+        return self._request(message)
     
     def read_frame_settings(self):
-        message = "rframesettings"
-        self._socket.send_string(message)
-        answer = self._receive_and_parse_reply()
+        answer = self._request("rframesettings")
 
         xWindow = True if answer[0] == "true" else False
         yWindow = True if answer[1] == "true" else False
@@ -189,9 +193,7 @@ class MacieInterface():
     
     def get_detector_mode(self):
         """ Get the current detector mode (fast/slow)"""
-        message = "getmode"
-        self._socket.send_string(message)
-        answer = self._receive_and_parse_reply()
+        answer = self._request("getmode")
         if answer == "fast":
             return DetectorMode.FAST
         elif answer == "slow":

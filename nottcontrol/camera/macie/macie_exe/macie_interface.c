@@ -18,13 +18,16 @@ MACIE_Settings *_ptUserData;
 extern "C" int M_initialize(const char* configFile, bool offline_mode)
 {
     string cfgFile = string(configFile);
-    printf("Test before \n");
     printf("Calling initialize, configfile %s, offline_mode %d \n", configFile, offline_mode);
-    printf("Test \n");
     _configFile = cfgFile;
-    printf("Making MACIE_Settings... \n");
+
+    if (_ptUserData != NULL)
+    {
+        free_resources(_ptUserData);
+        _ptUserData = NULL;
+    }
+
     _ptUserData = new MACIE_Settings;
-    printf("Calling initialize... \n");
     int ret = initialize(cfgFile, _ptUserData);
     if(offline_mode)
     {
@@ -76,8 +79,17 @@ extern "C" bool M_getPower(bool *power)
 extern "C" bool M_close()
 {
     std::cout << "Calling close" << std::endl;
-    bool ret1 = SetPowerASIC(_ptUserData, false);
-    bool ret2 = free_resources(_ptUserData);
+    bool ret1 = true;
+    if (_ptUserData != NULL)
+    {
+        ret1 = SetPowerASIC(_ptUserData, false);
+    }
+    bool ret2 = true;
+    if (_ptUserData != NULL)
+    {
+        ret2 = free_resources(_ptUserData);
+        _ptUserData = NULL;
+    }
     return ret1 && ret2;
 }
 
@@ -294,6 +306,10 @@ int main () {
             else if (command == "initcamera")
             {
                 result = M_initCamera();
+                if (!result && _configFile.empty())
+                {
+                    answer = "config file not set — send init before initcamera";
+                }
             }
             else if (command == "acquire")
             {
