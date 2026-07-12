@@ -127,6 +127,16 @@ def _normalize_scene_pos(pos) -> QPointF:
     return pos
 
 
+def _format_stat_value(value: float) -> str:
+    """Format detector ADU statistics without scientific notation."""
+    if not numpy.isfinite(value):
+        return "—"
+    rounded = float(numpy.round(value))
+    if abs(rounded - value) < 1e-9:
+        return f"{int(rounded)}"
+    return f"{value:.2f}"
+
+
 def macie_config_path(config_name: str) -> Path:
     base = Path(__file__).resolve().parent / "macie_exe" / "config_files"
     return base / config_name
@@ -310,20 +320,43 @@ class H2rgMainWindow(QMainWindow):
         QApplication.processEvents()
         self._apply_styles()
         self._setup_image_placeholder()
+        self._create_cursor_readout_label()
         self.ui.frame_camera.installEventFilter(self)
+        self._layout_image_frame()
         self._populate_comboboxes()
         self._set_status("Not connected")
         threading.Thread(target=self._background_startup, daemon=True).start()
 
     def _setup_image_placeholder(self) -> None:
-        layout = QVBoxLayout(self.ui.frame_camera)
-        layout.setContentsMargins(4, 4, 4, 4)
-        self._image_placeholder = QLabel("No image yet")
+        self._image_placeholder = QLabel("No image yet", self.ui.frame_camera)
         self._image_placeholder.setAlignment(Qt.AlignCenter)
         self._image_placeholder.setStyleSheet(
             'color: rgb(180, 180, 200); font: 11pt "Segoe UI";'
         )
-        layout.addWidget(self._image_placeholder)
+
+    def _clear_frame_camera_layout(self) -> None:
+        layout = self.ui.frame_camera.layout()
+        if layout is None:
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(self.ui.frame_camera)
+        QWidget().setLayout(layout)
+
+    def _create_cursor_readout_label(self) -> None:
+        if self._cursor_readout is not None:
+            return
+        self._cursor_readout = QLabel("Pixel: —", self.ui.frame_camera)
+        self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self._cursor_readout.setStyleSheet(
+            'font: 9pt "Consolas", monospace;'
+            " color: rgb(50, 50, 50);"
+            " background-color: rgba(255, 255, 255, 215);"
+            " padding-left: 6px;"
+        )
+        self._cursor_readout.setAttribute(Qt.WA_TransparentForMouseEvents, True)
 
     def _setup_image_statistics_panel(self, parent_layout: QVBoxLayout) -> None:
         group = QGroupBox("Image statistics")
@@ -360,29 +393,25 @@ class H2rgMainWindow(QMainWindow):
         parent_layout.addWidget(group)
 
     def _setup_cursor_readout(self) -> None:
-        if self._cursor_readout is not None or self.image is None:
+        if self.image is None or self._cursor_readout is None:
             return
-
-        self._cursor_readout = QLabel(self.ui.frame_camera)
-        self._cursor_readout.setText("Pixel: —")
-        self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self._cursor_readout.setStyleSheet(
-            'font: 9pt "Consolas", monospace;'
-            " color: rgb(50, 50, 50);"
-            " background-color: rgba(255, 255, 255, 215);"
-            " padding-left: 6px;"
-        )
         scene = self.image.getView().scene()
         scene.sigMouseMoved.connect(self._update_cursor_readout)
 
     def _layout_image_frame(self) -> None:
-        if self._cursor_readout is None:
-            return
         width = max(1, self.ui.frame_camera.width())
         height = max(1, self.ui.frame_camera.height())
         readout_h = CURSOR_READOUT_HEIGHT
-        self._cursor_readout.setGeometry(0, height - readout_h, width, readout_h)
-        self._cursor_readout.raise_()
+        image_h = max(1, height - readout_h)
+
+        if self.image is not None:
+            self.image.setGeometry(4, 4, max(1, width - 8), max(1, image_h - 8))
+        elif self._image_placeholder is not None:
+            self._image_placeholder.setGeometry(4, 4, max(1, width - 8), max(1, image_h - 8))
+
+        if self._cursor_readout is not None:
+            self._cursor_readout.setGeometry(0, height - readout_h, width, readout_h)
+            self._cursor_readout.raise_()
 
     def _update_cursor_readout(self, pos) -> None:
         self._cursor_readout_pending = pos
@@ -432,10 +461,10 @@ class H2rgMainWindow(QMainWindow):
             ):
                 field.setText("—")
             return
-        self._stat_mean.setText(f"{numpy.mean(data):.4g}")
-        self._stat_min.setText(f"{numpy.min(data):.4g}")
-        self._stat_max.setText(f"{numpy.max(data):.4g}")
-        self._stat_std.setText(f"{numpy.std(data):.4g}")
+        self._stat_mean.setText(_format_stat_value(float(numpy.mean(data))))
+        self._stat_min.setText(_format_stat_value(float(numpy.min(data))))
+        self._stat_max.setText(_format_stat_value(float(numpy.max(data))))
+        self._stat_std.setText(_format_stat_value(float(numpy.std(data))))
 
     def eventFilter(self, obj, event) -> bool:
         if (
@@ -456,22 +485,20 @@ class H2rgMainWindow(QMainWindow):
         pg.setConfigOption("background", "#1a1a2e")
         pg.setConfigOption("foreground", "w")
 
-        layout = self.ui.frame_camera.layout()
-        if layout is None:
-            layout = QVBoxLayout(self.ui.frame_camera)
-            layout.setContentsMargins(4, 4, 4, 4)
+        self._clear_frame_camera_layout()
 
         if self._image_placeholder is not None:
-            layout.removeWidget(self._image_placeholder)
+            self._image_placeholder.hide()
             self._image_placeholder.deleteLater()
             self._image_placeholder = None
 
-        self.image = pg.ImageView()
+        self.image = pg.ImageView(self.ui.frame_camera)
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
+        self.image.show()
+        self.image.getView().setMouseEnabled(x=True, y=True)
         self.image.getView().setAspectLocked(True)
-        layout.addWidget(self.image)
         self._setup_cursor_readout()
         self._layout_image_frame()
 
