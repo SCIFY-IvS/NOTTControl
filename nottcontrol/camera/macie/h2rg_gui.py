@@ -7,10 +7,11 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
     QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -113,6 +114,17 @@ CHECKBOX_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50); spacing: 6px;'
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
+CURSOR_READOUT_HEIGHT = 22
+CURSOR_READOUT_INTERVAL_MS = 50
+
+
+def _normalize_scene_pos(pos) -> QPointF:
+    """Accept QPointF or nested tuples from pyqtgraph signal/proxy variants."""
+    while isinstance(pos, (tuple, list)) and len(pos) == 1:
+        pos = pos[0]
+    if isinstance(pos, (tuple, list)) and len(pos) >= 2:
+        return QPointF(float(pos[0]), float(pos[1]))
+    return pos
 
 
 def macie_config_path(config_name: str) -> Path:
@@ -267,6 +279,15 @@ class H2rgMainWindow(QMainWindow):
         self._last_zmq_fits_poll = 0.0
         self.image = None
         self._image_placeholder: QLabel | None = None
+        self._cursor_readout: QLabel | None = None
+        self._cursor_readout_pending = None
+        self._cursor_readout_timer = QTimer()
+        self._cursor_readout_timer.setSingleShot(True)
+        self._cursor_readout_timer.timeout.connect(self._flush_cursor_readout)
+        self._stat_mean: QLineEdit | None = None
+        self._stat_min: QLineEdit | None = None
+        self._stat_max: QLineEdit | None = None
+        self._stat_std: QLineEdit | None = None
 
     def _stage_load_ui(self) -> None:
         QApplication.processEvents()
@@ -289,6 +310,7 @@ class H2rgMainWindow(QMainWindow):
         QApplication.processEvents()
         self._apply_styles()
         self._setup_image_placeholder()
+        self.ui.frame_camera.installEventFilter(self)
         self._populate_comboboxes()
         self._set_status("Not connected")
         threading.Thread(target=self._background_startup, daemon=True).start()
@@ -302,6 +324,127 @@ class H2rgMainWindow(QMainWindow):
             'color: rgb(180, 180, 200); font: 11pt "Segoe UI";'
         )
         layout.addWidget(self._image_placeholder)
+
+    def _setup_image_statistics_panel(self, parent_layout: QVBoxLayout) -> None:
+        group = QGroupBox("Image statistics")
+        group.setStyleSheet(PANEL_GROUP_STYLE)
+        grid = QGridLayout(group)
+        grid.setContentsMargins(8, 12, 8, 8)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(6)
+        grid.setColumnStretch(1, 1)
+
+        field_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        stat_field_style = (
+            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+        )
+
+        def _add_row(row: int, text: str, field: QLineEdit) -> None:
+            label = QLabel(text, group)
+            label.setStyleSheet(PANEL_LABEL_STYLE)
+            field.setReadOnly(True)
+            field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            field.setSizePolicy(field_policy)
+            field.setStyleSheet(stat_field_style)
+            grid.addWidget(label, row, 0, Qt.AlignLeft | Qt.AlignVCenter)
+            grid.addWidget(field, row, 1, Qt.AlignRight | Qt.AlignVCenter)
+
+        self._stat_mean = QLineEdit("—", group)
+        self._stat_min = QLineEdit("—", group)
+        self._stat_max = QLineEdit("—", group)
+        self._stat_std = QLineEdit("—", group)
+        _add_row(0, "Mean:", self._stat_mean)
+        _add_row(1, "Min:", self._stat_min)
+        _add_row(2, "Max:", self._stat_max)
+        _add_row(3, "Std:", self._stat_std)
+        parent_layout.addWidget(group)
+
+    def _setup_cursor_readout(self) -> None:
+        if self._cursor_readout is not None or self.image is None:
+            return
+
+        self._cursor_readout = QLabel(self.ui.frame_camera)
+        self._cursor_readout.setText("Pixel: —")
+        self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self._cursor_readout.setStyleSheet(
+            'font: 9pt "Consolas", monospace;'
+            " color: rgb(50, 50, 50);"
+            " background-color: rgba(255, 255, 255, 215);"
+            " padding-left: 6px;"
+        )
+        scene = self.image.getView().scene()
+        scene.sigMouseMoved.connect(self._update_cursor_readout)
+
+    def _layout_image_frame(self) -> None:
+        if self._cursor_readout is None:
+            return
+        width = max(1, self.ui.frame_camera.width())
+        height = max(1, self.ui.frame_camera.height())
+        readout_h = CURSOR_READOUT_HEIGHT
+        self._cursor_readout.setGeometry(0, height - readout_h, width, readout_h)
+        self._cursor_readout.raise_()
+
+    def _update_cursor_readout(self, pos) -> None:
+        self._cursor_readout_pending = pos
+        if not self._cursor_readout_timer.isActive():
+            self._cursor_readout_timer.start(CURSOR_READOUT_INTERVAL_MS)
+
+    def _flush_cursor_readout(self) -> None:
+        if self._cursor_readout is None:
+            return
+        pos = self._cursor_readout_pending
+        if pos is None:
+            return
+        if self.image is None:
+            self._cursor_readout.setText("Pixel: —")
+            return
+
+        img = self.image.getImageItem().image
+        if img is None:
+            self._cursor_readout.setText("Pixel: —")
+            return
+
+        try:
+            scene_pos = _normalize_scene_pos(pos)
+            mouse = self.image.getView().mapSceneToView(scene_pos)
+        except (TypeError, ValueError):
+            return
+        x = int(mouse.x())
+        y = int(mouse.y())
+        img_h, img_w = img.shape[:2]
+        if x < 0 or y < 0 or x >= img_w or y >= img_h:
+            self._cursor_readout.setText("Pixel: —")
+            return
+
+        adu = float(img[y, x])
+        self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
+
+    def _update_image_statistics(self, frame: numpy.ndarray) -> None:
+        if self._stat_mean is None:
+            return
+        data = numpy.asarray(frame, dtype=numpy.float64)
+        if data.size == 0:
+            for field in (
+                self._stat_mean,
+                self._stat_min,
+                self._stat_max,
+                self._stat_std,
+            ):
+                field.setText("—")
+            return
+        self._stat_mean.setText(f"{numpy.mean(data):.4g}")
+        self._stat_min.setText(f"{numpy.min(data):.4g}")
+        self._stat_max.setText(f"{numpy.max(data):.4g}")
+        self._stat_std.setText(f"{numpy.std(data):.4g}")
+
+    def eventFilter(self, obj, event) -> bool:
+        if (
+            self.ui is not None
+            and obj is self.ui.frame_camera
+            and event.type() == QEvent.Resize
+        ):
+            self._layout_image_frame()
+        return super().eventFilter(obj, event)
 
     def _ensure_image_view(self) -> None:
         if self.image is not None:
@@ -329,6 +472,8 @@ class H2rgMainWindow(QMainWindow):
         self.image.ui.menuBtn.hide()
         self.image.getView().setAspectLocked(True)
         layout.addWidget(self.image)
+        self._setup_cursor_readout()
+        self._layout_image_frame()
 
         if self._current_frame is not None:
             self._display_frame(self._current_frame)
@@ -403,6 +548,8 @@ class H2rgMainWindow(QMainWindow):
             ("label_6", "lineEdit_nb_coadd"),
             ("label_7", "lineEdit_nb_frames"),
         )
+        self.ui.label_5.setText("Integration time (ms):")
+        self.ui.label_4.setText("Total integration time (ms):")
         for row, (label_name, field_name) in enumerate(editable_rows):
             form.addWidget(getattr(self.ui, label_name), row, 0)
             form.addWidget(getattr(self.ui, field_name), row, 1)
@@ -497,7 +644,13 @@ class H2rgMainWindow(QMainWindow):
         outer.setSpacing(16)
 
         self.ui.frame_camera.setMinimumWidth(480)
-        outer.addWidget(self.ui.frame_camera, stretch=1)
+        image_column = QWidget()
+        image_column_layout = QVBoxLayout(image_column)
+        image_column_layout.setContentsMargins(0, 0, 0, 0)
+        image_column_layout.setSpacing(8)
+        image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
+        self._setup_image_statistics_panel(image_column_layout)
+        outer.addWidget(image_column, stretch=1)
 
         right_host = QWidget()
         right_host.setFixedWidth(RIGHT_PANEL_WIDTH)
@@ -723,15 +876,16 @@ class H2rgMainWindow(QMainWindow):
 
     def _apply_exposure_settings(self, macie) -> None:
         try:
-            tint_s = float(self.ui.lineEdit_integration_time.text().strip())
+            tint_ms = float(self.ui.lineEdit_integration_time.text().strip())
             ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
             nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
         except ValueError as exc:
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
-        if tint_s <= 0:
+        if tint_ms <= 0:
             raise ValueError("Integration time must be greater than zero")
 
+        tint_s = tint_ms / 1000.0
         actual_ms, ngroups, ndrops, nreads = macie.set_integration_time(
             tint_s,
             ngmax=MACIE_INTEGRATION_NGROUPS_MAX,
@@ -740,10 +894,10 @@ class H2rgMainWindow(QMainWindow):
             save=True,
         )
         self._last_tint_ms = actual_ms
-        self._update_total_integration_label(actual_tint_s=actual_ms / 1000.0)
+        self._update_total_integration_label(actual_tint_ms=actual_ms)
         self._refresh_exposure_timing(macie)
         self.status_updated.emit(
-            f"Exposure: {actual_ms / 1000.0:.3g} s "
+            f"Exposure: {actual_ms:.3g} ms "
             f"(groups={ngroups}, drops={ndrops}, reads={nreads})"
         )
 
@@ -955,14 +1109,14 @@ class H2rgMainWindow(QMainWindow):
         self.ui.lineEdit_nb_coadd.setText(data["ncoadds"])
         self.ui.lineEdit_nb_frames.setText(data["nseq"])
         if data.get("tint_s") is not None:
-            self.ui.lineEdit_integration_time.setText(f"{data['tint_s']:.6g}")
+            self.ui.lineEdit_integration_time.setText(f"{data['tint_s'] * 1000:.6g}")
         elif data["nreads"]:
             self.ui.lineEdit_integration_time.setText(data["nreads"])
         self._update_total_integration_label()
 
-    def _update_total_integration_label(self, actual_tint_s: float | None = None) -> None:
+    def _update_total_integration_label(self, actual_tint_ms: float | None = None) -> None:
         try:
-            per_frame = actual_tint_s
+            per_frame = actual_tint_ms
             if per_frame is None:
                 per_frame = float(self.ui.lineEdit_integration_time.text() or 0)
             coadds = int(self.ui.lineEdit_nb_coadd.text() or 1)
@@ -1083,6 +1237,9 @@ class H2rgMainWindow(QMainWindow):
         self.image.setImage(display, autoLevels=auto_levels)
         if auto_levels:
             self._auto_levels_next = False
+
+        self._update_image_statistics(display)
+        self._layout_image_frame()
 
         if self._last_fits_path is not None:
             self.ui.lineEdit_frame_nb.setText(self._last_fits_path.name)
