@@ -713,6 +713,10 @@ class H2rgMainWindow(QMainWindow):
         form.addWidget(self.ui.label_2, 1, 0)
         form.addWidget(self.ui.comboBox_window_mode, 1, 1)
         form.addWidget(self.ui.label_3, 2, 0)
+        self.ui.lineEdit_status.setReadOnly(True)
+        self.ui.lineEdit_status.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.ui.lineEdit_status.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.ui.lineEdit_status.setMinimumHeight(24)
         form.addWidget(self.ui.lineEdit_status, 2, 1)
         form.setColumnStretch(1, 1)
         combo_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -754,7 +758,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_set_exposure.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_set_exposure.setFixedSize(52, 28)
         self._button_set_exposure.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        form.addWidget(self._button_set_exposure, 2, 2)
+        form.addWidget(self._button_set_exposure, 0, 2, 3, 1, Qt.AlignTop)
 
         separator_row = len(editable_rows)
         separator = QFrame()
@@ -1274,7 +1278,10 @@ class H2rgMainWindow(QMainWindow):
     def _set_status(self, message: str) -> None:
         if self.ui is None:
             return
-        self.ui.lineEdit_status.setText(message)
+        status = self.ui.lineEdit_status
+        status.setText(message)
+        status.setCursorPosition(0)
+        status.home(False)
 
     def _set_controls_enabled(self, enabled: bool) -> None:
         if self.ui is None:
