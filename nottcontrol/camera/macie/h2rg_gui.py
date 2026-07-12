@@ -162,7 +162,8 @@ def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS)
         host = zmq_server_hostname(zmq_address)
         if host:
             relative = normalized.lstrip("/")
-            return Path(f"\\\\{host}\\{relative.replace('/', '\\')}")
+            windows_relative = relative.replace("/", "\\")
+            return Path(f"\\\\{host}\\{windows_relative}")
 
     return Path(server_path)
 
