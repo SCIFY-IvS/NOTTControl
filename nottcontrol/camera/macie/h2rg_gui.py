@@ -264,6 +264,7 @@ class H2rgMainWindow(QMainWindow):
         self._zmq_server = None
         self._last_tint_ms: float | None = None
         self._initialized = False
+        self._last_zmq_fits_poll = 0.0
         self.image = None
         self._image_placeholder: QLabel | None = None
 
@@ -803,6 +804,16 @@ class H2rgMainWindow(QMainWindow):
         if mapped:
             self._save_dir = mapped
 
+    def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
+        if self._fits_dir_ok is False and not allow_probe:
+            return False
+        try:
+            accessible = self._save_dir.is_dir()
+        except OSError:
+            accessible = False
+        self._fits_dir_ok = accessible
+        return accessible
+
     def _try_load_path_if_new(
         self, path: Path | None, before_mtime: float
     ) -> tuple[numpy.ndarray, Path] | None:
@@ -875,7 +886,7 @@ class H2rgMainWindow(QMainWindow):
             import time
 
             while self._live_active and self._macie is not None:
-                loaded = self._load_latest_frame(macie=self._macie)
+                loaded = self._load_latest_frame(force=True, macie=self._macie)
                 if loaded is not None:
                     frame, _path = loaded
                     self.frame_ready.emit(frame)
@@ -975,30 +986,35 @@ class H2rgMainWindow(QMainWindow):
     ) -> tuple[numpy.ndarray | None, Path | None]:
         import time
 
+        if not self._local_fits_accessible(allow_probe=True):
+            for delay in (0.0, 0.5, 1.0, 2.0):
+                if delay:
+                    time.sleep(delay)
+                fetched = self._fetch_fits_from_server(macie)
+                if fetched is not None:
+                    return fetched
+            return None, None
+
         deadline = time.monotonic() + timeout_s
+        server_path: Path | None = None
+        server_path_checked_at = 0.0
+
         while time.monotonic() < deadline:
             loaded = self._try_load_path_if_new(
                 self._newest_fits_file(allow_probe=True), before_mtime
             )
             if loaded is not None:
                 return loaded
-            loaded = self._try_load_path_if_new(
-                self._resolve_server_fits_path(macie), before_mtime
-            )
+
+            now = time.monotonic()
+            if now - server_path_checked_at >= 2.0:
+                server_path_checked_at = now
+                server_path = self._resolve_server_fits_path(macie)
+            loaded = self._try_load_path_if_new(server_path, before_mtime)
             if loaded is not None:
                 return loaded
             time.sleep(0.2)
 
-        loaded = self._try_load_path_if_new(
-            self._newest_fits_file(allow_probe=True), before_mtime
-        )
-        if loaded is not None:
-            return loaded
-        loaded = self._try_load_path_if_new(
-            self._resolve_server_fits_path(macie), before_mtime
-        )
-        if loaded is not None:
-            return loaded
         fetched = self._fetch_fits_from_server(macie)
         if fetched is not None:
             return fetched
@@ -1013,6 +1029,17 @@ class H2rgMainWindow(QMainWindow):
     def _load_latest_frame(
         self, force: bool = False, macie=None
     ) -> tuple[numpy.ndarray, Path] | None:
+        if not self._local_fits_accessible(allow_probe=True):
+            if macie is None:
+                return None
+            import time
+
+            now = time.monotonic()
+            if not force and (now - self._last_zmq_fits_poll) < 2.0:
+                return None
+            self._last_zmq_fits_poll = now
+            return self._fetch_fits_from_server(macie)
+
         path = self._newest_fits_file(allow_probe=True)
         if path is None and macie is not None:
             path = self._resolve_server_fits_path(macie)
@@ -1020,7 +1047,12 @@ class H2rgMainWindow(QMainWindow):
             if force and macie is not None:
                 return self._fetch_fits_from_server(macie)
             return None
-        mtime = path.stat().st_mtime
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            if macie is not None:
+                return self._fetch_fits_from_server(macie)
+            return None
         if not force and mtime == self._last_fits_mtime:
             return None
         try:
