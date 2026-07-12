@@ -41,6 +41,8 @@ Commands:
    - ZMQ returns actual tint_ms;ngroups;ndrops;nreads
 0. readinttime (ZMQ)
    - Returns current photon-collection time in milliseconds.
+0. rexptiming (ZMQ)
+   - Returns inttime_ms;ramptime_ms;execution_sec;efficiency;frametime_ms
 0. set/getGain
    - Preamp gain settings (16 possible settings).
    - Usage: setGain [0-15]

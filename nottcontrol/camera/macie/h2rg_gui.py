@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
     QSizePolicy,
@@ -218,6 +219,8 @@ class H2rgMainWindow(QMainWindow):
     status_updated = pyqtSignal(str)
     controls_enabled = pyqtSignal(bool)
     readouts_updated = pyqtSignal(object)
+    init_button_state = pyqtSignal(str)
+    exposure_timing_updated = pyqtSignal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -231,6 +234,10 @@ class H2rgMainWindow(QMainWindow):
         self.status_updated.connect(self._set_status, Qt.QueuedConnection)
         self.controls_enabled.connect(self._set_controls_enabled, Qt.QueuedConnection)
         self.readouts_updated.connect(self._apply_readouts, Qt.QueuedConnection)
+        self.init_button_state.connect(self._apply_init_button_state, Qt.QueuedConnection)
+        self.exposure_timing_updated.connect(
+            self._apply_exposure_timing, Qt.QueuedConnection
+        )
 
         loading = QLabel("Loading H2RG controls…", self)
         loading.setAlignment(Qt.AlignCenter)
@@ -256,6 +263,7 @@ class H2rgMainWindow(QMainWindow):
         self._operation_lock = threading.Lock()
         self._zmq_server = None
         self._last_tint_ms: float | None = None
+        self._initialized = False
         self.image = None
         self._image_placeholder: QLabel | None = None
 
@@ -389,16 +397,48 @@ class H2rgMainWindow(QMainWindow):
         form = QGridLayout()
         form.setHorizontalSpacing(8)
         form.setVerticalSpacing(6)
-        rows = (
+        editable_rows = (
             ("label_5", "lineEdit_integration_time"),
             ("label_6", "lineEdit_nb_coadd"),
             ("label_7", "lineEdit_nb_frames"),
-            ("label_4", "lineEdit_integration_time_total"),
-            ("label_8", "lineEdit_frame_nb"),
         )
-        for row, (label_name, field_name) in enumerate(rows):
+        for row, (label_name, field_name) in enumerate(editable_rows):
             form.addWidget(getattr(self.ui, label_name), row, 0)
             form.addWidget(getattr(self.ui, field_name), row, 1)
+
+        self._label_photon_time = QLabel("Photon time (s):")
+        self._lineEdit_photon_time = QLineEdit("—")
+        self._lineEdit_photon_time.setReadOnly(True)
+        self._label_execution_time = QLabel("Execution time (s):")
+        self._lineEdit_execution_time = QLineEdit("—")
+        self._lineEdit_execution_time.setReadOnly(True)
+        self._label_efficiency = QLabel("Efficiency (%):")
+        self._lineEdit_efficiency = QLineEdit("—")
+        self._lineEdit_efficiency.setReadOnly(True)
+        timing_row = len(editable_rows)
+        for offset, (label, field) in enumerate(
+            (
+                (self._label_photon_time, self._lineEdit_photon_time),
+                (self._label_execution_time, self._lineEdit_execution_time),
+                (self._label_efficiency, self._lineEdit_efficiency),
+            )
+        ):
+            label.setStyleSheet(PANEL_LABEL_STYLE)
+            field.setStyleSheet(
+                PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+            )
+            form.addWidget(label, timing_row + offset, 0)
+            form.addWidget(field, timing_row + offset, 1)
+
+        footer_row = timing_row + 3
+        for offset, (label_name, field_name) in enumerate(
+            (
+                ("label_4", "lineEdit_integration_time_total"),
+                ("label_8", "lineEdit_frame_nb"),
+            )
+        ):
+            form.addWidget(getattr(self.ui, label_name), footer_row + offset, 0)
+            form.addWidget(getattr(self.ui, field_name), footer_row + offset, 1)
         form.setColumnStretch(1, 1)
         outer.addLayout(form)
 
@@ -560,7 +600,11 @@ class H2rgMainWindow(QMainWindow):
             self.ui.lineEdit_nb_coadd,
             self.ui.lineEdit_nb_frames,
         ):
-            widget.editingFinished.connect(self._update_total_integration_label)
+            widget.editingFinished.connect(self._on_exposure_fields_changed)
+
+    def _on_exposure_fields_changed(self) -> None:
+        self._update_total_integration_label()
+        self._schedule_exposure_timing_preview()
 
     def _set_status(self, message: str) -> None:
         if self.ui is None:
@@ -579,6 +623,47 @@ class H2rgMainWindow(QMainWindow):
             "button_halt",
         ):
             getattr(self.ui, name).setEnabled(enabled)
+
+    def _apply_init_button_state(self, state: str) -> None:
+        if self.ui is None:
+            return
+        button = self.ui.button_init
+        if state == "busy":
+            button.setEnabled(False)
+            button.setText("Initializing…")
+            return
+        if state == "done":
+            self._initialized = True
+            button.setEnabled(True)
+            button.setText("Re-init")
+            return
+        self._initialized = False
+        button.setEnabled(True)
+        button.setText("Init")
+
+    def _apply_exposure_timing(self, timing: dict[str, float]) -> None:
+        if self.ui is None:
+            return
+        self._lineEdit_photon_time.setText(f"{timing['inttime_s']:.4g}")
+        self._lineEdit_execution_time.setText(f"{timing['execution_s']:.4g}")
+        self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
+
+    def _refresh_exposure_timing(self, macie) -> None:
+        try:
+            timing = macie.read_exposure_timing()
+        except Exception:
+            return
+        self.exposure_timing_updated.emit(timing)
+
+    def _schedule_exposure_timing_preview(self) -> None:
+        if not self._initialized or self._macie is None:
+            return
+
+        def operation() -> None:
+            self._apply_exposure_settings(self._macie)
+            self._refresh_exposure_timing(self._macie)
+
+        self._run_macie_operation("Update timing", operation)
 
     def _on_operation_failed(self, message: str) -> None:
         self._set_status(message)
@@ -606,15 +691,28 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def init_camera(self) -> None:
+        self.init_button_state.emit("busy")
+        self.status_updated.emit("Initializing…")
+
         def operation() -> None:
             macie = self._ensure_macie()
             macie.init_camera()
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
+            self._refresh_exposure_timing(macie)
             self.status_updated.emit("Initialized")
             self.controls_enabled.emit(True)
+            self.init_button_state.emit("done")
 
-        self._run_macie_operation("Init", operation)
+        def worker() -> None:
+            try:
+                with self._operation_lock:
+                    operation()
+            except Exception as exc:
+                self.init_button_state.emit("idle")
+                self.operation_failed.emit(f"Init failed: {exc}")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def power_on(self) -> None:
         self._run_macie_operation("Power on", lambda: self._ensure_macie().power_on())
@@ -642,6 +740,7 @@ class H2rgMainWindow(QMainWindow):
         )
         self._last_tint_ms = actual_ms
         self._update_total_integration_label(actual_tint_s=actual_ms / 1000.0)
+        self._refresh_exposure_timing(macie)
         self.status_updated.emit(
             f"Exposure: {actual_ms / 1000.0:.3g} s "
             f"(groups={ngroups}, drops={ndrops}, reads={nreads})"

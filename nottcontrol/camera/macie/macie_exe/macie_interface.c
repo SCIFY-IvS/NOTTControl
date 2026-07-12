@@ -11,9 +11,19 @@
 #include <vector>
 
 #include <zmq.hpp>
+#include <locale>
+#include <sstream>
 
 string _configFile = "";
 MACIE_Settings *_ptUserData;
+
+static std::string format_double(double value)
+{
+    std::ostringstream oss;
+    oss.imbue(std::locale::classic());
+    oss << value;
+    return oss.str();
+}
 
 extern "C" int M_initialize(const char* configFile, bool offline_mode)
 {
@@ -144,6 +154,32 @@ extern "C" bool M_read_integration_time(double *tint_ms)
     if (_ptUserData == NULL || tint_ms == NULL)
         return false;
     *tint_ms = exposure_inttime_ms(_ptUserData);
+    return true;
+}
+
+extern "C" bool M_read_exposure_timing(double *inttime_ms, double *ramptime_ms, double *execution_sec,
+                                      double *efficiency, double *frametime_ms)
+{
+    if (_ptUserData == NULL)
+        return false;
+
+    unsigned int ncoadds = ASIC_NCoadds(_ptUserData, false, 0);
+    unsigned int nsaved_ramps = ASIC_NSaves(_ptUserData, false, 0);
+    double ramp_ms = _ptUserData->ramptime_ms;
+    double int_ms = exposure_inttime_ms(_ptUserData);
+    double exec_sec = ramp_ms * ncoadds * nsaved_ramps / 1000.0;
+    double eff = exposure_efficiency(_ptUserData);
+
+    if (inttime_ms != NULL)
+        *inttime_ms = int_ms;
+    if (ramptime_ms != NULL)
+        *ramptime_ms = ramp_ms;
+    if (execution_sec != NULL)
+        *execution_sec = exec_sec;
+    if (efficiency != NULL)
+        *efficiency = eff;
+    if (frametime_ms != NULL)
+        *frametime_ms = _ptUserData->frametime_ms;
     return true;
 }
 
@@ -388,7 +424,7 @@ int main () {
                 result = M_set_integration_time(
                     tint_ms, ngmax, ncoadds, nseq, save,
                     &actual_tint_ms, &ngroups, &ndrops, &nreads);
-                answer = std::to_string(actual_tint_ms) + ";"
+                answer = format_double(actual_tint_ms) + ";"
                     + std::to_string(ngroups) + ";"
                     + std::to_string(ndrops) + ";"
                     + std::to_string(nreads);
@@ -397,7 +433,22 @@ int main () {
             {
                 double tint_ms = 0.0;
                 result = M_read_integration_time(&tint_ms);
-                answer = std::to_string(tint_ms);
+                answer = format_double(tint_ms);
+            }
+            else if (command == "rexptiming")
+            {
+                double inttime_ms = 0.0;
+                double ramptime_ms = 0.0;
+                double execution_sec = 0.0;
+                double efficiency = 0.0;
+                double frametime_ms = 0.0;
+                result = M_read_exposure_timing(
+                    &inttime_ms, &ramptime_ms, &execution_sec, &efficiency, &frametime_ms);
+                answer = format_double(inttime_ms) + ";"
+                    + format_double(ramptime_ms) + ";"
+                    + format_double(execution_sec) + ";"
+                    + format_double(efficiency) + ";"
+                    + format_double(frametime_ms);
             }
             else if (command == "framesettings")
             {

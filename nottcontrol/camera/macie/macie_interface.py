@@ -14,6 +14,14 @@ def server_config_path(config_file: str) -> str:
     return f"{CONFIG_FILES_DIR}/{name}"
 
 
+def parse_zmq_float(value: str | float | int) -> float:
+    """Parse numeric ZMQ fields regardless of server locale decimal separator."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    normalized = str(value).strip().replace(",", ".")
+    return float(normalized)
+
+
 class DetectorMode(Enum):
     SLOW = 1
     FAST = 2
@@ -154,12 +162,22 @@ class MacieInterface():
             f"inttime;{tint_ms};{ngmax};{ncoadds};{nseq};{str(save).lower()}"
         )
         answer = self._request(message)
-        actual_ms = float(answer[0])
+        actual_ms = parse_zmq_float(answer[0])
         return actual_ms, int(answer[1]), int(answer[2]), int(answer[3])
 
     def read_integration_time_s(self) -> float:
         answer = self._request("readinttime")
-        return float(answer) / 1000.0
+        return parse_zmq_float(answer) / 1000.0
+
+    def read_exposure_timing(self) -> dict[str, float]:
+        answer = self._request("rexptiming")
+        return {
+            "inttime_s": parse_zmq_float(answer[0]) / 1000.0,
+            "ramptime_s": parse_zmq_float(answer[1]) / 1000.0,
+            "execution_s": parse_zmq_float(answer[2]),
+            "efficiency": parse_zmq_float(answer[3]),
+            "frametime_s": parse_zmq_float(answer[4]) / 1000.0,
+        }
     
     def read_exposure_settings(self):
         answer = self._request("rexpsettings")
