@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
@@ -116,6 +117,44 @@ _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
 CURSOR_READOUT_HEIGHT = 22
 CURSOR_READOUT_INTERVAL_MS = 50
+H2RG_ARRAY_SIZE = 2048
+
+
+@dataclass(frozen=True)
+class WindowMode:
+    label: str
+    x_window: bool
+    y_window: bool
+    x1: int
+    x2: int
+    y1: int
+    y2: int
+
+
+def _window_region(x0: int, y0: int, size: int) -> tuple[int, int, int, int]:
+    return x0, x0 + size - 1, y0, y0 + size - 1
+
+
+def _centered_window(size: int, array_size: int = H2RG_ARRAY_SIZE) -> tuple[int, int, int, int]:
+    origin = (array_size - size) // 2
+    return _window_region(origin, origin, size)
+
+
+def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, ...]:
+    full_span = array_size - 1
+    half = array_size // 2
+    return (
+        WindowMode("Full frame", False, False, 0, full_span, 0, full_span),
+        WindowMode("Lower left 1024x1024", True, True, *_window_region(0, 0, 1024)),
+        WindowMode("Lower right 1024x1024", True, True, *_window_region(half, 0, 1024)),
+        WindowMode("Upper left 1024x1024", True, True, *_window_region(0, half, 1024)),
+        WindowMode("Upper right 1024x1024", True, True, *_window_region(half, half, 1024)),
+        WindowMode("Central 1024x1024", True, True, *_centered_window(1024, array_size)),
+        WindowMode("Central 512x512", True, True, *_centered_window(512, array_size)),
+    )
+
+
+WINDOW_MODES = _build_window_modes()
 
 
 def _normalize_scene_pos(pos) -> QPointF:
@@ -135,6 +174,24 @@ def _format_stat_value(value: float) -> str:
     if abs(rounded - value) < 1e-9:
         return f"{int(rounded)}"
     return f"{value:.2f}"
+
+
+def window_mode_index(
+    x_window: bool,
+    y_window: bool,
+    x1: int,
+    x2: int,
+    y1: int,
+    y2: int,
+) -> int:
+    for index, mode in enumerate(WINDOW_MODES):
+        if (mode.x_window, mode.y_window) != (x_window, y_window):
+            continue
+        if not mode.x_window and not mode.y_window:
+            return index
+        if (mode.x1, mode.x2, mode.y1, mode.y2) == (x1, x2, y1, y2):
+            return index
+    return -1
 
 
 def macie_config_path(config_name: str) -> Path:
@@ -764,7 +821,8 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_detector_mode.clear()
         self.ui.comboBox_detector_mode.addItems(["Slow", "Fast"])
         self.ui.comboBox_window_mode.clear()
-        self.ui.comboBox_window_mode.addItems(["Full frame", "Windowed"])
+        self.ui.comboBox_window_mode.addItems([mode.label for mode in WINDOW_MODES])
+        self.ui.comboBox_window_mode.setMinimumWidth(200)
 
     def _connect_signals(self) -> None:
         self.ui.button_init.clicked.connect(self.init_camera)
@@ -782,6 +840,44 @@ class H2rgMainWindow(QMainWindow):
             self.ui.lineEdit_nb_frames,
         ):
             widget.editingFinished.connect(self._on_exposure_fields_changed)
+
+        self.ui.comboBox_window_mode.currentIndexChanged.connect(
+            self._on_window_mode_changed
+        )
+
+    def _on_window_mode_changed(self, index: int) -> None:
+        if not self._initialized:
+            return
+        self._schedule_window_mode_apply(index)
+
+    def _schedule_window_mode_apply(self, index: int) -> None:
+        if index < 0 or index >= len(WINDOW_MODES):
+            return
+
+        def operation() -> None:
+            macie = self._ensure_macie()
+            self._apply_window_mode_to_macie(macie, index)
+
+        self._run_macie_operation("Window mode", operation)
+
+    def _apply_window_mode_to_macie(self, macie, index: int) -> None:
+        mode = WINDOW_MODES[index]
+        macie.frame_settings(
+            mode.x_window,
+            mode.y_window,
+            mode.x1,
+            mode.x2,
+            mode.y1,
+            mode.y2,
+        )
+        if mode.x_window or mode.y_window:
+            status = (
+                f"{mode.label} — x=[{mode.x1},{mode.x2}] y=[{mode.y1},{mode.y2}]"
+            )
+        else:
+            status = mode.label
+        self.status_updated.emit(status)
+        self._refresh_exposure_timing(macie)
 
     def _on_exposure_fields_changed(self) -> None:
         self._update_total_integration_label()
@@ -874,10 +970,13 @@ class H2rgMainWindow(QMainWindow):
     def init_camera(self) -> None:
         self.init_button_state.emit("busy")
         self.status_updated.emit("Initializing…")
+        window_index = self.ui.comboBox_window_mode.currentIndex()
 
         def operation() -> None:
             macie = self._ensure_macie()
             macie.init_camera()
+            if 0 <= window_index < len(WINDOW_MODES):
+                self._apply_window_mode_to_macie(macie, window_index)
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
             self._refresh_exposure_timing(macie)
@@ -1103,6 +1202,7 @@ class H2rgMainWindow(QMainWindow):
 
         mode = macie.get_detector_mode()
         x_window, y_window, x1, x2, y1, y2 = macie.read_frame_settings()
+        x1_i, x2_i, y1_i, y2_i = int(x1), int(x2), int(y1), int(y2)
         (
             _save,
             ncoadds,
@@ -1119,8 +1219,11 @@ class H2rgMainWindow(QMainWindow):
         self.readouts_updated.emit(
             {
                 "mode_index": 0 if mode == DetectorMode.SLOW else 1,
+                "window_index": window_mode_index(
+                    x_window, y_window, x1_i, x2_i, y1_i, y2_i
+                ),
                 "windowed": x_window or y_window,
-                "window_status": f"Window x=[{x1},{x2}] y=[{y1},{y2}]",
+                "window_status": f"Window x=[{x1_i},{x2_i}] y=[{y1_i},{y2_i}]",
                 "ncoadds": str(ncoadds),
                 "nseq": str(nseq),
                 "nreads": str(nreads) if nreads else "",
@@ -1130,8 +1233,13 @@ class H2rgMainWindow(QMainWindow):
 
     def _apply_readouts(self, data: dict) -> None:
         self.ui.comboBox_detector_mode.setCurrentIndex(data["mode_index"])
-        self.ui.comboBox_window_mode.setCurrentIndex(1 if data["windowed"] else 0)
-        if data["windowed"]:
+        window_index = data.get("window_index", -1)
+        if window_index >= 0:
+            combo = self.ui.comboBox_window_mode
+            combo.blockSignals(True)
+            combo.setCurrentIndex(window_index)
+            combo.blockSignals(False)
+        elif data["windowed"]:
             self._set_status(data["window_status"])
         self.ui.lineEdit_nb_coadd.setText(data["ncoadds"])
         self.ui.lineEdit_nb_frames.setText(data["nseq"])
