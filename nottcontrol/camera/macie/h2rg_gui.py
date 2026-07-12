@@ -9,10 +9,10 @@ from urllib.parse import urlparse
 
 import numpy
 from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
+    QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.uic import loadUi
 
 from nottcontrol import config
-from nottcontrol.app_icon import load_app_icon, logo_path
+from nottcontrol.app_icon import load_app_icon, make_nott_logo_label
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
     load_science_image,
@@ -128,8 +128,7 @@ CHECKBOX_STYLE = 'font: 9pt "Segoe UI"; color: rgb(50, 50, 50); spacing: 6px;'
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
-NOTT_LOGO_WIDTH = 240
-NOTT_LOGO_HEIGHT = 56
+IMAGE_STATS_MAX_WIDTH = 200
 CURSOR_READOUT_HEIGHT = 22
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
@@ -511,29 +510,16 @@ class H2rgMainWindow(QMainWindow):
         parent_layout.addLayout(row)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
-        label = QLabel()
-        label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet("background: transparent;")
-        path = logo_path()
-        if path.exists():
-            pixmap = QPixmap(str(path))
-            if not pixmap.isNull():
-                label.setPixmap(
-                    pixmap.scaled(
-                        NOTT_LOGO_WIDTH,
-                        NOTT_LOGO_HEIGHT,
-                        Qt.KeepAspectRatio,
-                        Qt.SmoothTransformation,
-                    )
-                )
-        parent_layout.addWidget(label)
+        parent_layout.addWidget(make_nott_logo_label())
 
-    def _setup_image_statistics_panel(self, parent_layout: QVBoxLayout) -> None:
+    def _setup_image_statistics_panel(self) -> QGroupBox:
         group = QGroupBox("Image statistics")
         group.setStyleSheet(PANEL_GROUP_STYLE)
+        group.setMaximumWidth(IMAGE_STATS_MAX_WIDTH)
+        group.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         grid = QGridLayout(group)
         grid.setContentsMargins(8, 12, 8, 8)
-        grid.setHorizontalSpacing(8)
+        grid.setHorizontalSpacing(6)
         grid.setVerticalSpacing(6)
         grid.setColumnStretch(1, 1)
 
@@ -560,7 +546,7 @@ class H2rgMainWindow(QMainWindow):
         _add_row(1, "Min:", self._stat_min)
         _add_row(2, "Max:", self._stat_max)
         _add_row(3, "Std:", self._stat_std)
-        parent_layout.addWidget(group)
+        return group
 
     def _setup_cursor_readout(self) -> None:
         if self.image is None or self._cursor_readout is None:
@@ -784,7 +770,7 @@ class H2rgMainWindow(QMainWindow):
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
         self._clear_widget_layout(box)
-        box.setMinimumHeight(340)
+        box.setMinimumHeight(300)
         outer = QVBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(8)
@@ -814,7 +800,15 @@ class H2rgMainWindow(QMainWindow):
         self._button_set_exposure.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         form.addWidget(self._button_set_exposure, 2, 2)
 
-        timing_row = len(editable_rows)
+        separator_row = len(editable_rows)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Plain)
+        separator.setStyleSheet("color: rgb(50, 129, 140);")
+        separator.setFixedHeight(2)
+        form.addWidget(separator, separator_row, 0, 1, 3)
+
+        timing_row = separator_row + 1
         self._label_photon_time = QLabel("Photon time (s):")
         self._lineEdit_photon_time = QLineEdit("—")
         self._lineEdit_photon_time.setReadOnly(True)
@@ -873,12 +867,13 @@ class H2rgMainWindow(QMainWindow):
     def _layout_visualisation_panel(self) -> None:
         box = self.ui.groupBox_visualisation
         self._clear_widget_layout(box)
+        box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         outer = QHBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
-        outer.setSpacing(12)
+        outer.setSpacing(8)
 
         left = QVBoxLayout()
-        left.setSpacing(4)
+        left.setSpacing(2)
         for name in (
             "checkBox_substract_background",
             "checkBox_avg",
@@ -890,14 +885,14 @@ class H2rgMainWindow(QMainWindow):
         outer.addLayout(left, stretch=1)
 
         middle = QVBoxLayout()
-        middle.setSpacing(4)
+        middle.setSpacing(2)
         for index in range(1, 6):
             middle.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
         middle.addStretch()
         outer.addLayout(middle, stretch=1)
 
         right = QVBoxLayout()
-        right.setSpacing(4)
+        right.setSpacing(2)
         for index in range(6, 11):
             right.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
         right.addStretch()
@@ -918,7 +913,15 @@ class H2rgMainWindow(QMainWindow):
         image_column_layout.setSpacing(8)
         image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
         self._setup_cursor_readout_row(image_column_layout)
-        self._setup_image_statistics_panel(image_column_layout)
+
+        bottom_row = QHBoxLayout()
+        bottom_row.setSpacing(12)
+        bottom_row.addWidget(self._setup_image_statistics_panel(), stretch=0)
+        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.ui.groupBox_visualisation.setSizePolicy(panel_policy)
+        bottom_row.addWidget(self.ui.groupBox_visualisation, stretch=1)
+        image_column_layout.addLayout(bottom_row)
+
         outer.addWidget(image_column, stretch=1)
 
         right_host = QWidget()
@@ -929,11 +932,9 @@ class H2rgMainWindow(QMainWindow):
 
         self._setup_nott_logo(right)
 
-        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         for box in (
             self.ui.groupBox_conf,
             self.ui.groupBox_acquisition,
-            self.ui.groupBox_visualisation,
         ):
             box.setSizePolicy(panel_policy)
             right.addWidget(box)

@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from nottcontrol import config
+from nottcontrol.app_icon import install_nott_logo_header
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.components.device_polling import (
     shutter_status_opc_nodes,
@@ -26,6 +27,7 @@ class ShutterWindow(QMainWindow):
         self.redis_client = redis_client
 
         self.ui = loadUi('shutters.ui', self)
+        install_nott_logo_header(self)
 
         self.ui.shutter_widget_1.setup(self.opcua_conn, self.redis_client, self._shutter1)
         self.ui.shutter_widget_2.setup(self.opcua_conn, self.redis_client, self._shutter2)

@@ -45,6 +45,7 @@ from nottcontrol.camera.infratec.detector_options import (
 )
 from nottcontrol.camera.infratec.parametersdialog import ParametersDialog
 from nottcontrol.redisclient import RedisClient
+from nottcontrol.app_icon import install_nott_logo_header
 from nottcontrol import config
 from collections import deque
 from enum import Enum
@@ -267,6 +268,7 @@ class MainWindow(QMainWindow):
         self._setup_roi_values_panel()
         self._setup_detector_panel()
         self._layout_window()
+        install_nott_logo_header(self)
 
         self.connectSignalSlots()
         
@@ -1166,8 +1168,8 @@ class MainWindow(QMainWindow):
             self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
 
     def _layout_window(self) -> None:
-        img_h = config.getint("CAMERA", "window_h")
-        img_w = config.getint("CAMERA", "window_w")
+        img_h = config.getint("CAMERA", "window_h", fallback=150)
+        img_w = config.getint("CAMERA", "window_w", fallback=160)
 
         camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
         camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
@@ -1475,7 +1477,12 @@ class MainWindow(QMainWindow):
         roi_dimensions = roi_string.split(',')
         if len(roi_dimensions) != 4:
             raise Exception('Invalid Roi config')
-        return Roi(int(roi_dimensions[0])-config['CAMERA'].getint('window_x'), int(roi_dimensions[1])-config['CAMERA'].getint('window_y'), roi_dimensions[2], roi_dimensions[3])
+        return Roi(
+            int(roi_dimensions[0]) - config.getint("CAMERA", "window_x", fallback=0),
+            int(roi_dimensions[1]) - config.getint("CAMERA", "window_y", fallback=0),
+            roi_dimensions[2],
+            roi_dimensions[3],
+        )
     
     def load_roi_positions_from_config(self):
         self.load_roi_config(config)
@@ -1616,10 +1623,10 @@ class MainWindow(QMainWindow):
         
         # Large frame to small frame
         #if w_cur*h_cur > w_con*h_con:
-        self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
-        self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
-        self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
-        self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
+        self.interface.setparam_int32(294, config.getint("CAMERA", "window_w", fallback=160))
+        self.interface.setparam_int32(295, config.getint("CAMERA", "window_h", fallback=150))
+        self.interface.setparam_int32(292, config.getint("CAMERA", "window_x", fallback=0))
+        self.interface.setparam_int32(293, config.getint("CAMERA", "window_y", fallback=0))
         #else:
         # Small frame to large frame
         #    self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))

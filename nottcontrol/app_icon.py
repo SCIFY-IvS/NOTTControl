@@ -13,7 +13,7 @@ from PyQt5.QtGui import (
     QPen,
     QPixmap,
 )
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
 
 TEAL = QColor(50, 129, 140)
 TEAL_DARK = QColor(18, 48, 54)
@@ -21,6 +21,10 @@ TEAL_LIGHT = QColor(72, 164, 176)
 ICON_SIZES = (16, 32, 48, 64, 128, 256, 512)
 WINDOWS_ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 WINDOWS_APP_ID = "org.nott.nottcontrol"
+NOTT_LOGO_WIDTH = 240
+NOTT_LOGO_HEIGHT = 56
+NOTT_LOGO_BANNER_WIDTH = 180
+NOTT_LOGO_BANNER_HEIGHT = 48
 
 
 def assets_dir() -> Path:
@@ -116,6 +120,131 @@ def load_app_icon() -> QIcon:
     for size in ICON_SIZES:
         icon.addPixmap(render_app_icon_pixmap(size, mark))
     return icon
+
+
+def make_nott_logo_label(
+    width: int = NOTT_LOGO_WIDTH,
+    height: int = NOTT_LOGO_HEIGHT,
+) -> QLabel:
+    label = QLabel()
+    label.setAlignment(Qt.AlignCenter)
+    label.setStyleSheet("background: transparent;")
+    path = logo_path()
+    if path.exists():
+        pixmap = QPixmap(str(path))
+        if not pixmap.isNull():
+            label.setPixmap(
+                pixmap.scaled(
+                    width,
+                    height,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation,
+                )
+            )
+    return label
+
+
+def apply_window_icon(widget: QWidget) -> None:
+    icon = load_app_icon()
+    if icon.isNull():
+        return
+    window = widget.window()
+    if window is not None:
+        window.setWindowIcon(icon)
+
+
+def _hook_widget_resize(widget: QWidget, callback) -> None:
+    original = widget.resizeEvent
+
+    def resizeEvent(event) -> None:
+        if original is not None:
+            original(event)
+        else:
+            type(widget).resizeEvent(widget, event)
+        callback()
+
+    widget.resizeEvent = resizeEvent  # type: ignore[method-assign]
+
+
+def install_nott_logo_on_form(
+    form: QWidget,
+    *,
+    width: int = NOTT_LOGO_BANNER_WIDTH,
+    height: int = NOTT_LOGO_BANNER_HEIGHT,
+    x: int = 12,
+    y: int = 8,
+) -> QLabel:
+    """Place the NOTT logo on a loadUi form that uses absolute geometry."""
+    apply_window_icon(form)
+    logo = make_nott_logo_label(width, height)
+    logo.setParent(form)
+
+    def place() -> None:
+        logo.setGeometry(x, y, width, height)
+        logo.raise_()
+
+    _hook_widget_resize(form, place)
+    place()
+    return logo
+
+
+def _logo_header_extra_height(
+    logo_height: int,
+    margins: tuple[int, int, int, int],
+    spacing: int,
+) -> int:
+    return logo_height + margins[1] + margins[3] + spacing
+
+
+def install_nott_logo_header(
+    window: QMainWindow,
+    *,
+    logo_width: int = NOTT_LOGO_WIDTH,
+    logo_height: int = NOTT_LOGO_HEIGHT,
+    margins: tuple[int, int, int, int] = (8, 8, 8, 8),
+    spacing: int = 8,
+) -> None:
+    """Prepend a NOTT logo row above the central widget."""
+    apply_window_icon(window)
+    content = window.takeCentralWidget()
+    if content is None:
+        return
+
+    wrapper = QWidget()
+    layout = QVBoxLayout(wrapper)
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
+    layout.addWidget(
+        make_nott_logo_label(logo_width, logo_height),
+        alignment=Qt.AlignHCenter,
+    )
+    layout.addWidget(content, stretch=1)
+    window.setCentralWidget(wrapper)
+
+    extra_h = _logo_header_extra_height(logo_height, margins, spacing)
+    new_w = window.width()
+    new_h = window.height() + extra_h
+    fixed_w = (
+        window.minimumWidth() == window.maximumWidth()
+        and window.minimumWidth() > 0
+    )
+    fixed_h = (
+        window.minimumHeight() == window.maximumHeight()
+        and window.minimumHeight() > 0
+    )
+    if fixed_w and fixed_h:
+        window.setFixedSize(new_w, new_h)
+    elif fixed_h:
+        window.setFixedHeight(new_h)
+        window.resize(new_w, new_h)
+    else:
+        window.resize(new_w, new_h)
+        min_h = window.minimumHeight()
+        if min_h > 0:
+            window.setMinimumHeight(min_h + extra_h)
+        max_h = window.maximumHeight()
+        if 0 < max_h < 16777215:
+            window.setMaximumHeight(max_h + extra_h)
 
 
 def _pixmap_png_bytes(pixmap: QPixmap) -> bytes:

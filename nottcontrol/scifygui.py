@@ -44,6 +44,7 @@ from nottcontrol.components.device_polling import (
     split_motor_position_values,
     split_motor_status_values,
 )
+from nottcontrol.app_icon import install_nott_logo_header
 from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
@@ -702,6 +703,7 @@ class DelayLinesWindow(QMainWindow):
 
         # set up the delay lines window
         self.ui = loadUi('delay_lines.ui', self)
+        install_nott_logo_header(self)
         # Dl statuses
         #self.dl1_status()
 

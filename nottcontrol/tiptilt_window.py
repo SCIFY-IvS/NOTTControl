@@ -9,7 +9,7 @@ from nottcontrol.components.device_polling import (
     split_motor_position_values,
     split_motor_status_values,
 )
-from nottcontrol.shutters_window import ShutterWindow
+from nottcontrol.app_icon import install_nott_logo_on_form
 
 class TipTiltWindow(QWidget):
     closing = pyqtSignal()
@@ -44,6 +44,7 @@ class TipTiltWindow(QWidget):
         self.redis_client = redis_client
 
         self.ui = loadUi('tiptilt_window.ui', self)
+        install_nott_logo_on_form(self)
 
         self.ui.motor_widget_NTPA1.setup(self.opcua_conn, self.redis_client, self._motor_ntpa1)
         self.ui.motor_widget_NTTA1.setup(self.opcua_conn, self.redis_client, self._motor_ntta1)

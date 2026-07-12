@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
 
 from nottcontrol import sensor_config_path
+from nottcontrol.app_icon import apply_window_icon, make_nott_logo_label
 from nottcontrol.components.cryo_redis_charts import CryoHistoryPanel, SeriesConfig
 from nottcontrol.components.cryo_temp_panel import (
     CryoEquipmentPanel,
@@ -29,12 +30,14 @@ class CryostatWindow(QMainWindow):
         self.parent = parent
         self.setWindowTitle("Cryostat monitor")
         self.resize(1040, 900)
+        apply_window_icon(self)
 
         container = QWidget()
         self.setCentralWidget(container)
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
+        layout.addWidget(make_nott_logo_label(), alignment=Qt.AlignHCenter)
 
         top_row = QHBoxLayout()
         top_row.setSpacing(8)
