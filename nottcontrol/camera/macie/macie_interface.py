@@ -72,6 +72,31 @@ class MacieInterface():
     def acquire(self, no_recon = False):
         self._socket.send_string(f"acquire;{str(no_recon).lower()}")
         return self._receive_and_parse_reply()
+
+    def get_save_dir(self) -> str | None:
+        self._socket.send_string("getsavedir")
+        return self._receive_and_parse_reply()
+
+    def get_newest_fits_path(self) -> str | None:
+        self._socket.send_string("newestfits")
+        return self._receive_and_parse_reply()
+
+    def fetch_newest_fits(self) -> tuple[str, bytes] | None:
+        self._socket.send_string("fetchnewestfits")
+        parts = self._socket.recv_multipart()
+        if not parts:
+            return None
+        header = parts[0].decode("utf-8")
+        tokens = header.split(";")
+        if tokens[0] != "ok":
+            raise Exception(f"Operation failed: {tokens[1] if len(tokens) > 1 else header}")
+        filename = tokens[1] if len(tokens) > 1 else "frame.fits"
+        if len(parts) < 2:
+            return None
+        payload = parts[1]
+        if isinstance(payload, str):
+            payload = payload.encode("latin1")
+        return filename, bytes(payload)
     
     def get_power(self):
         self._socket.send_string("getpower")
@@ -99,6 +124,33 @@ class MacieInterface():
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
         self._socket.send_string(message)
         return self._receive_and_parse_reply()
+    
+    def set_integration_time(
+        self,
+        tint_s: float,
+        *,
+        ngmax: int = 0,
+        ncoadds: int = 1,
+        nseq: int = 1,
+        save: bool = True,
+    ) -> tuple[float, int, int, int]:
+        """Configure ramp timing via calc_ramp_settings (FromJarron intTime).
+
+        Returns (actual_tint_ms, ngroups, ndrops, nreads).
+        """
+        tint_ms = float(tint_s) * 1000.0
+        message = (
+            f"inttime;{tint_ms};{ngmax};{ncoadds};{nseq};{str(save).lower()}"
+        )
+        self._socket.send_string(message)
+        answer = self._receive_and_parse_reply()
+        actual_ms = float(answer[0])
+        return actual_ms, int(answer[1]), int(answer[2]), int(answer[3])
+
+    def read_integration_time_s(self) -> float:
+        self._socket.send_string("readinttime")
+        answer = self._receive_and_parse_reply()
+        return float(answer) / 1000.0
     
     def read_exposure_settings(self):
         message = "rexpsettings"

@@ -35,6 +35,12 @@ Commands:
 0. set/getInputs
    - The four reference inputs, each spanning 4 bits.
    - Usage: setInputs 0xaaaa (for instance, aaaa = shorted inputs)
+0. intTime (ZMQ: inttime;tint_ms;ngmax;ncoadds;nseq;save)
+   - Compute ngroups/ndrops/nreads from desired integration time (calc_ramp_settings).
+   - Usage (CLI): intTime -t tint_ms -g ngmax
+   - ZMQ returns actual tint_ms;ngroups;ndrops;nreads
+0. readinttime (ZMQ)
+   - Returns current photon-collection time in milliseconds.
 0. set/getGain
    - Preamp gain settings (16 possible settings).
    - Usage: setGain [0-15]

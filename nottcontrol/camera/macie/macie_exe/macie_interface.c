@@ -5,6 +5,10 @@
 #include "MacieMain.h"
 #include <iostream>
 #include "macie.h"
+#include <dirent.h>
+#include <sys/stat.h>
+#include <fstream>
+#include <vector>
 
 #include <zmq.hpp>
 
@@ -90,6 +94,47 @@ extern "C" bool M_read_exposure_settings(bool &save, uint &ncoadds, uint &nseq, 
     return true;
 }
 
+extern "C" bool M_set_integration_time(double tint_ms, int ngmax, int ncoadds, int nseq, bool save,
+                                      double *actual_tint_ms, uint *ngroups, uint *ndrops, uint *nreads)
+{
+    if (_ptUserData == NULL)
+        return false;
+
+    unsigned int ng = 0;
+    unsigned int nr = 0;
+    unsigned int nd = 0;
+    unsigned int nresets = ASIC_NResets(_ptUserData, false, 0);
+
+    if (calc_ramp_settings(_ptUserData, tint_ms, ngmax, &ng, &nd, &nr) == false)
+        return false;
+
+    if (ncoadds < 1)
+        ncoadds = 1;
+    if (nseq < 1)
+        nseq = 1;
+
+    if (set_exposure_settings(_ptUserData, save, (uint)ncoadds, (uint)nseq, ng, nr, nd, nresets) == false)
+        return false;
+
+    if (actual_tint_ms != NULL)
+        *actual_tint_ms = exposure_inttime_ms(_ptUserData);
+    if (ngroups != NULL)
+        *ngroups = ng;
+    if (ndrops != NULL)
+        *ndrops = nd;
+    if (nreads != NULL)
+        *nreads = nr;
+    return true;
+}
+
+extern "C" bool M_read_integration_time(double *tint_ms)
+{
+    if (_ptUserData == NULL || tint_ms == NULL)
+        return false;
+    *tint_ms = exposure_inttime_ms(_ptUserData);
+    return true;
+}
+
 extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2)
 {
     printf("Calling frame_settings, xWindowing %d, yWindowing %d, x1 %d, x2 %d, y1 %d, y2 %d\n", xWindowing, yWindowing, x1, x2, y1, y2);
@@ -135,6 +180,74 @@ std::vector<std::string> split(std::string s, const std::string& delimiter) {
     return tokens;
 }
 
+static std::string newest_fits_in_save_dir(MACIE_Settings *ptUserData)
+{
+    if (ptUserData == NULL || ptUserData->saveDir.empty())
+    {
+        return "";
+    }
+
+    const std::string &strDir = ptUserData->saveDir;
+    DIR *dir = opendir(strDir.c_str());
+    if (dir == NULL)
+    {
+        return "";
+    }
+
+    struct dirent *ent;
+    std::string newest_path;
+    time_t newest_mtime = 0;
+    while ((ent = readdir(dir)) != NULL)
+    {
+        std::string name = ent->d_name;
+        if (name.size() < 6)
+        {
+            continue;
+        }
+        if (name.rfind(".fits") == std::string::npos &&
+            name.rfind(".FITS") == std::string::npos)
+        {
+            continue;
+        }
+
+        std::string full = strDir + name;
+        struct stat st;
+        if (stat(full.c_str(), &st) != 0)
+        {
+            continue;
+        }
+        if (newest_path.empty() || st.st_mtime >= newest_mtime)
+        {
+            newest_mtime = st.st_mtime;
+            newest_path = full;
+        }
+    }
+    closedir(dir);
+    return newest_path;
+}
+
+static bool read_binary_file(const std::string &path, std::string &out)
+{
+    std::ifstream file(path.c_str(), std::ios::binary);
+    if (!file)
+    {
+        return false;
+    }
+    file.seekg(0, std::ios::end);
+    std::streamsize size = file.tellg();
+    if (size <= 0)
+    {
+        return false;
+    }
+    file.seekg(0, std::ios::beg);
+    out.resize(static_cast<size_t>(size));
+    if (!file.read(&out[0], size))
+    {
+        return false;
+    }
+    return true;
+}
+
 
 //Main zmq loop that handles requests
 int main () {
@@ -152,6 +265,8 @@ int main () {
         bool result;
         //What is the answer?
         std::string answer = "";
+        bool send_binary = false;
+        std::string binary_payload;
 
         try{
             auto tokens = split(request, ";");
@@ -243,6 +358,31 @@ int main () {
                     + std::to_string(ndrops) + ";"
                     + std::to_string(nresets);
             }
+            else if (command == "inttime")
+            {
+                double tint_ms = std::stod(tokens[1]);
+                int ngmax = std::stoi(tokens[2]);
+                int ncoadds = std::stoi(tokens[3]);
+                int nseq = std::stoi(tokens[4]);
+                bool save = tokens[5] == "true";
+                double actual_tint_ms = 0.0;
+                uint ngroups = 0;
+                uint ndrops = 0;
+                uint nreads = 0;
+                result = M_set_integration_time(
+                    tint_ms, ngmax, ncoadds, nseq, save,
+                    &actual_tint_ms, &ngroups, &ndrops, &nreads);
+                answer = std::to_string(actual_tint_ms) + ";"
+                    + std::to_string(ngroups) + ";"
+                    + std::to_string(ndrops) + ";"
+                    + std::to_string(nreads);
+            }
+            else if (command == "readinttime")
+            {
+                double tint_ms = 0.0;
+                result = M_read_integration_time(&tint_ms);
+                answer = std::to_string(tint_ms);
+            }
             else if (command == "framesettings")
             {
                 bool xWindow = tokens[1] == "true";
@@ -283,6 +423,34 @@ int main () {
                     answer = "fast";
                 }
             }
+            else if (command == "getsavedir")
+            {
+                result = _ptUserData != NULL;
+                answer = result ? _ptUserData->saveDir : "";
+            }
+            else if (command == "newestfits")
+            {
+                answer = newest_fits_in_save_dir(_ptUserData);
+                result = !answer.empty();
+            }
+            else if (command == "fetchnewestfits")
+            {
+                std::string fits_path = newest_fits_in_save_dir(_ptUserData);
+                result = !fits_path.empty() &&
+                         read_binary_file(fits_path, binary_payload);
+                if (result)
+                {
+                    size_t pos = fits_path.find_last_of("/\\");
+                    answer = pos == std::string::npos
+                        ? fits_path
+                        : fits_path.substr(pos + 1);
+                    send_binary = true;
+                }
+                else
+                {
+                    answer = "no fits file found on server";
+                }
+            }
             else 
             {
                 result = false;
@@ -303,7 +471,17 @@ int main () {
         //  Send reply back to client
         zmq::message_t reply (kReplyString.length());
         memcpy (reply.data (), kReplyString.data(), kReplyString.length());
-        socket.send (reply, zmq::send_flags::none);
+        if (send_binary)
+        {
+            zmq::message_t blob(binary_payload.size());
+            memcpy(blob.data(), binary_payload.data(), binary_payload.size());
+            socket.send(reply, zmq::send_flags::sndmore);
+            socket.send(blob, zmq::send_flags::none);
+        }
+        else
+        {
+            socket.send (reply, zmq::send_flags::none);
+        }
     }
     return 0;
 }

@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import sys
 import threading
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from urllib.parse import urlparse
 
 import numpy
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
@@ -21,6 +22,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.uic import loadUi
 
 from nottcontrol import config
+from nottcontrol.camera.macie.fits_science import (
+    load_science_image,
+    save_science_fits,
+    science_fits_path,
+)
 
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="basic_warm_slow.cfg"
@@ -32,6 +38,18 @@ MACIE_OFFLINE_MODE = config.getboolean("MACIE", "offline_mode", fallback=False)
 MACIE_IMAGE_SCALE = config.getint("MACIE", "image_display_scale", fallback=2)
 FITS_DIR_CHECK_TIMEOUT_S = config.getfloat(
     "MACIE", "fits_directory_check_timeout_s", fallback=1.0
+)
+FITS_LINUX_PATH_PREFIX = config.get(
+    "MACIE", "fits_linux_path_prefix", fallback=""
+).strip()
+FITS_WINDOWS_UNC_ROOT = config.get(
+    "MACIE", "fits_windows_unc_root", fallback=""
+).strip()
+MACIE_INTEGRATION_NGROUPS_MAX = config.getint(
+    "MACIE", "integration_ngroups_max", fallback=2
+)
+MACIE_SAVE_SCIENCE_FITS = config.getboolean(
+    "MACIE", "save_science_fits", fallback=True
 )
 
 PANEL_BUTTON_STYLE = """
@@ -124,6 +142,39 @@ def resolve_fits_save_dir(config_path: Path) -> Path:
     return parse_macie_save_dir(config_path)
 
 
+def zmq_server_hostname(zmq_address: str) -> str | None:
+    normalized = zmq_address if "://" in zmq_address else f"tcp://{zmq_address}"
+    return urlparse(normalized).hostname
+
+
+def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path:
+    normalized = server_path.replace("\\", "/")
+    if FITS_LINUX_PATH_PREFIX and FITS_WINDOWS_UNC_ROOT:
+        prefix = FITS_LINUX_PATH_PREFIX.replace("\\", "/").rstrip("/")
+        if normalized.startswith(prefix):
+            suffix = normalized[len(prefix) :].lstrip("/")
+            unc_root = FITS_WINDOWS_UNC_ROOT.rstrip("\\/")
+            if sys.platform == "win32":
+                return Path(unc_root) / PureWindowsPath(suffix.replace("/", "\\"))
+            return Path(unc_root) / Path(*PurePosixPath(suffix).parts)
+
+    if sys.platform == "win32" and normalized.startswith("/"):
+        host = zmq_server_hostname(zmq_address)
+        if host:
+            relative = normalized.lstrip("/")
+            return Path(f"\\\\{host}\\{relative.replace('/', '\\')}")
+
+    return Path(server_path)
+
+
+def load_fits_image(filepath: Path) -> numpy.ndarray:
+    return load_science_image(filepath)
+
+
+def load_fits_image_from_bytes(payload: bytes) -> numpy.ndarray:
+    return load_science_image(payload)
+
+
 def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -> bool:
     result: list[bool | None] = [None]
 
@@ -157,16 +208,6 @@ def newest_fits_file(directory: Path, *, dir_ok: bool | None = None) -> Path | N
     if not candidates:
         return None
     return max(candidates, key=lambda path: path.stat().st_mtime)
-
-
-def load_fits_image(filepath: Path) -> numpy.ndarray:
-    from astropy.io import fits
-
-    with fits.open(filepath, memmap=False) as hdul:
-        data = numpy.asarray(hdul[0].data, dtype=numpy.float32)
-    while data.ndim > 2:
-        data = data[0]
-    return data
 
 
 class H2rgMainWindow(QMainWindow):
@@ -213,6 +254,7 @@ class H2rgMainWindow(QMainWindow):
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = None
+        self._last_tint_ms: float | None = None
         self.image = None
         self._image_placeholder: QLabel | None = None
 
@@ -289,7 +331,7 @@ class H2rgMainWindow(QMainWindow):
         self._fits_dir_ok = path_is_directory(self._save_dir)
         if not self._fits_dir_ok and sys.platform == "win32":
             self.status_updated.emit(
-                "Not connected — set [MACIE] fits_directory to the server FITS share"
+                "Not connected — FITS preview uses ZMQ fetch or SMB path mapping"
             )
 
         try:
@@ -566,6 +608,7 @@ class H2rgMainWindow(QMainWindow):
         def operation() -> None:
             macie = self._ensure_macie()
             macie.init_camera()
+            self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
             self.status_updated.emit("Initialized")
             self.controls_enabled.emit(True)
@@ -579,55 +622,138 @@ class H2rgMainWindow(QMainWindow):
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
 
     def _apply_exposure_settings(self, macie) -> None:
-        (
-            save,
-            ncoadds,
-            nseq,
-            ngroups,
-            nreads,
-            ndrops,
-            nresets,
-        ) = macie.read_exposure_settings()
-
         try:
-            if self.ui.lineEdit_nb_coadd.text().strip():
-                ncoadds = int(self.ui.lineEdit_nb_coadd.text())
-            if self.ui.lineEdit_nb_frames.text().strip():
-                nseq = int(self.ui.lineEdit_nb_frames.text())
+            tint_s = float(self.ui.lineEdit_integration_time.text().strip())
+            ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
+            nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
         except ValueError as exc:
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
-        macie.exposure_settings(save, ncoadds, nseq, ngroups, nreads, ndrops, nresets)
-        self._update_total_integration_label()
+        if tint_s <= 0:
+            raise ValueError("Integration time must be greater than zero")
+
+        actual_ms, ngroups, ndrops, nreads = macie.set_integration_time(
+            tint_s,
+            ngmax=MACIE_INTEGRATION_NGROUPS_MAX,
+            ncoadds=ncoadds,
+            nseq=nseq,
+            save=True,
+        )
+        self._last_tint_ms = actual_ms
+        self._update_total_integration_label(actual_tint_s=actual_ms / 1000.0)
+        self.status_updated.emit(
+            f"Exposure: {actual_ms / 1000.0:.3g} s "
+            f"(groups={ngroups}, drops={ndrops}, reads={nreads})"
+        )
 
     def acquire(self) -> None:
         def operation() -> None:
             macie = self._ensure_macie()
             self._apply_exposure_settings(macie)
+            self._fits_dir_ok = None
             before_mtime = self._latest_fits_mtime()
             macie.acquire()
-            frame, path = self._wait_for_new_frame(before_mtime)
+            frame, path = self._wait_for_new_frame(before_mtime, macie)
             if frame is not None:
-                self._last_fits_path = path
+                science_path = self._save_science_fits(frame, path)
+                self._last_fits_path = science_path or path
+                self._auto_levels_next = True
                 self.frame_ready.emit(frame)
-                self.status_updated.emit("Acquire complete")
+                if science_path is not None:
+                    self.status_updated.emit(
+                        f"Acquire complete — science FITS: {science_path.name}"
+                    )
+                else:
+                    self.status_updated.emit("Acquire complete")
             else:
                 self.status_updated.emit(self._missing_fits_status())
 
         self._run_macie_operation("Acquire", operation)
 
+    def _science_output_path(self, ramp_path: Path) -> Path:
+        if ramp_path.is_absolute():
+            return science_fits_path(ramp_path)
+        return science_fits_path(self._save_dir / ramp_path.name)
+
+    def _save_science_fits(
+        self, frame: numpy.ndarray, ramp_path: Path | None
+    ) -> Path | None:
+        if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
+            return None
+        try:
+            output_path = self._science_output_path(ramp_path)
+            save_science_fits(
+                output_path,
+                frame,
+                tint_ms=self._last_tint_ms,
+            )
+            return output_path
+        except OSError as exc:
+            print(f"H2RG failed to save science FITS: {exc}")
+            return None
+
+    def _sync_save_dir_from_server(self, macie) -> None:
+        try:
+            server_dir = macie.get_save_dir()
+        except Exception:
+            return
+        if not server_dir:
+            return
+        mapped = map_server_fits_path(server_dir.rstrip("/\\"))
+        if mapped:
+            self._save_dir = mapped
+
+    def _try_load_path_if_new(
+        self, path: Path | None, before_mtime: float
+    ) -> tuple[numpy.ndarray, Path] | None:
+        if path is None:
+            return None
+        try:
+            if not path.is_file():
+                return None
+            mtime = path.stat().st_mtime
+        except OSError:
+            return None
+        if mtime <= before_mtime:
+            return None
+        return self._load_fits_from_path(path), path
+
+    def _resolve_server_fits_path(self, macie) -> Path | None:
+        try:
+            server_path = macie.get_newest_fits_path()
+        except Exception:
+            return None
+        if not server_path:
+            return None
+        return map_server_fits_path(server_path)
+
+    def _fetch_fits_from_server(self, macie) -> tuple[numpy.ndarray, Path] | None:
+        try:
+            fetched = macie.fetch_newest_fits()
+        except Exception as exc:
+            print(f"H2RG FITS fetch over ZMQ failed: {exc}")
+            return None
+        if fetched is None:
+            return None
+        filename, payload = fetched
+        path = Path(filename)
+        frame = load_fits_image_from_bytes(payload)
+        self._last_fits_path = path
+        return frame, path
+
     def _missing_fits_status(self) -> str:
+        if sys.platform == "win32":
+            return (
+                "Acquire complete — no FITS preview (set fits_directory or "
+                "fits_linux_path_prefix/fits_windows_unc_root, or update zmq_server)"
+            )
         if self._fits_dir_ok is False:
-            if sys.platform == "win32":
-                return (
-                    "Acquire complete — no FITS (set [MACIE] fits_directory "
-                    "to the server share)"
-                )
             return f"Acquire complete — FITS directory not found: {self._save_dir}"
         return f"Acquire complete — no new FITS in {self._save_dir}"
 
-    def _newest_fits_file(self) -> Path | None:
-        return newest_fits_file(self._save_dir, dir_ok=self._fits_dir_ok)
+    def _newest_fits_file(self, *, allow_probe: bool = False) -> Path | None:
+        dir_ok = None if allow_probe else self._fits_dir_ok
+        return newest_fits_file(self._save_dir, dir_ok=dir_ok)
 
     def live_clicked(self) -> None:
         if self._macie is None:
@@ -649,7 +775,7 @@ class H2rgMainWindow(QMainWindow):
             import time
 
             while self._live_active and self._macie is not None:
-                loaded = self._load_latest_frame()
+                loaded = self._load_latest_frame(macie=self._macie)
                 if loaded is not None:
                     frame, _path = loaded
                     self.frame_ready.emit(frame)
@@ -694,6 +820,10 @@ class H2rgMainWindow(QMainWindow):
             _ndrops,
             _nresets,
         ) = macie.read_exposure_settings()
+        try:
+            tint_s = macie.read_integration_time_s()
+        except Exception:
+            tint_s = None
         self.readouts_updated.emit(
             {
                 "mode_index": 0 if mode == DetectorMode.SLOW else 1,
@@ -702,6 +832,7 @@ class H2rgMainWindow(QMainWindow):
                 "ncoadds": str(ncoadds),
                 "nseq": str(nseq),
                 "nreads": str(nreads) if nreads else "",
+                "tint_s": tint_s,
             }
         )
 
@@ -712,13 +843,17 @@ class H2rgMainWindow(QMainWindow):
             self._set_status(data["window_status"])
         self.ui.lineEdit_nb_coadd.setText(data["ncoadds"])
         self.ui.lineEdit_nb_frames.setText(data["nseq"])
-        if data["nreads"]:
+        if data.get("tint_s") is not None:
+            self.ui.lineEdit_integration_time.setText(f"{data['tint_s']:.6g}")
+        elif data["nreads"]:
             self.ui.lineEdit_integration_time.setText(data["nreads"])
         self._update_total_integration_label()
 
-    def _update_total_integration_label(self) -> None:
+    def _update_total_integration_label(self, actual_tint_s: float | None = None) -> None:
         try:
-            per_frame = float(self.ui.lineEdit_integration_time.text() or 0)
+            per_frame = actual_tint_s
+            if per_frame is None:
+                per_frame = float(self.ui.lineEdit_integration_time.text() or 0)
             coadds = int(self.ui.lineEdit_nb_coadd.text() or 1)
             frames = int(self.ui.lineEdit_nb_frames.text() or 1)
             total = per_frame * coadds * frames
@@ -727,27 +862,47 @@ class H2rgMainWindow(QMainWindow):
             self.ui.lineEdit_integration_time_total.setText("—")
 
     def _latest_fits_mtime(self) -> float:
-        path = self._newest_fits_file()
+        path = self._newest_fits_file(allow_probe=True)
         if path is None:
             return 0.0
         return path.stat().st_mtime
 
     def _wait_for_new_frame(
-        self, before_mtime: float, timeout_s: float = 30.0
+        self,
+        before_mtime: float,
+        macie,
+        timeout_s: float = 30.0,
     ) -> tuple[numpy.ndarray | None, Path | None]:
         import time
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            path = self._newest_fits_file()
-            if path is not None and path.stat().st_mtime > before_mtime:
-                return self._load_fits_from_path(path), path
+            loaded = self._try_load_path_if_new(
+                self._newest_fits_file(allow_probe=True), before_mtime
+            )
+            if loaded is not None:
+                return loaded
+            loaded = self._try_load_path_if_new(
+                self._resolve_server_fits_path(macie), before_mtime
+            )
+            if loaded is not None:
+                return loaded
             time.sleep(0.2)
-        loaded = self._load_latest_frame(force=True)
-        if loaded is None:
-            return None, None
-        frame, path = loaded
-        return frame, path
+
+        loaded = self._try_load_path_if_new(
+            self._newest_fits_file(allow_probe=True), before_mtime
+        )
+        if loaded is not None:
+            return loaded
+        loaded = self._try_load_path_if_new(
+            self._resolve_server_fits_path(macie), before_mtime
+        )
+        if loaded is not None:
+            return loaded
+        fetched = self._fetch_fits_from_server(macie)
+        if fetched is not None:
+            return fetched
+        return None, None
 
     def _load_fits_from_path(self, path: Path) -> numpy.ndarray:
         self._last_fits_path = path
@@ -756,15 +911,24 @@ class H2rgMainWindow(QMainWindow):
         return load_fits_image(path)
 
     def _load_latest_frame(
-        self, force: bool = False
+        self, force: bool = False, macie=None
     ) -> tuple[numpy.ndarray, Path] | None:
-        path = self._newest_fits_file()
+        path = self._newest_fits_file(allow_probe=True)
+        if path is None and macie is not None:
+            path = self._resolve_server_fits_path(macie)
         if path is None:
+            if force and macie is not None:
+                return self._fetch_fits_from_server(macie)
             return None
         mtime = path.stat().st_mtime
         if not force and mtime == self._last_fits_mtime:
             return None
-        return self._load_fits_from_path(path), path
+        try:
+            return self._load_fits_from_path(path), path
+        except OSError:
+            if macie is not None:
+                return self._fetch_fits_from_server(macie)
+            return None
 
     def _refresh_display(self) -> None:
         if self._current_frame is not None:
