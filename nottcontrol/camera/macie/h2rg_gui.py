@@ -35,6 +35,12 @@ from nottcontrol.camera.macie.fits_science import (
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="basic_warm_slow.cfg"
 )
+MACIE_CONFIG_FILE_SLOW = config.get(
+    "MACIE", "config_file_slow", fallback="basic_warm_slow.cfg"
+)
+MACIE_CONFIG_FILE_FAST = config.get(
+    "MACIE", "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
+)
 MACIE_ZMQ_ADDRESS = config.get(
     "MACIE", "zmq_address", fallback="tcp://localhost:65534"
 )
@@ -156,6 +162,7 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
 
 
 WINDOW_MODES = _build_window_modes()
+DETECTOR_MODES = ("Slow", "Fast")
 
 
 def _normalize_scene_pos(pos) -> QPointF:
@@ -193,6 +200,12 @@ def window_mode_index(
         if (mode.x1, mode.x2, mode.y1, mode.y2) == (x1, x2, y1, y2):
             return index
     return -1
+
+
+def detector_config_file(mode_index: int) -> str:
+    if mode_index == 1:
+        return MACIE_CONFIG_FILE_FAST
+    return MACIE_CONFIG_FILE_SLOW
 
 
 def macie_config_path(config_name: str) -> Path:
@@ -826,7 +839,9 @@ class H2rgMainWindow(QMainWindow):
 
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
-        self.ui.comboBox_detector_mode.addItems(["Slow", "Fast"])
+        self.ui.comboBox_detector_mode.addItems(list(DETECTOR_MODES))
+        if MACIE_CONFIG_FILE == MACIE_CONFIG_FILE_FAST:
+            self.ui.comboBox_detector_mode.setCurrentIndex(1)
         self.ui.comboBox_window_mode.clear()
         self.ui.comboBox_window_mode.addItems([mode.label for mode in WINDOW_MODES])
 
@@ -850,6 +865,25 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_window_mode.currentIndexChanged.connect(
             self._on_window_mode_changed
         )
+        self.ui.comboBox_detector_mode.currentIndexChanged.connect(
+            self._on_detector_mode_changed
+        )
+
+    def _on_detector_mode_changed(self, index: int) -> None:
+        if not self._initialized:
+            return
+        self._schedule_detector_mode_apply(index)
+
+    def _schedule_detector_mode_apply(self, index: int) -> None:
+        if index < 0 or index >= len(DETECTOR_MODES):
+            return
+        window_index = self.ui.comboBox_window_mode.currentIndex()
+
+        def operation() -> None:
+            macie = self._ensure_macie()
+            self._apply_detector_mode_to_macie(macie, index, window_index)
+
+        self._run_macie_operation("Detector mode", operation)
 
     def _on_window_mode_changed(self, index: int) -> None:
         if not self._initialized:
@@ -884,6 +918,19 @@ class H2rgMainWindow(QMainWindow):
             status = mode.label
         self.status_updated.emit(status)
         self._refresh_exposure_timing(macie)
+
+    def _apply_detector_mode_to_macie(
+        self, macie, mode_index: int, window_index: int
+    ) -> None:
+        config_file = detector_config_file(mode_index)
+        self.status_updated.emit(f"Switching to {DETECTOR_MODES[mode_index]} mode…")
+        macie.reinit_camera(config_file)
+        if 0 <= window_index < len(WINDOW_MODES):
+            self._apply_window_mode_to_macie(macie, window_index)
+        self._sync_save_dir_from_server(macie)
+        self._refresh_readouts(macie)
+        self._refresh_exposure_timing(macie)
+        self.status_updated.emit(f"Detector mode: {DETECTOR_MODES[mode_index]}")
 
     def _on_exposure_fields_changed(self) -> None:
         self._update_total_integration_label()
@@ -952,15 +999,21 @@ class H2rgMainWindow(QMainWindow):
         self._set_status(message)
         QMessageBox.warning(self, "H2RG", message)
 
-    def _ensure_macie(self):
+    def _ensure_macie(self, config_file: str | None = None):
         from nottcontrol.camera.macie.macie_interface import MacieInterface
 
+        if config_file is None:
+            config_file = detector_config_file(
+                self.ui.comboBox_detector_mode.currentIndex()
+            )
         if self._macie is None:
             self._macie = MacieInterface(
                 offline_mode=MACIE_OFFLINE_MODE,
-                config_file=MACIE_CONFIG_FILE,
+                config_file=config_file,
                 zmq_address=MACIE_ZMQ_ADDRESS,
             )
+        else:
+            self._macie.set_config_file(config_file)
         return self._macie
 
     def _run_macie_operation(self, label: str, operation) -> None:
@@ -977,10 +1030,11 @@ class H2rgMainWindow(QMainWindow):
         self.init_button_state.emit("busy")
         self.status_updated.emit("Initializing…")
         window_index = self.ui.comboBox_window_mode.currentIndex()
+        detector_index = self.ui.comboBox_detector_mode.currentIndex()
 
         def operation() -> None:
-            macie = self._ensure_macie()
-            macie.init_camera()
+            macie = self._ensure_macie(detector_config_file(detector_index))
+            macie.reinit_camera()
             if 0 <= window_index < len(WINDOW_MODES):
                 self._apply_window_mode_to_macie(macie, window_index)
             self._sync_save_dir_from_server(macie)
@@ -1238,7 +1292,10 @@ class H2rgMainWindow(QMainWindow):
         )
 
     def _apply_readouts(self, data: dict) -> None:
-        self.ui.comboBox_detector_mode.setCurrentIndex(data["mode_index"])
+        combo = self.ui.comboBox_detector_mode
+        combo.blockSignals(True)
+        combo.setCurrentIndex(data["mode_index"])
+        combo.blockSignals(False)
         window_index = data.get("window_index", -1)
         if window_index >= 0:
             combo = self.ui.comboBox_window_mode

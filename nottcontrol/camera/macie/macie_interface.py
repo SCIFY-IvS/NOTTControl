@@ -61,9 +61,20 @@ class MacieInterface():
         self.close()
     
     def initialize(self, config_file, offline_mode):
+        self._config_file = server_config_path(config_file)
         with self._lock:
-            self._socket.send_string(f"init;{config_file};{str(offline_mode).lower()}")
+            self._socket.send_string(
+                f"init;{self._config_file};{str(offline_mode).lower()}"
+            )
             return self._receive_and_parse_reply()
+
+    def set_config_file(self, config_file: str) -> None:
+        self._config_file = server_config_path(config_file)
+
+    def reinit_camera(self, config_file: str | None = None) -> None:
+        if config_file is not None:
+            self.set_config_file(config_file)
+        self.init_camera()
     
     def power_off(self):
         return self._request("poweroff")
