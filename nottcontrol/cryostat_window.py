@@ -40,7 +40,7 @@ class CryostatWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
         layout.addWidget(
-            make_nott_logo_title_header("Cryostat monitor"),
+            make_nott_logo_title_header("Cryostat Monitor"),
             alignment=Qt.AlignLeft,
         )
 

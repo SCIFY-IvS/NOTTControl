@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from nottcontrol.theme import BORDER, NOTT_HEADER_TITLE_STYLE, apply_instrument_window_style
+from nottcontrol.theme import NOTT_HEADER_TITLE_STYLE, apply_instrument_window_style
 
 TEAL = QColor(50, 129, 140)
 TEAL_DARK = QColor(18, 48, 54)
@@ -167,9 +167,7 @@ def make_nott_logo_title_header(
     logo_height: int = NOTT_LOGO_BANNER_HEIGHT,
 ) -> QWidget:
     header = QWidget()
-    header.setStyleSheet(
-        f"background: transparent; border-bottom: 1px solid {BORDER}; padding-bottom: 6px;"
-    )
+    header.setStyleSheet("background: transparent;")
     layout = QHBoxLayout(header)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(12)

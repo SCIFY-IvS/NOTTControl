@@ -320,7 +320,7 @@ class MainWindow(QMainWindow):
         self.ui.label.hide()
         self.ui.label_2.hide()
 
-        self._header_title = make_nott_logo_title_header("Instrument control")
+        self._header_title = make_nott_logo_title_header("Instrument Control")
         self._header_title.setParent(self.ui.centralwidget)
 
         self._asgard_logo_label = QLabel(self.ui.centralwidget)

@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
         self._setup_roi_values_panel()
         self._setup_detector_panel()
         self._layout_window()
-        install_nott_logo_header(self, title="Camera warm")
+        install_nott_logo_header(self, title="Camera Warm")
 
         self.connectSignalSlots()
         

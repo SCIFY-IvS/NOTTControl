@@ -44,7 +44,7 @@ class TipTiltWindow(QWidget):
         self.redis_client = redis_client
 
         self.ui = loadUi('tiptilt_window.ui', self)
-        install_nott_logo_on_form(self, title="Tip/tilt motors")
+        install_nott_logo_on_form(self, title="Tip/Tilt Motors")
 
         self.ui.motor_widget_NTPA1.setup(self.opcua_conn, self.redis_client, self._motor_ntpa1)
         self.ui.motor_widget_NTTA1.setup(self.opcua_conn, self.redis_client, self._motor_ntta1)
