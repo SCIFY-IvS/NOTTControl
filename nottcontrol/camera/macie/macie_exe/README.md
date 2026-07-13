@@ -63,7 +63,7 @@ Commands:
    - Acquire frames from detector and download to PC.
 0. haltAcq
    - Halt a failed acquisition
-   - Runs CloseUSBScienceInterface() and HaltCameraAcq()
+   - Runs CloseScienceInterface() and HaltCameraAcq()
 0. readASIC/writeASIC
    - Read/Write specific ASIC register
    - Address assumed to be in HEX, but val can be INT or HEX

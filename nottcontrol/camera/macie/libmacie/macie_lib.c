@@ -82,6 +82,7 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     // ptUserData->nBytesMin       = 1024 * 1024;
     ptUserData->nBytesMax = UINT_MAX;    // Maximum number of total bytes allowed for mem allocation
     ptUserData->bUseSciDataFunc = false; // Use MACIE_ReadUSBScienceData() or MACIE_ReadUSBFrameData()?
+    ptUserData->bScienceInterfaceOpen = false;
 
     ptUserData->bSaveData = false;
     ptUserData->uiFileNum = 0;
@@ -1372,6 +1373,7 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         }
     }
     verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
+    ptUserData->bScienceInterfaceOpen = true;
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1542,6 +1544,7 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         }
     }
     verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
+    ptUserData->bScienceInterfaceOpen = true;
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1679,6 +1682,7 @@ bool CloseUSBScienceInterface(MACIE_Settings *ptUserData)
     }
     // Set burst stripe to idle in full frame
     burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
 
     return true;
 }
@@ -1700,8 +1704,26 @@ bool CloseGigEScienceInterface(MACIE_Settings *ptUserData)
     }
     // Set burst stripe to idle in full frame
     burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \brief CloseScienceInterface Close the active science data interface, if open.
+/// \param ptUserData The user-set structure containing all the hardware parameters.
+bool CloseScienceInterface(MACIE_Settings *ptUserData)
+{
+    if (ptUserData->bScienceInterfaceOpen == false)
+    {
+        verbose_printf(LOG_INFO, ptUserData, "Science interface not open; skipping close.\n");
+        return true;
+    }
+
+    if (ptUserData->connection == MACIE_USB)
+        return CloseUSBScienceInterface(ptUserData);
+
+    return CloseGigEScienceInterface(ptUserData);
 }
 
 bool HaltCameraAcq(MACIE_Settings *ptUserData)
