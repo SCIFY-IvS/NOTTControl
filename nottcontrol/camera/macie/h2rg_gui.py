@@ -12,6 +12,8 @@ from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -22,6 +24,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSizePolicy,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -193,6 +196,45 @@ def _format_stat_value(value: float) -> str:
     if abs(rounded - value) < 1e-9:
         return f"{int(rounded)}"
     return f"{value:.2f}"
+
+
+def fits_header_text(
+    header: dict | None, path: Path | None = None
+) -> str | None:
+    """Return a printable FITS header, preferring the on-disk file when available."""
+    if path is not None:
+        try:
+            file_path = Path(path)
+            if file_path.is_file():
+                from astropy.io import fits
+
+                with fits.open(file_path, memmap=False) as hdul:
+                    return "\n".join(
+                        card.image.rstrip() for card in hdul[0].header.cards
+                    )
+        except Exception:
+            pass
+    if not header:
+        return None
+    return "\n".join(f"{key:8} = {value}" for key, value in header.items())
+
+
+class FitsHeaderDialog(QDialog):
+    def __init__(self, parent: QWidget | None, *, title: str, text: str) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(760, 560)
+
+        layout = QVBoxLayout(self)
+        editor = QTextEdit(self)
+        editor.setReadOnly(True)
+        editor.setFontFamily("Consolas")
+        editor.setPlainText(text)
+        layout.addWidget(editor)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
 
 
 def central_value_median(frame: numpy.ndarray) -> float | None:
@@ -483,6 +525,7 @@ class H2rgMainWindow(QMainWindow):
         QApplication.processEvents()
         self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
         self._button_autoscale.clicked.connect(self._autoscale_image)
+        self._button_header.clicked.connect(self._show_fits_header)
         self._apply_styles()
         self._setup_image_placeholder()
         self.ui.frame_camera.installEventFilter(self)
@@ -538,6 +581,11 @@ class H2rgMainWindow(QMainWindow):
         self._button_autoscale.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_autoscale.setFixedWidth(96)
         row.addWidget(self._button_autoscale)
+        self._button_header = QPushButton("Header")
+        self._button_header.setStyleSheet(PANEL_BUTTON_STYLE)
+        self._button_header.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        self._button_header.setFixedWidth(96)
+        row.addWidget(self._button_header)
         parent_layout.addLayout(row)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
@@ -1387,6 +1435,24 @@ class H2rgMainWindow(QMainWindow):
             return
         self._auto_levels_next = True
         self._refresh_display()
+
+    def _show_fits_header(self) -> None:
+        path = self._last_fits_path
+        if path is not None and is_science_fits_name(path.name):
+            path = None
+        text = fits_header_text(self._raw_fits_header, path)
+        if not text:
+            QMessageBox.information(
+                self,
+                "FITS header",
+                "No FITS file loaded yet.",
+            )
+            return
+        title = "FITS header"
+        if self._last_fits_path is not None:
+            title = f"FITS header — {self._last_fits_path.name}"
+        dialog = FitsHeaderDialog(self, title=title, text=text)
+        dialog.exec_()
 
     def _set_status(self, message: str) -> None:
         if self.ui is None:

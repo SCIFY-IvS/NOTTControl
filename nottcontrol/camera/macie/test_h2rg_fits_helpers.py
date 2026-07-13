@@ -14,6 +14,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     _channel_window,
     central_value_median,
     fits_basename,
+    fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
     map_server_fits_path,
@@ -44,6 +45,13 @@ class StripeWindowTests(unittest.TestCase):
 
 
 class CentralValueTests(unittest.TestCase):
+    def test_fits_header_text_from_dict(self) -> None:
+        text = fits_header_text({"NAXIS": 2, "BITPIX": 16})
+        self.assertIsNotNone(text)
+        assert text is not None
+        self.assertIn("NAXIS", text)
+        self.assertIn("BITPIX", text)
+
     def test_median_of_inner_region(self) -> None:
         frame = numpy.arange(100, dtype=numpy.float32).reshape(10, 10)
         value = central_value_median(frame)
