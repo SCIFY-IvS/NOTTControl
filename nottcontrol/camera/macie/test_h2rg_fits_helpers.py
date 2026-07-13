@@ -30,6 +30,12 @@ class ChannelWindowTests(unittest.TestCase):
 
 
 class StripeWindowTests(unittest.TestCase):
+    def test_centered_stripe_128_rows(self) -> None:
+        self.assertEqual(_centered_vertical_stripe(128), (0, 2047, 960, 1087))
+
+    def test_centered_stripe_256_rows(self) -> None:
+        self.assertEqual(_centered_vertical_stripe(256), (0, 2047, 896, 1151))
+
     def test_centered_stripe_512_rows(self) -> None:
         self.assertEqual(_centered_vertical_stripe(512), (0, 2047, 768, 1279))
 

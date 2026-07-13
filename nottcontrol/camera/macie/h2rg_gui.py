@@ -139,13 +139,25 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
     return (
         WindowMode("Full frame", False, False, 0, full_span, 0, full_span),
         WindowMode(
-            "Stripe center 512",
+            "SC 128",
+            False,
+            True,
+            *_centered_vertical_stripe(128, array_size=array_size),
+        ),
+        WindowMode(
+            "SC 256",
+            False,
+            True,
+            *_centered_vertical_stripe(256, array_size=array_size),
+        ),
+        WindowMode(
+            "SC 512",
             False,
             True,
             *_centered_vertical_stripe(512, array_size=array_size),
         ),
         WindowMode(
-            "Stripe center 1024",
+            "SC 1024",
             False,
             True,
             *_centered_vertical_stripe(1024, array_size=array_size),
