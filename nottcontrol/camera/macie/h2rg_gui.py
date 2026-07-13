@@ -84,6 +84,7 @@ IMAGE_STATS_MAX_WIDTH = 200
 CURSOR_READOUT_HEIGHT = 22
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
+H2RG_NUM_CHANNELS = 32
 
 
 @dataclass(frozen=True)
@@ -106,11 +107,30 @@ def _centered_window(size: int, array_size: int = H2RG_ARRAY_SIZE) -> tuple[int,
     return _window_region(origin, origin, size)
 
 
+def _channel_width(array_size: int = H2RG_ARRAY_SIZE) -> int:
+    return array_size // H2RG_NUM_CHANNELS
+
+
+def _channel_window(
+    channel: int, *, array_size: int = H2RG_ARRAY_SIZE
+) -> tuple[int, int, int, int]:
+    """Return x1, x2, y1, y2 for a 1-based H2RG readout channel (full height)."""
+    width = _channel_width(array_size)
+    if not 1 <= channel <= H2RG_NUM_CHANNELS:
+        raise ValueError(
+            f"channel must be between 1 and {H2RG_NUM_CHANNELS}, got {channel}"
+        )
+    x1 = (channel - 1) * width
+    x2 = x1 + width - 1
+    return x1, x2, 0, array_size - 1
+
+
 def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, ...]:
     full_span = array_size - 1
     half = array_size // 2
     return (
         WindowMode("Full frame", False, False, 0, full_span, 0, full_span),
+        WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
         WindowMode("LR 1024x1024", True, True, *_window_region(half, 0, 1024)),
         WindowMode("UL 1024x1024", True, True, *_window_region(0, half, 1024)),

@@ -8,12 +8,21 @@ import unittest
 from pathlib import Path
 
 from nottcontrol.camera.macie.h2rg_gui import (
+    _channel_window,
     fits_basename,
     is_new_ramp_fits,
     is_science_fits_name,
     map_server_fits_path,
     newest_fits_file,
 )
+
+
+class ChannelWindowTests(unittest.TestCase):
+    def test_channel_16_window_on_2048_detector(self) -> None:
+        self.assertEqual(_channel_window(16), (960, 1023, 0, 2047))
+
+    def test_channel_1_window_starts_at_origin(self) -> None:
+        self.assertEqual(_channel_window(1)[:2], (0, 63))
 
 
 class ScienceFitsNameTests(unittest.TestCase):
