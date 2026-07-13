@@ -536,11 +536,24 @@ class H2rgMainWindow(QMainWindow):
         elif self._image_placeholder is not None:
             self._image_placeholder.setGeometry(4, 4, max(1, width - 8), max(1, height - 8))
 
-    def _image_view_box(self):
+    def _scene_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
         if self.image is None:
             return None
-        view = self.image.getView()
-        return view.getViewBox() if view is not None else None
+        image_item = self.image.getImageItem()
+        if image_item is None or image_item.image is None:
+            return None
+        try:
+            scene_pos = _normalize_scene_pos(pos)
+            mouse = image_item.mapFromScene(scene_pos)
+        except (TypeError, ValueError, AttributeError):
+            return None
+
+        x = int(mouse.x())
+        y = int(mouse.y())
+        img_h, img_w = image_item.image.shape[:2]
+        if x < 0 or y < 0 or x >= img_w or y >= img_h:
+            return None
+        return x, y
 
     def _update_cursor_readout_from_view_pos(self, view_pos) -> None:
         self._cursor_readout_pending = view_pos
@@ -562,30 +575,12 @@ class H2rgMainWindow(QMainWindow):
             self._cursor_readout.setText("Pixel: —")
             return
 
-        vb = self._image_view_box()
-        if vb is None:
-            return
-
-        try:
-            if isinstance(pos, (tuple, list)) and len(pos) == 1:
-                pos = pos[0]
-            if hasattr(pos, "x") and hasattr(pos, "y") and not isinstance(
-                pos, (tuple, list)
-            ):
-                mouse = vb.mapSceneToView(pos)
-            else:
-                scene_pos = _normalize_scene_pos(pos)
-                mouse = vb.mapSceneToView(scene_pos)
-        except (TypeError, ValueError):
-            return
-
-        x = int(mouse.x())
-        y = int(mouse.y())
-        img_h, img_w = img.shape[:2]
-        if x < 0 or y < 0 or x >= img_w or y >= img_h:
+        pixel = self._scene_pos_to_image_xy(pos)
+        if pixel is None:
             self._cursor_readout.setText("Pixel: —")
             return
 
+        x, y = pixel
         adu = float(img[y, x])
         self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
 
