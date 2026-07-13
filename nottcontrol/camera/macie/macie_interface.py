@@ -85,7 +85,7 @@ class MacieInterface():
         if command in ("acquire", "fetchnewestfits"):
             # _request / _request_multipart already hold self._lock.
             self._attempt_halt_after_timeout()
-        return TimeoutError(f"ZMQ request timed out ({command})") from exc
+        return TimeoutError(f"ZMQ request timed out ({command})")
 
     def __enter__(self):
         self.init_camera()
