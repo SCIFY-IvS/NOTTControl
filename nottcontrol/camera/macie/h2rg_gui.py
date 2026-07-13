@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import threading
+import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
@@ -70,6 +72,7 @@ MACIE_INTEGRATION_NGROUPS_MAX = config.getint(
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
     "MACIE", "save_science_fits", fallback=True
 )
+MACIE_DS9_EXECUTABLE = config.get("MACIE", "ds9_executable", fallback="ds9").strip()
 
 from nottcontrol.theme import (
     CHECKBOX_STYLE,
@@ -315,7 +318,12 @@ def zmq_server_hostname(zmq_address: str) -> str | None:
     return urlparse(normalized).hostname
 
 
-def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path:
+def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path | None:
+    """Map a Linux server FITS path to a local path when configured.
+
+    Returns None on Windows when no explicit Linux-to-UNC mapping is configured,
+    so callers fall back to ZMQ fetch instead of inventing invalid UNC paths.
+    """
     normalized = server_path.replace("\\", "/")
     if FITS_LINUX_PATH_PREFIX and FITS_WINDOWS_UNC_ROOT:
         prefix = FITS_LINUX_PATH_PREFIX.replace("\\", "/").rstrip("/")
@@ -327,11 +335,7 @@ def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS)
             return Path(unc_root) / Path(*PurePosixPath(suffix).parts)
 
     if sys.platform == "win32" and normalized.startswith("/"):
-        host = zmq_server_hostname(zmq_address)
-        if host:
-            relative = normalized.lstrip("/")
-            windows_relative = relative.replace("/", "\\")
-            return Path(f"\\\\{host}\\{windows_relative}")
+        return None
 
     return Path(server_path)
 
@@ -347,6 +351,46 @@ def load_fits_image_from_bytes(payload: bytes) -> numpy.ndarray:
 def is_science_fits_name(name: str) -> bool:
     lowered = name.lower()
     return lowered.endswith("_science.fits")
+
+
+def ramp_fits_path_for_viewer(path: Path) -> Path:
+    """Prefer the raw ramp FITS over the derived science file."""
+    if is_science_fits_name(path.name):
+        return path.with_name(path.name.replace("_science.fits", ".fits"))
+    return path
+
+
+def local_fits_file_for_viewer(path: Path | None) -> Path | None:
+    if path is None:
+        return None
+    candidates = (ramp_fits_path_for_viewer(path), path)
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            if candidate.is_file():
+                return candidate
+        except OSError:
+            continue
+    return None
+
+
+def launch_ds9(path: Path, executable: str = MACIE_DS9_EXECUTABLE) -> None:
+    exe = shutil.which(executable) or executable
+    launch_kwargs: dict[str, object] = {
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if sys.platform == "win32":
+        launch_kwargs["creationflags"] = (
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        )
+    else:
+        launch_kwargs["start_new_session"] = True
+    subprocess.Popen([exe, str(path)], **launch_kwargs)
 
 
 def fits_basename(path: Path | str | None) -> str | None:
@@ -526,6 +570,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
         self._button_autoscale.clicked.connect(self._autoscale_image)
         self._button_header.clicked.connect(self._show_fits_header)
+        self._button_ds9.clicked.connect(self._open_fits_in_ds9)
         self._apply_styles()
         self._setup_image_placeholder()
         self.ui.frame_camera.installEventFilter(self)
@@ -586,6 +631,11 @@ class H2rgMainWindow(QMainWindow):
         self._button_header.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_header.setFixedWidth(96)
         row.addWidget(self._button_header)
+        self._button_ds9 = QPushButton("DS9")
+        self._button_ds9.setStyleSheet(PANEL_BUTTON_STYLE)
+        self._button_ds9.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        self._button_ds9.setFixedWidth(96)
+        row.addWidget(self._button_ds9)
         parent_layout.addLayout(row)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
@@ -1454,6 +1504,32 @@ class H2rgMainWindow(QMainWindow):
         dialog = FitsHeaderDialog(self, title=title, text=text)
         dialog.exec_()
 
+    def _open_fits_in_ds9(self) -> None:
+        path = local_fits_file_for_viewer(self._last_fits_path)
+        if path is None:
+            QMessageBox.information(
+                self,
+                "Open in DS9",
+                "No FITS file is available on disk yet. "
+                "Acquire or load a frame from a local path first.",
+            )
+            return
+        try:
+            launch_ds9(path)
+        except FileNotFoundError:
+            QMessageBox.warning(
+                self,
+                "Open in DS9",
+                f"DS9 executable not found ({MACIE_DS9_EXECUTABLE!r}). "
+                "Install SAOImage DS9 or set MACIE ds9_executable in config.ini.",
+            )
+        except OSError as exc:
+            QMessageBox.warning(
+                self,
+                "Open in DS9",
+                f"Failed to launch DS9 for {path.name}: {exc}",
+            )
+
     def _set_status(self, message: str) -> None:
         if self.ui is None:
             return
@@ -1690,17 +1766,15 @@ class H2rgMainWindow(QMainWindow):
         return fallback
 
     def _science_output_path(self, ramp_path: Path) -> Path:
-        if ramp_path.is_absolute():
-            return science_fits_path(ramp_path)
-        return science_fits_path(self._save_dir / ramp_path.name)
+        return science_fits_path(self._local_science_save_dir() / ramp_path.name)
 
     def _save_science_fits(
         self, frame: numpy.ndarray, ramp_path: Path | None
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
             return None
+        output_path = self._science_output_path(ramp_path)
         try:
-            output_path = self._science_output_path(ramp_path)
             save_science_fits(
                 output_path,
                 frame,
@@ -1709,27 +1783,8 @@ class H2rgMainWindow(QMainWindow):
             )
             return output_path
         except OSError as exc:
-            fallback_path = science_fits_path(
-                self._local_science_save_dir() / ramp_path.name
-            )
-            if fallback_path == output_path:
-                print(f"H2RG failed to save science FITS: {exc}")
-                return None
-            try:
-                save_science_fits(
-                    fallback_path,
-                    frame,
-                    source_header=self._raw_fits_header,
-                    tint_ms=self._last_tint_ms,
-                )
-                print(
-                    "H2RG science FITS saved locally after remote path failed: "
-                    f"{exc}"
-                )
-                return fallback_path
-            except OSError as fallback_exc:
-                print(f"H2RG failed to save science FITS: {fallback_exc}")
-                return None
+            print(f"H2RG failed to save science FITS: {exc}")
+            return None
 
     def _sync_save_dir_from_server(self, macie) -> None:
         try:
@@ -1739,8 +1794,13 @@ class H2rgMainWindow(QMainWindow):
         if not server_dir:
             return
         mapped = map_server_fits_path(server_dir.rstrip("/\\"))
-        if mapped:
-            self._save_dir = mapped
+        if mapped is None:
+            return
+        try:
+            if mapped.is_dir():
+                self._save_dir = mapped
+        except OSError:
+            pass
 
     def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
         if self._fits_dir_ok is False and not allow_probe:

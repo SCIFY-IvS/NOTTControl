@@ -6,6 +6,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy
 
@@ -17,8 +18,10 @@ from nottcontrol.camera.macie.h2rg_gui import (
     fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
+    local_fits_file_for_viewer,
     map_server_fits_path,
     newest_fits_file,
+    ramp_fits_path_for_viewer,
 )
 
 
@@ -78,6 +81,25 @@ class ScienceFitsNameTests(unittest.TestCase):
         self.assertFalse(is_science_fits_name("ramp.fits"))
 
 
+class ViewerFitsPathTests(unittest.TestCase):
+    def test_science_path_maps_to_ramp(self) -> None:
+        science = Path("/tmp/frame_science.fits")
+        self.assertEqual(
+            ramp_fits_path_for_viewer(science),
+            Path("/tmp/frame.fits"),
+        )
+
+    def test_local_file_prefers_existing_ramp(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            ramp = directory / "frame.fits"
+            science = directory / "frame_science.fits"
+            ramp.write_bytes(b"SIMPLE  =                    T")
+            science.write_bytes(b"SIMPLE  =                    T")
+            resolved = local_fits_file_for_viewer(science)
+            self.assertEqual(resolved, ramp)
+
+
 class NewRampFitsTests(unittest.TestCase):
     def test_newer_mtime_is_new(self) -> None:
         self.assertTrue(
@@ -121,11 +143,37 @@ class NewRampFitsTests(unittest.TestCase):
 
 
 class MapServerFitsPathTests(unittest.TestCase):
+    def test_linux_absolute_path_without_mapping_returns_none_on_windows(self) -> None:
+        with patch("nottcontrol.camera.macie.h2rg_gui.sys.platform", "win32"):
+            with patch("nottcontrol.camera.macie.h2rg_gui.FITS_LINUX_PATH_PREFIX", ""):
+                with patch("nottcontrol.camera.macie.h2rg_gui.FITS_WINDOWS_UNC_ROOT", ""):
+                    mapped = map_server_fits_path(
+                        "/home/labo/test_data/frame.fits",
+                    )
+        self.assertIsNone(mapped)
+
     def test_linux_prefix_maps_to_unc_on_windows(self) -> None:
-        mapped = map_server_fits_path(
-            "/data/fits/frame.fits",
-            zmq_address="tcp://camera-host:65534",
+        with patch("nottcontrol.camera.macie.h2rg_gui.sys.platform", "win32"):
+            with patch(
+                "nottcontrol.camera.macie.h2rg_gui.FITS_LINUX_PATH_PREFIX",
+                "/home/labo",
+            ):
+                with patch(
+                    "nottcontrol.camera.macie.h2rg_gui.FITS_WINDOWS_UNC_ROOT",
+                    r"\\nott-server.ster.kuleuven.be\labo",
+                ):
+                    mapped = map_server_fits_path(
+                        "/home/labo/test_data/frame.fits",
+                    )
+        self.assertIsNotNone(mapped)
+        assert mapped is not None
+        self.assertEqual(
+            str(mapped).replace("/", "\\"),
+            r"\\nott-server.ster.kuleuven.be\labo\test_data\frame.fits",
         )
+
+    def test_linux_path_unchanged_on_posix(self) -> None:
+        mapped = map_server_fits_path("/data/fits/frame.fits")
         self.assertEqual(mapped, Path("/data/fits/frame.fits"))
 
     def test_basename_helper(self) -> None:
