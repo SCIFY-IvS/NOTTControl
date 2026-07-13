@@ -49,6 +49,7 @@ from nottcontrol.shutters_window import ShutterWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
 from nottcontrol.cryostat_window import CryostatWindow
+from nottcontrol.ldc_window import LdcWindow
 import json
 
 # async def call_method_async(opcua_client, node_id, method_name, args):
@@ -108,6 +109,7 @@ class MainWindow(QMainWindow):
         self.tiptilt_window = None
         self.piezos_window = None
         self.cryostat_window = None
+        self.ldc_window = None
 
         url =  config['DEFAULT']['databaseurl']
         self.redis_client = RedisClient(url)
@@ -126,6 +128,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_tiptilt.clicked.connect(self.open_tiptilt_window)
         self.ui.pushButton_piezos.clicked.connect(self.open_piezos_window)
         self.ui.pushButton_cryostat.clicked.connect(self.open_cryostat_window)
+        self.ui.pushButton_ldc.clicked.connect(self.open_ldc_window)
 
         self.ui.pushButton_camera.clicked.connect(self.open_camera_interface)
         self.ui.pushButton_h2rg.clicked.connect(self.open_h2rg_interface)
@@ -287,6 +290,7 @@ class MainWindow(QMainWindow):
             self.ui.pushButton_cryostat,
             self.ui.main_pb_delay_lines,
             self.ui.pushButton_filter_wheel,
+            self.ui.pushButton_ldc,
             self.ui.pushButton_light_source,
             self.ui.pushButton_piezos,
             self.ui.pushButton_shutters,
@@ -539,6 +543,20 @@ class MainWindow(QMainWindow):
 
     def clear_cryostat_window(self):
         self.cryostat_window = None
+
+    def open_ldc_window(self):
+        try:
+            if self.ldc_window is None:
+                self.ldc_window = LdcWindow(self, self.opcua_conn, self.redis_client)
+                self.ldc_window.closing.connect(self.clear_ldc_window)
+                self.ldc_window.show()
+            else:
+                self.ldc_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening LDC window: {e}")
+
+    def clear_ldc_window(self):
+        self.ldc_window = None
 
     def load_dl_status(self):
         values = self.opcua_conn.read_nodes(self.dl_status_opc_nodes)

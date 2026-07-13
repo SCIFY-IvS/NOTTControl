@@ -428,6 +428,7 @@ def apply_main_window_styles(main_window: QWidget) -> None:
     for name in (
         "pushButton_piezos",
         "pushButton_filter_wheel",
+        "pushButton_ldc",
         "pushButton_cryostat",
         "pushButton_shutters",
         "pushButton_light_source",
