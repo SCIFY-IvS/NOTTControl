@@ -16,6 +16,9 @@ ZMQ_REQUEST_TIMEOUT_MS = config.getint(
 ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
     "MACIE", "zmq_acquire_timeout_ms", fallback=300_000
 )
+MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
+    "MACIE", "shutdown_timeout_ms", fallback=2_000
+)
 
 
 def server_config_path(config_file: str) -> str:
@@ -211,26 +214,69 @@ class MacieInterface():
         result = self._request("getpower")
         return result == "true"
 
-    def close(self):
+    def close(self, *, request_timeout_ms: int | None = None) -> None:
+        timeout_ms = (
+            MACIE_SHUTDOWN_TIMEOUT_MS
+            if request_timeout_ms is None
+            else request_timeout_ms
+        )
         self._closing.set()
         self._acquiring.clear()
 
+        acquired = self._lock.acquire(timeout=timeout_ms / 1000.0)
         try:
-            self._request("close")
-        except Exception as e:
-            print(e)
-
-        with self._lock:
-            if self._socket is not None:
+            if acquired and self._socket is not None:
+                restore_rcv = self._socket.getsockopt(zmq.RCVTIMEO)
+                restore_snd = self._socket.getsockopt(zmq.SNDTIMEO)
                 try:
-                    self._socket.close(linger=0)
-                except Exception:
-                    pass
-                self._socket = None
+                    self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+                    self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+                    for command in ("halt", "close"):
+                        try:
+                            self._socket.send_string(command)
+                            self._receive_and_parse_reply()
+                        except Exception as exc:
+                            print(f"MACIE {command} during shutdown: {exc}")
+                            break
+                finally:
+                    try:
+                        self._socket.setsockopt(zmq.RCVTIMEO, restore_rcv)
+                        self._socket.setsockopt(zmq.SNDTIMEO, restore_snd)
+                    except Exception:
+                        pass
+            elif not acquired:
+                print("MACIE shutdown: aborting blocked ZMQ socket")
+                self._abort_socket_unlocked()
+        finally:
+            if acquired:
+                self._lock.release()
+
+        self._teardown_zmq()
+
+    def _abort_socket_unlocked(self) -> None:
+        socket = self._socket
+        self._socket = None
+        if socket is not None:
             try:
-                self._context.term()
+                socket.close(linger=0)
             except Exception:
                 pass
+
+    def _teardown_zmq(self) -> None:
+        if self._lock.acquire(timeout=2.0):
+            try:
+                if self._socket is not None:
+                    try:
+                        self._socket.close(linger=0)
+                    except Exception:
+                        pass
+                    self._socket = None
+            finally:
+                self._lock.release()
+        try:
+            self._context.term()
+        except Exception:
+            pass
 
     def halt_acquisition(self):
         return self._request("halt")

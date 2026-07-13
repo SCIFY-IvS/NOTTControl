@@ -371,6 +371,7 @@ class H2rgMainWindow(QMainWindow):
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = None
+        self._shutting_down = False
         self._last_tint_ms: float | None = None
         self._initialized = False
         self._last_zmq_fits_poll = 0.0
@@ -1941,19 +1942,38 @@ class H2rgMainWindow(QMainWindow):
         }
 
     def closeEvent(self, event) -> None:
-        if self._live_active and self._macie is not None:
-            self._macie.stop_continuous_acquisition()
-            self._stop_live_ui()
+        if self._shutting_down:
+            event.accept()
+            return
+        self._shutting_down = True
 
-        if self._macie is not None:
-            if self._operation_lock.acquire(timeout=5.0):
-                self._operation_lock.release()
-            try:
-                self._macie.close()
-            except Exception:
-                pass
-            self._macie = None
-        if self._zmq_server is not None:
-            self._zmq_server.stop()
+        self._cursor_readout_timer.stop()
+        self._live_poll_stop.set()
+        self._stop_live_ui()
+
+        macie = self._macie
+        zmq_server = self._zmq_server
+        operation_lock = self._operation_lock
+        self._macie = None
+        self._zmq_server = None
+
         self.closing.emit()
+        event.accept()
         super().closeEvent(event)
+
+        def cleanup() -> None:
+            if macie is not None:
+                macie.stop_continuous_acquisition()
+                if operation_lock.acquire(timeout=2.0):
+                    operation_lock.release()
+                try:
+                    macie.close()
+                except Exception as exc:
+                    print(f"H2RG MACIE shutdown: {exc}")
+            if zmq_server is not None:
+                try:
+                    zmq_server.stop()
+                except Exception as exc:
+                    print(f"H2RG zmq_server shutdown: {exc}")
+
+        threading.Thread(target=cleanup, name="h2rg-shutdown", daemon=True).start()
