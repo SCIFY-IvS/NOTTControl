@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from nottcontrol.camera.macie.h2rg_gui import (
+    _centered_vertical_stripe,
     _channel_window,
     fits_basename,
     is_new_ramp_fits,
@@ -23,6 +24,14 @@ class ChannelWindowTests(unittest.TestCase):
 
     def test_channel_1_window_starts_at_origin(self) -> None:
         self.assertEqual(_channel_window(1)[:2], (0, 63))
+
+
+class StripeWindowTests(unittest.TestCase):
+    def test_centered_stripe_512_rows(self) -> None:
+        self.assertEqual(_centered_vertical_stripe(512), (0, 2047, 768, 1279))
+
+    def test_centered_stripe_1024_rows(self) -> None:
+        self.assertEqual(_centered_vertical_stripe(1024), (0, 2047, 512, 1535))
 
 
 class ScienceFitsNameTests(unittest.TestCase):

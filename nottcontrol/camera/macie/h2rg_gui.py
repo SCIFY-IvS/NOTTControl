@@ -125,11 +125,31 @@ def _channel_window(
     return x1, x2, 0, array_size - 1
 
 
+def _centered_vertical_stripe(
+    height: int, array_size: int = H2RG_ARRAY_SIZE
+) -> tuple[int, int, int, int]:
+    """Full-width vertical burst stripe (horizontal window off, parallel outputs)."""
+    y0 = (array_size - height) // 2
+    return 0, array_size - 1, y0, y0 + height - 1
+
+
 def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, ...]:
     full_span = array_size - 1
     half = array_size // 2
     return (
         WindowMode("Full frame", False, False, 0, full_span, 0, full_span),
+        WindowMode(
+            "Stripe center 512",
+            False,
+            True,
+            *_centered_vertical_stripe(512, array_size=array_size),
+        ),
+        WindowMode(
+            "Stripe center 1024",
+            False,
+            True,
+            *_centered_vertical_stripe(1024, array_size=array_size),
+        ),
         WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
         WindowMode("LR 1024x1024", True, True, *_window_region(half, 0, 1024)),
@@ -176,7 +196,12 @@ def window_mode_index(
             continue
         if not mode.x_window and not mode.y_window:
             return index
-        if (mode.x1, mode.x2, mode.y1, mode.y2) == (x1, x2, y1, y2):
+        if mode.x_window == x_window and mode.y_window == y_window and (
+            mode.x1,
+            mode.x2,
+            mode.y1,
+            mode.y2,
+        ) == (x1, x2, y1, y2):
             return index
     return -1
 
@@ -751,7 +776,7 @@ class H2rgMainWindow(QMainWindow):
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
         self._clear_widget_layout(box)
-        box.setMinimumHeight(300)
+        box.setMinimumHeight(330)
         outer = QVBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(8)
@@ -790,6 +815,9 @@ class H2rgMainWindow(QMainWindow):
         form.addWidget(separator, separator_row, 0, 1, 3)
 
         timing_row = separator_row + 1
+        self._label_frame_time = QLabel("Frame time (ms):")
+        self._lineEdit_frame_time = QLineEdit("—")
+        self._lineEdit_frame_time.setReadOnly(True)
         self._label_photon_time = QLabel("Photon time (s):")
         self._lineEdit_photon_time = QLineEdit("—")
         self._lineEdit_photon_time.setReadOnly(True)
@@ -801,6 +829,7 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_efficiency.setReadOnly(True)
         for offset, (label, field) in enumerate(
             (
+                (self._label_frame_time, self._lineEdit_frame_time),
                 (self._label_photon_time, self._lineEdit_photon_time),
                 (self._label_execution_time, self._lineEdit_execution_time),
                 (self._label_efficiency, self._lineEdit_efficiency),
@@ -815,7 +844,7 @@ class H2rgMainWindow(QMainWindow):
             form.addWidget(label, timing_row + offset, 0)
             form.addWidget(field, timing_row + offset, 1)
 
-        footer_row = timing_row + 3
+        footer_row = timing_row + 4
         for offset, (label_name, field_name) in enumerate(
             (
                 ("label_4", "lineEdit_integration_time_total"),
@@ -1254,7 +1283,12 @@ class H2rgMainWindow(QMainWindow):
             mode.y1,
             mode.y2,
         )
-        if mode.x_window or mode.y_window:
+        if mode.y_window and not mode.x_window:
+            status = (
+                f"{mode.label} — burst stripe y=[{mode.y1},{mode.y2}] "
+                "(32 outputs)"
+            )
+        elif mode.x_window or mode.y_window:
             status = (
                 f"{mode.label} — x=[{mode.x1},{mode.x2}] y=[{mode.y1},{mode.y2}]"
             )
@@ -1339,6 +1373,7 @@ class H2rgMainWindow(QMainWindow):
     def _apply_exposure_timing(self, timing: dict[str, float]) -> None:
         if self.ui is None:
             return
+        self._lineEdit_frame_time.setText(f"{timing['frametime_s'] * 1000:.4g}")
         self._lineEdit_photon_time.setText(f"{timing['inttime_s']:.4g}")
         self._lineEdit_execution_time.setText(f"{timing['execution_s']:.4g}")
         self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
