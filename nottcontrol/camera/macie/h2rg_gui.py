@@ -514,8 +514,10 @@ class H2rgMainWindow(QMainWindow):
         import pyqtgraph as pg
 
         view = self.image.getView()
-        view.setMouseTracking(True)
-        self.image.setMouseTracking(True)
+        graphics_view = getattr(getattr(self.image, "ui", None), "graphicsView", None)
+        for widget in (graphics_view, self.image):
+            if widget is not None and hasattr(widget, "setMouseTracking"):
+                widget.setMouseTracking(True)
         view.installEventFilter(self)
 
         scene = view.scene()
@@ -653,7 +655,10 @@ class H2rgMainWindow(QMainWindow):
         self.image.show()
         self.image.getView().setMouseEnabled(x=True, y=True)
         self.image.getView().setAspectLocked(True)
-        self._setup_cursor_readout()
+        try:
+            self._setup_cursor_readout()
+        except Exception as exc:
+            print(f"H2RG cursor readout setup failed: {exc}")
         self._layout_image_frame()
 
         if self._current_frame is not None:
@@ -1493,6 +1498,23 @@ class H2rgMainWindow(QMainWindow):
 
         self._run_macie_operation("Acquire", operation)
 
+    def _local_science_save_dir(self) -> Path:
+        if self._local_fits_accessible(allow_probe=True):
+            return self._save_dir
+
+        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        if configured:
+            path = Path(os.path.expanduser(configured))
+            try:
+                path.mkdir(parents=True, exist_ok=True)
+                return path
+            except OSError:
+                pass
+
+        fallback = Path.home() / "nott_h2rg_fits"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
     def _science_output_path(self, ramp_path: Path) -> Path:
         if ramp_path.is_absolute():
             return science_fits_path(ramp_path)
@@ -1513,8 +1535,27 @@ class H2rgMainWindow(QMainWindow):
             )
             return output_path
         except OSError as exc:
-            print(f"H2RG failed to save science FITS: {exc}")
-            return None
+            fallback_path = science_fits_path(
+                self._local_science_save_dir() / ramp_path.name
+            )
+            if fallback_path == output_path:
+                print(f"H2RG failed to save science FITS: {exc}")
+                return None
+            try:
+                save_science_fits(
+                    fallback_path,
+                    frame,
+                    source_header=self._raw_fits_header,
+                    tint_ms=self._last_tint_ms,
+                )
+                print(
+                    "H2RG science FITS saved locally after remote path failed: "
+                    f"{exc}"
+                )
+                return fallback_path
+            except OSError as fallback_exc:
+                print(f"H2RG failed to save science FITS: {fallback_exc}")
+                return None
 
     def _sync_save_dir_from_server(self, macie) -> None:
         try:
