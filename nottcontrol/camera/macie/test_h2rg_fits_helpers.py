@@ -7,9 +7,12 @@ import time
 import unittest
 from pathlib import Path
 
+import numpy
+
 from nottcontrol.camera.macie.h2rg_gui import (
     _centered_vertical_stripe,
     _channel_window,
+    central_value_median,
     fits_basename,
     is_new_ramp_fits,
     is_science_fits_name,
@@ -32,6 +35,23 @@ class StripeWindowTests(unittest.TestCase):
 
     def test_centered_stripe_1024_rows(self) -> None:
         self.assertEqual(_centered_vertical_stripe(1024), (0, 2047, 512, 1535))
+
+
+class CentralValueTests(unittest.TestCase):
+    def test_median_of_inner_region(self) -> None:
+        frame = numpy.arange(100, dtype=numpy.float32).reshape(10, 10)
+        value = central_value_median(frame)
+        self.assertIsNotNone(value)
+        inner_span = int(numpy.sqrt(0.5) * 10)
+        y0 = (10 - inner_span) // 2
+        x0 = (10 - inner_span) // 2
+        expected = float(
+            numpy.median(frame[y0 : y0 + inner_span, x0 : x0 + inner_span])
+        )
+        self.assertEqual(value, expected)
+
+    def test_empty_frame_returns_none(self) -> None:
+        self.assertIsNone(central_value_median(numpy.empty((0, 0))))
 
 
 class ScienceFitsNameTests(unittest.TestCase):

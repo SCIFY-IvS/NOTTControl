@@ -183,6 +183,22 @@ def _format_stat_value(value: float) -> str:
     return f"{value:.2f}"
 
 
+def central_value_median(frame: numpy.ndarray) -> float | None:
+    """Median ADU of the central region containing ~50% of image pixels."""
+    data = numpy.asarray(frame)
+    if data.size == 0:
+        return None
+    height, width = data.shape[:2]
+    span = int(numpy.sqrt(0.5) * min(height, width))
+    span = max(1, min(span, height, width))
+    y0 = (height - span) // 2
+    x0 = (width - span) // 2
+    inner = data[y0 : y0 + span, x0 : x0 + span]
+    if inner.size == 0:
+        return None
+    return float(numpy.median(inner))
+
+
 def window_mode_index(
     x_window: bool,
     y_window: bool,
@@ -405,6 +421,7 @@ class H2rgMainWindow(QMainWindow):
         self._live_active = False
         self._background: numpy.ndarray | None = None
         self._current_frame: numpy.ndarray | None = None
+        self._central_value: float | None = None
         self._last_fits_mtime = 0.0
         self._last_fits_path: Path | None = None
         self._last_loaded_basename: str | None = None
@@ -492,7 +509,7 @@ class H2rgMainWindow(QMainWindow):
         row = QHBoxLayout()
         row.setSpacing(8)
         if self._cursor_readout is None:
-            self._cursor_readout = QLabel("Pixel: —")
+            self._cursor_readout = QLabel("Pixel: —  CV: —")
             self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
             self._cursor_readout.setStyleSheet(
@@ -600,6 +617,33 @@ class H2rgMainWindow(QMainWindow):
             return None
         return x, y
 
+    def _format_central_value_text(self) -> str:
+        if self._central_value is None or not numpy.isfinite(self._central_value):
+            return "CV: —"
+        return f"CV: {_format_stat_value(self._central_value)}"
+
+    def _format_cursor_readout_text(
+        self, x: int | None, y: int | None, adu: float | None
+    ) -> str:
+        cv_text = self._format_central_value_text()
+        if x is None or y is None or adu is None:
+            return f"Pixel: —  {cv_text}"
+        return f"Pixel: x={x}, y={y}  ADU={adu:.1f}  {cv_text}"
+
+    def _update_central_value(self, frame: numpy.ndarray | None) -> None:
+        if frame is None:
+            self._central_value = None
+            return
+        self._central_value = central_value_median(frame)
+
+    def _sync_cursor_readout_label(self) -> None:
+        if self._cursor_readout is None:
+            return
+        if self._cursor_readout_pending is not None and self.image is not None:
+            self._flush_cursor_readout()
+            return
+        self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
+
     def _update_cursor_readout_from_view_pos(self, view_pos) -> None:
         self._cursor_readout_pending = view_pos
         if not self._cursor_readout_timer.isActive():
@@ -612,22 +656,22 @@ class H2rgMainWindow(QMainWindow):
         if pos is None:
             return
         if self.image is None:
-            self._cursor_readout.setText("Pixel: —")
+            self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
             return
 
         img = self.image.getImageItem().image
         if img is None:
-            self._cursor_readout.setText("Pixel: —")
+            self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
             return
 
         pixel = self._scene_pos_to_image_xy(pos)
         if pixel is None:
-            self._cursor_readout.setText("Pixel: —")
+            self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
             return
 
         x, y = pixel
         adu = float(img[y, x])
-        self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
+        self._cursor_readout.setText(self._format_cursor_readout_text(x, y, adu))
 
     def _update_cursor_readout(self, pos) -> None:
         if isinstance(pos, (tuple, list)) and len(pos) == 1:
@@ -667,7 +711,9 @@ class H2rgMainWindow(QMainWindow):
             elif obj is view and event.type() == QEvent.Leave:
                 self._cursor_readout_pending = None
                 if self._cursor_readout is not None:
-                    self._cursor_readout.setText("Pixel: —")
+                    self._cursor_readout.setText(
+                        self._format_cursor_readout_text(None, None, None)
+                    )
 
         return super().eventFilter(obj, event)
 
@@ -2003,8 +2049,11 @@ class H2rgMainWindow(QMainWindow):
             return
         if frame is not None:
             self._current_frame = frame
+        self._update_central_value(self._current_frame)
         display = self._build_display_frame()
         if display is None:
+            self._central_value = None
+            self._sync_cursor_readout_label()
             return
 
         auto_levels = self._auto_levels_next
@@ -2014,6 +2063,7 @@ class H2rgMainWindow(QMainWindow):
 
         self._update_image_statistics(self._stats_array(display))
         self._layout_image_frame()
+        self._sync_cursor_readout_label()
 
         if self._last_fits_path is not None:
             self.ui.lineEdit_frame_nb.setText(self._last_fits_path.name)
