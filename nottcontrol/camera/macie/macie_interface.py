@@ -95,7 +95,83 @@ class MacieInterface():
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
+        self.disconnect()
+
+    def _send_shutdown_command(self, command: str, *, timeout_ms: int) -> bool:
+        if self._socket is None:
+            return False
+        restore_rcv = self._socket.getsockopt(zmq.RCVTIMEO)
+        restore_snd = self._socket.getsockopt(zmq.SNDTIMEO)
+        try:
+            self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+            self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+            self._socket.send_string(command)
+            self._receive_and_parse_reply()
+            return True
+        except Exception as exc:
+            print(f"MACIE {command} during shutdown: {exc}")
+            return False
+        finally:
+            try:
+                self._socket.setsockopt(zmq.RCVTIMEO, restore_rcv)
+                self._socket.setsockopt(zmq.SNDTIMEO, restore_snd)
+            except Exception:
+                pass
+
+    def disconnect(
+        self,
+        *,
+        halt_server: bool = False,
+        shutdown_server: bool = False,
+        request_timeout_ms: int | None = None,
+    ) -> None:
+        """Drop the client ZMQ connection.
+
+        By default the MACIE zmq_server keeps running so another GUI session can
+        reconnect. Only request server halt/close when acquisition may still be
+        active, or when shutting down a GUI-started local zmq_server process.
+        """
+        timeout_ms = (
+            MACIE_SHUTDOWN_TIMEOUT_MS
+            if request_timeout_ms is None
+            else request_timeout_ms
+        )
+        self._closing.set()
+        self._acquiring.clear()
+
+        if self._continuous_thread is not None and self._continuous_thread.is_alive():
+            self._continuous_thread.join(timeout=0.5)
+
+        commands: list[str] = []
+        if halt_server or shutdown_server:
+            commands.append("halt")
+        if shutdown_server:
+            commands.append("close")
+
+        acquired = self._lock.acquire(timeout=timeout_ms / 1000.0) if commands else False
+        halt_ok = not halt_server and not shutdown_server
+        try:
+            if acquired and self._socket is not None:
+                for command in commands:
+                    if command == "close" and not halt_ok:
+                        break
+                    command_ok = self._send_shutdown_command(
+                        command, timeout_ms=timeout_ms
+                    )
+                    if command == "halt":
+                        halt_ok = command_ok
+            elif commands and not acquired:
+                print("MACIE shutdown: aborting blocked ZMQ socket")
+                self._abort_socket_unlocked()
+        finally:
+            if acquired:
+                self._lock.release()
+
+        self._teardown_zmq()
+
+    def close(self, *, request_timeout_ms: int | None = None) -> None:
+        """Backward-compatible alias for disconnect()."""
+        self.disconnect(request_timeout_ms=request_timeout_ms)
 
     def _create_socket(self) -> None:
         if self._socket is not None:
@@ -213,45 +289,6 @@ class MacieInterface():
     def get_power(self):
         result = self._request("getpower")
         return result == "true"
-
-    def close(self, *, request_timeout_ms: int | None = None) -> None:
-        timeout_ms = (
-            MACIE_SHUTDOWN_TIMEOUT_MS
-            if request_timeout_ms is None
-            else request_timeout_ms
-        )
-        self._closing.set()
-        self._acquiring.clear()
-
-        acquired = self._lock.acquire(timeout=timeout_ms / 1000.0)
-        try:
-            if acquired and self._socket is not None:
-                restore_rcv = self._socket.getsockopt(zmq.RCVTIMEO)
-                restore_snd = self._socket.getsockopt(zmq.SNDTIMEO)
-                try:
-                    self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
-                    self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
-                    for command in ("halt", "close"):
-                        try:
-                            self._socket.send_string(command)
-                            self._receive_and_parse_reply()
-                        except Exception as exc:
-                            print(f"MACIE {command} during shutdown: {exc}")
-                            break
-                finally:
-                    try:
-                        self._socket.setsockopt(zmq.RCVTIMEO, restore_rcv)
-                        self._socket.setsockopt(zmq.SNDTIMEO, restore_snd)
-                    except Exception:
-                        pass
-            elif not acquired:
-                print("MACIE shutdown: aborting blocked ZMQ socket")
-                self._abort_socket_unlocked()
-        finally:
-            if acquired:
-                self._lock.release()
-
-        self._teardown_zmq()
 
     def _abort_socket_unlocked(self) -> None:
         socket = self._socket

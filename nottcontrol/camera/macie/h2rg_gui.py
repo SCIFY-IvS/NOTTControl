@@ -1983,6 +1983,7 @@ class H2rgMainWindow(QMainWindow):
             return
         self._shutting_down = True
 
+        halt_server = self._live_active
         self._cursor_readout_timer.stop()
         self._live_poll_stop.set()
         self._stop_live_ui()
@@ -1990,6 +1991,9 @@ class H2rgMainWindow(QMainWindow):
         macie = self._macie
         zmq_server = self._zmq_server
         operation_lock = self._operation_lock
+        shutdown_server = (
+            zmq_server is not None and zmq_server.started_by_gui
+        )
         self._macie = None
         self._zmq_server = None
 
@@ -2003,7 +2007,10 @@ class H2rgMainWindow(QMainWindow):
                 if operation_lock.acquire(timeout=2.0):
                     operation_lock.release()
                 try:
-                    macie.close()
+                    macie.disconnect(
+                        halt_server=halt_server or shutdown_server,
+                        shutdown_server=shutdown_server,
+                    )
                 except Exception as exc:
                     print(f"H2RG MACIE shutdown: {exc}")
             if zmq_server is not None:
