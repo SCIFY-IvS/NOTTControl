@@ -574,6 +574,7 @@ class H2rgMainWindow(QMainWindow):
     readouts_updated = pyqtSignal(object)
     init_button_state = pyqtSignal(str)
     exposure_timing_updated = pyqtSignal(object)
+    macie_operation_busy = pyqtSignal(bool)
 
     def __init__(self) -> None:
         super().__init__()
@@ -596,6 +597,9 @@ class H2rgMainWindow(QMainWindow):
         self.init_button_state.connect(self._apply_init_button_state, Qt.QueuedConnection)
         self.exposure_timing_updated.connect(
             self._apply_exposure_timing, Qt.QueuedConnection
+        )
+        self.macie_operation_busy.connect(
+            self._apply_macie_operation_busy, Qt.QueuedConnection
         )
 
         loading = QLabel("Loading H2RG controls…", self)
@@ -632,6 +636,7 @@ class H2rgMainWindow(QMainWindow):
         self._shutting_down = False
         self._last_tint_ms: float | None = None
         self._initialized = False
+        self._macie_operation_busy = False
         self._last_zmq_fits_poll = 0.0
         self._fowler_pairs = MACIE_FOWLER_PAIRS_DEFAULT
         self.image = None
@@ -1494,8 +1499,8 @@ class H2rgMainWindow(QMainWindow):
             elif self._selected_ramp_mode() == "Ramp":
                 label = "Integration time (ms):"
                 tooltip = (
-                    "Target DIT for up-the-ramp readout. Ramp mode saves one raw sample "
-                    "per ramp; use Saved ramps for multiple frames."
+                    "Target DIT for raw readout at end of integration. "
+                    "Uses MACIE drop frames between groups (same timing as CDS)."
                 )
             else:
                 label = "Integration time (ms):"
@@ -1634,10 +1639,47 @@ class H2rgMainWindow(QMainWindow):
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
 
+    def _exposure_field_widgets(self) -> list:
+        widgets = [
+            getattr(self.ui, "lineEdit_integration_time", None),
+            getattr(self.ui, "lineEdit_nb_coadd", None),
+            getattr(self.ui, "lineEdit_nb_frames", None),
+            getattr(self, "_comboBox_ramp_mode", None),
+            getattr(self, "_lineEdit_fowler_pairs", None),
+            getattr(self, "_label_fowler_pairs", None),
+            getattr(self.ui, "label_5", None),
+        ]
+        return [widget for widget in widgets if widget is not None]
+
+    def _apply_macie_operation_busy(self, busy: bool) -> None:
+        self._macie_operation_busy = busy
+        if self.ui is None:
+            return
+
+        if busy:
+            self._set_controls_enabled(False)
+            if hasattr(self, "_button_set_exposure"):
+                self._button_set_exposure.setEnabled(False)
+            self.ui.button_init.setEnabled(False)
+            for widget in self._exposure_field_widgets():
+                widget.setEnabled(False)
+            return
+
+        if self._live_active:
+            self._set_live_dependent_controls(True)
+            return
+
+        self._set_controls_enabled(self._initialized)
+        if hasattr(self, "_button_set_exposure"):
+            self._button_set_exposure.setEnabled(self._initialized)
+        if self._initialized:
+            self.ui.button_init.setEnabled(True)
+            self._sync_ramp_mode_fields()
+
     def _set_live_dependent_controls(self, live: bool) -> None:
         if self.ui is None or not self._initialized:
             return
-        enabled = not live
+        enabled = not live and not self._macie_operation_busy
         self.ui.button_acquire.setEnabled(enabled)
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
@@ -1776,7 +1818,11 @@ class H2rgMainWindow(QMainWindow):
         def operation() -> None:
             self._apply_exposure_settings(self._ensure_macie())
 
-        self._run_macie_operation("Set exposure", operation)
+        self._run_macie_operation(
+            "Set exposure",
+            operation,
+            status="Setting exposure…",
+        )
 
     def _autoscale_image(self) -> None:
         if self.image is None or self._current_frame is None:
@@ -1978,7 +2024,13 @@ class H2rgMainWindow(QMainWindow):
         self._macie.set_live_error_callback(self._on_live_macie_error)
         return self._macie
 
-    def _run_macie_operation(self, label: str, operation) -> None:
+    def _run_macie_operation(
+        self, label: str, operation, *, status: str | None = None
+    ) -> None:
+        if status:
+            self.status_updated.emit(status)
+        self.macie_operation_busy.emit(True)
+
         def worker() -> None:
             macie = self._macie
             if macie is not None:
@@ -1991,6 +2043,7 @@ class H2rgMainWindow(QMainWindow):
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
+                self.macie_operation_busy.emit(False)
 
         threading.Thread(target=worker, daemon=True).start()
 
