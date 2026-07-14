@@ -1095,9 +1095,9 @@ class H2rgMainWindow(QMainWindow):
             ("label_6", "lineEdit_nb_coadd"),
             ("label_7", "lineEdit_nb_frames"),
         )
-        self.ui.label_5.setText("Integration time (ms):")
+        self.ui.label_5.setText("Integration time:")
         self.ui.label_7.setText("Saved ramps:")
-        self.ui.label_4.setText("Total integration time (ms):")
+        self.ui.label_4.setText("Total integration time:")
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
             field = getattr(self.ui, field_name)
@@ -1147,13 +1147,13 @@ class H2rgMainWindow(QMainWindow):
         form.addWidget(separator, separator_row, 0, 1, 3)
 
         timing_row = separator_row + 1
-        self._label_frame_time = QLabel("Frame time (ms):")
+        self._label_frame_time = QLabel("Frame time:")
         self._lineEdit_frame_time = QLineEdit("—")
         self._lineEdit_frame_time.setReadOnly(True)
-        self._label_photon_time = QLabel("Photon time (s):")
+        self._label_photon_time = QLabel("Photon time:")
         self._lineEdit_photon_time = QLineEdit("—")
         self._lineEdit_photon_time.setReadOnly(True)
-        self._label_execution_time = QLabel("Execution time (s):")
+        self._label_execution_time = QLabel("Execution time:")
         self._lineEdit_execution_time = QLineEdit("—")
         self._lineEdit_execution_time.setReadOnly(True)
         self._label_efficiency = QLabel("Efficiency (%):")
@@ -1476,6 +1476,11 @@ class H2rgMainWindow(QMainWindow):
     def _sync_ramp_mode_fields(self) -> None:
         if not hasattr(self, "_comboBox_ramp_mode"):
             return
+        self._comboBox_ramp_mode.setEnabled(True)
+        if hasattr(self, "ui") and self.ui is not None:
+            self.ui.lineEdit_nb_coadd.setEnabled(True)
+            self.ui.lineEdit_nb_frames.setEnabled(True)
+            self.ui.label_5.setEnabled(True)
         fowler = self._selected_ramp_mode() == "Fowler"
         single_frame = self._selected_ramp_mode() == "SingleFrame"
         if hasattr(self, "_lineEdit_fowler_pairs"):
@@ -1485,26 +1490,26 @@ class H2rgMainWindow(QMainWindow):
         if hasattr(self, "ui") and self.ui is not None:
             self.ui.lineEdit_integration_time.setEnabled(not fowler and not single_frame)
             if fowler:
-                label = "Integration time (ms):"
+                label = "Integration time:"
                 tooltip = (
                     "Fowler timing is controlled by Fowler pairs and ASIC registers. "
-                    "Photon time is shown below after Set."
+                    "Photon time is shown below after Set (ms)."
                 )
             elif single_frame:
-                label = "Integration time (ms):"
+                label = "Integration time:"
                 tooltip = (
                     "Single Frame uses one clocked frame (no drops). "
-                    "Photon time equals the frame time shown below after Set."
+                    "Photon time equals the frame time shown below after Set (ms)."
                 )
             elif self._selected_ramp_mode() == "Ramp":
-                label = "Integration time (ms):"
+                label = "Integration time:"
                 tooltip = (
-                    "Target DIT for raw readout at end of integration. "
+                    "Target DIT for raw readout at end of integration (ms). "
                     "Uses MACIE drop frames between groups (same timing as CDS)."
                 )
             else:
-                label = "Integration time (ms):"
-                tooltip = "Target photon-collection time for CDS ramps."
+                label = "Integration time:"
+                tooltip = "Target photon-collection time for CDS ramps (ms)."
             self.ui.label_5.setText(label)
             self.ui.lineEdit_integration_time.setToolTip(tooltip)
             self.ui.label_5.setToolTip(tooltip)
@@ -1651,6 +1656,12 @@ class H2rgMainWindow(QMainWindow):
         ]
         return [widget for widget in widgets if widget is not None]
 
+    def _set_exposure_panel_enabled(self, enabled: bool) -> None:
+        for widget in self._exposure_field_widgets():
+            widget.setEnabled(enabled)
+        if enabled:
+            self._sync_ramp_mode_fields()
+
     def _apply_macie_operation_busy(self, busy: bool) -> None:
         self._macie_operation_busy = busy
         if self.ui is None:
@@ -1661,8 +1672,7 @@ class H2rgMainWindow(QMainWindow):
             if hasattr(self, "_button_set_exposure"):
                 self._button_set_exposure.setEnabled(False)
             self.ui.button_init.setEnabled(False)
-            for widget in self._exposure_field_widgets():
-                widget.setEnabled(False)
+            self._set_exposure_panel_enabled(False)
             return
 
         if self._live_active:
@@ -1674,7 +1684,7 @@ class H2rgMainWindow(QMainWindow):
             self._button_set_exposure.setEnabled(self._initialized)
         if self._initialized:
             self.ui.button_init.setEnabled(True)
-            self._sync_ramp_mode_fields()
+            self._set_exposure_panel_enabled(True)
 
     def _set_live_dependent_controls(self, live: bool) -> None:
         if self.ui is None or not self._initialized:
@@ -1689,6 +1699,7 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_init.setEnabled(enabled)
         self.ui.button_powerOn.setEnabled(enabled)
         self.ui.button_powerOff.setEnabled(enabled)
+        self._set_exposure_panel_enabled(enabled)
 
     def _stop_live_ui(self) -> None:
         self._live_active = False
@@ -1946,6 +1957,8 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setEnabled(enabled)
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
+        if enabled and not self._macie_operation_busy and not self._live_active:
+            self._set_exposure_panel_enabled(True)
 
     def _apply_init_button_state(self, state: str) -> None:
         if self.ui is None:
@@ -1968,8 +1981,8 @@ class H2rgMainWindow(QMainWindow):
         if self.ui is None:
             return
         self._lineEdit_frame_time.setText(f"{timing['frametime_s'] * 1000:.4g}")
-        self._lineEdit_photon_time.setText(f"{timing['inttime_s']:.4g}")
-        self._lineEdit_execution_time.setText(f"{timing['execution_s']:.4g}")
+        self._lineEdit_photon_time.setText(f"{timing['inttime_s'] * 1000:.4g}")
+        self._lineEdit_execution_time.setText(f"{timing['execution_s'] * 1000:.4g}")
         self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
 
     def _refresh_exposure_timing(self, macie) -> None:
@@ -2131,21 +2144,16 @@ class H2rgMainWindow(QMainWindow):
         if ramp_mode == "Fowler":
             mode_detail = f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
         elif ramp_mode == "SingleFrame":
-            mode_detail = "single frame, groups=1, drops=0, reads=1"
+            mode_detail = "single frame"
         elif ramp_mode == "Ramp":
-            mode_detail = (
-                f"raw sample, groups={result['ngroups']}, "
-                f"drops={result['ndrops']}, reads={result['nreads']}"
-            )
+            mode_detail = "raw sample"
         else:
-            mode_detail = (
-                f"groups={result['ngroups']}, drops={result['ndrops']}, "
-                f"reads={result['nreads']}"
-                + (" (window CDS)" if self._windowed_cds_layout() else "")
-            )
+            mode_detail = "CDS"
+            if self._windowed_cds_layout():
+                mode_detail = "window CDS"
         self.status_updated.emit(
-            f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon ({mode_detail}, "
-            f"saved ramps={nseq})"
+            f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon, "
+            f"{mode_detail}, saved ramps={nseq}"
         )
         return result
 
