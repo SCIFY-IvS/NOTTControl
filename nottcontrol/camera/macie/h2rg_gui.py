@@ -94,7 +94,7 @@ from nottcontrol.theme import (
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
 IMAGE_STATS_MAX_WIDTH = 200
-CURSOR_READOUT_HEIGHT = 22
+CURSOR_READOUT_HEIGHT = 28
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
 H2RG_NUM_CHANNELS = 32
@@ -677,43 +677,49 @@ class H2rgMainWindow(QMainWindow):
         QWidget().setLayout(layout)
 
     def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
-        row = QHBoxLayout()
-        row.setSpacing(8)
-        if self._cursor_readout is None:
-            self._cursor_readout = QLabel("Pixel: —  CV: —")
-            self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
-            self._cursor_readout.setStyleSheet(
-                'font: 9pt "Consolas", monospace;'
-                " color: rgb(50, 50, 50);"
-                " background-color: rgb(255, 255, 255);"
-                " border: 1px solid rgb(50, 129, 140);"
-                " border-radius: 4px;"
-                " padding-left: 6px;"
-            )
-        row.addWidget(self._cursor_readout, stretch=1)
+        column = QVBoxLayout()
+        column.setSpacing(6)
+
+        button_row = QHBoxLayout()
+        button_row.setSpacing(8)
+        button_row.addStretch(1)
         self._button_autoscale = QPushButton("Autoscale")
         self._button_autoscale.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_autoscale.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_autoscale.setFixedWidth(96)
-        row.addWidget(self._button_autoscale)
+        button_row.addWidget(self._button_autoscale)
         self._button_header = QPushButton("Header")
         self._button_header.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_header.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_header.setFixedWidth(96)
-        row.addWidget(self._button_header)
+        button_row.addWidget(self._button_header)
         self._button_ds9 = QPushButton("DS9")
         self._button_ds9.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_ds9.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_ds9.setFixedWidth(96)
-        row.addWidget(self._button_ds9)
+        button_row.addWidget(self._button_ds9)
         self._button_save_dir = QPushButton("Folder")
         self._button_save_dir.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_save_dir.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_save_dir.setFixedWidth(96)
         self._button_save_dir.setToolTip("Open FITS save directory")
-        row.addWidget(self._button_save_dir)
-        parent_layout.addLayout(row)
+        button_row.addWidget(self._button_save_dir)
+        column.addLayout(button_row)
+
+        if self._cursor_readout is None:
+            self._cursor_readout = QLabel("Pixel: —  CV: —")
+            self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
+            self._cursor_readout.setStyleSheet(
+                'font: 10pt "Consolas", monospace;'
+                " color: rgb(50, 50, 50);"
+                " background-color: rgb(255, 255, 255);"
+                " border: 1px solid rgb(50, 129, 140);"
+                " border-radius: 4px;"
+                " padding-left: 8px;"
+            )
+        column.addWidget(self._cursor_readout)
+        parent_layout.addLayout(column)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
