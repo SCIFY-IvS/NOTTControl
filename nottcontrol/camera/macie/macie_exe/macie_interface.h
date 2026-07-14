@@ -17,6 +17,7 @@ extern "C" bool M_set_integration_time(double tint_ms, int ngmax, int ncoadds, i
 extern "C" bool M_read_integration_time(double *tint_ms);
 extern "C" bool M_read_exposure_timing(double *inttime_ms, double *ramptime_ms, double *execution_sec,
                                       double *efficiency, double *frametime_ms);
+extern "C" bool M_set_exp_mode(unsigned int mode);
 extern "C" bool M_frame_settings(bool xWindowing, bool yWindowing, int x1, int x2, int y1, int y2);
 extern "C" bool M_read_frame_settings(bool &xWindowing, bool &yWindowing, uint &x1, uint &x2, uint &y1, uint &y2);
 extern "C" CAMERA_MODE M_get_detector_mode();

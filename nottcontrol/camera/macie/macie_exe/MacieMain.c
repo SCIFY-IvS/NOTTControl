@@ -189,9 +189,9 @@ bool halt_acquisition(MACIE_Settings *ptUserData)
         ret = false;
     }
     delay(300);
-    if (!CloseGigEScienceInterface(ptUserData))
+    if (!CloseScienceInterface(ptUserData))
     {
-        verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface during halt acquisition\n");
+        verbose_printf(LOG_ERROR, ptUserData, "CloseScienceInterface during halt acquisition\n");
         ret = false;
     }
 
@@ -688,10 +688,7 @@ int main2(int argc, char *argv[])
         // Halt a failed acquisition
         if (input2.cmdOptionExists("haltAcq"))
         {
-            // What is the proper order?
-            HaltCameraAcq(ptUserData);
-            delay(300);
-            CloseUSBScienceInterface(ptUserData);
+            halt_acquisition(ptUserData);
         }
 
         ////////////////////////////////////////////////////////////////////////////////

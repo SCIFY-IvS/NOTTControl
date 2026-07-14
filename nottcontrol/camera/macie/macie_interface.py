@@ -16,6 +16,9 @@ ZMQ_REQUEST_TIMEOUT_MS = config.getint(
 ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
     "MACIE", "zmq_acquire_timeout_ms", fallback=300_000
 )
+MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
+    "MACIE", "shutdown_timeout_ms", fallback=2_000
+)
 
 
 def server_config_path(config_file: str) -> str:
@@ -85,14 +88,90 @@ class MacieInterface():
         if command in ("acquire", "fetchnewestfits"):
             # _request / _request_multipart already hold self._lock.
             self._attempt_halt_after_timeout()
-        return TimeoutError(f"ZMQ request timed out ({command})") from exc
+        return TimeoutError(f"ZMQ request timed out ({command})")
 
     def __enter__(self):
         self.init_camera()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
+        self.disconnect()
+
+    def _send_shutdown_command(self, command: str, *, timeout_ms: int) -> bool:
+        if self._socket is None:
+            return False
+        restore_rcv = self._socket.getsockopt(zmq.RCVTIMEO)
+        restore_snd = self._socket.getsockopt(zmq.SNDTIMEO)
+        try:
+            self._socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+            self._socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+            self._socket.send_string(command)
+            self._receive_and_parse_reply()
+            return True
+        except Exception as exc:
+            print(f"MACIE {command} during shutdown: {exc}")
+            return False
+        finally:
+            try:
+                self._socket.setsockopt(zmq.RCVTIMEO, restore_rcv)
+                self._socket.setsockopt(zmq.SNDTIMEO, restore_snd)
+            except Exception:
+                pass
+
+    def disconnect(
+        self,
+        *,
+        halt_server: bool = False,
+        shutdown_server: bool = False,
+        request_timeout_ms: int | None = None,
+    ) -> None:
+        """Drop the client ZMQ connection.
+
+        By default the MACIE zmq_server keeps running so another GUI session can
+        reconnect. Only request server halt/close when acquisition may still be
+        active, or when shutting down a GUI-started local zmq_server process.
+        """
+        timeout_ms = (
+            MACIE_SHUTDOWN_TIMEOUT_MS
+            if request_timeout_ms is None
+            else request_timeout_ms
+        )
+        self._closing.set()
+        self._acquiring.clear()
+
+        if self._continuous_thread is not None and self._continuous_thread.is_alive():
+            self._continuous_thread.join(timeout=0.5)
+
+        commands: list[str] = []
+        if halt_server or shutdown_server:
+            commands.append("halt")
+        if shutdown_server:
+            commands.append("close")
+
+        acquired = self._lock.acquire(timeout=timeout_ms / 1000.0) if commands else False
+        halt_ok = not halt_server and not shutdown_server
+        try:
+            if acquired and self._socket is not None:
+                for command in commands:
+                    if command == "close" and not halt_ok:
+                        break
+                    command_ok = self._send_shutdown_command(
+                        command, timeout_ms=timeout_ms
+                    )
+                    if command == "halt":
+                        halt_ok = command_ok
+            elif commands and not acquired:
+                print("MACIE shutdown: aborting blocked ZMQ socket")
+                self._abort_socket_unlocked()
+        finally:
+            if acquired:
+                self._lock.release()
+
+        self._teardown_zmq()
+
+    def close(self, *, request_timeout_ms: int | None = None) -> None:
+        """Backward-compatible alias for disconnect()."""
+        self.disconnect(request_timeout_ms=request_timeout_ms)
 
     def _create_socket(self) -> None:
         if self._socket is not None:
@@ -211,26 +290,30 @@ class MacieInterface():
         result = self._request("getpower")
         return result == "true"
 
-    def close(self):
-        self._closing.set()
-        self._acquiring.clear()
-
-        try:
-            self._request("close")
-        except Exception as e:
-            print(e)
-
-        with self._lock:
-            if self._socket is not None:
-                try:
-                    self._socket.close(linger=0)
-                except Exception:
-                    pass
-                self._socket = None
+    def _abort_socket_unlocked(self) -> None:
+        socket = self._socket
+        self._socket = None
+        if socket is not None:
             try:
-                self._context.term()
+                socket.close(linger=0)
             except Exception:
                 pass
+
+    def _teardown_zmq(self) -> None:
+        if self._lock.acquire(timeout=2.0):
+            try:
+                if self._socket is not None:
+                    try:
+                        self._socket.close(linger=0)
+                    except Exception:
+                        pass
+                    self._socket = None
+            finally:
+                self._lock.release()
+        try:
+            self._context.term()
+        except Exception:
+            pass
 
     def halt_acquisition(self):
         return self._request("halt")
@@ -238,6 +321,54 @@ class MacieInterface():
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
         return self._request(message)
+
+    def set_exp_mode(self, mode: int) -> bool:
+        return self._request(f"expmode;{int(mode)}")
+
+    def configure_ramp_exposure(
+        self,
+        tint_ms: float,
+        *,
+        ramp_mode: str = "CDS",
+        fowler_pairs: int = 2,
+        ngmax: int = 2,
+        ncoadds: int = 1,
+        nseq: int = 1,
+        save: bool = True,
+        windowed_cds: bool = False,
+    ) -> dict[str, float | int]:
+        """Apply CDS or Fowler ramp plan for the requested integration time."""
+        from nottcontrol.camera.macie.ramp_plan import calc_ramp_plan, exp_mode_for_ramp
+
+        timing = self.read_exposure_timing()
+        frametime_ms = timing["frametime_s"] * 1000.0
+        plan = calc_ramp_plan(
+            float(tint_ms),
+            frametime_ms,
+            mode=ramp_mode,  # type: ignore[arg-type]
+            fowler_pairs=fowler_pairs,
+            ngmax=ngmax,
+            windowed_cds=windowed_cds,
+        )
+        self.set_exp_mode(exp_mode_for_ramp(ramp_mode))  # type: ignore[arg-type]
+        _save, _ncoadds, _nseq, _ng, _nr, _nd, nresets = self.read_exposure_settings()
+        self.exposure_settings(
+            save,
+            ncoadds,
+            nseq,
+            plan["ngroups"],
+            plan["nreads"],
+            plan["ndrops"],
+            nresets,
+        )
+        timing = self.read_exposure_timing()
+        return {
+            **plan,
+            "inttime_ms": timing["inttime_s"] * 1000.0,
+            "ramptime_ms": timing["ramptime_s"] * 1000.0,
+            "execution_s": timing["execution_s"],
+            "frametime_ms": timing["frametime_s"] * 1000.0,
+        }
 
     def set_integration_time(
         self,

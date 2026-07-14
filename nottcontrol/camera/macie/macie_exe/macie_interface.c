@@ -157,6 +157,22 @@ extern "C" bool M_read_integration_time(double *tint_ms)
     return true;
 }
 
+extern "C" bool M_set_exp_mode(unsigned int mode)
+{
+    if (_ptUserData == NULL)
+        return false;
+
+    if (SetASICParameter(_ptUserData, "ExpMode", mode) == false)
+        return false;
+
+    if (ReconfigureASIC(_ptUserData) == false)
+    {
+        printf("Reconfigure failed after ExpMode change\n");
+        return false;
+    }
+    return true;
+}
+
 extern "C" bool M_read_exposure_timing(double *inttime_ms, double *ramptime_ms, double *execution_sec,
                                       double *efficiency, double *frametime_ms)
 {
@@ -442,6 +458,11 @@ int main () {
                 double tint_ms = 0.0;
                 result = M_read_integration_time(&tint_ms);
                 answer = format_double(tint_ms);
+            }
+            else if (command == "expmode")
+            {
+                unsigned int mode = (unsigned int)std::stoi(tokens[1]);
+                result = M_set_exp_mode(mode);
             }
             else if (command == "rexptiming")
             {

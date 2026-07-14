@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import threading
+import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
-from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, QUrl, pyqtSignal
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -22,6 +27,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSizePolicy,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -31,12 +37,12 @@ from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
-    load_science_image,
     ramp_sample_axis,
     save_science_fits,
     science_fits_path,
     science_image_from_cube,
 )
+from nottcontrol.camera.macie.ramp_plan import RAMP_MODES, fits_wait_timeout_s
 
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="basic_warm_slow.cfg"
@@ -64,8 +70,15 @@ FITS_WINDOWS_UNC_ROOT = config.get(
 MACIE_INTEGRATION_NGROUPS_MAX = config.getint(
     "MACIE", "integration_ngroups_max", fallback=2
 )
+MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
+    "MACIE", "fowler_pairs_default", fallback=2
+)
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
     "MACIE", "save_science_fits", fallback=True
+)
+MACIE_DS9_EXECUTABLE = config.get("MACIE", "ds9_executable", fallback="ds9").strip()
+MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
+    "MACIE", "fits_wait_margin_s", fallback=30.0
 )
 
 from nottcontrol.theme import (
@@ -84,6 +97,7 @@ IMAGE_STATS_MAX_WIDTH = 200
 CURSOR_READOUT_HEIGHT = 22
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
+H2RG_NUM_CHANNELS = 32
 
 
 @dataclass(frozen=True)
@@ -106,11 +120,62 @@ def _centered_window(size: int, array_size: int = H2RG_ARRAY_SIZE) -> tuple[int,
     return _window_region(origin, origin, size)
 
 
+def _channel_width(array_size: int = H2RG_ARRAY_SIZE) -> int:
+    return array_size // H2RG_NUM_CHANNELS
+
+
+def _channel_window(
+    channel: int, *, array_size: int = H2RG_ARRAY_SIZE
+) -> tuple[int, int, int, int]:
+    """Return x1, x2, y1, y2 for a 1-based H2RG readout channel (full height)."""
+    width = _channel_width(array_size)
+    if not 1 <= channel <= H2RG_NUM_CHANNELS:
+        raise ValueError(
+            f"channel must be between 1 and {H2RG_NUM_CHANNELS}, got {channel}"
+        )
+    x1 = (channel - 1) * width
+    x2 = x1 + width - 1
+    return x1, x2, 0, array_size - 1
+
+
+def _centered_vertical_stripe(
+    height: int, array_size: int = H2RG_ARRAY_SIZE
+) -> tuple[int, int, int, int]:
+    """Full-width vertical burst stripe (horizontal window off, parallel outputs)."""
+    y0 = (array_size - height) // 2
+    return 0, array_size - 1, y0, y0 + height - 1
+
+
 def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, ...]:
     full_span = array_size - 1
     half = array_size // 2
     return (
         WindowMode("Full frame", False, False, 0, full_span, 0, full_span),
+        WindowMode(
+            "SC 128",
+            False,
+            True,
+            *_centered_vertical_stripe(128, array_size=array_size),
+        ),
+        WindowMode(
+            "SC 256",
+            False,
+            True,
+            *_centered_vertical_stripe(256, array_size=array_size),
+        ),
+        WindowMode(
+            "SC 512",
+            False,
+            True,
+            *_centered_vertical_stripe(512, array_size=array_size),
+        ),
+        WindowMode(
+            "SC 1024",
+            False,
+            True,
+            *_centered_vertical_stripe(1024, array_size=array_size),
+        ),
+        WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
         WindowMode("LR 1024x1024", True, True, *_window_region(half, 0, 1024)),
         WindowMode("UL 1024x1024", True, True, *_window_region(0, half, 1024)),
@@ -143,6 +208,61 @@ def _format_stat_value(value: float) -> str:
     return f"{value:.2f}"
 
 
+def fits_header_text(
+    header: dict | None, path: Path | None = None
+) -> str | None:
+    """Return a printable FITS header, preferring the on-disk file when available."""
+    if path is not None:
+        try:
+            file_path = Path(path)
+            if file_path.is_file():
+                from astropy.io import fits
+
+                with fits.open(file_path, memmap=False) as hdul:
+                    return "\n".join(
+                        card.image.rstrip() for card in hdul[0].header.cards
+                    )
+        except Exception:
+            pass
+    if not header:
+        return None
+    return "\n".join(f"{key:8} = {value}" for key, value in header.items())
+
+
+class FitsHeaderDialog(QDialog):
+    def __init__(self, parent: QWidget | None, *, title: str, text: str) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(760, 560)
+
+        layout = QVBoxLayout(self)
+        editor = QTextEdit(self)
+        editor.setReadOnly(True)
+        editor.setFontFamily("Consolas")
+        editor.setPlainText(text)
+        layout.addWidget(editor)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
+def central_value_median(frame: numpy.ndarray) -> float | None:
+    """Median ADU of the central region containing ~50% of image pixels."""
+    data = numpy.asarray(frame)
+    if data.size == 0:
+        return None
+    height, width = data.shape[:2]
+    span = int(numpy.sqrt(0.5) * min(height, width))
+    span = max(1, min(span, height, width))
+    y0 = (height - span) // 2
+    x0 = (width - span) // 2
+    inner = data[y0 : y0 + span, x0 : x0 + span]
+    if inner.size == 0:
+        return None
+    return float(numpy.median(inner))
+
+
 def window_mode_index(
     x_window: bool,
     y_window: bool,
@@ -156,7 +276,12 @@ def window_mode_index(
             continue
         if not mode.x_window and not mode.y_window:
             return index
-        if (mode.x1, mode.x2, mode.y1, mode.y2) == (x1, x2, y1, y2):
+        if mode.x_window == x_window and mode.y_window == y_window and (
+            mode.x1,
+            mode.x2,
+            mode.y1,
+            mode.y2,
+        ) == (x1, x2, y1, y2):
             return index
     return -1
 
@@ -200,7 +325,12 @@ def zmq_server_hostname(zmq_address: str) -> str | None:
     return urlparse(normalized).hostname
 
 
-def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path:
+def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path | None:
+    """Map a Linux server FITS path to a local path when configured.
+
+    Returns None on Windows when no explicit Linux-to-UNC mapping is configured,
+    so callers fall back to ZMQ fetch instead of inventing invalid UNC paths.
+    """
     normalized = server_path.replace("\\", "/")
     if FITS_LINUX_PATH_PREFIX and FITS_WINDOWS_UNC_ROOT:
         prefix = FITS_LINUX_PATH_PREFIX.replace("\\", "/").rstrip("/")
@@ -212,26 +342,78 @@ def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS)
             return Path(unc_root) / Path(*PurePosixPath(suffix).parts)
 
     if sys.platform == "win32" and normalized.startswith("/"):
-        host = zmq_server_hostname(zmq_address)
-        if host:
-            relative = normalized.lstrip("/")
-            windows_relative = relative.replace("/", "\\")
-            return Path(f"\\\\{host}\\{windows_relative}")
+        return None
 
     return Path(server_path)
 
 
-def load_fits_image(filepath: Path) -> numpy.ndarray:
-    return load_science_image(filepath)
+def load_fits_image(filepath: Path, *, reduction: str = "CDS", fowler_pairs: int = 2) -> numpy.ndarray:
+    data, header = load_fits_data(filepath)
+    return science_image_from_cube(
+        data, header, reduction=reduction, fowler_pairs=fowler_pairs  # type: ignore[arg-type]
+    )
 
 
-def load_fits_image_from_bytes(payload: bytes) -> numpy.ndarray:
-    return load_science_image(payload)
+def load_fits_image_from_bytes(
+    payload: bytes, *, reduction: str = "CDS", fowler_pairs: int = 2
+) -> numpy.ndarray:
+    data, header = load_fits_data(payload)
+    return science_image_from_cube(
+        data, header, reduction=reduction, fowler_pairs=fowler_pairs  # type: ignore[arg-type]
+    )
 
 
 def is_science_fits_name(name: str) -> bool:
     lowered = name.lower()
     return lowered.endswith("_science.fits")
+
+
+def ramp_fits_path_for_viewer(path: Path) -> Path:
+    """Prefer the raw ramp FITS over the derived science file."""
+    if is_science_fits_name(path.name):
+        return path.with_name(path.name.replace("_science.fits", ".fits"))
+    return path
+
+
+def local_fits_file_for_viewer(path: Path | None) -> Path | None:
+    if path is None:
+        return None
+    candidates = (ramp_fits_path_for_viewer(path), path)
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            if candidate.is_file():
+                return candidate
+        except OSError:
+            continue
+    return None
+
+
+def launch_ds9(path: Path, executable: str = MACIE_DS9_EXECUTABLE) -> None:
+    exe = shutil.which(executable) or executable
+    launch_kwargs: dict[str, object] = {
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if sys.platform == "win32":
+        launch_kwargs["creationflags"] = (
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        )
+    else:
+        launch_kwargs["start_new_session"] = True
+    subprocess.Popen([exe, str(path)], **launch_kwargs)
+
+
+def open_directory_in_file_manager(path: Path) -> None:
+    directory = path.expanduser().resolve()
+    if not directory.is_dir():
+        raise FileNotFoundError(f"Directory not found: {directory}")
+    if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory))):
+        raise OSError(f"Failed to open {directory}")
 
 
 def fits_basename(path: Path | str | None) -> str | None:
@@ -287,14 +469,21 @@ def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -
 
 
 def newest_fits_file(directory: Path, *, dir_ok: bool | None = None) -> Path | None:
-    if dir_ok is False:
+    paths = list_ramp_fits_in_dir(directory, dir_ok=dir_ok)
+    if not paths:
         return None
+    return paths[-1]
+
+
+def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> list[Path]:
+    if dir_ok is False:
+        return []
     if dir_ok is None:
         try:
             if not directory.is_dir():
-                return None
+                return []
         except OSError:
-            return None
+            return []
     candidates = [
         path
         for path in (
@@ -303,9 +492,36 @@ def newest_fits_file(directory: Path, *, dir_ok: bool | None = None) -> Path | N
         )
         if not is_science_fits_name(path.name)
     ]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda path: path.stat().st_mtime)
+    return sorted(
+        candidates,
+        key=lambda path: (
+            path.stat().st_mtime if path.exists() else 0.0,
+            path.name.lower(),
+        ),
+    )
+
+
+def list_new_ramp_fits_in_dir(
+    directory: Path,
+    *,
+    before_mtime: float,
+    before_name: str | None,
+    dir_ok: bool | None = None,
+) -> list[Path]:
+    new_paths: list[Path] = []
+    for path in list_ramp_fits_in_dir(directory, dir_ok=dir_ok):
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if is_new_ramp_fits(
+            path.name,
+            mtime,
+            before_name=before_name,
+            before_mtime=before_mtime,
+        ):
+            new_paths.append(path)
+    return new_paths
 
 
 class H2rgMainWindow(QMainWindow):
@@ -360,6 +576,7 @@ class H2rgMainWindow(QMainWindow):
         self._live_active = False
         self._background: numpy.ndarray | None = None
         self._current_frame: numpy.ndarray | None = None
+        self._central_value: float | None = None
         self._last_fits_mtime = 0.0
         self._last_fits_path: Path | None = None
         self._last_loaded_basename: str | None = None
@@ -371,9 +588,12 @@ class H2rgMainWindow(QMainWindow):
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = None
+        self._zmq_address: str | None = None
+        self._shutting_down = False
         self._last_tint_ms: float | None = None
         self._initialized = False
         self._last_zmq_fits_poll = 0.0
+        self._fowler_pairs = MACIE_FOWLER_PAIRS_DEFAULT
         self.image = None
         self._image_placeholder: QLabel | None = None
         self._cursor_readout: QLabel | None = None
@@ -386,6 +606,12 @@ class H2rgMainWindow(QMainWindow):
         self._stat_min: QLineEdit | None = None
         self._stat_max: QLineEdit | None = None
         self._stat_std: QLineEdit | None = None
+        self._exposure_preview_timer = QTimer(self)
+        self._exposure_preview_timer.setSingleShot(True)
+        self._exposure_preview_timer.setInterval(450)
+        self._exposure_preview_timer.timeout.connect(
+            self._schedule_exposure_timing_preview
+        )
 
     def _stage_load_ui(self) -> None:
         QApplication.processEvents()
@@ -395,7 +621,6 @@ class H2rgMainWindow(QMainWindow):
 
     def _stage_connect_ui(self) -> None:
         QApplication.processEvents()
-        self._connect_signals()
         self._set_status("Loading…")
         self._set_controls_enabled(False)
         self.ui.checkBox_substract_background.setEnabled(False)
@@ -403,18 +628,27 @@ class H2rgMainWindow(QMainWindow):
 
     def _finish_setup(self) -> None:
         QApplication.processEvents()
-        self._relayout_control_panels()
-        self._rebuild_layout()
-        QApplication.processEvents()
-        self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
-        self._button_autoscale.clicked.connect(self._autoscale_image)
-        self._apply_styles()
-        self._setup_image_placeholder()
-        self.ui.frame_camera.installEventFilter(self)
-        self._layout_image_frame()
-        self._populate_comboboxes()
-        self._set_status("Not connected")
-        threading.Thread(target=self._background_startup, daemon=True).start()
+        try:
+            self._relayout_control_panels()
+            self._rebuild_layout()
+            QApplication.processEvents()
+            self._connect_signals()
+            self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
+            self._button_autoscale.clicked.connect(self._autoscale_image)
+            self._button_header.clicked.connect(self._show_fits_header)
+            self._button_ds9.clicked.connect(self._open_fits_in_ds9)
+            self._button_save_dir.clicked.connect(self._open_fits_save_dir)
+            self._apply_styles()
+            self._setup_image_placeholder()
+            self.ui.frame_camera.installEventFilter(self)
+            self._layout_image_frame()
+            self._populate_comboboxes()
+            self._sync_ramp_mode_fields()
+            self._set_status("Not connected")
+            threading.Thread(target=self._background_startup, daemon=True).start()
+        except Exception as exc:
+            print(f"H2RG GUI setup failed: {exc}")
+            self._set_status(f"GUI setup failed: {exc}")
 
     def _setup_image_placeholder(self) -> None:
         self._image_placeholder = QLabel("No image yet", self.ui.frame_camera)
@@ -446,7 +680,7 @@ class H2rgMainWindow(QMainWindow):
         row = QHBoxLayout()
         row.setSpacing(8)
         if self._cursor_readout is None:
-            self._cursor_readout = QLabel("Pixel: —")
+            self._cursor_readout = QLabel("Pixel: —  CV: —")
             self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
             self._cursor_readout.setStyleSheet(
@@ -463,6 +697,22 @@ class H2rgMainWindow(QMainWindow):
         self._button_autoscale.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_autoscale.setFixedWidth(96)
         row.addWidget(self._button_autoscale)
+        self._button_header = QPushButton("Header")
+        self._button_header.setStyleSheet(PANEL_BUTTON_STYLE)
+        self._button_header.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        self._button_header.setFixedWidth(96)
+        row.addWidget(self._button_header)
+        self._button_ds9 = QPushButton("DS9")
+        self._button_ds9.setStyleSheet(PANEL_BUTTON_STYLE)
+        self._button_ds9.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        self._button_ds9.setFixedWidth(96)
+        row.addWidget(self._button_ds9)
+        self._button_save_dir = QPushButton("Folder")
+        self._button_save_dir.setStyleSheet(PANEL_BUTTON_STYLE)
+        self._button_save_dir.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        self._button_save_dir.setFixedWidth(96)
+        self._button_save_dir.setToolTip("Open FITS save directory")
+        row.addWidget(self._button_save_dir)
         parent_layout.addLayout(row)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
@@ -513,8 +763,10 @@ class H2rgMainWindow(QMainWindow):
         import pyqtgraph as pg
 
         view = self.image.getView()
-        view.setMouseTracking(True)
-        self.image.setMouseTracking(True)
+        graphics_view = getattr(getattr(self.image, "ui", None), "graphicsView", None)
+        for widget in (graphics_view, self.image):
+            if widget is not None and hasattr(widget, "setMouseTracking"):
+                widget.setMouseTracking(True)
         view.installEventFilter(self)
 
         scene = view.scene()
@@ -533,11 +785,51 @@ class H2rgMainWindow(QMainWindow):
         elif self._image_placeholder is not None:
             self._image_placeholder.setGeometry(4, 4, max(1, width - 8), max(1, height - 8))
 
-    def _image_view_box(self):
+    def _scene_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
         if self.image is None:
             return None
-        view = self.image.getView()
-        return view.getViewBox() if view is not None else None
+        image_item = self.image.getImageItem()
+        if image_item is None or image_item.image is None:
+            return None
+        try:
+            scene_pos = _normalize_scene_pos(pos)
+            mouse = image_item.mapFromScene(scene_pos)
+        except (TypeError, ValueError, AttributeError):
+            return None
+
+        x = int(mouse.x())
+        y = int(mouse.y())
+        img_h, img_w = image_item.image.shape[:2]
+        if x < 0 or y < 0 or x >= img_w or y >= img_h:
+            return None
+        return x, y
+
+    def _format_central_value_text(self) -> str:
+        if self._central_value is None or not numpy.isfinite(self._central_value):
+            return "CV: —"
+        return f"CV: {_format_stat_value(self._central_value)}"
+
+    def _format_cursor_readout_text(
+        self, x: int | None, y: int | None, adu: float | None
+    ) -> str:
+        cv_text = self._format_central_value_text()
+        if x is None or y is None or adu is None:
+            return f"Pixel: —  {cv_text}"
+        return f"Pixel: x={x}, y={y}  ADU={adu:.1f}  {cv_text}"
+
+    def _update_central_value(self, frame: numpy.ndarray | None) -> None:
+        if frame is None:
+            self._central_value = None
+            return
+        self._central_value = central_value_median(frame)
+
+    def _sync_cursor_readout_label(self) -> None:
+        if self._cursor_readout is None:
+            return
+        if self._cursor_readout_pending is not None and self.image is not None:
+            self._flush_cursor_readout()
+            return
+        self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
 
     def _update_cursor_readout_from_view_pos(self, view_pos) -> None:
         self._cursor_readout_pending = view_pos
@@ -551,40 +843,22 @@ class H2rgMainWindow(QMainWindow):
         if pos is None:
             return
         if self.image is None:
-            self._cursor_readout.setText("Pixel: —")
+            self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
             return
 
         img = self.image.getImageItem().image
         if img is None:
-            self._cursor_readout.setText("Pixel: —")
+            self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
             return
 
-        vb = self._image_view_box()
-        if vb is None:
+        pixel = self._scene_pos_to_image_xy(pos)
+        if pixel is None:
+            self._cursor_readout.setText(self._format_cursor_readout_text(None, None, None))
             return
 
-        try:
-            if isinstance(pos, (tuple, list)) and len(pos) == 1:
-                pos = pos[0]
-            if hasattr(pos, "x") and hasattr(pos, "y") and not isinstance(
-                pos, (tuple, list)
-            ):
-                mouse = vb.mapSceneToView(pos)
-            else:
-                scene_pos = _normalize_scene_pos(pos)
-                mouse = vb.mapSceneToView(scene_pos)
-        except (TypeError, ValueError):
-            return
-
-        x = int(mouse.x())
-        y = int(mouse.y())
-        img_h, img_w = img.shape[:2]
-        if x < 0 or y < 0 or x >= img_w or y >= img_h:
-            self._cursor_readout.setText("Pixel: —")
-            return
-
+        x, y = pixel
         adu = float(img[y, x])
-        self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
+        self._cursor_readout.setText(self._format_cursor_readout_text(x, y, adu))
 
     def _update_cursor_readout(self, pos) -> None:
         if isinstance(pos, (tuple, list)) and len(pos) == 1:
@@ -624,7 +898,9 @@ class H2rgMainWindow(QMainWindow):
             elif obj is view and event.type() == QEvent.Leave:
                 self._cursor_readout_pending = None
                 if self._cursor_readout is not None:
-                    self._cursor_readout.setText("Pixel: —")
+                    self._cursor_readout.setText(
+                        self._format_cursor_readout_text(None, None, None)
+                    )
 
         return super().eventFilter(obj, event)
 
@@ -652,7 +928,10 @@ class H2rgMainWindow(QMainWindow):
         self.image.show()
         self.image.getView().setMouseEnabled(x=True, y=True)
         self.image.getView().setAspectLocked(True)
-        self._setup_cursor_readout()
+        try:
+            self._setup_cursor_readout()
+        except Exception as exc:
+            print(f"H2RG cursor readout setup failed: {exc}")
         self._layout_image_frame()
 
         if self._current_frame is not None:
@@ -660,11 +939,25 @@ class H2rgMainWindow(QMainWindow):
 
         self._setup_roi_overlays()
 
-    def _background_startup(self) -> None:
-        from nottcontrol.camera.macie.zmq_server_manager import MacieZmqServerProcess
+    def _resolved_zmq_address(self) -> str:
+        if self._zmq_address is None:
+            from nottcontrol.camera.macie.zmq_server_manager import (
+                select_macie_zmq_address,
+            )
 
+            self._zmq_address = select_macie_zmq_address()
+        return self._zmq_address
+
+    def _background_startup(self) -> None:
+        from nottcontrol.camera.macie.zmq_server_manager import (
+            MacieZmqServerProcess,
+            macie_zmq_addresses,
+            select_macie_zmq_address,
+        )
+
+        self._zmq_address = select_macie_zmq_address()
         if self._zmq_server is None:
-            self._zmq_server = MacieZmqServerProcess(MACIE_ZMQ_ADDRESS)
+            self._zmq_server = MacieZmqServerProcess(self._zmq_address)
         self._fits_dir_ok = path_is_directory(self._save_dir)
         if not self._fits_dir_ok and sys.platform == "win32":
             self.status_updated.emit(
@@ -673,12 +966,19 @@ class H2rgMainWindow(QMainWindow):
 
         try:
             self._zmq_server.ensure_running()
+            self._zmq_address = self._zmq_server.zmq_address
             if self._zmq_server.started_by_gui:
                 self.status_updated.emit("ZMQ server started")
             elif self._fits_dir_ok is not False:
-                self.status_updated.emit(
-                    f"Connected to ZMQ server at {MACIE_ZMQ_ADDRESS}"
-                )
+                addresses = macie_zmq_addresses()
+                if addresses and self._zmq_address != addresses[0]:
+                    self.status_updated.emit(
+                        f"Connected to alternate ZMQ server at {self._zmq_address}"
+                    )
+                else:
+                    self.status_updated.emit(
+                        f"Connected to ZMQ server at {self._zmq_address}"
+                    )
         except Exception as exc:
             message = str(exc)
             if self._fits_dir_ok is False and sys.platform == "win32":
@@ -730,7 +1030,7 @@ class H2rgMainWindow(QMainWindow):
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
         self._clear_widget_layout(box)
-        box.setMinimumHeight(300)
+        box.setMinimumHeight(380)
         outer = QVBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(8)
@@ -744,6 +1044,7 @@ class H2rgMainWindow(QMainWindow):
             ("label_7", "lineEdit_nb_frames"),
         )
         self.ui.label_5.setText("Integration time (ms):")
+        self.ui.label_7.setText("Saved ramps:")
         self.ui.label_4.setText("Total integration time (ms):")
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
@@ -758,9 +1059,28 @@ class H2rgMainWindow(QMainWindow):
         self._button_set_exposure.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_set_exposure.setFixedSize(52, 28)
         self._button_set_exposure.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        form.addWidget(self._button_set_exposure, 0, 2, 3, 1, Qt.AlignTop)
 
-        separator_row = len(editable_rows)
+        mode_row = len(editable_rows)
+        self._label_ramp_mode = QLabel("Ramp mode:")
+        self._comboBox_ramp_mode = QComboBox()
+        self._comboBox_ramp_mode.addItems(list(RAMP_MODES))
+        self._label_fowler_pairs = QLabel("Fowler pairs:")
+        self._lineEdit_fowler_pairs = QLineEdit(str(self._fowler_pairs))
+        self._lineEdit_fowler_pairs.setFixedWidth(48)
+        for widget in (
+            self._label_ramp_mode,
+            self._comboBox_ramp_mode,
+            self._label_fowler_pairs,
+            self._lineEdit_fowler_pairs,
+        ):
+            widget.setStyleSheet(PANEL_LABEL_STYLE if isinstance(widget, QLabel) else PANEL_FIELD_STYLE)
+        form.addWidget(self._label_ramp_mode, mode_row, 0)
+        form.addWidget(self._comboBox_ramp_mode, mode_row, 1)
+        form.addWidget(self._label_fowler_pairs, mode_row + 1, 0)
+        form.addWidget(self._lineEdit_fowler_pairs, mode_row + 1, 1)
+        form.addWidget(self._button_set_exposure, 0, 2, mode_row + 2, 1, Qt.AlignTop)
+
+        separator_row = mode_row + 2
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Plain)
@@ -769,6 +1089,9 @@ class H2rgMainWindow(QMainWindow):
         form.addWidget(separator, separator_row, 0, 1, 3)
 
         timing_row = separator_row + 1
+        self._label_frame_time = QLabel("Frame time (ms):")
+        self._lineEdit_frame_time = QLineEdit("—")
+        self._lineEdit_frame_time.setReadOnly(True)
         self._label_photon_time = QLabel("Photon time (s):")
         self._lineEdit_photon_time = QLineEdit("—")
         self._lineEdit_photon_time.setReadOnly(True)
@@ -780,6 +1103,7 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_efficiency.setReadOnly(True)
         for offset, (label, field) in enumerate(
             (
+                (self._label_frame_time, self._lineEdit_frame_time),
                 (self._label_photon_time, self._lineEdit_photon_time),
                 (self._label_execution_time, self._lineEdit_execution_time),
                 (self._label_efficiency, self._lineEdit_efficiency),
@@ -794,7 +1118,7 @@ class H2rgMainWindow(QMainWindow):
             form.addWidget(label, timing_row + offset, 0)
             form.addWidget(field, timing_row + offset, 1)
 
-        footer_row = timing_row + 3
+        footer_row = timing_row + 4
         for offset, (label_name, field_name) in enumerate(
             (
                 ("label_4", "lineEdit_integration_time_total"),
@@ -965,6 +1289,49 @@ class H2rgMainWindow(QMainWindow):
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
         )
 
+        for button in (
+            getattr(self, "_button_set_exposure", None),
+            getattr(self, "_button_autoscale", None),
+            getattr(self, "_button_header", None),
+            getattr(self, "_button_ds9", None),
+            getattr(self, "_button_save_dir", None),
+        ):
+            if button is not None:
+                button.setStyleSheet(PANEL_BUTTON_STYLE)
+
+        for widget in (
+            getattr(self, "_label_ramp_mode", None),
+            getattr(self, "_label_fowler_pairs", None),
+            getattr(self, "_label_frame_time", None),
+            getattr(self, "_label_photon_time", None),
+            getattr(self, "_label_execution_time", None),
+            getattr(self, "_label_efficiency", None),
+        ):
+            if widget is not None:
+                widget.setStyleSheet(PANEL_LABEL_STYLE)
+
+        for widget in (
+            getattr(self, "_comboBox_ramp_mode", None),
+            getattr(self, "_lineEdit_fowler_pairs", None),
+            getattr(self, "_lineEdit_frame_time", None),
+            getattr(self, "_lineEdit_photon_time", None),
+            getattr(self, "_lineEdit_execution_time", None),
+            getattr(self, "_lineEdit_efficiency", None),
+        ):
+            if widget is None:
+                continue
+            if isinstance(widget, QLineEdit):
+                widget.setStyleSheet(
+                    PANEL_FIELD_STYLE
+                    + " QLineEdit { background: rgb(250, 252, 252); }"
+                )
+            else:
+                widget.setStyleSheet(PANEL_FIELD_STYLE)
+
+        stats_panel = getattr(self, "_stat_mean", None)
+        if stats_panel is not None and stats_panel.parent() is not None:
+            stats_panel.parent().setStyleSheet(PANEL_GROUP_STYLE)
+
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
         self.ui.comboBox_detector_mode.addItems(list(DETECTOR_MODES))
@@ -995,8 +1362,14 @@ class H2rgMainWindow(QMainWindow):
             self.ui.lineEdit_integration_time,
             self.ui.lineEdit_nb_coadd,
             self.ui.lineEdit_nb_frames,
+            getattr(self, "_lineEdit_fowler_pairs", None),
         ):
-            widget.editingFinished.connect(self._on_exposure_fields_changed)
+            if widget is not None:
+                widget.editingFinished.connect(self._on_exposure_fields_changed)
+
+        ramp_mode = getattr(self, "_comboBox_ramp_mode", None)
+        if ramp_mode is not None:
+            ramp_mode.currentIndexChanged.connect(self._on_ramp_mode_changed)
 
         self.ui.comboBox_window_mode.currentIndexChanged.connect(
             self._on_window_mode_changed
@@ -1027,6 +1400,63 @@ class H2rgMainWindow(QMainWindow):
         self._update_roi_overlays()
         self._refresh_display()
 
+    def _selected_ramp_mode(self) -> str:
+        if hasattr(self, "_comboBox_ramp_mode"):
+            text = self._comboBox_ramp_mode.currentText().strip()
+            if text in RAMP_MODES:
+                return text
+        return "CDS"
+
+    def _fowler_pairs_value(self) -> int:
+        try:
+            if hasattr(self, "_lineEdit_fowler_pairs"):
+                return max(1, min(int(self._lineEdit_fowler_pairs.text().strip()), 8))
+        except ValueError:
+            pass
+        return self._fowler_pairs
+
+    def _sync_ramp_mode_fields(self) -> None:
+        if not hasattr(self, "_comboBox_ramp_mode"):
+            return
+        fowler = self._selected_ramp_mode() == "Fowler"
+        if hasattr(self, "_lineEdit_fowler_pairs"):
+            self._lineEdit_fowler_pairs.setEnabled(fowler)
+        if hasattr(self, "_label_fowler_pairs"):
+            self._label_fowler_pairs.setEnabled(fowler)
+        if hasattr(self, "ui") and self.ui is not None:
+            self.ui.lineEdit_integration_time.setEnabled(not fowler)
+            self.ui.label_5.setText(
+                "Integration time (ms):"
+                if not fowler
+                else "Integration time (ms, CDS only):"
+            )
+            tooltip = (
+                "Fowler timing is controlled by Fowler pairs and ASIC registers. "
+                "Photon time is shown below after Set."
+                if fowler
+                else "Target photon-collection time for CDS ramps."
+            )
+            self.ui.lineEdit_integration_time.setToolTip(tooltip)
+            self.ui.label_5.setToolTip(tooltip)
+
+    def _sync_fowler_pairs_enabled(self) -> None:
+        self._sync_ramp_mode_fields()
+
+    def _windowed_cds_layout(self) -> bool:
+        if self.ui is None:
+            return False
+        index = self.ui.comboBox_window_mode.currentIndex()
+        if not 0 <= index < len(WINDOW_MODES):
+            return False
+        mode = WINDOW_MODES[index]
+        return mode.x_window or mode.y_window
+
+    def _on_ramp_mode_changed(self, _index: int) -> None:
+        self._sync_ramp_mode_fields()
+        if not self._initialized:
+            return
+        self._on_exposure_fields_changed()
+
     def _display_mode(self) -> str:
         if self.ui.checkBox_avg.isChecked():
             return "avg"
@@ -1050,7 +1480,12 @@ class H2rgMainWindow(QMainWindow):
                 return numpy.max(data, axis=axis).astype(numpy.float32)
             if mode == "min":
                 return numpy.min(data, axis=axis).astype(numpy.float32)
-            return science_image_from_cube(data, header)
+            return science_image_from_cube(
+                data,
+                header,
+                reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
+                fowler_pairs=self._fowler_pairs_value(),
+            )
         return self._current_frame
 
     def _selected_roi_indices(self) -> list[int]:
@@ -1233,7 +1668,12 @@ class H2rgMainWindow(QMainWindow):
             mode.y1,
             mode.y2,
         )
-        if mode.x_window or mode.y_window:
+        if mode.y_window and not mode.x_window:
+            status = (
+                f"{mode.label} — burst stripe y=[{mode.y1},{mode.y2}] "
+                "(32 outputs)"
+            )
+        elif mode.x_window or mode.y_window:
             status = (
                 f"{mode.label} — x=[{mode.x1},{mode.x2}] y=[{mode.y1},{mode.y2}]"
             )
@@ -1241,6 +1681,8 @@ class H2rgMainWindow(QMainWindow):
             status = mode.label
         self.status_updated.emit(status)
         self._refresh_exposure_timing(macie)
+        if self._initialized:
+            self._on_exposure_fields_changed()
 
     def _apply_detector_mode_to_macie(
         self, macie, mode_index: int, window_index: int
@@ -1257,6 +1699,8 @@ class H2rgMainWindow(QMainWindow):
 
     def _on_exposure_fields_changed(self) -> None:
         self._update_total_integration_label()
+        if self._initialized and self._macie is not None:
+            self._exposure_preview_timer.start()
 
     def _on_set_exposure_clicked(self) -> None:
         self._update_total_integration_label()
@@ -1274,6 +1718,100 @@ class H2rgMainWindow(QMainWindow):
             return
         self._auto_levels_next = True
         self._refresh_display()
+
+    def _show_fits_header(self) -> None:
+        path = self._last_fits_path
+        if path is not None and is_science_fits_name(path.name):
+            path = None
+        text = fits_header_text(self._raw_fits_header, path)
+        if not text:
+            QMessageBox.information(
+                self,
+                "FITS header",
+                "No FITS file loaded yet.",
+            )
+            return
+        title = "FITS header"
+        if self._last_fits_path is not None:
+            title = f"FITS header — {self._last_fits_path.name}"
+        dialog = FitsHeaderDialog(self, title=title, text=text)
+        dialog.exec_()
+
+    def _open_fits_in_ds9(self) -> None:
+        path = local_fits_file_for_viewer(self._last_fits_path)
+        if path is None:
+            QMessageBox.information(
+                self,
+                "Open in DS9",
+                "No FITS file is available on disk yet. "
+                "Acquire or load a frame from a local path first.",
+            )
+            return
+        try:
+            launch_ds9(path)
+        except FileNotFoundError:
+            QMessageBox.warning(
+                self,
+                "Open in DS9",
+                f"DS9 executable not found ({MACIE_DS9_EXECUTABLE!r}). "
+                "Install SAOImage DS9 or set MACIE ds9_executable in config.ini.",
+            )
+        except OSError as exc:
+            QMessageBox.warning(
+                self,
+                "Open in DS9",
+                f"Failed to launch DS9 for {path.name}: {exc}",
+            )
+
+    def _resolve_fits_save_dir_for_open(self) -> Path | None:
+        macie = getattr(self, "_macie", None)
+        if macie is not None:
+            try:
+                self._sync_save_dir_from_server(macie)
+            except Exception:
+                pass
+
+        if self._local_fits_accessible(allow_probe=True):
+            return self._save_dir
+
+        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        if configured:
+            path = Path(os.path.expanduser(configured))
+            try:
+                if path.is_dir():
+                    return path
+            except OSError:
+                pass
+
+        return None
+
+    def _open_fits_save_dir(self) -> None:
+        directory = self._resolve_fits_save_dir_for_open()
+        if directory is None:
+            QMessageBox.information(
+                self,
+                "Open save directory",
+                "The FITS save directory is not available on this machine.\n\n"
+                f"Configured path: {self._save_dir}\n\n"
+                "Set [MACIE] fits_directory (and fits_linux_path_prefix / "
+                "fits_windows_unc_root on Windows) in config.ini to a local "
+                "or mapped path.",
+            )
+            return
+        try:
+            open_directory_in_file_manager(directory)
+        except FileNotFoundError:
+            QMessageBox.warning(
+                self,
+                "Open save directory",
+                f"Directory not found:\n{directory}",
+            )
+        except OSError as exc:
+            QMessageBox.warning(
+                self,
+                "Open save directory",
+                f"Failed to open {directory}:\n{exc}",
+            )
 
     def _set_status(self, message: str) -> None:
         if self.ui is None:
@@ -1318,6 +1856,7 @@ class H2rgMainWindow(QMainWindow):
     def _apply_exposure_timing(self, timing: dict[str, float]) -> None:
         if self.ui is None:
             return
+        self._lineEdit_frame_time.setText(f"{timing['frametime_s'] * 1000:.4g}")
         self._lineEdit_photon_time.setText(f"{timing['inttime_s']:.4g}")
         self._lineEdit_execution_time.setText(f"{timing['execution_s']:.4g}")
         self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
@@ -1367,7 +1906,7 @@ class H2rgMainWindow(QMainWindow):
             self._macie = MacieInterface(
                 offline_mode=MACIE_OFFLINE_MODE,
                 config_file=config_file,
-                zmq_address=MACIE_ZMQ_ADDRESS,
+                zmq_address=self._resolved_zmq_address(),
             )
         else:
             self._macie.set_config_file(config_file)
@@ -1433,32 +1972,58 @@ class H2rgMainWindow(QMainWindow):
             return
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
 
-    def _apply_exposure_settings(self, macie) -> None:
+    def _apply_exposure_settings(self, macie) -> dict[str, float | int]:
         try:
-            tint_ms = float(self.ui.lineEdit_integration_time.text().strip())
             ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
             nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
+            self._fowler_pairs = self._fowler_pairs_value()
         except ValueError as exc:
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
-        if tint_ms <= 0:
-            raise ValueError("Integration time must be greater than zero")
+        ramp_mode = self._selected_ramp_mode()
+        if ramp_mode == "Fowler":
+            try:
+                preview_timing = macie.read_exposure_timing()
+                tint_ms = preview_timing["frametime_s"] * 1000.0
+            except Exception:
+                tint_ms = 1.0
+        else:
+            try:
+                tint_ms = float(self.ui.lineEdit_integration_time.text().strip())
+            except ValueError as exc:
+                raise ValueError(f"Invalid integration time: {exc}") from exc
+            if tint_ms <= 0:
+                raise ValueError("Integration time must be greater than zero")
 
-        tint_s = tint_ms / 1000.0
-        actual_ms, ngroups, ndrops, nreads = macie.set_integration_time(
-            tint_s,
+        result = macie.configure_ramp_exposure(
+            tint_ms,
+            ramp_mode=ramp_mode,
+            fowler_pairs=self._fowler_pairs,
             ngmax=MACIE_INTEGRATION_NGROUPS_MAX,
             ncoadds=ncoadds,
             nseq=nseq,
             save=True,
+            windowed_cds=self._windowed_cds_layout(),
         )
-        self._last_tint_ms = actual_ms
-        self._update_total_integration_label(actual_tint_ms=actual_ms)
+        self._last_tint_ms = float(result["inttime_ms"])
+        if ramp_mode != "Fowler":
+            self.ui.lineEdit_integration_time.setText(f"{self._last_tint_ms:.6g}")
+        self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
         self._refresh_exposure_timing(macie)
-        self.status_updated.emit(
-            f"Exposure: {actual_ms:.3g} ms "
-            f"(groups={ngroups}, drops={ndrops}, reads={nreads})"
+        mode_detail = (
+            f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
+            if ramp_mode == "Fowler"
+            else (
+                f"groups={result['ngroups']}, drops={result['ndrops']}, "
+                f"reads={result['nreads']}"
+                + (" (window CDS)" if self._windowed_cds_layout() else "")
+            )
         )
+        self.status_updated.emit(
+            f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon ({mode_detail}, "
+            f"saved ramps={nseq})"
+        )
+        return result
 
     def acquire(self) -> None:
         if self._live_active:
@@ -1466,49 +2031,135 @@ class H2rgMainWindow(QMainWindow):
             return
 
         def operation() -> None:
+            from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
+
             macie = self._ensure_macie()
-            self._apply_exposure_settings(macie)
+            try:
+                ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
+                nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
+            except ValueError as exc:
+                raise ValueError(f"Invalid exposure field: {exc}") from exc
+
+            exposure = self._apply_exposure_settings(macie)
             self._fits_dir_ok = None
             before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
+            wait_timeout_s = fits_wait_timeout_s(
+                float(exposure["execution_s"]),
+                ncoadds=ncoadds,
+                nseq=nseq,
+                margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
+            )
             macie.acquire()
-            frame, path = self._wait_for_new_frame(
+            ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
                 before_mtime,
                 macie,
                 before_name=before_name,
+                expected_count=max(1, nseq),
+                timeout_s=wait_timeout_s,
             )
-            if frame is not None:
-                science_path = self._save_science_fits(frame, path)
-                self._last_fits_path = science_path or path
+            if frame is not None and preview_path is not None:
+                science_paths: list[Path] = []
+                for ramp_path in ramp_paths:
+                    science_path = self._save_science_fits_from_ramp(ramp_path)
+                    if science_path is not None:
+                        science_paths.append(science_path)
+                preview_science = (
+                    science_paths[-1] if science_paths else preview_path
+                )
+                self._last_fits_path = preview_science
                 self._auto_levels_next = True
                 self.frame_ready.emit(frame)
-                if science_path is not None:
-                    self.status_updated.emit(
-                        f"Acquire complete — science FITS: {science_path.name}"
-                    )
-                else:
-                    self.status_updated.emit("Acquire complete")
+                self.status_updated.emit(self._acquire_complete_status(ramp_paths, science_paths))
             else:
                 self.status_updated.emit(self._missing_fits_status())
 
         self._run_macie_operation("Acquire", operation)
 
+    def _acquire_complete_status(
+        self, ramp_paths: list[Path], science_paths: list[Path]
+    ) -> str:
+        if len(ramp_paths) > 1:
+            base = (
+                f"Acquire complete — {len(ramp_paths)} ramps "
+                f"({ramp_paths[0].name} … {ramp_paths[-1].name})"
+            )
+        elif ramp_paths:
+            base = f"Acquire complete — {ramp_paths[0].name}"
+        else:
+            base = "Acquire complete"
+        if science_paths:
+            if len(science_paths) > 1:
+                return (
+                    f"{base}; science FITS ×{len(science_paths)} "
+                    f"({science_paths[-1].name})"
+                )
+            return f"{base}; science FITS: {science_paths[0].name}"
+        return base
+
+    def _local_science_save_dir(self) -> Path:
+        if self._local_fits_accessible(allow_probe=True):
+            return self._save_dir
+
+        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        if configured:
+            path = Path(os.path.expanduser(configured))
+            try:
+                path.mkdir(parents=True, exist_ok=True)
+                return path
+            except OSError:
+                pass
+
+        fallback = Path.home() / "nott_h2rg_fits"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
     def _science_output_path(self, ramp_path: Path) -> Path:
-        if ramp_path.is_absolute():
-            return science_fits_path(ramp_path)
-        return science_fits_path(self._save_dir / ramp_path.name)
+        return science_fits_path(self._local_science_save_dir() / ramp_path.name)
 
     def _save_science_fits(
         self, frame: numpy.ndarray, ramp_path: Path | None
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
             return None
+        output_path = self._science_output_path(ramp_path)
         try:
-            output_path = self._science_output_path(ramp_path)
             save_science_fits(
                 output_path,
                 frame,
                 source_header=self._raw_fits_header,
                 tint_ms=self._last_tint_ms,
+                reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
+                fowler_pairs=self._fowler_pairs_value(),
+            )
+            return output_path
+        except OSError as exc:
+            print(f"H2RG failed to save science FITS: {exc}")
+            return None
+
+    def _save_science_fits_from_ramp(self, ramp_path: Path) -> Path | None:
+        if not MACIE_SAVE_SCIENCE_FITS:
+            return None
+        try:
+            data, header = load_fits_data(ramp_path)
+        except Exception as exc:
+            print(f"H2RG failed to load ramp for science save {ramp_path.name}: {exc}")
+            return None
+        frame = science_image_from_cube(
+            data,
+            header,
+            reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
+            fowler_pairs=self._fowler_pairs_value(),
+        )
+        output_path = self._science_output_path(ramp_path)
+        try:
+            save_science_fits(
+                output_path,
+                frame,
+                source_header=header,
+                tint_ms=self._last_tint_ms,
+                reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
+                fowler_pairs=self._fowler_pairs_value(),
             )
             return output_path
         except OSError as exc:
@@ -1523,8 +2174,13 @@ class H2rgMainWindow(QMainWindow):
         if not server_dir:
             return
         mapped = map_server_fits_path(server_dir.rstrip("/\\"))
-        if mapped:
-            self._save_dir = mapped
+        if mapped is None:
+            return
+        try:
+            if mapped.is_dir():
+                self._save_dir = mapped
+        except OSError:
+            pass
 
     def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
         if self._fits_dir_ok is False and not allow_probe:
@@ -1560,7 +2216,11 @@ class H2rgMainWindow(QMainWindow):
             before_mtime=before_mtime,
         ):
             return None
-        return self._load_fits_from_path(path), path
+        try:
+            return self._load_fits_from_path(path), path
+        except Exception as exc:
+            print(f"H2RG skipped unreadable FITS {path.name}: {exc}")
+            return None
 
     def _resolve_server_fits_path(self, macie) -> Path | None:
         try:
@@ -1633,7 +2293,11 @@ class H2rgMainWindow(QMainWindow):
         if require_new and before_name and filename == before_name:
             return None
         path = Path(filename)
-        frame = self._load_fits_from_bytes(payload, path)
+        try:
+            frame = self._load_fits_from_bytes(payload, path)
+        except Exception as exc:
+            print(f"H2RG failed to decode FITS {filename}: {exc}")
+            return None
         self._last_fits_path = path
         self._last_loaded_basename = path.name
         return frame, path
@@ -1685,15 +2349,15 @@ class H2rgMainWindow(QMainWindow):
         self._set_status("Halted")
 
     def take_background(self) -> None:
-        if self._current_frame is None:
+        frame = self._frame_from_display_mode()
+        if frame is None:
             loaded = self._load_latest_frame()
             if loaded is None:
                 self._on_operation_failed("No FITS frame available for background")
                 return
             frame, _path = loaded
-        else:
-            frame = self._current_frame
-        self._background = frame.copy()
+            frame = self._frame_from_display_mode() or frame
+        self._background = numpy.asarray(frame, dtype=numpy.float32).copy()
         self.ui.checkBox_substract_background.setEnabled(True)
         self._set_status("Background stored")
 
@@ -1728,6 +2392,7 @@ class H2rgMainWindow(QMainWindow):
                 "nseq": str(nseq),
                 "nreads": str(nreads) if nreads else "",
                 "tint_s": tint_s,
+                "tint_unavailable": tint_s is None,
             }
         )
 
@@ -1748,13 +2413,18 @@ class H2rgMainWindow(QMainWindow):
         self.ui.lineEdit_nb_frames.setText(data["nseq"])
         if data.get("tint_s") is not None:
             self.ui.lineEdit_integration_time.setText(f"{data['tint_s'] * 1000:.6g}")
-        elif data["nreads"]:
-            self.ui.lineEdit_integration_time.setText(data["nreads"])
+        elif data.get("tint_unavailable"):
+            self._set_status(
+                "Could not read integration time from detector — "
+                "enter a value and press Set"
+            )
         self._update_total_integration_label()
 
     def _update_total_integration_label(self, actual_tint_ms: float | None = None) -> None:
         try:
             per_frame = actual_tint_ms
+            if per_frame is None and self._selected_ramp_mode() == "Fowler":
+                per_frame = self._last_tint_ms
             if per_frame is None:
                 per_frame = float(self.ui.lineEdit_integration_time.text() or 0)
             coadds = int(self.ui.lineEdit_nb_coadd.text() or 1)
@@ -1770,6 +2440,141 @@ class H2rgMainWindow(QMainWindow):
             return 0.0
         return path.stat().st_mtime
 
+    def _collect_new_ramp_paths(
+        self,
+        before_mtime: float,
+        *,
+        before_name: str | None,
+    ) -> list[Path]:
+        if not self._local_fits_accessible(allow_probe=True):
+            return []
+        return list_new_ramp_fits_in_dir(
+            self._save_dir,
+            before_mtime=before_mtime,
+            before_name=before_name,
+            dir_ok=True,
+        )
+
+    def _wait_for_acquire_frames(
+        self,
+        before_mtime: float,
+        macie,
+        *,
+        before_name: str | None = None,
+        expected_count: int = 1,
+        timeout_s: float = 30.0,
+    ) -> tuple[list[Path], numpy.ndarray | None, Path | None]:
+        import time
+
+        deadline = time.monotonic() + timeout_s
+        seen: dict[str, Path] = {}
+        zmq_seen: set[str] = set()
+        server_path_checked_at = 0.0
+        stable_since: float | None = None
+
+        while time.monotonic() < deadline:
+            for path in self._collect_new_ramp_paths(
+                before_mtime, before_name=before_name
+            ):
+                seen[path.name] = path
+
+            if not self._local_fits_accessible(allow_probe=True):
+                now = time.monotonic()
+                if now - server_path_checked_at >= 1.0:
+                    server_path_checked_at = now
+                    if self._server_fits_is_new(
+                        macie,
+                        before_name=before_name,
+                        before_mtime=before_mtime,
+                    ):
+                        fetched = self._fetch_fits_from_server(
+                            macie,
+                            before_mtime=before_mtime,
+                            before_name=before_name,
+                            require_new=True,
+                        )
+                        if fetched is not None:
+                            _frame, path = fetched
+                            seen[path.name] = path
+                            zmq_seen.add(path.name)
+                            before_name = path.name
+                if len(seen) >= expected_count:
+                    break
+            elif len(seen) >= expected_count:
+                stable_since = None
+                break
+            elif seen:
+                if stable_since is None:
+                    stable_since = time.monotonic()
+                elif time.monotonic() - stable_since >= 1.0:
+                    break
+            else:
+                stable_since = None
+
+            now = time.monotonic()
+            if self._local_fits_accessible(allow_probe=True):
+                if now - server_path_checked_at >= 2.0:
+                    server_path_checked_at = now
+                    server_path = self._resolve_server_fits_path(macie)
+                    loaded = self._try_load_path_if_new(
+                        server_path,
+                        before_mtime,
+                        before_name=before_name,
+                    )
+                    if loaded is not None:
+                        _frame, path = loaded
+                        seen[path.name] = path
+            time.sleep(0.2)
+
+        ramp_paths = sorted(
+            seen.values(),
+            key=lambda path: (
+                path.stat().st_mtime if path.exists() else 0.0,
+                path.name.lower(),
+            ),
+        )
+        if not ramp_paths and self._local_fits_accessible(allow_probe=True):
+            fetched = self._fetch_fits_from_server(
+                macie,
+                before_mtime=before_mtime,
+                before_name=before_name,
+                require_new=True,
+            )
+            if fetched is not None:
+                _frame, path = fetched
+                ramp_paths = [path]
+
+        if not ramp_paths:
+            return [], None, None
+
+        preview_path = ramp_paths[-1]
+        try:
+            if preview_path.is_file():
+                frame = self._load_fits_from_path(preview_path)
+            else:
+                loaded = self._try_load_path_if_new(
+                    preview_path,
+                    before_mtime,
+                    before_name=before_name,
+                )
+                if loaded is None:
+                    fetched = self._fetch_fits_from_server(
+                        macie,
+                        before_mtime=before_mtime,
+                        before_name=before_name,
+                        require_new=False,
+                    )
+                    if fetched is None:
+                        return ramp_paths, None, preview_path
+                    frame, preview_path = fetched
+                else:
+                    frame, preview_path = loaded
+        except Exception as exc:
+            print(f"H2RG failed to load preview ramp {preview_path.name}: {exc}")
+            return ramp_paths, None, preview_path
+
+        return ramp_paths, frame, preview_path
+
     def _wait_for_new_frame(
         self,
         before_mtime: float,
@@ -1778,62 +2583,24 @@ class H2rgMainWindow(QMainWindow):
         before_name: str | None = None,
         timeout_s: float = 30.0,
     ) -> tuple[numpy.ndarray | None, Path | None]:
-        import time
-
-        if not self._local_fits_accessible(allow_probe=True):
-            for delay in (0.0, 0.5, 1.0, 2.0, 4.0, 8.0):
-                if delay:
-                    time.sleep(delay)
-                fetched = self._fetch_fits_from_server(
-                    macie,
-                    before_mtime=before_mtime,
-                    before_name=before_name,
-                    require_new=True,
-                )
-                if fetched is not None:
-                    return fetched
-            return None, None
-
-        deadline = time.monotonic() + timeout_s
-        server_path: Path | None = None
-        server_path_checked_at = 0.0
-
-        while time.monotonic() < deadline:
-            loaded = self._try_load_path_if_new(
-                self._newest_fits_file(allow_probe=True),
-                before_mtime,
-                before_name=before_name,
-            )
-            if loaded is not None:
-                return loaded
-
-            now = time.monotonic()
-            if now - server_path_checked_at >= 2.0:
-                server_path_checked_at = now
-                server_path = self._resolve_server_fits_path(macie)
-            loaded = self._try_load_path_if_new(
-                server_path,
-                before_mtime,
-                before_name=before_name,
-            )
-            if loaded is not None:
-                return loaded
-            time.sleep(0.2)
-
-        fetched = self._fetch_fits_from_server(
+        _paths, frame, path = self._wait_for_acquire_frames(
+            before_mtime,
             macie,
-            before_mtime=before_mtime,
             before_name=before_name,
-            require_new=True,
+            expected_count=1,
+            timeout_s=timeout_s,
         )
-        if fetched is not None:
-            return fetched
-        return None, None
+        return frame, path
 
     def _store_raw_fits(self, data: numpy.ndarray, header: dict) -> numpy.ndarray:
         self._raw_fits_cube = numpy.asarray(data)
         self._raw_fits_header = dict(header)
-        return science_image_from_cube(data, header)
+        return science_image_from_cube(
+            data,
+            header,
+            reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
+            fowler_pairs=self._fowler_pairs_value(),
+        )
 
     def _load_fits_from_path(self, path: Path) -> numpy.ndarray:
         data, header = load_fits_data(path)
@@ -1911,8 +2678,11 @@ class H2rgMainWindow(QMainWindow):
             return
         if frame is not None:
             self._current_frame = frame
+        self._update_central_value(self._current_frame)
         display = self._build_display_frame()
         if display is None:
+            self._central_value = None
+            self._sync_cursor_readout_label()
             return
 
         auto_levels = self._auto_levels_next
@@ -1922,6 +2692,7 @@ class H2rgMainWindow(QMainWindow):
 
         self._update_image_statistics(self._stats_array(display))
         self._layout_image_frame()
+        self._sync_cursor_readout_label()
 
         if self._last_fits_path is not None:
             self.ui.lineEdit_frame_nb.setText(self._last_fits_path.name)
@@ -1941,19 +2712,45 @@ class H2rgMainWindow(QMainWindow):
         }
 
     def closeEvent(self, event) -> None:
-        if self._live_active and self._macie is not None:
-            self._macie.stop_continuous_acquisition()
-            self._stop_live_ui()
+        if self._shutting_down:
+            event.accept()
+            return
+        self._shutting_down = True
 
-        if self._macie is not None:
-            if self._operation_lock.acquire(timeout=5.0):
-                self._operation_lock.release()
-            try:
-                self._macie.close()
-            except Exception:
-                pass
-            self._macie = None
-        if self._zmq_server is not None:
-            self._zmq_server.stop()
+        halt_server = self._live_active
+        self._cursor_readout_timer.stop()
+        self._live_poll_stop.set()
+        self._stop_live_ui()
+
+        macie = self._macie
+        zmq_server = self._zmq_server
+        operation_lock = self._operation_lock
+        shutdown_server = (
+            zmq_server is not None and zmq_server.started_by_gui
+        )
+        self._macie = None
+        self._zmq_server = None
+
         self.closing.emit()
+        event.accept()
         super().closeEvent(event)
+
+        def cleanup() -> None:
+            if macie is not None:
+                macie.stop_continuous_acquisition()
+                if operation_lock.acquire(timeout=2.0):
+                    operation_lock.release()
+                try:
+                    macie.disconnect(
+                        halt_server=halt_server or shutdown_server,
+                        shutdown_server=shutdown_server,
+                    )
+                except Exception as exc:
+                    print(f"H2RG MACIE shutdown: {exc}")
+            if zmq_server is not None:
+                try:
+                    zmq_server.stop()
+                except Exception as exc:
+                    print(f"H2RG zmq_server shutdown: {exc}")
+
+        threading.Thread(target=cleanup, name="h2rg-shutdown", daemon=True).start()
