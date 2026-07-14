@@ -1670,7 +1670,7 @@ class H2rgMainWindow(QMainWindow):
                 and self._macie is not None
                 and not self._live_poll_stop.is_set()
             ):
-                loaded = self._load_latest_frame(force=False, macie=self._macie)
+                loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
                     frame, _path = loaded
                     self.frame_ready.emit(frame)
@@ -2719,7 +2719,46 @@ class H2rgMainWindow(QMainWindow):
         data, header = load_fits_data(payload)
         self._last_fits_path = path
         self._last_loaded_basename = path.name
+        try:
+            self._last_fits_mtime = path.stat().st_mtime
+        except OSError:
+            pass
         return self._store_raw_fits(data, header)
+
+    def _load_live_frame(
+        self, macie
+    ) -> tuple[numpy.ndarray, Path] | None:
+        """Return the next ramp FITS written since the last displayed frame."""
+        self._sync_save_dir_from_server(macie)
+        before_mtime = self._last_fits_mtime
+        before_name = self._last_loaded_basename
+
+        if self._local_fits_accessible(allow_probe=True):
+            for path in list_new_ramp_fits_in_dir(
+                self._save_dir,
+                before_mtime=before_mtime,
+                before_name=before_name,
+                dir_ok=True,
+            ):
+                try:
+                    return self._load_fits_from_path(path), path
+                except Exception as exc:
+                    print(f"H2RG live skipped unreadable FITS {path.name}: {exc}")
+
+            loaded = self._try_load_path_if_new(
+                self._resolve_server_fits_path(macie),
+                before_mtime,
+                before_name=before_name,
+            )
+            if loaded is not None:
+                return loaded
+
+        return self._fetch_fits_from_server(
+            macie,
+            before_mtime=before_mtime,
+            before_name=before_name,
+            require_new=True,
+        )
 
     def _load_latest_frame(
         self, force: bool = False, macie=None
@@ -2733,19 +2772,10 @@ class H2rgMainWindow(QMainWindow):
             if not force and (now - self._last_zmq_fits_poll) < 2.0:
                 return None
             self._last_zmq_fits_poll = now
-            try:
-                server_path = macie.get_newest_fits_path()
-            except Exception:
-                return None
-            server_name = fits_basename(server_path)
-            if (
-                not force
-                and server_name
-                and server_name == self._last_loaded_basename
-            ):
-                return None
             return self._fetch_fits_from_server(
                 macie,
+                before_mtime=0.0 if force else self._last_fits_mtime,
+                before_name=None if force else self._last_loaded_basename,
                 require_new=not force,
             )
 
@@ -2756,21 +2786,40 @@ class H2rgMainWindow(QMainWindow):
             if force and macie is not None:
                 return self._fetch_fits_from_server(macie, require_new=False)
             return None
-        if not force and path.name == self._last_loaded_basename:
-            return None
         try:
             mtime = path.stat().st_mtime
         except OSError:
             if macie is not None:
-                return self._fetch_fits_from_server(macie, require_new=not force)
+                return self._fetch_fits_from_server(
+                    macie,
+                    before_mtime=0.0 if force else self._last_fits_mtime,
+                    before_name=None if force else self._last_loaded_basename,
+                    require_new=not force,
+                )
             return None
-        if not force and mtime == self._last_fits_mtime:
+        if (
+            not force
+            and path.name == self._last_loaded_basename
+            and mtime <= self._last_fits_mtime
+        ):
+            if macie is not None:
+                return self._fetch_fits_from_server(
+                    macie,
+                    before_mtime=self._last_fits_mtime,
+                    before_name=self._last_loaded_basename,
+                    require_new=True,
+                )
             return None
         try:
             return self._load_fits_from_path(path), path
         except OSError:
             if macie is not None:
-                return self._fetch_fits_from_server(macie, require_new=not force)
+                return self._fetch_fits_from_server(
+                    macie,
+                    before_mtime=0.0 if force else self._last_fits_mtime,
+                    before_name=None if force else self._last_loaded_basename,
+                    require_new=not force,
+                )
             return None
 
     def _refresh_display(self) -> None:
