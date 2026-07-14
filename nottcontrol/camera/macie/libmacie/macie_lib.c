@@ -1886,7 +1886,6 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     // Frame and Ramp times
     double frametime_ms = ptUserData->frametime_ms;
-    double ramptime_ms = ptUserData->ramptime_ms;
     // Calculate a timeout to wait for data.
     // Assume full frame idle time
     // Timeout setting while waiting for data download to trigger
@@ -2197,8 +2196,8 @@ bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], l
         t = get_timestamp() - t;
         time_taken = t / 1000.0L;
 
-        verbose_printf(LOG_DEBUG, ptUserData, "  Frame dl time: %.0f ms (wait_total: %i ms, nbytes: %li)\n",
-                       time_taken, wait_total, nbytes);
+        verbose_printf(LOG_DEBUG, ptUserData, "  Frame dl time: %.0f ms (frame_timeout: %i ms, nbytes: %li)\n",
+                       time_taken, frame_timeout, nbytes);
     }
     return true;
 }
