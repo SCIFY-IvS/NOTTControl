@@ -18,10 +18,12 @@ from nottcontrol.camera.macie.h2rg_gui import (
     fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
+    list_ramp_fits_in_dir,
     local_fits_file_for_viewer,
     map_server_fits_path,
     newest_fits_file,
     ramp_fits_path_for_viewer,
+    resolve_ramp_fits_path,
 )
 
 
@@ -200,6 +202,41 @@ class NewestFitsFileTests(unittest.TestCase):
 
     def test_dir_not_ok_returns_none(self) -> None:
         self.assertIsNone(newest_fits_file(Path("/nonexistent"), dir_ok=False))
+
+    def test_finds_ramp_in_dated_subdirectory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            dated = directory / "20260714"
+            dated.mkdir()
+            ramp = dated / "H2RG_Slow_FullWin_20260714_000003.fits"
+            ramp.write_bytes(b"SIMPLE  =                    T")
+
+            paths = list_ramp_fits_in_dir(directory)
+            self.assertEqual([path.name for path in paths], [ramp.name])
+
+
+class ResolveRampFitsPathTests(unittest.TestCase):
+    def test_resolves_basename_in_dated_subdirectory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            dated = directory / "20260714"
+            dated.mkdir()
+            ramp = dated / "frame.fits"
+            ramp.write_bytes(b"SIMPLE  =                    T")
+
+            resolved = resolve_ramp_fits_path(
+                Path("frame.fits"),
+                search_dirs=[directory],
+            )
+            self.assertEqual(resolved, ramp)
+
+    def test_returns_none_when_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            resolved = resolve_ramp_fits_path(
+                Path("missing.fits"),
+                search_dirs=[Path(tmp)],
+            )
+            self.assertIsNone(resolved)
 
 
 if __name__ == "__main__":

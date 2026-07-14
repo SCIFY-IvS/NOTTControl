@@ -475,6 +475,43 @@ def newest_fits_file(directory: Path, *, dir_ok: bool | None = None) -> Path | N
     return paths[-1]
 
 
+def resolve_ramp_fits_path(
+    ramp_path: Path,
+    *,
+    search_dirs: list[Path],
+) -> Path | None:
+    """Find a ramp FITS on disk when *ramp_path* is only a basename."""
+    try:
+        if ramp_path.is_file():
+            return ramp_path
+    except OSError:
+        pass
+
+    name = ramp_path.name
+    for directory in search_dirs:
+        try:
+            if not directory.is_dir():
+                continue
+        except OSError:
+            continue
+
+        direct = directory / name
+        try:
+            if direct.is_file():
+                return direct
+        except OSError:
+            pass
+
+        try:
+            for candidate in directory.rglob(name):
+                if candidate.is_file() and not is_science_fits_name(candidate.name):
+                    return candidate
+        except OSError:
+            continue
+
+    return None
+
+
 def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> list[Path]:
     if dir_ok is False:
         return []
@@ -484,12 +521,15 @@ def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> lis
                 return []
         except OSError:
             return []
+    candidates = []
+    for pattern in ("*.fits", "*.FITS"):
+        try:
+            candidates.extend(directory.rglob(pattern))
+        except OSError:
+            continue
     candidates = [
         path
-        for path in (
-            *directory.glob("*.fits"),
-            *directory.glob("*.FITS"),
-        )
+        for path in candidates
         if not is_science_fits_name(path.name)
     ]
     return sorted(
@@ -2077,7 +2117,13 @@ class H2rgMainWindow(QMainWindow):
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
                 for ramp_path in ramp_paths:
-                    science_path = self._save_science_fits_from_ramp(ramp_path)
+                    if (
+                        ramp_path.name == preview_path.name
+                        and self._raw_fits_header is not None
+                    ):
+                        science_path = self._save_science_fits(frame, ramp_path)
+                    else:
+                        science_path = self._save_science_fits_from_ramp(ramp_path)
                     if science_path is not None:
                         science_paths.append(science_path)
                 preview_science = (
@@ -2112,6 +2158,26 @@ class H2rgMainWindow(QMainWindow):
                 )
             return f"{base}; science FITS: {science_paths[0].name}"
         return base
+
+    def _fits_staging_dir(self) -> Path:
+        directory = Path.home() / "nott_h2rg_fits" / "staging"
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
+
+    def _cache_fetched_fits(self, filename: str, payload: bytes) -> Path:
+        path = self._fits_staging_dir() / filename
+        path.write_bytes(payload)
+        return path
+
+    def _resolve_ramp_path(self, ramp_path: Path) -> Path | None:
+        return resolve_ramp_fits_path(
+            ramp_path,
+            search_dirs=[
+                self._save_dir,
+                self._fits_staging_dir(),
+                self._local_science_save_dir(),
+            ],
+        )
 
     def _local_science_save_dir(self) -> Path:
         if self._local_fits_accessible(allow_probe=True):
@@ -2156,8 +2222,15 @@ class H2rgMainWindow(QMainWindow):
     def _save_science_fits_from_ramp(self, ramp_path: Path) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS:
             return None
+        resolved = self._resolve_ramp_path(ramp_path)
+        if resolved is None:
+            print(
+                f"H2RG failed to load ramp for science save {ramp_path.name}: "
+                "file not found locally (check SMB mapping or ZMQ fetch)"
+            )
+            return None
         try:
-            data, header = load_fits_data(ramp_path)
+            data, header = load_fits_data(resolved)
         except Exception as exc:
             print(f"H2RG failed to load ramp for science save {ramp_path.name}: {exc}")
             return None
@@ -2308,7 +2381,7 @@ class H2rgMainWindow(QMainWindow):
             return None
         if require_new and before_name and filename == before_name:
             return None
-        path = Path(filename)
+        path = self._cache_fetched_fits(filename, payload)
         try:
             frame = self._load_fits_from_bytes(payload, path)
         except Exception as exc:
@@ -2482,6 +2555,7 @@ class H2rgMainWindow(QMainWindow):
     ) -> tuple[list[Path], numpy.ndarray | None, Path | None]:
         import time
 
+        self._sync_save_dir_from_server(macie)
         deadline = time.monotonic() + timeout_s
         seen: dict[str, Path] = {}
         zmq_seen: set[str] = set()
