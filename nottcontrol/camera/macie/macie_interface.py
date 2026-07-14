@@ -48,7 +48,7 @@ class MacieInterface():
     def __init__(
         self,
         offline_mode=False,
-        config_file="basic_warm_slow.cfg",
+        config_file="teledyne_cold_slow.cfg",
         zmq_address="tcp://localhost:65534",
     ):
         self._config_file = server_config_path(config_file)

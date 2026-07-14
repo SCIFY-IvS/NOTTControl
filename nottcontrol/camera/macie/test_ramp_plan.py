@@ -9,6 +9,7 @@ import numpy
 from nottcontrol.camera.macie.fits_science import (
     cds_science_image,
     fowler_science_image,
+    raw_science_image,
     science_image_from_cube,
 )
 from nottcontrol.camera.macie.ramp_plan import (
@@ -31,6 +32,24 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 1)
 
+    def test_single_frame_one_read_no_drops(self) -> None:
+        plan = calc_ramp_plan(500.0, 200.0, mode="SingleFrame")
+        self.assertEqual(plan["ngroups"], 1)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 0)
+
+    def test_ramp_single_read_with_drops(self) -> None:
+        plan = calc_ramp_plan(500.0, 200.0, mode="Ramp")
+        self.assertEqual(plan["ngroups"], 1)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 2)
+
+    def test_ramp_short_integration(self) -> None:
+        plan = calc_ramp_plan(50.0, 200.0, mode="Ramp")
+        self.assertEqual(plan["ngroups"], 1)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 0)
+
     def test_cds_windowed_uses_single_group_two_reads(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="CDS", windowed_cds=True)
         self.assertEqual(plan["ngroups"], 1)
@@ -44,6 +63,8 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["fowler_pairs"], 2)
 
     def test_exp_mode_values(self) -> None:
+        self.assertEqual(exp_mode_for_ramp("SingleFrame"), 0)
+        self.assertEqual(exp_mode_for_ramp("Ramp"), 0)
         self.assertEqual(exp_mode_for_ramp("CDS"), 0)
         self.assertEqual(exp_mode_for_ramp("Fowler"), 1)
 
@@ -80,6 +101,21 @@ class RampReductionTests(unittest.TestCase):
             cube, {"NAXIS": 3, "NAXIS3": 2}, reduction="Fowler", fowler_pairs=1
         )
         self.assertAlmostEqual(float(result[0, 0]), 2.0)
+
+    def test_raw_science_image_returns_first_plane(self) -> None:
+        cube = numpy.array(
+            [[[10.0, 20.0]], [[99.0, 88.0]]],
+            dtype=numpy.float32,
+        )
+        result = raw_science_image(cube, {"NAXIS": 3, "NAXIS3": 2})
+        numpy.testing.assert_allclose(result, [[10.0, 20.0]])
+
+    def test_science_image_from_cube_ramp(self) -> None:
+        cube = numpy.array([[[3.0]], [[9.0]]], dtype=numpy.float32)
+        result = science_image_from_cube(
+            cube, {"NAXIS": 3, "NAXIS3": 2}, reduction="Ramp"
+        )
+        self.assertAlmostEqual(float(result[0, 0]), 3.0)
 
 
 if __name__ == "__main__":

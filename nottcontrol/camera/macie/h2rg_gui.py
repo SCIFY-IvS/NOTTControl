@@ -42,13 +42,13 @@ from nottcontrol.camera.macie.fits_science import (
     science_fits_path,
     science_image_from_cube,
 )
-from nottcontrol.camera.macie.ramp_plan import RAMP_MODES, fits_wait_timeout_s
+from nottcontrol.camera.macie.ramp_plan import RAMP_MODE_ITEMS, RAMP_MODES, fits_wait_timeout_s
 
 MACIE_CONFIG_FILE = config.get(
-    "MACIE", "config_file", fallback="basic_warm_slow.cfg"
+    "MACIE", "config_file", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_SLOW = config.get(
-    "MACIE", "config_file_slow", fallback="basic_warm_slow.cfg"
+    "MACIE", "config_file_slow", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_FAST = config.get(
     "MACIE", "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
@@ -475,6 +475,43 @@ def newest_fits_file(directory: Path, *, dir_ok: bool | None = None) -> Path | N
     return paths[-1]
 
 
+def resolve_ramp_fits_path(
+    ramp_path: Path,
+    *,
+    search_dirs: list[Path],
+) -> Path | None:
+    """Find a ramp FITS on disk when *ramp_path* is only a basename."""
+    try:
+        if ramp_path.is_file():
+            return ramp_path
+    except OSError:
+        pass
+
+    name = ramp_path.name
+    for directory in search_dirs:
+        try:
+            if not directory.is_dir():
+                continue
+        except OSError:
+            continue
+
+        direct = directory / name
+        try:
+            if direct.is_file():
+                return direct
+        except OSError:
+            pass
+
+        try:
+            for candidate in directory.rglob(name):
+                if candidate.is_file() and not is_science_fits_name(candidate.name):
+                    return candidate
+        except OSError:
+            continue
+
+    return None
+
+
 def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> list[Path]:
     if dir_ok is False:
         return []
@@ -484,12 +521,15 @@ def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> lis
                 return []
         except OSError:
             return []
+    candidates = []
+    for pattern in ("*.fits", "*.FITS"):
+        try:
+            candidates.extend(directory.rglob(pattern))
+        except OSError:
+            continue
     candidates = [
         path
-        for path in (
-            *directory.glob("*.fits"),
-            *directory.glob("*.FITS"),
-        )
+        for path in candidates
         if not is_science_fits_name(path.name)
     ]
     return sorted(
@@ -704,6 +744,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_save_dir.setFixedWidth(96)
         self._button_save_dir.setToolTip("Open FITS save directory")
         button_row.addWidget(self._button_save_dir)
+        button_row.addStretch(1)
         column.addLayout(button_row)
 
         if self._cursor_readout is None:
@@ -1069,7 +1110,13 @@ class H2rgMainWindow(QMainWindow):
         mode_row = len(editable_rows)
         self._label_ramp_mode = QLabel("Ramp mode:")
         self._comboBox_ramp_mode = QComboBox()
-        self._comboBox_ramp_mode.addItems(list(RAMP_MODES))
+        for label, mode in RAMP_MODE_ITEMS:
+            self._comboBox_ramp_mode.addItem(label, mode)
+        cds_index = next(
+            (i for i, (_, mode) in enumerate(RAMP_MODE_ITEMS) if mode == "CDS"),
+            0,
+        )
+        self._comboBox_ramp_mode.setCurrentIndex(cds_index)
         self._label_fowler_pairs = QLabel("Fowler pairs:")
         self._lineEdit_fowler_pairs = QLineEdit(str(self._fowler_pairs))
         self._lineEdit_fowler_pairs.setFixedWidth(48)
@@ -1408,9 +1455,9 @@ class H2rgMainWindow(QMainWindow):
 
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
-            text = self._comboBox_ramp_mode.currentText().strip()
-            if text in RAMP_MODES:
-                return text
+            data = self._comboBox_ramp_mode.currentData()
+            if data in RAMP_MODES:
+                return str(data)
         return "CDS"
 
     def _fowler_pairs_value(self) -> int:
@@ -1425,23 +1472,35 @@ class H2rgMainWindow(QMainWindow):
         if not hasattr(self, "_comboBox_ramp_mode"):
             return
         fowler = self._selected_ramp_mode() == "Fowler"
+        single_frame = self._selected_ramp_mode() == "SingleFrame"
         if hasattr(self, "_lineEdit_fowler_pairs"):
             self._lineEdit_fowler_pairs.setEnabled(fowler)
         if hasattr(self, "_label_fowler_pairs"):
             self._label_fowler_pairs.setEnabled(fowler)
         if hasattr(self, "ui") and self.ui is not None:
-            self.ui.lineEdit_integration_time.setEnabled(not fowler)
-            self.ui.label_5.setText(
-                "Integration time (ms):"
-                if not fowler
-                else "Integration time (ms, CDS only):"
-            )
-            tooltip = (
-                "Fowler timing is controlled by Fowler pairs and ASIC registers. "
-                "Photon time is shown below after Set."
-                if fowler
-                else "Target photon-collection time for CDS ramps."
-            )
+            self.ui.lineEdit_integration_time.setEnabled(not fowler and not single_frame)
+            if fowler:
+                label = "Integration time (ms):"
+                tooltip = (
+                    "Fowler timing is controlled by Fowler pairs and ASIC registers. "
+                    "Photon time is shown below after Set."
+                )
+            elif single_frame:
+                label = "Integration time (ms):"
+                tooltip = (
+                    "Single Frame uses one clocked frame (no drops). "
+                    "Photon time equals the frame time shown below after Set."
+                )
+            elif self._selected_ramp_mode() == "Ramp":
+                label = "Integration time (ms):"
+                tooltip = (
+                    "Target DIT for up-the-ramp readout. Ramp mode saves one raw sample "
+                    "per ramp; use Saved ramps for multiple frames."
+                )
+            else:
+                label = "Integration time (ms):"
+                tooltip = "Target photon-collection time for CDS ramps."
+            self.ui.label_5.setText(label)
             self.ui.lineEdit_integration_time.setToolTip(tooltip)
             self.ui.label_5.setToolTip(tooltip)
 
@@ -1987,7 +2046,7 @@ class H2rgMainWindow(QMainWindow):
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
         ramp_mode = self._selected_ramp_mode()
-        if ramp_mode == "Fowler":
+        if ramp_mode in ("Fowler", "SingleFrame"):
             try:
                 preview_timing = macie.read_exposure_timing()
                 tint_ms = preview_timing["frametime_s"] * 1000.0
@@ -2009,22 +2068,28 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=True,
-            windowed_cds=self._windowed_cds_layout(),
+            windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
         if ramp_mode != "Fowler":
             self.ui.lineEdit_integration_time.setText(f"{self._last_tint_ms:.6g}")
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
         self._refresh_exposure_timing(macie)
-        mode_detail = (
-            f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
-            if ramp_mode == "Fowler"
-            else (
+        if ramp_mode == "Fowler":
+            mode_detail = f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
+        elif ramp_mode == "SingleFrame":
+            mode_detail = "single frame, groups=1, drops=0, reads=1"
+        elif ramp_mode == "Ramp":
+            mode_detail = (
+                f"raw sample, groups={result['ngroups']}, "
+                f"drops={result['ndrops']}, reads={result['nreads']}"
+            )
+        else:
+            mode_detail = (
                 f"groups={result['ngroups']}, drops={result['ndrops']}, "
                 f"reads={result['nreads']}"
                 + (" (window CDS)" if self._windowed_cds_layout() else "")
             )
-        )
         self.status_updated.emit(
             f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon ({mode_detail}, "
             f"saved ramps={nseq})"
@@ -2067,7 +2132,13 @@ class H2rgMainWindow(QMainWindow):
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
                 for ramp_path in ramp_paths:
-                    science_path = self._save_science_fits_from_ramp(ramp_path)
+                    if (
+                        ramp_path.name == preview_path.name
+                        and self._raw_fits_header is not None
+                    ):
+                        science_path = self._save_science_fits(frame, ramp_path)
+                    else:
+                        science_path = self._save_science_fits_from_ramp(ramp_path)
                     if science_path is not None:
                         science_paths.append(science_path)
                 preview_science = (
@@ -2102,6 +2173,26 @@ class H2rgMainWindow(QMainWindow):
                 )
             return f"{base}; science FITS: {science_paths[0].name}"
         return base
+
+    def _fits_staging_dir(self) -> Path:
+        directory = Path.home() / "nott_h2rg_fits" / "staging"
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
+
+    def _cache_fetched_fits(self, filename: str, payload: bytes) -> Path:
+        path = self._fits_staging_dir() / filename
+        path.write_bytes(payload)
+        return path
+
+    def _resolve_ramp_path(self, ramp_path: Path) -> Path | None:
+        return resolve_ramp_fits_path(
+            ramp_path,
+            search_dirs=[
+                self._save_dir,
+                self._fits_staging_dir(),
+                self._local_science_save_dir(),
+            ],
+        )
 
     def _local_science_save_dir(self) -> Path:
         if self._local_fits_accessible(allow_probe=True):
@@ -2146,8 +2237,15 @@ class H2rgMainWindow(QMainWindow):
     def _save_science_fits_from_ramp(self, ramp_path: Path) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS:
             return None
+        resolved = self._resolve_ramp_path(ramp_path)
+        if resolved is None:
+            print(
+                f"H2RG failed to load ramp for science save {ramp_path.name}: "
+                "file not found locally (check SMB mapping or ZMQ fetch)"
+            )
+            return None
         try:
-            data, header = load_fits_data(ramp_path)
+            data, header = load_fits_data(resolved)
         except Exception as exc:
             print(f"H2RG failed to load ramp for science save {ramp_path.name}: {exc}")
             return None
@@ -2298,7 +2396,7 @@ class H2rgMainWindow(QMainWindow):
             return None
         if require_new and before_name and filename == before_name:
             return None
-        path = Path(filename)
+        path = self._cache_fetched_fits(filename, payload)
         try:
             frame = self._load_fits_from_bytes(payload, path)
         except Exception as exc:
@@ -2472,6 +2570,7 @@ class H2rgMainWindow(QMainWindow):
     ) -> tuple[list[Path], numpy.ndarray | None, Path | None]:
         import time
 
+        self._sync_save_dir_from_server(macie)
         deadline = time.monotonic() + timeout_s
         seen: dict[str, Path] = {}
         zmq_seen: set[str] = set()
