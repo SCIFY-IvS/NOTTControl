@@ -322,6 +322,54 @@ class MacieInterface():
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
         return self._request(message)
 
+    def set_exp_mode(self, mode: int) -> bool:
+        return self._request(f"expmode;{int(mode)}")
+
+    def configure_ramp_exposure(
+        self,
+        tint_ms: float,
+        *,
+        ramp_mode: str = "CDS",
+        fowler_pairs: int = 2,
+        ngmax: int = 2,
+        ncoadds: int = 1,
+        nseq: int = 1,
+        save: bool = True,
+        windowed_cds: bool = False,
+    ) -> dict[str, float | int]:
+        """Apply CDS or Fowler ramp plan for the requested integration time."""
+        from nottcontrol.camera.macie.ramp_plan import calc_ramp_plan, exp_mode_for_ramp
+
+        timing = self.read_exposure_timing()
+        frametime_ms = timing["frametime_s"] * 1000.0
+        plan = calc_ramp_plan(
+            float(tint_ms),
+            frametime_ms,
+            mode=ramp_mode,  # type: ignore[arg-type]
+            fowler_pairs=fowler_pairs,
+            ngmax=ngmax,
+            windowed_cds=windowed_cds,
+        )
+        self.set_exp_mode(exp_mode_for_ramp(ramp_mode))  # type: ignore[arg-type]
+        _save, _ncoadds, _nseq, _ng, _nr, _nd, nresets = self.read_exposure_settings()
+        self.exposure_settings(
+            save,
+            ncoadds,
+            nseq,
+            plan["ngroups"],
+            plan["nreads"],
+            plan["ndrops"],
+            nresets,
+        )
+        timing = self.read_exposure_timing()
+        return {
+            **plan,
+            "inttime_ms": timing["inttime_s"] * 1000.0,
+            "ramptime_ms": timing["ramptime_s"] * 1000.0,
+            "execution_s": timing["execution_s"],
+            "frametime_ms": timing["frametime_s"] * 1000.0,
+        }
+
     def set_integration_time(
         self,
         tint_s: float,
