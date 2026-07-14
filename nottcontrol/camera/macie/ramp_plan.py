@@ -5,9 +5,9 @@ from __future__ import annotations
 import math
 from typing import Literal
 
-RampMode = Literal["CDS", "Fowler"]
+RampMode = Literal["Normal", "CDS", "Fowler"]
 
-RAMP_MODES: tuple[RampMode, ...] = ("CDS", "Fowler")
+RAMP_MODES: tuple[RampMode, ...] = ("Normal", "CDS", "Fowler")
 EXP_MODE_UTR = 0
 EXP_MODE_FOWLER = 1
 
@@ -46,6 +46,9 @@ def calc_ramp_plan(
 
     Fowler uses one group with an even number of reads (2 × fowler_pairs) and
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
+
+    Normal uses one group × one read with drop frames to reach the requested DIT,
+    saving a single raw sample per ramp (no CDS/Fowler reduction).
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -57,6 +60,10 @@ def calc_ramp_plan(
     if mode == "Fowler":
         nreads = 2 * fowler_pairs
         return {"ngroups": 1, "nreads": nreads, "ndrops": 0, "fowler_pairs": fowler_pairs}
+
+    if mode == "Normal":
+        nftot = max(1, int(math.ceil(tint_ms / frametime_ms)))
+        return {"ngroups": 1, "nreads": 1, "ndrops": max(0, nftot - 1), "fowler_pairs": 0}
 
     # CDS — mirror calc_ramp_settings (ngmax=2 path)
     if tint_ms < frametime_ms:

@@ -1432,17 +1432,22 @@ class H2rgMainWindow(QMainWindow):
             self._label_fowler_pairs.setEnabled(fowler)
         if hasattr(self, "ui") and self.ui is not None:
             self.ui.lineEdit_integration_time.setEnabled(not fowler)
-            self.ui.label_5.setText(
-                "Integration time (ms):"
-                if not fowler
-                else "Integration time (ms, CDS only):"
-            )
-            tooltip = (
-                "Fowler timing is controlled by Fowler pairs and ASIC registers. "
-                "Photon time is shown below after Set."
-                if fowler
-                else "Target photon-collection time for CDS ramps."
-            )
+            if fowler:
+                label = "Integration time (ms):"
+                tooltip = (
+                    "Fowler timing is controlled by Fowler pairs and ASIC registers. "
+                    "Photon time is shown below after Set."
+                )
+            elif self._selected_ramp_mode() == "Normal":
+                label = "Integration time (ms):"
+                tooltip = (
+                    "Target DIT per frame. Normal mode saves one raw sample per ramp; "
+                    "use Saved ramps for multiple frames."
+                )
+            else:
+                label = "Integration time (ms):"
+                tooltip = "Target photon-collection time for CDS ramps."
+            self.ui.label_5.setText(label)
             self.ui.lineEdit_integration_time.setToolTip(tooltip)
             self.ui.label_5.setToolTip(tooltip)
 
@@ -2010,22 +2015,26 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=True,
-            windowed_cds=self._windowed_cds_layout(),
+            windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
         if ramp_mode != "Fowler":
             self.ui.lineEdit_integration_time.setText(f"{self._last_tint_ms:.6g}")
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
         self._refresh_exposure_timing(macie)
-        mode_detail = (
-            f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
-            if ramp_mode == "Fowler"
-            else (
+        if ramp_mode == "Fowler":
+            mode_detail = f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
+        elif ramp_mode == "Normal":
+            mode_detail = (
+                f"raw sample, groups={result['ngroups']}, "
+                f"drops={result['ndrops']}, reads={result['nreads']}"
+            )
+        else:
+            mode_detail = (
                 f"groups={result['ngroups']}, drops={result['ndrops']}, "
                 f"reads={result['nreads']}"
                 + (" (window CDS)" if self._windowed_cds_layout() else "")
             )
-        )
         self.status_updated.emit(
             f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon ({mode_detail}, "
             f"saved ramps={nseq})"

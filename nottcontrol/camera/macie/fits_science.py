@@ -8,7 +8,7 @@ from typing import Literal
 
 import numpy
 
-RampReduction = Literal["CDS", "Fowler"]
+RampReduction = Literal["Normal", "CDS", "Fowler"]
 
 
 def load_fits_data(source: Path | bytes) -> tuple[numpy.ndarray, dict]:
@@ -74,6 +74,18 @@ def fowler_science_image(
     return numpy.mean(numpy.stack(diffs, axis=0), axis=0).astype(numpy.float32)
 
 
+def raw_science_image(
+    data: numpy.ndarray, header: dict | None = None
+) -> numpy.ndarray:
+    """Return the single saved sample (first plane if a ramp cube)."""
+    arr = numpy.asarray(data, dtype=numpy.float32)
+    if arr.ndim <= 2:
+        return arr
+
+    axis = ramp_sample_axis(header or {}, arr.shape)
+    return numpy.take(arr, 0, axis=axis)
+
+
 def science_image_from_cube(
     data: numpy.ndarray,
     header: dict | None = None,
@@ -83,6 +95,8 @@ def science_image_from_cube(
 ) -> numpy.ndarray:
     if reduction == "Fowler":
         return fowler_science_image(data, header, fowler_pairs=fowler_pairs)
+    if reduction == "Normal":
+        return raw_science_image(data, header)
     return cds_science_image(data, header)
 
 
@@ -121,6 +135,8 @@ def save_science_fits(
     header["IMTYPE"] = ("SCIENCE", "Reduced science image")
     if reduction == "Fowler":
         header["REDUCT"] = (f"Fowler{fowler_pairs}", "Mean pair-difference ramp")
+    elif reduction == "Normal":
+        header["REDUCT"] = ("RAW", "Single raw ramp sample")
     else:
         header["REDUCT"] = ("CDS", "Last minus first ramp sample")
     if tint_ms is not None:
