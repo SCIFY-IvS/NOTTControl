@@ -189,7 +189,11 @@ bool halt_acquisition(MACIE_Settings *ptUserData)
         ret = false;
     }
     delay(300);
-    CloseScienceInterface(ptUserData);
+    if (!CloseScienceInterface(ptUserData))
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "CloseScienceInterface during halt acquisition\n");
+        ret = false;
+    }
 
     return ret;
 }

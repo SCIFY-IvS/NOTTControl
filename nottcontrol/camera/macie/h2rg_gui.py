@@ -2066,11 +2066,6 @@ class H2rgMainWindow(QMainWindow):
                 margin_s=MACIE_FITS_WAIT_MARGIN_S,
                 maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
             )
-            # Best-effort cleanup after a prior timeout, live session, or MSAC use.
-            try:
-                macie.halt_acquisition()
-            except Exception:
-                pass
             macie.acquire()
             ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
                 before_mtime,
