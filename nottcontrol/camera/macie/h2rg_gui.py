@@ -42,7 +42,7 @@ from nottcontrol.camera.macie.fits_science import (
     science_fits_path,
     science_image_from_cube,
 )
-from nottcontrol.camera.macie.ramp_plan import RAMP_MODES, fits_wait_timeout_s
+from nottcontrol.camera.macie.ramp_plan import RAMP_MODE_ITEMS, RAMP_MODES, fits_wait_timeout_s
 
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="teledyne_cold_slow.cfg"
@@ -1110,7 +1110,13 @@ class H2rgMainWindow(QMainWindow):
         mode_row = len(editable_rows)
         self._label_ramp_mode = QLabel("Ramp mode:")
         self._comboBox_ramp_mode = QComboBox()
-        self._comboBox_ramp_mode.addItems(list(RAMP_MODES))
+        for label, mode in RAMP_MODE_ITEMS:
+            self._comboBox_ramp_mode.addItem(label, mode)
+        cds_index = next(
+            (i for i, (_, mode) in enumerate(RAMP_MODE_ITEMS) if mode == "CDS"),
+            0,
+        )
+        self._comboBox_ramp_mode.setCurrentIndex(cds_index)
         self._label_fowler_pairs = QLabel("Fowler pairs:")
         self._lineEdit_fowler_pairs = QLineEdit(str(self._fowler_pairs))
         self._lineEdit_fowler_pairs.setFixedWidth(48)
@@ -1449,9 +1455,9 @@ class H2rgMainWindow(QMainWindow):
 
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
-            text = self._comboBox_ramp_mode.currentText().strip()
-            if text in RAMP_MODES:
-                return text
+            data = self._comboBox_ramp_mode.currentData()
+            if data in RAMP_MODES:
+                return str(data)
         return "CDS"
 
     def _fowler_pairs_value(self) -> int:
@@ -1466,23 +1472,30 @@ class H2rgMainWindow(QMainWindow):
         if not hasattr(self, "_comboBox_ramp_mode"):
             return
         fowler = self._selected_ramp_mode() == "Fowler"
+        single_frame = self._selected_ramp_mode() == "SingleFrame"
         if hasattr(self, "_lineEdit_fowler_pairs"):
             self._lineEdit_fowler_pairs.setEnabled(fowler)
         if hasattr(self, "_label_fowler_pairs"):
             self._label_fowler_pairs.setEnabled(fowler)
         if hasattr(self, "ui") and self.ui is not None:
-            self.ui.lineEdit_integration_time.setEnabled(not fowler)
+            self.ui.lineEdit_integration_time.setEnabled(not fowler and not single_frame)
             if fowler:
                 label = "Integration time (ms):"
                 tooltip = (
                     "Fowler timing is controlled by Fowler pairs and ASIC registers. "
                     "Photon time is shown below after Set."
                 )
-            elif self._selected_ramp_mode() == "Normal":
+            elif single_frame:
                 label = "Integration time (ms):"
                 tooltip = (
-                    "Target DIT per frame. Normal mode saves one raw sample per ramp; "
-                    "use Saved ramps for multiple frames."
+                    "Single Frame uses one clocked frame (no drops). "
+                    "Photon time equals the frame time shown below after Set."
+                )
+            elif self._selected_ramp_mode() == "Ramp":
+                label = "Integration time (ms):"
+                tooltip = (
+                    "Target DIT for up-the-ramp readout. Ramp mode saves one raw sample "
+                    "per ramp; use Saved ramps for multiple frames."
                 )
             else:
                 label = "Integration time (ms):"
@@ -2033,7 +2046,7 @@ class H2rgMainWindow(QMainWindow):
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
         ramp_mode = self._selected_ramp_mode()
-        if ramp_mode == "Fowler":
+        if ramp_mode in ("Fowler", "SingleFrame"):
             try:
                 preview_timing = macie.read_exposure_timing()
                 tint_ms = preview_timing["frametime_s"] * 1000.0
@@ -2064,7 +2077,9 @@ class H2rgMainWindow(QMainWindow):
         self._refresh_exposure_timing(macie)
         if ramp_mode == "Fowler":
             mode_detail = f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
-        elif ramp_mode == "Normal":
+        elif ramp_mode == "SingleFrame":
+            mode_detail = "single frame, groups=1, drops=0, reads=1"
+        elif ramp_mode == "Ramp":
             mode_detail = (
                 f"raw sample, groups={result['ngroups']}, "
                 f"drops={result['ndrops']}, reads={result['nreads']}"

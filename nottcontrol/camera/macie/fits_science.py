@@ -8,7 +8,7 @@ from typing import Literal
 
 import numpy
 
-RampReduction = Literal["Normal", "CDS", "Fowler"]
+RampReduction = Literal["SingleFrame", "Ramp", "CDS", "Fowler"]
 
 
 def load_fits_data(source: Path | bytes) -> tuple[numpy.ndarray, dict]:
@@ -95,7 +95,7 @@ def science_image_from_cube(
 ) -> numpy.ndarray:
     if reduction == "Fowler":
         return fowler_science_image(data, header, fowler_pairs=fowler_pairs)
-    if reduction == "Normal":
+    if reduction in ("SingleFrame", "Ramp"):
         return raw_science_image(data, header)
     return cds_science_image(data, header)
 
@@ -135,7 +135,9 @@ def save_science_fits(
     header["IMTYPE"] = ("SCIENCE", "Reduced science image")
     if reduction == "Fowler":
         header["REDUCT"] = (f"Fowler{fowler_pairs}", "Mean pair-difference ramp")
-    elif reduction == "Normal":
+    elif reduction == "SingleFrame":
+        header["REDUCT"] = ("SINGLE", "Single clocked frame (no drops)")
+    elif reduction == "Ramp":
         header["REDUCT"] = ("RAW", "Single raw ramp sample")
     else:
         header["REDUCT"] = ("CDS", "Last minus first ramp sample")

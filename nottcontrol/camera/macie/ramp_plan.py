@@ -5,9 +5,17 @@ from __future__ import annotations
 import math
 from typing import Literal
 
-RampMode = Literal["Normal", "CDS", "Fowler"]
+RampMode = Literal["SingleFrame", "Ramp", "CDS", "Fowler"]
 
-RAMP_MODES: tuple[RampMode, ...] = ("Normal", "CDS", "Fowler")
+RAMP_MODES: tuple[RampMode, ...] = ("SingleFrame", "Ramp", "CDS", "Fowler")
+
+# GUI label, internal mode (PyQt combo userData)
+RAMP_MODE_ITEMS: tuple[tuple[str, RampMode], ...] = (
+    ("Single Frame", "SingleFrame"),
+    ("Ramp", "Ramp"),
+    ("CDS", "CDS"),
+    ("Fowler", "Fowler"),
+)
 EXP_MODE_UTR = 0
 EXP_MODE_FOWLER = 1
 
@@ -47,7 +55,9 @@ def calc_ramp_plan(
     Fowler uses one group with an even number of reads (2 × fowler_pairs) and
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
 
-    Normal uses one group × one read with drop frames to reach the requested DIT,
+    SingleFrame uses one group × one read with no drop frames (one clocked frame).
+
+    Ramp uses one group × one read with drop frames to reach the requested DIT,
     saving a single raw sample per ramp (no CDS/Fowler reduction).
     """
     if frametime_ms <= 0:
@@ -61,7 +71,10 @@ def calc_ramp_plan(
         nreads = 2 * fowler_pairs
         return {"ngroups": 1, "nreads": nreads, "ndrops": 0, "fowler_pairs": fowler_pairs}
 
-    if mode == "Normal":
+    if mode == "SingleFrame":
+        return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
+
+    if mode == "Ramp":
         nftot = max(1, int(math.ceil(tint_ms / frametime_ms)))
         return {"ngroups": 1, "nreads": 1, "ndrops": max(0, nftot - 1), "fowler_pairs": 0}
 
