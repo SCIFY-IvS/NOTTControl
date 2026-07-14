@@ -1264,6 +1264,82 @@ double MemBufferFrac(MACIE_Settings *ptUserData)
     return ((double)MACIE_AvailableScienceData(ptUserData->handle)) / nbytes_buf;
 }
 
+static void ForceCloseScienceInterface(MACIE_Settings *ptUserData)
+{
+    if (SettingsCheckNULL(ptUserData) == false)
+        return;
+
+    if (ptUserData->offline_develop)
+    {
+        ptUserData->bScienceInterfaceOpen = false;
+        return;
+    }
+
+    verbose_printf(LOG_INFO, ptUserData, "Force-closing science interface...\n");
+    if (ptUserData->connection == MACIE_USB)
+    {
+        if (MACIE_CloseUSBScienceInterface(ptUserData->handle, ptUserData->slctMACIEs) != MACIE_OK)
+        {
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "Force close USB science interface: %s\n", MACIE_Error());
+        }
+    }
+    else
+    {
+        if (MACIE_CloseGigeScienceInterface(ptUserData->handle, ptUserData->slctMACIEs) != MACIE_OK)
+        {
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "Force close GigE science interface: %s\n", MACIE_Error());
+        }
+    }
+
+    burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
+}
+
+static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
+{
+    if (ptUserData->offline_develop)
+        return true;
+
+    for (int attempt = 0; attempt < 2; ++attempt)
+    {
+        unsigned int regval = 0;
+        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
+
+        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+            return false;
+        }
+        if (regval == 0)
+            return true;
+
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "ASIC h6900<5:0>=0x%04x before acquire; halting (attempt %i)\n",
+                       regval, attempt + 1);
+        HaltCameraAcq(ptUserData);
+        ForceCloseScienceInterface(ptUserData);
+        delay(300);
+    }
+
+    unsigned int regval = 0;
+    regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
+    if (ReadASICBits(ptUserData, &regComp, &regval) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+        return false;
+    }
+    if (regval != 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "ASIC still busy after halt: h6900<5:0>=0x%04x\n", regval);
+        return false;
+    }
+
+    return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief AcquireDataUSB Trigger the ASIC to start acquiring data.
 ///  First configure science USB data interface then trigger exposure acquisition.
@@ -1322,30 +1398,12 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
     }
 
-    // Make sure h6900<0> is 0 before triggering acquisition.
-    // For USB, this must be done before configuring interface,
-    // because USB interface's data read and command read share
-    // the same USB pipe.
-    if (ptUserData->offline_develop == false)
-    {
-        unsigned int regval = 0;
-
-        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
-        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
-            return false;
-        }
-        if (regval != 0)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed with h6900<5:0> = 0x%04x\n", regval);
-            return false;
-        }
-    }
+    if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
+        return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
     // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
-    CloseScienceInterface(ptUserData);
+    ForceCloseScienceInterface(ptUserData);
     delay(100);
 
     // Set up USB3 science data interface for image acquisition.
@@ -1497,63 +1555,53 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
     }
 
-    // Make sure h6900<0> is 0 before triggering acquisition.
-    // For USB, this must be done before configuring interface,
-    // because USB interface's data read and command read share
-    // the same USB pipe.
-    if (ptUserData->offline_develop == false)
-    {
-        unsigned int regval = 0;
-
-        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
-        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
-            return false;
-        }
-        if (regval != 0)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed with h6900<5:0> = 0x%04x\n", regval);
-            return false;
-        }
-    }
+    if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
+        return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
     // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
-    CloseScienceInterface(ptUserData);
+    ForceCloseScienceInterface(ptUserData);
     delay(100);
 
-    // Set up USB3 science data interface for image acquisition.
-    // MACIE_CloseUSBScienceInterface needs to be called before we
-    // can use any read functions again (e.g., MACIE_ReadASICReg).
+    // Set up GigE science data interface for image acquisition.
     verbose_printf(LOG_INFO, ptUserData, "Configuring science interface...\n");
     verbose_printf(LOG_INFO, ptUserData, "  nbuf = %i\n", nbuf);
     verbose_printf(LOG_INFO, ptUserData, "  buffsize = %i pixels\n", buffsize);
     if (ptUserData->offline_develop == false)
     {
-        // Give a slight delay before opening USB interface
-        delay(100);
-        try
+        bool configured = false;
+        for (int attempt = 0; attempt < 2; ++attempt)
         {
-            int bufferSize;
-            int remotePort = 42037; //TODO:verify
-            if(MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) != MACIE_OK)
+            delay(100);
+            try
+            {
+                int bufferSize;
+                int remotePort = 42037; //TODO:verify
+                if (MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) == MACIE_OK)
+                {
+                    configured = true;
+                    break;
+                }
+
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Science interface configuration failed (attempt %i): %s\n",
+                               attempt + 1, MACIE_Error());
+            }
+            catch (const std::exception &e)
             {
                 verbose_printf(LOG_ERROR, ptUserData,
-                               "Science interface configuration failed: %s\n",
-                               MACIE_Error());
-                return false;
+                               "Caught exception at %s during AcquireDataGigE() (attempt %i).\n",
+                               __func__, attempt + 1);
+                std::cerr << e.what() << '\n';
             }
-        }
-        catch (const std::exception &e)
-        {
-            verbose_printf(LOG_ERROR, ptUserData,
-                           "Caught exception at %s during AcquireDataGigE().\n",
-                           __func__);
-            std::cerr << e.what() << '\n';
 
-            return false;
+            HaltCameraAcq(ptUserData);
+            ForceCloseScienceInterface(ptUserData);
+            delay(500);
         }
+
+        if (configured == false)
+            return false;
     }
     verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
     ptUserData->bScienceInterfaceOpen = true;
@@ -1726,16 +1774,8 @@ bool CloseGigEScienceInterface(MACIE_Settings *ptUserData)
 /// \param ptUserData The user-set structure containing all the hardware parameters.
 bool CloseScienceInterface(MACIE_Settings *ptUserData)
 {
-    if (ptUserData->bScienceInterfaceOpen == false)
-    {
-        verbose_printf(LOG_INFO, ptUserData, "Science interface not open; skipping close.\n");
-        return true;
-    }
-
-    if (ptUserData->connection == MACIE_USB)
-        return CloseUSBScienceInterface(ptUserData);
-
-    return CloseGigEScienceInterface(ptUserData);
+    ForceCloseScienceInterface(ptUserData);
+    return true;
 }
 
 bool HaltCameraAcq(MACIE_Settings *ptUserData)
