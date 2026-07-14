@@ -14,6 +14,9 @@ MACIE_DIR = Path(__file__).resolve().parent
 DEFAULT_ZMQ_ADDRESS = config.get(
     "MACIE", "zmq_address", fallback="tcp://nott-server.ster.kuleuven.be:65534"
 )
+DEFAULT_ZMQ_ADDRESS_ALT = config.get(
+    "MACIE", "zmq_address_alt", fallback="tcp://nott-server.ster.kuleuven.be:5900"
+).strip()
 AUTO_START_ZMQ_SERVER = config.getboolean(
     "MACIE", "auto_start_zmq_server", fallback=False
 )
@@ -24,6 +27,25 @@ ZMQ_STARTUP_TIMEOUT_S = config.getfloat(
     "MACIE", "zmq_startup_timeout_s", fallback=10.0
 )
 MACIE_LIBRARY_PATH = config.get("MACIE", "macie_library_path", fallback="")
+
+
+def macie_zmq_addresses() -> list[str]:
+    """Primary and optional alternate ZMQ endpoints from config."""
+    addresses: list[str] = []
+    for candidate in (DEFAULT_ZMQ_ADDRESS, DEFAULT_ZMQ_ADDRESS_ALT):
+        normalized = candidate.strip()
+        if normalized and normalized not in addresses:
+            addresses.append(normalized)
+    return addresses or [DEFAULT_ZMQ_ADDRESS]
+
+
+def select_macie_zmq_address(timeout_s: float = 0.5) -> str:
+    """Return the first reachable MACIE ZMQ endpoint, else the primary address."""
+    addresses = macie_zmq_addresses()
+    for address in addresses:
+        if is_zmq_port_open(address, timeout_s=timeout_s):
+            return address
+    return addresses[0]
 
 
 def parse_zmq_endpoint(address: str) -> tuple[str, int]:
@@ -73,15 +95,26 @@ class MacieZmqServerProcess:
         self._process: subprocess.Popen | None = None
 
     @property
+    def zmq_address(self) -> str:
+        return self._zmq_address
+
+    @property
     def started_by_gui(self) -> bool:
         return self._process is not None and self._process.poll() is None
 
     def ensure_running(self) -> None:
         if is_zmq_port_open(self._zmq_address):
             return
+        for alternate in macie_zmq_addresses():
+            if alternate == self._zmq_address:
+                continue
+            if is_zmq_port_open(alternate):
+                self._zmq_address = alternate
+                return
         if not AUTO_START_ZMQ_SERVER:
             raise RuntimeError(
-                f"MACIE ZMQ server is not reachable at {self._zmq_address}. "
+                "MACIE ZMQ server is not reachable at "
+                f"{', '.join(macie_zmq_addresses())}. "
                 "Ensure zmq_server is running on nott-server."
             )
 

@@ -588,6 +588,7 @@ class H2rgMainWindow(QMainWindow):
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = None
+        self._zmq_address: str | None = None
         self._shutting_down = False
         self._last_tint_ms: float | None = None
         self._initialized = False
@@ -620,7 +621,6 @@ class H2rgMainWindow(QMainWindow):
 
     def _stage_connect_ui(self) -> None:
         QApplication.processEvents()
-        self._connect_signals()
         self._set_status("Loading…")
         self._set_controls_enabled(False)
         self.ui.checkBox_substract_background.setEnabled(False)
@@ -628,22 +628,27 @@ class H2rgMainWindow(QMainWindow):
 
     def _finish_setup(self) -> None:
         QApplication.processEvents()
-        self._relayout_control_panels()
-        self._rebuild_layout()
-        QApplication.processEvents()
-        self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
-        self._button_autoscale.clicked.connect(self._autoscale_image)
-        self._button_header.clicked.connect(self._show_fits_header)
-        self._button_ds9.clicked.connect(self._open_fits_in_ds9)
-        self._button_save_dir.clicked.connect(self._open_fits_save_dir)
-        self._apply_styles()
-        self._setup_image_placeholder()
-        self.ui.frame_camera.installEventFilter(self)
-        self._layout_image_frame()
-        self._populate_comboboxes()
-        self._sync_ramp_mode_fields()
-        self._set_status("Not connected")
-        threading.Thread(target=self._background_startup, daemon=True).start()
+        try:
+            self._relayout_control_panels()
+            self._rebuild_layout()
+            QApplication.processEvents()
+            self._connect_signals()
+            self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
+            self._button_autoscale.clicked.connect(self._autoscale_image)
+            self._button_header.clicked.connect(self._show_fits_header)
+            self._button_ds9.clicked.connect(self._open_fits_in_ds9)
+            self._button_save_dir.clicked.connect(self._open_fits_save_dir)
+            self._apply_styles()
+            self._setup_image_placeholder()
+            self.ui.frame_camera.installEventFilter(self)
+            self._layout_image_frame()
+            self._populate_comboboxes()
+            self._sync_ramp_mode_fields()
+            self._set_status("Not connected")
+            threading.Thread(target=self._background_startup, daemon=True).start()
+        except Exception as exc:
+            print(f"H2RG GUI setup failed: {exc}")
+            self._set_status(f"GUI setup failed: {exc}")
 
     def _setup_image_placeholder(self) -> None:
         self._image_placeholder = QLabel("No image yet", self.ui.frame_camera)
@@ -934,11 +939,25 @@ class H2rgMainWindow(QMainWindow):
 
         self._setup_roi_overlays()
 
-    def _background_startup(self) -> None:
-        from nottcontrol.camera.macie.zmq_server_manager import MacieZmqServerProcess
+    def _resolved_zmq_address(self) -> str:
+        if self._zmq_address is None:
+            from nottcontrol.camera.macie.zmq_server_manager import (
+                select_macie_zmq_address,
+            )
 
+            self._zmq_address = select_macie_zmq_address()
+        return self._zmq_address
+
+    def _background_startup(self) -> None:
+        from nottcontrol.camera.macie.zmq_server_manager import (
+            MacieZmqServerProcess,
+            macie_zmq_addresses,
+            select_macie_zmq_address,
+        )
+
+        self._zmq_address = select_macie_zmq_address()
         if self._zmq_server is None:
-            self._zmq_server = MacieZmqServerProcess(MACIE_ZMQ_ADDRESS)
+            self._zmq_server = MacieZmqServerProcess(self._zmq_address)
         self._fits_dir_ok = path_is_directory(self._save_dir)
         if not self._fits_dir_ok and sys.platform == "win32":
             self.status_updated.emit(
@@ -947,12 +966,19 @@ class H2rgMainWindow(QMainWindow):
 
         try:
             self._zmq_server.ensure_running()
+            self._zmq_address = self._zmq_server.zmq_address
             if self._zmq_server.started_by_gui:
                 self.status_updated.emit("ZMQ server started")
             elif self._fits_dir_ok is not False:
-                self.status_updated.emit(
-                    f"Connected to ZMQ server at {MACIE_ZMQ_ADDRESS}"
-                )
+                addresses = macie_zmq_addresses()
+                if addresses and self._zmq_address != addresses[0]:
+                    self.status_updated.emit(
+                        f"Connected to alternate ZMQ server at {self._zmq_address}"
+                    )
+                else:
+                    self.status_updated.emit(
+                        f"Connected to ZMQ server at {self._zmq_address}"
+                    )
         except Exception as exc:
             message = str(exc)
             if self._fits_dir_ok is False and sys.platform == "win32":
@@ -1263,6 +1289,49 @@ class H2rgMainWindow(QMainWindow):
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
         )
 
+        for button in (
+            getattr(self, "_button_set_exposure", None),
+            getattr(self, "_button_autoscale", None),
+            getattr(self, "_button_header", None),
+            getattr(self, "_button_ds9", None),
+            getattr(self, "_button_save_dir", None),
+        ):
+            if button is not None:
+                button.setStyleSheet(PANEL_BUTTON_STYLE)
+
+        for widget in (
+            getattr(self, "_label_ramp_mode", None),
+            getattr(self, "_label_fowler_pairs", None),
+            getattr(self, "_label_frame_time", None),
+            getattr(self, "_label_photon_time", None),
+            getattr(self, "_label_execution_time", None),
+            getattr(self, "_label_efficiency", None),
+        ):
+            if widget is not None:
+                widget.setStyleSheet(PANEL_LABEL_STYLE)
+
+        for widget in (
+            getattr(self, "_comboBox_ramp_mode", None),
+            getattr(self, "_lineEdit_fowler_pairs", None),
+            getattr(self, "_lineEdit_frame_time", None),
+            getattr(self, "_lineEdit_photon_time", None),
+            getattr(self, "_lineEdit_execution_time", None),
+            getattr(self, "_lineEdit_efficiency", None),
+        ):
+            if widget is None:
+                continue
+            if isinstance(widget, QLineEdit):
+                widget.setStyleSheet(
+                    PANEL_FIELD_STYLE
+                    + " QLineEdit { background: rgb(250, 252, 252); }"
+                )
+            else:
+                widget.setStyleSheet(PANEL_FIELD_STYLE)
+
+        stats_panel = getattr(self, "_stat_mean", None)
+        if stats_panel is not None and stats_panel.parent() is not None:
+            stats_panel.parent().setStyleSheet(PANEL_GROUP_STYLE)
+
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
         self.ui.comboBox_detector_mode.addItems(list(DETECTOR_MODES))
@@ -1293,13 +1362,14 @@ class H2rgMainWindow(QMainWindow):
             self.ui.lineEdit_integration_time,
             self.ui.lineEdit_nb_coadd,
             self.ui.lineEdit_nb_frames,
-            self._lineEdit_fowler_pairs,
+            getattr(self, "_lineEdit_fowler_pairs", None),
         ):
-            widget.editingFinished.connect(self._on_exposure_fields_changed)
+            if widget is not None:
+                widget.editingFinished.connect(self._on_exposure_fields_changed)
 
-        self._comboBox_ramp_mode.currentIndexChanged.connect(
-            self._on_ramp_mode_changed
-        )
+        ramp_mode = getattr(self, "_comboBox_ramp_mode", None)
+        if ramp_mode is not None:
+            ramp_mode.currentIndexChanged.connect(self._on_ramp_mode_changed)
 
         self.ui.comboBox_window_mode.currentIndexChanged.connect(
             self._on_window_mode_changed
@@ -1836,7 +1906,7 @@ class H2rgMainWindow(QMainWindow):
             self._macie = MacieInterface(
                 offline_mode=MACIE_OFFLINE_MODE,
                 config_file=config_file,
-                zmq_address=MACIE_ZMQ_ADDRESS,
+                zmq_address=self._resolved_zmq_address(),
             )
         else:
             self._macie.set_config_file(config_file)
