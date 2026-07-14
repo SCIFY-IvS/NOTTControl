@@ -45,10 +45,10 @@ from nottcontrol.camera.macie.fits_science import (
 from nottcontrol.camera.macie.ramp_plan import RAMP_MODES, fits_wait_timeout_s
 
 MACIE_CONFIG_FILE = config.get(
-    "MACIE", "config_file", fallback="basic_warm_slow.cfg"
+    "MACIE", "config_file", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_SLOW = config.get(
-    "MACIE", "config_file_slow", fallback="basic_warm_slow.cfg"
+    "MACIE", "config_file_slow", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_FAST = config.get(
     "MACIE", "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
