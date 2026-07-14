@@ -1264,6 +1264,69 @@ double MemBufferFrac(MACIE_Settings *ptUserData)
     return ((double)MACIE_AvailableScienceData(ptUserData->handle)) / nbytes_buf;
 }
 
+static int acquire_trigger_timeout_ms(MACIE_Settings *ptUserData, int nframes_save)
+{
+    double frametime_ms = ptUserData->frametime_ms;
+    double ramptime_ms = ptUserData->ramptime_ms;
+    int timeout = (int)(ramptime_ms + nframes_save * frametime_ms + 2 * frametime_ms + 100);
+
+    if (ptUserData->connection == MACIE_GigE)
+    {
+        // GigE delivery often lags ASIC clocking; USB-sized timeouts are too tight.
+        int gige_timeout = (int)(ramptime_ms + nframes_save * (frametime_ms + 2000.0) + 5000.0);
+        if (gige_timeout > timeout)
+            timeout = gige_timeout;
+    }
+
+    return timeout;
+}
+
+static int frame_fill_timeout_ms(MACIE_Settings *ptUserData, long nbytes_frm,
+                                 int triggerTimeout, long frame_index)
+{
+    int timeout = triggerTimeout + (int)(frame_index * ptUserData->frametime_ms * 2.0);
+
+    if (ptUserData->connection == MACIE_GigE)
+    {
+        int nbytes_timeout = (int)(nbytes_frm / 500.0) + (int)(ptUserData->frametime_ms + 2000.0);
+        if (nbytes_timeout > timeout)
+            timeout = nbytes_timeout;
+    }
+
+    return timeout;
+}
+
+static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_target,
+                                   int wait_delta, int timeout_ms, long *nbytes_out)
+{
+    int wait_total = 0;
+    long nbytes = 0;
+
+    while (wait_total <= timeout_ms)
+    {
+        if (ptUserData->offline_develop)
+            nbytes = nbytes_target;
+        else
+            nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+
+        if (nbytes >= nbytes_target)
+        {
+            if (nbytes_out != NULL)
+                *nbytes_out = nbytes;
+            return true;
+        }
+
+        delay(wait_delta);
+        wait_total += wait_delta;
+    }
+
+    if (ptUserData->offline_develop == false)
+        nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+    if (nbytes_out != NULL)
+        *nbytes_out = nbytes;
+    return nbytes >= nbytes_target;
+}
+
 static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
 {
     if (ptUserData->offline_develop)
@@ -1827,7 +1890,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     // Calculate a timeout to wait for data.
     // Assume full frame idle time
     // Timeout setting while waiting for data download to trigger
-    int triggerTimeout = int(ramptime_ms + 2 * frametime_ms + 100);
+    int triggerTimeout = acquire_trigger_timeout_ms(ptUserData, nframes_ramp);
     // unsigned int nout = ASIC_NumOutputs(ptUserData, true);
     // unsigned int ff_time_pix = ptUserData->uiDetectorHeight * ptUserData->uiDetectorWidth / nout;
     // double ff_time_ms  = (double) ff_time_pix / ptUserData->pixelRate;
@@ -2089,96 +2152,37 @@ bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], l
                            long nframes_save, int triggerTimeout, int wait_delta)
 {
 
-    long nbytes = 0;
     long nbytes_frm = framesize * 2; // 16 bits = 2 bytes
 
     verbose_printf(LOG_DEBUG, ptUserData, "triggerTimeout = %i, wait_delta:%i\n", triggerTimeout, wait_delta);
-    // unsigned short dltimeout = (ptUserData->DetectorMode==CAMERA_MODE_SLOW) ? 6500 : 1500;
-    int wait_total = 0;
-
-    // Delay the larger of 1 second or 1 frame time to see if rest comes down
-    int delay_time = 1000;
-    int frame_time_ms = (int)ptUserData->frametime_ms;
-    if (delay_time < frame_time_ms)
-        delay_time = frame_time_ms;
 
     // Download timeout
     unsigned short dltimeout = (ushort)ptUserData->ramptime_ms;
+    if (ptUserData->connection == MACIE_GigE && triggerTimeout > (int)dltimeout)
+        dltimeout = (ushort)triggerTimeout;
 
     timestamp_t t;
     double time_taken = 0;
     for (long i = 0; i < nframes_save; ++i)
     {
         verbose_printf(LOG_DEBUG, ptUserData, "  Frame %li of %li\n", i + 1, nframes_save);
-        nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        wait_total = 0;
+        int frame_timeout = frame_fill_timeout_ms(ptUserData, nbytes_frm, triggerTimeout, i);
+        long nbytes = 0;
 
-        // Poll available science data
-        // When any amount of data shows up, break out and call the d/l function
-        // Timeout if no data after triggertimout is reached
-        while (nbytes <= 0)
+        if (wait_for_science_bytes(ptUserData, nbytes_frm, wait_delta, frame_timeout, &nbytes) == false)
         {
-            // Delay for some time
-            delay(wait_delta);
-            wait_total += wait_delta;
-
-            // Check to see if data has shown up on port yet
-            if (ptUserData->offline_develop == true)
-                nbytes = nbytes_frm;
-            else
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-
-            verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
-
-            // Return false if we've reached time limit but haven't gotten all the bytes
-            if (wait_total > triggerTimeout)
-            {
-                verbose_printf(LOG_ERROR, ptUserData, "Trigger timeout limit of %i ms reached at: %s\n",
-                               triggerTimeout, __func__);
-                verbose_printf(LOG_ERROR, ptUserData, "  Frame %li of %li.\n", i + 1, nframes_save);
-                verbose_printf(LOG_ERROR, ptUserData, "  Expecting %li bytes. Only %li bytes available in %i ms.\n",
-                               nbytes_frm, nbytes, wait_total);
-
-                // Delay the larger of 1 second or 1 frame time to see if rest comes down
-                verbose_printf(LOG_ERROR, ptUserData, "  Delaying %i msec more...\n", delay_time);
-                delay(delay_time);
-
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-                verbose_printf(LOG_WARNING, ptUserData, "  After delay, nbytes available: %li\n", nbytes);
-                if (nbytes < nbytes_frm)
-                {
-                    verbose_printf(LOG_ERROR, ptUserData, "  Returning...\n");
-                    return false;
-                }
-                else
-                {
-                    verbose_printf(LOG_ERROR, ptUserData, "  Continuing...\n");
-                    break;
-                }
-            }
+            verbose_printf(LOG_ERROR, ptUserData, "Trigger timeout limit of %i ms reached at: %s\n",
+                           frame_timeout, __func__);
+            verbose_printf(LOG_ERROR, ptUserData, "  Frame %li of %li.\n", i + 1, nframes_save);
+            verbose_printf(LOG_ERROR, ptUserData, "  Expecting %li bytes. Only %li bytes available.\n",
+                           nbytes_frm, nbytes);
+            return false;
         }
 
-        if (get_verbose(ptUserData) == LOG_DEBUG)
-        {
-            wait_total = 0;
-            while (wait_total < delay_time)
-            {
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-                verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
-
-                delay(wait_delta);
-                wait_total += wait_delta;
-
-                if (nbytes >= nbytes_frm)
-                    break;
-            }
-            nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        }
-        verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
+        verbose_printf(LOG_DEBUG, ptUserData, "  nbytes ready: %li\n", nbytes);
 
         // Download a frame into pData buffer
         t = get_timestamp();
-        // if (DownloadDataUSB(ptUserData, &pData[i*framesize], framesize, dltimeout)==false)
         if (DownloadFrameUSB(ptUserData, &pData[i * framesize], framesize, dltimeout) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "DownloadFrameUSB failed at %s\n", __func__);
