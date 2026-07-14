@@ -680,6 +680,20 @@ class H2rgMainWindow(QMainWindow):
         column = QVBoxLayout()
         column.setSpacing(6)
 
+        if self._cursor_readout is None:
+            self._cursor_readout = QLabel("Pixel: —  CV: —")
+            self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
+            self._cursor_readout.setStyleSheet(
+                'font: 10pt "Consolas", monospace;'
+                " color: rgb(50, 50, 50);"
+                " background-color: rgb(255, 255, 255);"
+                " border: 1px solid rgb(50, 129, 140);"
+                " border-radius: 4px;"
+                " padding-left: 8px;"
+            )
+        column.addWidget(self._cursor_readout)
+
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
         button_row.addStretch(1)
@@ -704,21 +718,8 @@ class H2rgMainWindow(QMainWindow):
         self._button_save_dir.setFixedWidth(96)
         self._button_save_dir.setToolTip("Open FITS save directory")
         button_row.addWidget(self._button_save_dir)
+        button_row.addStretch(1)
         column.addLayout(button_row)
-
-        if self._cursor_readout is None:
-            self._cursor_readout = QLabel("Pixel: —  CV: —")
-            self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
-            self._cursor_readout.setStyleSheet(
-                'font: 10pt "Consolas", monospace;'
-                " color: rgb(50, 50, 50);"
-                " background-color: rgb(255, 255, 255);"
-                " border: 1px solid rgb(50, 129, 140);"
-                " border-radius: 4px;"
-                " padding-left: 8px;"
-            )
-        column.addWidget(self._cursor_readout)
         parent_layout.addLayout(column)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:

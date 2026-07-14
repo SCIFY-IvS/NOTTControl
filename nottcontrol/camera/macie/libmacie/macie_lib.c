@@ -1344,6 +1344,10 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
     }
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
+    // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+    CloseScienceInterface(ptUserData);
+    delay(100);
+
     // Set up USB3 science data interface for image acquisition.
     // MACIE_CloseUSBScienceInterface needs to be called before we
     // can use any read functions again (e.g., MACIE_ReadASICReg).
@@ -1358,7 +1362,9 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         {
             if (MACIE_ConfigureUSBScienceInterface(handle, slctMACIEs, data_mode, buffsize, nbuf) != MACIE_OK)
             {
-                verbose_printf(LOG_ERROR, ptUserData, "Science interface configuration failed.\n");
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Science interface configuration failed: %s\n",
+                               MACIE_Error());
                 return false;
             }
         }
@@ -1513,6 +1519,10 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     }
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
+    // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+    CloseScienceInterface(ptUserData);
+    delay(100);
+
     // Set up USB3 science data interface for image acquisition.
     // MACIE_CloseUSBScienceInterface needs to be called before we
     // can use any read functions again (e.g., MACIE_ReadASICReg).
@@ -1529,7 +1539,9 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
             int remotePort = 42037; //TODO:verify
             if(MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) != MACIE_OK)
             {
-                verbose_printf(LOG_ERROR, ptUserData, "Science interface configuration failed.\n");
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Science interface configuration failed: %s\n",
+                               MACIE_Error());
                 return false;
             }
         }

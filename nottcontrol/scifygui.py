@@ -111,6 +111,7 @@ class MainWindow(QMainWindow):
 
         url =  config['DEFAULT']['databaseurl']
         self.redis_client = RedisClient(url)
+        self._redis_warned = False
 
         # set up the main window
         self.ui = loadUi('main_window.ui', self)
@@ -513,6 +514,16 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error opening piezos window: {e}")
 
+    def _warn_redis_unavailable(self, context: str) -> None:
+        if self._redis_warned:
+            return
+        self._redis_warned = True
+        error = self.redis_client.last_error or "connection refused"
+        print(
+            f"{context}: Redis unavailable at {self.redis_client.url} ({error}). "
+            "Live cryo data still works; history logging is disabled until Redis is up."
+        )
+
     def open_cryostat_window(self):
         try:
             if self.cryostat_window is None:
@@ -520,6 +531,8 @@ class MainWindow(QMainWindow):
                 self.cryostat_window.closing.connect(self.clear_cryostat_window)
                 self.cryostat_window.show()
                 self._sync_cryostat_window_from_cache()
+                if not self.redis_client.is_available(force=True):
+                    self._warn_redis_unavailable("Cryostat history")
             else:
                 self.cryostat_window.activateWindow()
         except Exception as e:
@@ -575,6 +588,10 @@ class MainWindow(QMainWindow):
             cache = self._cryo_cache
             saved_at = cache.get("updated_at")
             if saved_at is None:
+                return
+            if not self.redis_client.is_available():
+                self._warn_redis_unavailable("Sensors")
+                self._apply_cryo_cache_to_display()
                 return
             saved_count, skipped_keys = self.redis_client.save_sensor_values(
                 saved_at, self.sensor_redis_keys, cache["sensor_values"]
