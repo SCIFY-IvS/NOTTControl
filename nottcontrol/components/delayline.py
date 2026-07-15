@@ -54,7 +54,8 @@ class DelayLine(Motor):
     @property
     def is_standing(self):
         # Motor sStatus == 'STANDING'?
-        return self.getStatusInformation()[0] == 'STANDING'
+        return (self.getStatusInformation()[0] == 'STANDING')\
+                or (self.getStatusInformation()[0] == 'Motor stopped - STANDING')
 
     def await_motor(self, dt=0.1, timeout=30., initial=None, verbose=True):
         if self.is_standing:
@@ -349,7 +350,7 @@ class ActuatorCluster(object):
                     verbose=False):
         assert self.threads == [], "The threads were not finished"
         if target_pos is None:
-            self.target_pos = self.tbuff.total
+            target_pos = self.tbuff.total
         for i, amotor in enumerate(self.motors):
             kwargs = {"target_pos":target_pos[i],
                         "check_valid":check_valid,
