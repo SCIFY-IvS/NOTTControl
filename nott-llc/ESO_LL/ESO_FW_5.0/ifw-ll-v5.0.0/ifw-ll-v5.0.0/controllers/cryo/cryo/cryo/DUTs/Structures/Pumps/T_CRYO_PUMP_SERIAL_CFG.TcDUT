@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_SERIAL_CFG" Id="{a1366dde-cc1c-4778-9431-b249c7835573}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_SERIAL_CFG EXTENDS T_CRYO_PUMP_BASE_CFG:
+STRUCT
+	//
+	// List of INIT commands.
+	//
+	cmdList_Init:	ARRAY [1..8] OF T_CRYO_PUMP_CMD;
+
+	//
+	//	List of READ (and WRITE) commands.
+	// NOTE: Monitoring loop stops on first cmd = ''.
+	//
+	cmdList_Read:	ARRAY [1..16] OF T_CRYO_PUMP_CMD;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

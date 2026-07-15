@@ -1,0 +1,1660 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GlobalTextList Name="GlobalTextList" Id="{db4dbdb9-8cda-4c0e-8686-fcf4e597140c}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="GlobalTextListObject">
+          <l n="TextList" t="ArrayList" cet="TextListRow">
+            <o>
+              <v n="TextID">"890"</v>
+              <v n="TextDefault">""</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"626"</v>
+              <v n="TextDefault">"
+CCC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"727"</v>
+              <v n="TextDefault">"
+Heater"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"810"</v>
+              <v n="TextDefault">"
+
+Bench"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"769"</v>
+              <v n="TextDefault">"
+
+CCC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"26"</v>
+              <v n="TextDefault">"
+Bench"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"726"</v>
+              <v n="TextDefault">"
+Detector"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"935"</v>
+              <v n="TextDefault">"
+Heater"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"730"</v>
+              <v n="TextDefault">"         Detector"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"245"</v>
+              <v n="TextDefault">"%.02f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"143"</v>
+              <v n="TextDefault">"%.03f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"939"</v>
+              <v n="TextDefault">"%.0f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"303"</v>
+              <v n="TextDefault">"%.1e"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"876"</v>
+              <v n="TextDefault">"%.1f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"556"</v>
+              <v n="TextDefault">"%.1f "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"219"</v>
+              <v n="TextDefault">"%.1f %"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"321"</v>
+              <v n="TextDefault">"%.1f %%"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"723"</v>
+              <v n="TextDefault">"%.1f C"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"310"</v>
+              <v n="TextDefault">"%.1f K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"495"</v>
+              <v n="TextDefault">"%.1f K/min"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"74"</v>
+              <v n="TextDefault">"%.2e"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"454"</v>
+              <v n="TextDefault">"%.2e mbar"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"622"</v>
+              <v n="TextDefault">"%.2f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"844"</v>
+              <v n="TextDefault">"%.2f A"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"706"</v>
+              <v n="TextDefault">"%.2f K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"254"</v>
+              <v n="TextDefault">"%.3e"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1040"</v>
+              <v n="TextDefault">"%.3e mbar"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"306"</v>
+              <v n="TextDefault">"%.3f K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"686"</v>
+              <v n="TextDefault">"%0.3f"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"778"</v>
+              <v n="TextDefault">"%d"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"241"</v>
+              <v n="TextDefault">"%d rpm"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"154"</v>
+              <v n="TextDefault">"%s"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"996"</v>
+              <v n="TextDefault">"%u"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"330"</v>
+              <v n="TextDefault">"'COOLER' command: Cooler Control Mode: OFF or POWER"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"842"</v>
+              <v n="TextDefault">"'MODE' command: Cryocooler type, e.g. GT"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"539"</v>
+              <v n="TextDefault">"'P' command: Measured Power"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"533"</v>
+              <v n="TextDefault">"'PWOUT' command: Commanded power"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"736"</v>
+              <v n="TextDefault">"'SENSOR' command: Configured temp. sensor type, e.g. 'PT-100'"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"381"</v>
+              <v n="TextDefault">"'Simulated value [K] when simulation is active.'"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"536"</v>
+              <v n="TextDefault">"'TC' command: Cold Head temperature"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"540"</v>
+              <v n="TextDefault">"'TEMP RJ' command: Reject Temperature"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"546"</v>
+              <v n="TextDefault">"'TTARGET' command: TargetTemperature"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2300"</v>
+              <v n="TextDefault">"'Value used by the system [C]'"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"94"</v>
+              <v n="TextDefault">"'Value used by the system [K]'"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"155"</v>
+              <v n="TextDefault">"'VERSION' command: Current controller code version"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"995"</v>
+              <v n="TextDefault">"'°C'"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1875"</v>
+              <v n="TextDefault">"'°K'"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"407"</v>
+              <v n="TextDefault">"-"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"44"</v>
+              <v n="TextDefault">"0x%04X"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"553"</v>
+              <v n="TextDefault">"1.0 K/min"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"138"</v>
+              <v n="TextDefault">"100"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"248"</v>
+              <v n="TextDefault">"100.0 %"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"299"</v>
+              <v n="TextDefault">"273.15 K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"653"</v>
+              <v n="TextDefault">"273.15 K %"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"997"</v>
+              <v n="TextDefault">"Activate Simulation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"331"</v>
+              <v n="TextDefault">"Active   ON     Error"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"790"</v>
+              <v n="TextDefault">"Actual             Threshold"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1017"</v>
+              <v n="TextDefault">"Actual Cmd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1932"</v>
+              <v n="TextDefault">"Actual command going out"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2155"</v>
+              <v n="TextDefault">"Actual Simulation flag"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2686"</v>
+              <v n="TextDefault">"Actual Simulation flag going out"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1586"</v>
+              <v n="TextDefault">"Actual Simulation flag set the user"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1303"</v>
+              <v n="TextDefault">"Actual Valve command "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"746"</v>
+              <v n="TextDefault">"Alarm :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"240"</v>
+              <v n="TextDefault">"Ambient"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"757"</v>
+              <v n="TextDefault">"At Speed [%] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"849"</v>
+              <v n="TextDefault">"AUTO"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1295"</v>
+              <v n="TextDefault">"AUTO Cmd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"6"</v>
+              <v n="TextDefault">"AUTO Simulation flag"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1861"</v>
+              <v n="TextDefault">"AUTO Simulation flag set by the system"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"427"</v>
+              <v n="TextDefault">"Bearing Counter [%] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1470"</v>
+              <v n="TextDefault">"Bearing Warning [%] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"32"</v>
+              <v n="TextDefault">"Bench"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"256"</v>
+              <v n="TextDefault">"C"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"548"</v>
+              <v n="TextDefault">"CCC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"144"</v>
+              <v n="TextDefault">"CCC Control is Enabled/Active"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"329"</v>
+              <v n="TextDefault">"CCC is ON"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1058"</v>
+              <v n="TextDefault">"CLOSE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"786"</v>
+              <v n="TextDefault">"Cold Head [K] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"872"</v>
+              <v n="TextDefault">"Coldest Point"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"183"</v>
+              <v n="TextDefault">"Coldest point in the Cryostat"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"216"</v>
+              <v n="TextDefault">"Command coming from the Control System"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"994"</v>
+              <v n="TextDefault">"Commanded [W] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"523"</v>
+              <v n="TextDefault">"Compressor Year: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"640"</v>
+              <v n="TextDefault">"Configuration"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"317"</v>
+              <v n="TextDefault">"Control"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"284"</v>
+              <v n="TextDefault">"Control Mode"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"821"</v>
+              <v n="TextDefault">"Controllers"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"328"</v>
+              <v n="TextDefault">"COOL"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"462"</v>
+              <v n="TextDefault">"Cooler State"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"532"</v>
+              <v n="TextDefault">"Cryo Controller"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"637"</v>
+              <v n="TextDefault">"Cryo pressure [mbar]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"146"</v>
+              <v n="TextDefault">"Cryostat Pressure [mbar]:"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"439"</v>
+              <v n="TextDefault">"Ctrl Signal :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"989"</v>
+              <v n="TextDefault">"Current: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1206"</v>
+              <v n="TextDefault">"Deactivate Simulation"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"600"</v>
+              <v n="TextDefault">"deg C"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"304"</v>
+              <v n="TextDefault">"deg K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"788"</v>
+              <v n="TextDefault">"Delta Pressure
+%4.1f bar"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"925"</v>
+              <v n="TextDefault">"DET - Coldest"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"466"</v>
+              <v n="TextDefault">"DET-Coldest"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"316"</v>
+              <v n="TextDefault">"Detector"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"784"</v>
+              <v n="TextDefault">"Drive Elec. Hours :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"133"</v>
+              <v n="TextDefault">"Drive Elec. Temp [°C] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"49"</v>
+              <v n="TextDefault">"Drive Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"308"</v>
+              <v n="TextDefault">"Electronics Drive Temp."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"235"</v>
+              <v n="TextDefault">"EMCY Closed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"806"</v>
+              <v n="TextDefault">"ENABLE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"998"</v>
+              <v n="TextDefault">"Enable"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1445"</v>
+              <v n="TextDefault">"ENG"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1572"</v>
+              <v n="TextDefault">"Engineering / Commissioning Mode"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"238"</v>
+              <v n="TextDefault">"Error"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"905"</v>
+              <v n="TextDefault">"Error :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"280"</v>
+              <v n="TextDefault">"Error description"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"325"</v>
+              <v n="TextDefault">"Error Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"700"</v>
+              <v n="TextDefault">"Evac"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"234"</v>
+              <v n="TextDefault">"Evac Valve"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"205"</v>
+              <v n="TextDefault">"EVACUATE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"230"</v>
+              <v n="TextDefault">"Evacuate"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"692"</v>
+              <v n="TextDefault">"Evacuation System"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"258"</v>
+              <v n="TextDefault">"Evacuation System Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"67"</v>
+              <v n="TextDefault">"Exhaust"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"96"</v>
+              <v n="TextDefault">"Flag if Heater RAMP is On"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"25"</v>
+              <v n="TextDefault">"Flag if reading is in sensor range"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"688"</v>
+              <v n="TextDefault">"Frequency Reference"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"837"</v>
+              <v n="TextDefault">"FW Version"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1833"</v>
+              <v n="TextDefault">"FW Version :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1216"</v>
+              <v n="TextDefault">"GBV"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"315"</v>
+              <v n="TextDefault">"GUI"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"54"</v>
+              <v n="TextDefault">"Heat Shield Temperature"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"724"</v>
+              <v n="TextDefault">"Heater"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"829"</v>
+              <v n="TextDefault">"Heater Control is Enabled/Active"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"856"</v>
+              <v n="TextDefault">"Heater is ON"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"642"</v>
+              <v n="TextDefault">"Heater Output [%]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"447"</v>
+              <v n="TextDefault">"Heater Ramp Rate"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"202"</v>
+              <v n="TextDefault">"Heater Range"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"543"</v>
+              <v n="TextDefault">"Helium
+%4.1f ºC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"909"</v>
+              <v n="TextDefault">"High Pressure
+%4.1f bar"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"474"</v>
+              <v n="TextDefault">"Hours: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"830"</v>
+              <v n="TextDefault">"HTR"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"858"</v>
+              <v n="TextDefault">"HW Version"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2127"</v>
+              <v n="TextDefault">"HW Version :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"51"</v>
+              <v n="TextDefault">"Hz"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"873"</v>
+              <v n="TextDefault">"ID"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"218"</v>
+              <v n="TextDefault">"If active, system is enabled"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"628"</v>
+              <v n="TextDefault">"If ON, compressor is running"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"5"</v>
+              <v n="TextDefault">"If ON, compressor is simulated"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"145"</v>
+              <v n="TextDefault">"If ON, control output signal is active."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"731"</v>
+              <v n="TextDefault">"If ON, Cooler is simulated."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1779"</v>
+              <v n="TextDefault">"If ON, ENG command is not safe!"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"878"</v>
+              <v n="TextDefault">"If ON, Evacuation System is in ERROR state."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"159"</v>
+              <v n="TextDefault">"If ON, Insulation Valve is OPEN"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"389"</v>
+              <v n="TextDefault">"If ON, Pump is Running"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"111"</v>
+              <v n="TextDefault">"If ON, reading is in error."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1927"</v>
+              <v n="TextDefault">"If ON, reading is in expected range."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"70"</v>
+              <v n="TextDefault">"If ON, reading is in overrange."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1941"</v>
+              <v n="TextDefault">"If ON, reading is in underrange."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"869"</v>
+              <v n="TextDefault">"If ON, reading is valid."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"949"</v>
+              <v n="TextDefault">"If ON, system is enabled"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"9"</v>
+              <v n="TextDefault">"If ON, system is in ERROR state."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"942"</v>
+              <v n="TextDefault">"If ON, there is a communication problem with the Cooler."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2000"</v>
+              <v n="TextDefault">"If ON, there is an error in the SW implementation of permission handling."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1062"</v>
+              <v n="TextDefault">"If ON, there was an error"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"182"</v>
+              <v n="TextDefault">"If ON, TMP pump is at its nominal speed, i.e. Ready."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"561"</v>
+              <v n="TextDefault">"If ON, TMP pump is still spinning."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"112"</v>
+              <v n="TextDefault">"In Range"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"233"</v>
+              <v n="TextDefault">"In Vacuum"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"687"</v>
+              <v n="TextDefault">"Inlet"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"47"</v>
+              <v n="TextDefault">"Input Terminal Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"659"</v>
+              <v n="TextDefault">"INTERLOCK"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1474"</v>
+              <v n="TextDefault">"Interlock"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"475"</v>
+              <v n="TextDefault">"IRATEC Cryo Controller"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2484"</v>
+              <v n="TextDefault">"K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"406"</v>
+              <v n="TextDefault">"kW"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"717"</v>
+              <v n="TextDefault">"Lakeshore"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"242"</v>
+              <v n="TextDefault">"LN2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"322"</v>
+              <v n="TextDefault">"LN2 OFF"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"33"</v>
+              <v n="TextDefault">"LN2 Pre-Cooling"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"106"</v>
+              <v n="TextDefault">"Low Pressure
+%4.1f bar"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"285"</v>
+              <v n="TextDefault">"mA"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"98"</v>
+              <v n="TextDefault">"MANUAL"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"172"</v>
+              <v n="TextDefault">"mbar"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"347"</v>
+              <v n="TextDefault">"Measured [W] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"395"</v>
+              <v n="TextDefault">"Mirror"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"336"</v>
+              <v n="TextDefault">"Motor Current"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"257"</v>
+              <v n="TextDefault">"Motor Current [mA] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"157"</v>
+              <v n="TextDefault">"Motor Power [W] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"698"</v>
+              <v n="TextDefault">"Motor Voltage"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"804"</v>
+              <v n="TextDefault">"Motor Voltage [V] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"27"</v>
+              <v n="TextDefault">"NO-SIM"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"396"</v>
+              <v n="TextDefault">"Nominal Speed [rpm] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"708"</v>
+              <v n="TextDefault">"OFF"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"518"</v>
+              <v n="TextDefault">"Oil
+%4.1f ºC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"611"</v>
+              <v n="TextDefault">"OK for Process, i.e. speed ≥ nominal speed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1093"</v>
+              <v n="TextDefault">"ON"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"229"</v>
+              <v n="TextDefault">"Open"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1381"</v>
+              <v n="TextDefault">"OPEN"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"791"</v>
+              <v n="TextDefault">"Operational State"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1080"</v>
+              <v n="TextDefault">"OUTPUT Cmd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"689"</v>
+              <v n="TextDefault">"Output Frequency"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"46"</v>
+              <v n="TextDefault">"Output Power"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"48"</v>
+              <v n="TextDefault">"Output Terminal Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"691"</v>
+              <v n="TextDefault">"Output Voltage Reference"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1982"</v>
+              <v n="TextDefault">"Overrange"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1437"</v>
+              <v n="TextDefault">"Permit CLOSE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"803"</v>
+              <v n="TextDefault">"Permit OFF"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"93"</v>
+              <v n="TextDefault">"Permit ON"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1308"</v>
+              <v n="TextDefault">"Permit OPEN"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"239"</v>
+              <v n="TextDefault">"PID"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"732"</v>
+              <v n="TextDefault">"Power"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"403"</v>
+              <v n="TextDefault">"PRE COOL"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"598"</v>
+              <v n="TextDefault">"PRE-COOL"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"586"</v>
+              <v n="TextDefault">"PRECOOL"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"413"</v>
+              <v n="TextDefault">"presence of a warning"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"636"</v>
+              <v n="TextDefault">"presence of an alarm"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"705"</v>
+              <v n="TextDefault">"Pressure threshold for safe opening of the pre-vacuum valve [mbar]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1182"</v>
+              <v n="TextDefault">"Pressure threshold for safe start of Turbo Pump [mbar]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"429"</v>
+              <v n="TextDefault">"Prevacuum pressure threshold [mbar]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"92"</v>
+              <v n="TextDefault">"Prevacuum pressure [mbar]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1433"</v>
+              <v n="TextDefault">"Prevacuum Pressure [mbar]:"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"277"</v>
+              <v n="TextDefault">"Pulse Tube Year: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"566"</v>
+              <v n="TextDefault">"Pump has been running for more than 10 min"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"385"</v>
+              <v n="TextDefault">"Pump Hours :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"913"</v>
+              <v n="TextDefault">"Pump Speed"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1038"</v>
+              <v n="TextDefault">"pump speed &gt; 0 rpm"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"740"</v>
+              <v n="TextDefault">"pump speed &gt; 100 rpm"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1651"</v>
+              <v n="TextDefault">"Pump Speed [rpm] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"148"</v>
+              <v n="TextDefault">"Pump State"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1668"</v>
+              <v n="TextDefault">"Pump Temp [°C] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1345"</v>
+              <v n="TextDefault">"PVV1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1079"</v>
+              <v n="TextDefault">"PVV2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1190"</v>
+              <v n="TextDefault">"PVV3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"115"</v>
+              <v n="TextDefault">"PVV4"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"34"</v>
+              <v n="TextDefault">"RAMP"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"302"</v>
+              <v n="TextDefault">"RE-PRESSURE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"62"</v>
+              <v n="TextDefault">"RE-PRESSURISE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"231"</v>
+              <v n="TextDefault">"Re-Pressurization"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"379"</v>
+              <v n="TextDefault">"RE-PRESSURIZE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"384"</v>
+              <v n="TextDefault">"Ready :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"538"</v>
+              <v n="TextDefault">"Reject [C] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"228"</v>
+              <v n="TextDefault">"Repressure valve"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"75"</v>
+              <v n="TextDefault">"Root Pump"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"236"</v>
+              <v n="TextDefault">"Root_OK"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"180"</v>
+              <v n="TextDefault">"Roughing Pump"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"52"</v>
+              <v n="TextDefault">"Roughing Pump Speed [rpm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"860"</v>
+              <v n="TextDefault">"rpm"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"12"</v>
+              <v n="TextDefault">"Running :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"648"</v>
+              <v n="TextDefault">"S/N Compressor: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"952"</v>
+              <v n="TextDefault">"S/N Panel:"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"754"</v>
+              <v n="TextDefault">"S/N Pulse Tube: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"567"</v>
+              <v n="TextDefault">"Sensor :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"614"</v>
+              <v n="TextDefault">"Sensor Name"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"113"</v>
+              <v n="TextDefault">"Sensor Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"542"</v>
+              <v n="TextDefault">"Set External System command to CLOSE"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"438"</v>
+              <v n="TextDefault">"Set External System command to OPEN"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"974"</v>
+              <v n="TextDefault">"Set Points"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"63"</v>
+              <v n="TextDefault">"SETP"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"442"</v>
+              <v n="TextDefault">"SetPoint"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1885"</v>
+              <v n="TextDefault">"SIM"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"160"</v>
+              <v n="TextDefault">"Simulated value [K] when simulation is active."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2634"</v>
+              <v n="TextDefault">"Simulated value [mbar] when simulation is active."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"709"</v>
+              <v n="TextDefault">"Simulation flag coming from the Control System"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2496"</v>
+              <v n="TextDefault">"Simulation flagcoming from the Control System"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"571"</v>
+              <v n="TextDefault">"Speed &gt; 100 :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1446"</v>
+              <v n="TextDefault">"Standby Speed [rpm] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"19"</v>
+              <v n="TextDefault">"START"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"181"</v>
+              <v n="TextDefault">"State: "</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"401"</v>
+              <v n="TextDefault">"Status"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"119"</v>
+              <v n="TextDefault">"STOP"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"156"</v>
+              <v n="TextDefault">"STOP LN2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"610"</v>
+              <v n="TextDefault">"Switch to AUTO Mode"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1785"</v>
+              <v n="TextDefault">"Switch to MANUAL Mode"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"590"</v>
+              <v n="TextDefault">"System Commands"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"924"</v>
+              <v n="TextDefault">"Target SetPoint"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"623"</v>
+              <v n="TextDefault">"Target [K] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"261"</v>
+              <v n="TextDefault">"Temperature"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"881"</v>
+              <v n="TextDefault">"Temperature difference between DET and the coldest point in the Cryostat"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"669"</v>
+              <v n="TextDefault">"Temperature [°C] :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1721"</v>
+              <v n="TextDefault">"Toggle Engineering Mode"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1620"</v>
+              <v n="TextDefault">"Toggle etween Engineering and Commissioning Mode"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1272"</v>
+              <v n="TextDefault">"Toggle External System INTERLOCK"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1622"</v>
+              <v n="TextDefault">"Turbo Molecular Pump"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"489"</v>
+              <v n="TextDefault">"Turbo Pump"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"889"</v>
+              <v n="TextDefault">"Turbo Pump Ready"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1211"</v>
+              <v n="TextDefault">"Turbo Pump Speed [rpm]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"237"</v>
+              <v n="TextDefault">"Turbo_OK"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"262"</v>
+              <v n="TextDefault">"Type :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"645"</v>
+              <v n="TextDefault">"Underrange"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"404"</v>
+              <v n="TextDefault">"VAC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"232"</v>
+              <v n="TextDefault">"Vac Good"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"478"</v>
+              <v n="TextDefault">"Vacuum Good"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"400"</v>
+              <v n="TextDefault">"VAG1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"647"</v>
+              <v n="TextDefault">"VAG2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1269"</v>
+              <v n="TextDefault">"VAG3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"455"</v>
+              <v n="TextDefault">"VAGF"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"822"</v>
+              <v n="TextDefault">"VAGF1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1083"</v>
+              <v n="TextDefault">"VAGF2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1120"</v>
+              <v n="TextDefault">"VAGG"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"620"</v>
+              <v n="TextDefault">"VAGG1"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"812"</v>
+              <v n="TextDefault">"VAGG2"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1962"</v>
+              <v n="TextDefault">"Valid"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1854"</v>
+              <v n="TextDefault">"Value used by the system [C]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1212"</v>
+              <v n="TextDefault">"Value used by the system [K]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1639"</v>
+              <v n="TextDefault">"Value used by the system [mbar]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"681"</v>
+              <v n="TextDefault">"Valve"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"188"</v>
+              <v n="TextDefault">"Valve Cmd"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"973"</v>
+              <v n="TextDefault">"Valve State"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1494"</v>
+              <v n="TextDefault">"Valve state: ON=OPEN, OFF=CLOSED"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"621"</v>
+              <v n="TextDefault">"Valves"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"405"</v>
+              <v n="TextDefault">"VDC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"203"</v>
+              <v n="TextDefault">"WARM-UP"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"35"</v>
+              <v n="TextDefault">"Warmest Point"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"289"</v>
+              <v n="TextDefault">"Warmest point in the Cryostat"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1561"</v>
+              <v n="TextDefault">"Warning"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"699"</v>
+              <v n="TextDefault">"Warning :"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"265"</v>
+              <v n="TextDefault">"Warning if reading is not valid"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"779"</v>
+              <v n="TextDefault">"Warning if reading is underange. PT100 cannot read below 73.15K (-200C)."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"820"</v>
+              <v n="TextDefault">"Warning if reading is underrange. PT100 cannot read below 73.15K (-200C)."</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"918"</v>
+              <v n="TextDefault">"Water IN
+%4.1f ºC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"57"</v>
+              <v n="TextDefault">"Water OUT
+%4.1f ºC"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"967"</v>
+              <v n="TextDefault">"[%s]"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"912"</v>
+              <v n="TextDefault">"°C"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"1858"</v>
+              <v n="TextDefault">"°C''"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"2136"</v>
+              <v n="TextDefault">"°K"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+          </l>
+          <l n="Languages" t="ArrayList" />
+          <v n="GuidInit">{15258c90-16b5-4f4d-88c0-a17dc1f6c9b2}</v>
+          <v n="GuidReInit">{ac3d435d-75e8-420b-9432-4ca556e776c2}</v>
+          <v n="GuidExitX">{31fb123c-2860-4503-9e2e-32cdac3aa598}</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="GlobalTextListObject">{63784cbb-9ba0-45e6-9d69-babf3f040511}</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="String">System.String</Type>
+        <Type n="TextListRow">{53da1be7-ad25-47c3-b0e8-e26286dad2e0}</Type>
+      </TypeList>
+    </XmlArchive>
+  </GlobalTextList>
+</TcPlcObject>

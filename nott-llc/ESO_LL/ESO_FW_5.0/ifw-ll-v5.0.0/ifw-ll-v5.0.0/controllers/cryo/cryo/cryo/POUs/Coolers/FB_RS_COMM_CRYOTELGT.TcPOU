@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_RS_COMM_CRYOTELGT" Id="{82377242-42ed-4703-80b8-a4774e005f79}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_RS_COMM_CRYOTELGT EXTENDS FB_RS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_RS_COMM_CFG;				// Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_RS_COMM_CTRL;				// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_RS_COMM_INFO; 			// Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_RS_COMM_STAT;				// Status parameters - ReadOnly
+
+	sim:		FB_SIM_RS_COMM_CRYOTELGT;		// COMM simulator
+
+	// Physical signals - to be mapped to EL60xx serial port controller !!!
+	COMin_EL60xx	AT %I* 	: KL6inData22B;	(* linked to the EL60xx *)
+	COMout_EL60xx	AT %Q*	: KL6outData22B;(* linked to the EL60xx *)
+
+	(* Serial line control *)
+	COMportControl: 		SerialLineControl;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+cfgRef	REF=cfg;
+ctrlRef	REF=ctrl;
+infoRef	REF=info;
+statRef	REF=stat;
+simRef	REF=sim;
+
+SUPER^();]]></ST>
+    </Implementation>
+    <Method Name="M_ActionInitExecute" Id="{eec96aa2-f4e1-4682-8810-acab41f8d437}">
+      <Declaration><![CDATA[METHOD M_ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Copy input parameters to cfg
+//
+cfg.sCmdSuffix		:= in_sCmdSuffix;
+cfg.sReplySuffix	:= in_sReplySuffix;
+cfg.nTimeout		:= in_nTimeout;
+
+//
+// If in simulation, there is no need to reset anything.
+// Just set it to initialised and go to IDLE state.
+//
+IF in_bSimulation THEN
+	fbTimer (IN := FALSE);
+	statRef.bInitialised	:= TRUE;
+	statRef.nStatus			:= E_RS_COMM_STATUS.IDLE;
+	statRef.sStatus			:= 'INITIALISED';
+	State 					:= E_RS_COMM_STATE.IDLE;
+ELSE
+	stat.bInitialised	:= FALSE;
+	stat.sStatus		:= 'INITIALISING';
+	stat.nStatus		:= E_RS_COMM_STATUS.BUSY;
+	stat.sReply 		:= ''; (* No reply yet *)
+	stat.nErrorCode		:= E_RS_COMM_ERROR.OK;
+	stat.sErrorText		:= 'OK';
+	
+	// Reset the connected serial hardware 
+	ComReset (
+		Execute 	:= FALSE,
+		pComIn		:= ADR(COMin_EL60xx),
+		pComOut		:= ADR(COMout_EL60xx),
+		SizeComIn	:= SIZEOF(COMin_EL60xx),
+		);
+	
+	// Set next state
+	State 	:= E_RS_COMM_STATE.RESET;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ComPortControl" Id="{d1c308fd-7c77-4c95-8880-5868bd5f0097}">
+      <Declaration><![CDATA[METHOD M_ComPortControl
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RS specific call of the background communication process
+COMportControl(
+	Mode		:= ComSerialLineMode_t.SERIALLINEMODE_KL6_22B_STANDARD,
+	pComIn		:= ADR(COMin_EL60xx),					(* I/O data; see global variables *)
+	pComOut		:= ADR(COMout_EL60xx),					(* I/O data; see global variables *)
+	SizeComIn	:= UINT_TO_INT(SIZEOF(COMin_EL60xx)),	(* I/O data; see global variables *)
+	TxBuffer	:= TxBuffer,							(* transmit buffer; see global variables *)
+	RxBuffer	:= RxBuffer);							(* receive buffer; see global variables *)
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{6b5374c0-6a0e-4e80-8f50-aa1b4113c120}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RS specific call of communication reset
+//
+// Reset the connected serial hardware.
+ComReset (
+	Execute 	:= TRUE,
+	pComIn		:= ADR(COMin_EL60xx),
+	pComOut		:= ADR(COMout_EL60xx),
+	SizeComIn	:= SIZEOF(COMin_EL60xx),
+	);
+
+(* Next step is to clear the buffers *)
+IF ComReset.Done THEN
+	fbTimer (IN := FALSE);	// Reset the timer
+	State 		:= E_RS_COMM_STATE.CLEAR_BUFFER;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_RS_COMM_CRYOTELGT">
+      <LineId Id="1726" Count="2" />
+      <LineId Id="1731" Count="0" />
+      <LineId Id="1729" Count="0" />
+      <LineId Id="1734" Count="0" />
+      <LineId Id="1730" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_COMM_CRYOTELGT.M_ActionInitExecute">
+      <LineId Id="12" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="33" Count="22" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_COMM_CRYOTELGT.M_ComPortControl">
+      <LineId Id="6" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="7" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_RS_COMM_CRYOTELGT.M_Reset">
+      <LineId Id="20" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="8" Count="11" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

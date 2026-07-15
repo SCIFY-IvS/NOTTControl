@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_MA_SM_STAT" Id="{a02544aa-c84a-47f8-b8a1-8f801adc2261}">
+    <Declaration><![CDATA[TYPE T_MA_SM_STAT :
+STRUCT
+	sState:			STRING	:= 'NOT OP';
+	sSubstate:		STRING	:= 'NOT READY';
+	
+	nState:			E_MA_STATE		:= E_MA_STATE.NOTOP;
+	nSubstate:		E_MA_SUBSTATE	:= E_MA_SUBSTATE.NOTOP_NOTREADY;
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

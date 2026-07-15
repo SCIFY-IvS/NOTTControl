@@ -1,0 +1,389 @@
+<div id="ContentTest_ControlCabinet" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%">
+<div id="ContentTest_ControlCabinet_TcHmiContainer_Green" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="339" data-tchmi-height-unit="px" data-tchmi-left="96" data-tchmi-left-unit="px" data-tchmi-top="267" data-tchmi-top-unit="px" data-tchmi-width="396" data-tchmi-width-unit="px" data-tchmi-border-color="%tr%CryogenicControllerLineColor1%/tr%">
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 2,
+  "right": 2,
+  "top": 2,
+  "bottom": 2,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-radius" type="application/json">
+{
+  "topLeft": 20.0,
+  "topRight": 20.0,
+  "bottomLeft": 20.0,
+  "bottomRight": 20.0,
+  "topLeftUnit": "px",
+  "topRightUnit": "px",
+  "bottomLeftUnit": "px",
+  "bottomRightUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "rgba(177, 255, 180, 0.3921568)"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%ctrl%ContentTest_ControlCacbinet_SectionA::Visibility%/ctrl%",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:framework#/definitions/Visibility",
+          "value": "Visible"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+<div id="ContentTest_ControlCabinet_ValveUserControl_EGV2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="329" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="29" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="372" data-tchmi-left-unit="px" data-tchmi-top="56" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_PumpUserControl_TMP" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Left" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="274" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Turbomolecular" data-tchmi-target-user-control="UserControls/Controls/PumpUserControl.usercontrol" data-tchmi-top="31" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection18_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="317" data-tchmi-left-unit="px" data-tchmi-top="57" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection18_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="257" data-tchmi-left-unit="px" data-tchmi-top="57" data-tchmi-top-unit="px" data-tchmi-width="25" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_ValveUserControl_PVV4" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="215" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="34" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_ValveUserControl_PVV3" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="131" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="34" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection18_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="174" data-tchmi-left-unit="px" data-tchmi-top="56" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_GaugeSymbol_VAG3" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="89" data-tchmi-left-unit="px" data-tchmi-top="9" data-tchmi-top-unit="px" data-tchmi-width="40" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection13_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="109" data-tchmi-left-unit="px" data-tchmi-top="56" data-tchmi-top-unit="px" data-tchmi-width="30" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection24_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="130" data-tchmi-height-unit="px" data-tchmi-left="109" data-tchmi-left-unit="px" data-tchmi-top="50" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTest_ControlCabinet_GaugeSymbol_VAG2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="180" data-tchmi-left-unit="px" data-tchmi-top="78" data-tchmi-top-unit="px" data-tchmi-width="40" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="CryogenicController_TcHmiLine_Type1_Connection24_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="200" data-tchmi-left-unit="px" data-tchmi-top="59" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiEllipse_Type1_ConnectTee3_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="198" data-tchmi-left-unit="px" data-tchmi-top="54" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="ContentTest_ControlCabinet_ValveUserControl_ENV1_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="329" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="140" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="CryogenicController_ValveUserControl_PVV2_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="274" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="147" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_ValveUserControl_PVV1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="180" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="147" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="372" data-tchmi-left-unit="px" data-tchmi-top="168" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="317" data-tchmi-left-unit="px" data-tchmi-top="168" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_6" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="223" data-tchmi-left-unit="px" data-tchmi-top="168" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="CryogenicController_GaugeSymbol_VAG1_3" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="234" data-tchmi-left-unit="px" data-tchmi-top="189" data-tchmi-top-unit="px" data-tchmi-width="40" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection24_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="254" data-tchmi-left-unit="px" data-tchmi-top="169" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_7" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="110" data-tchmi-left-unit="px" data-tchmi-top="168" data-tchmi-top-unit="px" data-tchmi-width="78" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_ValveUserControl_GBV" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="81" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="172" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiEllipse_Type1_ConnectTee3_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="252" data-tchmi-left-unit="px" data-tchmi-top="166" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiEllipse_Type1_ConnectTee3_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="107" data-tchmi-left-unit="px" data-tchmi-top="166" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection24_5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="109" data-tchmi-left-unit="px" data-tchmi-top="215" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_8" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="225" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_9" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="229" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_10" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="233" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_11" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="237" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection19_12" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="241" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection24_6" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="109" data-tchmi-left-unit="px" data-tchmi-top="242" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTest_ControlCabinet_PumpUserControl_PVP" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="84" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Prevacuum" data-tchmi-target-user-control="UserControls/Controls/PumpUserControl.usercontrol" data-tchmi-top="245" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+</div>
+<div id="ContentTest_ControlCabinet_CryogenicController_TankSymbol_Tank" data-tchmi-type="TcHmi.Controls.CryoFramework.TankSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="597" data-tchmi-height-unit="px" data-tchmi-left="514" data-tchmi-left-unit="px" data-tchmi-top="9" data-tchmi-top-unit="px" data-tchmi-width="310" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="2">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type1_Connection" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="492" data-tchmi-left-unit="px" data-tchmi-top="415" data-tchmi-top-unit="px" data-tchmi-width="25" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor1%/tr%" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiContainer_Blue" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="209" data-tchmi-height-unit="px" data-tchmi-left="239" data-tchmi-left-unit="px" data-tchmi-top="35" data-tchmi-top-unit="px" data-tchmi-width="250" data-tchmi-width-unit="px" data-tchmi-border-color="%tr%CryogenicControllerLineColor2%/tr%">
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 2,
+  "right": 2,
+  "top": 2,
+  "bottom": 2,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-radius" type="application/json">
+{
+  "topLeft": 20.0,
+  "topRight": 20.0,
+  "bottomLeft": 20.0,
+  "bottomRight": 20.0,
+  "topLeftUnit": "px",
+  "topRightUnit": "px",
+  "bottomLeftUnit": "px",
+  "bottomRightUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "rgba(177, 185, 255, 0.3921568)"
+}
+</script>
+
+
+
+
+<div id="ContentTestControlCabinet_GaugeSymbol_VAGF1" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="38" data-tchmi-height-unit="px" data-tchmi-left="60" data-tchmi-left-unit="px" data-tchmi-top="3" data-tchmi-top-unit="px" data-tchmi-width="38" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="ContentTestControlCabinet_ValveUserControl_GEF2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="128" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="7" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="ContentTestControlCabinet_GaugeSymbol_VAGF2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="38" data-tchmi-height-unit="px" data-tchmi-left="61" data-tchmi-left-unit="px" data-tchmi-top="57" data-tchmi-top-unit="px" data-tchmi-width="38" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="ContentTestControlCabinet_ValveUserControl_GEF1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="175" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="52" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="218" data-tchmi-left-unit="px" data-tchmi-top="81" data-tchmi-top-unit="px" data-tchmi-width="28" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="156" data-tchmi-left-unit="px" data-tchmi-top="81" data-tchmi-top-unit="px" data-tchmi-width="26" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="81" data-tchmi-top-unit="px" data-tchmi-width="62" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee2_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="123" data-tchmi-left-unit="px" data-tchmi-top="79" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee1_5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="155" data-tchmi-left-unit="px" data-tchmi-top="79" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="60" data-tchmi-height-unit="px" data-tchmi-left="125" data-tchmi-left-unit="px" data-tchmi-top="22" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="97" data-tchmi-left-unit="px" data-tchmi-top="21" data-tchmi-top-unit="px" data-tchmi-width="29" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="157" data-tchmi-left-unit="px" data-tchmi-top="50" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection1_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="218" data-tchmi-left-unit="px" data-tchmi-top="183" data-tchmi-top-unit="px" data-tchmi-width="28" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTestControlCabinet_ValveUserControl_GEG1" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="175" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="154" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection2_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="156" data-tchmi-left-unit="px" data-tchmi-top="183" data-tchmi-top-unit="px" data-tchmi-width="26" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="CryogenicController_TcHmiEllipse_Type2_ConnectTee1_6" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEllipse" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="155" data-tchmi-left-unit="px" data-tchmi-top="181" data-tchmi-top-unit="px" data-tchmi-width="5" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-stroke-thickness="0">
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "None"
+}
+</script>
+</div>
+<div id="ContentTestControlCabinet_ValveUserControl_GEG2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Right" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="128" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="109" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection3_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="157" data-tchmi-left-unit="px" data-tchmi-top="152" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection4_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="99" data-tchmi-left-unit="px" data-tchmi-top="183" data-tchmi-top-unit="px" data-tchmi-width="62" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_Connection5_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="60" data-tchmi-height-unit="px" data-tchmi-left="125" data-tchmi-left-unit="px" data-tchmi-top="124" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%" data-tchmi-y1="1">
+</div>
+<div id="ContentTestControlCabinet_GaugeSymbol_VAGG2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="38" data-tchmi-height-unit="px" data-tchmi-left="61" data-tchmi-left-unit="px" data-tchmi-top="159" data-tchmi-top-unit="px" data-tchmi-width="38" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="ContentTestControlCabinet_TcHmiLine_Type2_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="97" data-tchmi-left-unit="px" data-tchmi-top="123" data-tchmi-top-unit="px" data-tchmi-width="29" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTestControlCabinet_GaugeSymbol_VAGG1" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="38" data-tchmi-height-unit="px" data-tchmi-left="60" data-tchmi-left-unit="px" data-tchmi-top="105" data-tchmi-top-unit="px" data-tchmi-width="38" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%ctrl%ContentTest_ControlCabinet_SectionB::Visibility%/ctrl%",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:framework#/definitions/Visibility",
+          "value": "Visible"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="ContentTest_CryogenicController_TcHmiLine_Type2_Connection" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="489" data-tchmi-left-unit="px" data-tchmi-top="169" data-tchmi-top-unit="px" data-tchmi-width="28" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor2%/tr%">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiContainer_Black" data-tchmi-type="TcHmi.Controls.System.TcHmiContainer" data-tchmi-height="175" data-tchmi-height-unit="px" data-tchmi-left="842" data-tchmi-left-unit="px" data-tchmi-top="96" data-tchmi-top-unit="px" data-tchmi-width="146" data-tchmi-width-unit="px" data-tchmi-border-color="%tr%CryogenicControllerLineColor3%/tr%">
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 2,
+  "right": 2,
+  "top": 2,
+  "bottom": 2,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-radius" type="application/json">
+{
+  "topLeft": 20.0,
+  "topRight": 20.0,
+  "bottomLeft": 20.0,
+  "bottomRight": 20.0,
+  "topLeftUnit": "px",
+  "topRightUnit": "px",
+  "bottomLeftUnit": "px",
+  "bottomRightUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "rgba(12, 13, 18, 0.3921568)"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%ctrl%ContentTest_ControlCabinet_SectionC::Visibility%/ctrl%",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:framework#/definitions/Visibility",
+          "value": "Visible"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+<div id="ContentTest_ControlCabinet_ValveUserControl_N2V1_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Up" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="75" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Auto" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="24" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+
+</div>
+<div id="ContentTest_ControlCabinet_ValveUserControl_VGV1_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-direction="Down" data-tchmi-height="50" data-tchmi-height-unit="px" data-tchmi-left="15" data-tchmi-left-unit="px" data-tchmi-strokethickness="1" data-tchmi-symbolmarginsize="10" data-tchmi-symboltype="Manual" data-tchmi-target-user-control="UserControls/Controls/ValveUserControl.usercontrol" data-tchmi-top="19" data-tchmi-top-unit="px" data-tchmi-width="50" data-tchmi-width-unit="px">
+</div>
+<div id="ContentTest_ControlCabinet_GaugeSymbol_HPG_2" data-tchmi-type="TcHmi.Controls.CryoFramework.GaugeSymbol" data-tchmi-basesymbol-direction="Up" data-tchmi-basesymbol-state="Off" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="23" data-tchmi-left-unit="px" data-tchmi-top="115" data-tchmi-top-unit="px" data-tchmi-width="40" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="1">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type3_Connection2_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="-2" data-tchmi-left-unit="px" data-tchmi-top="46" data-tchmi-top-unit="px" data-tchmi-width="25" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type3_Connection2_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="58" data-tchmi-left-unit="px" data-tchmi-top="46" data-tchmi-top-unit="px" data-tchmi-width="25" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%">
+</div>
+<div id="ContentTest_ControlCabinet_TcHmiLine_Type4_Connection1_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="-2" data-tchmi-left-unit="px" data-tchmi-top="135" data-tchmi-top-unit="px" data-tchmi-width="25" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="1" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor4%/tr%">
+</div>
+</div>
+<div id="ContentTest_ControlCabinet_CryogenicController_TcHmiLine_Type3_Connection" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="822" data-tchmi-left-unit="px" data-tchmi-top="196" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-x2="1" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-stroke-thickness="2" data-tchmi-stroke-color="%tr%CryogenicControllerLineColor3%/tr%">
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": false,
+        "symbolExpression": "%ctrl%ContentTest_ControlCabinet_SectionA::Visibility%/ctrl%",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:framework#/definitions/Visibility",
+          "value": "Collapsed"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+<div id="ContentTest_ControlCabinet_SectionB" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="500" data-tchmi-height-unit="px" data-tchmi-left="292" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/SectionB.usercontrol" data-tchmi-top="23" data-tchmi-top-unit="px" data-tchmi-width="500" data-tchmi-width-unit="px" data-tchmi-visibility="Collapsed">
+</div>
+<div id="ContentTest_ControlCabinet_SectionC" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="450" data-tchmi-height-unit="px" data-tchmi-left="545" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/SectionC.usercontrol" data-tchmi-top="141" data-tchmi-top-unit="px" data-tchmi-width="450" data-tchmi-width-unit="px" data-tchmi-visibility="Collapsed">
+</div>
+<div id="ContentTest_ControlCacbinet_SectionA" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="550" data-tchmi-height-unit="px" data-tchmi-left="152" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/SectionA.usercontrol" data-tchmi-top="37" data-tchmi-top-unit="px" data-tchmi-width="800" data-tchmi-width-unit="px" data-tchmi-visibility="Collapsed">
+</div>
+</div>

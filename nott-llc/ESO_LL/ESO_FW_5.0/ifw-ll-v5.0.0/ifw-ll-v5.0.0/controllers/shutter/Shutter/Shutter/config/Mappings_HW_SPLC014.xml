@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^Shutter^Shutter Instance">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 7 (EL2008)">
+			<Link VarA="PlcTask Outputs^MAIN.Shutter005.q_bSwitch" VarB="Channel 1^Output"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 8 (EL1008)">
+			<Link VarA="PlcTask Inputs^MAIN.Shutter005.i_bClosed" VarB="Channel 3^Input"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter005.i_bOpen" VarB="Channel 1^Input"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter005.i_nCouplerState" VarB="InfoData^State"/>
+		</OwnerB>
+		<OwnerB Name="TIPC^Shutter^Shutter Instance">
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Shutter001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Shutter001.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Shutter002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Shutter002.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Shutter003.i_bSwitch" VarB="PlcTask Outputs^MAIN.Shutter003.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Shutter004.i_bSwitch" VarB="PlcTask Outputs^MAIN.Shutter004.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter001.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Shutter001.q_bClosed"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter001.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Shutter001.q_bOpen"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter002.i_bClosed" VarB="PlcTask Outputs^MAIN.SIM_Shutter002.q_bClosed"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Shutter002.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter003.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Shutter003.q_bFault"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter003.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Shutter003.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter004.i_bFault" VarB="PlcTask Outputs^MAIN.SIM_Shutter004.q_bFault"/>
+			<Link VarA="PlcTask Inputs^MAIN.Shutter004.i_bOpen" VarB="PlcTask Outputs^MAIN.SIM_Shutter004.q_bOpen"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter001.q_bFault" VarB="PlcTask Inputs^MAIN.Shutter001.i_bFault"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter001.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Shutter001.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter002.q_bFault" VarB="PlcTask Inputs^MAIN.Shutter002.i_bFault"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter002.q_bOpen" VarB="PlcTask Inputs^MAIN.Shutter002.i_bOpen"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter003.q_bClosed" VarB="PlcTask Inputs^MAIN.Shutter003.i_bClosed"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter003.q_bOpen" VarB="PlcTask Inputs^MAIN.Shutter003.i_bOpen"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter004.q_bClosed" VarB="PlcTask Inputs^MAIN.Shutter004.i_bClosed"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Shutter004.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Shutter004.i_nCouplerState"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_PIEZO_INFO" Id="{60381d66-4f77-490a-ab04-08a7c3e7a5cb}">
+    <Declaration><![CDATA[TYPE T_PIEZO_INFO :
+STRUCT
+(*
+Driver Information 
+
+Change Log:
+	0.1	2017-07-17	- First version.
+	0.2	2017-08-23	- Implemented suggestions from Luigi.
+					- Implementation of HOME command.
+					- POS command keep the piezos where they are.
+	0.3	2017-09-05	- Cleanup.
+					- Removed COMMAND_PIEZO_CONFIG and EVENT_PIEZO_CONFIG.
+					- Removed COMMAND_PIEZO_MODE and EVENT_PIEZO_MODE.
+					- Removed trg: R_TRIG.
+					- Removed METHOD UpdateTimes.
+					- Implemented MaxOn protection.
+	0.4	2017-09-06	- Fully implemented RPC calls.
+					- Cleanup of Status structure.
+	0.5.0.0			- Extended to three axes.
+					- Addition of library category ESO/ELT.
+					- Tc2_System.F_GetSystemTime() used in M_GetTimeInSec().
+	0.6.0.0	- Compiled with TC3.1.4022.25.
+			- Renaming States STANDBY->NOTOP & FAILURE->ERROR.
+	0.6.1.0	- Compiled with TC3.1.4022.27.
+			- Cleaned code using Static Analysis tool.
+			- Enumerated types are 'strict'.
+			- Some enumerated types are set as type DINT.
+			- Arrays start with zero index, i.e. [0..
+			- Support of up to six axes (FB_PIEZO example is for three axes).
+	0.6.1.1	- Cleanup.
+			- Addition of logging.
+	0.6.2.0	- Shortened enumerations.
+	0.6.3.0	- Implemented RPC calls.
+	0.6.4.0	- Moved whatever possible to FB_PIEZO_BASE.
+			- Removed configuration arrays from input parameters.
+			- Renamed FB_PIEZO to FB_PIEZO_EXAMPLE.
+	0.6.5.0	- Implemented simulator.
+			- Addition of HWOK event handling.
+*)
+	sDate:			STRING(32)	:= '2019-04-15';
+	sDescription:	STRING(80) 	:= 'State Machine based Piezo controller';
+	sName:			STRING(64)	:= 'FB_PIEZO';
+	sPlatform:		STRING(32)	:= 'CoDeSys';
+	sSynopsis:		STRING(64)	:= 'State Machine based Piezo controller';
+	nVersionMajor:	DINT		:= 0;
+	nVersionMinor:	DINT		:= 6;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

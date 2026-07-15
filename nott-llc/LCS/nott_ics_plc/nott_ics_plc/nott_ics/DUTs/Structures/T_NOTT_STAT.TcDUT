@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="T_NOTT_STAT" Id="{0b487598-ee77-4cbc-882b-8faf7d5e2b0f}">
+    <Declaration><![CDATA[TYPE T_NOTT_STAT :
+STRUCT
+
+	bEnabled:		BOOL 	:= FALSE;	
+	bConfigured:	BOOL	:= FALSE;
+	bDone:			BOOL;				// Flag if controller is OK
+	bBusy:			BOOL;				// Flag if controller is BUSY
+	bError:			BOOL;				// Flag if controller is in ERROR state
+	bActive:		BOOL;				// Flag if controller is ACTIVE
+	
+	sState:			STRING(64);			// State as text
+	sError:			STRING(64);			// Error as text
+	
+	bInterlock:	BOOL := FALSE;			// Flag if any command is prevented
+	bWarning:	BOOL := FALSE;			// 
+	sStatus:	STRING := 'OK';			// Textual description in case of problems
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

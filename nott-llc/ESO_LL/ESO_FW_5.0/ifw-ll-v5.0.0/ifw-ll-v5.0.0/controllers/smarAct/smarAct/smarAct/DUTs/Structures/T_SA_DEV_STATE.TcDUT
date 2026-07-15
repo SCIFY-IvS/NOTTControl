@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_DEV_STATE" Id="{528e38f8-06df-479f-82f6-2e996b5c9c87}">
+    <Declaration><![CDATA[TYPE T_SA_DEV_STATE :
+STRUCT
+	bHM_PRESENT:			BOOL;
+	bMOVEMENT_LOCKED:		BOOL;
+	bAMPLIFIER_LOCKED:		BOOL;
+	bIO_MODULE_INPUT:		BOOL;
+	bGLOBAL_INPUT:			BOOL;
+	bINTERNAL_COMM_FAILURE:	BOOL;
+	bIS_STREAMING:			BOOL;
+
+	bInitialised:			BOOL;	// If TRUE, the state has been read from the controller.
+	bERROR:					BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

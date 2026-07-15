@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_TIMER_STAT" Id="{00c84b12-8eb8-4f2b-aec3-e4160498c2b1}">
+    <Declaration><![CDATA[TYPE T_TIMER_STAT :
+STRUCT
+	bInitialised:	BOOL	:= FALSE;
+	bPeriodic: 		BOOL	:= FALSE;	(* If TRUE, periodic signal. Otherwise one shot. *)
+	bArmed:			BOOL	:= FALSE;
+	bActive:		BOOL	:= FALSE;
+	bBadTimeSignal: BOOL 	:= TRUE;
+
+	nLastCommand:	DINT	:= E_TIMER_COMMAND.COMMAND_TIMER_NONE;	(* Last executed command *)
+
+	nTimeActive: 	DINT 	:= 0;		(* Time output has been active [sec] *)
+	nChannel:		DINT	:= 3;		(* Channels to activate. 1-first, 2-second, 3-both *)
+
+	nPeriod:		UDINT	:= 1000;	(* Period of output pulse signal [us] *)
+	nPulseWidth:	UDINT	:= 5;		(* Pulse signal width [us or bits] *)
+	
+
+	sStartTime:		STRING(32);			(* Start UTC time string in format '2014-03-03-17:01:00.0' *)
+
+	(* Error handling status *)
+	nErrorCode: 	DINT 	:= E_TIMER_ERROR.ERROR_TIMER_NOT_INIT;	(* Error code *)
+	nStatus: 		DINT	:= E_TIMER_STATUS.STATUS_TIMER_ERROR; 	(* Lamp status *)
+
+	sErrorText: 	STRING 	:= 'NOT INITIALISED';	(* Error description, e.g. 'OK', 'WRONG TIME', etc *)
+	sStatus: 		STRING 	:= 'ERROR';				(* Status in textual form, e.g. 'ACTIVE' *)
+	
+	nCounter:		UDINT	:= 0;
+	sLibVersion:	STRING	:= 'UNKNOWN';						(* Library version, e.g. '1.2.0.0' *)
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	// IMPORTANT:	In order to access RPC Calls via OPC UA, 
+	//				attribute 'OPC.UA.DA':='1' is needed!!!
+	{attribute 'OPC.UA.DA':='1'}
+	Device001:		FB_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	Device002:		FB_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	Device003:		FB_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	Device004:		FB_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	Device005:		FB_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Device001:	FB_SIM_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Device002:	FB_SIM_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Device003:	FB_SIM_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Device004:	FB_SIM_PLCTPL;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Device005:	FB_SIM_PLCTPL;
+	
+	ptrGUI_Devices:	ARRAY [1..5] OF POINTER TO FB_PLCTPL	:= 
+		[ADR(Device001), ADR(Device002), ADR(Device003), ADR(Device004), ADR(Device005)];
+	nPtrIndex_Devices:	INT	:= 1;
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Devices
+Device001(in_sName:='Device001');
+Device002(in_sName:='Device002', in_bActiveLowOpen:=TRUE, 	in_bActiveLowClosed:=TRUE);
+Device003(in_sName:='Device003', in_bIgnoreClosed:=TRUE, 		in_bInitialState:=TRUE);
+Device004(in_sName:='Device004', in_bActiveLowSwitch:=TRUE,	in_nTimeout:=500);
+Device005(in_sName:='Device005', in_bActiveLowClosed:=TRUE);	// With PLC mappings this is a real shutter
+
+// Simulators
+SIM_Device001(ptrDev := ADR(Device001));
+SIM_Device002(ptrDev := ADR(Device002));
+SIM_Device003(ptrDev := ADR(Device003));
+SIM_Device004(ptrDev := ADR(Device004));
+SIM_Device005(ptrDev := ADR(Device005));	// With PLC mappings Device5 is linked to real HW.
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="484" Count="0" />
+      <LineId Id="473" Count="4" />
+      <LineId Id="485" Count="0" />
+      <LineId Id="483" Count="0" />
+      <LineId Id="478" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

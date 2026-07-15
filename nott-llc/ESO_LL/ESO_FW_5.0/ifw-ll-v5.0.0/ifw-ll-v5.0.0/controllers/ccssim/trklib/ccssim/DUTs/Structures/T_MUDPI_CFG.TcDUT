@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_MUDPI_CFG" Id="{ba34a113-6e0b-4b76-9937-93a1c84b842b}">
+    <Declaration><![CDATA[TYPE T_MUDPI_CFG :
+STRUCT
+	enabled : BOOL := FALSE; // True if tracking data is sent via MUDPI protocol
+	address : UDINT := 0; // Destination IP address for the data as UDINT
+	destination_port: UINT := 10000; // Destination port for the data
+	source_port: UINT := 8000; // Destination port for the data
+	topic_id: UDINT := 500;      // MUDPI Topic identity
+	component_id: UINT := 1;  // MUDPI component identity
+END_STRUCT
+END_TYPE
+
+
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

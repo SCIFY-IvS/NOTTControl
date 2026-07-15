@@ -1,0 +1,315 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_TEMPERATURE" Id="{c2de9f33-8cda-4e15-80f7-ca6a02392035}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// This FB reads temperature using up to two sensors, i.e. instances of FB_CRYO_PT100.
+// The resulting value is the temperature of the first available/valid sensor.
+// Provides status of each sensor.
+//
+FUNCTION_BLOCK FB_CRYO_TEMPERATURE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bSimulation:	BOOL	:= FALSE;	// If TRUE, the temperature value is simulated.
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nType_1:				E_CRYO_SENSOR_TYPE_TEMP	:= E_CRYO_SENSOR_TYPE_TEMP.PT100;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nType_2:				E_CRYO_SENSOR_TYPE_TEMP	:= E_CRYO_SENSOR_TYPE_TEMP.PT100;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrScale_1:			LREAL := 0.1;	// Scale factor, T = raw * scale. Default 0.1
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrScale_2:			LREAL := 0.1;	// Scale factor, T = raw * scale. Default 0.1
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bIgnoreUnderrange_1:	BOOL := TRUE;	// If True, underrange is also valid
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bIgnoreUnderrange_2:	BOOL := TRUE;	// If True, underrange is also valid
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nRampPeriodSec:		UDINT := 60;	// Ramp measurement period [sec]. Default 60 sec.
+	
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	Temperature1:	FB_CRYO_SENSOR_TEMPERATURE;
+	{attribute 'OPC.UA.DA' := '1'}
+	Temperature2:	FB_CRYO_SENSOR_TEMPERATURE;
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:			T_CRYO_TEMPERATURE_STATUS;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Get the raw reading and the status of the input channel
+M_ReadSensors();
+
+// Calculate temperatures and validity
+M_SetStatus();
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetTemperatureFromLakeshore" Id="{cd1cf260-cd6e-4201-a562-b551d4acda63}">
+      <Declaration><![CDATA[METHOD M_GetTemperatureFromLakeshore
+VAR_INPUT
+	bValid:		BOOL;	// Flag if reading is valid
+	lrTempK:	LREAL;	// Lakeshore reading in degK 
+	lrTempC:	LREAL;	// Lakeshore reading in degC 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if the temperature is coming from the simulator 
+// of the Lakeshore temperature.
+//
+// The simulator reading is always valid.
+// If the temperature is not linked to a simulator,
+// it will not be Valid since it is not mapped at all!!!
+// If simulated, Temperature1 has to be linked to the simulator.
+// Temperature2 should not be used/mapped in that case.
+//
+IF	Temperature1.stat.bValid THEN
+	// Temperature is coming from a simulator.
+	stat.bValid 		:= TRUE;
+	stat.bWarningSens1	:= FALSE;
+	stat.bWarningSens2	:= FALSE;
+	stat.lrTempK		:= Temperature1.stat.lrTempK;
+	stat.lrTempC		:= Temperature1.stat.lrTempC;
+ELSIF bValid THEN
+	// Temperature is coming from Lakeshore and is Valid.
+	stat.bValid 		:= TRUE;
+	stat.bWarningSens1	:= FALSE;
+	stat.bWarningSens2	:= FALSE;
+	stat.lrTempK		:= lrTempK;
+	stat.lrTempC		:= lrTempC;
+ELSE
+	// Temperature is coming from Lakeshore and is NOT Valid.
+	stat.bValid 		:= FALSE;
+	stat.bWarningSens1	:= TRUE;
+	stat.bWarningSens2	:= TRUE;
+	stat.lrTempK		:= 850.0;
+	stat.lrTempC		:= 850.0;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{4cf5ce1f-3d0d-498b-9e37-dbbad07b770f}">
+      <Declaration><![CDATA[// Get input channel status and the raw reading
+METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Temperature1(	in_nType				:= in_nType_1,
+				in_lrScale 				:= in_lrScale_1, 
+				in_bIgnoreUnderrange	:= in_bIgnoreUnderrange_1,
+				in_nRampPeriodSec		:= in_nRampPeriodSec);
+
+Temperature2(	in_nType				:= in_nType_2,
+				in_lrScale 				:= in_lrScale_2, 
+				in_bIgnoreUnderrange	:= in_bIgnoreUnderrange_2,
+				in_nRampPeriodSec		:= in_nRampPeriodSec);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{b60b358c-db67-4f00-a19c-020c646cff93}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// If simulated, set the simulated value and return.
+// Note: Simulated temperature is in [K] !!!
+//
+IF in_bSimulation THEN
+	stat.bSimulated	:= TRUE;
+	stat.bValid		:= TRUE;
+	stat.lrTempK	:= stat.lrSimTempK;
+	stat.lrTempC	:= stat.lrSimTempK - 273.15;
+	RETURN;
+ELSE
+	stat.bSimulated	:= FALSE;
+END_IF
+
+
+//
+// Determine validity and calculate temperature in degC and degK
+//
+IF Temperature1.stat.bValid  AND  Temperature2.stat.bValid  THEN
+	// Reading is OK.
+	stat.bValid			:= TRUE;
+	stat.bWarningSens1	:= FALSE;
+	stat.bWarningSens2	:= FALSE;
+
+	// Take the reading of the first sensor if it is not underrange
+	// or both readings are underrange.
+	IF	NOT Temperature1.stat.bInputUnder	OR
+		(Temperature1.stat.bInputUnder  AND  Temperature2.stat.bInputUnder) THEN
+		// T1 - NOT underrange  OR  both underrange
+		// Take T1
+		stat.lrRamp		:= Temperature1.stat.lrRamp;
+		stat.lrTempC	:= Temperature1.stat.lrTempC;
+		stat.lrTempK	:= Temperature1.stat.lrTempK;
+		stat.bInRange	:= NOT Temperature1.stat.bInputUnder;
+	ELSE
+		// T1 - underrange
+		// T2 - NOT underrange
+		// Take T2
+		stat.lrRamp		:= Temperature2.stat.lrRamp;
+		stat.lrTempC	:= Temperature2.stat.lrTempC;
+		stat.lrTempK	:= Temperature2.stat.lrTempK;
+		stat.bInRange	:= NOT Temperature2.stat.bInputUnder;
+	END_IF
+	
+ELSIF Temperature1.stat.bValid  AND  NOT Temperature2.stat.bValid  THEN
+	// Reading of sensor #1 is OK.
+	// However, we set a warning for sensor #2.
+	stat.bValid			:= TRUE;
+	stat.bWarningSens1	:= FALSE;
+	stat.bWarningSens2	:= TRUE;
+	// Take the reading of the first sensor
+	stat.lrRamp			:= Temperature1.stat.lrRamp;
+	stat.lrTempC		:= Temperature1.stat.lrTempC;
+	stat.lrTempK		:= Temperature1.stat.lrTempK;
+	stat.bInRange		:= NOT Temperature1.stat.bInputUnder;
+	
+ELSIF NOT Temperature1.stat.bValid  AND  Temperature2.stat.bValid  THEN
+	// Reading of sensor #1 is NOT OK.
+	// Reading of sensor #2 is OK.
+	// However, we set a warning.
+	stat.bValid			:= TRUE;
+	stat.bWarningSens1	:= TRUE;
+	stat.bWarningSens2	:= FALSE;
+	// Take the reading of the second sensor
+	stat.lrRamp			:= Temperature2.stat.lrRamp;
+	stat.lrTempC		:= Temperature2.stat.lrTempC;
+	stat.lrTempK		:= Temperature2.stat.lrTempK;
+	stat.bInRange		:= NOT Temperature2.stat.bInputUnder;
+	
+ELSE
+	// Both readings are not valid.
+	// Reading is not valid.
+	stat.bInRange		:= FALSE;
+	stat.bValid			:= FALSE;
+	stat.bWarningSens1	:= TRUE;
+	stat.bWarningSens2	:= TRUE;
+	// Readings are not valid.
+	// The value is not important.
+	// Take the value of the first sensor.
+	// It might show under/over range.
+	stat.lrRamp			:= 0.0;
+	stat.lrTempC		:= Temperature1.stat.lrTempC;
+	stat.lrTempK		:= Temperature1.stat.lrTempK;
+
+END_IF
+
+
+//
+// If the reading is valid, set the simulated value to it.
+// This way, switching from normal to simulation will result in
+// no jump in the value.
+//
+IF stat.bValid  THEN
+	stat.lrSimTempK	:= stat.lrTempK;
+END_IF
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_TEMPERATURE">
+      <LineId Id="80" Count="4" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_TEMPERATURE.M_GetTemperatureFromLakeshore">
+      <LineId Id="26" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="36" Count="1" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="39" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_TEMPERATURE.M_ReadSensors">
+      <LineId Id="22" Count="0" />
+      <LineId Id="97" Count="1" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="90" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_TEMPERATURE.M_SetStatus">
+      <LineId Id="192" Count="1" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="194" Count="4" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="199" Count="5" />
+      <LineId Id="47" Count="7" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="142" Count="1" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="145" Count="1" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="148" Count="1" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="65" Count="6" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="125" Count="1" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="134" Count="1" />
+      <LineId Id="75" Count="4" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="128" Count="1" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="81" Count="2" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="84" Count="2" />
+      <LineId Id="171" Count="3" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="131" Count="2" />
+      <LineId Id="88" Count="1" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="207" Count="8" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

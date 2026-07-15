@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_SIM_SBG232" Id="{ad3b3253-7936-47a6-8f64-4c5bb850ba6f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_SIM_SBG232
+VAR_INPUT
+	in_lrRefTemp:	LREAL := 21.0;	// Temperature reference point [°C]
+	in_lrRefFlow:	LREAL := 4.30;	// Flow reference point [L/min]
+	in_lrVarTemp:	LREAL := 2.0;	// Temperature reading variation [°C]
+	in_lrVarFlow:	LREAL := 0.1;	// Flow reading variation [L/min]
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	temp:	FB_CRYO_SIM_SINE;	// Temperature variation as sine wave
+	flow:	FB_CRYO_SIM_SINE;	// Flow variation as sine wave
+	
+	lrTemp:	LREAL;
+	lrFlow:	LREAL;
+	nWord:	WORD;
+	
+	q_nCouplerState			AT %Q*:	UINT	:= 8;
+	q_nDeviceStateInputCh	AT %Q*:	USINT	:= 3;
+	q_ArrPortProcessData	AT %Q*:	ARRAY [0..3] OF BYTE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Simulate temperature and flow variations as sinewaves
+temp(in_lrAmplitude:=in_lrVarTemp, in_nPeriod:=60000);
+flow(in_lrAmplitude:=in_lrVarFlow, in_nPeriod:=120000);
+
+// Calculate simulated values
+lrTemp	:= in_lrRefTemp + temp.out_lrValue;
+lrFlow	:= in_lrRefFlow + flow.out_lrValue;
+
+
+// Set output variables
+
+////////////////
+// Temperature
+////////////////
+
+// lrVal	:= TRUNC(256.0 * i_ArrPortProcessData[2] + i_ArrPortProcessData[3]) / 4;	// /4 = SHR(2)
+nWord	:= LREAL_TO_WORD(lrTemp	* 4);
+q_ArrPortProcessData[2]	:= UINT_TO_BYTE(16#FF AND SHR(nWord,8));
+q_ArrPortProcessData[3]	:= UINT_TO_BYTE(16#FF AND nWord);
+
+
+//////////////
+// Flow
+//////////////
+
+// lrVal	:= (256.0 * i_ArrPortProcessData[0] + i_ArrPortProcessData[1]) / 100.0;
+nWord	:= LREAL_TO_WORD(lrFlow	* 100.0);
+q_ArrPortProcessData[0]	:= UINT_TO_BYTE(16#FF AND SHR(nWord,8));
+q_ArrPortProcessData[1]	:= UINT_TO_BYTE(16#FF AND nWord);
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_CRYO_SIM_SBG232">
+      <LineId Id="24" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="45" Count="5" />
+      <LineId Id="84" Count="2" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="70" Count="4" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="27" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

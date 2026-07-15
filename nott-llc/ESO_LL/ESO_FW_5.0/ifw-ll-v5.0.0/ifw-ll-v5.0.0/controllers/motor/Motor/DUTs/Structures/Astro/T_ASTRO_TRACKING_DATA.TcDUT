@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_ASTRO_TRACKING_DATA" Id="{1fb95ffb-6545-417a-a522-86db4a51d062}">
+    <Declaration><![CDATA[TYPE T_ASTRO_TRACKING_DATA :
+STRUCT
+	alt_r   : LREAL;	// altitude [rad]
+	alt_deg : LREAL;	// altitude [deg]
+
+	az_r    : LREAL;	// azimuth [rad]
+	az_deg  : LREAL;	// azimuth [deg]
+
+	ra_hms  : LREAL;	// RA  [Hms]
+	ra_r    : LREAL;	// RA  [rad]
+	ra_deg  : LREAL;	// RA  [deg]
+
+	dec_dms : LREAL;	// Dec [Dms]
+	dec_r   : LREAL;	// Dec [rad]
+	dec_deg : LREAL;	// Dec [deg]
+
+	pa_r    : LREAL;	// parallactic angle [rad]
+	pa_deg  : LREAL;	// parallactic angle [deg]
+
+	ha_hms  : LREAL;	// hour angle [Hms]
+	ha_r    : LREAL;	// hour angle [rad]
+	ha_deg  : LREAL;	// hour angle [deg]
+
+	fr_r   	: LREAL;	// Field rotation [rad]
+	fr_deg 	: LREAL;	// Field rotation [deg]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

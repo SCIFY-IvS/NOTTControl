@@ -55,10 +55,10 @@ class wet_atmo(object):
 
     @classmethod
     def from_asgard_link(cls, asgard_link, T_name="T_tun"):
-        pres = asgard_link["conditions"]["pres"]
-        co2 = asgard_link["conditions"]["co2"]
-        rhum = asgard_link["conditions"]["rhum"]
-        temp = asgard_link["conditions"][T_name]
+        pres = asgard_link.getfloat("conditions", "pres")
+        co2 = asgard_link.getfloat("conditions", "co2")
+        rhum = asgard_link.getfloat("conditions", "rhum")
+        temp = asgard_link.getfloat("conditions", T_name)
         return cls(temp=temp, pres=pres,
                    rhum=rhum, co2=co2)
 

@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_CCS_CTRL" Id="{a9f2ef97-85d7-4876-bd2f-1844245dcaf7}">
+    <Declaration><![CDATA[TYPE T_CCS_CTRL:
+STRUCT
+	meanCoordinates: TrkMeanCoordinates;
+	environment:     TrkEnvironment;
+	motion:          TrkPolarMotion;
+	wavelength:      LREAL := 600;
+	dut:             LREAL := 0.0;
+	equinox:         LREAL := 2000.0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

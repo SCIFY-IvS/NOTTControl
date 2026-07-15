@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_UTC_TIME" Id="{4c9f7993-6638-442a-bc32-de521cf9bd61}">
+    <Declaration><![CDATA[TYPE T_UTC_TIME :
+STRUCT
+	dcTime:   ULINT;
+	mode:     DINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="F_RAD2HMS_STRING" Id="{3374b487-8b8e-44cb-908f-fe829b65cc39}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_RAD2HMS_STRING : STRING
+VAR_INPUT
+	hh:	LREAL;
+END_VAR
+VAR
+	value:		LREAL;
+	hours:		INT;
+	minutes:	INT;
+	seconds:	LREAL;
+	
+	sign:	int := 1;
+	result:	STRING := '';
+	
+	fbFormat   : FB_FormatString;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF hh < 0.0 THEN
+	sign	:= -1;
+	hh		:= -hh;
+END_IF
+
+value := hh / GCL.C_2PI * 24.0; 	// rad to hours
+
+
+hours	:= TRUNC_INT(value);
+minutes := TRUNC_INT((value - hours)*60.0);
+seconds := (value - hours - minutes/60.0)*3600.0;
+
+// We the calculation so far the value of 14.999999999 will result
+// in 14:59:60.
+// We want to correct it to 15:00:00.
+IF seconds > 59.999 THEN
+	seconds	:= 0.0;
+	minutes	:= minutes + 1;
+	IF minutes = 60 THEN
+		minutes	:= 0;
+		hours	:= hours + 1;
+	END_IF
+// Seconds should never be < 0.0. However, it happens due to rounding
+// and the value could be ~ -1.0 e-12.
+// Set it to zero in that case.
+ELSIF seconds < 0.0 THEN
+	seconds := 0.0;
+END_IF
+
+hours	:= hours * sign;	// put back the sign
+
+// format a string like "+07:01:02.123"
+fbFormat( sFormat  := '%+.2d:%.2d:%06.3f', 
+					arg1 := F_INT(hours), 
+					arg2 := F_INT(minutes), 
+					arg3 := F_LREAL(seconds),
+					sOut => result);
+					
+F_RAD2HMS_STRING	:= result;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_RAD2HMS_STRING">
+      <LineId Id="74" Count="11" />
+      <LineId Id="111" Count="9" />
+      <LineId Id="140" Count="2" />
+      <LineId Id="138" Count="1" />
+      <LineId Id="121" Count="1" />
+      <LineId Id="86" Count="9" />
+      <LineId Id="29" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

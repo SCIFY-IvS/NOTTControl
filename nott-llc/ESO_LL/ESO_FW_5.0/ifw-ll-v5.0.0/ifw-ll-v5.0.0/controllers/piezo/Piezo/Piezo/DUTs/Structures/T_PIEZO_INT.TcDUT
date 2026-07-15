@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_PIEZO_INT" Id="{d466b417-21a1-4311-b74e-14ef8771da73}">
+    <Declaration><![CDATA[TYPE T_PIEZO_INT :
+STRUCT
+	nValue:	INT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_CRYO_EVAC_MICADO" Id="{a99483db-df13-47b7-aaaa-34ce518a2c72}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_EVAC_MICADO EXTENDS FB_CRYO_EVAC_BASE_50000
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Specify pumps
+	rp:	FB_CRYO_PUMP_ECODRY;	// Roughing Pump
+	tp:	FB_CRYO_PUMP_ATH2303M;	// Turbomolecular Pump
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();	// Execute base FB code.
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{e240d503-1f81-4324-a054-3f25dad37d90}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Specific MICADO configuration.
+//
+IF NOT stat.bConfigured	THEN
+	//
+	// MANDATORY !!!
+	// Call base FB::M_Configure() to set the pointers.
+	//
+	SUPER^.M_Configure();
+	
+
+	// MANDATORY: Set References for pumps!!!
+	// If not done, system will crash !!!
+	rpRef	REF=rp;
+	tpRef	REF=tp;
+	
+
+	// Specific instance configuration, e.g. anything different
+	// from the default values given in the cfg structure of type T_CRYO_EVAC_CFG_50000.
+	cfg.nType_VAG1	:= E_CRYO_SENSOR_TYPE_PRESS.WRG_D_NW25;
+	cfg.nType_VAG2	:= E_CRYO_SENSOR_TYPE_PRESS.WRG_D_NW25;
+	cfg.nType_VAG3	:= E_CRYO_SENSOR_TYPE_PRESS.WRG_D_NW25;
+	cfg.nType_VAGF1	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250;
+	cfg.nType_VAGF2	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250;
+	cfg.nType_VAGG1	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250;
+	cfg.nType_VAGG2	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250;
+
+
+	stat.bConfigured	:= TRUE;
+ELSE
+	RETURN;	// Nothing to do any more
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteControllers" Id="{e878eb99-7991-4d49-a3ed-85ab05c10992}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Specific MICADO Evacuation System HW configuration.
+//
+
+// Roughing Pump	
+rp(	
+	in_bSimulation	:= FALSE,
+	in_sName		:= 'ECODRY V01',
+	in_bEnable		:= ctrl.bEnable_PVP,
+	in_nSlaveID		:= 31,
+	in_sVersion		:= 'V01',
+	in_nPeriod		:= 2000);
+
+// Turbo Molecular Pump
+tp(	
+	in_bSimulation	:= FALSE,
+	in_sName		:= 'ATH2303M',
+	in_bEnable		:= ctrl.bEnable_TMP,
+	in_nModel		:= 2303,
+	in_bAutoMonitor	:= TRUE,
+	in_nPeriod		:= 2000);
+
+// Valves are controlled in the base FB
+SUPER^.M_ExecuteControllers();
+
+		
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_EVAC_MICADO">
+      <LineId Id="9" Count="0" />
+      <LineId Id="145" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_MICADO.M_Configure">
+      <LineId Id="25" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="46" Count="5" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_MICADO.M_ExecuteControllers">
+      <LineId Id="32" Count="1" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="46" Count="8" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="7" Count="4" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -82,6 +82,7 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     // ptUserData->nBytesMin       = 1024 * 1024;
     ptUserData->nBytesMax = UINT_MAX;    // Maximum number of total bytes allowed for mem allocation
     ptUserData->bUseSciDataFunc = false; // Use MACIE_ReadUSBScienceData() or MACIE_ReadUSBFrameData()?
+    ptUserData->bScienceInterfaceOpen = false;
 
     ptUserData->bSaveData = false;
     ptUserData->uiFileNum = 0;
@@ -1263,6 +1264,112 @@ double MemBufferFrac(MACIE_Settings *ptUserData)
     return ((double)MACIE_AvailableScienceData(ptUserData->handle)) / nbytes_buf;
 }
 
+static int acquire_trigger_timeout_ms(MACIE_Settings *ptUserData, int nframes_save)
+{
+    double frametime_ms = ptUserData->frametime_ms;
+    double ramptime_ms = ptUserData->ramptime_ms;
+    int timeout = (int)(ramptime_ms + nframes_save * frametime_ms + 2 * frametime_ms + 100);
+
+    if (ptUserData->connection == MACIE_GigE)
+    {
+        // GigE delivery often lags ASIC clocking; USB-sized timeouts are too tight.
+        int gige_timeout = (int)(ramptime_ms + nframes_save * (frametime_ms + 2000.0) + 5000.0);
+        if (gige_timeout > timeout)
+            timeout = gige_timeout;
+    }
+
+    return timeout;
+}
+
+static int frame_fill_timeout_ms(MACIE_Settings *ptUserData, long nbytes_frm,
+                                 int triggerTimeout, long frame_index)
+{
+    int timeout = triggerTimeout + (int)(frame_index * ptUserData->frametime_ms * 2.0);
+
+    if (ptUserData->connection == MACIE_GigE)
+    {
+        int nbytes_timeout = (int)(nbytes_frm / 500.0) + (int)(ptUserData->frametime_ms + 2000.0);
+        if (nbytes_timeout > timeout)
+            timeout = nbytes_timeout;
+    }
+
+    return timeout;
+}
+
+static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_target,
+                                   int wait_delta, int timeout_ms, long *nbytes_out)
+{
+    int wait_total = 0;
+    long nbytes = 0;
+
+    while (wait_total <= timeout_ms)
+    {
+        if (ptUserData->offline_develop)
+            nbytes = nbytes_target;
+        else
+            nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+
+        if (nbytes >= nbytes_target)
+        {
+            if (nbytes_out != NULL)
+                *nbytes_out = nbytes;
+            return true;
+        }
+
+        delay(wait_delta);
+        wait_total += wait_delta;
+    }
+
+    if (ptUserData->offline_develop == false)
+        nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+    if (nbytes_out != NULL)
+        *nbytes_out = nbytes;
+    return nbytes >= nbytes_target;
+}
+
+static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
+{
+    if (ptUserData->offline_develop)
+        return true;
+
+    for (int attempt = 0; attempt < 2; ++attempt)
+    {
+        unsigned int regval = 0;
+        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
+
+        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+            return false;
+        }
+        if (regval == 0)
+            return true;
+
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "ASIC h6900<5:0>=0x%04x before acquire; halting (attempt %i)\n",
+                       regval, attempt + 1);
+        HaltCameraAcq(ptUserData);
+        CloseScienceInterface(ptUserData);
+        delay(300);
+    }
+
+    unsigned int regval = 0;
+    regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
+    if (ReadASICBits(ptUserData, &regComp, &regval) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+        return false;
+    }
+    if (regval != 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "ASIC still busy after halt: h6900<5:0>=0x%04x\n", regval);
+        return false;
+    }
+
+    return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief AcquireDataUSB Trigger the ASIC to start acquiring data.
 ///  First configure science USB data interface then trigger exposure acquisition.
@@ -1321,27 +1428,13 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
     }
 
-    // Make sure h6900<0> is 0 before triggering acquisition.
-    // For USB, this must be done before configuring interface,
-    // because USB interface's data read and command read share
-    // the same USB pipe.
-    if (ptUserData->offline_develop == false)
-    {
-        unsigned int regval = 0;
-
-        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
-        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
-            return false;
-        }
-        if (regval != 0)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed with h6900<5:0> = 0x%04x\n", regval);
-            return false;
-        }
-    }
+    if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
+        return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
+
+    // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+    CloseScienceInterface(ptUserData);
+    delay(100);
 
     // Set up USB3 science data interface for image acquisition.
     // MACIE_CloseUSBScienceInterface needs to be called before we
@@ -1357,7 +1450,9 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         {
             if (MACIE_ConfigureUSBScienceInterface(handle, slctMACIEs, data_mode, buffsize, nbuf) != MACIE_OK)
             {
-                verbose_printf(LOG_ERROR, ptUserData, "Science interface configuration failed.\n");
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Science interface configuration failed: %s\n",
+                               MACIE_Error());
                 return false;
             }
         }
@@ -1372,6 +1467,7 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         }
     }
     verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
+    ptUserData->bScienceInterfaceOpen = true;
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1489,59 +1585,56 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
     }
 
-    // Make sure h6900<0> is 0 before triggering acquisition.
-    // For USB, this must be done before configuring interface,
-    // because USB interface's data read and command read share
-    // the same USB pipe.
-    if (ptUserData->offline_develop == false)
-    {
-        unsigned int regval = 0;
-
-        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
-        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
-            return false;
-        }
-        if (regval != 0)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed with h6900<5:0> = 0x%04x\n", regval);
-            return false;
-        }
-    }
+    if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
+        return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
-    // Set up USB3 science data interface for image acquisition.
-    // MACIE_CloseUSBScienceInterface needs to be called before we
-    // can use any read functions again (e.g., MACIE_ReadASICReg).
+    // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+    CloseScienceInterface(ptUserData);
+    delay(100);
+
+    // Set up GigE science data interface for image acquisition.
     verbose_printf(LOG_INFO, ptUserData, "Configuring science interface...\n");
     verbose_printf(LOG_INFO, ptUserData, "  nbuf = %i\n", nbuf);
     verbose_printf(LOG_INFO, ptUserData, "  buffsize = %i pixels\n", buffsize);
     if (ptUserData->offline_develop == false)
     {
-        // Give a slight delay before opening USB interface
-        delay(100);
-        try
+        bool configured = false;
+        for (int attempt = 0; attempt < 2; ++attempt)
         {
-            int bufferSize;
-            int remotePort = 42037; //TODO:verify
-            if(MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) != MACIE_OK)
+            delay(100);
+            try
             {
-                verbose_printf(LOG_ERROR, ptUserData, "Science interface configuration failed.\n");
-                return false;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            verbose_printf(LOG_ERROR, ptUserData,
-                           "Caught exception at %s during AcquireDataGigE().\n",
-                           __func__);
-            std::cerr << e.what() << '\n';
+                int bufferSize;
+                int remotePort = 42037; //TODO:verify
+                if (MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) == MACIE_OK)
+                {
+                    configured = true;
+                    break;
+                }
 
-            return false;
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Science interface configuration failed (attempt %i): %s\n",
+                               attempt + 1, MACIE_Error());
+            }
+            catch (const std::exception &e)
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Caught exception at %s during AcquireDataGigE() (attempt %i).\n",
+                               __func__, attempt + 1);
+                std::cerr << e.what() << '\n';
+            }
+
+            HaltCameraAcq(ptUserData);
+            CloseScienceInterface(ptUserData);
+            delay(500);
         }
+
+        if (configured == false)
+            return false;
     }
     verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
+    ptUserData->bScienceInterfaceOpen = true;
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1679,6 +1772,7 @@ bool CloseUSBScienceInterface(MACIE_Settings *ptUserData)
     }
     // Set burst stripe to idle in full frame
     burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
 
     return true;
 }
@@ -1700,8 +1794,26 @@ bool CloseGigEScienceInterface(MACIE_Settings *ptUserData)
     }
     // Set burst stripe to idle in full frame
     burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \brief CloseScienceInterface Close the active science data interface, if open.
+/// \param ptUserData The user-set structure containing all the hardware parameters.
+bool CloseScienceInterface(MACIE_Settings *ptUserData)
+{
+    if (ptUserData->bScienceInterfaceOpen == false)
+    {
+        verbose_printf(LOG_INFO, ptUserData, "Science interface not open; skipping close.\n");
+        return true;
+    }
+
+    if (ptUserData->connection == MACIE_USB)
+        return CloseUSBScienceInterface(ptUserData);
+
+    return CloseGigEScienceInterface(ptUserData);
 }
 
 bool HaltCameraAcq(MACIE_Settings *ptUserData)
@@ -1774,11 +1886,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     // Frame and Ramp times
     double frametime_ms = ptUserData->frametime_ms;
-    double ramptime_ms = ptUserData->ramptime_ms;
     // Calculate a timeout to wait for data.
     // Assume full frame idle time
     // Timeout setting while waiting for data download to trigger
-    int triggerTimeout = int(ramptime_ms + 2 * frametime_ms + 100);
+    int triggerTimeout = acquire_trigger_timeout_ms(ptUserData, nframes_ramp);
     // unsigned int nout = ASIC_NumOutputs(ptUserData, true);
     // unsigned int ff_time_pix = ptUserData->uiDetectorHeight * ptUserData->uiDetectorWidth / nout;
     // double ff_time_ms  = (double) ff_time_pix / ptUserData->pixelRate;
@@ -2040,96 +2151,37 @@ bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], l
                            long nframes_save, int triggerTimeout, int wait_delta)
 {
 
-    long nbytes = 0;
     long nbytes_frm = framesize * 2; // 16 bits = 2 bytes
 
     verbose_printf(LOG_DEBUG, ptUserData, "triggerTimeout = %i, wait_delta:%i\n", triggerTimeout, wait_delta);
-    // unsigned short dltimeout = (ptUserData->DetectorMode==CAMERA_MODE_SLOW) ? 6500 : 1500;
-    int wait_total = 0;
-
-    // Delay the larger of 1 second or 1 frame time to see if rest comes down
-    int delay_time = 1000;
-    int frame_time_ms = (int)ptUserData->frametime_ms;
-    if (delay_time < frame_time_ms)
-        delay_time = frame_time_ms;
 
     // Download timeout
     unsigned short dltimeout = (ushort)ptUserData->ramptime_ms;
+    if (ptUserData->connection == MACIE_GigE && triggerTimeout > (int)dltimeout)
+        dltimeout = (ushort)triggerTimeout;
 
     timestamp_t t;
     double time_taken = 0;
     for (long i = 0; i < nframes_save; ++i)
     {
         verbose_printf(LOG_DEBUG, ptUserData, "  Frame %li of %li\n", i + 1, nframes_save);
-        nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        wait_total = 0;
+        int frame_timeout = frame_fill_timeout_ms(ptUserData, nbytes_frm, triggerTimeout, i);
+        long nbytes = 0;
 
-        // Poll available science data
-        // When any amount of data shows up, break out and call the d/l function
-        // Timeout if no data after triggertimout is reached
-        while (nbytes <= 0)
+        if (wait_for_science_bytes(ptUserData, nbytes_frm, wait_delta, frame_timeout, &nbytes) == false)
         {
-            // Delay for some time
-            delay(wait_delta);
-            wait_total += wait_delta;
-
-            // Check to see if data has shown up on port yet
-            if (ptUserData->offline_develop == true)
-                nbytes = nbytes_frm;
-            else
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-
-            verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
-
-            // Return false if we've reached time limit but haven't gotten all the bytes
-            if (wait_total > triggerTimeout)
-            {
-                verbose_printf(LOG_ERROR, ptUserData, "Trigger timeout limit of %i ms reached at: %s\n",
-                               triggerTimeout, __func__);
-                verbose_printf(LOG_ERROR, ptUserData, "  Frame %li of %li.\n", i + 1, nframes_save);
-                verbose_printf(LOG_ERROR, ptUserData, "  Expecting %li bytes. Only %li bytes available in %i ms.\n",
-                               nbytes_frm, nbytes, wait_total);
-
-                // Delay the larger of 1 second or 1 frame time to see if rest comes down
-                verbose_printf(LOG_ERROR, ptUserData, "  Delaying %i msec more...\n", delay_time);
-                delay(delay_time);
-
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-                verbose_printf(LOG_WARNING, ptUserData, "  After delay, nbytes available: %li\n", nbytes);
-                if (nbytes < nbytes_frm)
-                {
-                    verbose_printf(LOG_ERROR, ptUserData, "  Returning...\n");
-                    return false;
-                }
-                else
-                {
-                    verbose_printf(LOG_ERROR, ptUserData, "  Continuing...\n");
-                    break;
-                }
-            }
+            verbose_printf(LOG_ERROR, ptUserData, "Trigger timeout limit of %i ms reached at: %s\n",
+                           frame_timeout, __func__);
+            verbose_printf(LOG_ERROR, ptUserData, "  Frame %li of %li.\n", i + 1, nframes_save);
+            verbose_printf(LOG_ERROR, ptUserData, "  Expecting %li bytes. Only %li bytes available.\n",
+                           nbytes_frm, nbytes);
+            return false;
         }
 
-        if (get_verbose(ptUserData) == LOG_DEBUG)
-        {
-            wait_total = 0;
-            while (wait_total < delay_time)
-            {
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-                verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
-
-                delay(wait_delta);
-                wait_total += wait_delta;
-
-                if (nbytes >= nbytes_frm)
-                    break;
-            }
-            nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        }
-        verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
+        verbose_printf(LOG_DEBUG, ptUserData, "  nbytes ready: %li\n", nbytes);
 
         // Download a frame into pData buffer
         t = get_timestamp();
-        // if (DownloadDataUSB(ptUserData, &pData[i*framesize], framesize, dltimeout)==false)
         if (DownloadFrameUSB(ptUserData, &pData[i * framesize], framesize, dltimeout) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "DownloadFrameUSB failed at %s\n", __func__);
@@ -2144,8 +2196,8 @@ bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], l
         t = get_timestamp() - t;
         time_taken = t / 1000.0L;
 
-        verbose_printf(LOG_DEBUG, ptUserData, "  Frame dl time: %.0f ms (wait_total: %i ms, nbytes: %li)\n",
-                       time_taken, wait_total, nbytes);
+        verbose_printf(LOG_DEBUG, ptUserData, "  Frame dl time: %.0f ms (frame_timeout: %i ms, nbytes: %li)\n",
+                       time_taken, frame_timeout, nbytes);
     }
     return true;
 }
@@ -3817,6 +3869,17 @@ bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
     return true;
 }
 
+void load_exposure_settings(MACIE_Settings *ptUserData, bool &bSave,
+                           uint &ncoadds, uint &nsaved_ramps, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets)
+{
+    bSave = ptUserData->bSaveData;
+    ncoadds = ASIC_NCoadds(ptUserData, false, 0);
+    nsaved_ramps = ASIC_NSaves(ptUserData, false, 0);
+    ngroups = ASIC_NGroups(ptUserData, false, 0);
+    nreads = ASIC_NReads(ptUserData, false, 0);
+    ndrops = ASIC_NDrops(ptUserData, false, 0);
+    nresets = ASIC_NResets(ptUserData, false, 0);
+}
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief set_frame_settings Set the window and stripe frame sizes.
 /// \param ptUserData The user-set structure containing the hardware parameters.
@@ -3952,6 +4015,18 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
 
     return true;
+}
+
+extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
+    uint &x1, uint &x2, uint &y1, uint &y2)
+{
+    bVertWin = ASIC_WinVert(ptUserData, false, 0);
+    bHorzWin = ASIC_WinHorz(ptUserData, false, 0);
+
+    x1 = ASIC_getX1(ptUserData);
+    x2 = ASIC_getX2(ptUserData);
+    y1 = ASIC_getY1(ptUserData);
+    y2 = ASIC_getY2(ptUserData);
 }
 
 // Subarray mode might not exist in certain microcodes.

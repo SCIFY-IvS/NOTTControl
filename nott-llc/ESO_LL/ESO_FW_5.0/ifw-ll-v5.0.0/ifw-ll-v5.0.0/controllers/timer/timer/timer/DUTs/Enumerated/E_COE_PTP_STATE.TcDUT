@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_COE_PTP_STATE" Id="{7f82ead7-229e-445c-88f5-4898f7366c67}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_COE_PTP_STATE :
+(   
+	UNKNOWN := -1,
+	LISTENING := 4,
+	SLAVE := 9
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

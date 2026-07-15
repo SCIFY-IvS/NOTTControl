@@ -53,9 +53,8 @@ class DelayLine(Motor):
 
     @property
     def is_standing(self):
-        # Motor sStatus == 'STANDING'?
-        return (self.getStatusInformation()[0] == 'STANDING')\
-                or (self.getStatusInformation()[0] == 'Motor stopped - STANDING')
+        status = self.getStatusInformation()[0]
+        return status == 'STANDING' or status == 'Motor stopped - STANDING'
 
     def await_motor(self, dt=0.1, timeout=30., initial=None, verbose=True):
         if self.is_standing:

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_RS_COMM_CFG" Id="{68d82a63-28f2-4a8f-8771-33e853a2948c}">
+    <Declaration><![CDATA[TYPE T_RS_COMM_CFG :
+STRUCT
+
+	sCmdSuffix:		STRING(16) := '$0D$0A';	(* Terminator for command *)
+	sReplySuffix:	STRING(16) := '$0D$0A';	(* Terminator for reply *)
+
+	nTimeout:		DINT := 3000;			(* Timeout on command reply. ALWAYS use ms for time !!! *)
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_SIM_SIGNAL_REAL" Id="{40c3e4b3-d3b2-452d-99e1-e3879277f7b8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_SIGNAL_REAL
+VAR_INPUT
+	// q_nSignal = sin() * in_nScale + in_nOffset
+	// in_nPeriod [ms] corresponds to 2PI angle
+	in_nPeriod:	DINT	:= 10000;	// Period [ms] for signal to go 0-max-0
+	in_nScale:	LREAL 	:= 1.0;		// Scale of the output
+	in_nOffset:	LREAL 	:= 0;		// Offset of the output
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	q_rSignal	AT %Q*:	REAL;			//	Simulated output signal to be linked to analog sensor input of type REAL
+	
+	timer:			TON;				// Timer ET and PT used for 'angle' for sin(). Angle = ET / PT * 2PI
+	initialised:	BOOL := FALSE;		// Used to start timer for the first time
+END_VAR
+VAR_TEMP
+	t1:	LREAL;
+	t2:	LREAL;
+	t3:	LREAL;
+	t4:	LREAL;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT initialised THEN
+	initialised := TRUE;
+	
+	// Start timer for signal=FALSE
+	timer(IN:=FALSE);
+	timer(IN:=TRUE, PT:=DINT_TO_TIME(in_nPeriod));
+	RETURN;
+END_IF
+
+// Execute timer
+// The timer is actually used just for the 'angle' for the sin().
+// Angle = ET / PT * 2PI
+timer();
+
+// If the timer expired, just restart it
+IF timer.Q THEN
+		timer(IN:=FALSE);
+		timer(IN:=TRUE, PT:=DINT_TO_TIME(in_nPeriod));
+END_IF
+
+// Set the output
+t1	:= TIME_TO_LREAL(timer.ET);
+t2	:= TIME_TO_LREAL(timer.PT);
+t3	:= t1 / t2 * 2 * 3.14;
+t4	:= in_nScale * SIN(t3);
+q_rSignal := LREAL_TO_REAL(in_nOffset + t4);
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SIM_SIGNAL_REAL">
+      <LineId Id="75" Count="25" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

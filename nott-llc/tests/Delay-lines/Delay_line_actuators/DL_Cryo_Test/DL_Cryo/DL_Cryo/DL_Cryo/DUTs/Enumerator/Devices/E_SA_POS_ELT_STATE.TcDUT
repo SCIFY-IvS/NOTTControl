@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_SA_POS_ELT_STATE" Id="{7b733bd9-d739-4890-a4fa-f781cf24ac8b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_SA_POS_ELT_STATE :
+(
+	NONE	:= 0,
+	NOTOP,
+	OP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

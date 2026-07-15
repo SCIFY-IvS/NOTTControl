@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="MAIN" Id="{4e85b569-c316-4f2d-ac6b-3e20253d8a12}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	// Lamp instances
+	{attribute 'OPC.UA.DA':='1'}
+	Lamp001:		FB_LAMP;	
+	{attribute 'OPC.UA.DA':='1'}
+	Lamp002:		FB_LAMP;	
+	
+	// Simulators
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Lamp001:	FB_SIM_LAMP;
+	{attribute 'OPC.UA.DA':='1'}
+	SIM_Lamp002:	FB_SIM_LAMP;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Lamp001(in_sName:='Lamp001', in_nTimeout:=5000);
+Lamp002(in_sName:='Lamp002', in_nTimeout:=3000, in_nCooldown:=5, in_nMaxOn:=30);
+
+SIM_Lamp001(ptrDev:=ADR(Lamp001));
+SIM_Lamp002(ptrDev:=ADR(Lamp002));
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="74" Count="0" />
+      <LineId Id="77" Count="2" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

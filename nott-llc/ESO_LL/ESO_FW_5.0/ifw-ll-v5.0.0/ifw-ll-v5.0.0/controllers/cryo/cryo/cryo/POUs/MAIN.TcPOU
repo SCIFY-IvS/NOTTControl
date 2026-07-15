@@ -1,0 +1,417 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="MAIN" Id="{36fce627-e1b4-42bd-9466-39104b588bce}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	Cryo_Ctrl:	FB_CRYO_CTRL;
+	
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	SIM_Cryo_Ctrl:	FB_CRYO_SIM_CTRL;
+	
+	//
+	// Pressure voting system testing
+	//
+	P1_1:	FB_CRYO_SENSOR_PRESSURE;
+	P1_2:	FB_CRYO_SENSOR_PRESSURE;
+	P1_3:	FB_CRYO_SENSOR_PRESSURE;
+	P1_4:	FB_CRYO_SENSOR_PRESSURE;
+	P1_5:	FB_CRYO_SENSOR_PRESSURE;
+	P1:		FB_CRYO_PRESSURE_VOTE;	// Voting of P1_1..P1_5
+
+	nVoteMethod:		E_CRYO_VOTE	:=E_CRYO_VOTE.V_3oo5;
+	bP1_Sim:			BOOL := FALSE;
+	SIM_Pressure_P1:	FB_CRYO_SIM_PRESSURE;		// P1 Pressure simulator
+	pressOR_P1:			FB_CRYO_CMD_OVERRIDE;
+
+	////////////////////////////
+	// Temperature testing
+	//
+	T1:		FB_CRYO_SENSOR_TEMPERATURE;
+	T2:		FB_CRYO_TEMPERATURE;
+	nRampPeriodSec:		UDINT := 60;	// Ramp measurement period [sec]. Default 60 sec.
+	tempOR_T2:	FB_CRYO_CMD_OVERRIDE;
+	simT2:		BOOL;
+	////////////////////////////
+	
+	
+	//////////////////////////////////////////////////////////////////
+	
+	//
+	// Threshold testing
+	//
+	thld1:		FB_CRYO_THLD_BASE;	// Threshold handling
+	
+	// Threshold levels in format
+	// [<alarm low>, <warning low>, <warning high>, <alarm high>]
+	aThlds:		ARRAY [1..4] OF LREAL	:= [-80.0, -60.0, 40.0, 80.0];
+	aThldDelay:	ARRAY [1..4] OF UDINT	:= [1000, 0, 2000, 0];
+	nThldMode:	E_CRYO_THLD_MODE := E_CRYO_THLD_MODE.FIXED;	// Threshold check mode
+	lrHyst:		LREAL	:= 10.0;	// Threshold hysteresis
+	lrThldRef:	LREAL	:= 0.0;		// Threshold reference for User defined active thresholds
+	
+	SIM_thld1:	FB_CRYO_SIM_SINE;	// Simulated signal for threshold testing
+	SIM_thld2:	FB_CRYO_SIM_SINE;	// Simulated signal for threshold testing
+	nSimPer1:	UDINT := 60000;		// Period [ms] of simulated sine curve #1
+	nSimPer2:	UDINT := 16000;		// Period [ms] of simulated sine curve #2
+	
+	/////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////
+
+	///////////////////
+	// Lakeshore 336
+	///////////////////
+	// Lakeshore 336 (Ethernet interface)
+	{attribute 'OPC.UA.DA' := '1'}
+	LS336_TCP:		FB_LAKESHORE_TCP;		// LakeShore based on FB_TCP_CLIENT
+
+
+
+///////////////////////////////////////////////////////////////////
+// Pumps and evacuations
+///////////////////////////////////////////////////////////////////
+	
+	evac_pds:	FB_CRYO_EVAC_PDS;
+
+	evac_lab:	FB_CRYO_EVAC_ECODRY_ATH2303M;	
+	
+	evac_micado:	FB_CRYO_EVAC_MICADO;
+
+	// Cryostat pressure (sensor and evaluation)
+	cryo_lab_press1:	FB_CRYO_SENSOR_PRESSURE;	// Cryostat pressure gauge #1
+	cryo_lab_pressure:	FB_CRYO_PRESSURE_VOTE;		// Cryostat pressure 
+	
+	// Flags to control start/stop of pumps
+	bEnable_evac_pds:	BOOL;
+	bEnable_evac_lab:	BOOL;
+	bEnable_evac_mic:	BOOL;
+	
+	// Simulation flags
+	bSim_cryo_lab_pressure:	BOOL;
+	
+	
+	//////////////////////////////
+	// SUNPOWER Cryotel GT Cooler
+	//////////////////////////////
+	cooler:			FB_CRYO_CRYOTELGT;
+	bEnable_cooler:	BOOL;
+	
+	
+	///////////////////
+	// MICADO
+	///////////////////
+	sensor_VAGF1:	FB_CRYO_SENSOR_PRESSURE;	// Cryo pressure gauge VAG F1
+	sensor_VAGF2:	FB_CRYO_SENSOR_PRESSURE;	// Cryo pressure gauge VAG F2
+	sensor_VAGG1:	FB_CRYO_SENSOR_PRESSURE;	// Cryo pressure gauge VAG G1
+	sensor_VAGG2:	FB_CRYO_SENSOR_PRESSURE;	// Cryo pressure gauge VAG G2
+	VAGF:	FB_CRYO_PRESSURE_VOTE;				// Cryo pressure F
+	VAGG:	FB_CRYO_PRESSURE_VOTE;				// Cryo pressure G
+
+	// Valve Command handling
+	cmdPVV1:	FB_CRYO_ACTUATOR_CMD;
+	bCmdPVV1:	BOOL;	// Open/Close command for PVV1
+	bIntlkPVV1:	BOOL;	// Interlock for PVV1
+	
+	///////////////////
+	// Simulation
+	/////////////////
+	
+	mic_valves:	FB_SIM_MICADO_VALVES;
+	mic_pumps:	FB_SIM_MICADO_PUMPS;
+	
+	// Pressure values
+	q_nVAG1		AT %Q*:	INT := 30000;
+	q_nVAG2		AT %Q*:	INT := 30000;
+	q_nVAG3		AT %Q*:	INT := 30000;
+	q_nVAGF1	AT %Q*:	INT := 30000;
+	q_nVAGF2	AT %Q*:	INT := 30000;
+	q_nVAGG1	AT %Q*:	INT := 30000;
+	q_nVAGG2	AT %Q*:	INT := 30000;
+	
+	// Used for simulated toggle signal
+	pSim:	FB_CRYO_SIM_PRESSURE;
+	
+	q_nCouplerState	AT %Q*:	INT := 8;
+	
+	///////////////////////
+	// Pressure Ramp Test
+	///////////////////////
+	SIM_P1:		FB_CRYO_SIM_PRESSURE;
+	bStartRamp:	BOOL;
+	
+	// Actuator test
+	actuator:	FB_CRYO_BIN_ACT;
+	
+	// FB_CRYO_ACTUATOR_CMD test
+	Valve1:		FB_CRYO_VALVE_CTRL;		// No override possible
+	Valve2:		FB_CRYO_VALVE_CTRL;		// Override possible
+	cmdValve2:	FB_CRYO_ACTUATOR_CMD;	// Handling of Valve2 command
+	// System commands for Valve1 and Valve2
+	bEnable_Valve1:	BOOL;
+	bEnable_Valve2:	BOOL;
+	
+	// FB_CRYO_CMD_OVERRIDE test
+	cmdOverrideTest:	FB_CRYO_CMD_OVERRIDE;
+	bEnable_OverrideTest:	BOOL;
+
+	//////////////////////////////
+	// Testing FB_CRYO_LN2_PRECOOL
+	//////////////////////////////
+	ln2_ctrl:			FB_CRYO_LN2_PRECOOL;	// LN2 controller
+	SIM_ln2:			FB_SIM_LN2_PRECOOL;		// LN2 temperature simulator
+	bEnable_ln2_ctrl:	BOOL;					// Flag to activate/deactivate LN2 controller
+	
+	/////////////////////////////////////////////
+	// Testing IO-Link FB_CRYO_SBG232 Flowmeter
+	/////////////////////////////////////////////
+	
+	sbg232:		FB_CRYO_SBG232;
+	sbg232_sim:	FB_CRYO_SBG232;
+	
+	SIM_sbg232:	FB_CRYO_SIM_SBG232;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[	
+Cryo_Ctrl();
+
+SIM_Cryo_Ctrl(in_ptr_Cryo_Ctrl:=ADR(Cryo_Ctrl));
+
+
+//
+// Pressure voting system testing
+//
+SIM_Pressure_P1(in_nType:=E_CRYO_SENSOR_TYPE_PRESS.PKR_360);
+
+
+// Measuring point P1 - five sensors
+P1_1(in_nType:=E_CRYO_SENSOR_TYPE_PRESS.PKR_360, in_nSampleTime:=100);
+P1_2(in_nType:=E_CRYO_SENSOR_TYPE_PRESS.PKR_360, in_nSampleTime:=100);
+P1_3(in_nType:=E_CRYO_SENSOR_TYPE_PRESS.PKR_360, in_nSampleTime:=100);
+P1_4(in_nType:=E_CRYO_SENSOR_TYPE_PRESS.PKR_360, in_nSampleTime:=100);
+P1_5(in_nType:=E_CRYO_SENSOR_TYPE_PRESS.PKR_360, in_nSampleTime:=100);
+
+pressOR_P1(in_bEnable:=bP1_Sim);	// Override of simulation flag
+P1(	in_bSimulation	:= pressOR_P1.out_bEnable,
+	in_nNumSensor	:= 5, 
+	in_nVoteMethod	:= nVoteMethod,
+	in_pSensor1		:= ADR(P1_1),
+	in_pSensor2		:= ADR(P1_2),
+	in_pSensor3		:= ADR(P1_3),
+	in_pSensor4		:= ADR(P1_4),
+	in_pSensor5		:= ADR(P1_5));
+
+	
+//
+// Temperature testing
+//
+T1(in_nRampPeriodSec:=nRampPeriodSec);
+tempOR_T2(in_bEnable:=simT2);
+T2(in_bSimulation:=tempOR_T2.out_bEnable);
+
+
+//
+// Threshold testing
+//
+// Simulated sensor value is the combination of two 
+// sine wave curves with different period and amplitude.
+SIM_thld1(in_lrAmplitude := 95.0, in_nPeriod := nSimPer1);
+SIM_thld2(in_lrAmplitude := 20.0, in_nPeriod := nSimPer2);
+
+// Threshold instance
+// in_lrValue is the sum of two curves.
+thld1(
+	in_nMode		:= nThldMode,
+	in_aThld		:= aThlds,
+	in_aThldDelay	:= aThldDelay,
+	in_lrHyst 		:= lrHyst,
+	in_lrValue 		:= SIM_thld1.out_lrValue + SIM_thld2.out_lrValue,
+	in_lrPar1		:= lrThldRef);
+
+
+///////////////////
+// Lakeshore 336
+///////////////////
+LS336_TCP(	in_sName			:= 'LS336_TCP',		// Device name
+			in_bSimulation		:= FALSE,			// Device simulation
+			in_bAutoMonitor		:= TRUE,			// Go to OPERATIONAL, a MUST!
+			in_nModel			:= 336,				// Model number
+			in_nPeriod			:= 1000,			// Update period [ms]
+			in_sCmdSuffix		:= '$0A',			// Command suffix LF
+			in_sReplySuffix		:= '$0A',			// Reply suffix LF
+			in_sDeviceTcpIpAdr	:= '192.168.0.80', 	// Lakeshore IP address
+			in_nDeviceTcpPort	:= 7777);			// Lakeshore port
+
+(*
+// Configure Lakeshore for Warmup.
+// To be executed only once at the start of the warmup.
+LS336_TCP.M_RampEnable(
+	in_nPID_A_P			:= 10, 
+	in_nPID_A_I			:= 50, 
+	in_nPID_A_D			:= 20, 
+	in_nHeater_Range	:= 4, 
+	in_lrCtrlRamp		:= 1.0, 	// 1.0 deg/min
+	in_lrSetpoint_A		:= 293.15);	// 20 deg Celsius
+*)			
+	
+	
+///////////////////////////////////////////////////////////////////
+// Pumps code
+///////////////////////////////////////////////////////////////////
+// Handle ELT Cryo Lab Cryostat pressure
+cryo_lab_press1(in_nType := E_CRYO_SENSOR_TYPE_PRESS.PKR_250, in_nSampleTime := 100);
+cryo_lab_pressure(
+	in_bSimulation	:= bSim_cryo_lab_pressure,
+	in_nNumSensor	:= 2,	// In reality, there is only one pressure sensor connected
+	in_nVoteMethod	:= E_CRYO_VOTE.V_1oo2,
+	in_pSensor1		:= ADR(cryo_lab_press1));
+
+
+
+// Evacuation system for the PDS IR Imager
+evac_pds(in_bEnable	:= bEnable_evac_pds);
+
+// Evacuation system in the ELT Cryo Lab
+evac_lab(
+	in_bEnable			:= bEnable_evac_lab, 
+	in_lrCryoPressure	:= cryo_lab_pressure.stat.lrPressure);
+
+
+//////////////////////////////
+// SUNPOWER Cryotel GT Cooler
+//////////////////////////////
+cooler(	in_sName		:= 'CryotelGT',
+		in_bSimulation	:= TRUE,
+		in_bAutoMonitor	:= TRUE,
+		in_bEnable		:= bEnable_cooler);
+
+	
+	
+///////////////
+// MICADO
+///////////////
+
+pSim();	// Just to have a simulated Toggle signal.
+
+// Simulation of MICADO valves
+mic_valves();	
+
+// Simulation of MICADO pumps
+mic_pumps(in_RefPVP:=evac_micado.rp, in_RefTMP:=evac_micado.tp);	
+
+
+
+// MICADO Cryostat pressures
+sensor_VAGF1(in_nType := E_CRYO_SENSOR_TYPE_PRESS.PKR_360,	in_nSampleTime := 100);
+sensor_VAGF2(in_nType := E_CRYO_SENSOR_TYPE_PRESS.PKR_360,	in_nSampleTime := 100);
+sensor_VAGG1(in_nType := E_CRYO_SENSOR_TYPE_PRESS.PKR_360,	in_nSampleTime := 100);
+sensor_VAGG2(in_nType := E_CRYO_SENSOR_TYPE_PRESS.PKR_360,	in_nSampleTime := 100);
+
+VAGF(
+	in_bSimulation	:= FALSE,
+	in_nNumSensor	:= 2,
+	in_nVoteMethod	:= E_CRYO_VOTE.V_1oo2,
+	in_pSensor1		:= ADR(sensor_VAGF1),
+	in_pSensor2		:= ADR(sensor_VAGF2));
+
+VAGG(
+	in_bSimulation	:= FALSE,
+	in_nNumSensor	:= 2,
+	in_nVoteMethod	:= E_CRYO_VOTE.V_1oo2,
+	in_pSensor1		:= ADR(sensor_VAGG1),
+	in_pSensor2		:= ADR(sensor_VAGG2));
+
+	
+// MICADO evacuation system
+cmdPVV1(in_bEnable:=bCmdPVV1,in_bInterlock:=bIntlkPVV1);	// Handling of PVV1 commands
+
+evac_micado(
+	in_bEnable		:= bEnable_evac_mic,
+	in_RefVAGF		:= VAGF, 
+	in_RefVAGG		:= VAGG);
+	
+
+///////////////////////
+// Pressure Ramp Test
+///////////////////////
+SIM_P1(	in_nType			:= E_CRYO_SENSOR_TYPE_PRESS.PKR_250, 
+		in_lrBitsPerVolt	:= 3276.8, 
+		in_lrPress			:= 777.0, 
+		in_nPeriod			:= 10000);
+
+// Start ramping from 100 to 0.0001 over 20 sec.
+IF bStartRamp	THEN
+	bStartRamp	:= FALSE;
+	SIM_P1.M_SetValue(100.0);
+	SIM_P1.M_RampTo(0.0001,20000);
+END_IF
+	
+// Actuator test
+actuator();
+	
+//
+// FB_CRYO_ACTUATOR_CMD test.
+//
+// Allow only OPEN command for Valve2
+cmdValve2.M_SetPermissions(in_bPermitOn := TRUE, in_bPermitOff := FALSE);
+// Handling of Valve2 command with active interlock.
+cmdValve2(in_bEnable := bEnable_Valve2, in_bInterlock := TRUE);	
+
+Valve1(in_bEnable := bEnable_Valve1);		// Take system command as it is.
+Valve2(in_bEnable := cmdValve2.out_bEnable);// Allow user to override system command.
+
+//
+// FB_CRYO_CMD_OVERRIDE Test
+//
+cmdOverrideTest(in_bEnable:=bEnable_OverrideTest);
+
+
+//////////////////////////////
+// Testing FB_CRYO_LN2_PRECOOL
+//////////////////////////////
+ln2_ctrl(
+	in_bEnable		:= bEnable_ln2_ctrl, 
+	in_lrTempK		:= SIM_ln2.lrTempK, 
+	in_bTempValid	:= TRUE);
+
+SIM_ln2(ln2Ref := ln2_ctrl);
+
+
+/////////////////////////////////////////////
+// Testing IO-Link FB_CRYO_SBG232 Flowmeter
+/////////////////////////////////////////////
+sbg232();
+
+sbg232_sim(in_sName:='SBG232 SIM');
+SIM_sbg232();
+	
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="3511" Count="17" />
+      <LineId Id="4561" Count="0" />
+      <LineId Id="3529" Count="14" />
+      <LineId Id="4387" Count="0" />
+      <LineId Id="3544" Count="67" />
+      <LineId Id="3855" Count="0" />
+      <LineId Id="3861" Count="0" />
+      <LineId Id="3858" Count="2" />
+      <LineId Id="3862" Count="3" />
+      <LineId Id="3612" Count="0" />
+      <LineId Id="3856" Count="1" />
+      <LineId Id="3613" Count="71" />
+      <LineId Id="4212" Count="0" />
+      <LineId Id="4210" Count="0" />
+      <LineId Id="4213" Count="1" />
+      <LineId Id="4211" Count="0" />
+      <LineId Id="3685" Count="11" />
+      <LineId Id="4032" Count="7" />
+      <LineId Id="3697" Count="0" />
+      <LineId Id="273" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

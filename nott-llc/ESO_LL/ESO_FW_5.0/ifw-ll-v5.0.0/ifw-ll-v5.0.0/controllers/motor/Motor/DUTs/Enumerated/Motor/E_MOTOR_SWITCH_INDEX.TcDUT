@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MOTOR_SWITCH_INDEX" Id="{c10640ff-d819-46fb-ba45-e26d38ba47c3}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MOTOR_SWITCH_INDEX :
+(
+	LSTOP	:= 0,
+	LHW		:= 1,
+	REF		:= 2,
+	INDEX	:= 3,
+	UHW		:= 4,
+	USTOP	:= 5
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

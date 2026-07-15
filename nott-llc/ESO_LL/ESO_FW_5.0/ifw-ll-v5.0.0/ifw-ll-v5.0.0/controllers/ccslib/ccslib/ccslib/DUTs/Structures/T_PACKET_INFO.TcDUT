@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_PACKET_INFO" Id="{581c60d2-bec0-4b36-9547-8279d00dd318}">
+    <Declaration><![CDATA[TYPE T_PACKET_INFO :
+STRUCT
+	topicId: UDINT; 
+	componentId: UINT; // counter the number of times the diagnostic data was sent.
+	sampleId: UDINT; 
+	frameId: UINT;
+	numFrames: UINT;
+	version: UINT;
+	appTag: UINT;
+	timestamp: LREAL;
+	payloadSize: UINT;	
+	size: UINT;
+	valid: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

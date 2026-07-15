@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_LAKESHORE_STAT" Id="{b91e3c1c-ac13-4f1a-b152-3aefb0440656}">
+    <Declaration><![CDATA[TYPE T_LAKESHORE_STAT EXTENDS T_RS_BASE_STAT:
+STRUCT
+
+	nRetries:			UDINT := 0;			// Total number of retries in case of communication problems
+	
+	lrArrReadings:		ARRAY [0..31] OF	T_READING_LREAL;	// Array of readings
+
+	sReply:				STRING(255); 		(* Last Lakeshore Reply to predefined commands*)
+	sReplyUser:			STRING(255); 		(* Last Lakeshore Reply to USER command *)
+
+	// Lakeshore readings
+	lrKRDG_A:		LREAL;	// Temperature A [K]
+	lrKRDG_B:		LREAL;	// Temperature B [K]
+	lrCRDG_A:		LREAL;	// Temperature A [C]
+	lrCRDG_B:		LREAL;	// Temperature B [C]
+
+	nPID_P:			UINT;	// PID parameter P
+	nPID_I:			UINT;	// PID parameter I
+	nPID_D:			UINT;	// PID parameter D
+	bRAMP_On:		BOOL;	// RAMP 1 On/Off state
+	lrRAMP_Rate:	LREAL;	// RAMP rate
+	lrSETP:			LREAL;	// Actual Setpoint [K]
+	lrSETP_Target:	LREAL;	// Target Setpoint [K]
+	lrHTR:			LREAL;	// Heater output [%]
+	nRANGE:			UINT;	// Heater range
+
+	nPID2_P:		UINT;	// PID2 parameter P
+	nPID2_I:		UINT;	// PID2 parameter I
+	nPID2_D:		UINT;	// PID2 parameter D
+	bRAMP2_On:		BOOL;	// RAMP 2 On/Off state
+	lrRAMP2_Rate:	LREAL;	// RAMP rate
+	lrSETP2:		LREAL;	// Actual Setpoint 2 [K]
+	lrSETP2_Target:	LREAL;	// Target Setpoint 2 [K]
+	lrHTR2:			LREAL;	// Heater2 output [%]
+	nRANGE2:		UINT;	// Heater2 range
+
+	lrAOUT1:		LREAL;	// Analog Output 1
+	lrAOUT2:		LREAL;	// Analog Output 2
+	lrAOUT3:		LREAL;	// Analog Output 3
+	lrAOUT4:		LREAL;	// Analog Output 4
+	
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

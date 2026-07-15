@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_JANSSEN_COMMAND" Id="{c1467b79-e5b1-45af-8115-01a9ac0a2329}">
+    <Declaration><![CDATA[TYPE T_JANSSEN_COMMAND :
+STRUCT
+	cmd:		STRING := '';	(* Command to send *)
+	nReplies:	UINT;   		(* Number of replies, i.e. reply terminators *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

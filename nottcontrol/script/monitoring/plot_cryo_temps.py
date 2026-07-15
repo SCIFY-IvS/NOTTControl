@@ -6,29 +6,109 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import redis
-from scipy.optimize import curve_fit
+from scipy.optimize import brentq, curve_fit
 
 from nottcontrol import config, sensor_config_path
 from nottcontrol.sensors import (
     load_sensor_config,
     opc_node_path,
     opc_node_to_asyncua_id,
+    opc_node_to_redis_key,
 )
 
 DEFAULT_SENSOR_NAMES = (
-    "t_base_plate_1",
-    "t_base_plate_2",
+    "t_shield_vote",
+    "t_base_plate_vote",
+    "t_flat_field_1",
 )
+
+# Vote (and sidecar-2) sensors for monitor_cryo_temps.py three-panel layout.
+MONITOR_SENSOR_GROUPS: dict[str, tuple[str, ...]] = {
+    "Shield & base plate": (
+        "t_shield_vote",
+        "t_base_plate_vote",
+        "t_flat_field_1",
+    ),
+    "Photonic chip & sidecar": (
+        "t_photonic_chip_vote",
+        "t_sidecar_2",
+    ),
+    "Detector": ("t_detector_vote",),
+}
+
+MONITOR_SENSOR_LABELS: dict[str, str] = {
+    "t_flat_field_1": "shield (side)",
+}
+
+MONITOR_FIT_GROUPS = frozenset({"Shield & base plate", "Photonic chip & sidecar"})
+MONITOR_TARGET_GROUPS = MONITOR_FIT_GROUPS
+
+
+@dataclass(frozen=True)
+class SensorFitOptions:
+    """Per-sensor overrides for the exponential cooling fit."""
+
+    n_exp_terms: int | None = None
+    weight_recent: bool = False
+    cooling_fit: bool = False
+
+
+MONITOR_SENSOR_FIT_OPTIONS: dict[str, SensorFitOptions] = {
+    "t_photonic_chip_vote": SensorFitOptions(n_exp_terms=2),
+}
+
+DEFAULT_MONITOR_TARGET_K = 90.0
+DEFAULT_HISTORY_HOURS = 24.0
 
 _EPOCH = datetime.utcfromtimestamp(0)
 DEFAULT_FIT_MAX_POINTS = 300
 DEFAULT_PLOT_MAX_POINTS = 2_000
+MONITOR_OUTPUT_DIR = Path(__file__).resolve().parent
+DEFAULT_MONITOR_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_monitor.png"
+DEFAULT_CRYO_PLOT_OUTPUT = MONITOR_OUTPUT_DIR / "cryo_temps.png"
+
+
+def timestamped_filename(path: Path, when: datetime | None = None) -> Path:
+    """Insert a UTC timestamp before the file suffix."""
+    when = when or datetime.utcnow()
+    stamp = when.strftime("%Y%m%d_%H%M%S")
+    return path.with_name(f"{path.stem}_{stamp}{path.suffix}")
+
+
+def resolve_output_path(output: str | None, default: Path) -> Path:
+    """Return an absolute output path, expanding ~ if needed."""
+    path = Path(output).expanduser() if output else default
+    return path.resolve()
+
+
+def save_figure(
+    fig: plt.Figure,
+    output: str | None,
+    default: Path,
+    show: bool,
+    *,
+    timestamp_filename: bool = True,
+) -> Path | None:
+    """Save or show a figure. Returns the path written, if any."""
+    if show:
+        plt.show()
+        return None
+
+    out_path = resolve_output_path(output, default)
+    if timestamp_filename:
+        out_path = timestamped_filename(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    print(f"saved plot to {out_path}")
+    return out_path
 
 
 def redis_key_label(key: str) -> str:
@@ -42,10 +122,90 @@ def redis_key_label(key: str) -> str:
     return parts[-1] if parts else key
 
 
+def legend_label_for_key(
+    key: str,
+    legend_labels: dict[str, str] | None = None,
+) -> str:
+    if legend_labels and key in legend_labels:
+        return legend_labels[key]
+    return redis_key_label(key)
+
+
 def build_sensor_key_map(path: str | os.PathLike[str]) -> dict[str, str]:
     """Map short sensor names to Redis TimeSeries keys from sensors.ini."""
     _, redis_keys = load_sensor_config(path)
     return {redis_key_label(key): key for key in redis_keys}
+
+
+def sensor_ini_lines_for_name(
+    sensors_ini: str | os.PathLike[str],
+    sensor_name: str,
+) -> list[str]:
+    """Return raw sensors.ini lines matching a short sensor name."""
+    lines: list[str] = []
+    with open(sensors_ini, encoding="utf-8") as sensors_file:
+        for raw_line in sensors_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if redis_key_label(opc_node_to_asyncua_id(line)) == sensor_name:
+                lines.append(line)
+    return lines
+
+
+def monitor_sensor_redis_key(
+    name: str,
+    sensor_map: dict[str, str],
+    sensors_ini: str | os.PathLike[str],
+) -> str:
+    """Resolve the primary Redis TimeSeries key (same as the GUI writer)."""
+    candidates = monitor_sensor_redis_key_candidates(name, sensor_map, sensors_ini)
+    if candidates:
+        return candidates[0]
+    return sensor_map[name]
+
+
+def monitor_sensor_redis_key_candidates(
+    name: str,
+    sensor_map: dict[str, str],
+    sensors_ini: str | os.PathLike[str],
+) -> tuple[str, ...]:
+    """Return Redis keys to try, most preferred first."""
+    candidates: list[str] = []
+
+    for line in sensor_ini_lines_for_name(sensors_ini, name):
+        candidates.append(opc_node_to_redis_key(line))
+        if "|" in line:
+            candidates.append(line)
+
+    if name in sensor_map:
+        candidates.append(sensor_map[name])
+
+    legacy = f"cryo.{name}.lrTempK"
+    candidates.append(legacy)
+
+    unique: list[str] = []
+    seen: set[str] = set()
+    for key in candidates:
+        if key not in seen:
+            seen.add(key)
+            unique.append(key)
+    return tuple(unique)
+
+
+def fetch_valid_timeseries(
+    redis_client: redis.Redis,
+    key_candidates: tuple[str, ...],
+    start_ms: int,
+    end_ms: int,
+) -> tuple[np.ndarray, np.ndarray, str | None]:
+    """Fetch the first candidate key that has usable temperature samples."""
+    for key in key_candidates:
+        times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
+        times, values = apply_temperature_mask(times, values)
+        if times.size > 0:
+            return times, values, key
+    return np.array([]), np.array([]), None
 
 
 def normalize_redis_key(key: str, sensor_map: dict[str, str]) -> str:
@@ -88,13 +248,32 @@ def fetch_timeseries(
     start_ms: int,
     end_ms: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    samples = redis_client.ts().range(key, start_ms, end_ms)
+    try:
+        samples = redis_client.ts().range(key, start_ms, end_ms)
+    except redis.exceptions.ResponseError as exc:
+        if "does not exist" in str(exc).lower():
+            return np.array([]), np.array([])
+        raise
     if not samples:
         return np.array([]), np.array([])
     data = np.array(samples, dtype=float)
     times = data[:, 0] / 1000.0
     values = data[:, 1]
     return times, values
+
+
+def valid_temperature_mask(values: np.ndarray, min_k: float = 5.0) -> np.ndarray:
+    """Mask out missing/placeholder readings (e.g. 0 K) before plotting or fitting."""
+    return np.isfinite(values) & (values >= min_k)
+
+
+def apply_temperature_mask(
+    times: np.ndarray,
+    values: np.ndarray,
+    min_k: float = 5.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    mask = valid_temperature_mask(values, min_k=min_k)
+    return times[mask], values[mask]
 
 
 def downsample_series(
@@ -145,28 +324,46 @@ def fit_exponential_sum(
     times: np.ndarray,
     values: np.ndarray,
     n_terms: int,
+    *,
+    weight_recent: bool = False,
+    cooling_fit: bool = False,
 ) -> tuple[np.ndarray, float]:
     t_hours = (times - times[0]) / 3600.0
     model = build_exponential_model(n_terms)
     p0 = initial_guess(times, values, n_terms)
+    if cooling_fit and values[-1] < values[0] - 0.5:
+        p0[0] = min(p0[0], float(values[-1]) - 0.05)
 
     value_span = max(float(values.max() - values.min()), 1.0)
     max_tau = max(t_hours[-1], 0.1) * 20
     lower = [values.min() - value_span]
     upper = [values.max() + value_span]
+    if cooling_fit and values[-1] < values[0] - 0.5:
+        upper[0] = min(upper[0], float(values[-1]) - 0.01)
+        if upper[0] <= lower[0]:
+            upper[0] = lower[0] + 0.1
     for _ in range(n_terms):
-        lower.extend([-2 * value_span, 1e-3])
-        upper.extend([2 * value_span, max(max_tau, 1.0)])
+        if cooling_fit:
+            lower.extend([0.0, 1e-3])
+            upper.extend([value_span * 2, max(max_tau, 1.0)])
+        else:
+            lower.extend([-2 * value_span, 1e-3])
+            upper.extend([2 * value_span, max(max_tau, 1.0)])
 
-    params, _ = curve_fit(
-        model,
-        t_hours,
-        values,
-        p0=p0,
-        bounds=(lower, upper),
-        method="trf",
-        maxfev=5_000,
-    )
+    p0 = [float(np.clip(value, lo, hi)) for value, lo, hi in zip(p0, lower, upper)]
+
+    fit_kwargs: dict = {
+        "p0": p0,
+        "bounds": (lower, upper),
+        "method": "trf",
+        "maxfev": 5_000,
+    }
+    if weight_recent and t_hours.size > 1:
+        weights = np.linspace(0.35, 1.0, t_hours.size) ** 2
+        fit_kwargs["sigma"] = 1.0 / weights
+        fit_kwargs["absolute_sigma"] = False
+
+    params, _ = curve_fit(model, t_hours, values, **fit_kwargs)
     return params, times[0]
 
 
@@ -185,42 +382,190 @@ def asymptotic_temperature(params: np.ndarray) -> float:
     return float(params[0])
 
 
-def plot_cryo_temps(
-    redis_url: str,
-    keys: tuple[str, ...],
-    hours: float,
-    output: str | None,
-    show: bool,
-    n_exp_terms: int,
-    predict_hours: float,
-    fit_max_points: int,
-    plot_max_points: int,
-) -> int:
-    end = datetime.utcnow()
-    start = end - timedelta(hours=hours)
-    start_ms = unix_time_ms(start)
-    end_ms = unix_time_ms(end)
-    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+def temperature_at_fit_hours(
+    params: np.ndarray,
+    t_hours: float,
+    n_terms: int,
+) -> float:
+    return float(exponential_sum_model(np.array([t_hours]), *params)[0])
 
-    fig, ax = plt.subplots(figsize=(11, 5))
-    any_data = False
-    min_points = 2 * n_exp_terms + 2
-    redis_client = redis.from_url(redis_url)
-    model = build_exponential_model(n_exp_terms)
+
+def time_hours_to_reach_temperature(
+    params: np.ndarray,
+    n_terms: int,
+    target_k: float,
+    t_search_max: float = 10_000.0,
+) -> float | None:
+    """Hours from fit t=0 until the model reaches target_k, if it crosses."""
+    t_start = temperature_at_fit_hours(params, 0.0, n_terms)
+    t_asymp = asymptotic_temperature(params)
+
+    if abs(t_start - target_k) < 1e-3:
+        return 0.0
+
+    if (t_start - target_k) * (t_asymp - target_k) > 0:
+        return None
+
+    def delta(t_hours: float) -> float:
+        return temperature_at_fit_hours(params, t_hours, n_terms) - target_k
+
+    hi = max(1.0, t_search_max / 100.0)
+    while hi <= t_search_max:
+        if delta(hi) * delta(0.0) <= 0:
+            return float(brentq(delta, 0.0, hi))
+        hi *= 2.0
+    return None
+
+
+def format_time_to_target_label(
+    label: str,
+    target_k: float,
+    hours_from_fit_start: float | None,
+    fit_start_unix: float,
+) -> str:
+    if hours_from_fit_start is None:
+        return f"{label}: fit does not reach {target_k:g} K"
+    if hours_from_fit_start <= 0:
+        return f"{label}: already at {target_k:g} K at window start"
+    reach_time = datetime.utcfromtimestamp(fit_start_unix + hours_from_fit_start * 3600.0)
+    return (
+        f"{label}: {target_k:g} K in {hours_from_fit_start:.2f} h "
+        f"({reach_time:%Y-%m-%d %H:%M} UTC)"
+    )
+
+
+def add_target_info_to_axes(
+    ax: plt.Axes,
+    info_lines: list[str],
+    target_k: float,
+) -> None:
+    """Draw target temperature line and a visible annotation box on the axes."""
+    if not info_lines:
+        return
+
+    ax.axhline(
+        target_k,
+        color="#444444",
+        linestyle=(0, (6, 4)),
+        linewidth=1.4,
+        label=f"{target_k:g} K target",
+        zorder=1,
+    )
+
+    box_text = f"Time to {target_k:g} K (from fit start):\n" + "\n".join(info_lines)
+    ax.text(
+        0.02,
+        0.98,
+        box_text,
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        fontsize=9,
+        family="monospace",
+        bbox={"boxstyle": "round,pad=0.45", "facecolor": "#fff8e1", "edgecolor": "#888888"},
+        zorder=10,
+    )
+
+
+def plot_data_only_on_axes(
+    ax: plt.Axes,
+    redis_client: redis.Redis,
+    keys: tuple[str, ...],
+    start_ms: int,
+    end_ms: int,
+    plot_max_points: int,
+    legend_labels: dict[str, str] | None = None,
+    key_candidates_by_key: dict[str, tuple[str, ...]] | None = None,
+) -> int:
+    """Plot temperature data only (no exponential fit)."""
+    plotted = 0
 
     for key in keys:
-        times, values = fetch_timeseries(redis_client, key, start_ms, end_ms)
-        if times.size == 0:
-            print(f"warning: no samples for {key}", file=sys.stderr)
+        key_candidates = (key_candidates_by_key or {}).get(key, (key,))
+        times, values, used_key = fetch_valid_timeseries(
+            redis_client, key_candidates, start_ms, end_ms
+        )
+        if used_key is None:
+            print(
+                f"warning: no valid temperature samples for {key} "
+                f"(tried {', '.join(key_candidates)})",
+                file=sys.stderr,
+            )
             continue
+        if used_key != key:
+            print(f"info: {legend_label_for_key(key, legend_labels)} using Redis key {used_key}")
+
+        label = legend_label_for_key(key, legend_labels)
+        plot_times, plot_values = downsample_series(times, values, plot_max_points)
+        ax.plot(
+            [datetime.utcfromtimestamp(t) for t in plot_times],
+            plot_values,
+            linewidth=1.4,
+            label=label,
+        )
+        print(f"{label}: latest = {values[-1]:.4f} K")
+        plotted += 1
+
+    return plotted
+
+
+def plot_sensors_on_axes(
+    ax: plt.Axes,
+    redis_client: redis.Redis,
+    keys: tuple[str, ...],
+    start_ms: int,
+    end_ms: int,
+    predict_end_unix: float,
+    predict_hours: float,
+    n_exp_terms: int,
+    fit_max_points: int,
+    plot_max_points: int,
+    target_temp_k: float | None = None,
+    legend_labels: dict[str, str] | None = None,
+    fit_options_by_key: dict[str, SensorFitOptions] | None = None,
+    key_candidates_by_key: dict[str, tuple[str, ...]] | None = None,
+) -> tuple[int, list[str]]:
+    """Plot data, exponential fits, and asymptotes. Returns (series count, target info lines)."""
+    plotted = 0
+    target_info_lines: list[str] = []
+    vline_marks: list[tuple[datetime, float, str, str]] = []
+
+    for key in keys:
+        fit_options = (fit_options_by_key or {}).get(key, SensorFitOptions())
+        sensor_n_terms = (
+            fit_options.n_exp_terms
+            if fit_options.n_exp_terms is not None
+            else n_exp_terms
+        )
+        min_points = 2 * sensor_n_terms + 2
+        model = build_exponential_model(sensor_n_terms)
+
+        times, values, used_key = fetch_valid_timeseries(
+            redis_client,
+            (key_candidates_by_key or {}).get(key, (key,)),
+            start_ms,
+            end_ms,
+        )
+        if used_key is None:
+            print(
+                f"warning: no valid temperature samples for {key} "
+                f"(tried {(key_candidates_by_key or {}).get(key, (key,))})",
+                file=sys.stderr,
+            )
+            continue
+        if used_key != key:
+            print(
+                f"info: {legend_label_for_key(key, legend_labels)} using Redis key {used_key}"
+            )
+
+        label = legend_label_for_key(key, legend_labels)
         if times.size < min_points:
             print(
-                f"warning: not enough samples for {n_exp_terms}-term exponential fit on {key}",
+                f"warning: not enough samples for {sensor_n_terms}-term exponential fit on {key}",
                 file=sys.stderr,
             )
             continue
 
-        label = redis_key_label(key)
         fit_times, fit_values = downsample_series(times, values, fit_max_points)
         if fit_times.size < times.size:
             print(
@@ -229,18 +574,23 @@ def plot_cryo_temps(
                 file=sys.stderr,
             )
 
-        any_data = True
         try:
-            params, t0 = fit_exponential_sum(fit_times, fit_values, n_exp_terms)
+            params, t0 = fit_exponential_sum(
+                fit_times,
+                fit_values,
+                sensor_n_terms,
+                weight_recent=fit_options.weight_recent,
+                cooling_fit=fit_options.cooling_fit,
+            )
         except RuntimeError as exc:
             print(f"warning: fit failed for {key}: {exc}", file=sys.stderr)
             continue
 
         t_asymp = asymptotic_temperature(params)
-        predicted_k = predict_temperature(params, t0, predict_end_unix, n_exp_terms)
+        predicted_k = predict_temperature(params, t0, predict_end_unix, sensor_n_terms)
 
         plot_times, plot_values = downsample_series(times, values, plot_max_points)
-        ax.plot(
+        (data_line,) = ax.plot(
             [datetime.utcfromtimestamp(t) for t in plot_times],
             plot_values,
             linewidth=1.2,
@@ -272,7 +622,231 @@ def plot_cryo_temps(
             f"({datetime.utcfromtimestamp(predict_end_unix)} UTC) = {predicted_k:.4f} K"
         )
 
+        if target_temp_k is not None:
+            hours_to_target = time_hours_to_reach_temperature(
+                params,
+                sensor_n_terms,
+                target_temp_k,
+                t_search_max=max(predict_hours, 1.0) * 24.0,
+            )
+            target_label = format_time_to_target_label(
+                label,
+                target_temp_k,
+                hours_to_target,
+                t0,
+            )
+            print(target_label)
+            target_info_lines.append(target_label)
+            if hours_to_target is not None and hours_to_target > 0:
+                reach_unix = t0 + hours_to_target * 3600.0
+                vline_marks.append(
+                    (
+                        datetime.utcfromtimestamp(reach_unix),
+                        hours_to_target,
+                        label,
+                        data_line.get_color(),
+                    )
+                )
+
+        plotted += 1
+
+    target_k_label = f"{target_temp_k:g} K" if target_temp_k is not None else "target"
+    for reach_dt, hours_to_target, label, color in vline_marks:
+        ax.axvline(
+            reach_dt,
+            linestyle="-.",
+            linewidth=1.4,
+            alpha=0.85,
+            color=color,
+            label=f"{label} → {target_k_label}",
+        )
+
+    if vline_marks:
+        ax.relim()
+        ax.autoscale_view()
+        ylim = ax.get_ylim()
+        y_annot = ylim[1] - 0.05 * (ylim[1] - ylim[0])
+        for reach_dt, hours_to_target, label, color in vline_marks:
+            ax.annotate(
+                f"{label}\n{target_k_label} in {hours_to_target:.1f} h",
+                xy=(reach_dt, y_annot),
+                xytext=(5, 0),
+                textcoords="offset points",
+                ha="left",
+                va="top",
+                fontsize=8,
+                color=color,
+                bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.9},
+            )
+
+    return plotted, target_info_lines
+
+
+def plot_cryo_monitor(
+    redis_url: str,
+    sensor_groups: dict[str, tuple[str, ...]],
+    sensors_ini: str | os.PathLike[str],
+    hours: float,
+    output: str | None,
+    show: bool,
+    n_exp_terms: int,
+    predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
+    target_temp_k: float | None = DEFAULT_MONITOR_TARGET_K,
+) -> int:
+    """Plot vote-temperature monitor panels; top two include exponential fits."""
+    end = datetime.utcnow()
+    start_ms = unix_time_ms(end - timedelta(hours=hours))
+    end_ms = unix_time_ms(end)
+    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+
+    sensor_map = build_sensor_key_map(sensors_ini)
+    redis_client = redis.from_url(redis_url)
+
+    fig, axes = plt.subplots(
+        len(sensor_groups),
+        1,
+        figsize=(11, 3.8 * len(sensor_groups)),
+        sharex=True,
+        squeeze=False,
+    )
+    any_data = False
+
+    for row, (group_title, sensor_names) in enumerate(sensor_groups.items()):
+        ax = axes[row, 0]
+        missing = [name for name in sensor_names if name not in sensor_map]
+        if missing:
+            print(
+                f"error: unknown sensor name(s) in {group_title!r}: {', '.join(missing)}",
+                file=sys.stderr,
+            )
+            return 1
+
+        keys = tuple(
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini) for name in sensor_names
+        )
+        key_candidates_by_key = {
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini): (
+                monitor_sensor_redis_key_candidates(name, sensor_map, sensors_ini)
+            )
+            for name in sensor_names
+        }
+        legend_labels = {
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini): MONITOR_SENSOR_LABELS.get(
+                name,
+                redis_key_label(monitor_sensor_redis_key(name, sensor_map, sensors_ini)),
+            )
+            for name in sensor_names
+        }
+        group_target_k = target_temp_k if group_title in MONITOR_TARGET_GROUPS else None
+        fit_options_by_key = {
+            monitor_sensor_redis_key(name, sensor_map, sensors_ini): (
+                MONITOR_SENSOR_FIT_OPTIONS.get(name, SensorFitOptions())
+            )
+            for name in sensor_names
+        }
+        if "t_flat_field_1" in sensor_names:
+            ff_key = monitor_sensor_redis_key("t_flat_field_1", sensor_map, sensors_ini)
+            print(
+                f"shield (side) Redis keys: primary={ff_key!r}, "
+                f"fallbacks={list(key_candidates_by_key[ff_key])!r}"
+            )
+
+        plotted = 0
+        target_info_lines: list[str] = []
+        if group_title in MONITOR_FIT_GROUPS:
+            plotted, target_info_lines = plot_sensors_on_axes(
+                ax,
+                redis_client,
+                keys,
+                start_ms,
+                end_ms,
+                predict_end_unix,
+                predict_hours,
+                n_exp_terms,
+                fit_max_points,
+                plot_max_points,
+                target_temp_k=group_target_k,
+                legend_labels=legend_labels,
+                fit_options_by_key=fit_options_by_key,
+                key_candidates_by_key=key_candidates_by_key,
+            )
+            if group_target_k is not None:
+                add_target_info_to_axes(ax, target_info_lines, group_target_k)
+        else:
+            plotted = plot_data_only_on_axes(
+                ax,
+                redis_client,
+                keys,
+                start_ms,
+                end_ms,
+                plot_max_points,
+                legend_labels=legend_labels,
+                key_candidates_by_key=key_candidates_by_key,
+            )
+        if plotted:
+            any_data = True
+        subtitle = "data only" if group_title not in MONITOR_FIT_GROUPS else "exponential fit"
+        ax.set_title(f"{group_title} — {subtitle}")
+        ax.set_ylabel("Temperature (K)")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="upper right", fontsize=8)
+
     if not any_data:
+        print(
+            f"error: no data found in the last {hours:g} h for monitor groups",
+            file=sys.stderr,
+        )
+        plt.close(fig)
+        return 1
+
+    fig.suptitle(
+        f"Cryostat monitor — last {hours:g} h — exponential fit ({n_exp_terms} terms)",
+        y=1.01,
+    )
+    axes[-1, 0].set_xlabel("Time (UTC)")
+    fig.autofmt_xdate()
+    fig.tight_layout()
+
+    save_figure(fig, output, DEFAULT_MONITOR_OUTPUT, show)
+    plt.close(fig)
+    return 0
+
+
+def plot_cryo_temps(
+    redis_url: str,
+    keys: tuple[str, ...],
+    hours: float,
+    output: str | None,
+    show: bool,
+    n_exp_terms: int,
+    predict_hours: float,
+    fit_max_points: int,
+    plot_max_points: int,
+) -> int:
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+    start_ms = unix_time_ms(start)
+    end_ms = unix_time_ms(end)
+    predict_end_unix = end.timestamp() + predict_hours * 3600.0
+
+    fig, ax = plt.subplots(figsize=(11, 5))
+    redis_client = redis.from_url(redis_url)
+    plotted, _ = plot_sensors_on_axes(
+        ax,
+        redis_client,
+        keys,
+        start_ms,
+        end_ms,
+        predict_end_unix,
+        predict_hours,
+        n_exp_terms,
+        fit_max_points,
+        plot_max_points,
+    )
+
+    if plotted == 0:
         print(
             f"error: no data found in the last {hours:g} h for keys: {', '.join(keys)}",
             file=sys.stderr,
@@ -290,17 +864,7 @@ def plot_cryo_temps(
     fig.autofmt_xdate()
     fig.tight_layout()
 
-    if output:
-        fig.savefig(output, dpi=150)
-        print(f"saved plot to {output}")
-
-    if show:
-        plt.show()
-    elif not output:
-        default_output = "cryo_temps.png"
-        fig.savefig(default_output, dpi=150)
-        print(f"saved plot to {default_output}")
-
+    save_figure(fig, output, DEFAULT_CRYO_PLOT_OUTPUT, show)
     plt.close(fig)
     return 0
 
@@ -317,8 +881,8 @@ def main() -> int:
     parser.add_argument(
         "--hours",
         type=float,
-        default=12.0,
-        help="Hours of history to fetch (default: 12)",
+        default=DEFAULT_HISTORY_HOURS,
+        help=f"Hours of history to fetch (default: {DEFAULT_HISTORY_HOURS:g})",
     )
     parser.add_argument(
         "--keys",
@@ -369,7 +933,10 @@ def main() -> int:
     parser.add_argument(
         "-o",
         "--output",
-        help="Output image path (default: cryo_temps.png when not showing interactively)",
+        help=(
+            f"Output image path stem (default: {DEFAULT_CRYO_PLOT_OUTPUT.name} "
+            "with UTC timestamp inserted before .png)"
+        ),
     )
     parser.add_argument(
         "--show",

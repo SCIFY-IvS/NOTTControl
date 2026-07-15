@@ -1,0 +1,819 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_EVAC_BASE" Id="{37521027-7190-4705-90ba-f25039f6aed4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_EVAC_BASE
+VAR_INPUT
+	in_bEnable:					BOOL := FALSE;	// System active while in_bEnable is TRUE
+	in_lrCryoPressure:			LREAL;			// Cryo pressure
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	rpRef:	REFERENCE TO FB_CRYO_PUMP_BASE;		// Roughing Pump
+	tpRef:	REFERENCE TO FB_CRYO_PUMP_BASE;		// Turbo Molecular Pump
+	valve:	FB_CRYO_VALVE_CTRL;					// Insulation Valve
+	
+	press1:	FB_CRYO_SENSOR_PRESSURE;	// Prevacuum pressure gauge #1
+	press2:	FB_CRYO_SENSOR_PRESSURE;	// Prevacuum pressure gauge #2
+	prevac:	FB_CRYO_PRESSURE_VOTE;		// Prevacuum pressure 
+	
+	cfg:	T_CRYO_EVAC_CFG;
+	ctrl:	T_CRYO_EVAC_CTRL;
+	stat:	T_CRYO_EVAC_STAT;
+	
+	timer:	TON;
+	trig:	R_TRIG;	// Start trigger
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// NOTE: Configuration is set on the first cycle.
+//       Once stat.bConfigured is TRUE, 
+//       configuration is not updated any more.
+M_Configure();
+
+M_ReadSensors();
+
+M_ExecuteControllers();
+
+M_UpdateStatus();
+
+M_StateMachine();]]></ST>
+    </Implementation>
+    <Method Name="M_Activity_ClosingValve" Id="{955166c8-9081-457d-a4e3-0330f82f6826}">
+      <Declaration><![CDATA[METHOD M_Activity_ClosingValve
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF valve.stat.bActOFF THEN
+	// The valve is closed.
+	// Apply a delay before stopping Turbo pump.
+	// Start the timer for the delay.
+	timer(IN:=FALSE);
+	timer(IN:=TRUE, PT:=cfg.tDelay);
+	stat.nState	:= E_CRYO_EVAC_STATE.DELAY_STOPPING;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_DelayBeforeStoppingPumps" Id="{5618580f-e30c-40ad-8cfd-9d907cf4258f}">
+      <Declaration><![CDATA[METHOD M_Activity_DelayBeforeStoppingPumps
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[timer();
+
+IF timer.Q THEN
+	// Delay timer expired.
+	// Reset timer.
+	timer(IN:=FALSE);
+	
+	// Stop Turbo Pump.
+	ctrl.bEnable_TP	:= FALSE;
+	stat.nState		:= E_CRYO_EVAC_STATE.STOP_T_PUMP;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_Evacuating" Id="{4d6578f1-7a50-4a11-b06e-b8a73e941088}">
+      <Declaration><![CDATA[METHOD M_Activity_Evacuating
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// System is started by setting in_bEnable to TRUE
+IF NOT in_bEnable THEN
+	// If system is disabled, start stopping procedure.
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState			:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+ELSIF prevac.stat.lrPressure > cfg.lrThld_Prevac THEN
+	// Something is wrong. Prevacuum pressure is too high. Stop evacuation!
+	// Set error
+	M_SetError('Prevacuum pressure too high. Stopping evacuation...');
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState			:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_Off" Id="{5cc1df66-e706-4e43-8086-aceb79b3ea4c}">
+      <Declaration><![CDATA[METHOD M_Activity_Off
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Disable anything that is not safe in this state
+ctrl.bEnable_RP		:= FALSE;
+ctrl.bEnable_TP		:= FALSE;
+ctrl.bEnable_Valve	:= FALSE;
+
+
+// System is started by setting in_bEnable to TRUE
+trig(CLK := in_bEnable);
+
+IF trig.Q THEN
+	// Clear any existing error
+	M_SetError('OK');
+	
+	// Enable Roughing Pump
+	ctrl.bEnable_RP	:= TRUE;
+	
+	stat.nState	:= E_CRYO_EVAC_STATE.START_R_PUMP;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_OpeningValve" Id="{8921a776-4104-44e1-8423-9464671415b1}">
+      <Declaration><![CDATA[METHOD M_Activity_OpeningValve
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT in_bEnable THEN
+	// If system is disabled, start stopping procedure.
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState			:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+ELSIF valve.stat.bActON THEN
+	// The valve is open.
+	// If valve was open before starting Turbo pump, 
+	// wait for cryo pressure drop and then start the pump.
+	// If the turbo pump is already running, the evacuation has started.
+	IF NOT stat.bValveAfterTP	THEN
+		stat.nState	:= E_CRYO_EVAC_STATE.WAIT_CRYO_VAC;	// Next state
+	ELSE
+		stat.nState	:= E_CRYO_EVAC_STATE.EVACUATING;	// Next state
+	END_IF
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_StartingRoughingPump" Id="{e5bf46ad-821c-4fc2-bbf1-0d67ae16499b}">
+      <Declaration><![CDATA[METHOD M_Activity_StartingRoughingPump
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Disable anything that is not safe in this state
+ctrl.bEnable_TP		:= FALSE;
+ctrl.bEnable_Valve	:= FALSE;
+
+
+IF NOT in_bEnable THEN
+	// If system is disabled, start stopping procedure.
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState	:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+ELSIF rpRef.M_IsReady() THEN
+	// Roughing Pump is Ready.
+	// Wait for the prevacuum.
+	stat.nState	:= E_CRYO_EVAC_STATE.WAIT_PREVAC;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_StartingTurboPump" Id="{4773bb2e-538a-45c0-9a27-f0e2e6034100}">
+      <Declaration><![CDATA[METHOD M_Activity_StartingTurboPump
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Safety
+// If the valve should be open after Turbo Pump has started,
+// keep the valve closed.
+IF stat.bValveAfterTP THEN
+	ctrl.bEnable_Valve	:= FALSE;
+END_IF
+
+IF NOT in_bEnable THEN
+	// If system is disabled, start stopping procedure.
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState			:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+ELSIF tpRef.M_IsReady() THEN
+	// Turbo Molecular Pump is Ready.
+	// If the valve is not open, open it.
+	// Otherwise, evacuation has started.
+	IF stat.bValveAfterTP THEN
+		ctrl.bEnable_Valve	:= TRUE;
+		stat.nState			:= E_CRYO_EVAC_STATE.OPEN_INSULATION_VALVE;	// Next state
+	ELSE
+		stat.nState	:= E_CRYO_EVAC_STATE.EVACUATING;	// Next state
+	END_IF
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_StoppingRoughingPump" Id="{2f22cdae-5dc2-4d1f-a311-34bd263e2830}">
+      <Declaration><![CDATA[METHOD M_Activity_StoppingRoughingPump
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Disable anything that is not safe in this state
+ctrl.bEnable_RP		:= FALSE;
+ctrl.bEnable_TP		:= FALSE;
+ctrl.bEnable_Valve	:= FALSE;
+
+
+// The evacuation system is in the process of shutting down.
+// Allow re-starting of evacuation.
+// System is started by setting in_bEnable to TRUE.
+trig(CLK := in_bEnable);
+
+IF trig.Q THEN
+	// Clear any existing error
+	M_SetError('OK');
+	
+	// Enable Roughing Pump
+	ctrl.bEnable_RP	:= TRUE;
+	
+	stat.nState	:= E_CRYO_EVAC_STATE.START_R_PUMP;	// Next state
+	M_SetLabels();
+ELSIF NOT rpRef.M_IsRunning() THEN
+	// The Roughing Pump stopped.
+	// Wait for the Turbo Pump to get to complete stop.
+	stat.nState	:= E_CRYO_EVAC_STATE.WAIT_T_PUMP_STOP;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_StoppingTurboPump" Id="{c20adbf2-9630-43ca-9365-8798d9b0a3ae}">
+      <Declaration><![CDATA[METHOD M_Activity_StoppingTurboPump
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Disable anything that is not safe in this state
+ctrl.bEnable_Valve	:= FALSE;
+
+
+// The evacuation system is in the process of shutting down.
+// Allow re-starting of evacuation.
+// System is started by setting in_bEnable to TRUE.
+trig(CLK := in_bEnable);
+
+IF trig.Q THEN
+	// Clear any existing error
+	M_SetError('OK');
+	
+	// Enable Roughing Pump
+	ctrl.bEnable_RP	:= TRUE;
+	
+	stat.nState	:= E_CRYO_EVAC_STATE.START_R_PUMP;	// Next state
+	M_SetLabels();
+ELSIF tpRef.M_GetSpeed() < 100 THEN
+	// TODO: This is ATH2303M specific.
+	//       Maybe, speed < 100 or similar check.
+	
+	// The Turbo Pump speed dropped below 100 rpm.
+	// Stop the Roughing Pump.
+	ctrl.bEnable_RP	:= FALSE;
+	stat.nState		:= E_CRYO_EVAC_STATE.STOP_R_PUMP;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_WaitingCryoVacuum" Id="{a7336ca5-390c-41f8-ac8c-7b36b4fe87b1}">
+      <Declaration><![CDATA[METHOD M_Activity_WaitingCryoVacuum
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Safety
+// Disable Turbo Pump until it is safe to start.
+ctrl.bEnable_TP	:= FALSE;
+
+IF NOT in_bEnable THEN
+	// If system is disabled, start stopping procedure.
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState			:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+ELSIF in_lrCryoPressure <= cfg.lrThld_Valve_SafeOpenPressure THEN
+	ctrl.bEnable_TP	:= TRUE;	// Enable Turbo Pump
+	stat.nState		:= E_CRYO_EVAC_STATE.START_T_PUMP;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_WaitingPrevacuum" Id="{636ba659-62bb-4bda-8802-84bdae7f182c}">
+      <Declaration><![CDATA[METHOD M_Activity_WaitingPrevacuum
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Disable anything that is not safe in this state
+ctrl.bEnable_TP		:= FALSE;
+ctrl.bEnable_Valve	:= FALSE;
+
+
+IF NOT in_bEnable THEN
+	// If system is disabled, start stopping procedure.
+	ctrl.bEnable_Valve	:= FALSE;
+	stat.nState	:= E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE;	// Next state
+	M_SetLabels();
+ELSIF prevac.stat.lrPressure <= cfg.lrThld_Prevac THEN
+	// If cryostat pressure is <= lrThldTP_SafeStartPressure, 
+	// start Turbo Pump before opening the Insulation Valve.
+	// Otherwise, open the Insulation Valve first.
+	IF in_lrCryoPressure <= cfg.lrThld_TP_SafeStartPressure	THEN
+		ctrl.bEnable_TP		:= TRUE;	// Enable Turbo Pump
+		stat.bValveAfterTP	:= TRUE;	// Open valve after Turbo Pump has started
+		stat.nState		:= E_CRYO_EVAC_STATE.START_T_PUMP;	// Next state
+	ELSE
+		ctrl.bEnable_Valve	:= TRUE;	// Open Valve
+		stat.bValveAfterTP	:= FALSE;	// Valve opens before Turbo Pump starts
+		stat.nState			:= E_CRYO_EVAC_STATE.OPEN_INSULATION_VALVE;	// Next state
+	END_IF
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Activity_WaitingTurboPump2Stop" Id="{5da8f76d-4c64-4851-bc48-0c7f44e396cb}">
+      <Declaration><![CDATA[METHOD M_Activity_WaitingTurboPump2Stop
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Disable anything that is not safe in this state
+ctrl.bEnable_RP		:= FALSE;
+ctrl.bEnable_TP		:= FALSE;
+ctrl.bEnable_Valve	:= FALSE;
+
+
+// The evacuation system is in the process of shutting down.
+// Allow re-starting of evacuation.
+// System is started by setting in_bEnable to TRUE.
+trig(CLK := in_bEnable);
+
+IF trig.Q THEN
+	// Clear any existing error
+	M_SetError('OK');
+	
+	// Enable Roughing Pump
+	ctrl.bEnable_RP	:= TRUE;
+	
+	stat.nState	:= E_CRYO_EVAC_STATE.START_R_PUMP;	// Next state
+	M_SetLabels();
+ELSIF tpRef.M_GetSpeed() = 0 THEN
+	// The Turbo Pump came to complete stop.
+	// The Evacuation system is OFF.
+	stat.nState	:= E_CRYO_EVAC_STATE.OFF;	// Next state
+	M_SetLabels();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{8ee48963-47e6-40b2-ae84-6f4e464ccb72}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// TODO USER: If needed, overload this method with specific values.
+//            This is the default configuration.
+//
+IF NOT stat.bConfigured	THEN
+	// Specific instance configuration, e.g. anything different
+	// from the default values given in the cfg structure of type T_CRYO_EVAC_CFG.
+	cfg.nPressGaugeType1	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	cfg.nPressGaugeType2	:= E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+
+	cfg.lrThld_Prevac := 5.0;	// Prevacuum pressure threshold 5 mbar
+	// Cryo pressure threshold to start Turbo Pump before opening Valve 10e-2 mbar
+	cfg.lrThld_TP_SafeStartPressure := 0.01;	 
+	// Cryo pressure threshold to start Turbo Pump once Valve is open 10e-1 mbar
+	cfg.lrThld_Valve_SafeOpenPressure := 0.1;	
+	cfg.tDelay := T#3S;	// Time delay before stopping Turbo Pump
+
+	stat.bConfigured	:= TRUE;;
+ELSE
+	RETURN;	// Nothing to do any more
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteControllers" Id="{28957bde-2946-4eb8-955c-13ea7652e013}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GotoOff" Id="{484d9f28-ac54-486f-83a2-0e0af278bd7c}">
+      <Declaration><![CDATA[METHOD M_GotoOff
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ctrl.bEnable_TP		:= FALSE;
+ctrl.bEnable_RP		:= FALSE;
+ctrl.bEnable_Valve	:= FALSE;
+stat.nState			:= E_CRYO_EVAC_STATE.OFF;	// Next state
+M_SetLabels();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{b6c148cd-93ea-40e3-b832-672449190c7a}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Read prevacuum pressure sensors.
+// Note: Pressure sensor type is configured in cfg.
+//       Default is Pfeiffer PKR 360 KF25.
+press1(in_nType := cfg.nPressGaugeType1, in_nSampleTime := 100);
+press2(in_nType := cfg.nPressGaugeType2, in_nSampleTime := 100);
+prevac(
+	in_bSimulation	:= cfg.bPressSimulation,
+	in_nNumSensor	:= 2,
+	in_nVoteMethod	:= E_CRYO_VOTE.V_1oo2,
+	in_pSensor1		:= ADR(press1),
+	in_pSensor2		:= ADR(press2));
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetError" Id="{c8dc7a4f-dcbd-419e-bbaa-4b41bd2b7240}">
+      <Declaration><![CDATA[METHOD M_SetError
+VAR_INPUT
+	in_sErrorText:	STRING(64);
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bError		:= (in_sErrorText <> 'OK');
+stat.sErrorText	:= in_sErrorText;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetLabels" Id="{d8420de9-4cbd-4d92-961d-cfd271f567a9}">
+      <Declaration><![CDATA[METHOD M_SetLabels
+VAR_INPUT
+END_VAR
+VAR
+    fbFormat:	FB_FormatString;
+	nVal:		UDINT;
+	lrVal:		LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nState	OF
+	E_CRYO_EVAC_STATE.NONE:
+		stat.sState		:= 'NONE';
+		stat.sStatus	:= 'UNKNOWN';
+	E_CRYO_EVAC_STATE.OFF:
+		stat.sState		:= 'OFF';
+		stat.sStatus	:= 'OFF';
+	E_CRYO_EVAC_STATE.START_R_PUMP:
+		stat.sState		:= 'START_R_PUMP';
+		stat.sStatus	:= 'Starting Roughing Pump...';
+	E_CRYO_EVAC_STATE.WAIT_PREVAC:
+		stat.sState		:= 'WAIT_PREVAC';
+		fbFormat(	sFormat := 'Waiting Prevacuum Pressure <= %.4f [mbar]...', 
+					arg1 := F_LREAL(cfg.lrThld_Prevac), 
+					sOut => stat.sStatus);
+	E_CRYO_EVAC_STATE.OPEN_INSULATION_VALVE:
+		stat.sState		:= 'OPEN_INSULATION_VALVE';
+		stat.sStatus	:= 'Opening Insulation Valve...';
+	E_CRYO_EVAC_STATE.START_T_PUMP:
+		stat.sState		:= 'START_T_PUMP';
+		stat.sStatus	:= 'Starting Turbo Molecular Pump...';
+	E_CRYO_EVAC_STATE.WAIT_CRYO_VAC:
+		stat.sState		:= 'WAIT_CRYO_VAC';
+		// The target cryostat pressure depends on whether the valve is open or not.
+		IF valve.stat.bActON THEN
+			lrVal	:= cfg.lrThld_Valve_SafeOpenPressure;
+		ELSE
+			lrVal	:= cfg.lrThld_TP_SafeStartPressure;
+		END_IF
+		fbFormat(	sFormat := 'Waiting Cryostat Pressure <= %.4f [mbar]...', 
+					arg1 := F_LREAL(lrVal), 
+					sOut => stat.sStatus);
+	E_CRYO_EVAC_STATE.EVACUATING:
+		stat.sState		:= 'EVACUATING';
+		stat.sStatus	:= 'EVACUATING...';
+	E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE:
+		stat.sState		:= 'CLOSE_INSULATION_VALVE';
+		stat.sStatus	:= 'Closing Insulation Valve...';
+	E_CRYO_EVAC_STATE.DELAY_STOPPING:
+		stat.sState		:= 'DELAY_STOPPING';
+		nVal			:= TIME_TO_UDINT(cfg.tDelay);
+		fbFormat(	sFormat := 'Delay of %d [ms] Before Stopping Pumps...', 
+					arg1 := F_UDINT(nVal), 
+					sOut => stat.sStatus);
+	E_CRYO_EVAC_STATE.STOP_T_PUMP:
+		stat.sState		:= 'STOP_T_PUMP';
+		stat.sStatus	:= 'Stopping Turbo Molecular Pump...';
+	E_CRYO_EVAC_STATE.STOP_R_PUMP:
+		stat.sState		:= 'STOP_R_PUMP';
+		stat.sStatus	:= 'Stopping Roughing Pump...';
+	E_CRYO_EVAC_STATE.WAIT_T_PUMP_STOP:
+		stat.sState		:= 'WAIT_T_PUMP_STOP';
+		stat.sStatus	:= 'Waiting for Turbo Molecular Pump to Stop...';
+	
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{8f93be11-a3c1-44e3-8cb4-daf4c9bb3c82}">
+      <Declaration><![CDATA[METHOD M_StateMachine
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nState	OF
+	E_CRYO_EVAC_STATE.NONE:
+		M_GotoOff();
+	E_CRYO_EVAC_STATE.OFF:
+		M_Activity_Off();
+	E_CRYO_EVAC_STATE.START_R_PUMP:
+		M_Activity_StartingRoughingPump();
+	E_CRYO_EVAC_STATE.WAIT_PREVAC:
+		M_Activity_WaitingPrevacuum();
+	E_CRYO_EVAC_STATE.OPEN_INSULATION_VALVE:
+		M_Activity_OpeningValve();
+	E_CRYO_EVAC_STATE.START_T_PUMP:
+		M_Activity_StartingTurboPump();
+	E_CRYO_EVAC_STATE.WAIT_CRYO_VAC:
+		M_Activity_WaitingCryoVacuum();
+	E_CRYO_EVAC_STATE.EVACUATING:
+		M_Activity_Evacuating();
+	E_CRYO_EVAC_STATE.CLOSE_INSULATION_VALVE:
+		M_Activity_ClosingValve();
+	E_CRYO_EVAC_STATE.DELAY_STOPPING:
+		M_Activity_DelayBeforeStoppingPumps();
+	E_CRYO_EVAC_STATE.STOP_T_PUMP:
+		M_Activity_StoppingTurboPump();
+	E_CRYO_EVAC_STATE.STOP_R_PUMP:
+		M_Activity_StoppingRoughingPump();
+	E_CRYO_EVAC_STATE.WAIT_T_PUMP_STOP:
+		M_Activity_WaitingTurboPump2Stop();
+	
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{d843ba1b-e024-4742-bd38-bd974123546a}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bEnabled		:= in_bEnable;
+stat.bRootPumpON	:= rpRef.M_IsReady();
+stat.bTurboPumpON	:= tpRef.M_IsReady();
+stat.bValveOpen		:= valve.stat.bActON;
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_EVAC_BASE">
+      <LineId Id="147" Count="2" />
+      <LineId Id="145" Count="1" />
+      <LineId Id="72" Count="5" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_ClosingValve">
+      <LineId Id="17" Count="2" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_DelayBeforeStoppingPumps">
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="18" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_Evacuating">
+      <LineId Id="12" Count="1" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="42" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_Off">
+      <LineId Id="33" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="22" Count="2" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_OpeningValve">
+      <LineId Id="9" Count="3" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="3" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_StartingRoughingPump">
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="3" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_StartingTurboPump">
+      <LineId Id="42" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="17" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_StoppingRoughingPump">
+      <LineId Id="39" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="40" Count="3" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="36" Count="1" />
+      <LineId Id="25" Count="10" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_StoppingTurboPump">
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="2" />
+      <LineId Id="34" Count="13" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_WaitingCryoVacuum">
+      <LineId Id="32" Count="1" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="6" Count="3" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_WaitingPrevacuum">
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Activity_WaitingTurboPump2Stop">
+      <LineId Id="36" Count="5" />
+      <LineId Id="22" Count="13" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_Configure">
+      <LineId Id="25" Count="3" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="15" Count="5" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_ExecuteControllers">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_GotoOff">
+      <LineId Id="12" Count="1" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_ReadSensors">
+      <LineId Id="6" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="13" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_SetError">
+      <LineId Id="16" Count="1" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_SetLabels">
+      <LineId Id="7" Count="1" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="82" Count="2" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="51" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_StateMachine">
+      <LineId Id="177" Count="27" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_EVAC_BASE.M_UpdateStatus">
+      <LineId Id="7" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

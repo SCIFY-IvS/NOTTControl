@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_ADC_STAT" Id="{8834436d-0b9c-4a2f-998a-d0db0e05f493}">
+    <Declaration><![CDATA[TYPE T_ADC_STAT EXTENDS T_MA_STAT :
+STRUCT
+	lrPos:			 	LREAL   := 0.0;
+	lrAdaPosAngle:      LREAL   := 0.0;
+	lrDrotPos:          LREAL   := 0.0;
+	lrRa:               LREAL   := 0.0;
+	lrDec:              LREAL   := 0.0;
+	lrAlt:              LREAL   := 0.0;
+	lrAz:               LREAL   := 0.0;
+	lrPa:               LREAL   := 0.0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

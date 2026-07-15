@@ -1,0 +1,53 @@
+<div id="METISTemperatureVoterFaceplate_2" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="600" data-tchmi-height="480" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="TemperatureFaceplate_TcHmiTabNavigation_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTabNavigation" data-tchmi-height="480" data-tchmi-height-unit="px" data-tchmi-left="-10" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="610" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-tabs" type="application/json">
+[
+  {
+    "displayName": "%l%L_Operate%/l%",
+    "name": "Operate",
+    "targetFile": {
+      "path": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateOperateTab.usercontrol",
+      "attributes": {
+        "data-tchmi-tempvoteobject": "%pp%TempVoteObject%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": true
+  },
+  {
+    "displayName": "%l%L_Service%/l%",
+    "name": "Service",
+    "targetFile": {
+      "path": "UserControls/NOTT/FaceplateVoter/NOTTTemperatureVoterFaceplateServiceTab.usercontrol",
+      "attributes": {
+        "data-tchmi-tempvoteobject": "%pp%TempVoteObject%/pp%"
+      }
+    }
+  },
+  {
+    "displayName": "%l%L_Messages%/l%",
+    "name": "Messages",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Common/FaceplateMessagesTab.usercontrol",
+      "attributes": {
+        "data-tchmi-eventgrid": "%pp%EventGrid%/pp%",
+        "data-tchmi-eventclassname": "%pp%TempVoteObject::sEventClassName%/pp%",
+        "data-tchmi-eventpageidentity": "%pp%EventPageIdentity%/pp%",
+        "data-tchmi-instancename": "%pp%TempVoteObject::sInstanceName%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  }
+]
+</script>
+
+</div>
+
+
+
+
+</div>

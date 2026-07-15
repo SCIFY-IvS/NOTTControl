@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_ACTUATOR_CFG" Id="{f9924ab9-cd48-4def-aee7-2b2b462ed7be}">
+    <Declaration><![CDATA[TYPE T_ACTUATOR_CFG :
+STRUCT
+	sName:				STRING	:= 'Actuator';// Instance name
+	bActiveLowOn:		BOOL 	:= FALSE;	(* If TRUE, On signal is Active Low *)
+	bActiveLowSwitch:	BOOL 	:= FALSE;	(* If TRUE, Switch ctrl signal is Active Low *)
+
+	bAutoOp:			BOOL 	:= FALSE;	// If TRUE, go automatically to OPERATIONAL state
+	bInitialState:		BOOL 	:= FALSE;	(* default power state is OFF *)
+	bInvertAnalog:		BOOL 	:= FALSE;	(* If TRUE, analog feedback is active, if signal < nAnalogThreshold *)
+	
+	nAnalogThreshold:	DINT 	:= 0;		(* Analog feedback signal threshold [bits].
+										   If this signal is used, any value above it will indicate that the power is ON. *)
+
+	nMaxOn:				UDINT 	:= 0;		(* Maximum time for power to be ON [sec] *)
+	nSigStablePeriod:   UDINT 	:= 200;		(* signal is stable if it has been constant for so long [msec] *)
+	nTimeout:     		UDINT 	:= 5000;	(* timeout for state transitions [msec] *)
+
+	// Logging
+	bLogExtTime:		BOOL 	:= FALSE;		// If TRUE, use external time in event logs. Default FALSE.
+	bDebug:				BOOL 	:= FALSE;		// If TRUE, show event logs of Debug type. Default FALSE.
+	bLog:				BOOL 	:= TRUE;		// If TRUE, log events. Default TRUE.
+
+
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

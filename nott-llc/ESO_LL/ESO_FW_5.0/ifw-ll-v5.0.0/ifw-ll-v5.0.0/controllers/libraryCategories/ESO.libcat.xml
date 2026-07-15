@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LibraryCategories xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="LibraryCategories.xsd">
+<!--   ParentCategory   -->
+	<LibraryCategory>
+		<Id>1d802231-f99f-45c2-a1ef-ac02fba16fd5</Id>
+		<Version>1.0.0.0</Version>
+		<DefaultName>ESO</DefaultName>
+	</LibraryCategory>
+	
+	<!-- ELT child category -->
+	<LibraryCategory>
+        <Id>e8c6def2-cb77-4d8a-afc3-d5e83e5c5fef</Id>
+        <Version>1.0.0.0</Version>
+        <ParentCategory>
+            <Id>1d802231-f99f-45c2-a1ef-ac02fba16fd5</Id>
+        </ParentCategory>
+        <DefaultName>ELT</DefaultName>
+    </LibraryCategory>
+	
+	<!-- VLT child category -->
+	<LibraryCategory>
+        <Id>2eae7953-da28-4e9c-bbde-188ba27ea179</Id>
+        <Version>1.0.0.0</Version>
+        <ParentCategory>
+            <Id>1d802231-f99f-45c2-a1ef-ac02fba16fd5</Id>
+        </ParentCategory>
+        <DefaultName>VLT</DefaultName>
+    </LibraryCategory>
+</LibraryCategories>

@@ -1,0 +1,11 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "definitions": {
+    "TcHmi.Controls.cryo_framework.led": {
+      "type": "object",
+      "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+      "frameworkControlType": "led",
+      "frameworkControlNamespace": "TcHmi.Controls.cryo_framework"
+    }
+  }
+}

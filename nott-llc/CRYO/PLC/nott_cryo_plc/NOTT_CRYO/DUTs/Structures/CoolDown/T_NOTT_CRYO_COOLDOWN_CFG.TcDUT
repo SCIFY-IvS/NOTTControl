@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_COOLDOWN_CFG" Id="{6d522236-c9a1-4987-a41c-e8eabbb5fb2e}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_COOLDOWN_CFG :
+STRUCT	
+	lrTemp_Det:				LREAL := 40.0;		// Detector target temperature [K]
+	lrTemp_BasePlate:		LREAL := 100.0;		// Base plate target temperature [K]
+	lrTemp_LowLimit:		LREAL := 73.0;		// Lowest temperature limit [K]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

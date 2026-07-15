@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SMARACT_SIM" Id="{ab46b2a9-476c-45fa-be5d-91c547273a05}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SMARACT_SIM EXTENDS FB_SMAR_ACT_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// TODO USER: Add existing SmarAct Positioners
+	//
+	// We use prefix 'x_' just for the convenience that
+	// all positioners appear together in the OPC UA Namespace.
+	//
+	x_fw1:	FB_SA_CHANNEL_BASE;	// CH 0
+	x_fw2:	FB_SA_CHANNEL_BASE;	// CH 1
+	x_iris:	FB_SA_CH_PDS_IRIS;	// CH 2 non-linear scaling for % of opening
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Execute the base class object FB_SMAR_ACT_BASE.
+//
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ConfigureUser" Id="{df1b6ad0-26d9-4698-8866-c9272401e7cd}">
+      <Declaration><![CDATA[METHOD M_ConfigureUser
+VAR_INPUT
+END_VAR
+VAR
+	i:		UINT;
+	nMod:	UINT;	// Module number
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// This method defines specific configurations for each positioner/channel.
+//
+
+// 
+// In this example, three positioners are defined in FB_SMARACT_SIM.
+//
+//	fw1:	FB_SA_CHANNEL_BASE;
+//	fw2:	FB_SA_CHANNEL_BASE;
+//	iris:	FB_SA_CHANNEL_BASE;
+//
+
+//
+// Configure used channels [0..17].
+// In this example, there are three used channels: 0, 1 and 2.
+//
+cfg.arrUsedCh[0]	:= TRUE;
+cfg.arrUsedCh[1]	:= TRUE;
+cfg.arrUsedCh[2]	:= TRUE;
+
+
+//
+// Set pointers to instances of used channels
+//
+ptrCH[0]	:= ADR(x_fw1);
+ptrCH[1]	:= ADR(x_fw2);
+ptrCH[2]	:= ADR(x_iris);
+
+
+//
+// Initial configuration of each exiting positioner.
+//
+
+//
+// SFW-6-25.4 - Filter Wheel 1
+//
+x_fw1.M_Configure(
+	in_sName			:= 'Filter Wheel - 1',
+	in_sUnits			:= 'deg',
+	in_lrScale			:= 1.0, 
+	in_lrREF_POS		:= 60.0,	// REF mark pos
+	in_lrREF_VEL		:= 20.0,	// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.001,	// in-pos threshold = 0.001 deg
+	in_nINP_DEL			:= 500,		// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 30,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 0.0,		// Min=Max ==> No limits
+	in_lrRangeLimitMax	:= 0.0,		// Min=Max ==> No limits 
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+
+//
+// SFW-6-25.4 - Filter Wheel 2
+//
+x_fw2.M_Configure(
+	in_sName			:= 'Filter Wheel - 2',
+	in_sUnits			:= 'deg',
+	in_lrScale			:= 1.0, 
+	in_lrREF_POS		:= 120.0,	// REF mark pos
+	in_lrREF_VEL		:= 20.0,	// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.001,	// in-pos threshold = 0.001 deg
+	in_nINP_DEL			:= 1000,	// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 30,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 0.0,		// Min=Max ==> No limits
+	in_lrRangeLimitMax	:= 0.0,		// Min=Max ==> No limits 
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+
+//
+// SID-50 - Iris Diaphragm
+//
+// Note: Because the scale is negative, MIN and MAX values are swapped.
+//       In Device Units, the diaphragm will move between -5..-50 (/scale) mm.
+//       In User   Units, the diaphragm will move between 1..100 %.
+//
+// The position of the diaphragm is the percentage of the opening.
+//
+
+x_iris.M_Configure(
+	in_sName			:= 'SHAPS Diaphragm',
+	in_sUnits			:= '%',
+	in_lrScale			:= -0.001763245, 
+	in_lrREF_POS		:= 34.33,	// REF mark pos in %. (Diam = 29.29832067 mm)
+	in_lrREF_VEL		:= 5.0,		// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.0005,	// in-pos threshold = 0.0005 %
+	in_nINP_DEL			:= 500,		// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 15,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 100.001,	// Min limit (positive because in_lrScale < 0) !!!
+	in_lrRangeLimitMax	:= 0.999,	// Max limit (negative because in_lrScale < 0) !!!
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SMARACT_SIM">
+      <LineId Id="10" Count="4" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMARACT_SIM.M_ConfigureUser">
+      <LineId Id="648" Count="0" />
+      <LineId Id="652" Count="1" />
+      <LineId Id="655" Count="0" />
+      <LineId Id="705" Count="1" />
+      <LineId Id="708" Count="0" />
+      <LineId Id="713" Count="2" />
+      <LineId Id="711" Count="1" />
+      <LineId Id="502" Count="0" />
+      <LineId Id="642" Count="1" />
+      <LineId Id="654" Count="0" />
+      <LineId Id="644" Count="3" />
+      <LineId Id="538" Count="0" />
+      <LineId Id="697" Count="3" />
+      <LineId Id="704" Count="0" />
+      <LineId Id="701" Count="2" />
+      <LineId Id="539" Count="2" />
+      <LineId Id="657" Count="0" />
+      <LineId Id="656" Count="0" />
+      <LineId Id="542" Count="2" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="718" Count="0" />
+      <LineId Id="545" Count="1" />
+      <LineId Id="589" Count="0" />
+      <LineId Id="547" Count="2" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="550" Count="5" />
+      <LineId Id="599" Count="4" />
+      <LineId Id="717" Count="0" />
+      <LineId Id="604" Count="5" />
+      <LineId Id="625" Count="0" />
+      <LineId Id="610" Count="5" />
+      <LineId Id="719" Count="24" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

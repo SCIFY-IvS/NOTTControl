@@ -7,6 +7,7 @@ LDFLAGS = -L../libmacie -L/usr/local/lib/macie_lib
 LIBS = -lzmq -lmacie -lMACIE -lcfitsio -lreadline
 SRCS = macie_interface.c MacieMain.c
 OBJS = macie_interface.o MacieMain.o
+LIBMACIE = ../libmacie/libmacie.a
 
 DEST = bin
 EXE = macie_acq
@@ -14,10 +15,14 @@ EXE = macie_acq
 LINK.c := $(CC) $(CFLAGS) $(LDFLAGS) $(LIBS) -static-libstdc++
 
 all: libmacie_interface.so zmq_server
-libmacie_interface.so: macie_interface.o MacieMain.o
+
+$(LIBMACIE):
+	$(MAKE) -C ../libmacie
+
+libmacie_interface.so: $(LIBMACIE) macie_interface.o MacieMain.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -static-libstdc++ -shared -o $@
 
-zmq_server: macie_interface.o MacieMain.o
+zmq_server: $(LIBMACIE) macie_interface.o MacieMain.o
 	$(CC) -o $@ $(CFLAGS) $(LDFLAGS) $^ $(LIBS)
 
 # Rule showing which targets to build when you simply do "make".

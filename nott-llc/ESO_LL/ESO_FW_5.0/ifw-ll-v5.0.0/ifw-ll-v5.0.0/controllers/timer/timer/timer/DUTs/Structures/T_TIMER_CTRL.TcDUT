@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_TIMER_CTRL" Id="{5d27c099-4faa-49ff-9637-37d7752f3d4b}">
+    <Declaration><![CDATA[TYPE T_TIMER_CTRL :
+STRUCT
+	nCommand:		DINT	:= E_TIMER_COMMAND.COMMAND_TIMER_NONE; (* See E_TIMER_COMMAND *)
+	bExecute:		BOOL	:= FALSE;	(* If TRUE, command is triggered *)
+	bPeriodic: 		BOOL	:= TRUE;	(* If TRUE, periodic signal. Otherwise one shot. *)
+	nChannel:		DINT	:= 0;		(* Channels to activate. 0-first, 1-second, 2-both *)
+	nPeriod:		UDINT	:= 1000000;	(* Period of output pulse signal [us] *)
+	nPulseWidth:	UDINT	:= 1000;	(* Pulse signal width [us or bits] *)
+	sStartTime:		STRING(32);			(* Start time string in format '2014-03-03-17:01:00.0' *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

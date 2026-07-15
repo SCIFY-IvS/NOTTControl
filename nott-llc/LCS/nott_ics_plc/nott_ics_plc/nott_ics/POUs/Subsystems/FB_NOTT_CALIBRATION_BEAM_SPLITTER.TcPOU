@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_NOTT_CALIBRATION_BEAM_SPLITTER" Id="{ffb51bfc-3265-4bf1-a72e-e51bc2ac613c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CALIBRATION_BEAM_SPLITTER
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	NBS:		FB_NOTT_MOTOR;
+	
+	SIM_NBS:	FB_SIM_MOTOR;
+	
+	stat:		T_NOTT_STAT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+NBS(
+	in_bSafe:=, 
+	in_bDisableIfUnsafe:=, 
+	sName:= 'NBS', 
+	nNOVRAM_DevId:= 6, 
+	nNOVRAM_Offset:= 37000);
+	
+SIM_NBS (ptrCfg:=ADR(NBS.cfg), ptrStat:=ADR(NBS.stat));
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_NOTT_CALIBRATION_BEAM_SPLITTER">
+      <LineId Id="101" Count="1" />
+      <LineId Id="104" Count="6" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="122" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

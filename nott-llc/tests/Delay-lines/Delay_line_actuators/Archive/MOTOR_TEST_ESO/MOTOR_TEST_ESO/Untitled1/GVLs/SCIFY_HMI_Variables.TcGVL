@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="SCIFY_HMI_Variables" Id="{9595cc84-9ce1-44d7-a357-904a48082214}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	
+
+// Temperature Sensors
+fTemp_1 : FLOAT;
+
+fTemp_2 : FLOAT;
+
+fTemp_3 : FLOAT;
+
+fTemp_4 : FLOAT;
+
+// Heaters
+
+uiHeater_1 : UINT;
+uiHeater_2 : UINT;
+
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

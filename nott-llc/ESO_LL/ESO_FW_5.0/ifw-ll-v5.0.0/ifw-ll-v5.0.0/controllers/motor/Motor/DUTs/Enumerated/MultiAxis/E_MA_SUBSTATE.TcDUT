@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_MA_SUBSTATE" Id="{17bf3aef-b99e-482b-a2bf-bae987057b9e}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{attribute 'strict'}
+TYPE E_MA_SUBSTATE :
+(
+	NONE				:=   0,
+	
+	NOTOP_NOTREADY		:= 100,
+	NOTOP_READY			:= 101,
+	NOTOP_INITIALISING	:= 102,
+	NOTOP_ABORTING		:= 107,
+	
+	NOTOP_RESETTING		:= 109,
+	NOTOP_ENABLING		:= 110,
+
+	NOTOP_ERROR			:= 199,
+
+	
+	OP_DISABLING 		:= 205,
+	OP_STANDSTILL		:= 216,            
+	OP_MOVING			:= 217,
+	OP_SETTING_POS		:= 218,
+	OP_STOPPING			:= 219,
+	OP_TRACKING			:= 220,
+	OP_PRESETTING		:= 221,
+
+	OP_ERROR			:= 299
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_TEMPERATURE_STATUS" Id="{2e7ef793-8b99-440d-b634-96455de2109b}">
+    <Declaration><![CDATA[TYPE T_CRYO_TEMPERATURE_STATUS :
+STRUCT
+	bSimulated:		BOOL;				// Flag indicating if the value is simulated.
+	lrSimTempK:		LREAL;				// Simulated temperature value in [K].
+
+	bInRange:		BOOL	:= FALSE;
+	bValid:			BOOL	:= FALSE;
+	bWarningSens1:	BOOL	:= TRUE;
+	bWarningSens2:	BOOL	:= TRUE;
+	lrRamp:			LREAL;				// Temperature ramp [deg/min]
+	lrTempC:		LREAL;				// Temp [deg C]
+	lrTempK:		LREAL;				// Temp [deg K]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

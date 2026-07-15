@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CPA_CTRL" Id="{7339fb85-855d-4ffd-87c1-4f959e5e3e3c}">
+    <Declaration><![CDATA[TYPE T_CRYO_CPA_CTRL EXTENDS T_RS_BASE_CTRL:
+STRUCT
+	nDevCommand:	E_CRYO_CPA_CMDS := E_CRYO_CPA_CMDS.NONE;	// CPA specific commands
+	bCtrlPulseActive:	BOOL	:= FALSE;	// Switching compressor on/off active
+
+	nSlaveID:	BYTE 	:= 1;						// Modbus Slave ID, 1..247
+	nCmdType:	DINT	:= E_MODBUS_CMD_TYPE.READ;	// Command type; 0-Read, 1-Write
+	nRegister:	DINT;								// Command register
+	nWords:		DINT	:= 1;						// Number of words
+	nValue:		DINT;								// Parameter value
+	
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

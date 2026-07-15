@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_BIN_ACT_FEEDBACK" Id="{7ab91b5d-3dbe-498b-956c-7942927e3e5b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_BIN_ACT_FEEDBACK :
+(
+	ON_AND_OFF	:= 0,	// There are two separate signals: ON (i_bON) and OFF (i_bOFF)
+	ON_ONLY 	:= 1	// Feedback exists only for ON signal
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_LOG" Id="{33983f84-638f-46bf-b1f7-8807c3591dae}">
+    <Declaration><![CDATA[// Last ten system logs
+TYPE T_CRYO_LOG :
+STRUCT
+	// This could have been done much simpler as:
+	// 	sLog: ARRAY [0..9] OF STRING(80);
+	// However, this would make it hard to view individual strings
+	// with OPC UA Clients.
+	// That's why we use 'ptrLog[0..9]' to scroll through the strings.
+	// See M_Configure() for how pointers are set.
+	
+	s0:		STRING(80);
+	s1:		STRING(80);
+	s2:		STRING(80);
+	s3:		STRING(80);
+	s4:		STRING(80);
+	s5:		STRING(80);
+	s6:		STRING(80);
+	s7:		STRING(80);
+	s8:		STRING(80);
+	s9:		STRING(80);
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

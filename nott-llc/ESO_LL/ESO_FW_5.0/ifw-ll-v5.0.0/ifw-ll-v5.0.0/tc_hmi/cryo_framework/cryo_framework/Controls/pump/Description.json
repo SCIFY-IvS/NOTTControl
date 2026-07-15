@@ -1,0 +1,180 @@
+﻿{
+  "$schema": "../../.hmiframework/Schema/ControlDescription.Schema.json",
+  "apiVersion": 1,
+  "name": "pump",
+  "namespace": "TcHmi.Controls.cryo_framework",
+  "displayName": "Pump",
+  "version": {
+    "full": "1.0.0.0",
+    "major": 1,
+    "minor": 0,
+    "revision": 0,
+    "build": 0
+  },
+  "visible": true,
+  "themeable": "Standard",
+  "base": "TcHmi.Controls.System.TcHmiControl",
+  "description": "Pump Control.",
+  "properties": {
+    "containerControl": false,
+    "geometry": {
+      "width": 150,
+      "height": 150
+    }
+  },
+  "icons": [
+    {
+      "name": "Icons/16x16.png",
+      "width": 16,
+      "height": 16
+    },
+    {
+      "name": "Icons/24x24.png",
+      "width": 24,
+      "height": 24
+    },
+    {
+      "name": "Icons/32x32.png",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "Icons/64x64.png",
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "template": "Template.html",
+  "dependencyFiles": [
+    {
+      "name": "pump.js",
+      "type": "JavaScript",
+      "description": "Contains all the main logic."
+    },
+    {
+      "name": "Style.css",
+      "type": "Stylesheet",
+      "description": "Theme independent style"
+    }
+  ],
+    "themes": {
+        "Base": {
+            "resources": [
+                {
+                    "name": "Themes/Base/Style.css",
+                    "type": "Stylesheet",
+                    "description": "Theme dependent style"
+                }
+            ]
+        },
+        "Base-Dark": {
+            "resources": [
+                {
+                    "name": "Themes/Base-Dark/Style.css",
+                    "type": "Stylesheet",
+                    "description": "Theme dependent style"
+                }
+            ]
+        }
+    },
+  "attributes": [
+    {
+      "name": "data-tchmi-pump-enabled",
+      "propertyName": "Enabled",
+      "propertySetterName": "setEnabled",
+      "propertyGetterName": "getEnabled",
+      "displayName": "Enabled",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "Value",
+      "description": "Pump is Enabled (ON/OFF)",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-pump-blink",
+      "propertyName": "Blink",
+      "propertySetterName": "setBlink",
+      "propertyGetterName": "getBlink",
+      "displayName": "Blink",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "Value",
+      "description": "pump Blinking when On",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-pump-direction",
+      "propertyName": "Direction",
+      "propertySetterName": "setDirection",
+      "propertyGetterName": "getDirection",
+      "displayName": "Direction",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 20,
+      "type": "tchmi:framework#/definitions/TcHmi.Controls.cryo_framework.pump.direction",
+      "category": "Drawing",
+      "description": "Pump rotation in angles of 90 degrees",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": "Right",
+      "defaultValueInternal": "Right"
+    },
+    {
+      "name": "data-tchmi-pump-enabled-background-color",
+      "propertyName": "EnabledBackgroundColor",
+      "propertySetterName": "setEnabledBackgroundColor",
+      "propertyGetterName": "getEnabledBackgroundColor",
+      "displayName": "Enabled Background color",
+      "visible": true,
+      "themeable": "None",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/SolidColor",
+      "category": "Pump",
+      "description": "Pump Background Color when in Enabled state",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": "rgba(0,0,0,255)",
+      "defaultValueInternal": "rgba(0,0,0,255)"
+    },
+    {
+      "name": "data-tchmi-pump-disable-background-color",
+      "propertyName": "DisabledBackgroundColor",
+      "propertySetterName": "setDisabledBackgroundColor",
+      "propertyGetterName": "getDisabledBackgroundColor",
+      "displayName": "Disabled Background color",
+      "visible": true,
+      "themeable": "None",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/SolidColor",
+      "category": "Pump",
+      "description": "Pump Background Color when in Disabled state",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": "rgba(0,0,0,255)",
+      "defaultValueInternal": "rgba(0,0,0,255)"
+    }
+  ],
+  "attributeCategories": [],
+  "functions": [],
+  "events": [],
+  "dataTypes": [
+    {
+      "schema": "Schema/Types.Schema.json"
+    }
+  ]
+}

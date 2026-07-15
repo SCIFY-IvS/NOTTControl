@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_RS_BASE_STATE" Id="{5694a489-c9fb-48ab-8e8d-66be98dd0565}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{attribute 'strict'}
+TYPE E_RS_BASE_STATE :
+(
+	NONE	:= 0,
+	NOTOP,
+	OP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

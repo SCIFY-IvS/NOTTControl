@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>NOTT instrument control</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="main_label_temp1">
@@ -44,11 +44,29 @@ border-color: rgb(0, 0, 0);</string>
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_filter_wheel">
+   <widget class="QPushButton" name="pushButton_piezos">
     <property name="geometry">
      <rect>
       <x>20</x>
       <y>400</y>
+      <width>200</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(50, 129, 140);
+font: 700 14pt &quot;Segoe UI&quot;;
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Piezos</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_filter_wheel">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>455</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -153,32 +171,35 @@ color: rgb(50, 129, 140);</string>
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>10</y>
-      <width>200</width>
-      <height>200</height>
+      <y>18</y>
+      <width>240</width>
+      <height>110</height>
      </rect>
     </property>
     <property name="text">
      <string/>
     </property>
     <property name="pixmap">
-     <pixmap>ASGARD.png</pixmap>
+     <pixmap>NOTT.png</pixmap>
     </property>
     <property name="scaledContents">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>310</x>
-      <y>30</y>
-      <width>321</width>
-      <height>61</height>
+      <x>220</x>
+      <y>28</y>
+      <width>520</width>
+      <height>56</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">background: transparent;</string>
+    </property>
     <property name="text">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt; font-weight:700;&quot;&gt;Instrument Control&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body style=&quot;margin:0; background:transparent;&quot;&gt;&lt;p align=&quot;center&quot; style=&quot;margin:0; line-height:120%;&quot;&gt;&lt;span style=&quot;font-family:'Segoe UI'; font-size:28pt; font-weight:700; color:#32818c;&quot;&gt;NOTT&lt;/span&gt;&lt;span style=&quot;font-family:'Segoe UI'; font-size:28pt; font-weight:700; color:#2f3e44;&quot;&gt; instrument control&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="textFormat">
      <enum>Qt::RichText</enum>
@@ -414,7 +435,7 @@ color: rgb(50, 129, 140);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>500</y>
+      <y>560</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -432,7 +453,7 @@ color: rgb(255, 255, 255);</string>
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>480</y>
+      <y>510</y>
       <width>100</width>
       <height>30</height>
      </rect>
@@ -461,7 +482,7 @@ color: rgb(255, 0, 0);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>450</y>
+      <y>510</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -479,7 +500,7 @@ color: rgb(255, 255, 255);</string>
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>400</y>
+      <y>455</y>
       <width>100</width>
       <height>30</height>
      </rect>
@@ -502,6 +523,24 @@ color: rgb(255, 0, 0);</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ldc">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>235</y>
+      <width>200</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(50, 129, 140);
+font: 700 14pt &quot;Segoe UI&quot;;
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>LDC</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_light_source">
@@ -547,7 +586,7 @@ border-color: rgb(0, 0, 0);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>550</y>
+      <y>610</y>
       <width>200</width>
       <height>50</height>
      </rect>
@@ -558,7 +597,25 @@ font: 700 14pt &quot;Segoe UI&quot;;
 color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>Camera</string>
+     <string>Camera warm</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_h2rg">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>665</y>
+      <width>200</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(50, 129, 140);
+font: 700 14pt &quot;Segoe UI&quot;;
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Camera cold</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_tiptilt">
