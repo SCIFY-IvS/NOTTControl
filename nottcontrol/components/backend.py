@@ -12,7 +12,7 @@ import astroplan
 from astroplan import plots
 
 class NottBackend(object):
-    def __init__(self, config, sf_config,
+    def __init__(self, config,
                  asgard_link,
                  config_str=None,
                  config_order=None,
