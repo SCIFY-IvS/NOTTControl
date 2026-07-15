@@ -55,6 +55,11 @@ class DelayLine(Motor):
     def is_standing(self):
         status = self.getStatusInformation()[0]
         return status == 'STANDING' or status == 'Motor stopped - STANDING'
+    @property
+    def is_error(self):
+        status = self.getStatusInformation()[0]
+        return status == 'ERROR'
+        
 
     def await_motor(self, dt=0.1, timeout=30., initial=None, verbose=True):
         if self.is_standing:
@@ -64,7 +69,10 @@ class DelayLine(Motor):
         wait_start = time()
         while time() < wait_start + timeout:
             if self.is_standing:
-                return
+                return 0
+            if self.is_error:
+                raise MotorError("Tried to await a motor in error")
+                return 1
             else:
                 if verbose:
                     position = self.position_microns
@@ -113,7 +121,12 @@ class DelayLine(Motor):
         need_cp = (not distance  >= 0.) and np.abs(distance) >= self.deadband 
         if need_cp and cp_backlash:
             self.move_abs(self.position_microns - self.backlash)
-            sleep(0.2)
+            sleep(0.5)
+            # mystatus = self.getStatusInformation()
+            # if "ERROR" in mystatus:
+            #     print("Failed to reach target")
+            #     raise MotorError(f"Motor {self.name} in error state")
+            #     return 1
             if verbose:
                 print(self.position_microns, self.target_microns)
                 print(f"Backlash correction {self.position_microns:.2f} - {self.target_microns:.2f}")
@@ -122,7 +135,12 @@ class DelayLine(Motor):
                 print(f"t_est = {t_est}")
             self.await_motor(dt=dt, timeout=t_est+10., verbose=verbose)
         self.move_abs(target_pos)
-        sleep(0.2)
+        sleep(0.5)
+        # mystatus = self.getStatusInformation()
+        # if "ERROR" in mystatus:
+        #     print("Failed to reach target")
+        #     raise MotorError(f"Motor {self.name} in error state")
+        #     return 1
         if verbose:
             print(self.position_microns, self.target_microns)
             print(f"Actual motion {self.position_microns:.1f} - {self.target_microns:.1f}")
@@ -316,9 +334,17 @@ class ActuatorCluster(object):
         return np.array([amotor.is_standing for amotor in self.motors])
 
     @property
+    def status(self):
+        stati = []
+        for amotor in self.motors:
+            astat = amotor.getStatusInformation()
+            stati.append(astat)
+            print(astat)
+        return stati
+        
+    @property
     def state(self):
         positions = np.nan * np.zeros(len(self.motors))
-
         for i, amotor in enumerate(self.motors):
             if not amotor.is_operational:
                 raise MotorError(f"Delay line {amotor.name} is not in OPERATIONAL state.")
@@ -338,6 +364,19 @@ class ActuatorCluster(object):
     @property
     def target_microns(self):
         return np.array([amotor.target_microns for amotor in self.motors])
+
+    def plot_bars(self):
+        import matplotlib.pyplot as plt
+        vals = np.array([self.position_microns,
+                        self.target_microns,
+                        self.tbuff.total])
+        fig = plt.figure()
+        bar_width = 0.15
+        locs = np.arange(vals.shape[1])
+        labels = ["Pos", "Targ", "Tbuff"]
+        for i, avals in enumerate(vals):
+            print(avals)
+            plt.bar(locs + i*bar_width, avals, label=labels[i], width=bar_width)
 
 
     def move_abs_all(self, target_pos: ArrayLike = None,
@@ -395,10 +434,12 @@ class GazLines(ActuatorCluster):
         mylines.vmin = 0.
         mylines.vcenter = (mylines.vmax - mylines.vmin)/2
         mylines.vwork = mylines.get_volume()
+        return mylines
 
     @property
     def gaz_lengths_m(self):
-        self.stroke - self.position_microns*u.micron.to(u.m)
+        res = self.stroke - self.position_microns*u.micron.to(u.m)
+        return res
 
     @property
     def volumes(self):

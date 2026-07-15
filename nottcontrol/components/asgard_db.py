@@ -16,7 +16,7 @@ class AsgardBridgeTest(Config):
         return myobj
 
     def timestring(self):
-        Time.now().isot
+        return Time.now().isot
 
 asgard_bridge = AsgardBridgeTest.setupAsgard()
 
