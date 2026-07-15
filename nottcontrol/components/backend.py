@@ -16,7 +16,7 @@ from copy import deepcopy, copy
 from nottcontrol.components import n_air
 
 class NottBackend(object):
-    def __init__(self, config, sf_config,
+    def __init__(self, config,
                  asgard_link,
                  wl_science=None,
                  config_str=None,
