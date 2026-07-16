@@ -57,8 +57,9 @@ def calc_ramp_plan(
 
     SingleFrame uses one group × one read with no drop frames (one clocked frame).
 
-    Ramp uses one group × one read with drop frames to reach the requested DIT,
-    saving a single raw sample per ramp (no CDS/Fowler reduction).
+    Ramp uses two groups × one read with drop frames between groups (same MACIE
+    timing as CDS) so the requested DIT is actually clocked; the saved/displayed
+    sample is the last raw read, not a CDS difference.
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -75,8 +76,10 @@ def calc_ramp_plan(
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
 
     if mode == "Ramp":
-        nftot = max(1, int(math.ceil(tint_ms / frametime_ms)))
-        return {"ngroups": 1, "nreads": 1, "ndrops": max(0, nftot - 1), "fowler_pairs": 0}
+        if tint_ms < frametime_ms:
+            return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
+        nftot = max(2, int(math.ceil(tint_ms / frametime_ms)))
+        return {"ngroups": 2, "nreads": 1, "ndrops": max(0, nftot - 2), "fowler_pairs": 0}
 
     # CDS — mirror calc_ramp_settings (ngmax=2 path)
     if tint_ms < frametime_ms:

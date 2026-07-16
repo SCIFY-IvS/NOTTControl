@@ -9,6 +9,7 @@ import numpy
 from nottcontrol.camera.macie.fits_science import (
     cds_science_image,
     fowler_science_image,
+    ramp_science_image,
     raw_science_image,
     science_image_from_cube,
 )
@@ -38,13 +39,13 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
 
-    def test_ramp_single_read_with_drops(self) -> None:
+    def test_ramp_long_integration_uses_group_drops(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="Ramp")
-        self.assertEqual(plan["ngroups"], 1)
+        self.assertEqual(plan["ngroups"], 2)
         self.assertEqual(plan["nreads"], 1)
-        self.assertEqual(plan["ndrops"], 2)
+        self.assertEqual(plan["ndrops"], 1)
 
-    def test_ramp_short_integration(self) -> None:
+    def test_ramp_short_integration_single_read(self) -> None:
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp")
         self.assertEqual(plan["ngroups"], 1)
         self.assertEqual(plan["nreads"], 1)
@@ -110,12 +111,20 @@ class RampReductionTests(unittest.TestCase):
         result = raw_science_image(cube, {"NAXIS": 3, "NAXIS3": 2})
         numpy.testing.assert_allclose(result, [[10.0, 20.0]])
 
+    def test_ramp_science_image_returns_last_plane(self) -> None:
+        cube = numpy.array(
+            [[[10.0, 20.0]], [[99.0, 88.0]]],
+            dtype=numpy.float32,
+        )
+        result = ramp_science_image(cube, {"NAXIS": 3, "NAXIS3": 2})
+        numpy.testing.assert_allclose(result, [[99.0, 88.0]])
+
     def test_science_image_from_cube_ramp(self) -> None:
         cube = numpy.array([[[3.0]], [[9.0]]], dtype=numpy.float32)
         result = science_image_from_cube(
             cube, {"NAXIS": 3, "NAXIS3": 2}, reduction="Ramp"
         )
-        self.assertAlmostEqual(float(result[0, 0]), 3.0)
+        self.assertAlmostEqual(float(result[0, 0]), 9.0)
 
 
 if __name__ == "__main__":
