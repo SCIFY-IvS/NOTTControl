@@ -574,6 +574,7 @@ class H2rgMainWindow(QMainWindow):
     readouts_updated = pyqtSignal(object)
     init_button_state = pyqtSignal(str)
     exposure_timing_updated = pyqtSignal(object)
+    macie_operation_busy = pyqtSignal(bool)
 
     def __init__(self) -> None:
         super().__init__()
@@ -596,6 +597,9 @@ class H2rgMainWindow(QMainWindow):
         self.init_button_state.connect(self._apply_init_button_state, Qt.QueuedConnection)
         self.exposure_timing_updated.connect(
             self._apply_exposure_timing, Qt.QueuedConnection
+        )
+        self.macie_operation_busy.connect(
+            self._apply_macie_operation_busy, Qt.QueuedConnection
         )
 
         loading = QLabel("Loading H2RG controls…", self)
@@ -632,6 +636,7 @@ class H2rgMainWindow(QMainWindow):
         self._shutting_down = False
         self._last_tint_ms: float | None = None
         self._initialized = False
+        self._macie_operation_busy = False
         self._last_zmq_fits_poll = 0.0
         self._fowler_pairs = MACIE_FOWLER_PAIRS_DEFAULT
         self.image = None
@@ -1090,9 +1095,9 @@ class H2rgMainWindow(QMainWindow):
             ("label_6", "lineEdit_nb_coadd"),
             ("label_7", "lineEdit_nb_frames"),
         )
-        self.ui.label_5.setText("Integration time (ms):")
+        self.ui.label_5.setText("Integration time:")
         self.ui.label_7.setText("Saved ramps:")
-        self.ui.label_4.setText("Total integration time (ms):")
+        self.ui.label_4.setText("Total integration time:")
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
             field = getattr(self.ui, field_name)
@@ -1142,13 +1147,13 @@ class H2rgMainWindow(QMainWindow):
         form.addWidget(separator, separator_row, 0, 1, 3)
 
         timing_row = separator_row + 1
-        self._label_frame_time = QLabel("Frame time (ms):")
+        self._label_frame_time = QLabel("Frame time:")
         self._lineEdit_frame_time = QLineEdit("—")
         self._lineEdit_frame_time.setReadOnly(True)
-        self._label_photon_time = QLabel("Photon time (s):")
+        self._label_photon_time = QLabel("Photon time:")
         self._lineEdit_photon_time = QLineEdit("—")
         self._lineEdit_photon_time.setReadOnly(True)
-        self._label_execution_time = QLabel("Execution time (s):")
+        self._label_execution_time = QLabel("Execution time:")
         self._lineEdit_execution_time = QLineEdit("—")
         self._lineEdit_execution_time.setReadOnly(True)
         self._label_efficiency = QLabel("Efficiency (%):")
@@ -1471,6 +1476,11 @@ class H2rgMainWindow(QMainWindow):
     def _sync_ramp_mode_fields(self) -> None:
         if not hasattr(self, "_comboBox_ramp_mode"):
             return
+        self._comboBox_ramp_mode.setEnabled(True)
+        if hasattr(self, "ui") and self.ui is not None:
+            self.ui.lineEdit_nb_coadd.setEnabled(True)
+            self.ui.lineEdit_nb_frames.setEnabled(True)
+            self.ui.label_5.setEnabled(True)
         fowler = self._selected_ramp_mode() == "Fowler"
         single_frame = self._selected_ramp_mode() == "SingleFrame"
         if hasattr(self, "_lineEdit_fowler_pairs"):
@@ -1480,26 +1490,26 @@ class H2rgMainWindow(QMainWindow):
         if hasattr(self, "ui") and self.ui is not None:
             self.ui.lineEdit_integration_time.setEnabled(not fowler and not single_frame)
             if fowler:
-                label = "Integration time (ms):"
+                label = "Integration time:"
                 tooltip = (
                     "Fowler timing is controlled by Fowler pairs and ASIC registers. "
-                    "Photon time is shown below after Set."
+                    "Photon time is shown below after Set (ms)."
                 )
             elif single_frame:
-                label = "Integration time (ms):"
+                label = "Integration time:"
                 tooltip = (
                     "Single Frame uses one clocked frame (no drops). "
-                    "Photon time equals the frame time shown below after Set."
+                    "Photon time equals the frame time shown below after Set (ms)."
                 )
             elif self._selected_ramp_mode() == "Ramp":
-                label = "Integration time (ms):"
+                label = "Integration time:"
                 tooltip = (
-                    "Target DIT for up-the-ramp readout. Ramp mode saves one raw sample "
-                    "per ramp; use Saved ramps for multiple frames."
+                    "Target DIT for raw readout at end of integration (ms). "
+                    "Uses MACIE drop frames between groups (same timing as CDS)."
                 )
             else:
-                label = "Integration time (ms):"
-                tooltip = "Target photon-collection time for CDS ramps."
+                label = "Integration time:"
+                tooltip = "Target photon-collection time for CDS ramps (ms)."
             self.ui.label_5.setText(label)
             self.ui.lineEdit_integration_time.setToolTip(tooltip)
             self.ui.label_5.setToolTip(tooltip)
@@ -1634,10 +1644,52 @@ class H2rgMainWindow(QMainWindow):
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
 
+    def _exposure_field_widgets(self) -> list:
+        widgets = [
+            getattr(self.ui, "lineEdit_integration_time", None),
+            getattr(self.ui, "lineEdit_nb_coadd", None),
+            getattr(self.ui, "lineEdit_nb_frames", None),
+            getattr(self, "_comboBox_ramp_mode", None),
+            getattr(self, "_lineEdit_fowler_pairs", None),
+            getattr(self, "_label_fowler_pairs", None),
+            getattr(self.ui, "label_5", None),
+        ]
+        return [widget for widget in widgets if widget is not None]
+
+    def _set_exposure_panel_enabled(self, enabled: bool) -> None:
+        for widget in self._exposure_field_widgets():
+            widget.setEnabled(enabled)
+        if enabled:
+            self._sync_ramp_mode_fields()
+
+    def _apply_macie_operation_busy(self, busy: bool) -> None:
+        self._macie_operation_busy = busy
+        if self.ui is None:
+            return
+
+        if busy:
+            self._set_controls_enabled(False)
+            if hasattr(self, "_button_set_exposure"):
+                self._button_set_exposure.setEnabled(False)
+            self.ui.button_init.setEnabled(False)
+            self._set_exposure_panel_enabled(False)
+            return
+
+        if self._live_active:
+            self._set_live_dependent_controls(True)
+            return
+
+        self._set_controls_enabled(self._initialized)
+        if hasattr(self, "_button_set_exposure"):
+            self._button_set_exposure.setEnabled(self._initialized)
+        if self._initialized:
+            self.ui.button_init.setEnabled(True)
+            self._set_exposure_panel_enabled(True)
+
     def _set_live_dependent_controls(self, live: bool) -> None:
         if self.ui is None or not self._initialized:
             return
-        enabled = not live
+        enabled = not live and not self._macie_operation_busy
         self.ui.button_acquire.setEnabled(enabled)
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
@@ -1647,6 +1699,7 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_init.setEnabled(enabled)
         self.ui.button_powerOn.setEnabled(enabled)
         self.ui.button_powerOff.setEnabled(enabled)
+        self._set_exposure_panel_enabled(enabled)
 
     def _stop_live_ui(self) -> None:
         self._live_active = False
@@ -1670,7 +1723,7 @@ class H2rgMainWindow(QMainWindow):
                 and self._macie is not None
                 and not self._live_poll_stop.is_set()
             ):
-                loaded = self._load_latest_frame(force=False, macie=self._macie)
+                loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
                     frame, _path = loaded
                     self.frame_ready.emit(frame)
@@ -1776,7 +1829,11 @@ class H2rgMainWindow(QMainWindow):
         def operation() -> None:
             self._apply_exposure_settings(self._ensure_macie())
 
-        self._run_macie_operation("Set exposure", operation)
+        self._run_macie_operation(
+            "Set exposure",
+            operation,
+            status="Setting exposure…",
+        )
 
     def _autoscale_image(self) -> None:
         if self.image is None or self._current_frame is None:
@@ -1900,6 +1957,8 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setEnabled(enabled)
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
+        if enabled and not self._macie_operation_busy and not self._live_active:
+            self._set_exposure_panel_enabled(True)
 
     def _apply_init_button_state(self, state: str) -> None:
         if self.ui is None:
@@ -1922,8 +1981,8 @@ class H2rgMainWindow(QMainWindow):
         if self.ui is None:
             return
         self._lineEdit_frame_time.setText(f"{timing['frametime_s'] * 1000:.4g}")
-        self._lineEdit_photon_time.setText(f"{timing['inttime_s']:.4g}")
-        self._lineEdit_execution_time.setText(f"{timing['execution_s']:.4g}")
+        self._lineEdit_photon_time.setText(f"{timing['inttime_s'] * 1000:.4g}")
+        self._lineEdit_execution_time.setText(f"{timing['execution_s'] * 1000:.4g}")
         self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
 
     def _refresh_exposure_timing(self, macie) -> None:
@@ -1978,7 +2037,13 @@ class H2rgMainWindow(QMainWindow):
         self._macie.set_live_error_callback(self._on_live_macie_error)
         return self._macie
 
-    def _run_macie_operation(self, label: str, operation) -> None:
+    def _run_macie_operation(
+        self, label: str, operation, *, status: str | None = None
+    ) -> None:
+        if status:
+            self.status_updated.emit(status)
+        self.macie_operation_busy.emit(True)
+
         def worker() -> None:
             macie = self._macie
             if macie is not None:
@@ -1991,6 +2056,7 @@ class H2rgMainWindow(QMainWindow):
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
+                self.macie_operation_busy.emit(False)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -2078,21 +2144,16 @@ class H2rgMainWindow(QMainWindow):
         if ramp_mode == "Fowler":
             mode_detail = f"Fowler-{result['fowler_pairs']}, reads={result['nreads']}"
         elif ramp_mode == "SingleFrame":
-            mode_detail = "single frame, groups=1, drops=0, reads=1"
+            mode_detail = "single frame"
         elif ramp_mode == "Ramp":
-            mode_detail = (
-                f"raw sample, groups={result['ngroups']}, "
-                f"drops={result['ndrops']}, reads={result['nreads']}"
-            )
+            mode_detail = "raw sample"
         else:
-            mode_detail = (
-                f"groups={result['ngroups']}, drops={result['ndrops']}, "
-                f"reads={result['nreads']}"
-                + (" (window CDS)" if self._windowed_cds_layout() else "")
-            )
+            mode_detail = "CDS"
+            if self._windowed_cds_layout():
+                mode_detail = "window CDS"
         self.status_updated.emit(
-            f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon ({mode_detail}, "
-            f"saved ramps={nseq})"
+            f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon, "
+            f"{mode_detail}, saved ramps={nseq}"
         )
         return result
 
@@ -2719,7 +2780,46 @@ class H2rgMainWindow(QMainWindow):
         data, header = load_fits_data(payload)
         self._last_fits_path = path
         self._last_loaded_basename = path.name
+        try:
+            self._last_fits_mtime = path.stat().st_mtime
+        except OSError:
+            pass
         return self._store_raw_fits(data, header)
+
+    def _load_live_frame(
+        self, macie
+    ) -> tuple[numpy.ndarray, Path] | None:
+        """Return the next ramp FITS written since the last displayed frame."""
+        self._sync_save_dir_from_server(macie)
+        before_mtime = self._last_fits_mtime
+        before_name = self._last_loaded_basename
+
+        if self._local_fits_accessible(allow_probe=True):
+            for path in list_new_ramp_fits_in_dir(
+                self._save_dir,
+                before_mtime=before_mtime,
+                before_name=before_name,
+                dir_ok=True,
+            ):
+                try:
+                    return self._load_fits_from_path(path), path
+                except Exception as exc:
+                    print(f"H2RG live skipped unreadable FITS {path.name}: {exc}")
+
+            loaded = self._try_load_path_if_new(
+                self._resolve_server_fits_path(macie),
+                before_mtime,
+                before_name=before_name,
+            )
+            if loaded is not None:
+                return loaded
+
+        return self._fetch_fits_from_server(
+            macie,
+            before_mtime=before_mtime,
+            before_name=before_name,
+            require_new=True,
+        )
 
     def _load_latest_frame(
         self, force: bool = False, macie=None
@@ -2733,19 +2833,10 @@ class H2rgMainWindow(QMainWindow):
             if not force and (now - self._last_zmq_fits_poll) < 2.0:
                 return None
             self._last_zmq_fits_poll = now
-            try:
-                server_path = macie.get_newest_fits_path()
-            except Exception:
-                return None
-            server_name = fits_basename(server_path)
-            if (
-                not force
-                and server_name
-                and server_name == self._last_loaded_basename
-            ):
-                return None
             return self._fetch_fits_from_server(
                 macie,
+                before_mtime=0.0 if force else self._last_fits_mtime,
+                before_name=None if force else self._last_loaded_basename,
                 require_new=not force,
             )
 
@@ -2756,21 +2847,40 @@ class H2rgMainWindow(QMainWindow):
             if force and macie is not None:
                 return self._fetch_fits_from_server(macie, require_new=False)
             return None
-        if not force and path.name == self._last_loaded_basename:
-            return None
         try:
             mtime = path.stat().st_mtime
         except OSError:
             if macie is not None:
-                return self._fetch_fits_from_server(macie, require_new=not force)
+                return self._fetch_fits_from_server(
+                    macie,
+                    before_mtime=0.0 if force else self._last_fits_mtime,
+                    before_name=None if force else self._last_loaded_basename,
+                    require_new=not force,
+                )
             return None
-        if not force and mtime == self._last_fits_mtime:
+        if (
+            not force
+            and path.name == self._last_loaded_basename
+            and mtime <= self._last_fits_mtime
+        ):
+            if macie is not None:
+                return self._fetch_fits_from_server(
+                    macie,
+                    before_mtime=self._last_fits_mtime,
+                    before_name=self._last_loaded_basename,
+                    require_new=True,
+                )
             return None
         try:
             return self._load_fits_from_path(path), path
         except OSError:
             if macie is not None:
-                return self._fetch_fits_from_server(macie, require_new=not force)
+                return self._fetch_fits_from_server(
+                    macie,
+                    before_mtime=0.0 if force else self._last_fits_mtime,
+                    before_name=None if force else self._last_loaded_basename,
+                    require_new=not force,
+                )
             return None
 
     def _refresh_display(self) -> None:

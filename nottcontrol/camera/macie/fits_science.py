@@ -74,10 +74,24 @@ def fowler_science_image(
     return numpy.mean(numpy.stack(diffs, axis=0), axis=0).astype(numpy.float32)
 
 
+def ramp_science_image(
+    data: numpy.ndarray, header: dict | None = None
+) -> numpy.ndarray:
+    """Return the last saved raw sample (end of the requested DIT)."""
+    arr = numpy.asarray(data, dtype=numpy.float32)
+    if arr.ndim <= 2:
+        return arr
+
+    axis = ramp_sample_axis(header or {}, arr.shape)
+    if arr.shape[axis] == 1:
+        return numpy.take(arr, 0, axis=axis)
+    return numpy.take(arr, -1, axis=axis)
+
+
 def raw_science_image(
     data: numpy.ndarray, header: dict | None = None
 ) -> numpy.ndarray:
-    """Return the single saved sample (first plane if a ramp cube)."""
+    """Return the first saved sample (single-frame readout)."""
     arr = numpy.asarray(data, dtype=numpy.float32)
     if arr.ndim <= 2:
         return arr
@@ -95,7 +109,9 @@ def science_image_from_cube(
 ) -> numpy.ndarray:
     if reduction == "Fowler":
         return fowler_science_image(data, header, fowler_pairs=fowler_pairs)
-    if reduction in ("SingleFrame", "Ramp"):
+    if reduction == "Ramp":
+        return ramp_science_image(data, header)
+    if reduction == "SingleFrame":
         return raw_science_image(data, header)
     return cds_science_image(data, header)
 
