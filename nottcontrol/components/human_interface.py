@@ -1291,8 +1291,8 @@ class HumInt(object):
             else:
                 hdulist.append(fits.hdu.ImageHDU(data=kappa_reduced.T, name="KAPPA", header=None))
                 hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[1:,:,:-2], name="KAPPAE", header=None))
-                hdulist.append(fits.hdu.ImageHDU(data=kappa[:,:,:,:-2], name="RAW_KAP"), header=None)
-                hdulist.append(fits.hdu.ImageHDU(data=kappa_std[:,:,:,:-2], name="RAW_KAPE"), header=None)
+                hdulist.append(fits.hdu.ImageHDU(data=kappa[:,:,:], name="RAW_KAP", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=std_kappa[:,:,:], name="RAW_KAPE", header=None))
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))
