@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 
 #Communication protocol is described here: https://bookstack.vps-da8d40f3.arunmicro.com/books/smd4-user-manual/page/communications-protocol
+# We always assume the motor is driven in unit 'steps'!
 class SMD_driver_ethernet:
     def __init__(self, ip, port=11312):
         self.ip = ip
@@ -65,6 +66,18 @@ class SMD_driver_ethernet:
     def move_absolute_steps(self, steps:int):
         message = f"MCON:RUNA,{steps}\r\n"
         self._send_and_parse_message(message)
+
+    def move_to_spectrograph_pos(self):
+        """Move to spectrograph position - filterwheel must be properly homed"""
+        self.move_absolute_steps(0)
+    
+    def move_to_open_pos(self):
+        """Move to open position - filterwheel must be properly homed"""
+        self.move_absolute_steps(40)
+    
+    def move_to_closed_pos(self):
+        """Move to closed position - filterwheel must be properly homed"""
+        self.move_absolute_steps(80)
     
     def move_to_home(self, direction:bool = True):
         dir = '+' if direction else '-'
@@ -148,6 +161,7 @@ class SMD_driver_ethernet:
         dec_str = self._send_and_parse_message("MOTOR:DMAX\r\n")[0]
         return float(dec_str)
     
+    #For troubleshooting only; unit should be "steps" (0)
     def get_units(self):
         unit_str = self._send_and_parse_message("SYS:UNITS\r\n")[0]
         return int(unit_str)
