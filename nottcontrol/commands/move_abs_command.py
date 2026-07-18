@@ -1,4 +1,4 @@
-from nottcontrol.commands.async_command import AsyncCommand
+from nottcontrol.commands.async_command import AsyncCommand, is_axis_move_finished
 
 class MoveAbsCommand(AsyncCommand):
     def __init__(self, opcua_conn, opcua_prefix, target_pos, speed):
@@ -15,8 +15,7 @@ class MoveAbsCommand(AsyncCommand):
     
     def check_progress(self):
         status, state = self._opcua_conn.read_nodes([f"{self._opcua_prefix}.stat.sStatus", f"{self._opcua_prefix}.stat.sState"])
-
-        return (status == 'STANDING' and state == 'OPERATIONAL')
+        return is_axis_move_finished(status, state)
 
 class MoveAbsCommandSim(MoveAbsCommand):
     def execute(self):

@@ -1,13 +1,15 @@
-from nottcontrol.commands.scan_fringes_command import ScanFringesCommand
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import time
 
 from PyQt5.QtWidgets import QWidget, QMenu
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.uic import loadUi
 
+from nottcontrol.commands.async_command import is_axis_move_finished
+from nottcontrol.commands.scan_fringes_command import ScanFringesCommand
 from nottcontrol.theme import style_motor_widget
-
-from datetime import datetime, timezone
-import time
 
 class MotorWidget(QWidget):
     closing = pyqtSignal()
@@ -57,7 +59,15 @@ class MotorWidget(QWidget):
 
     def executeCommand(self, cmd):
         if self._activeCommand is not None:
-            raise Exception('Already an active command!')
+            # If a previous move ended in timeout/error (or OPC is unavailable),
+            # allow a new move instead of leaving Absolute/Relative stuck disabled.
+            try:
+                previous_done = self._activeCommand.check_progress()
+            except Exception:
+                previous_done = True
+            if not previous_done:
+                raise Exception('Already an active command!')
+            self.clearActiveCommand()
 
         cmd.execute()
         self._activeCommand = cmd
@@ -66,9 +76,9 @@ class MotorWidget(QWidget):
         self.ui.pb_move_rel.setEnabled(False)
         self.ui.pb_move_abs.setEnabled(False)
     
-    def clearActiveCommand(self):
+    def clearActiveCommand(self, status_text: str | None = None):
         self._activeCommand = None
-        self.ui.dl_command_status.setText('Not executing command')
+        self.ui.dl_command_status.setText(status_text or 'Not executing command')
 
         self.ui.pb_move_rel.setEnabled(True)
         self.ui.pb_move_abs.setEnabled(True)
@@ -81,6 +91,11 @@ class MotorWidget(QWidget):
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
+            # OPC/read timeout while a move is pending: re-enable Absolute/Relative.
+            if self._activeCommand is not None:
+                self.clearActiveCommand(
+                    f"Command interrupted ({e}); Absolute/Relative re-enabled"
+                )
 
     def apply_status_values(self, status, state, substate, target_pos_mm):
         try:
@@ -92,11 +107,30 @@ class MotorWidget(QWidget):
             self.ui.label_current_speed.setText(f'{self.current_speed:.1f}')
             self.ui.label_error.clear()
 
-            if self._activeCommand is not None and self._activeCommand.check_progress():
-                self.clearActiveCommand()
+            if self._activeCommand is not None and is_axis_move_finished(status, state):
+                # Prefer values already read for this refresh (avoids an extra OPC call
+                # and keeps UI responsive after timeout/error states).
+                status_u = str(status or "").upper()
+                state_u = str(state or "").upper()
+                failed = any(
+                    token in status_u or token in state_u
+                    for token in ("ERR", "FAULT", "TIMEOUT", "TIME OUT", "TIME-OUT")
+                )
+                cmd_name = self._activeCommand.text()
+                if failed:
+                    self.clearActiveCommand(
+                        f"Command '{cmd_name}' ended "
+                        f"({status} / {state}); Absolute/Relative re-enabled"
+                    )
+                else:
+                    self.clearActiveCommand()
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
+            if self._activeCommand is not None:
+                self.clearActiveCommand(
+                    f"Command interrupted ({e}); Absolute/Relative re-enabled"
+                )
     
     def load_position(self):
         try:
