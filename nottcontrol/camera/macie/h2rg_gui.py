@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QTextEdit,
     QVBoxLayout,
@@ -822,11 +823,22 @@ class H2rgMainWindow(QMainWindow):
         self._button_subtract_bg = QPushButton("Subtract BG")
         self._button_subtract_bg.setCheckable(True)
         self._button_subtract_bg.setEnabled(False)
-        self._button_subtract_bg.setStyleSheet(PANEL_BUTTON_STYLE)
         self._button_subtract_bg.setMinimumHeight(CURSOR_READOUT_HEIGHT)
         self._button_subtract_bg.setFixedWidth(110)
         self._button_subtract_bg.setToolTip(
             "Subtract the stored background from the displayed image"
+        )
+        self._button_subtract_bg.setStyleSheet(
+            PANEL_BUTTON_STYLE
+            + """
+            QPushButton:checked {
+                background: rgb(30, 100, 110);
+                border: 2px solid rgb(20, 70, 80);
+            }
+            QPushButton:disabled {
+                background: rgb(180, 180, 180);
+            }
+            """
         )
         button_row.addWidget(self._button_subtract_bg)
 
@@ -1152,10 +1164,11 @@ class H2rgMainWindow(QMainWindow):
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
         self._clear_widget_layout(box)
-        box.setMinimumHeight(360)
+        box.setMinimumHeight(0)
+        box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         outer = QVBoxLayout(box)
-        outer.setContentsMargins(8, 12, 8, 8)
-        outer.setSpacing(8)
+        outer.setContentsMargins(8, 10, 8, 8)
+        outer.setSpacing(6)
 
         form = QGridLayout()
         form.setHorizontalSpacing(8)
@@ -1296,9 +1309,9 @@ class H2rgMainWindow(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        # Left: large image + compact controls/stats (ROI panel lives on the right).
+        # Left: image dominates; stats + ROI sit under it (not stacked on the right).
         self.ui.frame_camera.setMinimumWidth(560)
-        self.ui.frame_camera.setMinimumHeight(480)
+        self.ui.frame_camera.setMinimumHeight(360)
         self.ui.frame_camera.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         image_column = QWidget()
@@ -1308,34 +1321,47 @@ class H2rgMainWindow(QMainWindow):
         image_column_layout.setSpacing(8)
         image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
         self._setup_cursor_readout_row(image_column_layout)
-        image_column_layout.addWidget(self._setup_image_statistics_panel(), stretch=0)
-        top.addWidget(image_column, stretch=1)
 
-        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        right_host = QWidget()
-        right_host.setFixedWidth(max(RIGHT_PANEL_WIDTH, 400))
-        right_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        right = QVBoxLayout(right_host)
-        right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(10)
-
-        self._setup_nott_logo(right)
-
-        for box in (
-            self.ui.groupBox_conf,
-            self.ui.groupBox_acquisition,
-        ):
-            box.setSizePolicy(panel_policy)
-            right.addWidget(box, stretch=0)
+        under_image = QHBoxLayout()
+        under_image.setSpacing(12)
+        under_image.addWidget(self._setup_image_statistics_panel(), stretch=0)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
         self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         for index, row in self._roi_panel.rows.items():
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
-        right.addWidget(self._roi_panel, stretch=0)
+        under_image.addWidget(self._roi_panel, stretch=1)
+        image_column_layout.addLayout(under_image, stretch=0)
+        top.addWidget(image_column, stretch=1)
+
+        # Right: config + acquisition only, in a scroll area so nothing overlaps.
+        right_width = max(RIGHT_PANEL_WIDTH, 380)
+        right_content = QWidget()
+        right_content.setMinimumWidth(right_width - 16)
+        right = QVBoxLayout(right_content)
+        right.setContentsMargins(0, 0, 8, 0)
+        right.setSpacing(10)
+        self._setup_nott_logo(right)
+
+        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        for box in (
+            self.ui.groupBox_conf,
+            self.ui.groupBox_acquisition,
+        ):
+            box.setSizePolicy(panel_policy)
+            right.addWidget(box, stretch=0)
         right.addStretch(1)
-        top.addWidget(right_host, stretch=0)
+
+        right_scroll = QScrollArea()
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setFrameShape(QFrame.NoFrame)
+        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        right_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        right_scroll.setFixedWidth(right_width)
+        right_scroll.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        right_scroll.setWidget(right_content)
+        top.addWidget(right_scroll, stretch=0)
         root.addLayout(top, stretch=1)
 
         self._roi_plots = H2rgRoiPlots(graph_height=min(MACIE_ROI_GRAPH_HEIGHT, 170))
