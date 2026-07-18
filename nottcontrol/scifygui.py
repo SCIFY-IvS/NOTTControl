@@ -614,6 +614,7 @@ class MainWindow(QMainWindow):
             saved_count, skipped_keys = self.redis_client.save_sensor_values(
                 saved_at, self.sensor_redis_keys, cache["sensor_values"]
             )
+            self._store_asic_hs_temp(saved_at)
             self._apply_cryo_cache_to_display()
             if skipped_keys:
                 print(
@@ -625,6 +626,33 @@ class MainWindow(QMainWindow):
                 self.opcua_conn_cry.reconnect()
             except Exception as reconnect_error:
                 print(f"OPC UA cryo reconnect failed: {reconnect_error}")
+
+    def _store_asic_hs_temp(self, saved_at) -> None:
+        """Poll SIDECAR on-chip HS_TEMP and write Kelvin to Redis when enabled."""
+        if not config.getboolean("MACIE", "asic_temp_to_redis", fallback=True):
+            return
+        if not self.redis_client.is_available():
+            return
+        try:
+            from nottcontrol.camera.macie.macie_interface import query_asic_hs_temp
+            from nottcontrol.camera.macie.zmq_server_manager import (
+                is_zmq_port_open,
+                select_macie_zmq_address,
+            )
+
+            address = select_macie_zmq_address(timeout_s=0.2)
+            if not is_zmq_port_open(address, timeout_s=0.2):
+                return
+            temp_k = query_asic_hs_temp(address, timeout_ms=5_000)
+            if temp_k is None:
+                return
+            key = config.get("MACIE", "asic_temp_redis_key", fallback="asic_hs_temp_k")
+            self.redis_client.add_asic_hs_temp(saved_at, temp_k, key=key)
+        except Exception as exc:
+            # ASIC may be powered off or busy; do not fail the cryo sensor loop.
+            if not getattr(self, "_asic_temp_warned", False):
+                self._asic_temp_warned = True
+                print(f"ASIC HS_TEMP: {exc}")
 
     def _poll_cryo_opc(self) -> bool:
         if not self.sensor_opc_nodes:

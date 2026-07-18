@@ -290,6 +290,10 @@ class MacieInterface():
         result = self._request("getpower")
         return result == "true"
 
+    def get_asic_temp(self) -> float:
+        """Return SIDECAR on-chip HS_TEMP in Kelvin."""
+        return parse_zmq_float(self._request("getasictemp"))
+
     def _abort_socket_unlocked(self) -> None:
         socket = self._socket
         self._socket = None
@@ -487,3 +491,43 @@ class MacieInterface():
                 return tokens[1:]
         else:
             raise Exception(f"Operation failed: {tokens[1]}")
+
+
+def query_asic_hs_temp(
+    zmq_address: str | None = None,
+    *,
+    timeout_ms: int = 5_000,
+) -> float | None:
+    """Read SIDECAR HS_TEMP in Kelvin via ZMQ without initializing MACIE.
+
+    Returns None if the server is unreachable, not initialized, or the read fails.
+    Requires an already-running zmq_server with ASIC powered/configured.
+    """
+    address = (zmq_address or "").strip()
+    if not address:
+        from nottcontrol.camera.macie.zmq_server_manager import select_macie_zmq_address
+
+        address = select_macie_zmq_address(timeout_s=0.3)
+
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.setsockopt(zmq.LINGER, 0)
+    socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+    socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+    try:
+        socket.connect(address)
+        socket.send_string("getasictemp")
+        reply = socket.recv_string()
+    except zmq.ZMQError:
+        return None
+    finally:
+        socket.close(linger=0)
+        context.term()
+
+    tokens = reply.split(";")
+    if not tokens or tokens[0] != "ok" or len(tokens) < 2:
+        return None
+    try:
+        return parse_zmq_float(tokens[1])
+    except (TypeError, ValueError):
+        return None

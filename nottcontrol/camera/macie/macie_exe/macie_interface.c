@@ -86,6 +86,14 @@ extern "C" bool M_getPower(bool *power)
     return GetPowerASIC(_ptUserData, power);
 }
 
+extern "C" bool M_getAsicTemp(double *temp_k)
+{
+    std::cout << "Calling getAsicTemp" << std::endl;
+    if (_ptUserData == NULL || temp_k == NULL)
+        return false;
+    return ASIC_GetHSTemp(_ptUserData, temp_k, NULL, NULL);
+}
+
 extern "C" bool M_close()
 {
     std::cout << "Calling close" << std::endl;
@@ -398,6 +406,13 @@ int main () {
                 bool power = false;
                 result = M_getPower(&power);
                 answer = (std::string) (power ? "true" : "false");
+            }
+            else if (command == "getasictemp")
+            {
+                double temp_k = 0.0;
+                result = M_getAsicTemp(&temp_k);
+                if (result)
+                    answer = format_double(temp_k);
             }
             else if (command == "close")
             {

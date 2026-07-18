@@ -9,6 +9,8 @@ extern "C" bool M_initCamera();
 extern "C" bool M_powerOff();
 extern "C" bool M_powerOn();
 extern "C" bool M_getPower(bool *power);
+/// Read SIDECAR on-chip HS_TEMP in Kelvin (housekeeping channel 14).
+extern "C" bool M_getAsicTemp(double *temp_k);
 extern "C" bool M_close();
 extern "C" bool M_exposure_settings(bool save, int ncoadds, int nseq, int ngroups, int nreads, int ndrops, int nresets);
 extern "C" bool M_read_exposure_settings(bool &save, uint &ncoadds, uint &nseq, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets);

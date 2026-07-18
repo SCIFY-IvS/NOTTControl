@@ -57,6 +57,17 @@ class RedisClient:
     def add_dl_position(self, motor, time, pos):
         unix_time = self.unix_time_ms(time)
         self.ts.add(f'{motor}_pos', unix_time, pos)
+
+    def add_asic_hs_temp(self, time, temp_k: float, key: str = "asic_hs_temp_k") -> bool:
+        """Store SIDECAR on-chip HS_TEMP (Kelvin) in Redis TimeSeries."""
+        if not self.is_available():
+            return False
+        try:
+            self.ts.add(key, self.unix_time_ms(time), float(temp_k))
+        except redis.RedisError as exc:
+            self._mark_unavailable(exc)
+            return False
+        return True
     
     def add_shutter_position(self, shutter, time, position):
         unix_time = self.unix_time_ms(time)

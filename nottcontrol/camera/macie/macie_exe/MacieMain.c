@@ -97,7 +97,7 @@ string arr[] = {"testing", "initCamera", "expSettings", "intTime", "frameSetting
                 "readASICconfig", "getInputs", "setInputs", "setGain", "getGain", "setNBuffer", "getNBuffer",
                 "setCapComp", "getCapComp", "setFiltPole", "getFiltPole", "setNOut", "getNOut",
                 "setClock", "getClock", "setPhase", "getPhase", "findPhase", "getErrors", "resetErrors",
-                "setVerbose", "getVerbose", "exit", "quit", "getPower", "getVoltages", "setLED",
+                "setVerbose", "getVerbose", "exit", "quit", "getPower", "getVoltages", "getAsicTemp", "setLED",
                 "powerOff", "powerOn", "readMACIE", "writeMACIE", "haltAcq", "configBuffers", "runTuneAcq"};
 vector<string> vocabulary(arr, arr + sizeof(arr) / sizeof(arr[0]));
 
@@ -402,6 +402,20 @@ int main2(int argc, char *argv[])
         {
             float vArr[MACIE_PWR_DAC_SIZE];
             GetVoltages(ptUserData, vArr);
+        }
+        if (input2.cmdOptionExists("getAsicTemp"))
+        {
+            double temp_k = 0.0;
+            double temp_c = 0.0;
+            unsigned int adc = 0;
+            if (ASIC_GetHSTemp(ptUserData, &temp_k, &temp_c, &adc))
+            {
+                printf("HS_TEMP: ADC=%u  %.3f K  (%.3f C)\n", adc, temp_k, temp_c);
+            }
+            else
+            {
+                printf("HS_TEMP read failed\n");
+            }
         }
         if (input2.cmdOptionExists("powerOff"))
         {

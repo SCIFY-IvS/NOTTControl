@@ -129,9 +129,17 @@ Commands:
    - Set/print log levels to debug, info, warn, error
 
 * TODO
-   - Telemetry readback
+   - Telemetry readback (bias mux beyond HS_TEMP)
    - readASICBits 0x0000<0:1>
-   - ASIC Temperature sensors
    - Reset ASIC (run powerOff then powerOn?)
    - get/setOffset
    - Normal/enhanced mode in Slow Mode (?)
+
+ASIC temperature (HS_TEMP)
+--------------------------
+- CLI: `getAsicTemp` (after powerOn / loaded microcode)
+- ZMQ: `getasictemp` → `ok;<kelvin>`
+- Enables `Temp_En0` on `h6903` with a low `SetTempCurrent`, reads housekeeping
+  mux channel 14, converts with T[K] = 0.366 * ADC (T[C] = T[K] - 273.15).
+- Redis key (from the main GUI sensor timer): `asic_hs_temp_k` (Kelvin).
+  Distinct from cryostat mount sensors `t_sidecar_*`.

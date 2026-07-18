@@ -5122,6 +5122,88 @@ bool ASIC_VReadBack(MACIE_Settings *ptUserData, unsigned int mux_index,
     return true;
 }
 
+// SIDECAR Manual Table 37: HS_TEMP housekeeping channel + h6903 enable bits.
+static const unsigned int HS_TEMP_HK_CHANNEL = 14;
+static const double HS_TEMP_SCALE_K_PER_DN = 0.366;
+static const unsigned int HS_TEMP_ADC_MASK = 0x0FFF; // 12-bit housekeeping ADC
+static const unsigned short REG_TEMP_CTRL = 0x6903;
+static const unsigned short BIT_TEMP_CURRENT0 = 8;
+static const unsigned short BIT_TEMP_CURRENT1 = 11;
+static const unsigned short BIT_TEMP_EN0 = 12;
+static const unsigned int DEFAULT_TEMP_CURRENT = 1; // keep << 256 uA (self-heating)
+
+////////////////////////////////////////////////////////////////////////////////
+/// \brief ASIC_GetHSTemp Read SIDECAR on-chip temperature (HS_TEMP).
+/// Enables Temp_En0 on h6903 with a low bias current, selects housekeeping
+/// mux channel 14 via ASIC_VReadBack, and converts the 12-bit voltage ADC
+/// (h7400) with T[K] = 0.366 * ADC (T[C] = T[K] - 273.15).
+bool ASIC_GetHSTemp(MACIE_Settings *ptUserData, double *temp_k, double *temp_c,
+                    unsigned int *adc_raw)
+{
+    if (SettingsCheckNULL(ptUserData) == false)
+        return false;
+
+    unsigned int temp_ctrl = 0;
+    if (ReadASICReg(ptUserData, REG_TEMP_CTRL, &temp_ctrl) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "ReadASICReg h6903 failed in %s\n", __func__);
+        return false;
+    }
+
+    unsigned int current = (temp_ctrl >> BIT_TEMP_CURRENT0) & 0xF;
+    bool en0 = (temp_ctrl & (1u << BIT_TEMP_EN0)) != 0;
+    if (!en0 || current == 0)
+    {
+        if (current == 0)
+            current = DEFAULT_TEMP_CURRENT;
+
+        regInfo regCurrent = gen_regInfo(REG_TEMP_CTRL, BIT_TEMP_CURRENT0,
+                                         BIT_TEMP_CURRENT1, current);
+        if (WriteASICBits(ptUserData, &regCurrent) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData,
+                           "WriteASICBits SetTempCurrent failed in %s\n", __func__);
+            return false;
+        }
+
+        regInfo regEn0 = gen_regInfo(REG_TEMP_CTRL, BIT_TEMP_EN0, BIT_TEMP_EN0, 1);
+        if (WriteASICBits(ptUserData, &regEn0) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData,
+                           "WriteASICBits Temp_En0 failed in %s\n", __func__);
+            return false;
+        }
+
+        // Allow bias current / sensor to settle before ADC conversion.
+        delay(100);
+    }
+
+    unsigned int val_h7000 = 0;
+    unsigned int val_h7400 = 0;
+    if (ASIC_VReadBack(ptUserData, HS_TEMP_HK_CHANNEL, &val_h7000, &val_h7400) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "ASIC_VReadBack HS_TEMP failed in %s\n",
+                       __func__);
+        return false;
+    }
+
+    unsigned int adc = val_h7400 & HS_TEMP_ADC_MASK;
+    double kelvin = HS_TEMP_SCALE_K_PER_DN * (double)adc;
+    double celsius = kelvin - 273.15;
+
+    if (adc_raw != NULL)
+        *adc_raw = adc;
+    if (temp_k != NULL)
+        *temp_k = kelvin;
+    if (temp_c != NULL)
+        *temp_c = celsius;
+
+    verbose_printf(LOG_INFO, ptUserData,
+                   "HS_TEMP: ADC=%u  T=%.2f K (%.2f C)  h7000=0x%04x h7400=0x%04x\n",
+                   adc, kelvin, celsius, val_h7000, val_h7400);
+    return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief verbose_printf Prints out messages based on a 'level' to
 /// stderr. The level requested is specified by calling 'isdec_set_verbose'.

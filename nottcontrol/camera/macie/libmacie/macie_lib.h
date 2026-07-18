@@ -247,6 +247,14 @@ extern bool ReadASICBits(MACIE_Settings *ptUserData, regInfo *reg, unsigned int 
 extern bool ReadASICBlock(MACIE_Settings *ptUserData, unsigned short addr, int nreg, unsigned int *val);
 extern bool readASICconfig(MACIE_Settings *ptUserData, unsigned short addr, int nreg);
 
+// ASIC housekeeping telemetry (SIDECAR Manual Table 37 / bias mux via h6192)
+extern bool ASIC_VReadBack(MACIE_Settings *ptUserData, unsigned int mux_index,
+                           unsigned int *val_h7000, unsigned int *val_h7400);
+/// Read on-chip HS_TEMP (housekeeping channel 14). Enables Temp_En0 on h6903.
+/// Outputs may be NULL. Temperature: T[K] = 0.366 * ADC; T[C] = T[K] - 273.15.
+extern bool ASIC_GetHSTemp(MACIE_Settings *ptUserData, double *temp_k, double *temp_c,
+                           unsigned int *adc_raw);
+
 
 // ASIC reg writing
 extern bool WriteASICReg(MACIE_Settings *ptUserData, unsigned short addr, unsigned int val);
