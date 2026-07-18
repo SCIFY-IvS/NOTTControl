@@ -101,8 +101,23 @@ def _header_style() -> str:
     return f'font: 700 {pt}pt "Segoe UI"; color: rgb(90, 90, 90);'
 
 
+def _title_style() -> str:
+    pt = scaled_font_pt(10)
+    return f'font: 600 {pt}pt "Segoe UI"; color: rgb(50, 50, 50);'
+
+
+def _style_light_plot(plot: pg.PlotWidget) -> None:
+    plot.setBackground("w")
+    item = plot.getPlotItem()
+    for name in ("left", "bottom", "right", "top"):
+        axis = item.getAxis(name)
+        axis.setPen(pg.mkPen(color=(40, 40, 40)))
+        axis.setTextPen(pg.mkPen(color=(40, 40, 40)))
+    item.showGrid(x=True, y=True, alpha=0.2)
+
+
 class H2rgRoiRow:
-    """One ROI readout row: name, Time/1D toggles, min/max/avg."""
+    """One ROI readout row: overlay/Time/1D toggles, min/max/avg."""
 
     def __init__(
         self,
@@ -125,6 +140,8 @@ class H2rgRoiRow:
         self.name_label.setFixedHeight(row_height)
         self.name_label.setStyleSheet(self._row_bg)
 
+        self.show_checkbox = QCheckBox(parent)
+        self.show_checkbox.setToolTip("Show ROI overlay on image")
         self.time_plot_checkbox = QCheckBox(parent)
         self.time_plot_checkbox.setToolTip("Plot brightness vs time")
         self.profile_plot_checkbox = QCheckBox(parent)
@@ -135,11 +152,12 @@ class H2rgRoiRow:
         self.avg_label = self._make_value_label(parent, row_height)
 
         grid.addWidget(self.name_label, row, 0)
-        grid.addWidget(self.time_plot_checkbox, row, 1, Qt.AlignCenter)
-        grid.addWidget(self.profile_plot_checkbox, row, 2, Qt.AlignCenter)
-        grid.addWidget(self.min_label, row, 3, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.max_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.avg_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.show_checkbox, row, 1, Qt.AlignCenter)
+        grid.addWidget(self.time_plot_checkbox, row, 2, Qt.AlignCenter)
+        grid.addWidget(self.profile_plot_checkbox, row, 3, Qt.AlignCenter)
+        grid.addWidget(self.min_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.max_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.avg_label, row, 6, Qt.AlignRight | Qt.AlignVCenter)
         self.set_color(color)
 
     def _make_value_label(self, parent: QWidget, row_height: int) -> QLabel:
@@ -173,7 +191,7 @@ class H2rgRoiRow:
 
 
 class H2rgRoiPanel(QGroupBox):
-    """Per-ROI min/max/avg table with Time / 1D plot toggles."""
+    """Per-ROI min/max/avg table with overlay / Time / 1D toggles."""
 
     def __init__(
         self,
@@ -187,11 +205,11 @@ class H2rgRoiPanel(QGroupBox):
         grid.setHorizontalSpacing(scaled(3))
         grid.setVerticalSpacing(0)
 
-        headers = ("", "T", "1D", "Min", "Max", "Avg")
+        headers = ("", "On", "T", "1D", "Min", "Max", "Avg")
         for col, text in enumerate(headers):
             label = QLabel(text, self)
             label.setStyleSheet(_header_style())
-            label.setAlignment(Qt.AlignCenter if col in (1, 2) else Qt.AlignRight)
+            label.setAlignment(Qt.AlignCenter if col in (1, 2, 3) else Qt.AlignRight)
             grid.addWidget(label, 0, col)
 
         self.rows: dict[int, H2rgRoiRow] = {}
@@ -207,8 +225,7 @@ class H2rgRoiPlots(QWidget):
 
     def __init__(self, parent: QWidget | None = None, *, graph_height: int = 190) -> None:
         super().__init__(parent)
-        # Toolbar + titles + plot area — keep a stable full-width strip height.
-        strip_h = scaled(max(graph_height, 220))
+        strip_h = scaled(max(graph_height, 200))
         self.setFixedHeight(strip_h)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -232,10 +249,11 @@ class H2rgRoiPlots(QWidget):
         time_layout.setContentsMargins(0, 0, 0, 0)
         time_layout.setSpacing(2)
         time_title = QLabel("ROI brightness vs time", time_host)
+        time_title.setStyleSheet(_title_style())
         time_layout.addWidget(time_title)
         axis = pg.DateAxisItem(orientation="bottom")
         self.pw_time = pg.PlotWidget(axisItems={"bottom": axis})
-        self.pw_time.showGrid(x=True, y=True, alpha=0.25)
+        _style_light_plot(self.pw_time)
         time_item = self.pw_time.getPlotItem()
         time_item.addLegend(offset=(8, 8))
         time_item.setLabel("left", "ROI brightness [ADU]")
@@ -251,9 +269,10 @@ class H2rgRoiPlots(QWidget):
         profile_layout.setContentsMargins(0, 0, 0, 0)
         profile_layout.setSpacing(2)
         self.profile_title = QLabel("ROI profile — check 1D", profile_host)
+        self.profile_title.setStyleSheet(_title_style())
         profile_layout.addWidget(self.profile_title)
         self.pw_profile = pg.PlotWidget()
-        self.pw_profile.showGrid(x=True, y=True, alpha=0.25)
+        _style_light_plot(self.pw_profile)
         profile_item = self.pw_profile.getPlotItem()
         profile_item.addLegend(offset=(8, 8))
         profile_item.setLabel("left", "ADU")
@@ -363,4 +382,5 @@ class H2rgRoiPlots(QWidget):
     @staticmethod
     def _clear_plot(plot: pg.PlotWidget) -> None:
         plot.clear()
+        _style_light_plot(plot)
         plot.getPlotItem().addLegend(offset=(8, 8))

@@ -606,7 +606,7 @@ class H2rgMainWindow(QMainWindow):
         app_icon = load_app_icon()
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
-        self.setMinimumSize(1000, 900)
+        self.setMinimumSize(1100, 920)
         self.ui = None
         self._init_runtime_state()
 
@@ -680,6 +680,11 @@ class H2rgMainWindow(QMainWindow):
         self._cursor_readout_timer = QTimer()
         self._cursor_readout_timer.setSingleShot(True)
         self._cursor_readout_timer.timeout.connect(self._flush_cursor_readout)
+        self._button_autoscale: QPushButton | None = None
+        self._button_header: QPushButton | None = None
+        self._button_ds9: QPushButton | None = None
+        self._button_save_dir: QPushButton | None = None
+        self._button_subtract_bg: QPushButton | None = None
         self._stat_mean: QLineEdit | None = None
         self._stat_min: QLineEdit | None = None
         self._stat_max: QLineEdit | None = None
@@ -701,7 +706,6 @@ class H2rgMainWindow(QMainWindow):
         QApplication.processEvents()
         self._set_status("Loading…")
         self._set_controls_enabled(False)
-        self.ui.checkBox_substract_background.setEnabled(False)
         QTimer.singleShot(0, self._finish_setup)
 
     def _finish_setup(self) -> None:
@@ -796,6 +800,28 @@ class H2rgMainWindow(QMainWindow):
         self._button_save_dir.setFixedWidth(96)
         self._button_save_dir.setToolTip("Open FITS save directory")
         button_row.addWidget(self._button_save_dir)
+
+        self._button_subtract_bg = QPushButton("Subtract BG")
+        self._button_subtract_bg.setCheckable(True)
+        self._button_subtract_bg.setEnabled(False)
+        self._button_subtract_bg.setStyleSheet(PANEL_BUTTON_STYLE)
+        self._button_subtract_bg.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        self._button_subtract_bg.setFixedWidth(110)
+        self._button_subtract_bg.setToolTip(
+            "Subtract the stored background from the displayed image"
+        )
+        button_row.addWidget(self._button_subtract_bg)
+
+        for name, width in (
+            ("checkBox_avg", 70),
+            ("checkBox_max", 55),
+            ("checkBox_min", 55),
+        ):
+            checkbox = getattr(self.ui, name)
+            checkbox.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+            checkbox.setMaximumWidth(width)
+            button_row.addWidget(checkbox)
+
         button_row.addStretch(1)
         column.addLayout(button_row)
         parent_layout.addLayout(column)
@@ -1115,7 +1141,7 @@ class H2rgMainWindow(QMainWindow):
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
         self._clear_widget_layout(box)
-        box.setMinimumHeight(380)
+        box.setMinimumHeight(360)
         outer = QVBoxLayout(box)
         outer.setContentsMargins(8, 12, 8, 8)
         outer.setSpacing(8)
@@ -1240,38 +1266,13 @@ class H2rgMainWindow(QMainWindow):
         outer.addLayout(actions)
 
     def _layout_visualisation_panel(self) -> None:
-        box = self.ui.groupBox_visualisation
-        self._clear_widget_layout(box)
-        box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        outer = QHBoxLayout(box)
-        outer.setContentsMargins(8, 12, 8, 8)
-        outer.setSpacing(8)
-
-        left = QVBoxLayout()
-        left.setSpacing(2)
-        for name in (
-            "checkBox_substract_background",
-            "checkBox_avg",
-            "checkBox_max",
-            "checkBox_min",
-        ):
-            left.addWidget(getattr(self.ui, name))
-        left.addStretch()
-        outer.addLayout(left, stretch=1)
-
-        middle = QVBoxLayout()
-        middle.setSpacing(2)
-        for index in range(1, 6):
-            middle.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
-        middle.addStretch()
-        outer.addLayout(middle, stretch=1)
-
-        right = QVBoxLayout()
-        right.setSpacing(2)
-        for index in range(6, 11):
-            right.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
-        right.addStretch()
-        outer.addLayout(right, stretch=1)
+        # Replaced by H2RG ROI values panel; keep widgets for Avg/Max/Min only.
+        self.ui.groupBox_visualisation.hide()
+        self.ui.checkBox_substract_background.hide()
+        for index in range(1, 11):
+            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
+            if checkbox is not None:
+                checkbox.hide()
 
     def _rebuild_layout(self) -> None:
         form = self.ui
@@ -1279,13 +1280,13 @@ class H2rgMainWindow(QMainWindow):
 
         root = QVBoxLayout(form)
         root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(12)
+        root.setSpacing(10)
 
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        self.ui.frame_camera.setMinimumWidth(480)
-        self.ui.frame_camera.setMinimumHeight(320)
+        self.ui.frame_camera.setMinimumWidth(520)
+        self.ui.frame_camera.setMinimumHeight(420)
         self.ui.frame_camera.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         image_column = QWidget()
@@ -1300,13 +1301,14 @@ class H2rgMainWindow(QMainWindow):
         bottom_row.setSpacing(12)
         bottom_row.addWidget(self._setup_image_statistics_panel(), stretch=0)
         panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.ui.groupBox_visualisation.setSizePolicy(panel_policy)
-        bottom_row.addWidget(self.ui.groupBox_visualisation, stretch=1)
-        image_column_layout.addLayout(bottom_row)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
-        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-        image_column_layout.addWidget(self._roi_panel, stretch=0)
+        self._roi_panel.setSizePolicy(panel_policy)
+        for index, row in self._roi_panel.rows.items():
+            row.show_checkbox.setChecked(index in self._h2rg_rois)
+            row.show_checkbox.setEnabled(index in self._h2rg_rois)
+        bottom_row.addWidget(self._roi_panel, stretch=1)
+        image_column_layout.addLayout(bottom_row)
 
         top.addWidget(image_column, stretch=1)
 
@@ -1345,7 +1347,6 @@ class H2rgMainWindow(QMainWindow):
         for box in (
             self.ui.groupBox_conf,
             self.ui.groupBox_acquisition,
-            self.ui.groupBox_visualisation,
         ):
             box.setStyleSheet(PANEL_GROUP_STYLE)
 
@@ -1362,6 +1363,12 @@ class H2rgMainWindow(QMainWindow):
             "button_halt",
         ):
             getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
+
+        for button in (
+            getattr(self, "_button_subtract_bg", None),
+        ):
+            if button is not None:
+                button.setStyleSheet(PANEL_BUTTON_STYLE)
 
         for name in (
             "label",
@@ -1388,17 +1395,11 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setStyleSheet(PANEL_FIELD_STYLE)
 
         for name in (
-            "checkBox_substract_background",
             "checkBox_avg",
             "checkBox_max",
             "checkBox_min",
         ):
             getattr(self.ui, name).setStyleSheet(CHECKBOX_STYLE)
-
-        for index in range(1, 11):
-            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
-            if checkbox is not None:
-                checkbox.setStyleSheet(CHECKBOX_STYLE)
 
         self.ui.lineEdit_status.setStyleSheet(
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
@@ -1463,18 +1464,15 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_live.clicked.connect(self.live_clicked)
         self.ui.button_acquire.clicked.connect(self.acquire)
         self.ui.button_halt.clicked.connect(self.halt)
-        self.ui.checkBox_substract_background.toggled.connect(self._refresh_display)
-
         self.ui.checkBox_avg.toggled.connect(self._on_avg_toggled)
         self.ui.checkBox_max.toggled.connect(self._on_max_toggled)
         self.ui.checkBox_min.toggled.connect(self._on_min_toggled)
-        for index in range(1, 11):
-            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
-            if checkbox is not None:
-                checkbox.toggled.connect(self._on_roi_toggled)
+        if hasattr(self, "_button_subtract_bg"):
+            self._button_subtract_bg.toggled.connect(self._refresh_display)
 
         if self._roi_panel is not None:
             for row in self._roi_panel.rows.values():
+                row.show_checkbox.toggled.connect(self._on_roi_toggled)
                 row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
                 row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
 
@@ -1629,10 +1627,11 @@ class H2rgMainWindow(QMainWindow):
         return self._current_frame
 
     def _selected_roi_indices(self) -> list[int]:
+        if self._roi_panel is None:
+            return []
         selected = []
-        for index in range(1, 11):
-            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
-            if checkbox is not None and checkbox.isChecked():
+        for index, row in self._roi_panel.rows.items():
+            if row.show_checkbox.isChecked() and index in self._h2rg_rois:
                 selected.append(index)
         return selected
 
@@ -1662,7 +1661,8 @@ class H2rgMainWindow(QMainWindow):
             return None
         display = frame
         if (
-            self.ui.checkBox_substract_background.isChecked()
+            hasattr(self, "_button_subtract_bg")
+            and self._button_subtract_bg.isChecked()
             and self._background is not None
             and self._background.shape == frame.shape
         ):
@@ -2639,7 +2639,8 @@ class H2rgMainWindow(QMainWindow):
             frame, _path = loaded
             frame = self._frame_from_display_mode() or frame
         self._background = numpy.asarray(frame, dtype=numpy.float32).copy()
-        self.ui.checkBox_substract_background.setEnabled(True)
+        if hasattr(self, "_button_subtract_bg"):
+            self._button_subtract_bg.setEnabled(True)
         self._set_status("Background stored")
 
     def _refresh_readouts(self, macie) -> None:
