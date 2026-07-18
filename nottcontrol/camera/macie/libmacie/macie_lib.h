@@ -180,6 +180,9 @@ typedef struct MACIE_Settings
 extern void delay(int ms);
 extern ushort subtract_ushort(ushort x, ushort y);
 
+/// Create directory and parents (mkdir -p). Returns false on failure.
+extern bool EnsureDirectoryExists(const std::string &path);
+
 // Parameter structure handling
 extern bool SettingsCheckNULL(MACIE_Settings *ptUserData);
 extern bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity);

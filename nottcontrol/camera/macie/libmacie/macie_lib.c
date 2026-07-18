@@ -6,6 +6,8 @@
 
 #include "macie_lib.h"
 
+#include <errno.h>
+
 using std::map;
 using std::string;
 using std::vector;
@@ -17,6 +19,44 @@ static timestamp_t get_timestamp()
     struct timeval now;
     gettimeofday(&now, NULL);
     return now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \brief EnsureDirectoryExists Create path and missing parents (mkdir -p).
+bool EnsureDirectoryExists(const string &path)
+{
+    if (path.empty())
+        return false;
+
+    struct stat st = {0};
+    if (stat(path.c_str(), &st) == 0)
+        return S_ISDIR(st.st_mode);
+
+    string normalized = path;
+    while (normalized.size() > 1 && normalized[normalized.size() - 1] == '/')
+        normalized.erase(normalized.size() - 1);
+
+    for (size_t i = 1; i <= normalized.size(); ++i)
+    {
+        if (i < normalized.size() && normalized[i] != '/')
+            continue;
+
+        string partial = normalized.substr(0, i);
+        if (partial.empty() || partial == "/")
+            continue;
+
+        if (stat(partial.c_str(), &st) == -1)
+        {
+            if (mkdir(partial.c_str(), 0700) != 0 && errno != EEXIST)
+                return false;
+        }
+        else if (!S_ISDIR(st.st_mode))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // Sleep for some number of millisec
@@ -1700,24 +1740,40 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
 
     string strDir = ptUserData->saveDir;
 
-    // Create save directory if it doesn't exist
-    struct stat st = {0};
-    if (stat(strDir.c_str(), &st) == -1)
-        mkdir(strDir.c_str(), 0700);
+    // Create save directory (and parents) if it doesn't exist.
+    // Single-level mkdir() fails for nested paths like .../ramp_test/YYYYMMDD/
+    // and then readdir(NULL) segfaults — that matches the post-trigger crash.
+    if (EnsureDirectoryExists(strDir) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Cannot create/open saveDir '%s' (errno=%d). "
+                       "Check path and permissions.\n",
+                       strDir.c_str(), errno);
+        return 0;
+    }
 
     // Go through files in save directory to find last written file number
     DIR *dir = opendir(strDir.c_str());
+    if (dir == NULL)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "opendir('%s') failed (errno=%d); starting file index at 0.\n",
+                       strDir.c_str(), errno);
+        return 0;
+    }
+
     struct dirent *ent;
     uint val;
     uint max_val = 0;
-    int pos;
     string s, sub;
     while ((ent = readdir(dir)) != NULL)
     {
         s = string(ent->d_name);
         if ((s.rfind(".fits") != string::npos) && (s.size() > 6))
         {
-            pos = s.rfind("_");
+            size_t pos = s.rfind("_");
+            if (pos == string::npos)
+                continue;
             sub = s.substr(pos + 1, 6);
             val = atoi(sub.c_str());
             if (val >= max_val)
@@ -1846,6 +1902,9 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 {
     // Number of ramps to coadd together
     const int ncoadds = (int)ptUserData->uiNumCoadds;
+
+    verbose_printf(LOG_INFO, ptUserData, "DownloadAndSaveAllUSB: saveDir=%s\n",
+                   ptUserData->saveDir.c_str());
 
     const int xpix = (int)exposure_xpix(ptUserData);
     const int ypix = (int)exposure_ypix(ptUserData);
