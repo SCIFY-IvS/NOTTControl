@@ -1200,7 +1200,8 @@ bool InitCamera(string configFile, MACIE_Connection connection, MACIE_Settings *
     // If save directory is not set (equals "") then set to default ~/data/$DATE/
     char buffer[80];
     std::stringstream ss;
-    string homedir = getenv("HOME");
+    const char *home = getenv("HOME");
+    string homedir = (home != NULL) ? string(home) : string(".");
     if (ptUserData->saveDir.compare("") == 0)
     {
         strftime(buffer, 80, "/data/%Y%m%d/", now);
@@ -1224,12 +1225,12 @@ bool InitCamera(string configFile, MACIE_Connection connection, MACIE_Settings *
     printf("saveDir: %s\n", ptUserData->saveDir.c_str());
     printf("prefix: %s\n", ptUserData->filePrefix.c_str());
 
-    // Create save directory
-    struct stat st = {0};
-    if (stat(ptUserData->saveDir.c_str(), &st) == -1)
+    // Create save directory (and parents — date suffix often needs mkdir -p)
+    if (EnsureDirectoryExists(ptUserData->saveDir) == false)
     {
-        verbose_printf(LOG_INFO, ptUserData, "Creating directory: %s\n", ptUserData->saveDir.c_str());
-        mkdir(ptUserData->saveDir.c_str(), 0700);
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Failed to create saveDir '%s'\n", ptUserData->saveDir.c_str());
+        return false;
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -1407,7 +1408,16 @@ bool ParseConfig(string configFile, MACIE_Settings *ptUserData, bool update_regs
                 {
                     // Expand home directory?
                     if (str2.compare(0, 1, "~") == 0)
-                        ptUserData->saveDir = getenv("HOME") + str2.substr(1);
+                    {
+                        const char *home = getenv("HOME");
+                        if (home == NULL)
+                        {
+                            verbose_printf(LOG_ERROR, ptUserData,
+                                           "saveDir uses '~' but HOME is not set\n");
+                            return false;
+                        }
+                        ptUserData->saveDir = string(home) + str2.substr(1);
+                    }
                     else
                         ptUserData->saveDir = str2;
 
@@ -1419,12 +1429,18 @@ bool ParseConfig(string configFile, MACIE_Settings *ptUserData, bool update_regs
                     if (LastStr.compare("/") != 0)
                         ptUserData->saveDir = ptUserData->saveDir + string("/");
 
-                    // Create save directory
+                    // Create save directory (and parents)
                     struct stat st = {0};
                     if (stat(ptUserData->saveDir.c_str(), &st) == -1)
                     {
                         verbose_printf(LOG_INFO, ptUserData, "Creating directory: %s\n", ptUserData->saveDir.c_str());
-                        mkdir(ptUserData->saveDir.c_str(), 0700);
+                        if (EnsureDirectoryExists(ptUserData->saveDir) == false)
+                        {
+                            verbose_printf(LOG_ERROR, ptUserData,
+                                           "Failed to create saveDir '%s'\n",
+                                           ptUserData->saveDir.c_str());
+                            return false;
+                        }
                     }
                 }
                 else if (str1.compare("filePrefix") == 0)
