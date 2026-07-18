@@ -207,8 +207,10 @@ class H2rgRoiPlots(QWidget):
 
     def __init__(self, parent: QWidget | None = None, *, graph_height: int = 190) -> None:
         super().__init__(parent)
-        self.setMinimumHeight(scaled(graph_height))
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        # Toolbar + titles + plot area — keep a stable full-width strip height.
+        strip_h = scaled(max(graph_height, 220))
+        self.setFixedHeight(strip_h)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)

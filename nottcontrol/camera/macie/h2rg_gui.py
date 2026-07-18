@@ -606,7 +606,7 @@ class H2rgMainWindow(QMainWindow):
         app_icon = load_app_icon()
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
-        self.setMinimumSize(880, 820)
+        self.setMinimumSize(1000, 900)
         self.ui = None
         self._init_runtime_state()
 
@@ -1277,12 +1277,19 @@ class H2rgMainWindow(QMainWindow):
         form = self.ui
         form.setObjectName("h2rg_root")
 
-        outer = QHBoxLayout(form)
-        outer.setContentsMargins(12, 12, 12, 12)
-        outer.setSpacing(16)
+        root = QVBoxLayout(form)
+        root.setContentsMargins(12, 12, 12, 12)
+        root.setSpacing(12)
+
+        top = QHBoxLayout()
+        top.setSpacing(16)
 
         self.ui.frame_camera.setMinimumWidth(480)
+        self.ui.frame_camera.setMinimumHeight(320)
+        self.ui.frame_camera.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
         image_column = QWidget()
+        image_column.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         image_column_layout = QVBoxLayout(image_column)
         image_column_layout.setContentsMargins(0, 0, 0, 0)
         image_column_layout.setSpacing(8)
@@ -1298,20 +1305,14 @@ class H2rgMainWindow(QMainWindow):
         image_column_layout.addLayout(bottom_row)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
-        self._roi_panel.setSizePolicy(panel_policy)
-        image_column_layout.addWidget(self._roi_panel)
+        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        image_column_layout.addWidget(self._roi_panel, stretch=0)
 
-        self._roi_plots = H2rgRoiPlots(graph_height=MACIE_ROI_GRAPH_HEIGHT)
-        self._roi_plots.set_history_limits(
-            maxlen=MACIE_ROI_DEQUE_LENGTH,
-            window_seconds=MACIE_ROI_TIME_WINDOW_S,
-        )
-        image_column_layout.addWidget(self._roi_plots)
-
-        outer.addWidget(image_column, stretch=1)
+        top.addWidget(image_column, stretch=1)
 
         right_host = QWidget()
         right_host.setFixedWidth(RIGHT_PANEL_WIDTH)
+        right_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         right = QVBoxLayout(right_host)
         right.setContentsMargins(0, 0, 0, 0)
         right.setSpacing(12)
@@ -1326,7 +1327,16 @@ class H2rgMainWindow(QMainWindow):
             right.addWidget(box)
 
         right.addStretch()
-        outer.addWidget(right_host, stretch=0)
+        top.addWidget(right_host, stretch=0)
+        root.addLayout(top, stretch=1)
+
+        self._roi_plots = H2rgRoiPlots(graph_height=MACIE_ROI_GRAPH_HEIGHT)
+        self._roi_plots.set_history_limits(
+            maxlen=MACIE_ROI_DEQUE_LENGTH,
+            window_seconds=MACIE_ROI_TIME_WINDOW_S,
+        )
+        self._roi_plots.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        root.addWidget(self._roi_plots, stretch=0)
 
     def _apply_styles(self) -> None:
         self.setStyleSheet(H2RG_WINDOW_STYLE)
