@@ -1732,17 +1732,19 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=poll_frames, daemon=True).start()
 
     def _fits_snapshot_before_acquire(self, macie) -> tuple[float, str | None]:
+        self._sync_save_dir_from_server(macie)
         before_mtime = self._latest_fits_mtime()
         before_name = fits_basename(self._newest_fits_file(allow_probe=True))
-        if not self._local_fits_accessible(allow_probe=True):
-            try:
-                server_path = macie.get_newest_fits_path()
-            except Exception:
-                server_path = None
-            if server_path:
-                server_name = fits_basename(server_path)
-                if server_name and not is_science_fits_name(server_name):
-                    before_name = server_name
+        # Prefer the server's newest ramp name so a wrong/stale local fits_directory
+        # does not poison the "is this file new?" checks used for ZMQ fetch.
+        try:
+            server_path = macie.get_newest_fits_path()
+        except Exception:
+            server_path = None
+        if server_path:
+            server_name = fits_basename(server_path)
+            if server_name and not is_science_fits_name(server_name):
+                before_name = server_name
         return before_mtime, before_name
 
     def _on_detector_mode_changed(self, index: int) -> None:
@@ -2341,11 +2343,12 @@ class H2rgMainWindow(QMainWindow):
         mapped = map_server_fits_path(server_dir.rstrip("/\\"))
         if mapped is None:
             return
-        try:
-            if mapped.is_dir():
-                self._save_dir = mapped
-        except OSError:
-            pass
+        # Always track the server's saveDir (incl. dated subfolder). Requiring
+        # is_dir() left the GUI on a stale fits_directory share when the SMB
+        # mapping was slow or pointed at a different root.
+        if mapped != self._save_dir:
+            self._save_dir = mapped
+            self._fits_dir_ok = None
 
     def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
         if self._fits_dir_ok is False and not allow_probe:
@@ -2422,14 +2425,16 @@ class H2rgMainWindow(QMainWindow):
             try:
                 mtime = mapped.stat().st_mtime
             except OSError:
-                mtime = before_mtime
+                # Mapped UNC/path not readable from this PC — trust basename.
+                return True
             return is_new_ramp_fits(
                 name,
                 mtime,
                 before_name=before_name,
                 before_mtime=before_mtime,
             )
-        return bool(before_name and name != before_name)
+        # No local mapping (typical Windows without SMB) — basename is enough.
+        return True
 
     def _fetch_fits_from_server(
         self,
@@ -2644,7 +2649,11 @@ class H2rgMainWindow(QMainWindow):
             ):
                 seen[path.name] = path
 
-            if not self._local_fits_accessible(allow_probe=True):
+            local_ok = self._local_fits_accessible(allow_probe=True)
+            # ZMQ fetch when the configured local fits_directory is missing *or*
+            # accessible but empty/stale (common when MACIE writes under ~/…/YYYYMMDD
+            # while fits_directory points at a different SMB share).
+            if not local_ok or not seen:
                 now = time.monotonic()
                 if now - server_path_checked_at >= 1.0:
                     server_path_checked_at = now
@@ -2666,10 +2675,10 @@ class H2rgMainWindow(QMainWindow):
                             before_name = path.name
                 if len(seen) >= expected_count:
                     break
-            elif len(seen) >= expected_count:
+            if local_ok and len(seen) >= expected_count:
                 stable_since = None
                 break
-            elif seen:
+            elif local_ok and seen:
                 if stable_since is None:
                     stable_since = time.monotonic()
                 elif time.monotonic() - stable_since >= 1.0:
@@ -2678,7 +2687,7 @@ class H2rgMainWindow(QMainWindow):
                 stable_since = None
 
             now = time.monotonic()
-            if self._local_fits_accessible(allow_probe=True):
+            if local_ok:
                 if now - server_path_checked_at >= 2.0:
                     server_path_checked_at = now
                     server_path = self._resolve_server_fits_path(macie)
@@ -2699,7 +2708,7 @@ class H2rgMainWindow(QMainWindow):
                 path.name.lower(),
             ),
         )
-        if not ramp_paths and self._local_fits_accessible(allow_probe=True):
+        if not ramp_paths:
             fetched = self._fetch_fits_from_server(
                 macie,
                 before_mtime=before_mtime,

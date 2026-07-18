@@ -1197,16 +1197,14 @@ bool InitCamera(string configFile, MACIE_Connection connection, MACIE_Settings *
     struct tm *now = gmtime(&t1); // in GMT
 
     // Save directory
-    // If save directory is not set (equals "") then set to default ~/data/$DATE/
+    // If save directory is not set (equals "") then set to default /data/nott/$DATE/
     char buffer[80];
     std::stringstream ss;
-    const char *home = getenv("HOME");
-    string homedir = (home != NULL) ? string(home) : string(".");
     if (ptUserData->saveDir.compare("") == 0)
     {
-        strftime(buffer, 80, "/data/%Y%m%d/", now);
+        strftime(buffer, 80, "/data/nott/%Y%m%d/", now);
         ss << buffer;
-        ptUserData->saveDir = homedir + ss.str();
+        ptUserData->saveDir = ss.str();
     }
     else
     {
