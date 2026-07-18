@@ -853,6 +853,12 @@ class DelayLinesWindow(QMainWindow):
                 widget.apply_status_values(*row)
         except Exception as e:
             print(e)
+            # OPC timeout / read failure: re-enable Absolute/Relative on all DL widgets.
+            for _, widget in self._motor_widgets:
+                if widget._activeCommand is not None:
+                    widget.clearActiveCommand(
+                        f"Status refresh failed ({e}); Absolute/Relative re-enabled"
+                    )
     
     def load_positions(self):
         try:
