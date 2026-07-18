@@ -4,8 +4,10 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import shutil
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
@@ -42,7 +44,16 @@ from nottcontrol.camera.macie.fits_science import (
     science_fits_path,
     science_image_from_cube,
 )
+from nottcontrol.camera.macie.h2rg_roi_panel import (
+    ROI_COLORS,
+    H2rgRoiPanel,
+    H2rgRoiPlots,
+    compute_roi_brightness,
+    redis_key_for_roi,
+    roi_profile_1d,
+)
 from nottcontrol.camera.macie.ramp_plan import RAMP_MODE_ITEMS, RAMP_MODES, fits_wait_timeout_s
+from nottcontrol.redisclient import RedisClient
 
 MACIE_CONFIG_FILE = config.get(
     "MACIE", "config_file", fallback="teledyne_cold_slow.cfg"
@@ -80,6 +91,19 @@ MACIE_DS9_EXECUTABLE = config.get("MACIE", "ds9_executable", fallback="ds9").str
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
     "MACIE", "fits_wait_margin_s", fallback=30.0
 )
+MACIE_RECORD_ROIS = config.getboolean("MACIE", "record_rois", fallback=True)
+MACIE_ROI_TIME_WINDOW_S = config.getfloat(
+    "MACIE", "roi_time_plot_window_seconds", fallback=60.0
+)
+MACIE_ROI_PLOT_HZ = config.getfloat("MACIE", "roi_plot_refresh_hz", fallback=1.0)
+MACIE_ROI_GRAPH_HEIGHT = config.getint("MACIE", "graph_height", fallback=190)
+MACIE_ROI_TIME_PLOT_MAX_HZ = config.getfloat(
+    "MACIE", "roi_time_plot_max_framerate", fallback=30.0
+)
+MACIE_ROI_DEQUE_LENGTH = max(
+    60, int(MACIE_ROI_TIME_WINDOW_S * MACIE_ROI_TIME_PLOT_MAX_HZ)
+)
+MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
 
 from nottcontrol.theme import (
     CHECKBOX_STYLE,
@@ -582,7 +606,7 @@ class H2rgMainWindow(QMainWindow):
         app_icon = load_app_icon()
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
-        self.setMinimumSize(880, 650)
+        self.setMinimumSize(880, 820)
         self.ui = None
         self._init_runtime_state()
 
@@ -628,6 +652,15 @@ class H2rgMainWindow(QMainWindow):
         self._raw_fits_header: dict | None = None
         self._h2rg_rois = load_h2rg_rois_from_config()
         self._roi_overlays: dict[int, object] = {}
+        self._roi_panel: H2rgRoiPanel | None = None
+        self._roi_plots: H2rgRoiPlots | None = None
+        self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
+        self._last_roi_plot_refresh = 0.0
+        self._redis: RedisClient | None = None
+        try:
+            self._redis = RedisClient(config["DEFAULT"]["databaseurl"])
+        except Exception as exc:
+            print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
@@ -1264,6 +1297,17 @@ class H2rgMainWindow(QMainWindow):
         bottom_row.addWidget(self.ui.groupBox_visualisation, stretch=1)
         image_column_layout.addLayout(bottom_row)
 
+        self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
+        self._roi_panel.setSizePolicy(panel_policy)
+        image_column_layout.addWidget(self._roi_panel)
+
+        self._roi_plots = H2rgRoiPlots(graph_height=MACIE_ROI_GRAPH_HEIGHT)
+        self._roi_plots.set_history_limits(
+            maxlen=MACIE_ROI_DEQUE_LENGTH,
+            window_seconds=MACIE_ROI_TIME_WINDOW_S,
+        )
+        image_column_layout.addWidget(self._roi_plots)
+
         outer.addWidget(image_column, stretch=1)
 
         right_host = QWidget()
@@ -1294,6 +1338,9 @@ class H2rgMainWindow(QMainWindow):
             self.ui.groupBox_visualisation,
         ):
             box.setStyleSheet(PANEL_GROUP_STYLE)
+
+        if self._roi_panel is not None:
+            self._roi_panel.setStyleSheet(PANEL_GROUP_STYLE)
 
         for name in (
             "button_init",
@@ -1416,6 +1463,11 @@ class H2rgMainWindow(QMainWindow):
             if checkbox is not None:
                 checkbox.toggled.connect(self._on_roi_toggled)
 
+        if self._roi_panel is not None:
+            for row in self._roi_panel.rows.values():
+                row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
+                row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
+
         for widget in (
             self.ui.lineEdit_integration_time,
             self.ui.lineEdit_nb_coadd,
@@ -1457,6 +1509,9 @@ class H2rgMainWindow(QMainWindow):
     def _on_roi_toggled(self, _checked: bool) -> None:
         self._update_roi_overlays()
         self._refresh_display()
+
+    def _on_roi_plot_toggled(self, _state: int = 0) -> None:
+        self._refresh_roi_plots(force=True)
 
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
@@ -1611,22 +1666,10 @@ class H2rgMainWindow(QMainWindow):
         import pyqtgraph as pg
 
         view = self.image.getView()
-        colors = (
-            "#ff6b6b",
-            "#ffd166",
-            "#06d6a0",
-            "#118ab2",
-            "#8338ec",
-            "#fb5607",
-            "#3a86ff",
-            "#ff006e",
-            "#8ac926",
-            "#1982c4",
-        )
         for index, (x, y, w, h) in self._h2rg_rois.items():
             if index in self._roi_overlays:
                 continue
-            color = colors[(index - 1) % len(colors)]
+            color = ROI_COLORS[(index - 1) % len(ROI_COLORS)]
             roi = pg.RectROI(
                 [x, y],
                 [w, h],
@@ -1643,6 +1686,64 @@ class H2rgMainWindow(QMainWindow):
         selected = set(self._selected_roi_indices())
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
+
+    def _update_roi_values(
+        self, frame: numpy.ndarray, *, record: bool
+    ) -> None:
+        if self._roi_panel is None or not self._h2rg_rois:
+            return
+        results, regions = compute_roi_brightness(frame, self._h2rg_rois)
+        for index, row in self._roi_panel.rows.items():
+            row.set_values(results.get(index))
+
+        profiles: dict[int, numpy.ndarray] = {}
+        for index, region in regions.items():
+            profiles[index] = roi_profile_1d(region)
+        self._last_roi_profiles = profiles
+
+        if record:
+            stamp = datetime.now(timezone.utc).replace(tzinfo=None)
+            for index, result in results.items():
+                row = self._roi_panel.rows.get(index)
+                if row is not None:
+                    row.add_max_value(result.max)
+            if self._roi_plots is not None:
+                self._roi_plots.append_timestamp(stamp)
+            if MACIE_RECORD_ROIS:
+                self._store_rois_to_redis(stamp, results)
+
+        self._refresh_roi_plots(force=not record)
+
+    def _store_rois_to_redis(
+        self, stamp: datetime, results: dict
+    ) -> None:
+        if self._redis is None or not results:
+            return
+        if not self._redis.is_available():
+            return
+        payload = {
+            redis_key_for_roi(index): result for index, result in results.items()
+        }
+        try:
+            self._redis.add_roi_values(stamp, payload)
+        except Exception as exc:
+            print(f"H2RG Redis ROI write failed: {exc}")
+            try:
+                self._redis._mark_unavailable(exc)
+            except Exception:
+                pass
+
+    def _refresh_roi_plots(self, *, force: bool = False) -> None:
+        if self._roi_panel is None or self._roi_plots is None:
+            return
+        now = time.monotonic()
+        if not force and (now - self._last_roi_plot_refresh) < MACIE_ROI_PLOT_INTERVAL_S:
+            return
+        self._last_roi_plot_refresh = now
+        self._roi_plots.refresh_time_plot(self._roi_panel.rows)
+        self._roi_plots.refresh_profile_plot(
+            self._roi_panel.rows, self._last_roi_profiles
+        )
 
     def _exposure_field_widgets(self) -> list:
         widgets = [
@@ -2900,6 +3001,7 @@ class H2rgMainWindow(QMainWindow):
         self._ensure_image_view()
         if self.image is None:
             return
+        is_new_frame = frame is not None
         if frame is not None:
             self._current_frame = frame
         self._update_central_value(self._current_frame)
@@ -2915,6 +3017,7 @@ class H2rgMainWindow(QMainWindow):
             self._auto_levels_next = False
 
         self._update_image_statistics(self._stats_array(display))
+        self._update_roi_values(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
 
