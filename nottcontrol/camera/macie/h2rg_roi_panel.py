@@ -225,7 +225,7 @@ class H2rgRoiPlots(QWidget):
 
     def __init__(self, parent: QWidget | None = None, *, graph_height: int = 190) -> None:
         super().__init__(parent)
-        strip_h = scaled(max(graph_height, 200))
+        strip_h = scaled(max(graph_height, 180))
         self.setFixedHeight(strip_h)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 

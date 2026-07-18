@@ -733,11 +733,16 @@ class H2rgMainWindow(QMainWindow):
             self._set_status(f"GUI setup failed: {exc}")
 
     def _setup_image_placeholder(self) -> None:
+        host = self._ensure_camera_host_layout()
+        self._clear_layout_widgets(host)
         self._image_placeholder = QLabel("No image yet", self.ui.frame_camera)
         self._image_placeholder.setAlignment(Qt.AlignCenter)
+        self._image_placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._image_placeholder.setStyleSheet(
-            'color: rgb(180, 180, 200); font: 11pt "Segoe UI";'
+            'color: rgb(200, 200, 220); font: 13pt "Segoe UI";'
+            " background: transparent;"
         )
+        host.addWidget(self._image_placeholder)
 
     def _clear_widget_layout(self, widget: QWidget) -> None:
         layout = widget.layout()
@@ -747,15 +752,28 @@ class H2rgMainWindow(QMainWindow):
             layout.takeAt(0)
         QWidget().setLayout(layout)
 
+    def _clear_layout_widgets(self, layout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            child = item.widget()
+            if child is not None:
+                child.hide()
+                child.setParent(None)
+                child.deleteLater()
+
+    def _ensure_camera_host_layout(self):
+        layout = self.ui.frame_camera.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.ui.frame_camera)
+            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setSpacing(0)
+        return layout
+
     def _clear_frame_camera_layout(self) -> None:
         layout = self.ui.frame_camera.layout()
         if layout is None:
             return
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(self.ui.frame_camera)
+        self._clear_layout_widgets(layout)
         QWidget().setLayout(layout)
 
     def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
@@ -888,13 +906,8 @@ class H2rgMainWindow(QMainWindow):
         )
 
     def _layout_image_frame(self) -> None:
-        width = max(1, self.ui.frame_camera.width())
-        height = max(1, self.ui.frame_camera.height())
-
-        if self.image is not None:
-            self.image.setGeometry(4, 4, max(1, width - 8), max(1, height - 8))
-        elif self._image_placeholder is not None:
-            self._image_placeholder.setGeometry(4, 4, max(1, width - 8), max(1, height - 8))
+        # ImageView / placeholder are managed by the frame_camera layout.
+        return
 
     def _scene_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
         if self.image is None:
@@ -1025,17 +1038,16 @@ class H2rgMainWindow(QMainWindow):
         pg.setConfigOption("background", "#1a1a2e")
         pg.setConfigOption("foreground", "w")
 
-        self._clear_frame_camera_layout()
-
-        if self._image_placeholder is not None:
-            self._image_placeholder.hide()
-            self._image_placeholder.deleteLater()
-            self._image_placeholder = None
+        host = self._ensure_camera_host_layout()
+        self._clear_layout_widgets(host)
+        self._image_placeholder = None
 
         self.image = pg.ImageView(self.ui.frame_camera)
+        self.image.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
+        host.addWidget(self.image)
         self.image.show()
         self.image.getView().setMouseEnabled(x=True, y=True)
         self.image.getView().setAspectLocked(True)
@@ -1043,7 +1055,6 @@ class H2rgMainWindow(QMainWindow):
             self._setup_cursor_readout()
         except Exception as exc:
             print(f"H2RG cursor readout setup failed: {exc}")
-        self._layout_image_frame()
 
         if self._current_frame is not None:
             self._display_frame(self._current_frame)
@@ -1285,8 +1296,9 @@ class H2rgMainWindow(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        self.ui.frame_camera.setMinimumWidth(520)
-        self.ui.frame_camera.setMinimumHeight(420)
+        # Left: large image + compact controls/stats (ROI panel lives on the right).
+        self.ui.frame_camera.setMinimumWidth(560)
+        self.ui.frame_camera.setMinimumHeight(480)
         self.ui.frame_camera.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         image_column = QWidget()
@@ -1296,28 +1308,16 @@ class H2rgMainWindow(QMainWindow):
         image_column_layout.setSpacing(8)
         image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
         self._setup_cursor_readout_row(image_column_layout)
-
-        bottom_row = QHBoxLayout()
-        bottom_row.setSpacing(12)
-        bottom_row.addWidget(self._setup_image_statistics_panel(), stretch=0)
-        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-
-        self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
-        self._roi_panel.setSizePolicy(panel_policy)
-        for index, row in self._roi_panel.rows.items():
-            row.show_checkbox.setChecked(index in self._h2rg_rois)
-            row.show_checkbox.setEnabled(index in self._h2rg_rois)
-        bottom_row.addWidget(self._roi_panel, stretch=1)
-        image_column_layout.addLayout(bottom_row)
-
+        image_column_layout.addWidget(self._setup_image_statistics_panel(), stretch=0)
         top.addWidget(image_column, stretch=1)
 
+        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         right_host = QWidget()
-        right_host.setFixedWidth(RIGHT_PANEL_WIDTH)
-        right_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        right_host.setFixedWidth(max(RIGHT_PANEL_WIDTH, 400))
+        right_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         right = QVBoxLayout(right_host)
         right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(12)
+        right.setSpacing(10)
 
         self._setup_nott_logo(right)
 
@@ -1326,13 +1326,19 @@ class H2rgMainWindow(QMainWindow):
             self.ui.groupBox_acquisition,
         ):
             box.setSizePolicy(panel_policy)
-            right.addWidget(box)
+            right.addWidget(box, stretch=0)
 
-        right.addStretch()
+        self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
+        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        for index, row in self._roi_panel.rows.items():
+            row.show_checkbox.setChecked(index in self._h2rg_rois)
+            row.show_checkbox.setEnabled(index in self._h2rg_rois)
+        right.addWidget(self._roi_panel, stretch=0)
+        right.addStretch(1)
         top.addWidget(right_host, stretch=0)
         root.addLayout(top, stretch=1)
 
-        self._roi_plots = H2rgRoiPlots(graph_height=MACIE_ROI_GRAPH_HEIGHT)
+        self._roi_plots = H2rgRoiPlots(graph_height=min(MACIE_ROI_GRAPH_HEIGHT, 170))
         self._roi_plots.set_history_limits(
             maxlen=MACIE_ROI_DEQUE_LENGTH,
             window_seconds=MACIE_ROI_TIME_WINDOW_S,
