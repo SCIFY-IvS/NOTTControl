@@ -40,7 +40,6 @@ from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
-    ramp_sample_axis,
     save_science_fits,
     science_fits_path,
     science_image_from_cube,
@@ -118,7 +117,6 @@ from nottcontrol.theme import (
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
-IMAGE_STATS_MAX_WIDTH = 200
 CURSOR_READOUT_HEIGHT = 28
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
@@ -685,11 +683,6 @@ class H2rgMainWindow(QMainWindow):
         self._button_header: QPushButton | None = None
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
-        self._button_subtract_bg: QPushButton | None = None
-        self._stat_mean: QLineEdit | None = None
-        self._stat_min: QLineEdit | None = None
-        self._stat_max: QLineEdit | None = None
-        self._stat_std: QLineEdit | None = None
         self._exposure_preview_timer = QTimer(self)
         self._exposure_preview_timer.setSingleShot(True)
         self._exposure_preview_timer.setInterval(450)
@@ -820,80 +813,12 @@ class H2rgMainWindow(QMainWindow):
         self._button_save_dir.setToolTip("Open FITS save directory")
         button_row.addWidget(self._button_save_dir)
 
-        self._button_subtract_bg = QPushButton("Subtract BG")
-        self._button_subtract_bg.setCheckable(True)
-        self._button_subtract_bg.setEnabled(False)
-        self._button_subtract_bg.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_subtract_bg.setFixedWidth(110)
-        self._button_subtract_bg.setToolTip(
-            "Subtract the stored background from the displayed image"
-        )
-        self._button_subtract_bg.setStyleSheet(
-            PANEL_BUTTON_STYLE
-            + """
-            QPushButton:checked {
-                background: rgb(30, 100, 110);
-                border: 2px solid rgb(20, 70, 80);
-            }
-            QPushButton:disabled {
-                background: rgb(180, 180, 180);
-            }
-            """
-        )
-        button_row.addWidget(self._button_subtract_bg)
-
-        for name, width in (
-            ("checkBox_avg", 70),
-            ("checkBox_max", 55),
-            ("checkBox_min", 55),
-        ):
-            checkbox = getattr(self.ui, name)
-            checkbox.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-            checkbox.setMaximumWidth(width)
-            button_row.addWidget(checkbox)
-
         button_row.addStretch(1)
         column.addLayout(button_row)
         parent_layout.addLayout(column)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
-
-    def _setup_image_statistics_panel(self) -> QGroupBox:
-        group = QGroupBox("Image statistics")
-        group.setStyleSheet(PANEL_GROUP_STYLE)
-        group.setMaximumWidth(IMAGE_STATS_MAX_WIDTH)
-        group.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        grid = QGridLayout(group)
-        grid.setContentsMargins(8, 12, 8, 8)
-        grid.setHorizontalSpacing(6)
-        grid.setVerticalSpacing(6)
-        grid.setColumnStretch(1, 1)
-
-        field_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        stat_field_style = (
-            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
-        )
-
-        def _add_row(row: int, text: str, field: QLineEdit) -> None:
-            label = QLabel(text, group)
-            label.setStyleSheet(PANEL_LABEL_STYLE)
-            field.setReadOnly(True)
-            field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            field.setSizePolicy(field_policy)
-            field.setStyleSheet(stat_field_style)
-            grid.addWidget(label, row, 0, Qt.AlignLeft | Qt.AlignVCenter)
-            grid.addWidget(field, row, 1, Qt.AlignRight | Qt.AlignVCenter)
-
-        self._stat_mean = QLineEdit("—", group)
-        self._stat_min = QLineEdit("—", group)
-        self._stat_max = QLineEdit("—", group)
-        self._stat_std = QLineEdit("—", group)
-        _add_row(0, "Mean:", self._stat_mean)
-        _add_row(1, "Min:", self._stat_min)
-        _add_row(2, "Max:", self._stat_max)
-        _add_row(3, "Std:", self._stat_std)
-        return group
 
     def _setup_cursor_readout(self) -> None:
         if self.image is None or self._cursor_readout is None:
@@ -1000,24 +925,6 @@ class H2rgMainWindow(QMainWindow):
         if isinstance(pos, (tuple, list)) and len(pos) == 1:
             pos = pos[0]
         self._update_cursor_readout_from_view_pos(pos)
-
-    def _update_image_statistics(self, frame: numpy.ndarray) -> None:
-        if self._stat_mean is None:
-            return
-        data = numpy.asarray(frame, dtype=numpy.float64)
-        if data.size == 0:
-            for field in (
-                self._stat_mean,
-                self._stat_min,
-                self._stat_max,
-                self._stat_std,
-            ):
-                field.setText("—")
-            return
-        self._stat_mean.setText(_format_stat_value(float(numpy.mean(data))))
-        self._stat_min.setText(_format_stat_value(float(numpy.min(data))))
-        self._stat_max.setText(_format_stat_value(float(numpy.max(data))))
-        self._stat_std.setText(_format_stat_value(float(numpy.std(data))))
 
     def eventFilter(self, obj, event) -> bool:
         if (
@@ -1200,11 +1107,11 @@ class H2rgMainWindow(QMainWindow):
         self._comboBox_ramp_mode = QComboBox()
         for label, mode in RAMP_MODE_ITEMS:
             self._comboBox_ramp_mode.addItem(label, mode)
-        cds_index = next(
-            (i for i, (_, mode) in enumerate(RAMP_MODE_ITEMS) if mode == "CDS"),
+        ramp_index = next(
+            (i for i, (_, mode) in enumerate(RAMP_MODE_ITEMS) if mode == "Ramp"),
             0,
         )
-        self._comboBox_ramp_mode.setCurrentIndex(cds_index)
+        self._comboBox_ramp_mode.setCurrentIndex(ramp_index)
         self._label_fowler_pairs = QLabel("Fowler pairs:")
         self._lineEdit_fowler_pairs = QLineEdit(str(self._fowler_pairs))
         self._lineEdit_fowler_pairs.setFixedWidth(48)
@@ -1276,6 +1183,15 @@ class H2rgMainWindow(QMainWindow):
         form.setColumnStretch(2, 0)
         outer.addLayout(form)
 
+        bg_box = self.ui.checkBox_substract_background
+        bg_box.setText("Subtract background")
+        bg_box.setEnabled(False)
+        bg_box.setToolTip(
+            "Subtract the stored background from the displayed image"
+        )
+        bg_box.show()
+        outer.addWidget(bg_box)
+
         self.ui.button_take_background.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Fixed
         )
@@ -1290,9 +1206,10 @@ class H2rgMainWindow(QMainWindow):
         outer.addLayout(actions)
 
     def _layout_visualisation_panel(self) -> None:
-        # Replaced by H2RG ROI values panel; keep widgets for Avg/Max/Min only.
+        # Replaced by H2RG ROI values panel; hide unused .ui controls.
         self.ui.groupBox_visualisation.hide()
-        self.ui.checkBox_substract_background.hide()
+        for name in ("checkBox_avg", "checkBox_max", "checkBox_min"):
+            getattr(self.ui, name).hide()
         for index in range(1, 11):
             checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
             if checkbox is not None:
@@ -1309,7 +1226,7 @@ class H2rgMainWindow(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        # Left: image dominates; stats + ROI sit under it (not stacked on the right).
+        # Left: image dominates; ROI values sit under it.
         self.ui.frame_camera.setMinimumWidth(560)
         self.ui.frame_camera.setMinimumHeight(360)
         self.ui.frame_camera.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -1322,17 +1239,12 @@ class H2rgMainWindow(QMainWindow):
         image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
         self._setup_cursor_readout_row(image_column_layout)
 
-        under_image = QHBoxLayout()
-        under_image.setSpacing(12)
-        under_image.addWidget(self._setup_image_statistics_panel(), stretch=0)
-
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
         self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         for index, row in self._roi_panel.rows.items():
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
-        under_image.addWidget(self._roi_panel, stretch=1)
-        image_column_layout.addLayout(under_image, stretch=0)
+        image_column_layout.addWidget(self._roi_panel, stretch=0)
         top.addWidget(image_column, stretch=1)
 
         # Right: config + acquisition only, in a scroll area so nothing overlaps.
@@ -1396,11 +1308,7 @@ class H2rgMainWindow(QMainWindow):
         ):
             getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
 
-        for button in (
-            getattr(self, "_button_subtract_bg", None),
-        ):
-            if button is not None:
-                button.setStyleSheet(PANEL_BUTTON_STYLE)
+        self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
 
         for name in (
             "label",
@@ -1425,13 +1333,6 @@ class H2rgMainWindow(QMainWindow):
             "comboBox_window_mode",
         ):
             getattr(self.ui, name).setStyleSheet(PANEL_FIELD_STYLE)
-
-        for name in (
-            "checkBox_avg",
-            "checkBox_max",
-            "checkBox_min",
-        ):
-            getattr(self.ui, name).setStyleSheet(CHECKBOX_STYLE)
 
         self.ui.lineEdit_status.setStyleSheet(
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
@@ -1476,10 +1377,6 @@ class H2rgMainWindow(QMainWindow):
             else:
                 widget.setStyleSheet(PANEL_FIELD_STYLE)
 
-        stats_panel = getattr(self, "_stat_mean", None)
-        if stats_panel is not None and stats_panel.parent() is not None:
-            stats_panel.parent().setStyleSheet(PANEL_GROUP_STYLE)
-
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
         self.ui.comboBox_detector_mode.addItems(list(DETECTOR_MODES))
@@ -1496,11 +1393,7 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_live.clicked.connect(self.live_clicked)
         self.ui.button_acquire.clicked.connect(self.acquire)
         self.ui.button_halt.clicked.connect(self.halt)
-        self.ui.checkBox_avg.toggled.connect(self._on_avg_toggled)
-        self.ui.checkBox_max.toggled.connect(self._on_max_toggled)
-        self.ui.checkBox_min.toggled.connect(self._on_min_toggled)
-        if hasattr(self, "_button_subtract_bg"):
-            self._button_subtract_bg.toggled.connect(self._refresh_display)
+        self.ui.checkBox_substract_background.toggled.connect(self._refresh_display)
 
         if self._roi_panel is not None:
             for row in self._roi_panel.rows.values():
@@ -1528,24 +1421,6 @@ class H2rgMainWindow(QMainWindow):
             self._on_detector_mode_changed
         )
 
-    def _on_avg_toggled(self, checked: bool) -> None:
-        if checked:
-            self.ui.checkBox_max.setChecked(False)
-            self.ui.checkBox_min.setChecked(False)
-        self._refresh_display()
-
-    def _on_max_toggled(self, checked: bool) -> None:
-        if checked:
-            self.ui.checkBox_avg.setChecked(False)
-            self.ui.checkBox_min.setChecked(False)
-        self._refresh_display()
-
-    def _on_min_toggled(self, checked: bool) -> None:
-        if checked:
-            self.ui.checkBox_avg.setChecked(False)
-            self.ui.checkBox_max.setChecked(False)
-        self._refresh_display()
-
     def _on_roi_toggled(self, _checked: bool) -> None:
         self._update_roi_overlays()
         self._refresh_display()
@@ -1558,7 +1433,7 @@ class H2rgMainWindow(QMainWindow):
             data = self._comboBox_ramp_mode.currentData()
             if data in RAMP_MODES:
                 return str(data)
-        return "CDS"
+        return "Ramp"
 
     def _fowler_pairs_value(self) -> int:
         try:
@@ -1627,29 +1502,12 @@ class H2rgMainWindow(QMainWindow):
             return
         self._on_exposure_fields_changed()
 
-    def _display_mode(self) -> str:
-        if self.ui.checkBox_avg.isChecked():
-            return "avg"
-        if self.ui.checkBox_max.isChecked():
-            return "max"
-        if self.ui.checkBox_min.isChecked():
-            return "min"
-        return "cds"
-
     def _frame_from_display_mode(self) -> numpy.ndarray | None:
         if self._raw_fits_cube is not None:
             data = numpy.asarray(self._raw_fits_cube, dtype=numpy.float32)
             header = self._raw_fits_header or {}
-            mode = self._display_mode()
             if data.ndim <= 2:
                 return data
-            axis = ramp_sample_axis(header, data.shape)
-            if mode == "avg":
-                return numpy.mean(data, axis=axis).astype(numpy.float32)
-            if mode == "max":
-                return numpy.max(data, axis=axis).astype(numpy.float32)
-            if mode == "min":
-                return numpy.min(data, axis=axis).astype(numpy.float32)
             return science_image_from_cube(
                 data,
                 header,
@@ -1667,34 +1525,13 @@ class H2rgMainWindow(QMainWindow):
                 selected.append(index)
         return selected
 
-    def _stats_array(self, frame: numpy.ndarray) -> numpy.ndarray:
-        selected = self._selected_roi_indices()
-        if not selected:
-            return numpy.asarray(frame, dtype=numpy.float64)
-        parts = []
-        height, width = frame.shape[:2]
-        for index in selected:
-            roi = self._h2rg_rois.get(index)
-            if roi is None:
-                continue
-            x, y, w, h = roi
-            x_end = min(width, x + w)
-            y_end = min(height, y + h)
-            if x >= width or y >= height or x_end <= x or y_end <= y:
-                continue
-            parts.append(frame[y:y_end, x:x_end].ravel())
-        if not parts:
-            return numpy.asarray(frame, dtype=numpy.float64)
-        return numpy.concatenate(parts)
-
     def _build_display_frame(self) -> numpy.ndarray | None:
         frame = self._frame_from_display_mode()
         if frame is None:
             return None
         display = frame
         if (
-            hasattr(self, "_button_subtract_bg")
-            and self._button_subtract_bg.isChecked()
+            self.ui.checkBox_substract_background.isChecked()
             and self._background is not None
             and self._background.shape == frame.shape
         ):
@@ -2671,8 +2508,7 @@ class H2rgMainWindow(QMainWindow):
             frame, _path = loaded
             frame = self._frame_from_display_mode() or frame
         self._background = numpy.asarray(frame, dtype=numpy.float32).copy()
-        if hasattr(self, "_button_subtract_bg"):
-            self._button_subtract_bg.setEnabled(True)
+        self.ui.checkBox_substract_background.setEnabled(True)
         self._set_status("Background stored")
 
     def _refresh_readouts(self, macie) -> None:
@@ -3059,7 +2895,6 @@ class H2rgMainWindow(QMainWindow):
         if auto_levels:
             self._auto_levels_next = False
 
-        self._update_image_statistics(self._stats_array(display))
         self._update_roi_values(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()

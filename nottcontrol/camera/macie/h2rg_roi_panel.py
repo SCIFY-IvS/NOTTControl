@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
 )
 
 from nottcontrol.camera.infratec.utils.utils import BrightnessResults
+from nottcontrol.theme import PANEL_BUTTON_STYLE
 from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 ROI_COUNT = 10
@@ -237,6 +238,9 @@ class H2rgRoiPlots(QWidget):
         toolbar.addStretch()
         self.btn_rescale = QPushButton("Rescale Y", self)
         self.btn_rescale.setToolTip("Auto-scale Y on both ROI plots")
+        self.btn_rescale.setStyleSheet(PANEL_BUTTON_STYLE)
+        self.btn_rescale.setMinimumHeight(scaled(28))
+        self.btn_rescale.setFixedWidth(scaled(96))
         self.btn_rescale.clicked.connect(self.rescale_y)
         toolbar.addWidget(self.btn_rescale)
         root.addLayout(toolbar)
