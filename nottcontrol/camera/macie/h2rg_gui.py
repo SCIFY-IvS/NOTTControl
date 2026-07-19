@@ -712,6 +712,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_header: QPushButton | None = None
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
+        self._acquire_previewed_names: set[str] = set()
         self._exposure_preview_timer = QTimer(self)
         self._exposure_preview_timer.setSingleShot(True)
         self._exposure_preview_timer.setInterval(450)
@@ -1112,7 +1113,7 @@ class H2rgMainWindow(QMainWindow):
             ("label_7", "lineEdit_nb_frames"),
         )
         self.ui.label_5.setText("Integration time:")
-        self.ui.label_7.setText("Saved ramps:")
+        self.ui.label_7.setText("Number of frames:")
         self.ui.label_4.setText("Total integration time:")
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
@@ -2175,7 +2176,7 @@ class H2rgMainWindow(QMainWindow):
                 mode_detail = "window CDS"
         self.status_updated.emit(
             f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon, "
-            f"{mode_detail}, saved ramps={nseq}"
+            f"{mode_detail}, frames={nseq}"
         )
         return result
 
@@ -2204,13 +2205,28 @@ class H2rgMainWindow(QMainWindow):
                 margin_s=MACIE_FITS_WAIT_MARGIN_S,
                 maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
             )
-            macie.acquire()
+            expected = max(1, nseq)
+            self._acquire_previewed_names = set()
+            stop_preview = threading.Event()
+            preview_thread = threading.Thread(
+                target=self._poll_acquire_previews,
+                args=(before_mtime, before_name, expected, stop_preview),
+                daemon=True,
+            )
+            preview_thread.start()
+            try:
+                macie.acquire()
+            finally:
+                stop_preview.set()
+                preview_thread.join(timeout=2.0)
+
             ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
                 before_mtime,
                 macie,
                 before_name=before_name,
-                expected_count=max(1, nseq),
+                expected_count=expected,
                 timeout_s=wait_timeout_s,
+                display_each=True,
             )
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
@@ -2241,7 +2257,7 @@ class H2rgMainWindow(QMainWindow):
     ) -> str:
         if len(ramp_paths) > 1:
             base = (
-                f"Acquire complete — {len(ramp_paths)} ramps "
+                f"Acquire complete — {len(ramp_paths)} frames "
                 f"({ramp_paths[0].name} … {ramp_paths[-1].name})"
             )
         elif ramp_paths:
@@ -2645,6 +2661,57 @@ class H2rgMainWindow(QMainWindow):
             dir_ok=True,
         )
 
+    def _emit_acquire_preview(
+        self,
+        path: Path,
+        *,
+        index: int,
+        expected_count: int,
+    ) -> numpy.ndarray | None:
+        """Load *path* and show it in the GUI if not already displayed."""
+        displayed = getattr(self, "_acquire_previewed_names", None)
+        if displayed is None:
+            displayed = set()
+            self._acquire_previewed_names = displayed
+        if path.name in displayed:
+            return None
+        try:
+            if not path.is_file():
+                return None
+            frame = self._load_fits_from_path(path)
+        except Exception as exc:
+            print(f"H2RG acquire preview skipped {path.name}: {exc}")
+            return None
+        displayed.add(path.name)
+        self._auto_levels_next = index == 1
+        self.frame_ready.emit(frame)
+        self.status_updated.emit(
+            f"Acquire: frame {index}/{expected_count} — {path.name}"
+        )
+        return frame
+
+    def _poll_acquire_previews(
+        self,
+        before_mtime: float,
+        before_name: str | None,
+        expected_count: int,
+        stop_event: threading.Event,
+    ) -> None:
+        """While acquire() blocks, show each new local FITS as it is written."""
+        while not stop_event.wait(0.25):
+            if not self._local_fits_accessible(allow_probe=False):
+                continue
+            for path in self._collect_new_ramp_paths(
+                before_mtime, before_name=before_name
+            ):
+                self._emit_acquire_preview(
+                    path,
+                    index=len(self._acquire_previewed_names) + 1,
+                    expected_count=expected_count,
+                )
+            if len(self._acquire_previewed_names) >= expected_count:
+                break
+
     def _wait_for_acquire_frames(
         self,
         before_mtime: float,
@@ -2653,6 +2720,7 @@ class H2rgMainWindow(QMainWindow):
         before_name: str | None = None,
         expected_count: int = 1,
         timeout_s: float = 30.0,
+        display_each: bool = False,
     ) -> tuple[list[Path], numpy.ndarray | None, Path | None]:
         import time
 
@@ -2660,14 +2728,39 @@ class H2rgMainWindow(QMainWindow):
         deadline = time.monotonic() + timeout_s
         seen: dict[str, Path] = {}
         zmq_seen: set[str] = set()
+        last_frame: numpy.ndarray | None = None
         server_path_checked_at = 0.0
         stable_since: float | None = None
+        if display_each and not hasattr(self, "_acquire_previewed_names"):
+            self._acquire_previewed_names = set()
+
+        def preview_seen() -> None:
+            nonlocal last_frame
+            if not display_each:
+                return
+            displayed = self._acquire_previewed_names
+            ordered = sorted(
+                seen.values(),
+                key=lambda path: (
+                    path.stat().st_mtime if path.exists() else 0.0,
+                    path.name.lower(),
+                ),
+            )
+            for path in ordered:
+                frame = self._emit_acquire_preview(
+                    path,
+                    index=len(displayed) + 1,
+                    expected_count=expected_count,
+                )
+                if frame is not None:
+                    last_frame = frame
 
         while time.monotonic() < deadline:
             for path in self._collect_new_ramp_paths(
                 before_mtime, before_name=before_name
             ):
                 seen[path.name] = path
+            preview_seen()
 
             local_ok = self._local_fits_accessible(allow_probe=True)
             # ZMQ fetch when the configured local fits_directory is missing *or*
@@ -2693,6 +2786,7 @@ class H2rgMainWindow(QMainWindow):
                             seen[path.name] = path
                             zmq_seen.add(path.name)
                             before_name = path.name
+                            preview_seen()
                 if len(seen) >= expected_count:
                     break
             if local_ok and len(seen) >= expected_count:
@@ -2719,6 +2813,7 @@ class H2rgMainWindow(QMainWindow):
                     if loaded is not None:
                         _frame, path = loaded
                         seen[path.name] = path
+                        preview_seen()
             time.sleep(0.2)
 
         ramp_paths = sorted(
@@ -2742,7 +2837,19 @@ class H2rgMainWindow(QMainWindow):
         if not ramp_paths:
             return [], None, None
 
+        preview_seen()
         preview_path = ramp_paths[-1]
+        if display_each and last_frame is not None and preview_path.name in getattr(
+            self, "_acquire_previewed_names", set()
+        ):
+            # Already shown during acquire; reload so science save has a fresh header.
+            try:
+                if preview_path.is_file():
+                    return ramp_paths, self._load_fits_from_path(preview_path), preview_path
+            except Exception:
+                return ramp_paths, last_frame, preview_path
+            return ramp_paths, last_frame, preview_path
+
         try:
             if preview_path.is_file():
                 frame = self._load_fits_from_path(preview_path)
