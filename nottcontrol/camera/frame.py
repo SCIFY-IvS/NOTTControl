@@ -17,12 +17,13 @@ from pathlib import Path
 from platform import system
 from time import sleep
 
+INFRATEC_SECTION = "INFRATEC CAMERA"
 
-# Location of frames on the machine
+# Location of Infratec PNG frames on the machine
 if system() == "Windows":
-    frame_directory = str(config['DEFAULT']['frame_directory'])
+    frame_directory = str(config[INFRATEC_SECTION]['frame_directory'])
 else:
-    frame_directory = str(config['DEFAULT']['linux_frame_directory'])
+    frame_directory = str(config[INFRATEC_SECTION]['linux_frame_directory'])
 
 class Frame(object):
     # This class represents a sequence of frames, taken by the infrared camera.
@@ -32,7 +33,7 @@ class Frame(object):
     # Camera window position and size (dictionary format)
     window_cfg = dict.fromkeys(["w","h","x","y"])
     for key in window_cfg.keys():
-        window_cfg[key] = config.getint('CAMERA', 'window_'+key)
+        window_cfg[key] = config.getint(INFRATEC_SECTION, 'window_'+key)
             
     # Camera ROIs' positions and sizes : not linked to outputs (list format)
     rois_cfg = []
@@ -42,7 +43,7 @@ class Frame(object):
     stop = False
     while not stop:
         try:
-            roi = config.getarray('CAMERA', 'ROI '+str(roi_index),np.float32) # np array of floats
+            roi = config.getarray(INFRATEC_SECTION, 'ROI '+str(roi_index),np.float32) # np array of floats
         except:
             stop = True
         else:
@@ -148,8 +149,8 @@ class Frame(object):
                            (2) data registered in matching ROI (numpy array)
         """
         # Camera ROIs' positions and sizes : matched to outputs (dictionary format)
-        channel_labels = config.getarray('CAMERA', 'channel_labels', str) # np array of strings
-        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32) # np array of ints
+        channel_labels = config.getarray(INFRATEC_SECTION, 'channel_labels', str) # np array of strings
+        roi_indices = config.getarray(INFRATEC_SECTION, 'roi_indices', np.int32) # np array of ints
         channels_roi = dict.fromkeys(channel_labels)
         channels_data = dict.fromkeys(channel_labels)
         for i,channel_label in enumerate(channels_data):

@@ -9,15 +9,16 @@ from nottcontrol import config
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILES_DIR = "macie_exe/config_files"
+H2RG_SECTION = "H2RG DETECTOR"
 
 ZMQ_REQUEST_TIMEOUT_MS = config.getint(
-    "MACIE", "zmq_request_timeout_ms", fallback=120_000
+    H2RG_SECTION, "zmq_request_timeout_ms", fallback=120_000
 )
 ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
-    "MACIE", "zmq_acquire_timeout_ms", fallback=300_000
+    H2RG_SECTION, "zmq_acquire_timeout_ms", fallback=300_000
 )
 MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
-    "MACIE", "shutdown_timeout_ms", fallback=2_000
+    H2RG_SECTION, "shutdown_timeout_ms", fallback=2_000
 )
 
 

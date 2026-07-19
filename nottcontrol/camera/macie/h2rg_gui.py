@@ -4,13 +4,15 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import shutil
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
-from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
@@ -37,49 +39,71 @@ from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
-    ramp_sample_axis,
     save_science_fits,
     science_fits_path,
     science_image_from_cube,
 )
+from nottcontrol.camera.macie.h2rg_roi_panel import (
+    ROI_COLORS,
+    H2rgRoiPanel,
+    H2rgRoiPlots,
+    compute_roi_brightness,
+    redis_key_for_roi,
+    roi_profile_1d,
+)
 from nottcontrol.camera.macie.ramp_plan import RAMP_MODE_ITEMS, RAMP_MODES, fits_wait_timeout_s
+from nottcontrol.redisclient import RedisClient
 
+H2RG_SECTION = "H2RG DETECTOR"
 MACIE_CONFIG_FILE = config.get(
-    "MACIE", "config_file", fallback="teledyne_cold_slow.cfg"
+    H2RG_SECTION, "config_file", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_SLOW = config.get(
-    "MACIE", "config_file_slow", fallback="teledyne_cold_slow.cfg"
+    H2RG_SECTION, "config_file_slow", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_FAST = config.get(
-    "MACIE", "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
+    H2RG_SECTION, "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
 )
 MACIE_ZMQ_ADDRESS = config.get(
-    "MACIE", "zmq_address", fallback="tcp://localhost:65534"
+    H2RG_SECTION, "zmq_address", fallback="tcp://localhost:65534"
 )
-MACIE_OFFLINE_MODE = config.getboolean("MACIE", "offline_mode", fallback=False)
-MACIE_IMAGE_SCALE = config.getint("MACIE", "image_display_scale", fallback=2)
+MACIE_OFFLINE_MODE = config.getboolean(H2RG_SECTION, "offline_mode", fallback=False)
+MACIE_IMAGE_SCALE = config.getint(H2RG_SECTION, "image_display_scale", fallback=2)
 FITS_DIR_CHECK_TIMEOUT_S = config.getfloat(
-    "MACIE", "fits_directory_check_timeout_s", fallback=1.0
+    H2RG_SECTION, "fits_directory_check_timeout_s", fallback=1.0
 )
 FITS_LINUX_PATH_PREFIX = config.get(
-    "MACIE", "fits_linux_path_prefix", fallback=""
+    H2RG_SECTION, "fits_linux_path_prefix", fallback=""
 ).strip()
 FITS_WINDOWS_UNC_ROOT = config.get(
-    "MACIE", "fits_windows_unc_root", fallback=""
+    H2RG_SECTION, "fits_windows_unc_root", fallback=""
 ).strip()
 MACIE_INTEGRATION_NGROUPS_MAX = config.getint(
-    "MACIE", "integration_ngroups_max", fallback=2
+    H2RG_SECTION, "integration_ngroups_max", fallback=2
 )
 MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
-    "MACIE", "fowler_pairs_default", fallback=2
+    H2RG_SECTION, "fowler_pairs_default", fallback=2
 )
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
-    "MACIE", "save_science_fits", fallback=True
+    H2RG_SECTION, "save_science_fits", fallback=True
 )
-MACIE_DS9_EXECUTABLE = config.get("MACIE", "ds9_executable", fallback="ds9").strip()
+MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
-    "MACIE", "fits_wait_margin_s", fallback=30.0
+    H2RG_SECTION, "fits_wait_margin_s", fallback=30.0
 )
+MACIE_RECORD_ROIS = config.getboolean(H2RG_SECTION, "record_rois", fallback=True)
+MACIE_ROI_TIME_WINDOW_S = config.getfloat(
+    H2RG_SECTION, "roi_time_plot_window_seconds", fallback=60.0
+)
+MACIE_ROI_PLOT_HZ = config.getfloat(H2RG_SECTION, "roi_plot_refresh_hz", fallback=1.0)
+MACIE_ROI_GRAPH_HEIGHT = config.getint(H2RG_SECTION, "graph_height", fallback=240)
+MACIE_ROI_TIME_PLOT_MAX_HZ = config.getfloat(
+    H2RG_SECTION, "roi_time_plot_max_framerate", fallback=30.0
+)
+MACIE_ROI_DEQUE_LENGTH = max(
+    60, int(MACIE_ROI_TIME_WINDOW_S * MACIE_ROI_TIME_PLOT_MAX_HZ)
+)
+MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
 
 from nottcontrol.theme import (
     CHECKBOX_STYLE,
@@ -93,11 +117,39 @@ from nottcontrol.theme import (
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
 RIGHT_PANEL_WIDTH = 360
-IMAGE_STATS_MAX_WIDTH = 200
 CURSOR_READOUT_HEIGHT = 28
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
 H2RG_NUM_CHANNELS = 32
+CAMERA_SQUARE_MIN = 420
+
+
+class _SquareCameraHost(QWidget):
+    """Host that keeps its child camera frame square and centered."""
+
+    def __init__(self, camera: QWidget, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._camera = camera
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(camera, alignment=Qt.AlignCenter)
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return max(CAMERA_SQUARE_MIN, width)
+
+    def sizeHint(self) -> QSize:
+        return QSize(640, 640)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        side = max(CAMERA_SQUARE_MIN, min(self.width(), self.height()))
+        self._camera.setFixedSize(side, side)
 
 
 @dataclass(frozen=True)
@@ -314,7 +366,7 @@ def parse_macie_save_dir(config_path: Path) -> Path:
 
 
 def resolve_fits_save_dir(config_path: Path) -> Path:
-    configured = config.get("MACIE", "fits_directory", fallback="").strip()
+    configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
     if configured:
         return Path(os.path.expanduser(configured))
     return parse_macie_save_dir(config_path)
@@ -427,7 +479,7 @@ def load_h2rg_rois_from_config() -> dict[int, tuple[int, int, int, int]]:
     for index in range(1, 11):
         key = f"ROI {index}"
         try:
-            values = config.getarray("MACIE", key, dtype=int)
+            values = config.getarray(H2RG_SECTION, key, dtype=int)
         except Exception:
             continue
         if len(values) == 4:
@@ -582,7 +634,7 @@ class H2rgMainWindow(QMainWindow):
         app_icon = load_app_icon()
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
-        self.setMinimumSize(880, 650)
+        self.setMinimumSize(1100, 920)
         self.ui = None
         self._init_runtime_state()
 
@@ -628,6 +680,15 @@ class H2rgMainWindow(QMainWindow):
         self._raw_fits_header: dict | None = None
         self._h2rg_rois = load_h2rg_rois_from_config()
         self._roi_overlays: dict[int, object] = {}
+        self._roi_panel: H2rgRoiPanel | None = None
+        self._roi_plots: H2rgRoiPlots | None = None
+        self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
+        self._last_roi_plot_refresh = 0.0
+        self._redis: RedisClient | None = None
+        try:
+            self._redis = RedisClient(config["DEFAULT"]["databaseurl"])
+        except Exception as exc:
+            print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
@@ -647,10 +708,11 @@ class H2rgMainWindow(QMainWindow):
         self._cursor_readout_timer = QTimer()
         self._cursor_readout_timer.setSingleShot(True)
         self._cursor_readout_timer.timeout.connect(self._flush_cursor_readout)
-        self._stat_mean: QLineEdit | None = None
-        self._stat_min: QLineEdit | None = None
-        self._stat_max: QLineEdit | None = None
-        self._stat_std: QLineEdit | None = None
+        self._button_autoscale: QPushButton | None = None
+        self._button_header: QPushButton | None = None
+        self._button_ds9: QPushButton | None = None
+        self._button_save_dir: QPushButton | None = None
+        self._acquire_previewed_names: set[str] = set()
         self._exposure_preview_timer = QTimer(self)
         self._exposure_preview_timer.setSingleShot(True)
         self._exposure_preview_timer.setInterval(450)
@@ -668,7 +730,6 @@ class H2rgMainWindow(QMainWindow):
         QApplication.processEvents()
         self._set_status("Loading…")
         self._set_controls_enabled(False)
-        self.ui.checkBox_substract_background.setEnabled(False)
         QTimer.singleShot(0, self._finish_setup)
 
     def _finish_setup(self) -> None:
@@ -696,11 +757,16 @@ class H2rgMainWindow(QMainWindow):
             self._set_status(f"GUI setup failed: {exc}")
 
     def _setup_image_placeholder(self) -> None:
+        host = self._ensure_camera_host_layout()
+        self._clear_layout_widgets(host)
         self._image_placeholder = QLabel("No image yet", self.ui.frame_camera)
         self._image_placeholder.setAlignment(Qt.AlignCenter)
+        self._image_placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._image_placeholder.setStyleSheet(
-            'color: rgb(180, 180, 200); font: 11pt "Segoe UI";'
+            'color: rgb(200, 200, 220); font: 13pt "Segoe UI";'
+            " background: transparent;"
         )
+        host.addWidget(self._image_placeholder)
 
     def _clear_widget_layout(self, widget: QWidget) -> None:
         layout = widget.layout()
@@ -710,48 +776,60 @@ class H2rgMainWindow(QMainWindow):
             layout.takeAt(0)
         QWidget().setLayout(layout)
 
+    def _clear_layout_widgets(self, layout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            child = item.widget()
+            if child is not None:
+                child.hide()
+                child.setParent(None)
+                child.deleteLater()
+
+    def _ensure_camera_host_layout(self):
+        layout = self.ui.frame_camera.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.ui.frame_camera)
+            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setSpacing(0)
+        return layout
+
     def _clear_frame_camera_layout(self) -> None:
         layout = self.ui.frame_camera.layout()
         if layout is None:
             return
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(self.ui.frame_camera)
+        self._clear_layout_widgets(layout)
         QWidget().setLayout(layout)
 
-    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
-        column = QVBoxLayout()
-        column.setSpacing(6)
+    def _make_image_tool_button(self, text: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setStyleSheet(PANEL_BUTTON_STYLE)
+        button.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        button.setFixedWidth(96)
+        return button
 
-        button_row = QHBoxLayout()
-        button_row.setSpacing(8)
-        button_row.addStretch(1)
-        self._button_autoscale = QPushButton("Autoscale")
-        self._button_autoscale.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_autoscale.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_autoscale.setFixedWidth(96)
-        button_row.addWidget(self._button_autoscale)
-        self._button_header = QPushButton("Header")
-        self._button_header.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_header.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_header.setFixedWidth(96)
-        button_row.addWidget(self._button_header)
-        self._button_ds9 = QPushButton("DS9")
-        self._button_ds9.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_ds9.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_ds9.setFixedWidth(96)
-        button_row.addWidget(self._button_ds9)
-        self._button_save_dir = QPushButton("Folder")
-        self._button_save_dir.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_save_dir.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_save_dir.setFixedWidth(96)
+    def _setup_image_tool_buttons(self) -> QWidget:
+        """Vertical Autoscale / Header / DS9 / Folder column left of the image."""
+        host = QWidget()
+        host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        column = QVBoxLayout(host)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(8)
+        column.addStretch(1)
+
+        self._button_autoscale = self._make_image_tool_button("Autoscale")
+        column.addWidget(self._button_autoscale)
+        self._button_header = self._make_image_tool_button("Header")
+        column.addWidget(self._button_header)
+        self._button_ds9 = self._make_image_tool_button("DS9")
+        column.addWidget(self._button_ds9)
+        self._button_save_dir = self._make_image_tool_button("Folder")
         self._button_save_dir.setToolTip("Open FITS save directory")
-        button_row.addWidget(self._button_save_dir)
-        button_row.addStretch(1)
-        column.addLayout(button_row)
+        column.addWidget(self._button_save_dir)
 
+        column.addStretch(1)
+        return host
+
+    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
         if self._cursor_readout is None:
             self._cursor_readout = QLabel("Pixel: —  CV: —")
             self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -764,47 +842,10 @@ class H2rgMainWindow(QMainWindow):
                 " border-radius: 4px;"
                 " padding-left: 8px;"
             )
-        column.addWidget(self._cursor_readout)
-        parent_layout.addLayout(column)
+        parent_layout.addWidget(self._cursor_readout)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
-
-    def _setup_image_statistics_panel(self) -> QGroupBox:
-        group = QGroupBox("Image statistics")
-        group.setStyleSheet(PANEL_GROUP_STYLE)
-        group.setMaximumWidth(IMAGE_STATS_MAX_WIDTH)
-        group.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        grid = QGridLayout(group)
-        grid.setContentsMargins(8, 12, 8, 8)
-        grid.setHorizontalSpacing(6)
-        grid.setVerticalSpacing(6)
-        grid.setColumnStretch(1, 1)
-
-        field_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        stat_field_style = (
-            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
-        )
-
-        def _add_row(row: int, text: str, field: QLineEdit) -> None:
-            label = QLabel(text, group)
-            label.setStyleSheet(PANEL_LABEL_STYLE)
-            field.setReadOnly(True)
-            field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            field.setSizePolicy(field_policy)
-            field.setStyleSheet(stat_field_style)
-            grid.addWidget(label, row, 0, Qt.AlignLeft | Qt.AlignVCenter)
-            grid.addWidget(field, row, 1, Qt.AlignRight | Qt.AlignVCenter)
-
-        self._stat_mean = QLineEdit("—", group)
-        self._stat_min = QLineEdit("—", group)
-        self._stat_max = QLineEdit("—", group)
-        self._stat_std = QLineEdit("—", group)
-        _add_row(0, "Mean:", self._stat_mean)
-        _add_row(1, "Min:", self._stat_min)
-        _add_row(2, "Max:", self._stat_max)
-        _add_row(3, "Std:", self._stat_std)
-        return group
 
     def _setup_cursor_readout(self) -> None:
         if self.image is None or self._cursor_readout is None:
@@ -829,13 +870,8 @@ class H2rgMainWindow(QMainWindow):
         )
 
     def _layout_image_frame(self) -> None:
-        width = max(1, self.ui.frame_camera.width())
-        height = max(1, self.ui.frame_camera.height())
-
-        if self.image is not None:
-            self.image.setGeometry(4, 4, max(1, width - 8), max(1, height - 8))
-        elif self._image_placeholder is not None:
-            self._image_placeholder.setGeometry(4, 4, max(1, width - 8), max(1, height - 8))
+        # ImageView / placeholder are managed by the frame_camera layout.
+        return
 
     def _scene_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
         if self.image is None:
@@ -917,24 +953,6 @@ class H2rgMainWindow(QMainWindow):
             pos = pos[0]
         self._update_cursor_readout_from_view_pos(pos)
 
-    def _update_image_statistics(self, frame: numpy.ndarray) -> None:
-        if self._stat_mean is None:
-            return
-        data = numpy.asarray(frame, dtype=numpy.float64)
-        if data.size == 0:
-            for field in (
-                self._stat_mean,
-                self._stat_min,
-                self._stat_max,
-                self._stat_std,
-            ):
-                field.setText("—")
-            return
-        self._stat_mean.setText(_format_stat_value(float(numpy.mean(data))))
-        self._stat_min.setText(_format_stat_value(float(numpy.min(data))))
-        self._stat_max.setText(_format_stat_value(float(numpy.max(data))))
-        self._stat_std.setText(_format_stat_value(float(numpy.std(data))))
-
     def eventFilter(self, obj, event) -> bool:
         if (
             self.ui is not None
@@ -966,17 +984,16 @@ class H2rgMainWindow(QMainWindow):
         pg.setConfigOption("background", "#1a1a2e")
         pg.setConfigOption("foreground", "w")
 
-        self._clear_frame_camera_layout()
-
-        if self._image_placeholder is not None:
-            self._image_placeholder.hide()
-            self._image_placeholder.deleteLater()
-            self._image_placeholder = None
+        host = self._ensure_camera_host_layout()
+        self._clear_layout_widgets(host)
+        self._image_placeholder = None
 
         self.image = pg.ImageView(self.ui.frame_camera)
+        self.image.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
+        host.addWidget(self.image)
         self.image.show()
         self.image.getView().setMouseEnabled(x=True, y=True)
         self.image.getView().setAspectLocked(True)
@@ -984,7 +1001,6 @@ class H2rgMainWindow(QMainWindow):
             self._setup_cursor_readout()
         except Exception as exc:
             print(f"H2RG cursor readout setup failed: {exc}")
-        self._layout_image_frame()
 
         if self._current_frame is not None:
             self._display_frame(self._current_frame)
@@ -1035,7 +1051,7 @@ class H2rgMainWindow(QMainWindow):
             message = str(exc)
             if self._fits_dir_ok is False and sys.platform == "win32":
                 message = (
-                    f"{message} — also set [MACIE] fits_directory for FITS preview"
+                    f"{message} — also set [H2RG DETECTOR] fits_directory for FITS preview"
                 )
             self.status_updated.emit(message)
 
@@ -1082,10 +1098,11 @@ class H2rgMainWindow(QMainWindow):
     def _layout_acquisition_panel(self) -> None:
         box = self.ui.groupBox_acquisition
         self._clear_widget_layout(box)
-        box.setMinimumHeight(380)
+        box.setMinimumHeight(0)
+        box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         outer = QVBoxLayout(box)
-        outer.setContentsMargins(8, 12, 8, 8)
-        outer.setSpacing(8)
+        outer.setContentsMargins(8, 10, 8, 8)
+        outer.setSpacing(6)
 
         form = QGridLayout()
         form.setHorizontalSpacing(8)
@@ -1096,7 +1113,7 @@ class H2rgMainWindow(QMainWindow):
             ("label_7", "lineEdit_nb_frames"),
         )
         self.ui.label_5.setText("Integration time:")
-        self.ui.label_7.setText("Saved ramps:")
+        self.ui.label_7.setText("Number of frames:")
         self.ui.label_4.setText("Total integration time:")
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
@@ -1117,11 +1134,11 @@ class H2rgMainWindow(QMainWindow):
         self._comboBox_ramp_mode = QComboBox()
         for label, mode in RAMP_MODE_ITEMS:
             self._comboBox_ramp_mode.addItem(label, mode)
-        cds_index = next(
-            (i for i, (_, mode) in enumerate(RAMP_MODE_ITEMS) if mode == "CDS"),
+        ramp_index = next(
+            (i for i, (_, mode) in enumerate(RAMP_MODE_ITEMS) if mode == "Ramp"),
             0,
         )
-        self._comboBox_ramp_mode.setCurrentIndex(cds_index)
+        self._comboBox_ramp_mode.setCurrentIndex(ramp_index)
         self._label_fowler_pairs = QLabel("Fowler pairs:")
         self._lineEdit_fowler_pairs = QLineEdit(str(self._fowler_pairs))
         self._lineEdit_fowler_pairs.setFixedWidth(48)
@@ -1193,6 +1210,15 @@ class H2rgMainWindow(QMainWindow):
         form.setColumnStretch(2, 0)
         outer.addLayout(form)
 
+        bg_box = self.ui.checkBox_substract_background
+        bg_box.setText("Subtract background")
+        bg_box.setEnabled(False)
+        bg_box.setToolTip(
+            "Subtract the stored background from the displayed image"
+        )
+        bg_box.show()
+        outer.addWidget(bg_box)
+
         self.ui.button_take_background.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Fixed
         )
@@ -1207,82 +1233,82 @@ class H2rgMainWindow(QMainWindow):
         outer.addLayout(actions)
 
     def _layout_visualisation_panel(self) -> None:
-        box = self.ui.groupBox_visualisation
-        self._clear_widget_layout(box)
-        box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        outer = QHBoxLayout(box)
-        outer.setContentsMargins(8, 12, 8, 8)
-        outer.setSpacing(8)
-
-        left = QVBoxLayout()
-        left.setSpacing(2)
-        for name in (
-            "checkBox_substract_background",
-            "checkBox_avg",
-            "checkBox_max",
-            "checkBox_min",
-        ):
-            left.addWidget(getattr(self.ui, name))
-        left.addStretch()
-        outer.addLayout(left, stretch=1)
-
-        middle = QVBoxLayout()
-        middle.setSpacing(2)
-        for index in range(1, 6):
-            middle.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
-        middle.addStretch()
-        outer.addLayout(middle, stretch=1)
-
-        right = QVBoxLayout()
-        right.setSpacing(2)
-        for index in range(6, 11):
-            right.addWidget(getattr(self.ui, f"checkBox_ROI{index}"))
-        right.addStretch()
-        outer.addLayout(right, stretch=1)
+        # Replaced by H2RG ROI values panel; hide unused .ui controls.
+        self.ui.groupBox_visualisation.hide()
+        for name in ("checkBox_avg", "checkBox_max", "checkBox_min"):
+            getattr(self.ui, name).hide()
+        for index in range(1, 11):
+            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
+            if checkbox is not None:
+                checkbox.hide()
 
     def _rebuild_layout(self) -> None:
         form = self.ui
         form.setObjectName("h2rg_root")
 
-        outer = QHBoxLayout(form)
-        outer.setContentsMargins(12, 12, 12, 12)
-        outer.setSpacing(16)
+        root = QVBoxLayout(form)
+        root.setContentsMargins(12, 12, 12, 12)
+        root.setSpacing(10)
 
-        self.ui.frame_camera.setMinimumWidth(480)
+        top = QHBoxLayout()
+        top.setSpacing(16)
+
+        # Left: tool buttons beside image, cursor + compact ROI below.
+        self.ui.frame_camera.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
+        self.ui.frame_camera.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
         image_column = QWidget()
+        image_column.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         image_column_layout = QVBoxLayout(image_column)
         image_column_layout.setContentsMargins(0, 0, 0, 0)
-        image_column_layout.setSpacing(8)
-        image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
+        image_column_layout.setSpacing(6)
+
+        image_row = QHBoxLayout()
+        image_row.setContentsMargins(0, 0, 0, 0)
+        image_row.setSpacing(8)
+        image_row.addWidget(self._setup_image_tool_buttons(), stretch=0)
+        self._camera_host = _SquareCameraHost(self.ui.frame_camera)
+        image_row.addWidget(self._camera_host, stretch=1)
+        image_column_layout.addLayout(image_row, stretch=1)
+
         self._setup_cursor_readout_row(image_column_layout)
 
-        bottom_row = QHBoxLayout()
-        bottom_row.setSpacing(12)
-        bottom_row.addWidget(self._setup_image_statistics_panel(), stretch=0)
-        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.ui.groupBox_visualisation.setSizePolicy(panel_policy)
-        bottom_row.addWidget(self.ui.groupBox_visualisation, stretch=1)
-        image_column_layout.addLayout(bottom_row)
+        self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
+        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        for index, row in self._roi_panel.rows.items():
+            row.show_checkbox.setChecked(index in self._h2rg_rois)
+            row.show_checkbox.setEnabled(index in self._h2rg_rois)
+        image_column_layout.addWidget(self._roi_panel, stretch=0)
+        top.addWidget(image_column, stretch=1)
 
-        outer.addWidget(image_column, stretch=1)
+        # Right: logo + config at top; acquisition at bottom (aligns with ROI bottom).
+        right_width = max(RIGHT_PANEL_WIDTH, 380)
+        right_column = QWidget()
+        right_column.setFixedWidth(right_width)
+        right_column.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(10)
+        self._setup_nott_logo(right_layout)
+        self.ui.groupBox_conf.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Maximum
+        )
+        right_layout.addWidget(self.ui.groupBox_conf, stretch=0)
+        right_layout.addStretch(1)
+        self.ui.groupBox_acquisition.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Maximum
+        )
+        right_layout.addWidget(self.ui.groupBox_acquisition, stretch=0)
+        top.addWidget(right_column, stretch=0)
+        root.addLayout(top, stretch=1)
 
-        right_host = QWidget()
-        right_host.setFixedWidth(RIGHT_PANEL_WIDTH)
-        right = QVBoxLayout(right_host)
-        right.setContentsMargins(0, 0, 0, 0)
-        right.setSpacing(12)
-
-        self._setup_nott_logo(right)
-
-        for box in (
-            self.ui.groupBox_conf,
-            self.ui.groupBox_acquisition,
-        ):
-            box.setSizePolicy(panel_policy)
-            right.addWidget(box)
-
-        right.addStretch()
-        outer.addWidget(right_host, stretch=0)
+        self._roi_plots = H2rgRoiPlots(graph_height=max(MACIE_ROI_GRAPH_HEIGHT, 240))
+        self._roi_plots.set_history_limits(
+            maxlen=MACIE_ROI_DEQUE_LENGTH,
+            window_seconds=MACIE_ROI_TIME_WINDOW_S,
+        )
+        self._roi_plots.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        root.addWidget(self._roi_plots, stretch=0)
 
     def _apply_styles(self) -> None:
         self.setStyleSheet(H2RG_WINDOW_STYLE)
@@ -1291,9 +1317,26 @@ class H2rgMainWindow(QMainWindow):
         for box in (
             self.ui.groupBox_conf,
             self.ui.groupBox_acquisition,
-            self.ui.groupBox_visualisation,
         ):
-            box.setStyleSheet(PANEL_GROUP_STYLE)
+            box.setStyleSheet(
+                PANEL_GROUP_STYLE
+                + """
+                QGroupBox {
+                    background: transparent;
+                }
+                """
+            )
+
+        if self._roi_panel is not None:
+            self._roi_panel.setStyleSheet(
+                PANEL_GROUP_STYLE
+                + """
+                QGroupBox {
+                    margin-top: 6px;
+                    padding-top: 2px;
+                }
+                """
+            )
 
         for name in (
             "button_init",
@@ -1305,6 +1348,8 @@ class H2rgMainWindow(QMainWindow):
             "button_halt",
         ):
             getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
+
+        self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
 
         for name in (
             "label",
@@ -1329,19 +1374,6 @@ class H2rgMainWindow(QMainWindow):
             "comboBox_window_mode",
         ):
             getattr(self.ui, name).setStyleSheet(PANEL_FIELD_STYLE)
-
-        for name in (
-            "checkBox_substract_background",
-            "checkBox_avg",
-            "checkBox_max",
-            "checkBox_min",
-        ):
-            getattr(self.ui, name).setStyleSheet(CHECKBOX_STYLE)
-
-        for index in range(1, 11):
-            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
-            if checkbox is not None:
-                checkbox.setStyleSheet(CHECKBOX_STYLE)
 
         self.ui.lineEdit_status.setStyleSheet(
             PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
@@ -1386,10 +1418,6 @@ class H2rgMainWindow(QMainWindow):
             else:
                 widget.setStyleSheet(PANEL_FIELD_STYLE)
 
-        stats_panel = getattr(self, "_stat_mean", None)
-        if stats_panel is not None and stats_panel.parent() is not None:
-            stats_panel.parent().setStyleSheet(PANEL_GROUP_STYLE)
-
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
         self.ui.comboBox_detector_mode.addItems(list(DETECTOR_MODES))
@@ -1408,13 +1436,11 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_halt.clicked.connect(self.halt)
         self.ui.checkBox_substract_background.toggled.connect(self._refresh_display)
 
-        self.ui.checkBox_avg.toggled.connect(self._on_avg_toggled)
-        self.ui.checkBox_max.toggled.connect(self._on_max_toggled)
-        self.ui.checkBox_min.toggled.connect(self._on_min_toggled)
-        for index in range(1, 11):
-            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
-            if checkbox is not None:
-                checkbox.toggled.connect(self._on_roi_toggled)
+        if self._roi_panel is not None:
+            for row in self._roi_panel.rows.values():
+                row.show_checkbox.toggled.connect(self._on_roi_toggled)
+                row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
+                row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
 
         for widget in (
             self.ui.lineEdit_integration_time,
@@ -1436,34 +1462,19 @@ class H2rgMainWindow(QMainWindow):
             self._on_detector_mode_changed
         )
 
-    def _on_avg_toggled(self, checked: bool) -> None:
-        if checked:
-            self.ui.checkBox_max.setChecked(False)
-            self.ui.checkBox_min.setChecked(False)
-        self._refresh_display()
-
-    def _on_max_toggled(self, checked: bool) -> None:
-        if checked:
-            self.ui.checkBox_avg.setChecked(False)
-            self.ui.checkBox_min.setChecked(False)
-        self._refresh_display()
-
-    def _on_min_toggled(self, checked: bool) -> None:
-        if checked:
-            self.ui.checkBox_avg.setChecked(False)
-            self.ui.checkBox_max.setChecked(False)
-        self._refresh_display()
-
     def _on_roi_toggled(self, _checked: bool) -> None:
         self._update_roi_overlays()
         self._refresh_display()
+
+    def _on_roi_plot_toggled(self, _state: int = 0) -> None:
+        self._refresh_roi_plots(force=True)
 
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
             data = self._comboBox_ramp_mode.currentData()
             if data in RAMP_MODES:
                 return str(data)
-        return "CDS"
+        return "Ramp"
 
     def _fowler_pairs_value(self) -> int:
         try:
@@ -1532,29 +1543,12 @@ class H2rgMainWindow(QMainWindow):
             return
         self._on_exposure_fields_changed()
 
-    def _display_mode(self) -> str:
-        if self.ui.checkBox_avg.isChecked():
-            return "avg"
-        if self.ui.checkBox_max.isChecked():
-            return "max"
-        if self.ui.checkBox_min.isChecked():
-            return "min"
-        return "cds"
-
     def _frame_from_display_mode(self) -> numpy.ndarray | None:
         if self._raw_fits_cube is not None:
             data = numpy.asarray(self._raw_fits_cube, dtype=numpy.float32)
             header = self._raw_fits_header or {}
-            mode = self._display_mode()
             if data.ndim <= 2:
                 return data
-            axis = ramp_sample_axis(header, data.shape)
-            if mode == "avg":
-                return numpy.mean(data, axis=axis).astype(numpy.float32)
-            if mode == "max":
-                return numpy.max(data, axis=axis).astype(numpy.float32)
-            if mode == "min":
-                return numpy.min(data, axis=axis).astype(numpy.float32)
             return science_image_from_cube(
                 data,
                 header,
@@ -1564,32 +1558,13 @@ class H2rgMainWindow(QMainWindow):
         return self._current_frame
 
     def _selected_roi_indices(self) -> list[int]:
+        if self._roi_panel is None:
+            return []
         selected = []
-        for index in range(1, 11):
-            checkbox = getattr(self.ui, f"checkBox_ROI{index}", None)
-            if checkbox is not None and checkbox.isChecked():
+        for index, row in self._roi_panel.rows.items():
+            if row.show_checkbox.isChecked() and index in self._h2rg_rois:
                 selected.append(index)
         return selected
-
-    def _stats_array(self, frame: numpy.ndarray) -> numpy.ndarray:
-        selected = self._selected_roi_indices()
-        if not selected:
-            return numpy.asarray(frame, dtype=numpy.float64)
-        parts = []
-        height, width = frame.shape[:2]
-        for index in selected:
-            roi = self._h2rg_rois.get(index)
-            if roi is None:
-                continue
-            x, y, w, h = roi
-            x_end = min(width, x + w)
-            y_end = min(height, y + h)
-            if x >= width or y >= height or x_end <= x or y_end <= y:
-                continue
-            parts.append(frame[y:y_end, x:x_end].ravel())
-        if not parts:
-            return numpy.asarray(frame, dtype=numpy.float64)
-        return numpy.concatenate(parts)
 
     def _build_display_frame(self) -> numpy.ndarray | None:
         frame = self._frame_from_display_mode()
@@ -1611,22 +1586,10 @@ class H2rgMainWindow(QMainWindow):
         import pyqtgraph as pg
 
         view = self.image.getView()
-        colors = (
-            "#ff6b6b",
-            "#ffd166",
-            "#06d6a0",
-            "#118ab2",
-            "#8338ec",
-            "#fb5607",
-            "#3a86ff",
-            "#ff006e",
-            "#8ac926",
-            "#1982c4",
-        )
         for index, (x, y, w, h) in self._h2rg_rois.items():
             if index in self._roi_overlays:
                 continue
-            color = colors[(index - 1) % len(colors)]
+            color = ROI_COLORS[(index - 1) % len(ROI_COLORS)]
             roi = pg.RectROI(
                 [x, y],
                 [w, h],
@@ -1643,6 +1606,64 @@ class H2rgMainWindow(QMainWindow):
         selected = set(self._selected_roi_indices())
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
+
+    def _update_roi_values(
+        self, frame: numpy.ndarray, *, record: bool
+    ) -> None:
+        if self._roi_panel is None or not self._h2rg_rois:
+            return
+        results, regions = compute_roi_brightness(frame, self._h2rg_rois)
+        for index, row in self._roi_panel.rows.items():
+            row.set_values(results.get(index))
+
+        profiles: dict[int, numpy.ndarray] = {}
+        for index, region in regions.items():
+            profiles[index] = roi_profile_1d(region)
+        self._last_roi_profiles = profiles
+
+        if record:
+            stamp = datetime.now(timezone.utc).replace(tzinfo=None)
+            for index, result in results.items():
+                row = self._roi_panel.rows.get(index)
+                if row is not None:
+                    row.add_max_value(result.max)
+            if self._roi_plots is not None:
+                self._roi_plots.append_timestamp(stamp)
+            if MACIE_RECORD_ROIS:
+                self._store_rois_to_redis(stamp, results)
+
+        self._refresh_roi_plots(force=not record)
+
+    def _store_rois_to_redis(
+        self, stamp: datetime, results: dict
+    ) -> None:
+        if self._redis is None or not results:
+            return
+        if not self._redis.is_available():
+            return
+        payload = {
+            redis_key_for_roi(index): result for index, result in results.items()
+        }
+        try:
+            self._redis.add_roi_values(stamp, payload)
+        except Exception as exc:
+            print(f"H2RG Redis ROI write failed: {exc}")
+            try:
+                self._redis._mark_unavailable(exc)
+            except Exception:
+                pass
+
+    def _refresh_roi_plots(self, *, force: bool = False) -> None:
+        if self._roi_panel is None or self._roi_plots is None:
+            return
+        now = time.monotonic()
+        if not force and (now - self._last_roi_plot_refresh) < MACIE_ROI_PLOT_INTERVAL_S:
+            return
+        self._last_roi_plot_refresh = now
+        self._roi_plots.refresh_time_plot(self._roi_panel.rows)
+        self._roi_plots.refresh_profile_plot(
+            self._roi_panel.rows, self._last_roi_profiles
+        )
 
     def _exposure_field_widgets(self) -> list:
         widgets = [
@@ -1878,7 +1899,7 @@ class H2rgMainWindow(QMainWindow):
                 self,
                 "Open in DS9",
                 f"DS9 executable not found ({MACIE_DS9_EXECUTABLE!r}). "
-                "Install SAOImage DS9 or set MACIE ds9_executable in config.ini.",
+                "Install SAOImage DS9 or set [H2RG DETECTOR] ds9_executable in config.ini.",
             )
         except OSError as exc:
             QMessageBox.warning(
@@ -1898,7 +1919,7 @@ class H2rgMainWindow(QMainWindow):
         if self._local_fits_accessible(allow_probe=True):
             return self._save_dir
 
-        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
         if configured:
             path = Path(os.path.expanduser(configured))
             try:
@@ -1917,7 +1938,7 @@ class H2rgMainWindow(QMainWindow):
                 "Open save directory",
                 "The FITS save directory is not available on this machine.\n\n"
                 f"Configured path: {self._save_dir}\n\n"
-                "Set [MACIE] fits_directory (and fits_linux_path_prefix / "
+                "Set [H2RG DETECTOR] fits_directory (and fits_linux_path_prefix / "
                 "fits_windows_unc_root on Windows) in config.ini to a local "
                 "or mapped path.",
             )
@@ -2155,7 +2176,7 @@ class H2rgMainWindow(QMainWindow):
                 mode_detail = "window CDS"
         self.status_updated.emit(
             f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon, "
-            f"{mode_detail}, saved ramps={nseq}"
+            f"{mode_detail}, frames={nseq}"
         )
         return result
 
@@ -2184,13 +2205,28 @@ class H2rgMainWindow(QMainWindow):
                 margin_s=MACIE_FITS_WAIT_MARGIN_S,
                 maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
             )
-            macie.acquire()
+            expected = max(1, nseq)
+            self._acquire_previewed_names = set()
+            stop_preview = threading.Event()
+            preview_thread = threading.Thread(
+                target=self._poll_acquire_previews,
+                args=(before_mtime, before_name, expected, stop_preview),
+                daemon=True,
+            )
+            preview_thread.start()
+            try:
+                macie.acquire()
+            finally:
+                stop_preview.set()
+                preview_thread.join(timeout=2.0)
+
             ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
                 before_mtime,
                 macie,
                 before_name=before_name,
-                expected_count=max(1, nseq),
+                expected_count=expected,
                 timeout_s=wait_timeout_s,
+                display_each=True,
             )
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
@@ -2221,7 +2257,7 @@ class H2rgMainWindow(QMainWindow):
     ) -> str:
         if len(ramp_paths) > 1:
             base = (
-                f"Acquire complete — {len(ramp_paths)} ramps "
+                f"Acquire complete — {len(ramp_paths)} frames "
                 f"({ramp_paths[0].name} … {ramp_paths[-1].name})"
             )
         elif ramp_paths:
@@ -2261,7 +2297,7 @@ class H2rgMainWindow(QMainWindow):
         if self._local_fits_accessible(allow_probe=True):
             return self._save_dir
 
-        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
         if configured:
             path = Path(os.path.expanduser(configured))
             try:
@@ -2625,6 +2661,57 @@ class H2rgMainWindow(QMainWindow):
             dir_ok=True,
         )
 
+    def _emit_acquire_preview(
+        self,
+        path: Path,
+        *,
+        index: int,
+        expected_count: int,
+    ) -> numpy.ndarray | None:
+        """Load *path* and show it in the GUI if not already displayed."""
+        displayed = getattr(self, "_acquire_previewed_names", None)
+        if displayed is None:
+            displayed = set()
+            self._acquire_previewed_names = displayed
+        if path.name in displayed:
+            return None
+        try:
+            if not path.is_file():
+                return None
+            frame = self._load_fits_from_path(path)
+        except Exception as exc:
+            print(f"H2RG acquire preview skipped {path.name}: {exc}")
+            return None
+        displayed.add(path.name)
+        self._auto_levels_next = index == 1
+        self.frame_ready.emit(frame)
+        self.status_updated.emit(
+            f"Acquire: frame {index}/{expected_count} — {path.name}"
+        )
+        return frame
+
+    def _poll_acquire_previews(
+        self,
+        before_mtime: float,
+        before_name: str | None,
+        expected_count: int,
+        stop_event: threading.Event,
+    ) -> None:
+        """While acquire() blocks, show each new local FITS as it is written."""
+        while not stop_event.wait(0.25):
+            if not self._local_fits_accessible(allow_probe=False):
+                continue
+            for path in self._collect_new_ramp_paths(
+                before_mtime, before_name=before_name
+            ):
+                self._emit_acquire_preview(
+                    path,
+                    index=len(self._acquire_previewed_names) + 1,
+                    expected_count=expected_count,
+                )
+            if len(self._acquire_previewed_names) >= expected_count:
+                break
+
     def _wait_for_acquire_frames(
         self,
         before_mtime: float,
@@ -2633,6 +2720,7 @@ class H2rgMainWindow(QMainWindow):
         before_name: str | None = None,
         expected_count: int = 1,
         timeout_s: float = 30.0,
+        display_each: bool = False,
     ) -> tuple[list[Path], numpy.ndarray | None, Path | None]:
         import time
 
@@ -2640,14 +2728,39 @@ class H2rgMainWindow(QMainWindow):
         deadline = time.monotonic() + timeout_s
         seen: dict[str, Path] = {}
         zmq_seen: set[str] = set()
+        last_frame: numpy.ndarray | None = None
         server_path_checked_at = 0.0
         stable_since: float | None = None
+        if display_each and not hasattr(self, "_acquire_previewed_names"):
+            self._acquire_previewed_names = set()
+
+        def preview_seen() -> None:
+            nonlocal last_frame
+            if not display_each:
+                return
+            displayed = self._acquire_previewed_names
+            ordered = sorted(
+                seen.values(),
+                key=lambda path: (
+                    path.stat().st_mtime if path.exists() else 0.0,
+                    path.name.lower(),
+                ),
+            )
+            for path in ordered:
+                frame = self._emit_acquire_preview(
+                    path,
+                    index=len(displayed) + 1,
+                    expected_count=expected_count,
+                )
+                if frame is not None:
+                    last_frame = frame
 
         while time.monotonic() < deadline:
             for path in self._collect_new_ramp_paths(
                 before_mtime, before_name=before_name
             ):
                 seen[path.name] = path
+            preview_seen()
 
             local_ok = self._local_fits_accessible(allow_probe=True)
             # ZMQ fetch when the configured local fits_directory is missing *or*
@@ -2673,6 +2786,7 @@ class H2rgMainWindow(QMainWindow):
                             seen[path.name] = path
                             zmq_seen.add(path.name)
                             before_name = path.name
+                            preview_seen()
                 if len(seen) >= expected_count:
                     break
             if local_ok and len(seen) >= expected_count:
@@ -2699,6 +2813,7 @@ class H2rgMainWindow(QMainWindow):
                     if loaded is not None:
                         _frame, path = loaded
                         seen[path.name] = path
+                        preview_seen()
             time.sleep(0.2)
 
         ramp_paths = sorted(
@@ -2722,7 +2837,19 @@ class H2rgMainWindow(QMainWindow):
         if not ramp_paths:
             return [], None, None
 
+        preview_seen()
         preview_path = ramp_paths[-1]
+        if display_each and last_frame is not None and preview_path.name in getattr(
+            self, "_acquire_previewed_names", set()
+        ):
+            # Already shown during acquire; reload so science save has a fresh header.
+            try:
+                if preview_path.is_file():
+                    return ramp_paths, self._load_fits_from_path(preview_path), preview_path
+            except Exception:
+                return ramp_paths, last_frame, preview_path
+            return ramp_paths, last_frame, preview_path
+
         try:
             if preview_path.is_file():
                 frame = self._load_fits_from_path(preview_path)
@@ -2900,6 +3027,7 @@ class H2rgMainWindow(QMainWindow):
         self._ensure_image_view()
         if self.image is None:
             return
+        is_new_frame = frame is not None
         if frame is not None:
             self._current_frame = frame
         self._update_central_value(self._current_frame)
@@ -2914,7 +3042,7 @@ class H2rgMainWindow(QMainWindow):
         if auto_levels:
             self._auto_levels_next = False
 
-        self._update_image_statistics(self._stats_array(display))
+        self._update_roi_values(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
 

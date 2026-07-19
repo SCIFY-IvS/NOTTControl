@@ -11,22 +11,23 @@ from urllib.parse import urlparse
 from nottcontrol import config
 
 MACIE_DIR = Path(__file__).resolve().parent
+H2RG_SECTION = "H2RG DETECTOR"
 DEFAULT_ZMQ_ADDRESS = config.get(
-    "MACIE", "zmq_address", fallback="tcp://nott-server.ster.kuleuven.be:65534"
+    H2RG_SECTION, "zmq_address", fallback="tcp://nott-server.ster.kuleuven.be:65534"
 )
 DEFAULT_ZMQ_ADDRESS_ALT = config.get(
-    "MACIE", "zmq_address_alt", fallback="tcp://nott-server.ster.kuleuven.be:5900"
+    H2RG_SECTION, "zmq_address_alt", fallback="tcp://nott-server.ster.kuleuven.be:5900"
 ).strip()
 AUTO_START_ZMQ_SERVER = config.getboolean(
-    "MACIE", "auto_start_zmq_server", fallback=False
+    H2RG_SECTION, "auto_start_zmq_server", fallback=False
 )
 ZMQ_SERVER_EXECUTABLE = config.get(
-    "MACIE", "zmq_server_executable", fallback="macie_exe/zmq_server"
+    H2RG_SECTION, "zmq_server_executable", fallback="macie_exe/zmq_server"
 )
 ZMQ_STARTUP_TIMEOUT_S = config.getfloat(
-    "MACIE", "zmq_startup_timeout_s", fallback=10.0
+    H2RG_SECTION, "zmq_startup_timeout_s", fallback=10.0
 )
-MACIE_LIBRARY_PATH = config.get("MACIE", "macie_library_path", fallback="")
+MACIE_LIBRARY_PATH = config.get(H2RG_SECTION, "macie_library_path", fallback="")
 
 
 def macie_zmq_addresses() -> list[str]:
