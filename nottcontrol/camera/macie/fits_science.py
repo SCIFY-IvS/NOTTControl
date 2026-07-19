@@ -143,7 +143,7 @@ def save_science_fits(
     tint_ms: float | None = None,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
-    extra_cards: dict[str, tuple[float, str]] | None = None,
+    extra_cards: list | dict | None = None,
 ) -> Path:
     from astropy.io import fits
 

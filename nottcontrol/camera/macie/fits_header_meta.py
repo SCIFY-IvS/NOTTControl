@@ -12,19 +12,21 @@ from nottcontrol.sensors import load_pressure_sensors, load_temperature_sensors
 if TYPE_CHECKING:
     from nottcontrol.redisclient import RedisClient
 
-# FITS keyword, Redis temperature tag, header comment.
-# Vote sensors match the main-window headline cryo temperatures.
+# (keyword, value, comment). COMMENT cards use value=None.
+HeaderCard = tuple[str, float | None, str]
+
+# FITS keyword, Redis temperature tag, header comment (unit in brackets).
 H2RG_FITS_TEMP_FIELDS: tuple[tuple[str, str, str], ...] = (
-    ("DETTEMP", "t_detector_vote", "Detector vote temperature from Redis (K)"),
-    ("BPTEMP", "t_base_plate_vote", "Base plate vote temperature from Redis (K)"),
+    ("DETTEMP", "t_detector_vote", "Detector vote temperature [K]"),
+    ("BPTEMP", "t_base_plate_vote", "Base plate vote temperature [K]"),
 )
 
 # Delay-line positions logged by MotorWidget as ``{name}_pos`` (microns).
 H2RG_FITS_DL_FIELDS: tuple[tuple[str, str, str], ...] = (
-    ("DL1POS", "DL_1_pos", "Delay line 1 position from Redis (um)"),
-    ("DL2POS", "DL_2_pos", "Delay line 2 position from Redis (um)"),
-    ("DL3POS", "DL_3_pos", "Delay line 3 position from Redis (um)"),
-    ("DL4POS", "DL_4_pos", "Delay line 4 position from Redis (um)"),
+    ("DL1POS", "DL_1_pos", "Delay line 1 position [um]"),
+    ("DL2POS", "DL_2_pos", "Delay line 2 position [um]"),
+    ("DL3POS", "DL_3_pos", "Delay line 3 position [um]"),
+    ("DL4POS", "DL_4_pos", "Delay line 4 position [um]"),
 )
 
 # Pressure sensors from sensors.ini (tag → FITS keyword / comment).
@@ -33,16 +35,15 @@ H2RG_FITS_PRESSURE_FIELDS: tuple[tuple[str, str, str], ...] = (
     (
         "PRESVAGC",
         "VAGC.stat.lrPressure",
-        "VAGC cryostat pressure from Redis (mbar)",
+        "VAGC cryostat pressure [mbar]",
     ),
     (
         "PRESPUMP",
         "evac.pump_pvp.stat.PresSens_lrPressure_hPa",
-        "Pump foreline pressure from Redis (mbar)",
+        "Pump foreline pressure [mbar]",
     ),
 )
 
-# Redis tags whose TimeSeries values are stored in hPa and must be reported as mbar.
 _PRESSURE_TAGS_HPA_TO_MBAR = frozenset(
     {"evac.pump_pvp.stat.PresSens_lrPressure_hPa"}
 )
@@ -71,13 +72,23 @@ def redis_key_for_pressure_tag(tag: str) -> str | None:
     return _pressure_redis_keys_by_tag().get(tag)
 
 
-def _cards_from_redis_keys(
+def fits_round(value: float, *, scientific_if_small: bool = False) -> float:
+    """Round to two decimal places; use 2-digit scientific form for tiny pressures."""
+    number = float(value)
+    if scientific_if_small and abs(number) > 0.0 and abs(number) < 1e-2:
+        return float(f"{number:.2e}")
+    return round(number, 2)
+
+
+def _value_cards_from_redis(
     redis_client: RedisClient,
     fields: tuple[tuple[str, str, str], ...],
     *,
     resolve_key,
-) -> dict[str, tuple[float, str]]:
-    cards: dict[str, tuple[float, str]] = {}
+    scientific_if_small: bool = False,
+    scale: float = 1.0,
+) -> list[HeaderCard]:
+    cards: list[HeaderCard] = []
     for keyword, key_or_tag, comment in fields:
         redis_key = resolve_key(key_or_tag)
         if not redis_key:
@@ -85,17 +96,23 @@ def _cards_from_redis_keys(
         value = redis_client.get_latest(redis_key)
         if value is None:
             continue
-        cards[keyword] = (float(value), comment)
+        cards.append(
+            (
+                keyword,
+                fits_round(float(value) * scale, scientific_if_small=scientific_if_small),
+                comment,
+            )
+        )
     return cards
 
 
 def cryo_temperatures_for_fits(
     redis_client: RedisClient | None,
-) -> dict[str, tuple[float, str]]:
-    """Return FITS cards ``{keyword: (value_K, comment)}`` from Redis."""
+) -> list[HeaderCard]:
+    """Return temperature FITS cards from Redis (Kelvin, 2 decimals)."""
     if redis_client is None:
-        return {}
-    return _cards_from_redis_keys(
+        return []
+    return _value_cards_from_redis(
         redis_client,
         H2RG_FITS_TEMP_FIELDS,
         resolve_key=redis_key_for_temperature_tag,
@@ -104,11 +121,11 @@ def cryo_temperatures_for_fits(
 
 def delay_line_positions_for_fits(
     redis_client: RedisClient | None,
-) -> dict[str, tuple[float, str]]:
-    """Return FITS cards for DL_1…DL_4 positions (um) from Redis."""
+) -> list[HeaderCard]:
+    """Return DL_1…DL_4 position cards from Redis (um, 2 decimals)."""
     if redis_client is None:
-        return {}
-    return _cards_from_redis_keys(
+        return []
+    return _value_cards_from_redis(
         redis_client,
         H2RG_FITS_DL_FIELDS,
         resolve_key=lambda key: key,
@@ -117,11 +134,11 @@ def delay_line_positions_for_fits(
 
 def pressures_for_fits(
     redis_client: RedisClient | None,
-) -> dict[str, tuple[float, str]]:
-    """Return FITS cards for cryostat / pump pressures from Redis (mbar)."""
+) -> list[HeaderCard]:
+    """Return cryostat / pump pressure cards from Redis (mbar)."""
     if redis_client is None:
-        return {}
-    cards: dict[str, tuple[float, str]] = {}
+        return []
+    cards: list[HeaderCard] = []
     for keyword, tag, comment in H2RG_FITS_PRESSURE_FIELDS:
         redis_key = redis_key_for_pressure_tag(tag)
         if not redis_key:
@@ -132,29 +149,76 @@ def pressures_for_fits(
         pressure_mbar = float(value)
         if tag in _PRESSURE_TAGS_HPA_TO_MBAR:
             pressure_mbar *= HPA_TO_MBAR
-        cards[keyword] = (pressure_mbar, comment)
+        cards.append(
+            (
+                keyword,
+                fits_round(pressure_mbar, scientific_if_small=True),
+                comment,
+            )
+        )
     return cards
 
 
 def fits_header_cards_from_redis(
     redis_client: RedisClient | None,
-) -> dict[str, tuple[float, str]]:
-    """Collect temperature, delay-line, and pressure cards for H2RG FITS headers."""
-    cards: dict[str, tuple[float, str]] = {}
-    cards.update(cryo_temperatures_for_fits(redis_client))
-    cards.update(delay_line_positions_for_fits(redis_client))
-    cards.update(pressures_for_fits(redis_client))
+) -> list[HeaderCard]:
+    """Ordered FITS cards: temperatures, pressures, then delay lines.
+
+    Groups are separated with COMMENT markers and include units in comments.
+    """
+    cards: list[HeaderCard] = []
+
+    temps = cryo_temperatures_for_fits(redis_client)
+    if temps:
+        cards.append(("COMMENT", None, "----- Temperatures [K] -----"))
+        cards.extend(temps)
+
+    pressures = pressures_for_fits(redis_client)
+    if pressures:
+        cards.append(("COMMENT", None, "----- Pressures [mbar] -----"))
+        cards.extend(pressures)
+
+    positions = delay_line_positions_for_fits(redis_client)
+    if positions:
+        cards.append(("COMMENT", None, "----- Delay line positions [um] -----"))
+        cards.extend(positions)
+
     return cards
 
 
-def apply_fits_header_cards(header, cards: dict[str, tuple[float, str]]) -> None:
+def header_cards_as_value_dict(
+    cards: list[HeaderCard],
+) -> dict[str, tuple[float, str]]:
+    """Map of numeric keywords only (no COMMENT), for in-memory headers."""
+    return {
+        keyword: (value, comment)
+        for keyword, value, comment in cards
+        if keyword != "COMMENT" and value is not None
+    }
+
+
+def apply_fits_header_cards(header, cards: list[HeaderCard] | dict) -> None:
     """Write *cards* onto an astropy ``fits.Header`` (or Header-like mapping)."""
-    for keyword, (value, comment) in cards.items():
+    if isinstance(cards, dict):
+        for keyword, (value, comment) in cards.items():
+            header[keyword] = (value, comment)
+        return
+
+    for keyword, value, comment in cards:
+        if keyword == "COMMENT":
+            text = comment or ""
+            if hasattr(header, "add_comment"):
+                header.add_comment(text)
+            else:
+                header["COMMENT"] = text
+            continue
+        if value is None:
+            continue
         header[keyword] = (value, comment)
 
 
 def update_fits_file_header_cards(
-    path: Path, cards: dict[str, tuple[float, str]]
+    path: Path, cards: list[HeaderCard] | dict
 ) -> bool:
     """Update primary-header keywords in an existing FITS file. Return True on success."""
     if not cards:

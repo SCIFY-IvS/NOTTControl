@@ -37,7 +37,10 @@ from PyQt5.uic import loadUi
 
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
-from nottcontrol.camera.macie.fits_header_meta import fits_header_cards_from_redis
+from nottcontrol.camera.macie.fits_header_meta import (
+    fits_header_cards_from_redis,
+    header_cards_as_value_dict,
+)
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
     save_science_fits,
@@ -2332,18 +2335,16 @@ class H2rgMainWindow(QMainWindow):
     def _science_output_path(self, ramp_path: Path) -> Path:
         return science_fits_path(self._local_science_save_dir() / ramp_path.name)
 
-    def _cryo_fits_header_cards(self) -> dict[str, tuple[float, str]]:
-        """Instrument status from Redis (temps, DL positions, pressures) for FITS."""
+    def _cryo_fits_header_cards(self):
+        """Instrument status from Redis (temps, pressures, DL positions) for FITS."""
         return fits_header_cards_from_redis(self._redis)
 
-    def _apply_cryo_temps_to_ramp(
-        self, ramp_path: Path | None, cards: dict[str, tuple[float, str]]
-    ) -> None:
-        """Stamp Redis temps onto the in-memory and on-disk ramp headers when possible."""
+    def _apply_cryo_temps_to_ramp(self, ramp_path: Path | None, cards) -> None:
+        """Stamp Redis status onto the in-memory and on-disk ramp headers when possible."""
         if not cards:
             return
         if self._raw_fits_header is not None:
-            for keyword, (value, _comment) in cards.items():
+            for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
                 self._raw_fits_header[keyword] = value
         if ramp_path is None:
             return
@@ -2400,7 +2401,7 @@ class H2rgMainWindow(QMainWindow):
         )
         output_path = self._science_output_path(ramp_path)
         cards = self._cryo_fits_header_cards()
-        for keyword, (value, _comment) in cards.items():
+        for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
             header[keyword] = value
         self._raw_fits_header = dict(header)
         from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
