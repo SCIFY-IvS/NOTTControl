@@ -93,12 +93,12 @@ def compute_roi_brightness(
 
 
 def _value_style(row_bg: str = "") -> str:
-    pt = scaled_font_pt(10)
+    pt = scaled_font_pt(9)
     return f'{row_bg} font: {pt}pt "Consolas", monospace; color: rgb(30, 30, 30);'
 
 
 def _header_style() -> str:
-    pt = scaled_font_pt(9)
+    pt = scaled_font_pt(8)
     return f'font: 700 {pt}pt "Segoe UI"; color: rgb(90, 90, 90);'
 
 
@@ -135,10 +135,11 @@ class H2rgRoiRow:
         self.color = color
         self.max_values: deque[float] = deque(maxlen=deque_length)
         self._row_bg = "background: rgb(248, 250, 251);" if index % 2 == 0 else ""
-        row_height = scaled(22)
+        row_height = scaled(18)
 
         self.name_label = QLabel(self.name, parent)
         self.name_label.setFixedHeight(row_height)
+        self.name_label.setMinimumWidth(scaled(42))
         self.name_label.setStyleSheet(self._row_bg)
 
         self.show_checkbox = QCheckBox(parent)
@@ -164,7 +165,7 @@ class H2rgRoiRow:
     def _make_value_label(self, parent: QWidget, row_height: int) -> QLabel:
         label = QLabel("—", parent)
         label.setFixedHeight(row_height)
-        label.setMinimumWidth(scaled(54))
+        label.setMinimumWidth(scaled(44))
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         label.setStyleSheet(_value_style(self._row_bg))
         return label
@@ -191,8 +192,37 @@ class H2rgRoiRow:
         self.max_values.clear()
 
 
+def _build_roi_column(
+    parent: QWidget,
+    indices: range,
+    *,
+    deque_length: int,
+) -> tuple[QWidget, dict[int, H2rgRoiRow]]:
+    host = QWidget(parent)
+    grid = QGridLayout(host)
+    grid.setContentsMargins(0, 0, 0, 0)
+    grid.setHorizontalSpacing(scaled(2))
+    grid.setVerticalSpacing(0)
+
+    headers = ("", "On", "T", "1D", "Min", "Max", "Avg")
+    for col, text in enumerate(headers):
+        label = QLabel(text, host)
+        label.setStyleSheet(_header_style())
+        label.setFixedHeight(scaled(16))
+        label.setAlignment(Qt.AlignCenter if col in (1, 2, 3) else Qt.AlignRight)
+        grid.addWidget(label, 0, col)
+
+    rows: dict[int, H2rgRoiRow] = {}
+    for row_offset, index in enumerate(indices, start=1):
+        color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
+        rows[index] = H2rgRoiRow(
+            host, grid, row_offset, index, color, deque_length=deque_length
+        )
+    return host, rows
+
+
 class H2rgRoiPanel(QGroupBox):
-    """Per-ROI min/max/avg table with overlay / Time / 1D toggles."""
+    """Per-ROI min/max/avg table in two tight columns (1–5 and 6–10)."""
 
     def __init__(
         self,
@@ -201,24 +231,22 @@ class H2rgRoiPanel(QGroupBox):
         deque_length: int = 3600,
     ) -> None:
         super().__init__("H2RG ROI values", parent)
-        grid = QGridLayout(self)
-        grid.setContentsMargins(8, 12, 8, 8)
-        grid.setHorizontalSpacing(scaled(3))
-        grid.setVerticalSpacing(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
-        headers = ("", "On", "T", "1D", "Min", "Max", "Avg")
-        for col, text in enumerate(headers):
-            label = QLabel(text, self)
-            label.setStyleSheet(_header_style())
-            label.setAlignment(Qt.AlignCenter if col in (1, 2, 3) else Qt.AlignRight)
-            grid.addWidget(label, 0, col)
+        root = QHBoxLayout(self)
+        root.setContentsMargins(6, 10, 6, 6)
+        root.setSpacing(scaled(10))
 
-        self.rows: dict[int, H2rgRoiRow] = {}
-        for index in range(1, ROI_COUNT + 1):
-            color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
-            self.rows[index] = H2rgRoiRow(
-                self, grid, index, index, color, deque_length=deque_length
-            )
+        left_host, left_rows = _build_roi_column(
+            self, range(1, 6), deque_length=deque_length
+        )
+        right_host, right_rows = _build_roi_column(
+            self, range(6, 11), deque_length=deque_length
+        )
+        root.addWidget(left_host, stretch=1)
+        root.addWidget(right_host, stretch=1)
+
+        self.rows: dict[int, H2rgRoiRow] = {**left_rows, **right_rows}
 
 
 class H2rgRoiPlots(QWidget):
@@ -226,7 +254,7 @@ class H2rgRoiPlots(QWidget):
 
     def __init__(self, parent: QWidget | None = None, *, graph_height: int = 190) -> None:
         super().__init__(parent)
-        strip_h = scaled(max(graph_height, 180))
+        strip_h = scaled(max(graph_height, 240))
         self.setFixedHeight(strip_h)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -260,7 +288,7 @@ class H2rgRoiPlots(QWidget):
         _style_light_plot(self.pw_time)
         time_item = self.pw_time.getPlotItem()
         time_item.addLegend(offset=(8, 8))
-        time_item.setLabel("left", "ROI brightness [ADU]")
+        time_item.setLabel("left", "ROI Brightness [ADU]")
         time_item.setLabel("bottom", "Time [UTC]")
         time_item.enableAutoRange(axis="y", enable=True)
         time_item.enableAutoRange(axis="x", enable=False)
@@ -279,7 +307,7 @@ class H2rgRoiPlots(QWidget):
         _style_light_plot(self.pw_profile)
         profile_item = self.pw_profile.getPlotItem()
         profile_item.addLegend(offset=(8, 8))
-        profile_item.setLabel("left", "ADU")
+        profile_item.setLabel("left", "ROI Brightness [ADU]")
         profile_item.setLabel("bottom", "Pixel index")
         profile_item.enableAutoRange(axis="y", enable=True)
         self._profile_curves: dict[int, object] = {}

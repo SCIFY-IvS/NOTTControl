@@ -12,7 +12,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
-from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
@@ -28,7 +28,6 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QSizePolicy,
     QTextEdit,
     QVBoxLayout,
@@ -96,7 +95,7 @@ MACIE_ROI_TIME_WINDOW_S = config.getfloat(
     "MACIE", "roi_time_plot_window_seconds", fallback=60.0
 )
 MACIE_ROI_PLOT_HZ = config.getfloat("MACIE", "roi_plot_refresh_hz", fallback=1.0)
-MACIE_ROI_GRAPH_HEIGHT = config.getint("MACIE", "graph_height", fallback=190)
+MACIE_ROI_GRAPH_HEIGHT = config.getint("MACIE", "graph_height", fallback=240)
 MACIE_ROI_TIME_PLOT_MAX_HZ = config.getfloat(
     "MACIE", "roi_time_plot_max_framerate", fallback=30.0
 )
@@ -121,6 +120,35 @@ CURSOR_READOUT_HEIGHT = 28
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
 H2RG_NUM_CHANNELS = 32
+CAMERA_SQUARE_MIN = 320
+
+
+class _SquareCameraHost(QWidget):
+    """Host that keeps its child camera frame square and centered."""
+
+    def __init__(self, camera: QWidget, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._camera = camera
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(camera, alignment=Qt.AlignCenter)
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return max(CAMERA_SQUARE_MIN, width)
+
+    def sizeHint(self) -> QSize:
+        return QSize(512, 512)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        side = max(CAMERA_SQUARE_MIN, min(self.width(), self.height()))
+        self._camera.setFixedSize(side, side)
 
 
 @dataclass(frozen=True)
@@ -1226,57 +1254,55 @@ class H2rgMainWindow(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        # Left: image dominates; ROI values sit under it.
-        self.ui.frame_camera.setMinimumWidth(560)
-        self.ui.frame_camera.setMinimumHeight(360)
-        self.ui.frame_camera.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # Left: square image + controls.
+        self.ui.frame_camera.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
+        self.ui.frame_camera.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         image_column = QWidget()
         image_column.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         image_column_layout = QVBoxLayout(image_column)
         image_column_layout.setContentsMargins(0, 0, 0, 0)
         image_column_layout.setSpacing(8)
-        image_column_layout.addWidget(self.ui.frame_camera, stretch=1)
+        self._camera_host = _SquareCameraHost(self.ui.frame_camera)
+        image_column_layout.addWidget(self._camera_host, stretch=1)
         self._setup_cursor_readout_row(image_column_layout)
+        top.addWidget(image_column, stretch=1)
+
+        # Right top: logo + detector configuration.
+        right_width = max(RIGHT_PANEL_WIDTH, 380)
+        right_top = QWidget()
+        right_top.setFixedWidth(right_width)
+        right_top_layout = QVBoxLayout(right_top)
+        right_top_layout.setContentsMargins(0, 0, 0, 0)
+        right_top_layout.setSpacing(10)
+        self._setup_nott_logo(right_top_layout)
+        self.ui.groupBox_conf.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Maximum
+        )
+        right_top_layout.addWidget(self.ui.groupBox_conf)
+        right_top_layout.addStretch(1)
+        top.addWidget(right_top, stretch=0)
+        root.addLayout(top, stretch=1)
+
+        # Bottom row: ROI values | Data Acquisition — same height.
+        bottom = QHBoxLayout()
+        bottom.setSpacing(16)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
-        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         for index, row in self._roi_panel.rows.items():
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
-        image_column_layout.addWidget(self._roi_panel, stretch=0)
-        top.addWidget(image_column, stretch=1)
+        bottom.addWidget(self._roi_panel, stretch=1)
 
-        # Right: config + acquisition only, in a scroll area so nothing overlaps.
-        right_width = max(RIGHT_PANEL_WIDTH, 380)
-        right_content = QWidget()
-        right_content.setMinimumWidth(right_width - 16)
-        right = QVBoxLayout(right_content)
-        right.setContentsMargins(0, 0, 8, 0)
-        right.setSpacing(10)
-        self._setup_nott_logo(right)
+        self.ui.groupBox_acquisition.setSizePolicy(
+            QSizePolicy.Fixed, QSizePolicy.Expanding
+        )
+        self.ui.groupBox_acquisition.setFixedWidth(right_width)
+        bottom.addWidget(self.ui.groupBox_acquisition, stretch=0)
+        root.addLayout(bottom, stretch=0)
 
-        panel_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-        for box in (
-            self.ui.groupBox_conf,
-            self.ui.groupBox_acquisition,
-        ):
-            box.setSizePolicy(panel_policy)
-            right.addWidget(box, stretch=0)
-        right.addStretch(1)
-
-        right_scroll = QScrollArea()
-        right_scroll.setWidgetResizable(True)
-        right_scroll.setFrameShape(QFrame.NoFrame)
-        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        right_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        right_scroll.setFixedWidth(right_width)
-        right_scroll.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        right_scroll.setWidget(right_content)
-        top.addWidget(right_scroll, stretch=0)
-        root.addLayout(top, stretch=1)
-
-        self._roi_plots = H2rgRoiPlots(graph_height=min(MACIE_ROI_GRAPH_HEIGHT, 170))
+        self._roi_plots = H2rgRoiPlots(graph_height=max(MACIE_ROI_GRAPH_HEIGHT, 240))
         self._roi_plots.set_history_limits(
             maxlen=MACIE_ROI_DEQUE_LENGTH,
             window_seconds=MACIE_ROI_TIME_WINDOW_S,
@@ -1292,7 +1318,14 @@ class H2rgMainWindow(QMainWindow):
             self.ui.groupBox_conf,
             self.ui.groupBox_acquisition,
         ):
-            box.setStyleSheet(PANEL_GROUP_STYLE)
+            box.setStyleSheet(
+                PANEL_GROUP_STYLE
+                + """
+                QGroupBox {
+                    background: transparent;
+                }
+                """
+            )
 
         if self._roi_panel is not None:
             self._roi_panel.setStyleSheet(PANEL_GROUP_STYLE)
