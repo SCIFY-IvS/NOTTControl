@@ -54,50 +54,51 @@ from nottcontrol.camera.macie.h2rg_roi_panel import (
 from nottcontrol.camera.macie.ramp_plan import RAMP_MODE_ITEMS, RAMP_MODES, fits_wait_timeout_s
 from nottcontrol.redisclient import RedisClient
 
+H2RG_SECTION = "H2RG DETECTOR"
 MACIE_CONFIG_FILE = config.get(
-    "MACIE", "config_file", fallback="teledyne_cold_slow.cfg"
+    H2RG_SECTION, "config_file", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_SLOW = config.get(
-    "MACIE", "config_file_slow", fallback="teledyne_cold_slow.cfg"
+    H2RG_SECTION, "config_file_slow", fallback="teledyne_cold_slow.cfg"
 )
 MACIE_CONFIG_FILE_FAST = config.get(
-    "MACIE", "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
+    H2RG_SECTION, "config_file_fast", fallback="basic_fast_H2RG_cold.cfg"
 )
 MACIE_ZMQ_ADDRESS = config.get(
-    "MACIE", "zmq_address", fallback="tcp://localhost:65534"
+    H2RG_SECTION, "zmq_address", fallback="tcp://localhost:65534"
 )
-MACIE_OFFLINE_MODE = config.getboolean("MACIE", "offline_mode", fallback=False)
-MACIE_IMAGE_SCALE = config.getint("MACIE", "image_display_scale", fallback=2)
+MACIE_OFFLINE_MODE = config.getboolean(H2RG_SECTION, "offline_mode", fallback=False)
+MACIE_IMAGE_SCALE = config.getint(H2RG_SECTION, "image_display_scale", fallback=2)
 FITS_DIR_CHECK_TIMEOUT_S = config.getfloat(
-    "MACIE", "fits_directory_check_timeout_s", fallback=1.0
+    H2RG_SECTION, "fits_directory_check_timeout_s", fallback=1.0
 )
 FITS_LINUX_PATH_PREFIX = config.get(
-    "MACIE", "fits_linux_path_prefix", fallback=""
+    H2RG_SECTION, "fits_linux_path_prefix", fallback=""
 ).strip()
 FITS_WINDOWS_UNC_ROOT = config.get(
-    "MACIE", "fits_windows_unc_root", fallback=""
+    H2RG_SECTION, "fits_windows_unc_root", fallback=""
 ).strip()
 MACIE_INTEGRATION_NGROUPS_MAX = config.getint(
-    "MACIE", "integration_ngroups_max", fallback=2
+    H2RG_SECTION, "integration_ngroups_max", fallback=2
 )
 MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
-    "MACIE", "fowler_pairs_default", fallback=2
+    H2RG_SECTION, "fowler_pairs_default", fallback=2
 )
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
-    "MACIE", "save_science_fits", fallback=True
+    H2RG_SECTION, "save_science_fits", fallback=True
 )
-MACIE_DS9_EXECUTABLE = config.get("MACIE", "ds9_executable", fallback="ds9").strip()
+MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
-    "MACIE", "fits_wait_margin_s", fallback=30.0
+    H2RG_SECTION, "fits_wait_margin_s", fallback=30.0
 )
-MACIE_RECORD_ROIS = config.getboolean("MACIE", "record_rois", fallback=True)
+MACIE_RECORD_ROIS = config.getboolean(H2RG_SECTION, "record_rois", fallback=True)
 MACIE_ROI_TIME_WINDOW_S = config.getfloat(
-    "MACIE", "roi_time_plot_window_seconds", fallback=60.0
+    H2RG_SECTION, "roi_time_plot_window_seconds", fallback=60.0
 )
-MACIE_ROI_PLOT_HZ = config.getfloat("MACIE", "roi_plot_refresh_hz", fallback=1.0)
-MACIE_ROI_GRAPH_HEIGHT = config.getint("MACIE", "graph_height", fallback=240)
+MACIE_ROI_PLOT_HZ = config.getfloat(H2RG_SECTION, "roi_plot_refresh_hz", fallback=1.0)
+MACIE_ROI_GRAPH_HEIGHT = config.getint(H2RG_SECTION, "graph_height", fallback=240)
 MACIE_ROI_TIME_PLOT_MAX_HZ = config.getfloat(
-    "MACIE", "roi_time_plot_max_framerate", fallback=30.0
+    H2RG_SECTION, "roi_time_plot_max_framerate", fallback=30.0
 )
 MACIE_ROI_DEQUE_LENGTH = max(
     60, int(MACIE_ROI_TIME_WINDOW_S * MACIE_ROI_TIME_PLOT_MAX_HZ)
@@ -120,7 +121,7 @@ CURSOR_READOUT_HEIGHT = 28
 CURSOR_READOUT_INTERVAL_MS = 50
 H2RG_ARRAY_SIZE = 2048
 H2RG_NUM_CHANNELS = 32
-CAMERA_SQUARE_MIN = 320
+CAMERA_SQUARE_MIN = 420
 
 
 class _SquareCameraHost(QWidget):
@@ -143,7 +144,7 @@ class _SquareCameraHost(QWidget):
         return max(CAMERA_SQUARE_MIN, width)
 
     def sizeHint(self) -> QSize:
-        return QSize(512, 512)
+        return QSize(640, 640)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -365,7 +366,7 @@ def parse_macie_save_dir(config_path: Path) -> Path:
 
 
 def resolve_fits_save_dir(config_path: Path) -> Path:
-    configured = config.get("MACIE", "fits_directory", fallback="").strip()
+    configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
     if configured:
         return Path(os.path.expanduser(configured))
     return parse_macie_save_dir(config_path)
@@ -478,7 +479,7 @@ def load_h2rg_rois_from_config() -> dict[int, tuple[int, int, int, int]]:
     for index in range(1, 11):
         key = f"ROI {index}"
         try:
-            values = config.getarray("MACIE", key, dtype=int)
+            values = config.getarray(H2RG_SECTION, key, dtype=int)
         except Exception:
             continue
         if len(values) == 4:
@@ -1052,7 +1053,7 @@ class H2rgMainWindow(QMainWindow):
             message = str(exc)
             if self._fits_dir_ok is False and sys.platform == "win32":
                 message = (
-                    f"{message} — also set [MACIE] fits_directory for FITS preview"
+                    f"{message} — also set [H2RG DETECTOR] fits_directory for FITS preview"
                 )
             self.status_updated.emit(message)
 
@@ -1254,7 +1255,7 @@ class H2rgMainWindow(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        # Left: square image + controls.
+        # Left: large square image, then compact ROI at the bottom.
         self.ui.frame_camera.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
         self.ui.frame_camera.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
@@ -1262,45 +1263,39 @@ class H2rgMainWindow(QMainWindow):
         image_column.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         image_column_layout = QVBoxLayout(image_column)
         image_column_layout.setContentsMargins(0, 0, 0, 0)
-        image_column_layout.setSpacing(8)
+        image_column_layout.setSpacing(6)
         self._camera_host = _SquareCameraHost(self.ui.frame_camera)
         image_column_layout.addWidget(self._camera_host, stretch=1)
         self._setup_cursor_readout_row(image_column_layout)
-        top.addWidget(image_column, stretch=1)
-
-        # Right top: logo + detector configuration.
-        right_width = max(RIGHT_PANEL_WIDTH, 380)
-        right_top = QWidget()
-        right_top.setFixedWidth(right_width)
-        right_top_layout = QVBoxLayout(right_top)
-        right_top_layout.setContentsMargins(0, 0, 0, 0)
-        right_top_layout.setSpacing(10)
-        self._setup_nott_logo(right_top_layout)
-        self.ui.groupBox_conf.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Maximum
-        )
-        right_top_layout.addWidget(self.ui.groupBox_conf)
-        right_top_layout.addStretch(1)
-        top.addWidget(right_top, stretch=0)
-        root.addLayout(top, stretch=1)
-
-        # Bottom row: ROI values | Data Acquisition — same height.
-        bottom = QHBoxLayout()
-        bottom.setSpacing(16)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
-        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         for index, row in self._roi_panel.rows.items():
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
-        bottom.addWidget(self._roi_panel, stretch=1)
+        image_column_layout.addWidget(self._roi_panel, stretch=0)
+        top.addWidget(image_column, stretch=1)
 
-        self.ui.groupBox_acquisition.setSizePolicy(
-            QSizePolicy.Fixed, QSizePolicy.Expanding
+        # Right: logo + config at top; acquisition at bottom (aligns with ROI bottom).
+        right_width = max(RIGHT_PANEL_WIDTH, 380)
+        right_column = QWidget()
+        right_column.setFixedWidth(right_width)
+        right_column.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(10)
+        self._setup_nott_logo(right_layout)
+        self.ui.groupBox_conf.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Maximum
         )
-        self.ui.groupBox_acquisition.setFixedWidth(right_width)
-        bottom.addWidget(self.ui.groupBox_acquisition, stretch=0)
-        root.addLayout(bottom, stretch=0)
+        right_layout.addWidget(self.ui.groupBox_conf, stretch=0)
+        right_layout.addStretch(1)
+        self.ui.groupBox_acquisition.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Maximum
+        )
+        right_layout.addWidget(self.ui.groupBox_acquisition, stretch=0)
+        top.addWidget(right_column, stretch=0)
+        root.addLayout(top, stretch=1)
 
         self._roi_plots = H2rgRoiPlots(graph_height=max(MACIE_ROI_GRAPH_HEIGHT, 240))
         self._roi_plots.set_history_limits(
@@ -1328,7 +1323,15 @@ class H2rgMainWindow(QMainWindow):
             )
 
         if self._roi_panel is not None:
-            self._roi_panel.setStyleSheet(PANEL_GROUP_STYLE)
+            self._roi_panel.setStyleSheet(
+                PANEL_GROUP_STYLE
+                + """
+                QGroupBox {
+                    margin-top: 6px;
+                    padding-top: 2px;
+                }
+                """
+            )
 
         for name in (
             "button_init",
@@ -1891,7 +1894,7 @@ class H2rgMainWindow(QMainWindow):
                 self,
                 "Open in DS9",
                 f"DS9 executable not found ({MACIE_DS9_EXECUTABLE!r}). "
-                "Install SAOImage DS9 or set MACIE ds9_executable in config.ini.",
+                "Install SAOImage DS9 or set [H2RG DETECTOR] ds9_executable in config.ini.",
             )
         except OSError as exc:
             QMessageBox.warning(
@@ -1911,7 +1914,7 @@ class H2rgMainWindow(QMainWindow):
         if self._local_fits_accessible(allow_probe=True):
             return self._save_dir
 
-        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
         if configured:
             path = Path(os.path.expanduser(configured))
             try:
@@ -1930,7 +1933,7 @@ class H2rgMainWindow(QMainWindow):
                 "Open save directory",
                 "The FITS save directory is not available on this machine.\n\n"
                 f"Configured path: {self._save_dir}\n\n"
-                "Set [MACIE] fits_directory (and fits_linux_path_prefix / "
+                "Set [H2RG DETECTOR] fits_directory (and fits_linux_path_prefix / "
                 "fits_windows_unc_root on Windows) in config.ini to a local "
                 "or mapped path.",
             )
@@ -2274,7 +2277,7 @@ class H2rgMainWindow(QMainWindow):
         if self._local_fits_accessible(allow_probe=True):
             return self._save_dir
 
-        configured = config.get("MACIE", "fits_directory", fallback="").strip()
+        configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
         if configured:
             path = Path(os.path.expanduser(configured))
             try:

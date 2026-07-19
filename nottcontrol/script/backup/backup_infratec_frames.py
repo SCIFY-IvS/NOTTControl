@@ -20,6 +20,8 @@ from pathlib import Path
 
 from nottcontrol import config
 
+INFRATEC_SECTION = "INFRATEC CAMERA"
+
 DEFAULT_SOURCE = Path("/frames")
 DEFAULT_DEST = Path("/archive/infratec")
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
@@ -28,7 +30,7 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 def resolve_source(explicit: Path | None) -> Path:
     if explicit is not None:
         return explicit
-    configured = config.get("DEFAULT", "linux_frame_directory", fallback="")
+    configured = config.get(INFRATEC_SECTION, "linux_frame_directory", fallback="")
     if configured:
         configured_path = Path(configured)
         if configured_path.is_dir():

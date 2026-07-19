@@ -74,11 +74,14 @@ from pathlib import Path
 import zmq
 from platform import system
 
-# Location of frames on the machine
+# Infratec IR camera section in config.ini (not H2RG).
+INFRATEC_SECTION = "INFRATEC CAMERA"
+
+# Location of Infratec PNG frames on the machine
 if system() == "Windows":
-    frame_directory = str(config['DEFAULT']['frame_directory'])
+    frame_directory = str(config[INFRATEC_SECTION]["frame_directory"])
 else:
-    frame_directory = str(config['DEFAULT']['linux_frame_directory'])
+    frame_directory = str(config[INFRATEC_SECTION]["linux_frame_directory"])
 
 
 def count_frames_saved_for_utc_day(utc_day: str) -> int:
@@ -107,21 +110,21 @@ tLive=t
 
 img_timestamp_ref = None
 
-use_camera_time = (config['CAMERA']['use_camera_time'] == "True")
-record_rois = (config['CAMERA']['record_rois'] == "True")
-CAMERA_VERBOSE = config['CAMERA'].get('verbose', 'False') == 'True'
-FRAME_QUEUE_SIZE = config.getint("CAMERA", "frame_queue_size", fallback=64)
-SAVE_QUEUE_SIZE = config.getint("CAMERA", "save_queue_size", fallback=256)
-PNG_COMPRESSION = config.getint("CAMERA", "png_compression", fallback=1)
-IMAGE_DISPLAY_SCALE = config.getint("CAMERA", "image_display_scale", fallback=4)
+use_camera_time = (config[INFRATEC_SECTION]['use_camera_time'] == "True")
+record_rois = (config[INFRATEC_SECTION]['record_rois'] == "True")
+CAMERA_VERBOSE = config[INFRATEC_SECTION].get('verbose', 'False') == 'True'
+FRAME_QUEUE_SIZE = config.getint(INFRATEC_SECTION, "frame_queue_size", fallback=64)
+SAVE_QUEUE_SIZE = config.getint(INFRATEC_SECTION, "save_queue_size", fallback=256)
+PNG_COMPRESSION = config.getint(INFRATEC_SECTION, "png_compression", fallback=1)
+IMAGE_DISPLAY_SCALE = config.getint(INFRATEC_SECTION, "image_display_scale", fallback=4)
 IMAGE_BORDER = 0
-GRAPH_HEIGHT = config.getint("CAMERA", "graph_height", fallback=190)
+GRAPH_HEIGHT = config.getint(INFRATEC_SECTION, "graph_height", fallback=190)
 ROI_GRAPHS_MIN_HEIGHT = 260
 IMAGE_DISPLAY_REFRESH_HZ = config.getfloat(
-    "CAMERA", "image_display_refresh_hz", fallback=2.0
+    INFRATEC_SECTION, "image_display_refresh_hz", fallback=2.0
 )
-ROI_VALUES_REFRESH_HZ = config.getfloat("CAMERA", "roi_values_refresh_hz", fallback=2.0)
-ROI_PLOT_REFRESH_HZ = config.getfloat("CAMERA", "roi_plot_refresh_hz", fallback=1.0)
+ROI_VALUES_REFRESH_HZ = config.getfloat(INFRATEC_SECTION, "roi_values_refresh_hz", fallback=2.0)
+ROI_PLOT_REFRESH_HZ = config.getfloat(INFRATEC_SECTION, "roi_plot_refresh_hz", fallback=1.0)
 
 
 def _refresh_interval_ms(hz: float) -> int:
@@ -131,15 +134,15 @@ def _refresh_interval_ms(hz: float) -> int:
 IMAGE_DISPLAY_REFRESH_INTERVAL_MS = _refresh_interval_ms(IMAGE_DISPLAY_REFRESH_HZ)
 ROI_VALUES_REFRESH_INTERVAL_MS = _refresh_interval_ms(ROI_VALUES_REFRESH_HZ)
 ROI_PLOT_REFRESH_INTERVAL_MS = _refresh_interval_ms(ROI_PLOT_REFRESH_HZ)
-ROI_IDLE_PROCESS_STRIDE = config.getint("CAMERA", "roi_idle_process_stride", fallback=24)
+ROI_IDLE_PROCESS_STRIDE = config.getint(INFRATEC_SECTION, "roi_idle_process_stride", fallback=24)
 ROI_TIME_PLOT_WINDOW_SECONDS = config.getint(
-    "CAMERA", "roi_time_plot_window_seconds", fallback=60
+    INFRATEC_SECTION, "roi_time_plot_window_seconds", fallback=60
 )
 ROI_TIME_PLOT_DEQUE_LENGTH = ROI_TIME_PLOT_WINDOW_SECONDS * config.getint(
-    "CAMERA", "roi_time_plot_max_framerate", fallback=240
+    INFRATEC_SECTION, "roi_time_plot_max_framerate", fallback=240
 )
 FRAME_READOUT_OVERHEAD_US = config.getint(
-    "CAMERA", "frame_readout_overhead_us", fallback=5000
+    INFRATEC_SECTION, "frame_readout_overhead_us", fallback=5000
 )
 WINDOW_BOTTOM_BUFFER = 6
 LEFT_COLUMN_X = 10
@@ -1132,8 +1135,8 @@ class MainWindow(QMainWindow):
             self._cursor_readout.setText(f"Pixel: x={x}, y={y}  ADU={adu:.1f}")
 
     def _layout_window(self) -> None:
-        img_h = config.getint("CAMERA", "window_h", fallback=150)
-        img_w = config.getint("CAMERA", "window_w", fallback=160)
+        img_h = config.getint(INFRATEC_SECTION, "window_h", fallback=150)
+        img_w = config.getint(INFRATEC_SECTION, "window_w", fallback=160)
 
         camera_w = img_w * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
         camera_h = img_h * IMAGE_DISPLAY_SCALE + IMAGE_BORDER
@@ -1437,13 +1440,13 @@ class MainWindow(QMainWindow):
             i = i + 1
             
     def load_roi_from_config(self, config, adr):
-        roi_string = config['CAMERA'][adr]
+        roi_string = config[INFRATEC_SECTION][adr]
         roi_dimensions = roi_string.split(',')
         if len(roi_dimensions) != 4:
             raise Exception('Invalid Roi config')
         return Roi(
-            int(roi_dimensions[0]) - config.getint("CAMERA", "window_x", fallback=0),
-            int(roi_dimensions[1]) - config.getint("CAMERA", "window_y", fallback=0),
+            int(roi_dimensions[0]) - config.getint(INFRATEC_SECTION, "window_x", fallback=0),
+            int(roi_dimensions[1]) - config.getint(INFRATEC_SECTION, "window_y", fallback=0),
             roi_dimensions[2],
             roi_dimensions[3],
         )
@@ -1460,8 +1463,8 @@ class MainWindow(QMainWindow):
 
 
     def save_roi_positions_to_config(self):
-        if not config.config_parser.has_section('CAMERA'):
-            config.config_parser.add_section('CAMERA')
+        if not config.config_parser.has_section(INFRATEC_SECTION):
+            config.config_parser.add_section(INFRATEC_SECTION)
 
         for roi_widget in self.roi_widgets:
             self.save_roi_position_to_config(roi_widget.roi, roi_widget.name)
@@ -1471,7 +1474,7 @@ class MainWindow(QMainWindow):
     def save_roi_position_to_config(self, roi, key):
         roi_pos = roi.pos()
         roi_size = roi.size()
-        config.config_parser.set('CAMERA', key, f'{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}')
+        config.config_parser.set(INFRATEC_SECTION, key, f'{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}')
 
     def connectSignalSlots(self):
         self.ui.button_connect.clicked.connect(self.connect_clicked)
@@ -1575,28 +1578,28 @@ class MainWindow(QMainWindow):
     
 
     def set_window(self):
-        if not config['CAMERA'].getboolean('windowing'):
+        if not config[INFRATEC_SECTION].getboolean('windowing'):
             return
         
         # Fetching current window dimensions
         #w_cur = self.interface.getparam_int32(294)
         #h_cur = self.interface.getparam_int32(295)
         # Fetching config window dimensions
-        #w_con = config['CAMERA'].getint('window_w')
-        #h_con = config['CAMERA'].getint('window_h')
+        #w_con = config[INFRATEC_SECTION].getint('window_w')
+        #h_con = config[INFRATEC_SECTION].getint('window_h')
         
         # Large frame to small frame
         #if w_cur*h_cur > w_con*h_con:
-        self.interface.setparam_int32(294, config.getint("CAMERA", "window_w", fallback=160))
-        self.interface.setparam_int32(295, config.getint("CAMERA", "window_h", fallback=150))
-        self.interface.setparam_int32(292, config.getint("CAMERA", "window_x", fallback=0))
-        self.interface.setparam_int32(293, config.getint("CAMERA", "window_y", fallback=0))
+        self.interface.setparam_int32(294, config.getint(INFRATEC_SECTION, "window_w", fallback=160))
+        self.interface.setparam_int32(295, config.getint(INFRATEC_SECTION, "window_h", fallback=150))
+        self.interface.setparam_int32(292, config.getint(INFRATEC_SECTION, "window_x", fallback=0))
+        self.interface.setparam_int32(293, config.getint(INFRATEC_SECTION, "window_y", fallback=0))
         #else:
         # Small frame to large frame
-        #    self.interface.setparam_int32(292, config['CAMERA'].getint('window_x'))
-        #    self.interface.setparam_int32(293, config['CAMERA'].getint('window_y'))
-        #    self.interface.setparam_int32(294, config['CAMERA'].getint('window_w'))
-        #    self.interface.setparam_int32(295, config['CAMERA'].getint('window_h'))
+        #    self.interface.setparam_int32(292, config[INFRATEC_SECTION].getint('window_x'))
+        #    self.interface.setparam_int32(293, config[INFRATEC_SECTION].getint('window_y'))
+        #    self.interface.setparam_int32(294, config[INFRATEC_SECTION].getint('window_w'))
+        #    self.interface.setparam_int32(295, config[INFRATEC_SECTION].getint('window_h'))
             
     def disconnect_camera(self):
         if not self.connected:

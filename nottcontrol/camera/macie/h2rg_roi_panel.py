@@ -135,19 +135,22 @@ class H2rgRoiRow:
         self.color = color
         self.max_values: deque[float] = deque(maxlen=deque_length)
         self._row_bg = "background: rgb(248, 250, 251);" if index % 2 == 0 else ""
-        row_height = scaled(18)
+        row_height = scaled(16)
 
         self.name_label = QLabel(self.name, parent)
         self.name_label.setFixedHeight(row_height)
-        self.name_label.setMinimumWidth(scaled(42))
+        self.name_label.setMinimumWidth(scaled(40))
         self.name_label.setStyleSheet(self._row_bg)
 
         self.show_checkbox = QCheckBox(parent)
         self.show_checkbox.setToolTip("Show ROI overlay on image")
+        self.show_checkbox.setFixedHeight(row_height)
         self.time_plot_checkbox = QCheckBox(parent)
         self.time_plot_checkbox.setToolTip("Plot brightness vs time")
+        self.time_plot_checkbox.setFixedHeight(row_height)
         self.profile_plot_checkbox = QCheckBox(parent)
         self.profile_plot_checkbox.setToolTip("Plot 1D profile")
+        self.profile_plot_checkbox.setFixedHeight(row_height)
 
         self.min_label = self._make_value_label(parent, row_height)
         self.max_label = self._make_value_label(parent, row_height)
@@ -208,7 +211,7 @@ def _build_roi_column(
     for col, text in enumerate(headers):
         label = QLabel(text, host)
         label.setStyleSheet(_header_style())
-        label.setFixedHeight(scaled(16))
+        label.setFixedHeight(scaled(14))
         label.setAlignment(Qt.AlignCenter if col in (1, 2, 3) else Qt.AlignRight)
         grid.addWidget(label, 0, col)
 
@@ -231,11 +234,11 @@ class H2rgRoiPanel(QGroupBox):
         deque_length: int = 3600,
     ) -> None:
         super().__init__("H2RG ROI values", parent)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(6, 10, 6, 6)
-        root.setSpacing(scaled(10))
+        root.setContentsMargins(4, 4, 4, 4)
+        root.setSpacing(scaled(8))
 
         left_host, left_rows = _build_roi_column(
             self, range(1, 6), deque_length=deque_length

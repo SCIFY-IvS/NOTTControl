@@ -27,6 +27,8 @@ from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
 from nottcontrol import config 
 
+INFRATEC_SECTION = "INFRATEC CAMERA"
+
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
 # Time stamping functions
@@ -276,8 +278,8 @@ class HumInt(object):
         self.frame_VIS_im = None
 
         # Getting link between outputs and ROI indices from config
-        channel_labels = config.getarray('CAMERA', 'channel_labels', str)
-        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32)
+        channel_labels = config.getarray(INFRATEC_SECTION, 'channel_labels', str)
+        roi_indices = config.getarray(INFRATEC_SECTION, 'roi_indices', np.int32)
         self.channel_roi_link = dict(zip(channel_labels,roi_indices))
         
         self.move(np.array([0., 0., 0., 0.]))
@@ -392,11 +394,11 @@ class HumInt(object):
         range based on these values for basic correspondance to pixels.
             Also creates a mask corresponding to the science wavelengths.
         """
-        lamb_low = config.getfloat("CAMERA","low_lamb")
-        lamb_high = config.getfloat("CAMERA","up_lamb")
-        index_low = config.getfloat("CAMERA","low_index")
-        index_high =config.getfloat("CAMERA","up_index")
-        roi_len = int(round(config.getarray("CAMERA","ROI 1")[3]))
+        lamb_low = config.getfloat(INFRATEC_SECTION,"low_lamb")
+        lamb_high = config.getfloat(INFRATEC_SECTION,"up_lamb")
+        index_low = config.getfloat(INFRATEC_SECTION,"low_index")
+        index_high =config.getfloat(INFRATEC_SECTION,"up_index")
+        roi_len = int(round(config.getarray(INFRATEC_SECTION,"ROI 1")[3]))
         lamb_per_pix = (lamb_high-lamb_low) / (index_high - index_low)
         lamb_0 = lamb_low - index_low * lamb_per_pix
         lamb_max = lamb_0 + roi_len * lamb_per_pix
