@@ -126,31 +126,56 @@ CAMERA_SQUARE_MIN = 420
 
 
 class _SquareCameraHost(QWidget):
-    """Host that keeps its child camera frame square and centered."""
+    """Host that keeps its child camera frame square and centered.
 
-    def __init__(self, camera: QWidget, parent: QWidget | None = None) -> None:
+    Optional *bottom* widget (e.g. pixel readout) is centered under the frame
+    and kept the same width as the square image.
+    """
+
+    def __init__(
+        self,
+        camera: QWidget,
+        bottom: QWidget | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self._camera = camera
+        self._bottom = bottom
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(camera, alignment=Qt.AlignCenter)
+        layout.setSpacing(6 if bottom is not None else 0)
+        layout.addStretch(1)
+        layout.addWidget(camera, alignment=Qt.AlignHCenter)
+        if bottom is not None:
+            layout.addWidget(bottom, alignment=Qt.AlignHCenter)
+        layout.addStretch(1)
+
+    def _bottom_height(self) -> int:
+        if self._bottom is None:
+            return 0
+        spacing = self.layout().spacing() if self.layout() is not None else 0
+        return spacing + max(self._bottom.sizeHint().height(), CURSOR_READOUT_HEIGHT)
 
     def hasHeightForWidth(self) -> bool:
         return True
 
     def heightForWidth(self, width: int) -> int:
-        return max(CAMERA_SQUARE_MIN, width)
+        return max(CAMERA_SQUARE_MIN, width) + self._bottom_height()
 
     def sizeHint(self) -> QSize:
-        return QSize(640, 640)
+        side = 640
+        return QSize(side, side + self._bottom_height())
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        side = max(CAMERA_SQUARE_MIN, min(self.width(), self.height()))
+        extra = self._bottom_height()
+        available_h = max(CAMERA_SQUARE_MIN, self.height() - extra)
+        side = max(CAMERA_SQUARE_MIN, min(self.width(), available_h))
         self._camera.setFixedSize(side, side)
+        if self._bottom is not None:
+            self._bottom.setFixedWidth(side)
 
 
 @dataclass(frozen=True)
@@ -811,30 +836,32 @@ class H2rgMainWindow(QMainWindow):
     def _setup_image_tool_buttons(self) -> QWidget:
         """Vertical Autoscale / Header / DS9 / Folder column left of the image."""
         host = QWidget()
-        host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        host.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         column = QVBoxLayout(host)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(8)
+        column.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         column.addStretch(1)
 
         self._button_autoscale = self._make_image_tool_button("Autoscale")
-        column.addWidget(self._button_autoscale)
+        column.addWidget(self._button_autoscale, alignment=Qt.AlignHCenter)
         self._button_header = self._make_image_tool_button("Header")
-        column.addWidget(self._button_header)
+        column.addWidget(self._button_header, alignment=Qt.AlignHCenter)
         self._button_ds9 = self._make_image_tool_button("DS9")
-        column.addWidget(self._button_ds9)
+        column.addWidget(self._button_ds9, alignment=Qt.AlignHCenter)
         self._button_save_dir = self._make_image_tool_button("Folder")
         self._button_save_dir.setToolTip("Open FITS save directory")
-        column.addWidget(self._button_save_dir)
+        column.addWidget(self._button_save_dir, alignment=Qt.AlignHCenter)
 
         column.addStretch(1)
         return host
 
-    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
+    def _ensure_cursor_readout(self) -> QLabel:
         if self._cursor_readout is None:
             self._cursor_readout = QLabel("Pixel: —  CV: —")
             self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
+            self._cursor_readout.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self._cursor_readout.setStyleSheet(
                 'font: 10pt "Consolas", monospace;'
                 " color: rgb(50, 50, 50);"
@@ -843,7 +870,10 @@ class H2rgMainWindow(QMainWindow):
                 " border-radius: 4px;"
                 " padding-left: 8px;"
             )
-        parent_layout.addWidget(self._cursor_readout)
+        return self._cursor_readout
+
+    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
+        parent_layout.addWidget(self._ensure_cursor_readout())
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
@@ -1268,17 +1298,15 @@ class H2rgMainWindow(QMainWindow):
         image_row.setContentsMargins(0, 0, 0, 0)
         image_row.setSpacing(8)
         image_row.addWidget(self._setup_image_tool_buttons(), stretch=0)
-        self._camera_host = _SquareCameraHost(self.ui.frame_camera)
+        self._camera_host = _SquareCameraHost(
+            self.ui.frame_camera,
+            bottom=self._ensure_cursor_readout(),
+        )
         image_row.addWidget(self._camera_host, stretch=1)
         image_column_layout.addLayout(image_row, stretch=1)
 
-        self._setup_cursor_readout_row(image_column_layout)
-
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
         self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-        for index, row in self._roi_panel.rows.items():
-            row.show_checkbox.setChecked(index in self._h2rg_rois)
-            row.show_checkbox.setEnabled(index in self._h2rg_rois)
         image_column_layout.addWidget(self._roi_panel, stretch=0)
         top.addWidget(image_column, stretch=1)
 
@@ -1439,7 +1467,6 @@ class H2rgMainWindow(QMainWindow):
 
         if self._roi_panel is not None:
             for row in self._roi_panel.rows.values():
-                row.show_checkbox.toggled.connect(self._on_roi_toggled)
                 row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
                 row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
 
@@ -1462,10 +1489,6 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_detector_mode.currentIndexChanged.connect(
             self._on_detector_mode_changed
         )
-
-    def _on_roi_toggled(self, _checked: bool) -> None:
-        self._update_roi_overlays()
-        self._refresh_display()
 
     def _on_roi_plot_toggled(self, _state: int = 0) -> None:
         self._refresh_roi_plots(force=True)
@@ -1559,13 +1582,8 @@ class H2rgMainWindow(QMainWindow):
         return self._current_frame
 
     def _selected_roi_indices(self) -> list[int]:
-        if self._roi_panel is None:
-            return []
-        selected = []
-        for index, row in self._roi_panel.rows.items():
-            if row.show_checkbox.isChecked() and index in self._h2rg_rois:
-                selected.append(index)
-        return selected
+        """Configured ROIs are always drawn as overlays on the image."""
+        return sorted(self._h2rg_rois.keys())
 
     def _build_display_frame(self) -> numpy.ndarray | None:
         frame = self._frame_from_display_mode()

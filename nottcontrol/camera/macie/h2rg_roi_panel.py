@@ -118,7 +118,7 @@ def _style_light_plot(plot: pg.PlotWidget) -> None:
 
 
 class H2rgRoiRow:
-    """One ROI readout row: overlay/Time/1D toggles, min/max/avg."""
+    """One ROI readout row: Time/1D toggles, min/max/avg."""
 
     def __init__(
         self,
@@ -142,9 +142,6 @@ class H2rgRoiRow:
         self.name_label.setMinimumWidth(scaled(40))
         self.name_label.setStyleSheet(self._row_bg)
 
-        self.show_checkbox = QCheckBox(parent)
-        self.show_checkbox.setToolTip("Show ROI overlay on image")
-        self.show_checkbox.setFixedHeight(row_height)
         self.time_plot_checkbox = QCheckBox(parent)
         self.time_plot_checkbox.setToolTip("Plot brightness vs time")
         self.time_plot_checkbox.setFixedHeight(row_height)
@@ -157,12 +154,11 @@ class H2rgRoiRow:
         self.avg_label = self._make_value_label(parent, row_height)
 
         grid.addWidget(self.name_label, row, 0)
-        grid.addWidget(self.show_checkbox, row, 1, Qt.AlignCenter)
-        grid.addWidget(self.time_plot_checkbox, row, 2, Qt.AlignCenter)
-        grid.addWidget(self.profile_plot_checkbox, row, 3, Qt.AlignCenter)
-        grid.addWidget(self.min_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.max_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.avg_label, row, 6, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.time_plot_checkbox, row, 1, Qt.AlignCenter)
+        grid.addWidget(self.profile_plot_checkbox, row, 2, Qt.AlignCenter)
+        grid.addWidget(self.min_label, row, 3, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.max_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.avg_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
         self.set_color(color)
 
     def _make_value_label(self, parent: QWidget, row_height: int) -> QLabel:
@@ -179,14 +175,20 @@ class H2rgRoiRow:
             f"{self._row_bg} color: {color.name()}; font-weight: 600;"
         )
 
+    @staticmethod
+    def _format_int(value: float) -> str:
+        if not numpy.isfinite(value):
+            return "—"
+        return str(int(round(value)))
+
     def set_values(self, result: BrightnessResults | None) -> None:
         if result is None:
             for label in (self.min_label, self.max_label, self.avg_label):
                 label.setText("—")
             return
-        self.min_label.setText(f"{result.min:.1f}")
-        self.max_label.setText(f"{result.max:.1f}")
-        self.avg_label.setText(f"{result.avg:.1f}")
+        self.min_label.setText(self._format_int(result.min))
+        self.max_label.setText(self._format_int(result.max))
+        self.avg_label.setText(self._format_int(result.avg))
 
     def add_max_value(self, value: float) -> None:
         self.max_values.append(float(value))
@@ -207,12 +209,12 @@ def _build_roi_column(
     grid.setHorizontalSpacing(scaled(2))
     grid.setVerticalSpacing(0)
 
-    headers = ("", "On", "T", "1D", "Min", "Max", "Avg")
+    headers = ("", "T", "1D", "Min", "Max", "Avg")
     for col, text in enumerate(headers):
         label = QLabel(text, host)
         label.setStyleSheet(_header_style())
         label.setFixedHeight(scaled(14))
-        label.setAlignment(Qt.AlignCenter if col in (1, 2, 3) else Qt.AlignRight)
+        label.setAlignment(Qt.AlignCenter if col in (1, 2) else Qt.AlignRight)
         grid.addWidget(label, 0, col)
 
     rows: dict[int, H2rgRoiRow] = {}
