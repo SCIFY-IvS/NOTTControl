@@ -37,6 +37,7 @@ from PyQt5.uic import loadUi
 
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
+from nottcontrol.camera.macie.fits_header_meta import cryo_temperatures_for_fits
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
     save_science_fits,
@@ -2313,12 +2314,36 @@ class H2rgMainWindow(QMainWindow):
     def _science_output_path(self, ramp_path: Path) -> Path:
         return science_fits_path(self._local_science_save_dir() / ramp_path.name)
 
+    def _cryo_fits_header_cards(self) -> dict[str, tuple[float, str]]:
+        """Latest detector / base-plate temperatures from Redis for FITS headers."""
+        return cryo_temperatures_for_fits(self._redis)
+
+    def _apply_cryo_temps_to_ramp(
+        self, ramp_path: Path | None, cards: dict[str, tuple[float, str]]
+    ) -> None:
+        """Stamp Redis temps onto the in-memory and on-disk ramp headers when possible."""
+        if not cards:
+            return
+        if self._raw_fits_header is not None:
+            for keyword, (value, _comment) in cards.items():
+                self._raw_fits_header[keyword] = value
+        if ramp_path is None:
+            return
+        resolved = self._resolve_ramp_path(ramp_path)
+        if resolved is None or not resolved.is_file():
+            return
+        from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
+
+        update_fits_file_header_cards(resolved, cards)
+
     def _save_science_fits(
         self, frame: numpy.ndarray, ramp_path: Path | None
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
             return None
         output_path = self._science_output_path(ramp_path)
+        cards = self._cryo_fits_header_cards()
+        self._apply_cryo_temps_to_ramp(ramp_path, cards)
         try:
             save_science_fits(
                 output_path,
@@ -2327,6 +2352,7 @@ class H2rgMainWindow(QMainWindow):
                 tint_ms=self._last_tint_ms,
                 reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
                 fowler_pairs=self._fowler_pairs_value(),
+                extra_cards=cards,
             )
             return output_path
         except OSError as exc:
@@ -2355,6 +2381,13 @@ class H2rgMainWindow(QMainWindow):
             fowler_pairs=self._fowler_pairs_value(),
         )
         output_path = self._science_output_path(ramp_path)
+        cards = self._cryo_fits_header_cards()
+        for keyword, (value, _comment) in cards.items():
+            header[keyword] = value
+        self._raw_fits_header = dict(header)
+        from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
+
+        update_fits_file_header_cards(resolved, cards)
         try:
             save_science_fits(
                 output_path,
@@ -2363,6 +2396,7 @@ class H2rgMainWindow(QMainWindow):
                 tint_ms=self._last_tint_ms,
                 reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
                 fowler_pairs=self._fowler_pairs_value(),
+                extra_cards=cards,
             )
             return output_path
         except OSError as exc:
