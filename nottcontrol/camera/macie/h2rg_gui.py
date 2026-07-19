@@ -37,7 +37,7 @@ from PyQt5.uic import loadUi
 
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
-from nottcontrol.camera.macie.fits_header_meta import cryo_temperatures_for_fits
+from nottcontrol.camera.macie.fits_header_meta import fits_header_cards_from_redis
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
     save_science_fits,
@@ -2315,8 +2315,8 @@ class H2rgMainWindow(QMainWindow):
         return science_fits_path(self._local_science_save_dir() / ramp_path.name)
 
     def _cryo_fits_header_cards(self) -> dict[str, tuple[float, str]]:
-        """Latest detector / base-plate temperatures from Redis for FITS headers."""
-        return cryo_temperatures_for_fits(self._redis)
+        """Instrument status from Redis (temps, DL positions, pressures) for FITS."""
+        return fits_header_cards_from_redis(self._redis)
 
     def _apply_cryo_temps_to_ramp(
         self, ramp_path: Path | None, cards: dict[str, tuple[float, str]]
