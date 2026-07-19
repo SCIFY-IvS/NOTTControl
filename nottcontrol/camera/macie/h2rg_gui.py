@@ -799,10 +799,36 @@ class H2rgMainWindow(QMainWindow):
         self._clear_layout_widgets(layout)
         QWidget().setLayout(layout)
 
-    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
-        column = QVBoxLayout()
-        column.setSpacing(6)
+    def _make_image_tool_button(self, text: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setStyleSheet(PANEL_BUTTON_STYLE)
+        button.setMinimumHeight(CURSOR_READOUT_HEIGHT)
+        button.setFixedWidth(96)
+        return button
 
+    def _setup_image_tool_buttons(self) -> QWidget:
+        """Vertical Autoscale / Header / DS9 / Folder column left of the image."""
+        host = QWidget()
+        host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        column = QVBoxLayout(host)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(8)
+        column.addStretch(1)
+
+        self._button_autoscale = self._make_image_tool_button("Autoscale")
+        column.addWidget(self._button_autoscale)
+        self._button_header = self._make_image_tool_button("Header")
+        column.addWidget(self._button_header)
+        self._button_ds9 = self._make_image_tool_button("DS9")
+        column.addWidget(self._button_ds9)
+        self._button_save_dir = self._make_image_tool_button("Folder")
+        self._button_save_dir.setToolTip("Open FITS save directory")
+        column.addWidget(self._button_save_dir)
+
+        column.addStretch(1)
+        return host
+
+    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
         if self._cursor_readout is None:
             self._cursor_readout = QLabel("Pixel: —  CV: —")
             self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -815,36 +841,7 @@ class H2rgMainWindow(QMainWindow):
                 " border-radius: 4px;"
                 " padding-left: 8px;"
             )
-        column.addWidget(self._cursor_readout)
-
-        button_row = QHBoxLayout()
-        button_row.setSpacing(8)
-        button_row.addStretch(1)
-        self._button_autoscale = QPushButton("Autoscale")
-        self._button_autoscale.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_autoscale.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_autoscale.setFixedWidth(96)
-        button_row.addWidget(self._button_autoscale)
-        self._button_header = QPushButton("Header")
-        self._button_header.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_header.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_header.setFixedWidth(96)
-        button_row.addWidget(self._button_header)
-        self._button_ds9 = QPushButton("DS9")
-        self._button_ds9.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_ds9.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_ds9.setFixedWidth(96)
-        button_row.addWidget(self._button_ds9)
-        self._button_save_dir = QPushButton("Folder")
-        self._button_save_dir.setStyleSheet(PANEL_BUTTON_STYLE)
-        self._button_save_dir.setMinimumHeight(CURSOR_READOUT_HEIGHT)
-        self._button_save_dir.setFixedWidth(96)
-        self._button_save_dir.setToolTip("Open FITS save directory")
-        button_row.addWidget(self._button_save_dir)
-
-        button_row.addStretch(1)
-        column.addLayout(button_row)
-        parent_layout.addLayout(column)
+        parent_layout.addWidget(self._cursor_readout)
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
@@ -1255,7 +1252,7 @@ class H2rgMainWindow(QMainWindow):
         top = QHBoxLayout()
         top.setSpacing(16)
 
-        # Left: large square image, then compact ROI at the bottom.
+        # Left: tool buttons beside image, cursor + compact ROI below.
         self.ui.frame_camera.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
         self.ui.frame_camera.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
@@ -1264,8 +1261,15 @@ class H2rgMainWindow(QMainWindow):
         image_column_layout = QVBoxLayout(image_column)
         image_column_layout.setContentsMargins(0, 0, 0, 0)
         image_column_layout.setSpacing(6)
+
+        image_row = QHBoxLayout()
+        image_row.setContentsMargins(0, 0, 0, 0)
+        image_row.setSpacing(8)
+        image_row.addWidget(self._setup_image_tool_buttons(), stretch=0)
         self._camera_host = _SquareCameraHost(self.ui.frame_camera)
-        image_column_layout.addWidget(self._camera_host, stretch=1)
+        image_row.addWidget(self._camera_host, stretch=1)
+        image_column_layout.addLayout(image_row, stretch=1)
+
         self._setup_cursor_readout_row(image_column_layout)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
