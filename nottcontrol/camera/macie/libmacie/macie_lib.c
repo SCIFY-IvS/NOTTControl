@@ -799,11 +799,17 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         unsigned int ff_time_ms = ff_time_pix / ptUserData->pixelRate;
         unsigned int timeout = 0;
         unsigned int ypix = 0;
+        double exp_ft_ms = exposure_frametime_ms(ptUserData);
+        // Use the larger of full-frame and current geometry; keep a floor so
+        // window/stripe misconfig cannot leave us with a tiny timeout.
         if ((ypix_burst_stripe(ptUserData, &ypix, false) == true) || (nout > 1))
             timeout = 2 * ff_time_ms;
         else
-            timeout = 2 * exposure_frametime_ms(ptUserData);
-        // unsigned int timeout = 2 * exposure_frametime_ms(ptUserData);
+            timeout = 2 * (unsigned int)(exp_ft_ms + 0.5);
+        if (timeout < 2 * (unsigned int)(exp_ft_ms + 0.5))
+            timeout = 2 * (unsigned int)(exp_ft_ms + 0.5);
+        if (timeout < 10000)
+            timeout = 10000;
         if (timeout < time_wait)
             timeout = 2 * time_wait;
 
@@ -816,6 +822,7 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         if (WriteASICBits(ptUserData, regWrite) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "WriteASICReg failed in %s\n", __func__);
+            delete regWrite;
             return false;
         }
 
@@ -840,6 +847,7 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
             if (ReadASICBits(ptUserData, regWrite, &regtemp) == false)
             {
                 verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+                delete regWrite;
                 return false;
             }
 
@@ -851,8 +859,13 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfiguration failed with h%04x<%i:%i> = 0x%04x. Expecting 0x%04x\n",
                            regWrite->addr, regWrite->bit0, regWrite->bit1, regtemp, idle_value);
+            // Force halt so the next command is not stuck in reconfigure.
+            WriteASICReg(ptUserData, 0x6900, idle_value);
+            delay(200);
+            delete regWrite;
             return false;
         }
+        delete regWrite;
 
         // Make sure detector information is consistent
         unsigned int uiDetType = 0;
@@ -3984,13 +3997,16 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Vertical-only window = burst stripe (full width, parallel outputs).
     // Do NOT fall back to WinMode: that forces 1-output readout and can hang
     // reconfigure for full-width geometries (e.g. SC 1024).
+    // HxRG_Teledyne.mcd does not expose verified StripeReads* addresses yet, so
+    // SC presets set Y1/Y2 + stripe flag only (no counter writes).
     if ((bVertWin == true) && (bHorzWin == false))
     {
         ASIC_STRIPEMode(ptUserData, true, true);
         if (!ptUserData->bStripeModeAllowed || RegMap.count("StripeReads1") == 0)
         {
             verbose_printf(LOG_WARNING, ptUserData,
-                           "%s(): SC/stripe needs StripeAllowed and StripeReads* in ASICRegs (%s).\n",
+                           "%s(): SC/stripe counters not in ASICRegs (%s); "
+                           "Y1/Y2 set but hardware may still read full height.\n",
                            __func__, ptUserData->ASICRegs);
         }
     }
@@ -4019,15 +4035,6 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     ASIC_setX2(ptUserData, x2);
     ASIC_setY1(ptUserData, y1);
     ASIC_setY2(ptUserData, y2);
-
-    // Program burst-stripe counters before reconfigure so SC geometry is applied.
-    unsigned int ypix_stripe = 0;
-    if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
-    {
-        verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): Burst stripe programmed for %u rows (y1=%u y2=%u).\n",
-                       __func__, ypix_stripe, y1, y2);
-    }
 
     if (ReconfigureASIC(ptUserData) == false)
     {
@@ -4530,16 +4537,15 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
-    else // Middle of frame: read exactly rows [y1, y2]
+    else // No reference pixels included in requested block
     {
-        // Sequence is Read1 → Skip1 → Read2 → Skip2 (see lower/upper cases).
-        // Reads1=0 skips the first read block so Skip1 advances to y1.
+        // yrows = ny + 8;
         yrows = ny;
         if (bSet)
         {
-            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
+            ASIC_Generic(ptUserData, "StripeReads1", true, 4);
             ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny);
+            ASIC_Generic(ptUserData, "StripeReads2", true, ny - 8);
             ASIC_Generic(ptUserData, "StripeSkips2", true, ydet - y2 - 1);
             ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
