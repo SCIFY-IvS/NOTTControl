@@ -1879,7 +1879,7 @@ class H2rgMainWindow(QMainWindow):
         )
         if mode.y_window and not mode.x_window:
             status = (
-                f"{mode.label} — central rows y=[{mode.y1},{mode.y2}] "
+                f"{mode.label} — burst stripe y=[{mode.y1},{mode.y2}] "
                 "(full width, 32 outputs)"
             )
         elif mode.x_window or mode.y_window:

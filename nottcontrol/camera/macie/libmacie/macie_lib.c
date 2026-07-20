@@ -3981,29 +3981,17 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Vertical-only window: prefer burst-stripe when the microcode exposes it.
-    // HxRG_Teledyne / HxRG_Main only have WinMode (no StripeReads*), so enabling
-    // STRIPE clears WinMode and Y1/Y2 are ignored — fall back to WinMode instead
-    // (e.g. SC 1024 → full-width rows 512–1535).
+    // Vertical-only window = burst stripe (full width, parallel outputs).
+    // Do NOT fall back to WinMode: that forces 1-output readout and can hang
+    // reconfigure for full-width geometries (e.g. SC 1024).
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
+        ASIC_STRIPEMode(ptUserData, true, true);
+        if (!ptUserData->bStripeModeAllowed || RegMap.count("StripeReads1") == 0)
         {
-            ASIC_STRIPEMode(ptUserData, true, true);
-        }
-        else
-        {
-            ptUserData->bStripeMode = false;
-            if (RegMap.count("HorzWinMode") > 0)
-                ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
-            if (RegMap.count("VertWinMode") > 0)
-                ASIC_Generic(ptUserData, "VertWinMode", true, 1);
-            else if (RegMap.count("WinMode") > 0)
-                ASIC_Generic(ptUserData, "WinMode", true, 1);
-            else
-                verbose_printf(LOG_WARNING, ptUserData,
-                               "%s(): Vertical window requested but no WinMode/VertWinMode.\n",
-                               __func__);
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "%s(): SC/stripe needs StripeAllowed and StripeReads* in ASICRegs (%s).\n",
+                           __func__, ptUserData->ASICRegs);
         }
     }
     else
@@ -4031,6 +4019,15 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     ASIC_setX2(ptUserData, x2);
     ASIC_setY1(ptUserData, y1);
     ASIC_setY2(ptUserData, y2);
+
+    // Program burst-stripe counters before reconfigure so SC geometry is applied.
+    unsigned int ypix_stripe = 0;
+    if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): Burst stripe programmed for %u rows (y1=%u y2=%u).\n",
+                       __func__, ypix_stripe, y1, y2);
+    }
 
     if (ReconfigureASIC(ptUserData) == false)
     {
