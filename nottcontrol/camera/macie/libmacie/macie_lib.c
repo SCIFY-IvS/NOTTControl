@@ -3979,17 +3979,32 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // uint ny = y2 - y1 + 1;
     // uint nx = x2 - x1 + 1;
 
-    // First check if we're trying to set Stripe Mode
+    map<string, regInfo> &RegMap = ptUserData->RegMap;
+
+    // Vertical-only window: prefer burst-stripe when the microcode exposes it.
+    // HxRG_Teledyne / HxRG_Main only have WinMode (no StripeReads*), so enabling
+    // STRIPE clears WinMode and Y1/Y2 are ignored — fall back to WinMode instead
+    // (e.g. SC 1024 → full-width rows 512–1535).
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        // Enable stripe mode
-        ASIC_STRIPEMode(ptUserData, true, true);
-
-        // // TODO: For the meantime, we are restricted to powers of 2
-        // if ((ny & (ny - 1)) != 0)
-        // {
-        //     verbose_printf(LOG_WARNING, ptUserData, "");
-        // }
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
+        {
+            ASIC_STRIPEMode(ptUserData, true, true);
+        }
+        else
+        {
+            ptUserData->bStripeMode = false;
+            if (RegMap.count("HorzWinMode") > 0)
+                ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
+            if (RegMap.count("VertWinMode") > 0)
+                ASIC_Generic(ptUserData, "VertWinMode", true, 1);
+            else if (RegMap.count("WinMode") > 0)
+                ASIC_Generic(ptUserData, "WinMode", true, 1);
+            else
+                verbose_printf(LOG_WARNING, ptUserData,
+                               "%s(): Vertical window requested but no WinMode/VertWinMode.\n",
+                               __func__);
+        }
     }
     else
     {
@@ -4030,7 +4045,6 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // where Enhanced mode causes the columns to shift every other acquisition.
     // The shifted column then persists after switching back to full frame.
     // Something is wrong with the pixel timing code.
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
     if (RegMap.count("PixelClkScheme") > 0)
     {
         uint pixClk = (bHorzWin == false) ? ptUserData->ffPixelClkScheme : ptUserData->winPixelClkScheme;
@@ -4086,6 +4100,13 @@ extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool
     x2 = ASIC_getX2(ptUserData);
     y1 = ASIC_getY1(ptUserData);
     y2 = ASIC_getY2(ptUserData);
+
+    // Unified WinMode cannot express "vertical-only" vs "horizontal-only".
+    // Infer from the programmed span so SC / Channel presets rematch correctly.
+    if (bHorzWin && bVertWin && x1 == 0 && x2 == ptUserData->uiDetectorWidth - 1)
+        bHorzWin = false;
+    if (bHorzWin && bVertWin && y1 == 0 && y2 == ptUserData->uiDetectorHeight - 1)
+        bVertWin = false;
 }
 
 // Subarray mode might not exist in certain microcodes.
@@ -4512,15 +4533,16 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
-    else // No reference pixels included in requested block
+    else // Middle of frame: read exactly rows [y1, y2]
     {
-        // yrows = ny + 8;
+        // Sequence is Read1 → Skip1 → Read2 → Skip2 (see lower/upper cases).
+        // Reads1=0 skips the first read block so Skip1 advances to y1.
         yrows = ny;
         if (bSet)
         {
-            ASIC_Generic(ptUserData, "StripeReads1", true, 4);
+            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
             ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny - 8);
+            ASIC_Generic(ptUserData, "StripeReads2", true, ny);
             ASIC_Generic(ptUserData, "StripeSkips2", true, ydet - y2 - 1);
             ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }

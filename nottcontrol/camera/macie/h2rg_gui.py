@@ -222,7 +222,10 @@ def _channel_window(
 def _centered_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width vertical burst stripe (horizontal window off, parallel outputs)."""
+    """Full-width central rows (Y window; all parallel outputs kept).
+
+    For SC 1024 on a 2048 array this is y=[512, 1535].
+    """
     y0 = (array_size - height) // 2
     return 0, array_size - 1, y0, y0 + height - 1
 
@@ -1876,8 +1879,8 @@ class H2rgMainWindow(QMainWindow):
         )
         if mode.y_window and not mode.x_window:
             status = (
-                f"{mode.label} — burst stripe y=[{mode.y1},{mode.y2}] "
-                "(32 outputs)"
+                f"{mode.label} — central rows y=[{mode.y1},{mode.y2}] "
+                "(full width, 32 outputs)"
             )
         elif mode.x_window or mode.y_window:
             status = (
