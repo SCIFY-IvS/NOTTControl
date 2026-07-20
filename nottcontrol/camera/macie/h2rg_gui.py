@@ -741,6 +741,10 @@ class H2rgMainWindow(QMainWindow):
         self._button_header: QPushButton | None = None
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
+        self._button_apply_levels: QPushButton | None = None
+        self._lineEdit_level_min: QLineEdit | None = None
+        self._lineEdit_level_max: QLineEdit | None = None
+        self._manual_levels: tuple[float, float] | None = None
         self._acquire_previewed_names: set[str] = set()
         self._exposure_preview_timer = QTimer(self)
         self._exposure_preview_timer.setSingleShot(True)
@@ -770,6 +774,9 @@ class H2rgMainWindow(QMainWindow):
             self._connect_signals()
             self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
             self._button_autoscale.clicked.connect(self._autoscale_image)
+            self._button_apply_levels.clicked.connect(self._apply_manual_levels)
+            self._lineEdit_level_min.editingFinished.connect(self._apply_manual_levels)
+            self._lineEdit_level_max.editingFinished.connect(self._apply_manual_levels)
             self._button_header.clicked.connect(self._show_fits_header)
             self._button_ds9.clicked.connect(self._open_fits_in_ds9)
             self._button_save_dir.clicked.connect(self._open_fits_save_dir)
@@ -836,8 +843,26 @@ class H2rgMainWindow(QMainWindow):
         button.setFixedWidth(96)
         return button
 
+    def _make_level_field(self, label_text: str) -> tuple[QWidget, QLineEdit]:
+        host = QWidget()
+        host.setFixedWidth(96)
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        label = QLabel(label_text, host)
+        label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        label.setStyleSheet(PANEL_LABEL_STYLE)
+        field = QLineEdit(host)
+        field.setFixedHeight(CURSOR_READOUT_HEIGHT)
+        field.setStyleSheet(PANEL_FIELD_STYLE)
+        field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        field.setPlaceholderText("—")
+        layout.addWidget(label)
+        layout.addWidget(field)
+        return host, field
+
     def _setup_image_tool_buttons(self) -> QWidget:
-        """Vertical Autoscale / Header / DS9 / Folder column left of the image."""
+        """Vertical Autoscale / levels / Header / DS9 / Folder column left of the image."""
         host = QWidget()
         host.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         column = QVBoxLayout(host)
@@ -848,6 +873,16 @@ class H2rgMainWindow(QMainWindow):
 
         self._button_autoscale = self._make_image_tool_button("Autoscale")
         column.addWidget(self._button_autoscale, alignment=Qt.AlignHCenter)
+
+        min_host, self._lineEdit_level_min = self._make_level_field("Min")
+        column.addWidget(min_host, alignment=Qt.AlignHCenter)
+        max_host, self._lineEdit_level_max = self._make_level_field("Max")
+        column.addWidget(max_host, alignment=Qt.AlignHCenter)
+
+        self._button_apply_levels = self._make_image_tool_button("Apply")
+        self._button_apply_levels.setToolTip("Apply min/max color scale")
+        column.addWidget(self._button_apply_levels, alignment=Qt.AlignHCenter)
+
         self._button_header = self._make_image_tool_button("Header")
         column.addWidget(self._button_header, alignment=Qt.AlignHCenter)
         self._button_ds9 = self._make_image_tool_button("DS9")
@@ -1414,12 +1449,20 @@ class H2rgMainWindow(QMainWindow):
         for button in (
             getattr(self, "_button_set_exposure", None),
             getattr(self, "_button_autoscale", None),
+            getattr(self, "_button_apply_levels", None),
             getattr(self, "_button_header", None),
             getattr(self, "_button_ds9", None),
             getattr(self, "_button_save_dir", None),
         ):
             if button is not None:
                 button.setStyleSheet(PANEL_BUTTON_STYLE)
+
+        for field in (
+            getattr(self, "_lineEdit_level_min", None),
+            getattr(self, "_lineEdit_level_max", None),
+        ):
+            if field is not None:
+                field.setStyleSheet(PANEL_FIELD_STYLE)
 
         for widget in (
             getattr(self, "_label_ramp_mode", None),
@@ -1880,10 +1923,72 @@ class H2rgMainWindow(QMainWindow):
             status="Setting exposure…",
         )
 
-    def _autoscale_image(self) -> None:
-        if self.image is None or self._current_frame is None:
+    def _format_level_value(self, value: float) -> str:
+        if not numpy.isfinite(value):
+            return ""
+        rounded = float(numpy.round(value))
+        if abs(rounded - value) < 1e-6:
+            return str(int(rounded))
+        return f"{value:.2f}"
+
+    def _sync_level_fields(self, vmin: float, vmax: float) -> None:
+        if self._lineEdit_level_min is not None:
+            self._lineEdit_level_min.setText(self._format_level_value(vmin))
+        if self._lineEdit_level_max is not None:
+            self._lineEdit_level_max.setText(self._format_level_value(vmax))
+
+    def _sync_level_fields_from_image(self) -> None:
+        if self.image is None:
             return
-        self._auto_levels_next = True
+        try:
+            levels = self.image.getLevels()
+        except Exception:
+            return
+        if levels is None:
+            return
+        try:
+            vmin, vmax = float(levels[0]), float(levels[1])
+        except (TypeError, ValueError, IndexError):
+            return
+        self._manual_levels = (vmin, vmax)
+        self._sync_level_fields(vmin, vmax)
+
+    def _read_level_fields(self) -> tuple[float, float] | None:
+        if self._lineEdit_level_min is None or self._lineEdit_level_max is None:
+            return None
+        try:
+            vmin = float(self._lineEdit_level_min.text().strip())
+            vmax = float(self._lineEdit_level_max.text().strip())
+        except ValueError:
+            return None
+        if not numpy.isfinite(vmin) or not numpy.isfinite(vmax) or vmin >= vmax:
+            return None
+        return vmin, vmax
+
+    def _autoscale_image(self) -> None:
+        display = self._build_display_frame()
+        if self.image is None or display is None:
+            return
+        finite = display[numpy.isfinite(display)]
+        if finite.size == 0:
+            return
+        vmin = float(numpy.min(finite))
+        vmax = float(numpy.max(finite))
+        if vmin >= vmax:
+            vmax = vmin + 1.0
+        self._manual_levels = (vmin, vmax)
+        self._auto_levels_next = False
+        self.image.setLevels(vmin, vmax)
+        self._sync_level_fields(vmin, vmax)
+        self._refresh_display()
+
+    def _apply_manual_levels(self) -> None:
+        levels = self._read_level_fields()
+        if levels is None or self.image is None:
+            return
+        self._manual_levels = levels
+        self._auto_levels_next = False
+        self.image.setLevels(levels[0], levels[1])
         self._refresh_display()
 
     def _show_fits_header(self) -> None:
@@ -3091,9 +3196,15 @@ class H2rgMainWindow(QMainWindow):
             return
 
         auto_levels = self._auto_levels_next
-        self.image.setImage(display, autoLevels=auto_levels)
         if auto_levels:
+            self.image.setImage(display, autoLevels=True)
             self._auto_levels_next = False
+            self._sync_level_fields_from_image()
+        elif self._manual_levels is not None:
+            self.image.setImage(display, autoLevels=False, levels=self._manual_levels)
+        else:
+            self.image.setImage(display, autoLevels=False)
+            self._sync_level_fields_from_image()
 
         self._update_roi_values(display, record=is_new_frame)
         self._layout_image_frame()
