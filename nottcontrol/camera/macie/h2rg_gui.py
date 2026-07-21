@@ -565,8 +565,10 @@ def is_new_ramp_fits(
 ) -> bool:
     if not name or is_science_fits_name(name):
         return False
+    # Same basename can still be new when MACIE overwrites or SMB reuses a name
+    # with a newer mtime (previously this returned False and the GUI spun forever).
     if before_name and name == before_name:
-        return False
+        return mtime > before_mtime
     if mtime > before_mtime:
         return True
     return bool(before_name and name != before_name)
@@ -2726,6 +2728,7 @@ class H2rgMainWindow(QMainWindow):
         *,
         before_name: str | None,
         before_mtime: float,
+        already_seen: set[str] | None = None,
     ) -> bool:
         try:
             server_path = macie.get_newest_fits_path()
@@ -2736,7 +2739,7 @@ class H2rgMainWindow(QMainWindow):
         name = fits_basename(server_path)
         if not name or is_science_fits_name(name):
             return False
-        if before_name and name == before_name:
+        if already_seen is not None and name in already_seen:
             return False
         mapped = map_server_fits_path(server_path)
         if mapped is not None:
@@ -2744,6 +2747,10 @@ class H2rgMainWindow(QMainWindow):
                 mtime = mapped.stat().st_mtime
             except OSError:
                 # Mapped UNC/path not readable from this PC — trust basename.
+                if before_name and name == before_name:
+                    # Same name as pre-acquire snapshot: still fetch if we have
+                    # not loaded anything yet (already_seen empty / unknown).
+                    return already_seen is not None and len(already_seen) == 0
                 return True
             return is_new_ramp_fits(
                 name,
@@ -2751,7 +2758,10 @@ class H2rgMainWindow(QMainWindow):
                 before_name=before_name,
                 before_mtime=before_mtime,
             )
-        # No local mapping (typical Windows without SMB) — basename is enough.
+        # No local mapping (typical Windows without SMB) — basename is enough,
+        # but allow a post-acquire fetch of the snapshot name when seen is empty.
+        if before_name and name == before_name:
+            return already_seen is not None and len(already_seen) == 0
         return True
 
     def _fetch_fits_from_server(
@@ -2761,11 +2771,13 @@ class H2rgMainWindow(QMainWindow):
         before_mtime: float = 0.0,
         before_name: str | None = None,
         require_new: bool = True,
+        already_seen: set[str] | None = None,
     ) -> tuple[numpy.ndarray, Path] | None:
         if require_new and not self._server_fits_is_new(
             macie,
             before_name=before_name,
             before_mtime=before_mtime,
+            already_seen=already_seen,
         ):
             return None
         try:
@@ -2778,7 +2790,15 @@ class H2rgMainWindow(QMainWindow):
         filename, payload = fetched
         if is_science_fits_name(filename):
             return None
-        if require_new and before_name and filename == before_name:
+        if already_seen is not None and filename in already_seen:
+            return None
+        if (
+            require_new
+            and before_name
+            and filename == before_name
+            and already_seen is not None
+            and len(already_seen) > 0
+        ):
             return None
         path = self._cache_fetched_fits(filename, payload)
         try:
@@ -3056,12 +3076,15 @@ class H2rgMainWindow(QMainWindow):
                         macie,
                         before_name=before_name,
                         before_mtime=before_mtime,
+                        already_seen=set(seen) | zmq_seen,
                     ):
+                        self.status_updated.emit("Fetching FITS from server…")
                         fetched = self._fetch_fits_from_server(
                             macie,
                             before_mtime=before_mtime,
                             before_name=before_name,
                             require_new=True,
+                            already_seen=set(seen) | zmq_seen,
                         )
                         if fetched is not None:
                             _frame, path = fetched
@@ -3106,11 +3129,15 @@ class H2rgMainWindow(QMainWindow):
             ),
         )
         if not ramp_paths:
+            # Acquire finished but SMB never showed the file — pull newest over ZMQ
+            # even if the basename matches the pre-acquire snapshot.
+            self.status_updated.emit("Fetching FITS from server…")
             fetched = self._fetch_fits_from_server(
                 macie,
                 before_mtime=before_mtime,
                 before_name=before_name,
-                require_new=True,
+                require_new=False,
+                already_seen=zmq_seen,
             )
             if fetched is not None:
                 _frame, path = fetched
