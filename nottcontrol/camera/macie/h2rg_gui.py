@@ -355,19 +355,56 @@ def window_mode_index(
     y1: int,
     y2: int,
 ) -> int:
+    """Return the WINDOW_MODES index matching the programmed geometry, or -1."""
+    exact = -1
+    sc_fallback = -1
+    ny = y2 - y1 + 1
+    nx = x2 - x1 + 1
+    full = H2RG_ARRAY_SIZE - 1
     for index, mode in enumerate(WINDOW_MODES):
         if (mode.x_window, mode.y_window) != (x_window, y_window):
             continue
         if not mode.x_window and not mode.y_window:
             return index
-        if mode.x_window == x_window and mode.y_window == y_window and (
+        if (
             mode.x1,
             mode.x2,
             mode.y1,
             mode.y2,
         ) == (x1, x2, y1, y2):
-            return index
-    return -1
+            exact = index
+            break
+        # SC presets: full-width vertical stripe matched by height when the ASIC
+        # reports a slightly different y1 (e.g. ref-row offset in stripe mode).
+        if (
+            not mode.x_window
+            and mode.y_window
+            and not x_window
+            and y_window
+            and mode.x1 == 0
+            and mode.x2 == full
+            and x1 == 0
+            and x2 == full
+            and (mode.y2 - mode.y1 + 1) == ny
+            and sc_fallback < 0
+        ):
+            sc_fallback = index
+        # Centered XY windows matched by size when origin is close.
+        if (
+            mode.x_window
+            and mode.y_window
+            and x_window
+            and y_window
+            and (mode.x2 - mode.x1 + 1) == nx
+            and (mode.y2 - mode.y1 + 1) == ny
+            and abs(mode.x1 - x1) <= 4
+            and abs(mode.y1 - y1) <= 4
+            and sc_fallback < 0
+        ):
+            sc_fallback = index
+    if exact >= 0:
+        return exact
+    return sc_fallback
 
 
 def detector_config_file(mode_index: int) -> str:
@@ -722,6 +759,7 @@ class H2rgMainWindow(QMainWindow):
         except Exception as exc:
             print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
+        self._live_frame_available = threading.Event()
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = None
@@ -865,39 +903,38 @@ class H2rgMainWindow(QMainWindow):
         return host, field
 
     def _setup_image_tool_buttons(self) -> QWidget:
-        """Tool column left of the image: buttons on top, Min/Max at bottom."""
+        """Tool column left of the image: buttons then Min/Max, packed at top."""
         host = QWidget()
-        host.setFixedWidth(96)
+        host.setFixedWidth(110)
         host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         column = QVBoxLayout(host)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(8)
-        column.setAlignment(Qt.AlignHCenter)
+        column.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
 
         self._button_autoscale = self._make_image_tool_button("Autoscale")
-        column.addWidget(self._button_autoscale, alignment=Qt.AlignHCenter)
+        column.addWidget(self._button_autoscale, 0, Qt.AlignHCenter)
 
         self._button_apply_levels = self._make_image_tool_button("Apply")
         self._button_apply_levels.setToolTip("Apply min/max color scale")
-        column.addWidget(self._button_apply_levels, alignment=Qt.AlignHCenter)
+        column.addWidget(self._button_apply_levels, 0, Qt.AlignHCenter)
 
         self._button_header = self._make_image_tool_button("Header")
-        column.addWidget(self._button_header, alignment=Qt.AlignHCenter)
+        column.addWidget(self._button_header, 0, Qt.AlignHCenter)
 
         self._button_ds9 = self._make_image_tool_button("DS9")
-        column.addWidget(self._button_ds9, alignment=Qt.AlignHCenter)
+        column.addWidget(self._button_ds9, 0, Qt.AlignHCenter)
 
         self._button_save_dir = self._make_image_tool_button("Folder")
         self._button_save_dir.setToolTip("Open FITS save directory")
-        column.addWidget(self._button_save_dir, alignment=Qt.AlignHCenter)
-
-        column.addStretch(1)
+        column.addWidget(self._button_save_dir, 0, Qt.AlignHCenter)
 
         min_host, self._lineEdit_level_min = self._make_level_field("Min")
-        column.addWidget(min_host, alignment=Qt.AlignHCenter)
+        column.addWidget(min_host, 0, Qt.AlignHCenter)
         max_host, self._lineEdit_level_max = self._make_level_field("Max")
-        column.addWidget(max_host, alignment=Qt.AlignHCenter)
+        column.addWidget(max_host, 0, Qt.AlignHCenter)
 
+        column.addStretch(1)
         return host
 
     def _ensure_cursor_readout(self) -> QLabel:
@@ -1165,8 +1202,8 @@ class H2rgMainWindow(QMainWindow):
         combo_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         for combo in (self.ui.comboBox_detector_mode, self.ui.comboBox_window_mode):
             combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-            combo.setMinimumContentsLength(12)
-            combo.setMaximumWidth(132)
+            combo.setMinimumContentsLength(14)
+            combo.setMaximumWidth(168)
             combo.setSizePolicy(combo_policy)
         outer.addLayout(form, stretch=1)
 
@@ -1341,7 +1378,12 @@ class H2rgMainWindow(QMainWindow):
         image_row = QHBoxLayout()
         image_row.setContentsMargins(0, 0, 0, 0)
         image_row.setSpacing(8)
-        image_row.addWidget(self._setup_image_tool_buttons(), stretch=0)
+        image_row.setAlignment(Qt.AlignTop)
+        image_row.addWidget(
+            self._setup_image_tool_buttons(),
+            stretch=0,
+            alignment=Qt.AlignHCenter | Qt.AlignTop,
+        )
         self._camera_host = _SquareCameraHost(
             self.ui.frame_camera,
             bottom=self._ensure_cursor_readout(),
@@ -1834,30 +1876,51 @@ class H2rgMainWindow(QMainWindow):
     def _stop_live_ui(self) -> None:
         self._live_active = False
         self._live_poll_stop.set()
+        self._live_frame_available.set()
         if self.ui is not None:
             self.ui.button_live.setText("Live")
         self._set_live_dependent_controls(False)
+        if self._macie is not None:
+            self._macie.set_live_frame_callback(None)
+
+    def _on_live_frame_written(self) -> None:
+        """Called from the Macie continuous thread after each acquire completes."""
+        self._live_frame_available.set()
 
     def _activate_live_ui(self) -> None:
         self._live_active = True
         self._live_poll_stop.clear()
+        self._live_frame_available.clear()
+        self._auto_levels_next = True
         if self.ui is not None:
             self.ui.button_live.setText("Stop live")
         self._set_live_dependent_controls(True)
+        if self._macie is not None:
+            self._macie.set_live_frame_callback(self._on_live_frame_written)
+            try:
+                self._sync_save_dir_from_server(self._macie)
+            except Exception:
+                pass
 
         def poll_frames() -> None:
-            import time
-
             while (
                 self._live_active
                 and self._macie is not None
                 and not self._live_poll_stop.is_set()
             ):
+                self._live_frame_available.wait(timeout=0.4)
+                self._live_frame_available.clear()
+                if (
+                    not self._live_active
+                    or self._macie is None
+                    or self._live_poll_stop.is_set()
+                ):
+                    break
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
-                    frame, _path = loaded
+                    frame, path = loaded
                     self.frame_ready.emit(frame)
-                time.sleep(0.5)
+                    self.status_updated.emit(f"Live — {path.name}")
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -1918,17 +1981,31 @@ class H2rgMainWindow(QMainWindow):
             mode.y1,
             mode.y2,
         )
+        # Confirm what the server actually programmed (helps catch SC mis-centers).
+        try:
+            x_win, y_win, x1, x2, y1, y2 = macie.read_frame_settings()
+            x1_i, x2_i, y1_i, y2_i = int(x1), int(x2), int(y1), int(y2)
+        except Exception:
+            x_win = mode.x_window
+            y_win = mode.y_window
+            x1_i, x2_i, y1_i, y2_i = mode.x1, mode.x2, mode.y1, mode.y2
+
+        matched = window_mode_index(x_win, y_win, x1_i, x2_i, y1_i, y2_i)
         if mode.y_window and not mode.x_window:
             status = (
-                f"{mode.label} — burst stripe y=[{mode.y1},{mode.y2}] "
-                "(full width, 32 outputs)"
+                f"{mode.label} — requested y=[{mode.y1},{mode.y2}], "
+                f"ASIC y=[{y1_i},{y2_i}] (full width, 32 outputs)"
             )
+            if (y1_i, y2_i) != (mode.y1, mode.y2):
+                status += " — WARNING: not centered as requested"
         elif mode.x_window or mode.y_window:
             status = (
-                f"{mode.label} — x=[{mode.x1},{mode.x2}] y=[{mode.y1},{mode.y2}]"
+                f"{mode.label} — ASIC x=[{x1_i},{x2_i}] y=[{y1_i},{y2_i}]"
             )
         else:
             status = mode.label
+        if matched >= 0 and matched != index:
+            status += f" (readback matches {WINDOW_MODES[matched].label})"
         self.status_updated.emit(status)
         self._refresh_exposure_timing(macie)
         if self._initialized:
@@ -2229,6 +2306,9 @@ class H2rgMainWindow(QMainWindow):
         else:
             self._macie.set_config_file(config_file)
         self._macie.set_live_error_callback(self._on_live_macie_error)
+        self._macie.set_live_frame_callback(
+            self._on_live_frame_written if self._live_active else None
+        )
         return self._macie
 
     def _run_macie_operation(
@@ -3127,8 +3207,11 @@ class H2rgMainWindow(QMainWindow):
     def _load_live_frame(
         self, macie
     ) -> tuple[numpy.ndarray, Path] | None:
-        """Return the next ramp FITS written since the last displayed frame."""
-        self._sync_save_dir_from_server(macie)
+        """Return the next ramp FITS written since the last displayed frame.
+
+        Prefer a local directory scan so Live display does not block on the same
+        ZMQ socket used by continuous acquire.
+        """
         before_mtime = self._last_fits_mtime
         before_name = self._last_loaded_basename
 
@@ -3143,14 +3226,9 @@ class H2rgMainWindow(QMainWindow):
                     return self._load_fits_from_path(path), path
                 except Exception as exc:
                     print(f"H2RG live skipped unreadable FITS {path.name}: {exc}")
-
-            loaded = self._try_load_path_if_new(
-                self._resolve_server_fits_path(macie),
-                before_mtime,
-                before_name=before_name,
-            )
-            if loaded is not None:
-                return loaded
+            # Local share is available — wait for the next poll instead of
+            # contending with continuous acquire on the ZMQ socket.
+            return None
 
         return self._fetch_fits_from_server(
             macie,

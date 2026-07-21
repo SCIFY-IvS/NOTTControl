@@ -1,5 +1,6 @@
 import os
 import ctypes
+import time
 from collections.abc import Callable
 from enum import Enum
 from threading import Thread, Event, Lock
@@ -70,11 +71,18 @@ class MacieInterface():
         self._closing = Event()
         self._pause_live = Event()
         self._live_error_callback: Callable[[Exception], None] | None = None
+        self._live_frame_callback: Callable[[], None] | None = None
 
     def set_live_error_callback(
         self, callback: Callable[[Exception], None] | None
     ) -> None:
         self._live_error_callback = callback
+
+    def set_live_frame_callback(
+        self, callback: Callable[[], None] | None
+    ) -> None:
+        """Optional hook invoked after each successful live acquire completes."""
+        self._live_frame_callback = callback
 
     def _attempt_halt_after_timeout(self) -> None:
         try:
@@ -464,6 +472,16 @@ class MacieInterface():
                     continue
                 try:
                     self.acquire()
+                    frame_callback = self._live_frame_callback
+                    if frame_callback is not None:
+                        try:
+                            frame_callback()
+                        except Exception as callback_exc:
+                            print(f"Live frame callback failed: {callback_exc}")
+                    # Yield the ZMQ lock so the GUI can poll/fetch the new FITS
+                    # before the next ramp starts.
+                    if self._acquiring.is_set() and not self._closing.is_set():
+                        time.sleep(0.15)
                 except Exception as exc:
                     print(f"Live acquire failed: {exc}")
                     self._acquiring.clear()

@@ -4548,19 +4548,29 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     }
     else // Middle of frame: center block [y1, y2]
     {
-        // Hardware sequence is Read1 → Skip1 → Read2 → Skip2 (see lower/upper).
-        // Skip to y1 with a zero-length first read, then read ny science rows.
+        // Hardware sequence is Read1 → Skip1 → Read2 → Skip2 (same as
+        // lower/upper reference cases). Reads1 must be non-zero — a zero-length
+        // first read is ignored by this microcode and the ASIC then clocks ny
+        // rows from row 0 (first/last edge instead of the centered strip).
+        //
+        // After reading 4 bottom reference rows, skip (y1-4) so the next read
+        // starts at detector row y1 (SC 1024 → y=512…1535).
         yrows = ny;
         if (bSet)
         {
-            unsigned int skip_pre = y1;
+            unsigned int skip_pre = (y1 >= 4) ? (y1 - 4) : y1;
             unsigned int skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
-            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
+            unsigned int reads2 = (ny > 4) ? (ny - 4) : ny;
+            ASIC_Generic(ptUserData, "StripeReads1", true, 4);
             ASIC_Generic(ptUserData, "StripeSkips1", true, skip_pre);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny);
+            ASIC_Generic(ptUserData, "StripeReads2", true, reads2);
             ASIC_Generic(ptUserData, "StripeSkips2", true, skip_post);
             if (RegMap.count("RowReads") > 0)
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
+                           "(y1=%u y2=%u ny=%u)\n",
+                           __func__, skip_pre, reads2, skip_post, y1, y2, ny);
         }
     }
 
