@@ -3997,16 +3997,13 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Vertical-only window = burst stripe (full width, parallel outputs).
     // Do NOT fall back to WinMode: that forces 1-output readout and can hang
     // reconfigure for full-width geometries (e.g. SC 1024).
-    // HxRG_Teledyne.mcd does not expose verified StripeReads* addresses yet, so
-    // SC presets set Y1/Y2 + stripe flag only (no counter writes).
     if ((bVertWin == true) && (bHorzWin == false))
     {
         ASIC_STRIPEMode(ptUserData, true, true);
         if (!ptUserData->bStripeModeAllowed || RegMap.count("StripeReads1") == 0)
         {
             verbose_printf(LOG_WARNING, ptUserData,
-                           "%s(): SC/stripe counters not in ASICRegs (%s); "
-                           "Y1/Y2 set but hardware may still read full height.\n",
+                           "%s(): SC/stripe needs StripeAllowed and StripeReads* in ASICRegs (%s).\n",
                            __func__, ptUserData->ASICRegs);
         }
     }
@@ -4035,6 +4032,16 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     ASIC_setX2(ptUserData, x2);
     ASIC_setY1(ptUserData, y1);
     ASIC_setY2(ptUserData, y2);
+
+    // Program skip/read counters before reconfigure. Otherwise stripe mode only
+    // shrinks RowsPerFrame and the ASIC clocks ny rows from row 0 (not from y1).
+    unsigned int ypix_stripe = 0;
+    if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): Burst stripe y1=%u y2=%u → %u rows.\n",
+                       __func__, y1, y2, ypix_stripe);
+    }
 
     if (ReconfigureASIC(ptUserData) == false)
     {
@@ -4521,7 +4528,8 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "StripeSkips1", true, ydet - yrows);
             ASIC_Generic(ptUserData, "StripeReads2", true, 4);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
     else if (y2 > ydet - 5) // Upper reference pixels included in active block
@@ -4534,20 +4542,25 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
             ASIC_Generic(ptUserData, "StripeReads2", true, ydet - y1 - 4);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
-    else // No reference pixels included in requested block
+    else // Middle of frame: center block [y1, y2]
     {
-        // yrows = ny + 8;
+        // Hardware sequence is Read1 → Skip1 → Read2 → Skip2 (see lower/upper).
+        // Skip to y1 with a zero-length first read, then read ny science rows.
         yrows = ny;
         if (bSet)
         {
-            ASIC_Generic(ptUserData, "StripeReads1", true, 4);
-            ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny - 8);
-            ASIC_Generic(ptUserData, "StripeSkips2", true, ydet - y2 - 1);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            unsigned int skip_pre = y1;
+            unsigned int skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
+            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
+            ASIC_Generic(ptUserData, "StripeSkips1", true, skip_pre);
+            ASIC_Generic(ptUserData, "StripeReads2", true, ny);
+            ASIC_Generic(ptUserData, "StripeSkips2", true, skip_post);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
 

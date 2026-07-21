@@ -865,22 +865,17 @@ class H2rgMainWindow(QMainWindow):
         return host, field
 
     def _setup_image_tool_buttons(self) -> QWidget:
-        """Vertical Autoscale / levels / Header / DS9 / Folder column left of the image."""
+        """Tool column left of the image: buttons on top, Min/Max at bottom."""
         host = QWidget()
-        host.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        host.setFixedWidth(96)
+        host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         column = QVBoxLayout(host)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(8)
-        column.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        column.addStretch(1)
+        column.setAlignment(Qt.AlignHCenter)
 
         self._button_autoscale = self._make_image_tool_button("Autoscale")
         column.addWidget(self._button_autoscale, alignment=Qt.AlignHCenter)
-
-        min_host, self._lineEdit_level_min = self._make_level_field("Min")
-        column.addWidget(min_host, alignment=Qt.AlignHCenter)
-        max_host, self._lineEdit_level_max = self._make_level_field("Max")
-        column.addWidget(max_host, alignment=Qt.AlignHCenter)
 
         self._button_apply_levels = self._make_image_tool_button("Apply")
         self._button_apply_levels.setToolTip("Apply min/max color scale")
@@ -888,13 +883,21 @@ class H2rgMainWindow(QMainWindow):
 
         self._button_header = self._make_image_tool_button("Header")
         column.addWidget(self._button_header, alignment=Qt.AlignHCenter)
+
         self._button_ds9 = self._make_image_tool_button("DS9")
         column.addWidget(self._button_ds9, alignment=Qt.AlignHCenter)
+
         self._button_save_dir = self._make_image_tool_button("Folder")
         self._button_save_dir.setToolTip("Open FITS save directory")
         column.addWidget(self._button_save_dir, alignment=Qt.AlignHCenter)
 
         column.addStretch(1)
+
+        min_host, self._lineEdit_level_min = self._make_level_field("Min")
+        column.addWidget(min_host, alignment=Qt.AlignHCenter)
+        max_host, self._lineEdit_level_max = self._make_level_field("Max")
+        column.addWidget(max_host, alignment=Qt.AlignHCenter)
+
         return host
 
     def _ensure_cursor_readout(self) -> QLabel:
@@ -1348,6 +1351,9 @@ class H2rgMainWindow(QMainWindow):
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
         self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        for index, row in self._roi_panel.rows.items():
+            row.show_checkbox.setChecked(index in self._h2rg_rois)
+            row.show_checkbox.setEnabled(index in self._h2rg_rois)
         image_column_layout.addWidget(self._roi_panel, stretch=0)
         top.addWidget(image_column, stretch=1)
 
@@ -1516,6 +1522,7 @@ class H2rgMainWindow(QMainWindow):
 
         if self._roi_panel is not None:
             for row in self._roi_panel.rows.values():
+                row.show_checkbox.toggled.connect(self._on_roi_toggled)
                 row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
                 row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
 
@@ -1538,6 +1545,10 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_detector_mode.currentIndexChanged.connect(
             self._on_detector_mode_changed
         )
+
+    def _on_roi_toggled(self, _checked: bool) -> None:
+        self._update_roi_overlays()
+        self._refresh_display()
 
     def _on_roi_plot_toggled(self, _state: int = 0) -> None:
         self._refresh_roi_plots(force=True)
@@ -1631,8 +1642,13 @@ class H2rgMainWindow(QMainWindow):
         return self._current_frame
 
     def _selected_roi_indices(self) -> list[int]:
-        """Configured ROIs are always drawn as overlays on the image."""
-        return sorted(self._h2rg_rois.keys())
+        if self._roi_panel is None:
+            return []
+        selected = []
+        for index, row in self._roi_panel.rows.items():
+            if row.show_checkbox.isChecked() and index in self._h2rg_rois:
+                selected.append(index)
+        return selected
 
     def _build_display_frame(self) -> numpy.ndarray | None:
         frame = self._frame_from_display_mode()
@@ -1662,13 +1678,38 @@ class H2rgMainWindow(QMainWindow):
                 [x, y],
                 [w, h],
                 pen=pg.mkPen(color, width=2),
-                movable=False,
+                movable=True,
                 removable=False,
             )
             roi.setZValue(20)
+            roi.sigRegionChangeFinished.connect(
+                lambda _r, idx=index: self._on_roi_geometry_changed(idx)
+            )
             view.addItem(roi)
             self._roi_overlays[index] = roi
         self._update_roi_overlays()
+
+    def _on_roi_geometry_changed(self, index: int) -> None:
+        roi = self._roi_overlays.get(index)
+        if roi is None:
+            return
+        pos = roi.pos()
+        size = roi.size()
+        x = int(round(float(pos.x())))
+        y = int(round(float(pos.y())))
+        w = max(1, int(round(float(size.x()))))
+        h = max(1, int(round(float(size.y()))))
+        self._h2rg_rois[index] = (x, y, w, h)
+        try:
+            if not config.config_parser.has_section(H2RG_SECTION):
+                config.config_parser.add_section(H2RG_SECTION)
+            config.config_parser.set(
+                H2RG_SECTION, f"ROI {index}", f"{x},{y},{w},{h}"
+            )
+            config.write()
+        except Exception as exc:
+            print(f"H2RG ROI config save failed: {exc}")
+        self._refresh_display()
 
     def _update_roi_overlays(self) -> None:
         selected = set(self._selected_roi_indices())
