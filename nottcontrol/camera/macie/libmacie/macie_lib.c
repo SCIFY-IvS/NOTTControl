@@ -1839,7 +1839,11 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
 /// \param ptUserData The user-set structure containing the hardware parameters
 std::vector<std::string> getFileNames(MACIE_Settings *ptUserData)
 {
+    // Ensure at least one filename when saving; uiNumSaves can still be 0 if
+    // acquire runs before exposure settings were applied to ptUserData.
     uint nfiles = ptUserData->uiNumSaves;
+    if (nfiles < 1)
+        nfiles = 1;
     string strDir = ptUserData->saveDir;
     string strPre = ptUserData->filePrefix;
     uint fnum = getFileNumStart(ptUserData);
@@ -2062,6 +2066,15 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     int ifile = 0;
     int nwritten = 0;
     bool write_failed = false;
+    bool download_failed = false;
+
+    if (filenames.empty() && ptUserData->bSaveData)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "No FITS output names generated (saveDir='%s' prefix='%s').\n",
+                       ptUserData->saveDir.c_str(), ptUserData->filePrefix.c_str());
+        write_failed = true;
+    }
 
     // Flag indicating buffer is getting too full
     bool buff_flag = false;
@@ -2069,7 +2082,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     uint nbytes_req = uint(rampsize) * uint(nramps);
 
     t0 = get_timestamp();
-    for (int ii = 0; ii < nramps; ++ii)
+    for (int ii = 0; ii < nramps && !write_failed; ++ii)
     {
 
         // Testing of Halt Acquisition
@@ -2095,7 +2108,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Failed download on ramp %i of %i.\n", ii + 1, nramps);
             verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
-            write_failed = true;
+            download_failed = true;
             break;
         }
         t = get_timestamp() - t;
@@ -2117,8 +2130,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 if (ifile >= (int)filenames.size())
                 {
                     verbose_printf(LOG_ERROR, ptUserData,
-                                   "No FITS filename left for ramp %i (uiNumSaves=%u).\n",
-                                   ii + 1, ptUserData->uiNumSaves);
+                                   "No FITS filename left for ramp %i (uiNumSaves=%u, names=%zu).\n",
+                                   ii + 1, ptUserData->uiNumSaves, filenames.size());
                     write_failed = true;
                     break;
                 }
@@ -2248,6 +2261,13 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     else
         verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
 
+    if (download_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished with download failure (%i FITS file(s) written).\n",
+                       nwritten);
+        return false;
+    }
     if (ptUserData->bSaveData && write_failed)
     {
         verbose_printf(LOG_ERROR, ptUserData,
@@ -2258,7 +2278,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     if (ptUserData->bSaveData && nwritten == 0)
     {
         verbose_printf(LOG_ERROR, ptUserData,
-                       "Acquisition finished but no FITS files were written.\n");
+                       "Acquisition finished but no FITS files were written "
+                       "(bSaveData=%i nramps=%i uiNumSaves=%u names=%zu).\n",
+                       (int)ptUserData->bSaveData, nramps, ptUserData->uiNumSaves,
+                       filenames.size());
         return false;
     }
 
@@ -2645,51 +2668,43 @@ bool WriteFITSRamp(void *pData, vector<long> naxis, int bitpix, string filename)
 
     int status = 0;
 
+    // CFITSIO: prefix "!" to overwrite if the file already exists.
+    string create_path = string("!") + filename;
+
     // create new FITS file
-    if (fits_create_file(&poutfits, filename.c_str(), &status))
+    if (fits_create_file(&poutfits, create_path.c_str(), &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_create_file()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_create_file(%s)\n", filename.c_str());
+        fits_report_error(stderr, status);
+        return false;
     }
 
     // Write the required keywords for the primary array image
     if (fits_create_img(poutfits, bitpix, naxes, &naxis[0], &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_create_img()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_create_img()\n");
+        fits_report_error(stderr, status);
+        fits_close_file(poutfits, &status);
+        return false;
     }
 
     // Write data array to the FITS file
     if (fits_write_img(poutfits, datatype, 1, npix, pData, &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_write_img()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_write_img()\n");
+        fits_report_error(stderr, status);
+        fits_close_file(poutfits, &status);
+        return false;
     }
 
     // Add header keywords
 
     // Close FITS file
     if (fits_close_file(poutfits, &status))
-        ;
     {
-        if (status)
-        {
-            printf("Failed at fits_close_file()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_close_file()\n");
+        fits_report_error(stderr, status);
+        return false;
     }
 
     return true;
