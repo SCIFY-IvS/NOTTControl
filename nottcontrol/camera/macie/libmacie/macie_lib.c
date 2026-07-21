@@ -4096,15 +4096,22 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Vertical-only window = burst stripe (full width, parallel outputs).
     // Do NOT fall back to WinMode: that forces 1-output readout and can hang
     // reconfigure for full-width geometries (e.g. SC 1024).
+    // Without verified StripeReads* addresses, refuse SC rather than writing
+    // speculative ASIC regs (that previously caused 0-byte GigE downloads).
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        ASIC_STRIPEMode(ptUserData, true, true);
         if (!ptUserData->bStripeModeAllowed || RegMap.count("StripeReads1") == 0)
         {
-            verbose_printf(LOG_WARNING, ptUserData,
-                           "%s(): SC/stripe needs StripeAllowed and StripeReads* in ASICRegs (%s).\n",
+            verbose_printf(LOG_ERROR, ptUserData,
+                           "%s(): SC/stripe unavailable — need StripeAllowed + StripeReads* "
+                           "in ASICRegs (%s). Use Full Frame until a verified map exists.\n",
                            __func__, ptUserData->ASICRegs);
+            ASIC_STRIPEMode(ptUserData, true, false);
+            ASIC_WinVert(ptUserData, true, 0);
+            ASIC_WinHorz(ptUserData, true, 0);
+            return false;
         }
+        ASIC_STRIPEMode(ptUserData, true, true);
     }
     else
     {
