@@ -1762,38 +1762,75 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
                        "Cannot create/open saveDir '%s' (errno=%d). "
                        "Check path and permissions.\n",
                        strDir.c_str(), errno);
-        return 0;
+        return ptUserData->uiFileNum;
     }
 
-    // Go through files in save directory to find last written file number
+    // Go through files in save directory to find last written file number.
+    // Expect ramp names like nott_YYYYMMDD_000018.fits (6-digit counter before .fits).
+    // Skip derived *_science.fits products from the GUI.
     DIR *dir = opendir(strDir.c_str());
     if (dir == NULL)
     {
         verbose_printf(LOG_ERROR, ptUserData,
-                       "opendir('%s') failed (errno=%d); starting file index at 0.\n",
-                       strDir.c_str(), errno);
-        return 0;
+                       "opendir('%s') failed (errno=%d); using in-memory index %u.\n",
+                       strDir.c_str(), errno, ptUserData->uiFileNum);
+        return ptUserData->uiFileNum;
     }
 
     struct dirent *ent;
-    uint val;
     uint max_val = 0;
-    string s, sub;
+    string s;
     while ((ent = readdir(dir)) != NULL)
     {
         s = string(ent->d_name);
-        if ((s.rfind(".fits") != string::npos) && (s.size() > 6))
+        if (s.size() < 12)
+            continue;
+
+        // Case-insensitive .fits suffix
+        string lower = s;
+        for (size_t i = 0; i < lower.size(); ++i)
+            lower[i] = (char)tolower((unsigned char)lower[i]);
+        if (lower.size() < 5 || lower.compare(lower.size() - 5, 5, ".fits") != 0)
+            continue;
+        if (lower.size() >= 14 &&
+            lower.compare(lower.size() - 14, 14, "_science.fits") == 0)
+            continue;
+
+        // Require _NNNNNN.fits at the end (6 digits).
+        size_t dot = s.rfind('.');
+        if (dot == string::npos || dot < 7)
+            continue;
+        size_t under = s.rfind('_', dot - 1);
+        if (under == string::npos || dot < under + 7)
+            continue;
+        if (dot - under - 1 != 6)
+            continue;
+
+        bool digits = true;
+        unsigned int val = 0;
+        for (size_t i = under + 1; i < dot; ++i)
         {
-            size_t pos = s.rfind("_");
-            if (pos == string::npos)
-                continue;
-            sub = s.substr(pos + 1, 6);
-            val = atoi(sub.c_str());
-            if (val >= max_val)
-                max_val = val + 1;
+            if (!isdigit((unsigned char)s[i]))
+            {
+                digits = false;
+                break;
+            }
+            val = val * 10u + (unsigned int)(s[i] - '0');
         }
+        if (!digits)
+            continue;
+        if (val + 1 > max_val)
+            max_val = val + 1;
     }
     closedir(dir);
+
+    // Never go backwards relative to the in-memory high-water mark (avoids
+    // reusing a name when directory listing is stale or a prior write failed).
+    if (ptUserData->uiFileNum > max_val)
+        max_val = ptUserData->uiFileNum;
+
+    verbose_printf(LOG_INFO, ptUserData,
+                   "Next FITS file index in %s: %06u\n", strDir.c_str(), max_val);
     return max_val;
 }
 
@@ -1811,16 +1848,27 @@ std::vector<std::string> getFileNames(MACIE_Settings *ptUserData)
 
     string name = "";
     std::vector<std::string> names; // Empty on creation
-    // printf("nfiles: %i\n", nfiles);
     for (uint i = 0; i < nfiles; ++i)
     {
-        ss.str("");
-        ss << std::setw(6) << std::setfill('0') << fnum;
-        name = strDir + strPre + ss.str() + ".fits";
+        // Skip names that already exist so CFITSIO create never collides.
+        for (;;)
+        {
+            ss.str("");
+            ss.clear();
+            ss << std::setw(6) << std::setfill('0') << fnum;
+            name = strDir + strPre + ss.str() + ".fits";
+            struct stat st;
+            if (stat(name.c_str(), &st) != 0)
+                break;
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "FITS %s already exists — bumping index.\n", name.c_str());
+            fnum++;
+        }
         names.push_back(name);
-        // verbose_printf(LOG_INFO, ptUserData, " filename: %s\n", names[i].c_str());
         fnum++;
     }
+    // Persist next free index for subsequent acquires.
+    ptUserData->uiFileNum = fnum;
     return names;
 }
 
@@ -2012,6 +2060,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     int coadd_cnt = 0;
     int ifile = 0;
+    int nwritten = 0;
+    bool write_failed = false;
 
     // Flag indicating buffer is getting too full
     bool buff_flag = false;
@@ -2045,6 +2095,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Failed download on ramp %i of %i.\n", ii + 1, nramps);
             verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+            write_failed = true;
             break;
         }
         t = get_timestamp() - t;
@@ -2063,12 +2114,21 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             if (ptUserData->bSaveData)
             {
+                if (ifile >= (int)filenames.size())
+                {
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "No FITS filename left for ramp %i (uiNumSaves=%u).\n",
+                                   ii + 1, ptUserData->uiNumSaves);
+                    write_failed = true;
+                    break;
+                }
                 verbose_printf(LOG_INFO, ptUserData, "Writing: %s\n", filenames[ifile].c_str());
                 t = get_timestamp();
                 if (WriteFITSRamp(pData, naxis, USHORT_IMG, filenames[ifile]) == false)
                 {
                     verbose_printf(LOG_ERROR, ptUserData, "Failed to write FITS (16-bit) at %s\n", __func__);
                     verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+                    write_failed = true;
                     break;
                 }
                 t = get_timestamp() - t;
@@ -2076,6 +2136,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 verbose_printf(LOG_INFO, ptUserData, "  Time to write FITS file: %f seconds\n\n", time_taken);
                 // Increment file name index
                 ifile++;
+                nwritten++;
             }
         }
         // Otherwise add pData to 32-bit coadder
@@ -2107,6 +2168,14 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
                 if (ptUserData->bSaveData)
                 {
+                    if (ifile >= (int)filenames.size())
+                    {
+                        verbose_printf(LOG_ERROR, ptUserData,
+                                       "No FITS filename left for coadd product (uiNumSaves=%u).\n",
+                                       ptUserData->uiNumSaves);
+                        write_failed = true;
+                        break;
+                    }
                     // Save FITS files
                     verbose_printf(LOG_INFO, ptUserData, "Writing: %s\n", filenames[ifile].c_str());
                     t = get_timestamp();
@@ -2114,6 +2183,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     {
                         verbose_printf(LOG_ERROR, ptUserData, "Failed to write FITS (32-bit) at %s\n", __func__);
                         verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+                        write_failed = true;
                         break;
                     }
                     t = get_timestamp() - t;
@@ -2121,6 +2191,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     verbose_printf(LOG_INFO, ptUserData, "  Time to write FITS file: %f seconds\n\n", time_taken);
                     // Increment file name index
                     ifile++;
+                    nwritten++;
                 }
 
                 // Reset pRampBuffer to 0s
@@ -2176,7 +2247,20 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     }
     else
         verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
-    // Do this again??
+
+    if (ptUserData->bSaveData && write_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished with FITS write failure (%i file(s) written).\n",
+                       nwritten);
+        return false;
+    }
+    if (ptUserData->bSaveData && nwritten == 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished but no FITS files were written.\n");
+        return false;
+    }
 
     return true;
 }
