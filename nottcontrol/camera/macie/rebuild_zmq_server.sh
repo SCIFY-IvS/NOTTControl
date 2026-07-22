@@ -1,18 +1,24 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Rebuild libmacie + zmq_server (clean + make).
 # Run on nott-server from anywhere:
 #   ./nottcontrol/camera/macie/rebuild_zmq_server.sh
+#   # or: sh nottcontrol/camera/macie/rebuild_zmq_server.sh
 #
 # After building, restart zmq_server from the macie directory:
 #   cd nottcontrol/camera/macie && ./macie_exe/zmq_server
 
-set -euo pipefail
+set -eu
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 LIBMACIE="${ROOT}/libmacie"
 MACIE_EXE="${ROOT}/macie_exe"
 
-export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/usr/local/lib/macie_lib"
+if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+  LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib/macie_lib"
+else
+  LD_LIBRARY_PATH="/usr/local/lib/macie_lib"
+fi
+export LD_LIBRARY_PATH
 
 echo "==> Cleaning and building libmacie in ${LIBMACIE}"
 make -C "${LIBMACIE}" clean
