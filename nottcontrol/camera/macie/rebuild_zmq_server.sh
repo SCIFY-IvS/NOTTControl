@@ -13,12 +13,9 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 LIBMACIE="${ROOT}/libmacie"
 MACIE_EXE="${ROOT}/macie_exe"
 
-if [ -n "${LD_LIBRARY_PATH:-}" ]; then
-  LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib/macie_lib"
-else
-  LD_LIBRARY_PATH="/usr/local/lib/macie_lib"
-fi
-export LD_LIBRARY_PATH
+# Match the usual nott-server setup (empty prefix is fine if unset).
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/macie_lib
 
 echo "==> Cleaning and building libmacie in ${LIBMACIE}"
 make -C "${LIBMACIE}" clean
