@@ -4093,25 +4093,40 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Vertical-only window = burst stripe (full width, parallel outputs).
-    // Do NOT fall back to WinMode: that forces 1-output readout and can hang
-    // reconfigure for full-width geometries (e.g. SC 1024).
-    // Without verified StripeReads* addresses, refuse SC rather than writing
-    // speculative ASIC regs (that previously caused 0-byte GigE downloads).
+    // Vertical-only window = burst stripe when the microcode exposes it.
+    // HxRG_Teledyne / HxRG_Main have no verified StripeReads* map (writing
+    // speculative 0x4024/0x4300 addresses caused 0-byte downloads / reconfigure
+    // hangs). Fall back to WinMode so Y1/Y2 are honored (single-output window).
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        if (!ptUserData->bStripeModeAllowed || RegMap.count("StripeReads1") == 0)
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
-            verbose_printf(LOG_ERROR, ptUserData,
-                           "%s(): SC/stripe unavailable — need StripeAllowed + StripeReads* "
-                           "in ASICRegs (%s). Use Full Frame until a verified map exists.\n",
-                           __func__, ptUserData->ASICRegs);
-            ASIC_STRIPEMode(ptUserData, true, false);
-            ASIC_WinVert(ptUserData, true, 0);
-            ASIC_WinHorz(ptUserData, true, 0);
-            return false;
+            ASIC_STRIPEMode(ptUserData, true, true);
         }
-        ASIC_STRIPEMode(ptUserData, true, true);
+        else
+        {
+            ptUserData->bStripeMode = false;
+            if (RegMap.count("HorzWinMode") > 0)
+                ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
+            if (RegMap.count("VertWinMode") > 0)
+                ASIC_Generic(ptUserData, "VertWinMode", true, 1);
+            else if (RegMap.count("WinMode") > 0)
+            {
+                ASIC_Generic(ptUserData, "WinMode", true, 1);
+                verbose_printf(LOG_WARNING, ptUserData,
+                               "%s(): SC via WinMode (no StripeReads* in %s); "
+                               "single-output window, not burst stripe.\n",
+                               __func__, ptUserData->ASICRegs);
+            }
+            else
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "%s(): Vertical window requested but no "
+                               "StripeReads*/WinMode/VertWinMode in %s.\n",
+                               __func__, ptUserData->ASICRegs);
+                return false;
+            }
+        }
     }
     else
     {
