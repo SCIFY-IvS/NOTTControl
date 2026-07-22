@@ -4613,10 +4613,11 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     unsigned int y2 = ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
-    // Idle / full-span: not in stripe mode, no counters, or Y covers the array
+    // Idle / full-span: not in stripe mode, no counters, or Y covers the array.
+    // If StripeReads* are not in RegMap, do not touch ASIC registers at all.
     if ((ASIC_STRIPEMode(ptUserData, false, 0) == 0) || (RegMap.count("StripeReads1") == 0) || ((y1 < 4) && (y2 > ydet - 5)))
     {
-        if (bSet)
+        if (bSet && RegMap.count("StripeReads1") > 0)
             burst_stripe_write_ffidle(ptUserData);
 
         *ypix = ny;
