@@ -4093,15 +4093,16 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Vertical-only window = burst stripe when the microcode exposes it.
-    // HxRG_Teledyne / HxRG_Main have no verified StripeReads* map (writing
-    // speculative 0x4024/0x4300 addresses caused 0-byte downloads / reconfigure
-    // hangs). Fall back to WinMode so Y1/Y2 are honored (single-output window).
+    // Vertical-only window = burst stripe when the microcode exposes it
+    // (centered SC via Read/Skip counters, keeps parallel outputs).
+    // Otherwise fall back to WinMode (single-output, much slower).
     if ((bVertWin == true) && (bHorzWin == false))
     {
         if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): SC via burst stripe (parallel outputs).\n", __func__);
         }
         else
         {
@@ -4245,6 +4246,9 @@ extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool
 // If these parameters don't exist, then return detector limits.
 // If not in window mode, then return detector limits.
 
+// Full-frame idle for burst-stripe counters (defined with ypix_burst_stripe).
+static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData);
+
 // Set/get STRIPE mode
 bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
 {
@@ -4283,15 +4287,8 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
-            // Turn off any burst Striping
-            if (RegMap.count("StripeReads1") > 0)
-                ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-            if (RegMap.count("StripeReads2") > 0)
-                ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-            if (RegMap.count("StripeSkips1") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-            if (RegMap.count("StripeSkips2") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
+            // Restore full-frame stripe counters (not zeros — see burst_stripe_write_ffidle)
+            burst_stripe_write_ffidle(ptUserData);
         }
     }
     else // Or simply get current state
@@ -4580,27 +4577,30 @@ unsigned int ASIC_setY2(MACIE_Settings *ptUserData, unsigned int val)
     return ASIC_Generic(ptUserData, addr_name, true, val);
 }
 
+// Full-frame idle for HxRG burst-stripe counters (MCD data table → 4024…).
+// Never write Reads*=0: that produced 0-byte GigE downloads on this microcode.
+static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData)
+{
+    map<string, regInfo> &RegMap = ptUserData->RegMap;
+    if (RegMap.count("StripeReads1") == 0)
+        return;
+
+    unsigned int ydet = ptUserData->uiDetectorHeight;
+    ASIC_Generic(ptUserData, "StripeReads1", true, ydet);
+    if (RegMap.count("StripeSkips1") > 0)
+        ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
+    if (RegMap.count("StripeReads2") > 0)
+        ASIC_Generic(ptUserData, "StripeReads2", true, 0);
+    if (RegMap.count("StripeSkips2") > 0)
+        ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
+    if (RegMap.count("RowReads") > 0)
+        ASIC_Generic(ptUserData, "RowReads", true, ydet);
+}
+
 // Call this function to set burst mode to full frame for idling purposes (after acquisition)
 void burst_stripe_set_ffidle(MACIE_Settings *ptUserData)
 {
-
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
-    unsigned int ydet = ptUserData->uiDetectorHeight;
-    unsigned int ypix = 0;
-    // If burst stripe mode is enabled,
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
-        if (RegMap.count("StripeReads1") > 0)
-            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-        if (RegMap.count("StripeReads2") > 0)
-            ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-        if (RegMap.count("StripeSkips1") > 0)
-            ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-        if (RegMap.count("StripeSkips2") > 0)
-            ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-        if (RegMap.count("RowReads") > 0)
-            ASIC_Generic(ptUserData, "RowReads", true, ydet);
-    }
+    burst_stripe_write_ffidle(ptUserData);
 }
 
 // Returns true if running Burst Stripe Mode, otherwise false
@@ -4613,24 +4613,11 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     unsigned int y2 = ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
-    // Set all to 0 if Stripe Mode is disabled or burst striping is not existent
-    // or y1 and y2 cover the entire active region
+    // Idle / full-span: not in stripe mode, no counters, or Y covers the array
     if ((ASIC_STRIPEMode(ptUserData, false, 0) == 0) || (RegMap.count("StripeReads1") == 0) || ((y1 < 4) && (y2 > ydet - 5)))
     {
-        // Turn off any burst Striping
         if (bSet)
-        {
-            if (RegMap.count("StripeReads1") > 0)
-                ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-            if (RegMap.count("StripeReads2") > 0)
-                ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-            if (RegMap.count("StripeSkips1") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-            if (RegMap.count("StripeSkips2") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            if (RegMap.count("RowReads") > 0)
-                ASIC_Generic(ptUserData, "RowReads", true, ydet);
-        }
+            burst_stripe_write_ffidle(ptUserData);
 
         *ypix = ny;
         return false;
