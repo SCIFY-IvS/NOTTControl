@@ -99,7 +99,7 @@ empty_temp					: FB_METIS_TEMPERATURE;
 	t_detector_vote:		FB_METIS_TEMPERATURE;
 
 	// System temperatures   (* 3 *)
-	// Master temperature to estimate overall temperature of the cryostat  
+	// Legacy system-temperature channels; not used for cryostat state estimation.
 	{attribute 'OPC.UA.DA' := '1'}
 	{attribute 'TcHmiSymbol.Show'}
 	t_master                 	:FB_METIS_TEMPERATURE;
@@ -282,7 +282,7 @@ END_VAR
         <ST><![CDATA[M_IsIgnoredTemperature := FALSE;
 
 // Loop through ignore list
-FOR i := 1 TO 5 DO
+FOR i := 1 TO 11 DO
     IF all_temperatures[index]^.in_sName = IgnoreList[i] THEN
         M_IsIgnoredTemperature := TRUE;
         RETURN; // Exit early once a match is found
@@ -410,7 +410,7 @@ t_detector_spare	(in_sName:='t_detector_spare', in_eType := E_METIS_SENSOR_TYPE.
 t_detector_vote     (in_sName:='t_detector_vote',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
 
 // System temperatures   (* 3 *)
-// Master temperature to estimate overall temperature of the cryostat  
+// Legacy system-temperature channels; not used for cryostat state estimation.
 
 t_master       		(in_sName:='t_master',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);
 t_master_vot_1 		(in_sName:='t_master_vot_1',  in_eType := E_METIS_SENSOR_TYPE.TEMPERATURE, in_eSource := E_METIS_SENSOR_SOURCE.VOTER, in_nRampPeriodSec:= 10, in_lrFaultRamp:= 10);

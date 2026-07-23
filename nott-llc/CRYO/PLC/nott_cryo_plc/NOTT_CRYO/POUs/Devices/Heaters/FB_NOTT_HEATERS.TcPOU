@@ -28,8 +28,8 @@ VAR
     h_photonic_chip:            	FB_METIS_HEATER;  
 
 // // Flat Field
-// 	{attribute 'TcHmiSymbol.Show'}
-//     h_flat_field:            	FB_METIS_HEATER; 
+	{attribute 'TcHmiSymbol.Show'}
+    h_flat_field:            	FB_METIS_HEATER; 
 
 // Base Plate
 	{attribute 'TcHmiSymbol.Show'}
@@ -64,6 +64,7 @@ h_detector(
     in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.EL95X1,
     in_sAutoSetpointSource  := tctrl.tc_detector.in_sName,
     in_lrAutoSetpointValue  := tctrl.tc_detector.stat.lrControllerOut);
+	
 h_detector_spare(
     in_sName                := 'Detector Spare HTR',
     in_lrHeaterResistance   := 75,
@@ -111,7 +112,16 @@ h_shield(
     in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.CPAU60,
     in_sAutoSetpointSource  := tctrl.tc_shields.in_sName,
     in_lrAutoSetpointValue  := tctrl.tc_shields.stat.lrControllerOut);	
-	
+
+// Flat Field
+
+h_flat_field(
+    in_sName                := 'Flat Field HTR',
+    in_lrHeaterResistance   := 100,
+    in_lrHeaterMaxPower     := 0.48,
+    in_eHeaterType          := E_METIS_CRYO_HEATER_TYPE.FLAT_FIELD,
+    in_sAutoSetpointSource  := tctrl.tc_flatfield.in_sName,
+    in_lrAutoSetpointValue  := tctrl.tc_flatfield.stat.lrControllerOut);	
 	]]></ST>
       </Implementation>
     </Method>

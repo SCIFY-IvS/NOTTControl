@@ -9,7 +9,7 @@
     "CACHEMAXAGE": "P30D",
     "CACHEMAXENTRYSIZE": 1048576,
     "CACHEMAXSIZE": 2097152,
-    "CERTIFICATE": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVDVENDQXZHZ0F3SUJBZ0lKQU5pQ1FPMllWbzVzTUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZd056RXdNRGN6TWpJeVdoZ1BNakEyTkRFeE1EY3dOek15Ck1qSmFNRU14Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKRnpBVkJnTlZCQU1NRGtaWlV5MU1MV2wyY3kwd01EQTNNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QQpNSUlCQ2dLQ0FRRUFub3BtODZ6Z0dLUTZmUEhXVTR1VDV6ZVJrdStLYXpJTEQzQXFqSm9FOGE5c3ZQc2xVVVlUCkhOV0NETGl3dE9zNEVGM0pjcUc0aWw3TnR0K1gxQWYzdjN2L2c2b251YzRrT2NuTGdHVHNHaFhid3YxVityOFIKaHorNDkydzdKZytUWFdxeW9ocWdOVXlRQjVyRWlqZEIxTEVIdi8veFowSFdna0RMUXZ6VXRYazlwNWg5UFNMRgpnNGdDY3M1czZuMWRQT1h3N2plU0ZaQy8rVmw4bllaNmRMbUJzWmUwUnQ5VFZ0anFVd2ZqcEZMRHgxbjRrdGN3CnJ5cFk1MEdSU0xiUzJoMEwwWm10R25XQXZERnVFMER3akNNU2psK3ZwRGJXWjBxN0xMYzZ6ekNMUmdPc1pvNjUKd0lTTXo1cnlQTWNMV0N1K2hESEZkNGNwVUpUQmo0QXBDUUlEQVFBQm80SDRNSUgxTUlHVUJnTlZIUkVFZ1l3dwpnWW1DQ1d4dlkyRnNhRzl6ZEljRWZ3QUFBWWNRQUFBQUFBQUFBQUFBQUFBQUFBQUFBWUlPUmxsVExVd3RhWFp6CkxUQXdNRGVDSkVaWlV5MU1MV2wyY3kwd01EQTNMa1paVTBGRUxrWlpVeTVMVlV4RlZWWkZUaTVDUlljRUNpR3oKZlljRXJCYm1YNGNRL29BQUFBQUFBQUJKYTlzb0FiNDhCb2NRL29BQUFBQUFBQUJLRmptTXAvMGVBekFkQmdOVgpIUTRFRmdRVU0zQ0QxODdoR09WSFFJSEJDMlBXNW11QXpOZ3dId1lEVlIwakJCZ3dGb0FVZEpzUUQwV0xSZXQ4ClNNSkFIdUtDT1VrbXdlc3dEQVlEVlIwVEFRSC9CQUl3QURBT0JnTlZIUThCQWY4RUJBTUNCYUF3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFKcUVBRmVqekJCcG1tenY0aFRqMjVGNVBKSnVwd2lxeXJ1RVZob3JzZjJFMTBlTgpOOW0yZ2dTZ2h3cHZLRTZINytsRzliYVFFd2ZOV0tnTldlVnVsQXJUVHdHWGsxWFJTaUR5bVBxZ2N1aTBtU2ttCkt3d044bEZrRE1xK2NuSERzbEhmRmZXTGdrelNuY3dFV3Y3OGs3RlhtZkJLNEttV3BBdUFXeTYwZFRXcUZZVDQKMW9sci81S01QTTJvcDMyalVrTnZFbjNzNGNJaElkV01ZU1VWOFR0RXlIUlRkTGZBMGtxVkl6cWphSWxaSTV1UQpxbDVUZit0RUxWeGxnblEvWmJLdW9WWE9pK3B0V2RnS3dIMWs0STczcmlScGtYOHVXcVJ4VHJFNGJ0RFFxdWFmCjdCTmJPUS9DWklMMWRZdzN0Uk1ZRUJDcit1Sm5nd3owdXlPOWdmZz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJRUVUQ0NBdm1nQXdJQkFnSUpBT3B6cVBNMDJPaHlNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1FZ3hDekFKQmdOVgpCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXhIREFhQmdOVkJBTU1FMFpaClV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd0lCY05Nall3TmpJeU1UY3lORFF3V2hnUE1qQTJOREV3TWpBeE56STAKTkRCYU1FZ3hDekFKQmdOVkJBWVRBa1JGTVJzd0dRWURWUVFLREJKVWQybHVRMEZVSUVoTlNTQlRaWEoyWlhJeApIREFhQmdOVkJBTU1FMFpaVXkxTUxXbDJjeTB3TURBM1gzSnZiM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBCkE0SUJEd0F3Z2dFS0FvSUJBUUMvbkhCTzlZMjFDcHBqL081OHdXMUNSZXRZVStQZE5McFcySVhKQkVSdmw3UkUKbE1PT2g5d3drSFNhK0Q4MWR1TTJOeUQzSEFVYVlYbjhPMVRXQUdSb2t6QUFiYzFBa05MM1JBUGxWVnZEOFZFNAprVXQ0bUVFWFllQWNjZzdiQm4vWE92S3oyV3k0MlBTNm5Fb2ZXOHlaU3ZSQXJuYTYvcXFFS2lTY1BLWkZyMGFjCjFsWHhDV1RZRUJqZGdwM3k4c0JkaVJVQWt2b3dTdGs3aVpSTkh4NUpKWlduTDJYNTVod3NJcmUyZWlJZGxmSlQKMXdpSkRuSERLL1pVSTY2YUp0YTl1TFJaSlJ2Q0NoTUxzSE5FRGlVUlZMOVdrbDIvWVNwNTJyK2FXbXE5YmRzdAptUWtYQ0I0Vk0yVk5NYXJ0dXF0bXMyVjNsNkVKYXRaSVBxcDBTNitMQWdNQkFBR2pnZnN3Z2Znd2daUUdBMVVkCkVRU0JqRENCaVlJSmJHOWpZV3hvYjNOMGh3Ui9BQUFCaHhBQUFBQUFBQUFBQUFBQUFBQUFBQUFCZ2c1R1dWTXQKVEMxcGRuTXRNREF3TjRJa1JsbFRMVXd0YVhaekxUQXdNRGN1UmxsVFFVUXVSbGxUTGt0VlRFVlZWa1ZPTGtKRgpod1FLSWJOS2h3U3NGdVpmaHhEK2dBQUFBQUFBQUVscjJ5Z0J2andHaHhEK2dBQUFBQUFBQUVvV09ZeW4vUjRECk1CMEdBMVVkRGdRV0JCUjBteEFQUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFmQmdOVkhTTUVHREFXZ0JSMG14QVAKUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTRHQTFVZER3RUIvd1FFQXdJQgpCakFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBdmJ4bm82RnFxRVRXQkNXUE5ycnhiUWVLQjRhL3ozNWR0cVRyCjA0cTBrNXlhMjRVR21uS1ZnWnpXWU5aaTVaK1BOaTA4Ymx2NWdFclBaTjlYcTFjbDZKbnVmK1lmd2ErQ0dvUWYKcCtlTkUvc2lyNUxUaVJZc0hYSHhJaHpFUW80b1JieHc5UnBrN3pqbi9wSkZrUjJqS3RQWTJnUURMVkJ6ODc0RQpsNDZlN1BLZjF0Z045RzJoZnlpOTQ1YnllRjdhZG1MRnk0RTFDYVBiZ3pjb3BCWHVKM0tDT2R2eFRDWmxITEtmCnNqa1RmZTdHYVdjcmFxWXI5RWt4RmFPTTNyZHRuUktiMllvMVlDRFhZSUROM2xCMm42a3dqU08rRzV0M291dkcKMVNIK1l6MjN5c2dtdXNMUE05dTd3UXpUdHp0MEZVdWtZU3p1cWcwN1c0VnZ2dzFyQVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+    "CERTIFICATE": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVDVENDQXZHZ0F3SUJBZ0lKQUlsckdnamtvYXpKTUEwR0NTcUdTSWIzRFFFQkN3VUFNRWd4Q3pBSkJnTlYKQkFZVEFrUkZNUnN3R1FZRFZRUUtEQkpVZDJsdVEwRlVJRWhOU1NCVFpYSjJaWEl4SERBYUJnTlZCQU1NRTBaWgpVeTFNTFdsMmN5MHdNREEzWDNKdmIzUXdJQmNOTWpZd056SXhNRGd4TXpRd1doZ1BNakEyTkRFeE1UZ3dPREV6Ck5EQmFNRU14Q3pBSkJnTlZCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXgKRnpBVkJnTlZCQU1NRGtaWlV5MU1MV2wyY3kwd01EQTNNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QQpNSUlCQ2dLQ0FRRUFtUUcvaDZOYncxeVk0alNNNjVrN1krOGxEZHVHL25SYVc3a3BiMTZIR2pTd2hmNkFPaGpHCmszR0d3WHJiQWNvZG9LTTlsb2ZuUTd2V0lzcXJYelo5L3dDc2pzaXhmbXcrZXg3Z3dZaVVoWjQwVnhsQktLS2IKR1E5am9BQjdCbzRaNHJFWHIvRTJtR21qQzQ2MHlXYUMwRGViZEhldS9xNDBOcFIvdHQxQ0FXMGJQTGZIS29sSwpvc3BBelhlMDlMaTB3MzNPdmQwbHN3R1QzckdKRXltOTBseUJ6b29mT1dQM3FrRy8va3d6R3RUTi9NamYrS1B3CmIycStOTlNOeGxqdHdYZ1B1aVVkMENqRzBMRjlDRTExMytGYTRyYVJGdTU5NzRLRWI3Q2pDMUxLc2R6NjlmKzgKajhoN0RuRDNkT0pISS9qa0hLT2lDeEF2dHZRRnlvT05id0lEQVFBQm80SDRNSUgxTUlHVUJnTlZIUkVFZ1l3dwpnWW1DQ1d4dlkyRnNhRzl6ZEljRWZ3QUFBWWNRQUFBQUFBQUFBQUFBQUFBQUFBQUFBWUlPUmxsVExVd3RhWFp6CkxUQXdNRGVDSkVaWlV5MU1MV2wyY3kwd01EQTNMa1paVTBGRUxrWlpVeTVMVlV4RlZWWkZUaTVDUlljRUNpR3oKUEljRXJCYm1YNGNRL29BQUFBQUFBQUFieVp6SjBXT3hlNGNRL29BQUFBQUFBQUJLRmptTXAvMGVBekFkQmdOVgpIUTRFRmdRVXg2WEdEY3lOS1pCc3dXNFJsdVVQWDhwQk1JNHdId1lEVlIwakJCZ3dGb0FVZEpzUUQwV0xSZXQ4ClNNSkFIdUtDT1VrbXdlc3dEQVlEVlIwVEFRSC9CQUl3QURBT0JnTlZIUThCQWY4RUJBTUNCYUF3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFMaitPMzZxTk1EQ2NncjY1RkFNL014VUJGeEk3dkM3RzRybTFtcktnMjZBaldnaApWTmJsVXpxK3dyc2xoM21rTGdWUEVaYkVrTHo4MTQxbWNyYjVLb2xZV0VxQytSdHdLNWhKRFFqaVArMVpCblNnCno4alA1R2IySGFzRityWWk5cllxM2w5NUNiY2pTd1JRK0toYnp5QjhiYmhCMjhETCtyS2xCQWJCWk9KTmhZVUgKaEJTUlBJaExvZVQ4RFlpRTNHOXZQYVROWEF0ZVowd1poRGNtUjgzcXlETFN0Tm05c2Ywd2MrRFBuam8xZVhnNwpPRjcwY0ZWTEYyUng4dUltZ0s3L3Y1OW1abW9ZYTBGUmlBMmVIN2U2SjhyMy9DdTRGQWlRdmZkN0pMSC9qOHlzClgzQTN6eG13NEkyOHZyQVZjK0VYMU8vc1o0ZkZxNUNQS3Q1RXYvVT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJRUVUQ0NBdm1nQXdJQkFnSUpBT3B6cVBNMDJPaHlNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1FZ3hDekFKQmdOVgpCQVlUQWtSRk1Sc3dHUVlEVlFRS0RCSlVkMmx1UTBGVUlFaE5TU0JUWlhKMlpYSXhIREFhQmdOVkJBTU1FMFpaClV5MU1MV2wyY3kwd01EQTNYM0p2YjNRd0lCY05Nall3TmpJeU1UY3lORFF3V2hnUE1qQTJOREV3TWpBeE56STAKTkRCYU1FZ3hDekFKQmdOVkJBWVRBa1JGTVJzd0dRWURWUVFLREJKVWQybHVRMEZVSUVoTlNTQlRaWEoyWlhJeApIREFhQmdOVkJBTU1FMFpaVXkxTUxXbDJjeTB3TURBM1gzSnZiM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBCkE0SUJEd0F3Z2dFS0FvSUJBUUMvbkhCTzlZMjFDcHBqL081OHdXMUNSZXRZVStQZE5McFcySVhKQkVSdmw3UkUKbE1PT2g5d3drSFNhK0Q4MWR1TTJOeUQzSEFVYVlYbjhPMVRXQUdSb2t6QUFiYzFBa05MM1JBUGxWVnZEOFZFNAprVXQ0bUVFWFllQWNjZzdiQm4vWE92S3oyV3k0MlBTNm5Fb2ZXOHlaU3ZSQXJuYTYvcXFFS2lTY1BLWkZyMGFjCjFsWHhDV1RZRUJqZGdwM3k4c0JkaVJVQWt2b3dTdGs3aVpSTkh4NUpKWlduTDJYNTVod3NJcmUyZWlJZGxmSlQKMXdpSkRuSERLL1pVSTY2YUp0YTl1TFJaSlJ2Q0NoTUxzSE5FRGlVUlZMOVdrbDIvWVNwNTJyK2FXbXE5YmRzdAptUWtYQ0I0Vk0yVk5NYXJ0dXF0bXMyVjNsNkVKYXRaSVBxcDBTNitMQWdNQkFBR2pnZnN3Z2Znd2daUUdBMVVkCkVRU0JqRENCaVlJSmJHOWpZV3hvYjNOMGh3Ui9BQUFCaHhBQUFBQUFBQUFBQUFBQUFBQUFBQUFCZ2c1R1dWTXQKVEMxcGRuTXRNREF3TjRJa1JsbFRMVXd0YVhaekxUQXdNRGN1UmxsVFFVUXVSbGxUTGt0VlRFVlZWa1ZPTGtKRgpod1FLSWJOS2h3U3NGdVpmaHhEK2dBQUFBQUFBQUVscjJ5Z0J2andHaHhEK2dBQUFBQUFBQUVvV09ZeW4vUjRECk1CMEdBMVVkRGdRV0JCUjBteEFQUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFmQmdOVkhTTUVHREFXZ0JSMG14QVAKUll0RjYzeEl3a0FlNG9JNVNTYkI2ekFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTRHQTFVZER3RUIvd1FFQXdJQgpCakFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBdmJ4bm82RnFxRVRXQkNXUE5ycnhiUWVLQjRhL3ozNWR0cVRyCjA0cTBrNXlhMjRVR21uS1ZnWnpXWU5aaTVaK1BOaTA4Ymx2NWdFclBaTjlYcTFjbDZKbnVmK1lmd2ErQ0dvUWYKcCtlTkUvc2lyNUxUaVJZc0hYSHhJaHpFUW80b1JieHc5UnBrN3pqbi9wSkZrUjJqS3RQWTJnUURMVkJ6ODc0RQpsNDZlN1BLZjF0Z045RzJoZnlpOTQ1YnllRjdhZG1MRnk0RTFDYVBiZ3pjb3BCWHVKM0tDT2R2eFRDWmxITEtmCnNqa1RmZTdHYVdjcmFxWXI5RWt4RmFPTTNyZHRuUktiMllvMVlDRFhZSUROM2xCMm42a3dqU08rRzV0M291dkcKMVNIK1l6MjN5c2dtdXNMUE05dTd3UXpUdHp0MEZVdWtZU3p1cWcwN1c0VnZ2dzFyQVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
     "CERTIFICATEEXPIRATION": "P14000D",
     "CHECKSUMENABLED": true,
     "CHUNKSIZE": 1048576,
@@ -6394,7 +6394,8 @@
                     3,
                     4,
                     5,
-                    6
+                    6,
+                    7
                 ],
                 "options": [
                     {
@@ -6424,6 +6425,10 @@
                     {
                         "label": "EL95X1",
                         "value": 6
+                    },
+                    {
+                        "label": "FLAT_FIELD",
+                        "value": 7
                     }
                 ],
                 "readOnly": true,
@@ -6676,7 +6681,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 26
+                                "propertyOrder": 27
                             }
                         ]
                     },
@@ -6690,7 +6695,7 @@
                                     "OPC.UA.DA": "1",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 16
+                                "propertyOrder": 17
                             }
                         ]
                     },
@@ -6704,7 +6709,7 @@
                                     "OPC.UA.DA": "1",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 15
+                                "propertyOrder": 16
                             }
                         ]
                     },
@@ -6718,7 +6723,7 @@
                                     "OPC.UA.DA": "0",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 17
+                                "propertyOrder": 18
                             }
                         ]
                     },
@@ -6793,7 +6798,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 27
+                                "propertyOrder": 28
                             }
                         ]
                     },
@@ -6806,7 +6811,7 @@
                                 "attributes": {
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 25
+                                "propertyOrder": 26
                             }
                         ]
                     },
@@ -6820,7 +6825,7 @@
                                     "OPC.UA.DA": "1",
                                     "TcHmiSymbol.Show": ""
                                 },
-                                "propertyOrder": 14
+                                "propertyOrder": 15
                             }
                         ]
                     }
@@ -7505,13 +7510,24 @@
                             }
                         ]
                     },
+                    "lrMaxTrackingDifference": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "Maximum permitted difference between ramped SP and process value",
+                                "propertyOrder": 20
+                            }
+                        ]
+                    },
                     "lrRampDownRate": {
                         "allOf": [
                             {
                                 "$ref": "tchmi:general#/definitions/LREAL"
                             },
                             {
-                                "comment": "Ramp down rate in units per second",
+                                "comment": "Ramp down rate in units per min",
                                 "propertyOrder": 11
                             }
                         ]
@@ -7522,7 +7538,7 @@
                                 "$ref": "tchmi:general#/definitions/LREAL"
                             },
                             {
-                                "comment": "Ramp up rate in units per second",
+                                "comment": "Ramp up rate in units per min",
                                 "propertyOrder": 10
                             }
                         ]
@@ -7534,6 +7550,17 @@
                             },
                             {
                                 "propertyOrder": 7
+                            }
+                        ]
+                    },
+                    "lrTargetChangeThreshold": {
+                        "allOf": [
+                            {
+                                "$ref": "tchmi:general#/definitions/LREAL"
+                            },
+                            {
+                                "comment": "A target step larger than this restarts the ramp from the process value",
+                                "propertyOrder": 21
                             }
                         ]
                     },
@@ -23167,8 +23194,8 @@
     "DISABLED_CONFIGURATION_HINTS": [],
     "DISCOVERY": 2,
     "ENDPOINTS": [
-        "http://127.0.0.1:13004",
-        "http://127.0.0.1:3004"
+        "http://127.0.0.1:13005",
+        "http://127.0.0.1:3005"
     ],
     "ETAGENABLED": true,
     "EXTENSIONS": {
@@ -23421,7 +23448,7 @@
     "HTTP_FLOODPROTECTION": 10,
     "INITTIMEOUT": "PT10S",
     "KEEP_ALIVE": "PT40S",
-    "KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQ2VpbWJ6ck9BWXBEcDgKOGRaVGk1UG5ONUdTNzRwck1nc1BjQ3FNbWdUeHIyeTgreVZSUmhNYzFZSU11TEMwNnpnUVhjbHlvYmlLWHMyMgozNWZVQi9lL2UvK0RxaWU1emlRNXljdUFaT3dhRmR2Qy9WWDZ2eEdIUDdqM2JEc21ENU5kYXJLaUdxQTFUSkFICm1zU0tOMEhVc1FlLy8vRm5RZGFDUU10Qy9OUzFlVDJubUgwOUlzV0RpQUp5em16cWZWMDg1ZkR1TjVJVmtMLzUKV1h5ZGhucDB1WUd4bDdSRzMxTlcyT3BUQitPa1VzUEhXZmlTMXpDdktsam5RWkZJdHRMYUhRdlJtYTBhZFlDOApNVzRUUVBDTUl4S09YNitrTnRablNyc3N0enJQTUl0R0E2eG1qcm5BaEl6UG12STh4d3RZSzc2RU1jVjNoeWxRCmxNR1BnQ2tKQWdNQkFBRUNnZ0VBQUpyODFKZUZXRnRISUpFbkRkY25SeXV4cjlIVEtBYjR3d3AydnlIbitJYjMKNXU4L0hyT3F2SjRlUGZQTFp0SkQ3Z0o0Vis3Sm9nVWE3VlhaeUpQRUF4bTNsbGRsTS9sZjBUMTZDUkUzZGlHQgpvMVZpZGtUdmRCRXFvTnVGRlR6S3loS0pDU240bVZEVy83S1JtcUxaaEU2TGJPWUIrcWZtRzRvSFJUYmlPSWN1CnVaOXYzV1BrK21qSlMvWDBkMnp1N3Z4dkRnOGp6OWdyWktYbGFBbVI5a3IwRXVjaWlpZnJ4Y0Q5U0E0YzBMcmsKSjl4OXJHYkRWT1VwYk1VbWxIakZ0VWhNSDMzUWZhMXBJM2VUNGYrNTZaT093ZU80cjdicllCTHorNjhOU1VzZgpYTHA2U2RJdTVEZWtQR1RhbkJVbjN3cHRoSUhSMnNqR0JWWWRVbTcwMlFLQmdRRE9KbmdhMHgvb0NBNm95a1pTCkxtZFFiVDBkL0t2Q294UTYzRzdlcmdYM3ZDMDZBTHpJZ25JYllUR0xwNHZzZWtzbDVXRDRpWERpU3lIaTdJMkEKUGpMcW5Lc1cvVkpzK0lEWExaUllOV1k2U1FIUDZBOGp0T0k3ZktINWUxNWFDZ2s2Tm5TYXhvb1NyUzRMUXprVApFa0NBU0FJRGtqVXJoeDVETld4ZUNRbjRzd0tCZ1FERTRMUjY3NlVRQzFUVGdiNmh0ZUZ5T3ROVngrS01iYnRiCk9WU0kzUXVnZFEzaDlNUnhEOGw5Y05uZGlJSENFTk5LM3Y0Yy9pMjBuMFFrNWUzZ3ZKNVJuS05rTTRxQiszVmwKYTRMaHlsZDJEaEpUVHhVSnQwVGxtSDJaZlNTYWxoYzc3ODdRSUVrMWRzUFZxZEdBWDR3dXFmbXlOdjZ2c0ZqTQp3d3lTK1NiZFV3S0JnQjBsajBHcnJBMHdabkl5OXpKVFlVUWJ6ZEpaa1NkWnkxaHZKalhSd1FJLzF0MG1rWXAvCjl3WXIvY2RURHhPR1R1Mnl1cjBwSVk2OU5MTlM0c2JKQklYclZMMVJYOEFNZXByeDFOR0w2MEkrWkVVeStFRUMKS0NKbEFybTFXYWU5VjRTbGdtTUh3eW5VMW5lOUwycWszLzNETUpXMHJGUFZMTkF2MDN5UUpwckZBb0dBUDFIZAoraVFWUElISWVIWWtMN0psbmUyWmh0OVExOFY3R3EzbnFGVWZwaTIvbDBxMzIzMHVXcS92QWpjak5KMWd0NVhjCnVNcHZQTVowamtGOUxtaTdxcGZzWFEvT25sdVh1RlRKdFlEMGZEMnVXeWoySlRmU2F0Mk9sODBOOXNJTEd2WFgKMkV4cC8wNEJVampaN3FYTVdqM0UxektrMnpDbWZzVEV5SWhsblkwQ2dZRUF3bm5MZDBhbnY1WTVwdEN4VzhPSApraGk5R0lYZGo0YW8vM05mZnIxU0ZQcFYvTjRGaTVyS2dQTlJpcGJibGtsaEZNY2d2aWxyQjdjY1hjQnp6cVFaClFUamsvc05wUk1Jdnh1RGZwT2ZPKzV1SVRFSEw0YkJEcFRzTWZPM3VVVEpGRkE3U05ldUhlMHBBTVk5QW05Sm0KYmJuTCt3UFZRc0srVVExWTdaWXNKODg9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
+    "KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQ1pBYitIbzF2RFhKamkKTkl6cm1UdGo3eVVOMjRiK2RGcGJ1U2x2WG9jYU5MQ0Yvb0E2R01hVGNZYkJldHNCeWgyZ296MldoK2REdTlZaQp5cXRmTm4zL0FLeU95TEYrYkQ1N0h1REJpSlNGbmpSWEdVRW9vcHNaRDJPZ0FIc0dqaG5pc1JldjhUYVlhYU1MCmpyVEpab0xRTjV0MGQ2NytyalEybEgrMjNVSUJiUnM4dDhjcWlVcWl5a0ROZDdUMHVMVERmYzY5M1NXekFaUGUKc1lrVEtiM1NYSUhPaWg4NVkvZXFRYi8rVERNYTFNMzh5Ti80by9CdmFyNDAxSTNHV08zQmVBKzZKUjNRS01iUQpzWDBJVFhYZjRWcml0cEVXN24zdmdvUnZzS01MVXNxeDNQcjEvN3lQeUhzT2NQZDA0a2NqK09RY282SUxFQysyCjlBWEtnNDF2QWdNQkFBRUNnZ0VBQ3BHMlJoQWVpR1RjbFVpK3VkZmEwZ293TGdBN2N3NG1GazZtYmJtQzBnejAKL1lTTGl5V0wrOEpqVTdBQkZuVjhoQU9Ka2FZSzcyV0Fvd2tMRm5uYnpLdEhDVnJMUUk1U1ZTZWhoNk8vMTBQbQpWSzJmL2JTR1hoQkszSzJFOXA4Ry9icVZQUlhqSkZzYWtoZ3F0OWV0dkFsYUxBenN0RTRJY0V4MmMzTVZZNEhlCk5MV0hvcEZVZWh1aW8ySWIyKzVSbEVvWjJLcURPUTVjOHNmMHlObmxQQk1jOXY1Mzl5MklFaEZKeTk3RTVJT3kKaDBaQmE3VEJQVjg3NGhLTlY3R1h0cE04Ukl2UERmaXU2TnNOc2NEUldHNFNSRTRwOUVxRTJyQXAvZXIvNGJFTwpYUjgvM0JxSWE2bmZzUFZZRnlLVlNsMEJWM1duUXFXUHcwdlVZVUE4ZVFLQmdRRExlTU95Y1h5dmF4QjhXQTdYCkxzS1FCczBGblRvSlJpU0M5WTlpa2hZYzhpRkZjWkJCbS9xaGY0U1NhbWVoUGxNUklKNmtTTEtlVFNLM3VjbEYKdWJkL3dnZ2RqY0JHQktUUyt6MDFrd3k4TVplN2l3YmtEUStabmlmUlVUOTVBbGhXQjRyY2VNakFQcThETmwzKwpIN2RPYVhmTXFTaUZCNUU2WHBjS3ZJdlY5d0tCZ1FEQWdjOTVkNGdPeEM2bTJyWHkzQkw0ZkZMc1hNZlhkdG9GCkwxRFQ0SlBHYU9ic2FkWW9UN3pxN01EZ3A0a28rOXlyYnJnWE55MVJhblNEeEdReWEvV09IOGNwT2xRdkJJTGIKUStaak5jcmFJREdJbnZjN1VWQTZPVWVZb3lxWE5DSHZpaU5lMlkrVGE0TGpIVUpyYXJVRy8zd3JHWWREVGV5UgpKaDllZG01R1NRS0JnQXprelRuc21TTWduTDNVY3JST0lVUXhPaUxGOE55UGxsYTZLdWpyS3YyUWxtMHBJaVFXCk4wNnVudjhNUVI3bHJTdmpya25vMVhEVW9JT1dBVndxeGFjUjY2Tzd6TmhqQ1BMWnV1by9ORXBrdGlITFVKZDUKQUdrU3JhRkZEY21rVFdhK09aMTVCZmV3d1RScDZKRG0vNTIzYjBFSDR5cHk3VkFPbUhHMHV3UEhBb0dCQUtkOQpTY0pwR1Z1Zm5PZFhTdzd1SXlOSEorNjJHcm1Ba3RnSC9zOFppZmtLdEQvbEpZc1ZOVTFBaDkvdVpBdmdkbkpCCmRySGNNL1d1SlltdmlXM0ZPSFJiZWJDSkswMXRJMTBhaW95dTlMc3JYMjE2d2FnK2F3cjlZeW1PYlRQNUM3MloKOW9SRHpnTjVldnVYTFg2LzdKa1dHRFozazVRZmJFQXRad1dORFF6aEFvR0FZVUJGVTRhbEQ2QWNURml4cmdWbwpmNUdsQ1pYbTBEWHMrT3ZjdE8ycjVjaFR4SG8xd0lGZnBORVYwdk9xNnBSRXJyM3ViaFM0N3NDV29zM3N5VkZMCitHMFBnb3Nzc1M5K0lCRVJrSnI0OCt1V0tZeWlrQlNMWkU5ek5tL3BqVDc4RS94dncvWGhWd3l6bXZwNXc3UU8KVjhCeDRjSDU4ZkFOaGp4UDIzeXArZzA9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
     "KEYPASSWORD": "",
     "MAXCONNECTIONSPERCLIENT": 32,
     "MAXHTTPHEADERSIZE": 32768,
@@ -23985,7 +24012,7 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "propertyOrder": 14
+                        "propertyOrder": 15
                     }
                 ]
             },
@@ -24005,7 +24032,7 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "propertyOrder": 15
+                        "propertyOrder": 16
                     }
                 ]
             },
@@ -24033,6 +24060,27 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.bAlarm": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cool_down::stat::bAlarm",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 9,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.sStatus": {
             "ACCESS": 1,
             "DOMAIN": "ADS",
@@ -24048,28 +24096,7 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Status as text",
-                        "propertyOrder": 13
-                    }
-                ]
-            },
-            "USEMAPPING": true
-        },
-        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cooler": {
-            "ACCESS": 3,
-            "DOMAIN": "ADS",
-            "DYNAMIC": true,
-            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::cooler",
-            "SCHEMA": {
-                "allOf": [
-                    {
-                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_CRYO_CPA"
-                    },
-                    {
-                        "attributes": {
-                            "TcHmiSymbol.Show": ""
-                        },
-                        "comment": "//////////////////\r\n//////////////////\r\n///////////////////////////////////////////\r\n///////////////////////////////////////////",
-                        "propertyOrder": 8
+                        "propertyOrder": 16
                     }
                 ]
             },
@@ -24157,6 +24184,28 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEmergency": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::evac::bEmergency",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/BOOL"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "Vacuum Emergency",
+                        "propertyOrder": 26,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEvacuationActive": {
             "ACCESS": 1,
             "DOMAIN": "ADS",
@@ -24172,7 +24221,7 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Flag if controller is ACTIVE",
-                        "propertyOrder": 36,
+                        "propertyOrder": 25,
                         "readOnly": true
                     }
                 ]
@@ -24294,7 +24343,7 @@
                         "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_HELIUM_COMPRESSOR"
                     },
                     {
-                        "propertyOrder": 35
+                        "propertyOrder": 43
                     }
                 ]
             },
@@ -24311,7 +24360,7 @@
                         "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_PRESSURE_VOTE"
                     },
                     {
-                        "propertyOrder": 37
+                        "propertyOrder": 45
                     }
                 ]
             },
@@ -24329,7 +24378,7 @@
                     },
                     {
                         "comment": "hmi_lakeshore : FB_HMI_CRYO_LAKESHORE;\r\n \thmi_heater_DetIF : FB_HMI_PDS_CRYO_HEATER;\r\n \thmi_heater_Preamp : FB_HMI_PDS_CRYO_HEATER;\r\n \thmi_heater_ColdPlate : FB_HMI_PDS_CRYO_HEATER;",
-                        "propertyOrder": 36
+                        "propertyOrder": 44
                     }
                 ]
             },
@@ -24346,7 +24395,7 @@
                         "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_PUMP"
                     },
                     {
-                        "propertyOrder": 33
+                        "propertyOrder": 41
                     }
                 ]
             },
@@ -24383,7 +24432,7 @@
                     },
                     {
                         "comment": "// HMI Parameters",
-                        "propertyOrder": 32
+                        "propertyOrder": 40
                     }
                 ]
             },
@@ -24419,7 +24468,7 @@
                         "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.ESO_Cryo_HMI_Library.FB_HMI_CRYO_VALVE"
                     },
                     {
-                        "propertyOrder": 34
+                        "propertyOrder": 42
                     }
                 ]
             },
@@ -24439,8 +24488,8 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "comment": "// Flat Field\r\n \t{attribute 'TcHmiSymbol.Show'}\r\n     h_flat_field:            \tFB_METIS_HEATER; \r\n Base Plate",
-                        "propertyOrder": 6
+                        "comment": "Base Plate",
+                        "propertyOrder": 7
                     }
                 ]
             },
@@ -24488,6 +24537,27 @@
             },
             "USEMAPPING": true
         },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field": {
+            "ACCESS": 3,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::nott_heaters::h_flat_field",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:server#/definitions/ADS-NOTT_CRYO_PLC.METIS_Cryo_PLC.FB_METIS_HEATER"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "comment": "// Flat Field",
+                        "propertyOrder": 6
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
         "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip": {
             "ACCESS": 3,
             "DOMAIN": "ADS",
@@ -24524,7 +24594,7 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Shield",
-                        "propertyOrder": 7
+                        "propertyOrder": 8
                     }
                 ]
             },
@@ -25309,8 +25379,8 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "comment": "Master temperature < cfg.lrTemp_Cold",
-                        "propertyOrder": 14,
+                        "comment": "Detector vote < cfg.lrTemp_Warm and cryostat is in vacuum",
+                        "propertyOrder": 16,
                         "readOnly": true
                     }
                 ]
@@ -25332,7 +25402,7 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Highest temperature Valid flag",
-                        "propertyOrder": 17,
+                        "propertyOrder": 19,
                         "readOnly": true
                     }
                 ]
@@ -25353,8 +25423,8 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "comment": "Master temperature < cfg.lrTemp_OP",
-                        "propertyOrder": 15,
+                        "comment": "Detector/base-plate temperatures and VAGC pressure are operational",
+                        "propertyOrder": 17,
                         "readOnly": true
                     }
                 ]
@@ -25418,7 +25488,7 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Highest temperature [K] in Cryostat",
-                        "propertyOrder": 19,
+                        "propertyOrder": 21,
                         "readOnly": true
                     }
                 ]
@@ -25440,7 +25510,49 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Lowest temperature [K] in Cryostat",
-                        "propertyOrder": 20,
+                        "propertyOrder": 22,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sHighestTempName": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::sHighestTempName",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 24,
+                        "readOnly": true
+                    }
+                ]
+            },
+            "USEMAPPING": true
+        },
+        "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sLowestTempName": {
+            "ACCESS": 1,
+            "DOMAIN": "ADS",
+            "DYNAMIC": true,
+            "MAPPING": "NOTT_CRYO_PLC::MAIN::nott_cryo_ctrl::stat::sLowestTempName",
+            "SCHEMA": {
+                "allOf": [
+                    {
+                        "$ref": "tchmi:general#/definitions/STRING%2880%29"
+                    },
+                    {
+                        "attributes": {
+                            "TcHmiSymbol.Show": ""
+                        },
+                        "propertyOrder": 23,
                         "readOnly": true
                     }
                 ]
@@ -25482,7 +25594,7 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "propertyOrder": 13
+                        "propertyOrder": 14
                     }
                 ]
             },
@@ -25502,7 +25614,7 @@
                         "attributes": {
                             "TcHmiSymbol.Show": ""
                         },
-                        "propertyOrder": 14
+                        "propertyOrder": 15
                     }
                 ]
             },
@@ -25545,7 +25657,7 @@
                             "TcHmiSymbol.Show": ""
                         },
                         "comment": "Status as text",
-                        "propertyOrder": 11
+                        "propertyOrder": 14
                     }
                 ]
             },
@@ -28853,12 +28965,13 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStart": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.bPermitStop": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.bActive": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.bAlarm": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cool_down.stat.sStatus": 3,
-                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.cooler": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_CoolDown": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_Evac": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.ctrl.bEnable_WarmUp": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.VAG1": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEmergency": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bEvacuationActive": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStart": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.evac.bPermitStop": 3,
@@ -28876,6 +28989,7 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_detector": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_shield": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar": 3,
@@ -28921,6 +29035,8 @@
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.bVacuumOK": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.lrHighestTempK": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.lrLowestTempK": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sHighestTempName": 3,
+                "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sLowestTempName": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.stat.sState": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStart": 3,
                 "ADS.NOTT_CRYO_PLC.MAIN.nott_cryo_ctrl.warm_up.bPermitStop": 3,

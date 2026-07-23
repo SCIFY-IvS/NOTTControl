@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_THERMAL_BOX_CONTROL" Id="{3777aa94-f14d-45c1-aecc-afbaee8bf065}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_THERMAL_BOX_CONTROL
+VAR_INPUT
+	in_tCycleTime:	TIME := T#10MS;
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_temps:						FB_NOTT_TEMPERATURES;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_heaters:					FB_NOTT_HEATERS;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_ctrls:      				FB_NOTT_TCTRLs;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_votes: 					FB_NOTT_VOTERS;
+END_VAR
+VAR
+// 	{attribute 'TcHmiSymbol.Show'}
+// 	cfg:	T_NOTT_THERMAL_BOX_CFG;
+// 	{attribute 'TcHmiSymbol.Show'}
+// 	ctrl:	T_NOTT_THERMAL_BOX_CTRL;
+// 	{attribute 'TcHmiSymbol.Show'}
+// 	stat:	T_NOTT_THERMAL_BOX_STAT;
+
+	{attribute 'TcHmiSymbol.Show'}
+	tc_fan:		FB_NOTT_CTRL_TEMPERATURE;
+	{attribute 'TcHmiSymbol.Show'}
+	tc_valve:	FB_NOTT_CTRL_TEMPERATURE;
+	{attribute 'TcHmiSymbol.Show'}
+	fan:		FB_NOTT_FAN;
+	{attribute 'TcHmiSymbol.Show'}
+	valve:		FB_METIS_CONTROL_VALVE;
+
+	bFanAutoReady:		BOOL;
+	bValveAutoReady:	BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_SetDisable" Id="{adfd4f3f-642b-49c9-9a93-89eb05e18a20}">
+      <Declaration><![CDATA[METHOD M_SetDisable
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//ctrl.bEnable := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetEnable" Id="{7063c3f4-c379-4445-abcb-c47129f6e047}">
+      <Declaration><![CDATA[METHOD M_SetEnable
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//ctrl.bEnable := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

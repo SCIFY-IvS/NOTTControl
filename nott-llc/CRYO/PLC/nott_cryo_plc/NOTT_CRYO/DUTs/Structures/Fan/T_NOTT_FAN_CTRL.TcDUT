@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_FAN_CTRL" Id="{f3bd3f7f-d41b-42b6-b23c-8e5933893f72}">
+    <Declaration><![CDATA[TYPE T_NOTT_FAN_CTRL :
+STRUCT
+	{attribute 'TcHmiSymbol.Show'}
+	bEnable:			BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	bAuto:				BOOL := TRUE;
+	{attribute 'TcHmiSymbol.Show'}
+	lrManualDutyPct:	LREAL := 0.0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

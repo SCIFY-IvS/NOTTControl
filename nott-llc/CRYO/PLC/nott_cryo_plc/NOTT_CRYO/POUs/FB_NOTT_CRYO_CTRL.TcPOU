@@ -151,25 +151,15 @@ VAR
 	nott_tctrl:              FB_NOTT_TCTRLs; // All temperature control loops
 
 
+	/////////////////////////////////////////////////////////
+	////                  Thermal Box Control
+	/////////////////////////////////////////////////////////
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	thermal_box_ctrl:	FB_NOTT_THERMAL_BOX_CONTROL; // Fan and water-valve temperature control
 
 
-// 	Temp_Ambient:		FB_CRYO_TEMPERATURE;	// Ambient temperature
-// 
-// 	Temp_DetMon:		FB_CRYO_TEMPERATURE;	// DET Temperature measured with PT100
-// 	Temp_ColdPlate:		FB_CRYO_TEMPERATURE;
-// 	Temp_WarmFlange:	FB_CRYO_TEMPERATURE;
-// 	Temp_WarmOptics:	FB_CRYO_TEMPERATURE;
-// 	// Temperature assigned from the Lakeshore LS336
-// 	// using FB_CRYO_TEMPERATURE::M_GetTemperatureFromLakeshore().
-// 	// Do not map any signal of this instance.
-// 	// See M_ExecuteControllers() for assignment.
-// 	Temp_LS336:			FB_CRYO_TEMPERATURE;	
-// 
-// 
-// 	//
-// 	// Pointers to Temperatures.
-// 	// Must match indexes of ptrArr_tor[], see above.
-// 	//
 	ptrArr_Temp:	ARRAY [0..8] OF POINTER TO FB_CRYO_TEMPERATURE;
 // 	// Pointers to Pressures.
 	ptrArr_Press:	ARRAY [0..1] OF POINTER TO FB_CRYO_PRESSURE_VOTE;
@@ -507,22 +497,81 @@ END_CASE
 METHOD M_CheckVacuum
 VAR_INPUT
 END_VAR
+VAR_INST
+	tonVacuumEntry:		TON;
+	tonVacuumExit:		TON;
+	tonGoodVacuumEntry:	TON;
+	tonGoodVacuumExit:	TON;
+END_VAR
+VAR CONSTANT
+	tVacuumConfirm:	TIME := T#5S;
+END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF VAGC.stat.bValid  THEN
-	IF VAGC.stat.lrPressure < cfg.lrPress_GoodVac THEN
-		stat.bVacuum	:= TRUE;
-		stat.bVacuumOK:= TRUE;
-	ELSIF VAGC.stat.lrPressure < cfg.lrPress_InVac THEN
-		stat.bVacuum	:= TRUE;
-		stat.bVacuumOK:= FALSE;
+        <ST><![CDATA[IF VAGC.stat.bValid THEN
+	stat.bPressureValid := TRUE;
+	stat.lrPressure_mbar := VAGC.stat.lrPressure;
+
+	// In-vacuum status: enter below 1.0 mbar and leave above 1.2 mbar.
+	IF stat.bVacuum THEN
+		tonVacuumEntry(IN := FALSE, PT := tVacuumConfirm);
+		tonVacuumExit(
+			IN := VAGC.stat.lrPressure > cfg.lrPress_InVac_Reset,
+			PT := tVacuumConfirm);
+
+		IF tonVacuumExit.Q THEN
+			stat.bVacuum := FALSE;
+			tonVacuumExit(IN := FALSE, PT := tVacuumConfirm);
+		END_IF
 	ELSE
-		stat.bVacuum	:= FALSE;
-		stat.bVacuumOK:= FALSE;
-	END_IF 
+		tonVacuumExit(IN := FALSE, PT := tVacuumConfirm);
+		tonVacuumEntry(
+			IN := VAGC.stat.lrPressure < cfg.lrPress_InVac,
+			PT := tVacuumConfirm);
+
+		IF tonVacuumEntry.Q THEN
+			stat.bVacuum := TRUE;
+			tonVacuumEntry(IN := FALSE, PT := tVacuumConfirm);
+		END_IF
+	END_IF
+
+	// Good-vacuum status: enter below 0.001 mbar and leave above 0.002 mbar.
+	IF stat.bVacuumOK THEN
+		tonGoodVacuumEntry(IN := FALSE, PT := tVacuumConfirm);
+		tonGoodVacuumExit(
+			IN := VAGC.stat.lrPressure > cfg.lrPress_GoodVac_Reset,
+			PT := tVacuumConfirm);
+
+		IF tonGoodVacuumExit.Q THEN
+			stat.bVacuumOK := FALSE;
+			tonGoodVacuumExit(IN := FALSE, PT := tVacuumConfirm);
+		END_IF
+	ELSE
+		tonGoodVacuumExit(IN := FALSE, PT := tVacuumConfirm);
+		tonGoodVacuumEntry(
+			IN := VAGC.stat.lrPressure < cfg.lrPress_GoodVac,
+			PT := tVacuumConfirm);
+
+		IF tonGoodVacuumEntry.Q THEN
+			stat.bVacuumOK := TRUE;
+			stat.bVacuum   := TRUE;
+			tonGoodVacuumEntry(IN := FALSE, PT := tVacuumConfirm);
+		END_IF
+	END_IF
+
+	// Good vacuum is always a subset of in-vacuum.
+	IF stat.bVacuumOK THEN
+		stat.bVacuum := TRUE;
+	END_IF
 ELSE
-	stat.bVacuum	:= FALSE;
-	stat.bVacuumOK:= FALSE;
+	stat.bPressureValid := FALSE;
+	stat.bVacuum        := FALSE;
+	stat.bVacuumOK      := FALSE;
+
+	tonVacuumEntry(IN := FALSE, PT := tVacuumConfirm);
+	tonVacuumExit(IN := FALSE, PT := tVacuumConfirm);
+	tonGoodVacuumEntry(IN := FALSE, PT := tVacuumConfirm);
+	tonGoodVacuumExit(IN := FALSE, PT := tVacuumConfirm);
 END_IF
 ]]></ST>
       </Implementation>
@@ -590,6 +639,11 @@ nott_tctrl(temperatures := nott_temp);
 
 nott_heaters(tctrl := nott_tctrl);
 
+thermal_box_ctrl(	nott_temps:= nott_temp, 
+	nott_heaters:= nott_heaters, 
+	nott_t_ctrls:= nott_tctrl, 
+	nott_t_votes:= nott_voters);
+
 
 // //
 // // Controllers, i.e. LN2 cooler, Heater, ...
@@ -599,10 +653,16 @@ nott_heaters(tctrl := nott_tctrl);
 ctrl.cor_Evac(in_bEnable:=ctrl.bEnable_Evac);
 evac(	in_bEnable	:= ctrl.cor_Evac.out_bEnable, 
 		in_RefVAGC	:= VAGC);	
+		
+//
+// Pump State
+//
+M_GetPumpsStates();
 
 ctrl.cor_CoolDown(in_bEnable:=ctrl.bEnable_CoolDown);
 cool_down(
-	in_bEnable:= ctrl.cor_CoolDown.out_bEnable, 
+	in_bEnable:= ctrl.cor_CoolDown.out_bEnable,
+	in_Cryo_Stat := stat, 
 	out_bPermit_Evacuation_Stop=> bCoolDownPermitEvacuationStop, 
 	out_bPermit_WarmUp=> bCoolDownPermitWarmUp, 
 	nott_temps:= nott_temp, 
@@ -612,7 +672,8 @@ cool_down(
 
 ctrl.cor_WarmUp(in_bEnable:=ctrl.bEnable_WarmUp);
 warm_up(
-	in_bEnable:= ctrl.cor_WarmUp.out_bEnable, 
+	in_bEnable:= ctrl.cor_WarmUp.out_bEnable,
+	in_Cryo_Stat := stat, 
 	out_bPermit_Evacuation_Stop=> bWarmUpPermitEvacuationStop, 
 	out_bPermit_CoolDown=> bWarmUpPermitCoolDown, 
 	nott_temps:= nott_temp, 
@@ -621,11 +682,8 @@ warm_up(
 	nott_t_votes:= nott_voters);
 
 
-//
-// All temperatures are known.
-// Select the Master temperature
-//
-M_GetMasterTemp();
+// Update the combined thermal and operational status flags.
+M_UpdateThermalStatus();
 
 
 //
@@ -658,7 +716,7 @@ END_VAR
 
 stat.lrHighestTempK		:= nott_temp.out_lrHighestTemp;
 stat.bHighestTempValid	:= nott_temp.out_bHighestTempValid;
-
+stat.sHighestTempName	:= nott_temp.out_sHighestTempName;
 	
 		
 ]]></ST>
@@ -679,59 +737,21 @@ END_VAR
 
 stat.lrLowestTempK		:= nott_temp.out_lrLowestTemp;
 stat.bLowestTempValid	:= nott_temp.out_bLowestTempValid;
-]]></ST>
+stat.sLowestTempName	:= nott_temp.out_sLowestTempName;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="M_GetMasterTemp" Id="{9f658211-f955-49ef-a8cf-c1aa3c505951}">
-      <Declaration><![CDATA[//
-// By default,  master temperature is the one from Heater_DetIF.
-// However, if this sensor fails, the system will select another
-// sensor in the following order:
-//  - Lakeshore
-//  - Temp_DetMon
-//
-METHOD M_GetMasterTemp
+    <Method Name="M_GetPumpsStates" Id="{23d8dfdc-3be3-45f1-8c1c-ec73294345fa}">
+      <Declaration><![CDATA[METHOD M_GetPumpsStates : BOOL
 VAR_INPUT
-END_VAR
-VAR
-	lrDetectorTempK:	LREAL := 9999.0;
-	bDetectorTempValid:	BOOL := FALSE;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[
-// Use nott_temp directly for cryostat temperature status estimation.
-// COLD means the detector is below the warm threshold. Prefer the detector
-// vote and fall back to individual detector sensors only if the vote is invalid.
-// OP means the highest included cryostat temperature is below the operational
-// threshold.
+        <ST><![CDATA[// Pump ready/failure flags are not populated reliably. Use the real-time
+// monitored speeds as the authoritative running indications.
+stat.bIsPVPRunning := evac.pump_pvp.stat.nPumpSpeed > 10;
+stat.bIsTMPRunning := evac.pump_tmp.stat.nPumpSpeed > 10;
 
-IF nott_temp.t_detector_vote.stat.bValid THEN
-	lrDetectorTempK		:= nott_temp.t_detector_vote.stat.lrTempK;
-	bDetectorTempValid	:= TRUE;
-ELSIF nott_temp.t_detector.stat.bValid THEN
-	lrDetectorTempK		:= nott_temp.t_detector.stat.lrTempK;
-	bDetectorTempValid	:= TRUE;
-ELSIF nott_temp.t_detector_spare.stat.bValid THEN
-	lrDetectorTempK		:= nott_temp.t_detector_spare.stat.lrTempK;
-	bDetectorTempValid	:= TRUE;
-END_IF
-
-IF bDetectorTempValid THEN
-	stat.bCold	:= lrDetectorTempK < cfg.lrTemp_Warm;
-ELSE
-	stat.bCold	:= FALSE;
-END_IF
-
-IF nott_temp.out_bHighestTempValid THEN
-	stat.bOP	:= nott_temp.out_lrHighestTemp < cfg.lrTemp_OP;
-ELSE
-	stat.bOP	:= FALSE;
-END_IF
-RETURN;
-
-
-]]></ST>
+M_GetPumpsStates := stat.bIsPVPRunning AND stat.bIsTMPRunning;]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_GetState" Id="{5a884a9e-ba07-433e-b2f1-a9a097b44b59}">
@@ -759,7 +779,7 @@ END_IF
 
 timer();
 
-IF timer.Q	THEN
+IF timer.Q	OR stat.bSystemStarted THEN
 	timer(IN:=FALSE);	// Reset the timer
 	
 	// 10S have expired.
@@ -830,7 +850,7 @@ END_IF
 // 	
 // 	// 10S have expired.
 // 	// Find the system state based of sensor eadings.
-// 	IF nott_temp.t_detector_vote.stat.lrTempK <= cfg.lrTemp_Cold	THEN
+// 	IF nott_voters.vote_detector.stat.lrTempK < cfg.lrTemp_Warm	THEN
 // 		logs.M_LogInfo('On restart, System is COLD.');
 // 		// Turn ON the Cool-Down 
 // 		ctrl.bEnable_CoolDown	:= TRUE;
@@ -843,7 +863,7 @@ END_IF
 // 		// Switch to Cold state.
 // 		stat.nState	:= E_NOTT_CRYO_CTRL_STATE.COLD;
 // 		
-// 	ELSIF 	nott_temp.t_detector_vote.stat.lrTempK > cfg.lrTemp_Cold	AND 
+// 	ELSIF 	nott_voters.vote_detector.stat.lrTempK >= cfg.lrTemp_Warm	AND 
 // 			VAGC.stat.lrPressure <= cfg.lrPress_InVac				THEN
 // 		// Enable Evacuation
 // 		ctrl.bEnable_Evac		:= TRUE;
@@ -857,7 +877,7 @@ END_IF
 // 		// The system is in WARM_VACUUM.
 // 		stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;		
 // 		
-// 	ELSIF 	nott_temp.t_detector_vote.stat.lrTempK > cfg.lrTemp_Cold	AND 
+// 	ELSIF 	nott_voters.vote_detector.stat.lrTempK >= cfg.lrTemp_Warm	AND 
 // 			VAGC.stat.lrPressure > cfg.lrPress_InVac				THEN
 // 		// Stop Evacuation.
 // 		ctrl.bEnable_Evac	:= FALSE;
@@ -1094,7 +1114,15 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// TODO if any
+        <ST><![CDATA[// A pump trip stops the active thermal routine. The routine safety methods
+// already disable their actuators and latch the detailed pump alarm.
+IF cool_down.stat.bPumpAlarm THEN
+	ctrl.bEnable_CoolDown := FALSE;
+END_IF
+
+IF warm_up.stat.bPumpAlarm THEN
+	ctrl.bEnable_WarmUp := FALSE;
+END_IF
 
 ]]></ST>
       </Implementation>
@@ -1110,10 +1138,13 @@ VAR
 	bPermitStopCoolDown:	BOOL := FALSE;
 	bPermitStartWarmUp:	BOOL := FALSE;
 	bPermitStopWarmUp:	BOOL := FALSE;
+	bPumpsRunning:		BOOL := FALSE;
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[M_SetCmdPermissions := FALSE;
+
+bPumpsRunning := stat.bIsPVPRunning AND stat.bIsTMPRunning;
 
 // Start from a fail-closed permission set. Then open the allowed HMI
 // actions according to the top-level physical state and active routine.
@@ -1129,7 +1160,7 @@ IF warm_up.stat.bActive THEN
 ELSIF cool_down.stat.bActive THEN
 	// Cooldown active
 	bPermitStartEvacuation	:= TRUE;
-	bPermitStopEvacuation	:= FALSE;
+	bPermitStopEvacuation	:= bCoolDownPermitEvacuationStop AND stat.bOP;
 	bPermitStartCoolDown	:= TRUE;
 	bPermitStopCoolDown		:= TRUE;
 	bPermitStartWarmUp		:= FALSE;
@@ -1195,8 +1226,23 @@ END_IF
 bPermitStopEvacuation	:= bPermitStopEvacuation
 	AND bCoolDownPermitEvacuationStop
 	AND bWarmUpPermitEvacuationStop;
-bPermitStartCoolDown	:= bPermitStartCoolDown AND bWarmUpPermitCoolDown;
-bPermitStartWarmUp		:= bPermitStartWarmUp AND bCoolDownPermitWarmUp;
+
+// Evacuation being active does not mean that vacuum has been achieved.
+// Apply the physical pressure condition as a final veto to every permission
+// branch. stat.bVacuum already includes pressure validity, hysteresis and the
+// configured confirmation time from M_CheckVacuum().
+
+
+bPermitStartCoolDown :=
+    bPermitStartCoolDown
+    AND bWarmUpPermitCoolDown
+    AND stat.bPressureValid
+    AND stat.bVacuum
+    AND (bPumpsRunning OR stat.bOP);
+	
+bPermitStartWarmUp		:= bPermitStartWarmUp
+	AND bCoolDownPermitWarmUp
+	AND bPumpsRunning;
 
 evac.M_PermitStart_Evacuation(in_bPermissionStart := bPermitStartEvacuation);
 evac.M_PermitStop_Evacuation(in_bPermissionStop := bPermitStopEvacuation);
@@ -1503,8 +1549,11 @@ CASE stat.nState OF
 			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
 		END_IF
 	
-	// Cooler/routine no longer active unexpectedly.
-	ELSIF NOT cool_down.cooler.stat.bActive THEN
+	// Once startup has completed, an inactive cooler is unexpected. Do not
+	// apply this check in START_PTC while the cooler is still starting.
+	ELSIF ((cool_down.stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.COOLING)
+		OR (cool_down.stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED))
+		AND NOT cool_down.cooler.stat.bActive THEN
 		ctrl.bEnable_CoolDown := FALSE;
 		ctrl.bEnable_WarmUp   := FALSE;
 	
@@ -1524,12 +1573,22 @@ CASE stat.nState OF
 	///////////////////////////////////////////
 	E_NOTT_CRYO_CTRL_STATE.COLD:
 	///////////////////////////////////////////
-		
-		// Keep evacuation enabled/available while cold.
-		ctrl.bEnable_Evac := TRUE;
+
+		// While operational, preserve the operator's evacuation command. If OP is
+		// lost after evacuation was stopped, restart evacuation and cooldown once
+		// on the filtered OP falling edge.
+		IF triggers.OP_OFF.Q AND NOT evac.bEvacuationActive THEN
+			ctrl.bEnable_Evac     := TRUE;
+			ctrl.bEnable_CoolDown := TRUE;
+			ctrl.bEnable_WarmUp   := FALSE;
+
+			logs.M_LogInfo('Operational state lost with evacuation inactive. Restarting evacuation and cooldown.');
+			stat.nState := E_NOTT_CRYO_CTRL_STATE.COOLING_DOWN;
+		END_IF
 		
 		// If the cryostat is no longer cold or operational, return to the appropriate warm state.
-		IF NOT (stat.bOP OR stat.bCold) THEN
+		IF stat.nState = E_NOTT_CRYO_CTRL_STATE.COLD
+		   AND NOT (stat.bOP OR stat.bCold) THEN
 			ctrl.bEnable_WarmUp := FALSE;
 		
 			IF stat.bVacuumOK OR stat.bVacuum THEN
@@ -1542,7 +1601,8 @@ CASE stat.nState OF
 			END_IF
 		
 		// Process queued top-level commands.
-		ELSIF ctrl.bExecute THEN
+		ELSIF stat.nState = E_NOTT_CRYO_CTRL_STATE.COLD
+		   AND ctrl.bExecute THEN
 			ctrl.bExecute     := FALSE;
 			stat.nLastCommand := ctrl.nCommand;
 			ctrl.nCommand     := E_NOTT_CRYO_CTRL_CMD.NONE;
@@ -1580,8 +1640,13 @@ CASE stat.nState OF
 				logs.M_LogInfo('Command rejected: unsupported command in COLD.');
 			END_CASE
 		
-		// If cooldown was requested but the cooler is not active, clear the cooldown enable.
-		ELSIF ctrl.bEnable_CoolDown AND NOT cool_down.cooler.stat.bActive THEN
+		// After cooler startup has completed, clear cooldown if the cooler stops
+		// unexpectedly. START_PTC inactivity is part of normal startup.
+		ELSIF stat.nState = E_NOTT_CRYO_CTRL_STATE.COLD
+		   AND ctrl.bEnable_CoolDown
+		   AND ((cool_down.stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.COOLING)
+			OR (cool_down.stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED))
+		   AND NOT cool_down.cooler.stat.bActive THEN
 			ctrl.bEnable_CoolDown := FALSE;
 			logs.M_LogInfo('Cooldown enable cleared in COLD: cooler inactive.');
 		END_IF
@@ -1595,6 +1660,8 @@ CASE stat.nState OF
 	//
 	// Warmup routine is active or expected to be active.
 	// Permissions are handled centrally in M_SetCmdPermissions().
+	// The warmup routine must not be considered complete automatically when the
+	// warm targets are reached. It remains active until the operator stops it.
 	//
 	
 	// Cooldown must remain disabled during warmup.
@@ -1621,7 +1688,7 @@ CASE stat.nState OF
 		END_CASE
 	END_IF
 	
-	// Warmup stopped by command/permission.
+	// Operator stop accepted by command/permission.
 	IF NOT ctrl.bEnable_WarmUp THEN
 		ctrl.bEnable_CoolDown := FALSE;
 	
@@ -1647,29 +1714,15 @@ CASE stat.nState OF
 			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
 		END_IF
 	
-	// Warmup routine reports no longer active. Treat as complete/stopped and classify by physical state.
+	// Warmup routine reports inactive while the top-level warmup command is still
+	// enabled. Do not auto-stop or reclassify here. This can happen during startup,
+	// a scan-order transient, or a routine implementation detail. The operator stop
+	// above is the normal exit path from WARMING_UP.
 	ELSIF NOT warm_up.stat.bActive THEN
-		ctrl.bEnable_WarmUp   := FALSE;
+		ctrl.bEnable_WarmUp   := TRUE;
 		ctrl.bEnable_CoolDown := FALSE;
-	
-		IF stat.bOP OR stat.bCold THEN
-			ctrl.bEnable_Evac := TRUE;
-	
-			logs.M_LogInfo('Warmup routine inactive while cryostat is still cold. State is COLD.');
-			stat.nState := E_NOTT_CRYO_CTRL_STATE.COLD;
-	
-		ELSIF stat.bVacuumOK OR stat.bVacuum THEN
-			ctrl.bEnable_Evac := TRUE;
-	
-			logs.M_LogInfo('Warmup complete. State is WARM_VACUUM.');
-			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_VACUUM;
-	
-		ELSE
-			ctrl.bEnable_Evac := FALSE;
-	
-			logs.M_LogInfo('Warmup complete. State is WARM_PRESS.');
-			stat.nState := E_NOTT_CRYO_CTRL_STATE.WARM_PRESS;
-		END_IF
+		ctrl.bEnable_Evac     := TRUE;
+		stat.nState           := E_NOTT_CRYO_CTRL_STATE.WARMING_UP;
 	END_IF
 	
 	M_SetStatus(stat.nState);
@@ -1728,6 +1781,112 @@ CASE stat.nState OF
 	RETURN;
 
 END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateThermalStatus" Id="{9f658211-f955-49ef-a8cf-c1aa3c505951}">
+      <Declaration><![CDATA[METHOD M_UpdateThermalStatus
+VAR_INPUT
+END_VAR
+VAR
+	lrDetectorTempK:		LREAL := 9999.0;
+	bDetectorTempValid:		BOOL := FALSE;
+	bOPInputsValid:			BOOL := FALSE;
+	bOPEntryCondition:		BOOL := FALSE;
+	bOPExitCondition:		BOOL := FALSE;
+END_VAR
+VAR_INST
+	tonOPEntry:	TON;
+	tonOPExit:	TON;
+	tonColdEntry:	TON;
+	tonColdExit:	TON;
+END_VAR
+VAR CONSTANT
+	tOPEntryConfirm:	TIME := T#10S;
+	tOPExitConfirm:		TIME := T#5S;
+	tColdConfirm:		TIME := T#5S;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// COLD means the authoritative detector vote is below the warm threshold.
+// OP is estimated centrally from the authoritative detector and base-plate
+// voters together with VAGC pressure. Timers and separate reset thresholds
+// prevent sensor noise from flickering the operational status.
+
+bDetectorTempValid := nott_voters.vote_detector.stat.bValid;
+
+IF bDetectorTempValid THEN
+	lrDetectorTempK := nott_voters.vote_detector.stat.lrTempK;
+END_IF
+
+IF stat.bCold THEN
+	tonColdEntry(IN := FALSE, PT := tColdConfirm);
+	tonColdExit(
+		IN := NOT bDetectorTempValid
+			OR NOT stat.bPressureValid
+			OR NOT stat.bVacuum
+			OR (lrDetectorTempK > cfg.lrTemp_Warm_Reset),
+		PT := tColdConfirm);
+
+	IF tonColdExit.Q THEN
+		stat.bCold := FALSE;
+		tonColdExit(IN := FALSE, PT := tColdConfirm);
+	END_IF
+ELSE
+	tonColdExit(IN := FALSE, PT := tColdConfirm);
+	tonColdEntry(
+		IN := bDetectorTempValid
+			AND stat.bPressureValid
+			AND stat.bVacuum
+			AND (lrDetectorTempK < cfg.lrTemp_Warm),
+		PT := tColdConfirm);
+
+	IF tonColdEntry.Q THEN
+		stat.bCold := TRUE;
+		tonColdEntry(IN := FALSE, PT := tColdConfirm);
+	END_IF
+END_IF
+
+// All required measurements must be valid before entering OP. A sustained
+// validity loss also removes OP after the exit confirmation time.
+bOPInputsValid :=
+	nott_voters.vote_detector.stat.bValid
+	AND nott_voters.vote_base_plate.stat.bValid
+	AND VAGC.stat.bValid;
+
+bOPEntryCondition :=
+	bOPInputsValid
+	AND (nott_voters.vote_detector.stat.lrTempK <= cfg.lrTemp_DET_Target)
+	AND (nott_voters.vote_base_plate.stat.lrTempK < cfg.lrTemp_BasePlate_OP)
+	AND (VAGC.stat.lrPressure < cfg.lrPress_OP);
+
+bOPExitCondition :=
+	NOT bOPInputsValid
+	OR (nott_voters.vote_detector.stat.lrTempK > cfg.lrTemp_DET_OP_Reset)
+	OR (nott_voters.vote_base_plate.stat.lrTempK > cfg.lrTemp_BasePlate_OP_Reset)
+	OR (VAGC.stat.lrPressure > cfg.lrPress_OP_Reset);
+
+IF stat.bOP THEN
+	tonOPEntry(IN := FALSE, PT := tOPEntryConfirm);
+	tonOPExit(IN := bOPExitCondition, PT := tOPExitConfirm);
+
+	IF tonOPExit.Q THEN
+		stat.bOP := FALSE;
+		tonOPExit(IN := FALSE, PT := tOPExitConfirm);
+	END_IF
+ELSE
+	tonOPExit(IN := FALSE, PT := tOPExitConfirm);
+	tonOPEntry(IN := bOPEntryCondition, PT := tOPEntryConfirm);
+
+	IF tonOPEntry.Q THEN
+		stat.bOP := TRUE;
+		tonOPEntry(IN := FALSE, PT := tOPEntryConfirm);
+	END_IF
+END_IF
+RETURN;
+
+
+]]></ST>
       </Implementation>
     </Method>
   </POU>

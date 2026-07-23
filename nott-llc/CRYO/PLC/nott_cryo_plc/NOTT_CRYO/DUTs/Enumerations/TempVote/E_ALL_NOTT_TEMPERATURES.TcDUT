@@ -30,7 +30,7 @@ TYPE E_ALL_NOTT_TEMPERATURES :
 	t_detector_spare        := 14,
 	t_detector_vote         := 15,
 	// System temperatures   (* 3 *)
-	// Master temperature to estimate overall temperature of the cryostat  
+	// Legacy system-temperature channels; not used for cryostat state estimation.
 	t_master				:= 16,
 	t_master_vot_1          := 17,
 	t_master_vot_2          := 18,

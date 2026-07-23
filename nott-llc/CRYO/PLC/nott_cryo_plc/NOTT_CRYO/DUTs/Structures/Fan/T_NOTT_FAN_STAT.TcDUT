@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_FAN_STAT" Id="{0bffe4d2-68f0-4b24-bdb5-c2337e980e68}">
+    <Declaration><![CDATA[TYPE T_NOTT_FAN_STAT :
+STRUCT
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bActive:				BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bRunning:				BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bStallAlarm:			BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bTachMeasurementLimited:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrDemandPct:			LREAL := 0.0;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrDutyPct:			LREAL := 0.0;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	lrSpeedRpm:			LREAL := 0.0;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	nPulseCount:			UDINT := 0;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	sName:				STRING(64);
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	sAutoSetpointSource:	STRING(64);
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

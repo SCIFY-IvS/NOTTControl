@@ -12,7 +12,7 @@
     <HmiTitle>Cryo HMI template project</HmiTitle>
     <HmiVerboseLevel>2</HmiVerboseLevel>
     <HmiVersion>1.0.0.0</HmiVersion>
-    <HmiCommunicationServerPort>3004</HmiCommunicationServerPort>
+    <HmiCommunicationServerPort>3005</HmiCommunicationServerPort>
     <HmiLogTcHmiServerMessages>false</HmiLogTcHmiServerMessages>
     <HmiLogDesignerModeComMessages>false</HmiLogDesignerModeComMessages>
     <HmiDefaultLanguage>client</HmiDefaultLanguage>
@@ -26,7 +26,7 @@
     <HmiPostProcessing>True</HmiPostProcessing>
     <Name>nott_cryo_hmi</Name>
     <HmiCommunicationRouterPort>10121</HmiCommunicationRouterPort>
-    <HmiCommunicationServerAuthPort>13004</HmiCommunicationServerAuthPort>
+    <HmiCommunicationServerAuthPort>13005</HmiCommunicationServerAuthPort>
     <HmiInitial>1.12.760.59</HmiInitial>
     <HmiRecent>14.3.870.1</HmiRecent>
     <HmiServerNodeAdvancedView>False</HmiServerNodeAdvancedView>
@@ -205,6 +205,9 @@
     <Content Include="Images\TC.svg">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Images\Thermalbox_icon.png">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="JavaScript\GetCurrentUsername.function.json">
       <SubType>Content</SubType>
       <DependentUpon>JavaScript\GetCurrentUsername.js</DependentUpon>
@@ -224,12 +227,6 @@
       <DependentUpon>JavaScript\SetFilterOfEventGrid.js</DependentUpon>
     </Content>
     <Content Include="JavaScript\SetFilterOfEventGrid.js">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Pages\ContentTest_ControlCabinet.content">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Pages\ContentTest_ControlRoom.content">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Pages\CryogenicController.content">

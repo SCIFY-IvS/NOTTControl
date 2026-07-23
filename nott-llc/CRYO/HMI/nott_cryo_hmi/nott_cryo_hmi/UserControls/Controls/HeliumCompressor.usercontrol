@@ -175,21 +175,21 @@
         "active": true,
         "compare": {
           "objectType": "Symbol",
-          "valueType": "tchmi:server#/definitions/ADS-PLC1.ESO_LDC_Cryo_Library.E_CRYO_PUMP_STATE-ReadOnly-ShowRecursively",
-          "symbolExpression": "%pp%PumpHmiObject::out_stat::pump_stat::nPumpState%/pp%"
+          "valueType": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.ESO_LDC_Comm_Common_Library.E_RS_BASE_STATE-ReadOnly-ShowRecursively",
+          "symbolExpression": "%pp%CompressorHmiObject::out_stat::cpa_stat::nState%/pp%"
         },
         "cases": [
           {
             "caseValue": {
               "objectType": "StaticValue",
-              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_PUMP_STATE",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.ESO_LDC_Comm_Common_Library.E_RS_BASE_STATE",
               "value": 0
             },
             "actions": [
               {
                 "objectType": "WriteToSymbol",
                 "active": true,
-                "symbolExpression": "%ctrl%PumpFrameworkControl::State%/ctrl%",
+                "symbolExpression": "%ctrl%HeliumCompressorFrameworkControl::State%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
                   "valueType": "tchmi:framework#/definitions/PositiveNumber",
@@ -202,14 +202,14 @@
           {
             "caseValue": {
               "objectType": "StaticValue",
-              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_PUMP_STATE",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.ESO_LDC_Comm_Common_Library.E_RS_BASE_STATE",
               "value": 1
             },
             "actions": [
               {
                 "objectType": "WriteToSymbol",
                 "active": true,
-                "symbolExpression": "%ctrl%PumpFrameworkControl::State%/ctrl%",
+                "symbolExpression": "%ctrl%HeliumCompressorFrameworkControl::State%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
                   "valueType": "tchmi:framework#/definitions/PositiveNumber",
@@ -222,14 +222,14 @@
           {
             "caseValue": {
               "objectType": "StaticValue",
-              "valueType": "tchmi:server#/definitions/PLC1.ESO_LDC_Cryo_Library.E_CRYO_PUMP_STATE",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.ESO_LDC_Comm_Common_Library.E_RS_BASE_STATE",
               "value": 2
             },
             "actions": [
               {
                 "objectType": "WriteToSymbol",
                 "active": true,
-                "symbolExpression": "%ctrl%PumpFrameworkControl::State%/ctrl%",
+                "symbolExpression": "%ctrl%HeliumCompressorFrameworkControl::State%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
                   "valueType": "tchmi:framework#/definitions/PositiveNumber",
@@ -242,14 +242,14 @@
           {
             "caseValue": {
               "objectType": "StaticValue",
-              "valueType": "tchmi:server#/definitions/ADS-PLC1.ESO_LDC_Cryo_Library.E_CRYO_PUMP_STATE-ReadOnly-ShowRecursively",
+              "valueType": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.ESO_LDC_Comm_Common_Library.E_RS_BASE_STATE",
               "value": 3
             },
             "actions": [
               {
                 "objectType": "WriteToSymbol",
                 "active": true,
-                "symbolExpression": "%ctrl%PumpFrameworkControl::State%/ctrl%",
+                "symbolExpression": "%ctrl%HeliumCompressorFrameworkControl::State%/ctrl%",
                 "value": {
                   "objectType": "StaticValue",
                   "valueType": "tchmi:framework#/definitions/PositiveNumber",

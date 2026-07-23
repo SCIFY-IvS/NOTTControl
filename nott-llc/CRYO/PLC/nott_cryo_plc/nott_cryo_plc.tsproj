@@ -215,7 +215,7 @@
 			<Licenses>
 				<Target>
 					<ManualSelect>{D58728E0-7762-4145-8A93-80D55E0453A6}</ManualSelect>
-					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSystemId="{79913E43-1383-6EAF-4674-0B0CA7BA839F}" DongleSerialNumber="000btrgq" DongleCacheLicense="true"/>
+					<LicenseDevice DongleHardwareId="2" DongleDevice="#x03020002" DongleLevel="50" DongleSerialNumber="000btrgq" DongleCacheLicense="true"/>
 				</Target>
 			</Licenses>
 			<Tasks>
@@ -226,7 +226,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{577B76C6-1AE8-462B-B263-D96936EC33CC}" Name="NOTT_CRYO" PrjFilePath="NOTT_CRYO\NOTT_CRYO.plcproj" TmcFilePath="NOTT_CRYO\NOTT_CRYO.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{18789C78-C703-20B6-A2E0-2A315B8BA47A}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{549E3860-A435-1513-95CF-89BFB9263B7C}" TmcPath="NOTT_CRYO\NOTT_CRYO.tmc">
 					<Name>NOTT_CRYO Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -519,6 +519,26 @@
 							<Type>UINT</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_pwm.q_bEnable</Name>
 							<Comment><![CDATA[ Enable heater power]]></Comment>
 							<Type>BOOL</Type>
@@ -580,6 +600,26 @@
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_el95x1.q_nOutputOperation</Name>
 							<Comment><![CDATA[ EL95X1 - AO Output Standard (Real32) - Control - Output operation ]]></Comment>
 							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_pwm.q_bEnable</Name>
@@ -645,6 +685,26 @@
 							<Type>UINT</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_pwm.q_bEnable</Name>
 							<Comment><![CDATA[ Enable heater power]]></Comment>
 							<Type>BOOL</Type>
@@ -706,6 +766,109 @@
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_el95x1.q_nOutputOperation</Name>
 							<Comment><![CDATA[ EL95X1 - AO Output Standard (Real32) - Control - Output operation ]]></Comment>
 							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.q_bEnable</Name>
+							<Comment><![CDATA[ Enable heater power]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.q_bEnableDithering</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.q_bReset</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.q_nPWMOut</Name>
+							<Comment><![CDATA[ ]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cpau60.q_bEnable</Name>
+							<Comment><![CDATA[ Enable heater power]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cpau60.q_nSetVoltage</Name>
+							<Comment><![CDATA[ Adjustable PS voltage [0 - 16383 (0 - 5V)] for liner power supply to power the heater]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cxwui60.q_bEnable</Name>
+							<Comment><![CDATA[ Enable heater power]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cxwui60.q_nSetVoltage</Name>
+							<Comment><![CDATA[ Adjustable PS voltage [0 - 16383 (0 - 5V)] for liner power supply to power the heater]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cxwui60.q_nSetCurrent</Name>
+							<Comment><![CDATA[ Adjustable PS current [0 - 16383 (0 - 4Amps)] for liner power supply to power the heater]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.q_bEnable</Name>
+							<Comment><![CDATA[ Enable heater power via relay]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.q_rSetVoltage</Name>
+							<Comment><![CDATA[ EL95X1 - AO Output Standard (Real32) - Value]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.q_nOutputInterface</Name>
+							<Comment><![CDATA[ EL95X1 - AO Output Standard (Real32) - Control - Output interface]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.q_nOutputOperation</Name>
+							<Comment><![CDATA[ EL95X1 - AO Output Standard (Real32) - Control - Output operation ]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_pwm.q_bEnable</Name>
@@ -771,6 +934,26 @@
 							<Type>UINT</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_pwm.q_bEnable</Name>
 							<Comment><![CDATA[ Enable heater power]]></Comment>
 							<Type>BOOL</Type>
@@ -832,6 +1015,26 @@
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_el95x1.q_nOutputOperation</Name>
 							<Comment><![CDATA[ EL95X1 - AO Output Standard (Real32) - Control - Output operation ]]></Comment>
 							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_flat_field.q_nSetCurrentCh1</Name>
+							<Comment><![CDATA[ Channel 1 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_flat_field.q_nSetCurrentCh2</Name>
+							<Comment><![CDATA[ Channel 2 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_flat_field.q_nSetCurrentCh3</Name>
+							<Comment><![CDATA[ Channel 3 current command]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_flat_field.q_nSetCurrentCh4</Name>
+							<Comment><![CDATA[ Channel 4 current command]]></Comment>
+							<Type>INT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_detector.ramp.q_lrValue</Name>
@@ -923,6 +1126,71 @@
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_tctrl.tc_flatfield.ramp.q_bValid</Name>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_fan.ramp.q_lrValue</Name>
+							<Comment><![CDATA[ outputs that can be used for linking]]></Comment>
+							<Type>LREAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_fan.ramp.q_bToggle</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_fan.ramp.q_bValid</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_valve.ramp.q_lrValue</Name>
+							<Comment><![CDATA[ outputs that can be used for linking]]></Comment>
+							<Type>LREAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_valve.ramp.q_bToggle</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.tc_valve.ramp.q_bValid</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.q_nPwmCommand</Name>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_anti_fog_blower.q_bEnable</Name>
+							<Comment><![CDATA[ Enable heater power]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_anti_fog_blower.q_nSetCurrent</Name>
+							<Comment><![CDATA[ 4 - 20 mA valve ctrl]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_img_cfo_precooling.q_bEnable</Name>
+							<Comment><![CDATA[ Enable heater power]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_img_cfo_precooling.q_nSetVoltage</Name>
+							<Comment><![CDATA[ Adjustable PS voltage [0 - 16383 (0 - 5V)] for liner power supply to power the heater]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_img_cfo_precooling.q_nSetCurrent</Name>
+							<Comment><![CDATA[ Adjustable PS current [0 - 16383 (0 - 4Amps)] for liner power supply to power the heater]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.q_bEnable</Name>
+							<Comment><![CDATA[ Enable 24 V power supply to actuator]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.q_nSetVoltage</Name>
+							<Comment><![CDATA[ 0...10 V command corresponding to 0...100 %]]></Comment>
+							<Type>INT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.q_nStateDummy</Name>
@@ -1814,6 +2082,16 @@
 							<Type>REAL</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.i_nCouplerState</Name>
 							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
 							<Type>UINT</Type>
@@ -1893,6 +2171,16 @@
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_el95x1.i_rCurrent</Name>
 							<Comment><![CDATA[ 0x1A63 (AI Output Current Compact Real32) - Value (Real32)]]></Comment>
 							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_detector_spare.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.i_nCouplerState</Name>
@@ -1976,6 +2264,16 @@
 							<Type>REAL</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_sidecar.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.i_nCouplerState</Name>
 							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
 							<Type>UINT</Type>
@@ -2055,6 +2353,107 @@
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_el95x1.i_rCurrent</Name>
 							<Comment><![CDATA[ 0x1A63 (AI Output Current Compact Real32) - Value (Real32)]]></Comment>
 							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_photonic_chip.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.i_nCouplerState</Name>
+							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.i_nActCurrent</Name>
+							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.i_bReadyToEnable</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.i_bWarning</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.i_bError</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_pwm.i_nDuty_Cycle</Name>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cpau60.i_nActCurrent</Name>
+							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
+							<Type>DINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cpau60.i_nStatus</Name>
+							<Comment><![CDATA[ EL3164 input status (might implement if needed)]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cxwui60.i_nActCurrent</Name>
+							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_cxwui60.i_nStatus</Name>
+							<Comment><![CDATA[ EL3164 input status (might implement if needed)]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_bOutputOverload</Name>
+							<Comment><![CDATA[ AO Output Status - Output Overload]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_bUnderrange</Name>
+							<Comment><![CDATA[ AO Output Status - Underrange]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_bOverrange</Name>
+							<Comment><![CDATA[ AO Output Status - Overrange]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_bWarning</Name>
+							<Comment><![CDATA[ AO Output Status - Warning]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_bError</Name>
+							<Comment><![CDATA[ AO Output Status - Error]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_rVoltage</Name>
+							<Comment><![CDATA[ 0x1A53 (AI Output Voltage Compact Real32) - Value (Real32)]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_el95x1.i_rCurrent</Name>
+							<Comment><![CDATA[ 0x1A63 (AI Output Current Compact Real32) - Value (Real32)]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.i_nCouplerState</Name>
@@ -2138,6 +2537,16 @@
 							<Type>REAL</Type>
 						</Var>
 						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_base_plate.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.i_nCouplerState</Name>
 							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
 							<Type>UINT</Type>
@@ -2217,6 +2626,79 @@
 							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_el95x1.i_rCurrent</Name>
 							<Comment><![CDATA[ 0x1A63 (AI Output Current Compact Real32) - Value (Real32)]]></Comment>
 							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_flat_field.i_nActVoltage</Name>
+							<Comment><![CDATA[ Measured heater voltage, raw ±10 V input]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_flat_field.i_nVoltageStatus</Name>
+							<Comment><![CDATA[ ES3104 channel diagnostic/status word]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.fan.i_bTach</Name>
+							<Comment><![CDATA[ Link these process-image variables to the selected EL2535 and ES1084 channels.]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.i_nCouplerState</Name>
+							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_anti_fog_blower.i_nFlowFeedBackCurrent</Name>
+							<Comment><![CDATA[ 4 - 20 mA valve status feedback]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_anti_fog_blower.i_nFeedBackStatus</Name>
+							<Comment><![CDATA[ EL3124 input status (might implement if needed)]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_img_cfo_precooling.i_nActCurrent</Name>
+							<Comment><![CDATA[ Terminal state. Should be 8, i.e. OP.]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_img_cfo_precooling.i_nStatus</Name>
+							<Comment><![CDATA[ EL3164 input status (might implement if needed)]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.i_bUnderrange</Name>
+							<Comment><![CDATA[ ES4104 output-channel diagnostics]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.i_bOverrange</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.i_bWarning</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.io_chiller_water_cooling.i_bError</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.i_bOverTemperature</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.i_bOpenLoad</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.i_bOverCurrent</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nott_cryo_ctrl.thermal_box_ctrl.valve.i_bShortTo24V</Name>
+							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.nott_cryo_ctrl.bHMISwitch</Name>
@@ -2335,7 +2817,7 @@
 							<SyncMan>001080002600010001000000400080008000001026010000</SyncMan>
 							<SyncMan>801080002200010002000000400080008000801022010000</SyncMan>
 							<SyncMan>001108002400010003000000000000000800001124010000</SyncMan>
-							<SyncMan>801104002000010004000000000000000400801120010000</SyncMan>
+							<SyncMan>80110c002000010004000000000000000400801120010000</SyncMan>
 							<Fmmu>0000000000000000001100020100000001000000000000000000000000000000</Fmmu>
 							<Fmmu>0000000000000000801100010100000002000000000000000000000000000000</Fmmu>
 							<Fmmu>00000000000000000d0800010100000003000000000000000000000000000000</Fmmu>
@@ -2366,7 +2848,7 @@
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
-							<Pdo Name="PWM Synchron info data Channel 1" Index="#x1a01" Flags="#x0010">
+							<Pdo Name="PWM Synchron info data Channel 1" Index="#x1a01" Flags="#x0010" SyncMan="3">
 								<Entry Name="Info data 1" Index="#x6000" Sub="#x11">
 									<Type>INT</Type>
 								</Entry>
@@ -2400,7 +2882,7 @@
 									<Type>BIT</Type>
 								</Entry>
 							</Pdo>
-							<Pdo Name="PWM Synchron info data Channel 2" Index="#x1a03" Flags="#x0010">
+							<Pdo Name="PWM Synchron info data Channel 2" Index="#x1a03" Flags="#x0010" SyncMan="3">
 								<Entry Name="Info data 1" Index="#x6010" Sub="#x11">
 									<Type>INT</Type>
 								</Entry>
@@ -11111,8 +11593,8 @@ Revision: 1.0
 	</Project>
 	<Mappings>
 		<MappingInfo Identifier="{00000000-2001-0850-0020-500800205008}" Id="#x02030030"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030020"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500821000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500821000403}" Id="#x02030020"/>
 		<MappingInfo Identifier="{00000000-2001-0850-0020-500830000403}" Id="#x02030040"/>
 		<OwnerA Name="TIPC^NOTT_CRYO^NOTT_CRYO Instance">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A1^A1-N10 (EL2634)">
@@ -11302,6 +11784,8 @@ Revision: 1.0
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_shield.io_cpau60.i_nStatus" VarB="SAI Inputs^Status"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N10 (EL3104)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.i_nActVoltage" VarB="AI Standard Channel 3^Value"/>
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.i_nVoltageStatus" VarB="AI Standard Channel 3^Status"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.sensor_HPG.i_nStatus" VarB="AI Standard Channel 2^Status"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.sensor_HPG.i_nValue" VarB="AI Standard Channel 2^Value"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.sensor_VAGC.i_nStatus" VarB="AI Standard Channel 1^Status"/>
@@ -11412,6 +11896,13 @@ Revision: 1.0
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_3.i_nValue" VarB="RTD Inputs Channel 3^Value"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_nStatus" VarB="RTD Inputs Channel 4^Status"/>
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_thermal_box_4.i_nValue" VarB="RTD Inputs Channel 4^Value"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^-A2^A2-N9_FF_Current (EL4014)">
+				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.i_nCouplerState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh1" VarB="AO Outputs Channel 1^Analog output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh2" VarB="AO Outputs Channel 2^Analog output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh3" VarB="AO Outputs Channel 3^Analog output"/>
+				<Link VarA="PlcTask Outputs^MAIN.nott_cryo_ctrl.nott_heaters.h_flat_field.io_flat_field.q_nSetCurrentCh4" VarB="AO Outputs Channel 4^Analog output"/>
 			</OwnerB>
 			<OwnerB Name="TIID^LS240_Det_Temp_Sensors (EL6731)^Box 3 (GSD Box) (Model 240 Series)">
 				<Link VarA="PlcTask Inputs^MAIN.nott_cryo_ctrl.nott_temp.t_detector.i_fValue" VarB="T_DET (Sensor Reading)^Inputs^Sensor Reading_0_0"/>

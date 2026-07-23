@@ -13,7 +13,15 @@ STRUCT
 	bActive:		BOOL;			// Flag if controller is ACTIVE
 	bWarning:		BOOL := FALSE;	// Flag if there is a warning
 	bEmergency:		BOOL := FALSE;	// Flag if there was Emergency valve closure
-
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bAlarm:			BOOL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bPressureAlarm:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bPumpAlarm:		BOOL := FALSE;
 
 
 	// Generic controller OK flag.

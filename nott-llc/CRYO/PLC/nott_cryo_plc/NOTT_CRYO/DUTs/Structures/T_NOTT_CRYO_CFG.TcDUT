@@ -3,19 +3,25 @@
   <DUT Name="T_NOTT_CRYO_CFG" Id="{32fc4446-4a8f-4d0d-82d6-8ab82b55f48d}">
     <Declaration><![CDATA[TYPE T_NOTT_CRYO_CFG :
 STRUCT
-	lrTemp_Cold:			LREAL := 283.0;		// Cool temperature limit [K] = 10 C
-	lrTemp_OP:				LREAL := 90.0;		// Operational temperature limit [K]
 	lrTemp_Warm:			LREAL := 293.0;		// Warm temperature limit [K] = 20 C
+	lrTemp_Warm_Reset:	LREAL := 295.0;		// Cold-status reset threshold [K]
 	
 	
 	lrTemp_Sidecar:			LREAL := 120.0;		// Heater preamp target temperature [K]
 	lrTemp_DET_Target:		LREAL :=  40.0;		// Target Detector Interface temperature [K]
+	lrTemp_BasePlate_OP:	LREAL := 100.0;		// Operational base plate temperature limit [K]
+	lrTemp_DET_OP_Reset:	LREAL :=  42.0;		// Detector operational reset threshold [K]
+	lrTemp_BasePlate_OP_Reset: LREAL := 105.0;	// Base plate operational reset threshold [K]
 	lrTemp_LowLimit:		LREAL :=  40.0;		// Lowest temperature limit [K]
 	
 
 	lrPress_Atm:			LREAL := 700.0;		// Atmospheric pressure limit   [mbar]
 	lrPress_InVac:			LREAL := 10.0E-1;	// In vacuum limit   [mbar]
+	lrPress_InVac_Reset:	LREAL := 12.0E-1;	// In-vacuum reset threshold [mbar]
 	lrPress_GoodVac:		LREAL := 10.0E-4;	// Good Vacuum limit [mbar]
+	lrPress_GoodVac_Reset:	LREAL := 20.0E-4;	// Good-vacuum reset threshold [mbar]
+	lrPress_OP:			LREAL := 10.0E-5;	// Operational pressure limit [mbar]
+	lrPress_OP_Reset:		LREAL := 20.0E-5;	// Operational pressure reset threshold [mbar]
 	
 
 END_STRUCT

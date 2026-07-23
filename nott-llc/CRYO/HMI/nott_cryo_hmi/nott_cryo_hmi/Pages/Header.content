@@ -1,4 +1,4 @@
-<div id="Header" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="110" data-tchmi-width-unit="%">
+<div id="Header" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="1280" data-tchmi-height="110" data-tchmi-width-unit="px">
 
 <script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
 {
@@ -163,9 +163,9 @@
   }
 ]</script>
 </div>
-<div id="Header_NavigationButton_ContentTest" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%ContentTestIcon%/tr%" data-tchmi-label="%l%L_ContentTest%/l%" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="ContentTest" data-tchmi-grid-column-index="5">
+<div id="Header_NavigationButton_ContentTest" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/NavigationButton.usercontrol" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="110" data-tchmi-width-unit="px" data-tchmi-icon="%tr%ThermalBoxIcon%/tr%" data-tchmi-label="Thermal Box" data-tchmi-selectedpageidentity="%i%SelectedPageIdentity%/i%" data-tchmi-identity="ContentTest" data-tchmi-grid-column-index="5">
 </div>
-<div id="TcHmiImage_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="28" data-tchmi-left-unit="px" data-tchmi-src="Images/NOTT_logo_simple.png" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="196" data-tchmi-width-unit="px" data-tchmi-grid-row-index="0" data-tchmi-grid-column-index="7">
+<div id="TcHmiImage_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="90" data-tchmi-height-unit="px" data-tchmi-left="284" data-tchmi-left-unit="px" data-tchmi-src="Images/NOTT_logo_simple.png" data-tchmi-top="8" data-tchmi-top-unit="px" data-tchmi-width="196" data-tchmi-width-unit="px" data-tchmi-grid-row-index="0" data-tchmi-grid-column-index="7">
 </div>
 </div>
 </div>

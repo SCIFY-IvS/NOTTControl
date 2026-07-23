@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_FAN_CFG" Id="{890e46b0-dc00-42fa-bb82-53bdc8373a9c}">
+    <Declaration><![CDATA[TYPE T_NOTT_FAN_CFG :
+STRUCT
+	lrMinRunningDutyPct:	LREAL := 20.0;	// Minimum commanded running duty [%]
+	lrMaxDutyPct:			LREAL := 100.0;	// Maximum commanded duty [%]
+	lrStartDutyPct:		LREAL := 100.0;	// Startup boost duty [%]
+	tStartBoost:			TIME := T#2S;
+	tRpmWindow:			TIME := T#1S;
+	tStallDelay:			TIME := T#5S;
+	nPulsesPerRevolution:	UINT := 2;
+	nPwmFullScale:			INT := 32767;	// EL2535 linked process-data full scale
+	bInvertPwmOutput:		BOOL := FALSE;	// Set TRUE if the external interface inverts PWM
+	bInvertTachInput:		BOOL := FALSE;	// Set TRUE if the ES1084 process bit is inverted
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

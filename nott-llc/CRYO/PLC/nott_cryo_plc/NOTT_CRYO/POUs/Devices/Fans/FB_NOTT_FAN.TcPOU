@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_FAN" Id="{c59b5cbe-f688-41ea-92c5-c26080507162}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_FAN
+VAR_INPUT
+	in_sName:				STRING;
+	in_sAutoSetpointSource:	STRING;
+	in_lrAutoSetpointValue:	LREAL;		// Temperature-controller output [0..100 %]
+	in_tCycleTime:			TIME := T#10MS;
+END_VAR
+VAR
+	{attribute 'TcHmiSymbol.Show'}
+	cfg:	T_NOTT_FAN_CFG;
+	{attribute 'TcHmiSymbol.Show'}
+	ctrl:	T_NOTT_FAN_CTRL;
+	{attribute 'TcHmiSymbol.Show'}
+	stat:	T_NOTT_FAN_STAT;
+
+	// Link these process-image variables to the selected EL2535 and ES1084 channels.
+	{attribute 'TcHmiSymbol.Show'}
+	i_bTach AT %I*:	BOOL;
+	{attribute 'TcHmiSymbol.Show'}
+	q_nPwmCommand AT %Q*:	INT;
+
+	rtrigTach:	R_TRIG;
+	rtrigEnable:	R_TRIG;
+	tonRpmWindow:	TON;
+	tonNoTach:	TON;
+	tonStartBoost:	TON;
+	bStarting:	BOOL := FALSE;
+	bTach:		BOOL := FALSE;
+	lrDemand:	LREAL := 0.0;
+	lrOutputDuty:	LREAL := 0.0;
+	nWindowPulses:	UDINT := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[stat.sName := in_sName;
+stat.sAutoSetpointSource := in_sAutoSetpointSource;
+
+// The thermal-box controller must be configured reverse acting (negative Kp):
+// fan demand increases when measured temperature rises above setpoint.
+IF ctrl.bAuto THEN
+	lrDemand := in_lrAutoSetpointValue;
+ELSE
+	lrDemand := ctrl.lrManualDutyPct;
+END_IF
+
+IF lrDemand < 0.0 THEN
+	lrDemand := 0.0;
+ELSIF lrDemand > 100.0 THEN
+	lrDemand := 100.0;
+END_IF
+stat.lrDemandPct := lrDemand;
+
+rtrigEnable(CLK := ctrl.bEnable AND (lrDemand > 0.0));
+IF rtrigEnable.Q THEN
+	bStarting := TRUE;
+	tonStartBoost(IN := FALSE, PT := cfg.tStartBoost);
+END_IF
+
+IF NOT ctrl.bEnable OR (lrDemand <= 0.0) THEN
+	bStarting := FALSE;
+	tonStartBoost(IN := FALSE, PT := cfg.tStartBoost);
+	stat.lrDutyPct := 0.0;
+	stat.bActive := ctrl.bEnable;
+ELSE
+	stat.bActive := TRUE;
+
+	IF bStarting THEN
+		tonStartBoost(IN := TRUE, PT := cfg.tStartBoost);
+		stat.lrDutyPct := cfg.lrStartDutyPct;
+		IF tonStartBoost.Q THEN
+			bStarting := FALSE;
+			tonStartBoost(IN := FALSE, PT := cfg.tStartBoost);
+		END_IF
+	ELSE
+		IF lrDemand <= 0.0 THEN
+			stat.lrDutyPct := 0.0;
+		ELSIF lrDemand < cfg.lrMinRunningDutyPct THEN
+			stat.lrDutyPct := cfg.lrMinRunningDutyPct;
+		ELSIF lrDemand > cfg.lrMaxDutyPct THEN
+			stat.lrDutyPct := cfg.lrMaxDutyPct;
+		ELSE
+			stat.lrDutyPct := lrDemand;
+		END_IF
+	END_IF
+END_IF
+
+IF stat.lrDutyPct < 0.0 THEN
+	stat.lrDutyPct := 0.0;
+ELSIF stat.lrDutyPct > 100.0 THEN
+	stat.lrDutyPct := 100.0;
+END_IF
+
+lrOutputDuty := stat.lrDutyPct;
+IF cfg.bInvertPwmOutput THEN
+	lrOutputDuty := 100.0 - lrOutputDuty;
+END_IF
+q_nPwmCommand := LREAL_TO_INT(lrOutputDuty * INT_TO_LREAL(cfg.nPwmFullScale) / 100.0);
+
+// ES1084 tach input. The fan supplies two rising pulses per revolution.
+bTach := i_bTach;
+IF cfg.bInvertTachInput THEN
+	bTach := NOT bTach;
+END_IF
+rtrigTach(CLK := bTach);
+
+IF rtrigTach.Q THEN
+	nWindowPulses := nWindowPulses + 1;
+	stat.nPulseCount := stat.nPulseCount + 1;
+END_IF
+
+tonRpmWindow(IN := TRUE, PT := cfg.tRpmWindow);
+IF tonRpmWindow.Q THEN
+	IF cfg.nPulsesPerRevolution > 0 THEN
+		stat.lrSpeedRpm :=
+			UDINT_TO_LREAL(nWindowPulses) * 60.0
+			/ UINT_TO_LREAL(cfg.nPulsesPerRevolution)
+			/ (TIME_TO_LREAL(cfg.tRpmWindow) / 1000.0);
+	ELSE
+		stat.lrSpeedRpm := 0.0;
+	END_IF
+	nWindowPulses := 0;
+	tonRpmWindow(IN := FALSE, PT := cfg.tRpmWindow);
+END_IF
+
+// Reset the no-tach timer on every observed pulse.
+tonNoTach(
+	IN := ctrl.bEnable
+		AND (stat.lrDutyPct >= cfg.lrMinRunningDutyPct)
+		AND NOT rtrigTach.Q,
+	PT := cfg.tStallDelay);
+
+stat.bStallAlarm := tonNoTach.Q;
+stat.bRunning := ctrl.bEnable AND (stat.lrSpeedRpm > 0.0) AND NOT stat.bStallAlarm;
+
+// At maximum fan speed the pulse period is about 7 ms. A 10 ms task can miss
+// edges even before considering the ES1084 3 ms input filter.
+stat.bTachMeasurementLimited := in_tCycleTime > T#2MS;
+]]></ST>
+    </Implementation>
+    <Method Name="M_SetDisable" Id="{40dc14dd-23e1-4d20-981b-5910fbfd5ac0}">
+      <Declaration><![CDATA[METHOD M_SetDisable
+]]></Declaration>
+      <Implementation><ST><![CDATA[ctrl.bEnable := FALSE;]]></ST></Implementation>
+    </Method>
+    <Method Name="M_SetEnable" Id="{72240d0d-23d6-46fb-a417-ab4506179780}">
+      <Declaration><![CDATA[METHOD M_SetEnable
+]]></Declaration>
+      <Implementation><ST><![CDATA[ctrl.bEnable := TRUE;]]></ST></Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

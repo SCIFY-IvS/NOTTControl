@@ -6,7 +6,7 @@
         "name": "ADS"
       },
       {
-        "publishServerExtension": true,
+        "publishServerExtension": false,
         "name": "RFIDAuth"
       },
       {

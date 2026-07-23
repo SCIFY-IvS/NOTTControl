@@ -270,6 +270,9 @@ END_IF
 // update the input
 stat.lrActInput := pInputTemp^.stat.lrTempK;
 
+(* 
+Following Beckhoff ramp generator is obsolete. Keeping it here until the tests with the new ramp geneator are successful.
+
 // execute the ramp
 ramp(
     in_bEnable          := bEnableRamp,
@@ -277,7 +280,25 @@ ramp(
     in_fStartPoint      := stat.lrActInput,
  	in_fRampUp_Rate	    := cfg.lrRampUpRate,
  	in_fRampDown_Rate   := cfg.lrRampDownRate,
- 	out_fRampValue      => stat.lrRampValue);
+ 	out_fRampValue      => stat.lrRampValue); *)
+	
+stat.lrRampValue :=
+    M_GenerateRampedSetpoint(
+        in_bEnable                 := bEnableRamp,
+        in_bRestart                := FALSE,
+
+        in_lrTargetSetpoint        := stat.lrTargetSetpoint,
+        in_lrProcessValue          := stat.lrActInput,
+
+        in_lrRampUpRate            := cfg.lrRampUpRate,
+        in_lrRampDownRate          := cfg.lrRampDownRate,
+
+        in_lrMaxTrackingDifference := cfg.lrMaxTrackingDifference,
+        in_lrTargetChangeThreshold := cfg.lrTargetChangeThreshold,
+
+        in_tCycleTime              := in_tCycleTime
+    );
+
 
 // execute the PID algorithm
 fbCtrlPid(
@@ -368,6 +389,172 @@ END_IF
 
 // reset any request
 ctrl.eCtrlMode := E_METIS_CTRL_MODE.NONE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GenerateRampedSetpoint" Id="{a5b3d7de-21b2-415c-9d90-42a257de37f5}">
+      <Declaration><![CDATA[METHOD M_GenerateRampedSetpoint : LREAL
+VAR_INPUT
+    in_bEnable                     : BOOL;
+    in_bRestart                    : BOOL;
+
+    in_lrTargetSetpoint            : LREAL;
+    in_lrProcessValue              : LREAL;
+
+    // Ramp rates in K/min
+    in_lrRampUpRate                : LREAL;
+    in_lrRampDownRate              : LREAL;
+
+    // Maximum permitted difference between ramped SP and process value
+    in_lrMaxTrackingDifference     : LREAL ;
+
+    // A target step larger than this restarts the ramp from the process value
+    in_lrTargetChangeThreshold     : LREAL;
+
+    in_tCycleTime                  : TIME := T#10ms;
+END_VAR
+
+VAR_INST
+    lrRampedSetpoint               : LREAL;
+    lrPreviousTarget               : LREAL;
+
+    bInitialized                   : BOOL;
+    bWasEnabled                    : BOOL;
+END_VAR
+
+VAR
+    lrCandidate                    : LREAL;
+    lrRampUpStep                   : LREAL;
+    lrRampDownStep                 : LREAL;
+    lrTrackingLimit                : LREAL;
+    lrTargetChangeThreshold        : LREAL;
+
+    bTargetChanged                 : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Sanitize configuration values
+lrTrackingLimit := ABS(in_lrMaxTrackingDifference);
+lrTargetChangeThreshold := ABS(in_lrTargetChangeThreshold);
+
+
+// Convert K/min into the increment for this PLC cycle.
+// TIME_TO_LREAL returns the TIME value in milliseconds.
+lrRampUpStep :=
+    MAX(0.0, in_lrRampUpRate)
+    * TIME_TO_LREAL(in_tCycleTime)
+    / 60000.0;
+
+lrRampDownStep :=
+    MAX(0.0, in_lrRampDownRate)
+    * TIME_TO_LREAL(in_tCycleTime)
+    / 60000.0;
+
+
+// Detect a meaningful target step.
+// Small continuously moving targets do not repeatedly reset the ramp.
+bTargetChanged :=
+    bInitialized
+    AND (
+        ABS(in_lrTargetSetpoint - lrPreviousTarget)
+        > lrTargetChangeThreshold
+    );
+
+
+// When disabled, synchronize with the process value.
+// The next enable starts cleanly from the current temperature.
+IF NOT in_bEnable THEN
+    lrRampedSetpoint := in_lrProcessValue;
+    lrPreviousTarget := in_lrTargetSetpoint;
+
+    bInitialized := FALSE;
+    bWasEnabled := FALSE;
+
+    M_GenerateRampedSetpoint := lrRampedSetpoint;
+    RETURN;
+END_IF;
+
+
+// Initialize or restart from the current process temperature.
+IF NOT bInitialized
+    OR NOT bWasEnabled
+    OR in_bRestart
+    OR bTargetChanged
+THEN
+    lrRampedSetpoint := in_lrProcessValue;
+    bInitialized := TRUE;
+END_IF;
+
+
+// Remember the current command for the next cycle.
+lrPreviousTarget := in_lrTargetSetpoint;
+bWasEnabled := TRUE;
+
+
+// Generate the normal time-based ramp candidate.
+IF in_lrTargetSetpoint > lrRampedSetpoint THEN
+
+    // Ramping upward
+    lrCandidate :=
+        MIN(
+            in_lrTargetSetpoint,
+            lrRampedSetpoint + lrRampUpStep
+        );
+
+ELSIF in_lrTargetSetpoint < lrRampedSetpoint THEN
+
+    // Ramping downward
+    lrCandidate :=
+        MAX(
+            in_lrTargetSetpoint,
+            lrRampedSetpoint - lrRampDownStep
+        );
+
+ELSE
+    lrCandidate := in_lrTargetSetpoint;
+END_IF;
+
+
+// Apply process-following constraint while heating.
+//
+// Only constrain when the target is above the actual process value.
+// This avoids interfering with correction after an overshoot.
+IF (in_lrTargetSetpoint > in_lrProcessValue)
+    AND (
+        lrCandidate
+        > in_lrProcessValue + lrTrackingLimit
+    )
+THEN
+    lrCandidate :=
+        in_lrProcessValue + lrTrackingLimit;
+END_IF;
+
+
+// Apply process-following constraint while cooling.
+//
+// Only constrain when the target is below the actual process value.
+IF (in_lrTargetSetpoint < in_lrProcessValue)
+    AND (
+        lrCandidate
+        < in_lrProcessValue - lrTrackingLimit
+    )
+THEN
+    lrCandidate :=
+        in_lrProcessValue - lrTrackingLimit;
+END_IF;
+
+
+// Ensure the tracking constraint has not moved the generated value
+// beyond the final target.
+IF in_lrTargetSetpoint >= in_lrProcessValue THEN
+    lrRampedSetpoint :=
+        MIN(lrCandidate, in_lrTargetSetpoint);
+ELSE
+    lrRampedSetpoint :=
+        MAX(lrCandidate, in_lrTargetSetpoint);
+END_IF;
+
+
+M_GenerateRampedSetpoint := lrRampedSetpoint;]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_Read_Write_Config" Id="{ba1cb41a-4c04-4f81-ab52-459a22fde2dc}">

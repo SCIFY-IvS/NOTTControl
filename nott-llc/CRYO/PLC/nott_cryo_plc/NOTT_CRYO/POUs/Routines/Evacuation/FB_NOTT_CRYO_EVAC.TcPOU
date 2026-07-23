@@ -20,6 +20,9 @@ VAR
 	{attribute 'TcHmiSymbol.Show'}
 	{attribute 'TcHmiSymbol.ReadOnly'}	
 	bEvacuationActive:		BOOL := FALSE;			// Flag if controller is ACTIVE
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}	
+	bEmergency:		BOOL := FALSE;			// Vacuum Emergency
 	
 	// Power for pressure sensors (TODO)
 	q_bPower_VAG1	AT %Q*:	BOOL := TRUE;
@@ -43,6 +46,13 @@ VAR
 	bUpdateCmds_PVP:	BOOL;
 	bUpdateCmds_TMP:	BOOL;
 
+// NOTT-specific evacuation pressure-rise safety
+tonPressureRiseWindow: TON;
+bPressureRiseWindowInit: BOOL := FALSE;
+bPressureRiseEvacRestarted: BOOL := FALSE;
+lrPressureRiseStart: LREAL := 0.0;
+lrPressureRiseDelta: LREAL := 0.0;
+bPressureRiseSafetyArmed: BOOL := FALSE;
 	
 END_VAR
 ]]></Declaration>
@@ -69,7 +79,10 @@ CASE stat.nState	OF
 	ELSE
 		
 		bEvacuationActive		:= TRUE;
-END_CASE]]></ST>
+END_CASE
+
+
+]]></ST>
     </Implementation>
     <Method Name="M_Configure" Id="{c81ffccd-8665-4123-a26c-ac1ffb1ce34a}">
       <Declaration><![CDATA[METHOD M_Configure
@@ -178,6 +191,97 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[bPermitStop := in_bPermissionStop;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SafetyCheck" Id="{e031ab91-6103-4e14-85e9-6c17407a7d88}">
+      <Declaration><![CDATA[METHOD M_SafetyCheck
+VAR_INPUT
+END_VAR
+VAR CONSTANT
+    lrPress_EmergencyReset : LREAL := 10.0E-1; // [mbar]
+    lrPressRiseTrip        : LREAL := 5.0;     // [mbar rise in 10 seconds]
+    tPressureRiseWindow    : TIME  := T#10S;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.M_SafetyCheck();
+
+IF NOT in_RefVAGC.stat.bValid THEN
+    tonPressureRiseWindow(IN := FALSE);
+    bPressureRiseWindowInit := FALSE;
+    RETURN;
+END_IF
+
+// Arm this safety only after evacuation has once reached vacuum.
+// This avoids false trips from noisy atmospheric-pressure readings.
+IF NOT bPressureRiseSafetyArmed THEN
+    tonPressureRiseWindow(IN := FALSE);
+    bPressureRiseWindowInit := FALSE;
+
+    IF bEvacuationActive
+       AND (in_RefVAGC.stat.lrPressure < lrPress_EmergencyReset) THEN
+        bPressureRiseSafetyArmed := TRUE;
+    END_IF
+
+    RETURN;
+END_IF
+
+// Emergency latch behavior.
+IF stat.bEmergency THEN
+    ctrl.bEnable_PVV1 := FALSE;
+    stat.bWarning     := TRUE;
+
+    IF in_RefVAGC.stat.lrPressure < lrPress_EmergencyReset THEN
+        stat.bEmergency := FALSE;
+        stat.bWarning   := FALSE;
+
+        bPressureRiseEvacRestarted := FALSE;
+        bPressureRiseWindowInit    := FALSE;
+        tonPressureRiseWindow(IN := FALSE);
+
+        // Keep armed, because we are still below the reset pressure.
+        bPressureRiseSafetyArmed := TRUE;
+
+        stat.sStatus := 'VAGC pressure below emergency reset threshold.';
+    END_IF
+
+    RETURN;
+END_IF
+
+// Normal armed monitoring.
+IF NOT bPressureRiseWindowInit THEN
+    lrPressureRiseStart := in_RefVAGC.stat.lrPressure;
+    lrPressureRiseDelta := 0.0;
+    bPressureRiseWindowInit := TRUE;
+END_IF
+
+tonPressureRiseWindow(IN := TRUE, PT := tPressureRiseWindow);
+
+IF tonPressureRiseWindow.Q THEN
+    lrPressureRiseDelta :=
+        in_RefVAGC.stat.lrPressure - lrPressureRiseStart;
+
+    IF (lrPressureRiseDelta >= lrPressRiseTrip)
+       AND NOT bPressureRiseEvacRestarted THEN
+
+        ctrl.bEnable_PVV1 := FALSE;
+
+        stat.bEmergency := TRUE;
+        stat.bWarning   := TRUE;
+
+        bPressureRiseEvacRestarted := TRUE;
+
+        // Replace with the correct base restart state.
+        stat.nState := E_CRYO_EVAC_STATE_50.CLOSE_PVV1_START;
+
+        stat.sStatus :=
+            'Emergency: VAGC pressure rise > 5 mbar in 10 s. PVV1 closed, evacuation restarted.';
+    END_IF
+
+    IF NOT stat.bEmergency THEN
+        tonPressureRiseWindow(IN := FALSE);
+        bPressureRiseWindowInit := FALSE;
+    END_IF
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_UpdatePumpCommands" Id="{d145e153-9815-4dbb-ac22-92e24b0bb6ee}">

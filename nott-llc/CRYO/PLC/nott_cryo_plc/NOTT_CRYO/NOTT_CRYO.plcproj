@@ -49,6 +49,15 @@
     <Compile Include="DUTs\Structures\CoolDown\T_NOTT_CRYO_COOLDOWN_STAT.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DUTs\Structures\Fan\T_NOTT_FAN_CFG.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Fan\T_NOTT_FAN_CTRL.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\Fan\T_NOTT_FAN_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Structures\Nott_Pump\rp\T_NOTT_PUMPS_STAT.TcDUT">
       <SubType>Code</SubType>
     </Compile>
@@ -116,6 +125,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Devices\Heaters\FB_NOTT_HEATERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Devices\Fans\FB_NOTT_FAN.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Devices\ThermalBox\FB_NOTT_THERMAL_BOX_CONTROL.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Devices\NOTT_Pump\Functions\F_PfeifferExpoNewToLReal.TcPOU">
@@ -198,7 +213,10 @@
     <Folder Include="DUTs\Enumerations\TCtrl" />
     <Folder Include="DUTs\Enumerations\TempVote" />
     <Folder Include="DUTs\Structures" />
+    <Folder Include="DUTs\Structures\ControlValve" />
     <Folder Include="DUTs\Structures\CoolDown" />
+    <Folder Include="DUTs\Structures\Fan" />
+    <Folder Include="DUTs\Structures\ThermalBox" />
     <Folder Include="DUTs\Structures\WarmUp" />
     <Folder Include="DUTs\Structures\TempVote" />
     <Folder Include="DUTs\Structures\Nott_Pump" />
@@ -206,6 +224,7 @@
     <Folder Include="DUTs\Structures\Nott_Pump\tp" />
     <Folder Include="GVLs" />
     <Folder Include="POUs\Devices\Heaters" />
+    <Folder Include="POUs\Devices\Fans" />
     <Folder Include="POUs\Devices\Control" />
     <Folder Include="POUs\Devices\NOTT_Pump" />
     <Folder Include="POUs\Devices\NOTT_Pump\Functions" />
@@ -214,6 +233,7 @@
     <Folder Include="POUs\Devices\Temp_voters" />
     <Folder Include="POUs\Devices\Temperatures" />
     <Folder Include="POUs\Devices" />
+    <Folder Include="POUs\Devices\ThermalBox" />
     <Folder Include="POUs\Routines" />
     <Folder Include="POUs\Routines\CoolDown" />
     <Folder Include="POUs\Routines\Evacuation" />
@@ -323,6 +343,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <PlaceholderResolution Include="METIS Cryo PLC">
+      <Resolution>METIS Cryo PLC, * (KU Leuven)</Resolution>
+    </PlaceholderResolution>
     <PlaceholderResolution Include="System_VisuElemBase">
       <Resolution>VisuElemBase, * (System)</Resolution>
     </PlaceholderResolution>
@@ -351,8 +374,8 @@
   <ProjectExtensions>
     <PlcProjectOptions>
       <XmlArchive>
-  <Data>
-    <o xml:space="preserve" t="OptionKey">
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
       <v n="Name">"&lt;ProjectRoot&gt;"</v>
       <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
         <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
@@ -433,14 +456,14 @@
       </d>
       <d n="Values" t="Hashtable" />
     </o>
-  </Data>
-  <TypeList>
-    <Type n="Boolean">System.Boolean</Type>
-    <Type n="Hashtable">System.Collections.Hashtable</Type>
-    <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
-    <Type n="String">System.String</Type>
-  </TypeList>
-</XmlArchive>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
     </PlcProjectOptions>
   </ProjectExtensions>
 </Project>

@@ -15,6 +15,15 @@ STRUCT
 	bEmergency:		BOOL := FALSE;	// Flag if there was Emergency valve closure
 	bPTC_On:		BOOL;			// Flag if Prevacuum Pump is running
 	bPTC_Ready:		BOOL;			// Flag if Prevacuum Pump is Ready
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bAlarm:			BOOL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bPressureAlarm:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bPumpAlarm:		BOOL := FALSE;
 
 
 	// Generic controller OK flag.

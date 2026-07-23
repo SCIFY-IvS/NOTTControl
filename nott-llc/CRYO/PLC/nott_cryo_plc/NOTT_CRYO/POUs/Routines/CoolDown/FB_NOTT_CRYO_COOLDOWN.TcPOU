@@ -3,7 +3,8 @@
   <POU Name="FB_NOTT_CRYO_COOLDOWN" Id="{3d276ebb-7af3-413c-9feb-e00a6a8d77c1}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CRYO_COOLDOWN
 VAR_INPUT
-	in_bEnable:	BOOL := FALSE;	// System active while in_bEnable is TRUE
+	in_bEnable:		BOOL := FALSE;	// System active while in_bEnable is TRUE
+	in_Cryo_Stat:	T_NOTT_CRYO_STAT;
 END_VAR
 VAR_OUTPUT
 	out_bPermit_Evacuation_Stop:	BOOL := FALSE;
@@ -55,6 +56,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[M_Configure();
 M_ExecuteControllers();
+M_SafetyCheck();
 M_StateMachine( 
 	nott_temps  := nott_temps,
 	nott_heaters := nott_heaters,
@@ -92,7 +94,17 @@ END_VAR
         <ST><![CDATA[
 
 	
-ctrl.cor_Cooler(in_bEnable:=ctrl.bEnable_Cooler);
+// Hardware-level cooling veto. This prevents a stale command or scan-order
+// delay from enabling the cooler before confirmed vacuum is available.
+ctrl.cor_Cooler(
+    in_bEnable := ctrl.bEnable_Cooler
+        AND in_Cryo_Stat.bPressureValid
+        AND in_Cryo_Stat.bVacuum
+        AND (
+            (in_Cryo_Stat.bIsPVPRunning
+             AND in_Cryo_Stat.bIsTMPRunning)
+            OR in_Cryo_Stat.bOP
+        ));
 Cooler(
 	in_bEnable:= ctrl.cor_Cooler.out_bEnable,
 	in_bSimulation:= FALSE, 
@@ -130,6 +142,54 @@ END_VAR
         <ST><![CDATA[bPermitStop := in_bPermissionStop;]]></ST>
       </Implementation>
     </Method>
+    <Method Name="M_SafetyCheck" Id="{5c029b7a-7ff4-42d5-b9d2-5d6029555fd7}">
+      <Declaration><![CDATA[METHOD M_SafetyCheck
+VAR_INPUT
+END_VAR
+VAR CONSTANT
+	lrPress_ColdAlarmTrip:	LREAL := 10.0E-1;	// [mbar]
+	lrPress_ColdAlarmReset:	LREAL := 8.0E-1;	// [mbar], hysteresis reset
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Keep pressure and pump alarm causes separate so clearing one condition
+// cannot hide the other.
+IF NOT in_Cryo_Stat.bCold THEN
+	stat.bPressureAlarm := FALSE;
+ELSIF in_Cryo_Stat.bPressureValid THEN
+	IF stat.bPressureAlarm THEN
+		IF in_Cryo_Stat.lrPressure_mbar < lrPress_ColdAlarmReset THEN
+			stat.bPressureAlarm := FALSE;
+		END_IF
+	ELSIF in_Cryo_Stat.lrPressure_mbar > lrPress_ColdAlarmTrip THEN
+		stat.bPressureAlarm := TRUE;
+	END_IF
+END_IF
+
+// A pump loss during active cooldown trips the routine. The alarm resets only
+// after both pumps recover; a new operator command is required to restart.
+IF stat.bActive
+    AND NOT in_Cryo_Stat.bOP
+    AND (NOT in_Cryo_Stat.bIsPVPRunning
+         OR NOT in_Cryo_Stat.bIsTMPRunning) THEN
+
+    stat.bPumpAlarm := TRUE;
+    ctrl.bEnable_Cooler := FALSE;
+    stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
+    stat.sErrorText := 'Pump stopped during cooldown.';
+
+ELSIF (in_Cryo_Stat.bIsPVPRunning
+       AND in_Cryo_Stat.bIsTMPRunning)
+      OR in_Cryo_Stat.bOP THEN
+
+    stat.bPumpAlarm := FALSE;
+END_IF
+
+
+stat.bAlarm := stat.bPressureAlarm OR stat.bPumpAlarm;
+stat.bWarning := stat.bAlarm;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="M_StateMachine" Id="{7abd98e3-84d4-4188-bcad-d6dcca952a4b}">
       <Declaration><![CDATA[METHOD M_StateMachine : BOOL
 VAR_INPUT
@@ -149,6 +209,19 @@ VAR_INST
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[M_StateMachine := FALSE;
+
+// The routine cannot remain in a cooling state without confirmed vacuum.
+// The actuator is already vetoed in M_ExecuteControllers(); this transition
+// keeps the routine state and HMI status consistent with physical safety.
+IF ((stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.START_PTC)
+	OR (stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.START_RAMPDOWN_DETECTOR)
+	OR (stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.COOLING)
+	OR (stat.nState = E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED))
+	AND (NOT in_Cryo_Stat.bPressureValid OR NOT in_Cryo_Stat.bVacuum) THEN
+	ctrl.bEnable_Cooler := FALSE;
+	stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
+	stat.sStatus := 'Stopping cooldown: vacuum lost or pressure invalid.';
+END_IF
 
 CASE stat.nState OF
 
@@ -173,7 +246,11 @@ CASE stat.nState OF
 		
         trig(CLK := in_bEnable);
 
-        IF trig.Q THEN
+        IF trig.Q
+		   AND in_Cryo_Stat.bPressureValid
+		   AND in_Cryo_Stat.bVacuum
+		   AND in_Cryo_Stat.bIsPVPRunning
+		   AND in_Cryo_Stat.bIsTMPRunning THEN
             stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.START_PTC;
             stat.sStatus := 'Starting PTC...';
 
@@ -181,23 +258,42 @@ CASE stat.nState OF
             out_bPermit_WarmUp          := FALSE;
 			
 			stat.bActive := TRUE;
+		ELSIF trig.Q THEN
+			stat.sStatus := 'Cooldown start rejected: vacuum/pumps not ready.';
         END_IF;
 
 
     E_NOTT_CRYO_COOLDOWN_STATE.START_PTC:
 		stat.bActive := TRUE;
-        ctrl.bEnable_Cooler := TRUE;
+		ctrl.cor_Cooler.M_SetPermissions(TRUE, TRUE);
 
-        out_bPermit_Evacuation_Stop := FALSE;
-        out_bPermit_WarmUp          := FALSE;
+		out_bPermit_Evacuation_Stop := FALSE;
+		out_bPermit_WarmUp          := FALSE;
 
-        IF cooler.stat.bActive THEN
-            stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.START_RAMPDOWN_DETECTOR;
-            stat.sStatus := 'PTC started. Starting detector ramp down...';
-        END_IF;
+		IF NOT in_bEnable THEN
+			ctrl.bEnable_Cooler := FALSE;
+			stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
+			stat.sStatus := 'Cooldown cancelled while starting PTC...';
+		ELSE
+			ctrl.bEnable_Cooler := TRUE;
+
+			IF cooler.stat.bSystemOn THEN
+				stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.START_RAMPDOWN_DETECTOR;
+				stat.sStatus := 'PTC started. Starting detector ramp down...';
+			END_IF
+		END_IF
 
 
     E_NOTT_CRYO_COOLDOWN_STATE.START_RAMPDOWN_DETECTOR:
+		ctrl.cor_Cooler.M_SetPermissions(TRUE, TRUE);
+		ctrl.bEnable_Cooler := TRUE;
+
+		IF NOT in_bEnable THEN
+			ctrl.bEnable_Cooler := FALSE;
+			stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
+			stat.sStatus := 'Stopping cooldown...';
+			RETURN;
+		END_IF
 
         // Enable detector heaters
         nott_heaters.h_detector.M_SetEnable();
@@ -228,14 +324,15 @@ CASE stat.nState OF
 		stat.bActive := TRUE;
 
     E_NOTT_CRYO_COOLDOWN_STATE.COOLING:
+		ctrl.cor_Cooler.M_SetPermissions(TRUE, TRUE);
+		ctrl.bEnable_Cooler := TRUE;
 
         out_bPermit_Evacuation_Stop := FALSE;
         out_bPermit_WarmUp          := FALSE;
 		stat.bActive := TRUE;
         IF in_bEnable THEN
 
-            IF     (nott_temps.t_detector_vote.stat.lrTempK   < cfg.lrTemp_Det)
-               AND (nott_temps.t_base_plate_vote.stat.lrTempK < cfg.lrTemp_BasePlate) THEN
+            IF in_Cryo_Stat.bOP THEN
 
                 stat.sStatus := 'Operational temperature achieved.';
                 stat.nState  := E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED;
@@ -252,13 +349,20 @@ CASE stat.nState OF
 
     E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED:
 		stat.bActive := TRUE;
+		ctrl.cor_Cooler.M_SetPermissions(TRUE, TRUE);
+		ctrl.bEnable_Cooler := TRUE;
         IF in_bEnable THEN
-
+			IF NOT in_Cryo_Stat.bOP THEN
+				out_bPermit_Evacuation_Stop := FALSE;
+				out_bPermit_WarmUp          := FALSE;
+				stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.COOLING;
+				stat.sStatus := 'Operational state lost. Resuming cooldown...';
+			ELSE
                 stat.sStatus := 'Operational temperature achieved.';
 
                 out_bPermit_Evacuation_Stop := TRUE;
                 out_bPermit_WarmUp          := FALSE;
-
+			END_IF
 
         ELSE
             stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
@@ -272,6 +376,7 @@ CASE stat.nState OF
     E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN:
 		stat.bActive := TRUE;
 		// Disable PTC
+		ctrl.cor_Cooler.M_SetPermissions(FALSE, TRUE);
 		ctrl.bEnable_Cooler := FALSE;
 	
 		out_bPermit_Evacuation_Stop := FALSE;
@@ -302,7 +407,9 @@ CASE stat.nState OF
 		// Safety timeout (e.g. 5 minutes)
 		tonStopCooldown(IN := TRUE, PT := T#15M);
 	
-		IF ((nott_temps.t_detector_vote.stat.lrTempK >= (nott_temps.out_lrLowestTemp + 8.0))
+		IF ((nott_t_votes.vote_detector.stat.bValid
+			AND nott_temps.out_bLowestTempValid
+			AND (nott_t_votes.vote_detector.stat.lrTempK >= (nott_temps.out_lrLowestTemp + 8.0)))
 			OR tonStopCooldown.Q) THEN
 	
 			tonStopCooldown(IN := FALSE);

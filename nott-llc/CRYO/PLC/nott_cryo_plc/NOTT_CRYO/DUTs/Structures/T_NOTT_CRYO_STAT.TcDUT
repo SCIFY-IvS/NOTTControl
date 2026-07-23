@@ -36,10 +36,16 @@ STRUCT
 	bVacuumOK:		BOOL := FALSE;		
 	{attribute 'TcHmiSymbol.Show'}
 	{attribute 'TcHmiSymbol.ReadOnly'}
-	bCold:			BOOL := FALSE;	// Master temperature < cfg.lrTemp_Cold		
+	bPressureValid:	BOOL := FALSE;
 	{attribute 'TcHmiSymbol.Show'}
 	{attribute 'TcHmiSymbol.ReadOnly'}
-	bOP:			BOOL := FALSE;	// Master temperature < cfg.lrTemp_OP
+	lrPressure_mbar:	LREAL;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bCold:			BOOL := FALSE;	// Detector vote < cfg.lrTemp_Warm and cryostat is in vacuum
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	bOP:			BOOL := FALSE;	// Detector/base-plate temperatures and VAGC pressure are operational
 
 	bCoolantFlowOK:	BOOL := FALSE;		
 	{attribute 'TcHmiSymbol.Show'}
@@ -54,35 +60,15 @@ STRUCT
 	{attribute 'TcHmiSymbol.Show'}
 	{attribute 'TcHmiSymbol.ReadOnly'}
 	lrLowestTempK:	LREAL;	// Lowest temperature [K] in Cryostat
-	
-	//
-	// Temperatures [K]
-	//
-
-	
-	// Master temperature [K] for cooldown and warmup.
-	// Normally, if everything is OK, this is the temperature
-	// measured by Heater_DetIF.
 	{attribute 'TcHmiSymbol.Show'}
 	{attribute 'TcHmiSymbol.ReadOnly'}
-	lrMasterTempK:	LREAL;
-	nMasterTempKIndex:	INT:= 0;
-
-	lrTempDiff_DET_Mon:			LREAL;	// Temperature difference between DET (Lakeshore) and DET Mon (PT100)
-	lrTempDiff_DetIF_Mon:		LREAL;	// Temperature difference between DET Interface and DET Mom
-	lrTempDiff_DetIF_Preamp:	LREAL;	// Temperature difference between DET Interface and Preamp
-	lrTempDiff_DetIF_ColdPlate:	LREAL;	// Temperature difference between DET Interface and Cold Plate
-	lrTempDiff_DetIF_WarmFlange:LREAL;	// Temperature difference between DET Interface and Warm Flange
-	lrTempDiff_DetIF_WarmOptics:LREAL;	// Temperature difference between DET Interface and Warm Optics
-
-	// TODO: Attributes not used yet.
-	lrTemp_K_DET_Ctrl:		LREAL;	// DET Temperature measured with Lakeshore
-	lrTemp_K_DET_Mon:		LREAL;	// DET Temperature measured with PT100
-	lrTemp_K_DET_Interface:	LREAL;
-	lrTemp_K_DET_Preamp:	LREAL;
-	lrTemp_K_ColdPlate:		LREAL;
-	lrTemp_K_WarmFlange:	LREAL;
-	lrTemp_K_WarmOptics:	LREAL;
+	sLowestTempName:	STRING;
+	{attribute 'TcHmiSymbol.Show'}
+	{attribute 'TcHmiSymbol.ReadOnly'}
+	sHighestTempName:	STRING;
+	
+	bIsPVPRunning:		BOOL := FALSE;
+	bIsTMPRunning:		BOOL := FALSE;
 
 END_STRUCT
 END_TYPE

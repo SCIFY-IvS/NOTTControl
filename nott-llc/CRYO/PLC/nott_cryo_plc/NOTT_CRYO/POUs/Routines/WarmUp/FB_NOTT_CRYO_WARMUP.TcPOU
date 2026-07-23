@@ -4,6 +4,7 @@
     <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CRYO_WARMUP
 VAR_INPUT
 	in_bEnable:	BOOL := FALSE;	// System active while in_bEnable is TRUE
+	in_Cryo_Stat:	T_NOTT_CRYO_STAT;
 END_VAR
 VAR_OUTPUT
 	out_bPermit_Evacuation_Stop:	BOOL := FALSE;
@@ -46,14 +47,14 @@ END_VAR
     <Implementation>
       <ST><![CDATA[M_Configure();
 M_ExecuteControllers();
+M_SafetyCheck();
 M_StateMachine( 
 	nott_temps  := nott_temps,
 	nott_heaters := nott_heaters,
 	nott_t_ctrls := nott_t_ctrls,
 	nott_t_votes := nott_t_votes
 );
-M_UpdateStatus();
-]]></ST>
+M_UpdateStatus();]]></ST>
     </Implementation>
     <Method Name="M_Configure" Id="{4cb12a1b-1086-4703-9cb8-35104e92131e}">
       <Declaration><![CDATA[METHOD M_Configure
@@ -108,6 +109,60 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[bPermitStop := in_bPermissionStop;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SafetyCheck" Id="{b247bc29-c793-469c-ae87-0665a1511847}">
+      <Declaration><![CDATA[METHOD M_SafetyCheck
+VAR_INPUT
+END_VAR
+VAR CONSTANT
+	lrPress_WarmAlarmTrip:	LREAL := 10.0E-1;	// [mbar]
+	lrPress_WarmAlarmReset:	LREAL := 8.0E-1;	// [mbar], hysteresis reset
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Keep pressure and pump alarm causes separate so clearing one condition
+// cannot hide the other.
+IF NOT stat.bActive THEN
+	stat.bPressureAlarm := FALSE;
+ELSIF in_Cryo_Stat.bPressureValid THEN
+	IF stat.bPressureAlarm THEN
+		IF in_Cryo_Stat.lrPressure_mbar < lrPress_WarmAlarmReset THEN
+			stat.bPressureAlarm := FALSE;
+		END_IF
+	ELSIF in_Cryo_Stat.lrPressure_mbar > lrPress_WarmAlarmTrip THEN
+		stat.bPressureAlarm := TRUE;
+	END_IF
+END_IF
+
+// A pump loss during active warmup disables every heat source and trips the
+// routine. The alarm resets only after both pumps recover; restart is manual.
+IF stat.bActive
+	AND (NOT in_Cryo_Stat.bIsPVPRunning OR NOT in_Cryo_Stat.bIsTMPRunning) THEN
+	stat.bPumpAlarm := TRUE;
+
+	nott_heaters.h_detector.M_SetDisable();
+	nott_heaters.h_detector_spare.M_SetDisable();
+	nott_heaters.h_sidecar.M_SetDisable();
+	nott_heaters.h_photonic_chip.M_SetDisable();
+	nott_heaters.h_base_plate.M_SetDisable();
+	nott_heaters.h_shield.M_SetDisable();
+
+	nott_t_ctrls.tc_detector.M_SetDisable();
+	nott_t_ctrls.tc_detector_spare.M_SetDisable();
+	nott_t_ctrls.tc_sidecar.M_SetDisable();
+	nott_t_ctrls.tc_photonic_chip.M_SetDisable();
+	nott_t_ctrls.tc_base_plate.M_SetDisable();
+	nott_t_ctrls.tc_shields.M_SetDisable();
+
+	stat.nState := E_NOTT_CRYO_WARMUP_STATE.STOP_WARMUP;
+	stat.sErrorText := 'Pump stopped during warmup.';
+ELSIF in_Cryo_Stat.bIsPVPRunning AND in_Cryo_Stat.bIsTMPRunning THEN
+	stat.bPumpAlarm := FALSE;
+END_IF
+
+stat.bAlarm := stat.bPressureAlarm OR stat.bPumpAlarm;
+stat.bWarning := stat.bAlarm;]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_StateMachine" Id="{be2e2661-2a1b-4ffc-b3fc-ed41bcf078a2}">
@@ -171,12 +226,16 @@ CASE stat.nState OF
 
         trig(CLK := in_bEnable);
 
-        IF trig.Q THEN
+        IF trig.Q
+		   AND in_Cryo_Stat.bIsPVPRunning
+		   AND in_Cryo_Stat.bIsTMPRunning THEN
             stat.bActive := TRUE;
             stat.nState := E_NOTT_CRYO_WARMUP_STATE.START_DETECTOR_PROTECTION;
 
             out_bPermit_Evacuation_Stop := FALSE;
             out_bPermit_CoolDown        := FALSE;
+		ELSIF trig.Q THEN
+			stat.sStatus := 'Warm-up start rejected: pumps not ready.';
         END_IF;
 
 
