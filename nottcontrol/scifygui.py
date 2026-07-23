@@ -46,6 +46,7 @@ from nottcontrol.components.device_polling import (
     split_motor_status_values,
 )
 from nottcontrol.shutters_window import ShutterWindow
+from nottcontrol.filterwheel_window import FilterWheelWindow
 from nottcontrol.tiptilt_window import TipTiltWindow
 from nottcontrol.piezos_window import PiezosWindow
 from nottcontrol.cryostat_window import CryostatWindow
@@ -108,6 +109,7 @@ class MainWindow(QMainWindow):
         self.shutter_window = None
         self.tiptilt_window = None
         self.piezos_window = None
+        self.filterwheel_window = None
         self.cryostat_window = None
         self.ldc_window = None
 
@@ -128,6 +130,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_shutters.clicked.connect(self.open_shutter_window)
         self.ui.pushButton_tiptilt.clicked.connect(self.open_tiptilt_window)
         self.ui.pushButton_piezos.clicked.connect(self.open_piezos_window)
+        self.ui.pushButton_filter_wheel.clicked.connect(self.open_filterwheel_window)
         self.ui.pushButton_cryostat.clicked.connect(self.open_cryostat_window)
         self.ui.pushButton_ldc.clicked.connect(self.open_ldc_window)
 
@@ -518,6 +521,17 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error opening piezos window: {e}")
 
+    def open_filterwheel_window(self):
+        try:
+            if self.filterwheel_window is None:
+                self.filterwheel_window = FilterWheelWindow(self, self.redis_client)
+                self.filterwheel_window.closing.connect(self.clear_filterwheel_window)
+                self.filterwheel_window.show()
+            else:
+                self.filterwheel_window.activateWindow()
+        except Exception as e:
+            print(f"Error opening filterwheel window: {e}")
+
     def _warn_redis_unavailable(self, context: str) -> None:
         if self._redis_warned:
             return
@@ -553,6 +567,9 @@ class MainWindow(QMainWindow):
 
     def clear_piezos_window(self):
         self.piezos_window = None
+
+    def clear_filterwheel_window(self):
+        self.filterwheel_window = None
 
     def clear_cryostat_window(self):
         self.cryostat_window = None
