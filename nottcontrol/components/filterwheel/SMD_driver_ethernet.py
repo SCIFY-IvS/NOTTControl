@@ -19,12 +19,30 @@ class SMD_driver_ethernet:
             s.connect((self.ip, self.port))
             print(f"Sending message: {msg}")
             s.sendall(msg.encode())
-            #TODO: is there a better way to ensure we wait long enough to get an answer?
-            time.sleep(1)
-            answer = s.recv(1024).decode()
+            if msg.startswith("SYS:FLAGSV"):
+                #This one has multiple line breaks so use a sleep statement to ensure you have the whole answer
+                time.sleep(1)
+                answer = s.recv(1024).decode()
+            else:
+                #Otherwise, read until you get a line break
+                answer = self.recv_until_end_of_message(s).decode()
         
         print(f"Answer: {answer}")
         return answer
+    
+    def recv_until_end_of_message(self, sock: socket.socket) -> bytes:
+        buffer = bytearray()
+
+        while True:
+            chunk = sock.recv(1024)
+            if not chunk:
+                raise ConnectionError("Socket closed before delimiter was received")
+
+            buffer.extend(chunk)
+
+            pos = buffer.find(b"\r\n")
+            if pos != -1:
+                return bytes(buffer[:pos])
     
     def _send_and_parse_message(self, msg):
         # See documentation at https://bookstack.vps-da8d40f3.arunmicro.com/books/smd4-user-manual/page/communications-protocol
