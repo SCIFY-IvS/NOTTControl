@@ -237,3 +237,7 @@ class SMD_driver_ethernet:
         b_status = "{0:016b}".format(int_status)
         #bits are in reverse order, so check bit 2 starting from the end of the string
         return b_status[15-2] == "1"
+    
+    def is_error_active(self):
+        int_err_status = int(self.estatus, 16)
+        return int_err_status != 0
