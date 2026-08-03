@@ -12,7 +12,6 @@ Created on Wed Dec 17 13:36:18 2025
 # General
 import time
 import ast
-import threading
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
@@ -106,8 +105,6 @@ class LucidUtils:
         self.readout_configured = {"im_cam": False, "pup_cam": False}
         self.stream_configured = {"im_cam": False, "pup_cam": False}
         self.streaming = {"im_cam": False, "pup_cam": False}
-        # Field used for threading a callback function
-        self.streaming_callback = {"im_cam": False, "pup_cam": False}
 
         # Pixel formats are matched to the shmlib numpy data types, despite not all pixel formats being supported by the lucid camera (see arena_api enums).
         #               follow the Pixel Format Naming Convention (pfnc)
@@ -440,47 +437,6 @@ class LucidUtils:
             self.stop_streaming(name)
             print(f"Camera {name} returned a snapshot, stream closed.")
         return frame
-
-    def start_thread(self, name, callback):
-        """Create and return a thread that fetches snapshots of camera {name} in real-time and passes each one to the callback function.
-        Use stop_streaming_callback to stop the thread from outside.
-        Wait for thread to finish by calling thread.join() before running other code."""
-        
-        # Flag that a callback stream is starting
-        self.start_streaming_callback(name)
-        # Creating a stop event
-        stop_event = threading.Event()
-
-        def _loop():
-            if not isinstance(name,str):
-                name = str(name)
-            device = self.devices[name]
-            nodemap = device.nodemap
-            # Open stream
-            self.start_streaming(name)
-            try:
-                while not stop_event.is_set():
-                    if self.streaming_callback[name]:
-                        frame = self._get_frame(device,nodemap)
-                        w, h = frame.shape[1], frame.shape[0]
-                        # Pass frame to callback function
-                        callback(frame, w, h)
-                    else:
-                        # Break out of thread
-                        stop_event.set()
-                    time.sleep(0.01)
-            finally:
-                self.stop_streaming(name)
-
-        thread = threading.Thread(target=_loop)
-        thread.start()
-        return thread
-
-    def start_streaming_callback(self, name):
-        self.streaming_callback[name] = True
-
-    def stop_streaming_callback(self, name):
-        self.streaming_callback[name] = False
 
     def fit(self,name,beam_nr,visual_feedback):
         """Fit for the centroid position and radius of a single beam that is visible on camera "name". This function handles the opening and closing of the stream.
