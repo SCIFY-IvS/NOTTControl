@@ -705,6 +705,22 @@ class HumInt(object):
             ut.configure_camera_stream(name, params)
 
     def push_to_shm(self, name, frame):
+        """
+        Function that pushes a frame from camera {name} to its associated shm buffer.
+        Datatypes of frame and buffer are forced to match at the level of buffer initialization / camera configuration.
+        """
+        if name == "im_cam":
+            if not hasattr(self, "buffer_im_VIS_im"):
+                raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+            self.buffer_im_VIS_im.push(frame)
+        elif name == "pup_cam":
+            if not hasattr(self, "buffer_im_VIS_pup"):
+                raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+            self.buffer_im_VIS_pup.push(frame)
+        else:
+            raise ValueError(f"Camera {name} not recognized, expected either "im_cam" or "pup_cam")
+
+    
         # Callback function passed to lucid_utils.start_thread() for visible camera streaming
 
         # WIP
