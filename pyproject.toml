@@ -25,7 +25,7 @@ dependencies = [
   "pyqtgraph",
   "numpy",
   "scipy",
-  "opencv-contrib-python",
+  "opencv-python-headless",
   "redis",
   "pyzmq",
   "sympy",

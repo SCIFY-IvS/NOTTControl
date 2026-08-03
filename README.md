@@ -15,28 +15,54 @@ High-level control software for the **NOTT** instrument: a PyQt5 desktop applica
 - **Python 3.10+**
 - Network access to the configured **OPC UA** server and (if used) **Redis**
 
-Core dependencies are listed in [`pyproject.toml`](pyproject.toml) (PyQt5, asyncua, numpy, scipy, OpenCV, redis, pyzmq, sympy, matplotlib, pyqtgraph).
+Core dependencies are listed in [`pyproject.toml`](pyproject.toml) (PyQt5, asyncua, numpy, scipy, OpenCV headless, redis, pyzmq, sympy, matplotlib, pyqtgraph).
 
 Some code paths use **additional** packages that are not declared in `pyproject.toml` today, for example **Astropy** (`nottcontrol/config.py`, alignment / lucid utilities), **pyserial** (piezo hardware), **scikit-learn** (calibration scripts), or **lmfit** (lucid utilities). Install these only if you use those modules.
 
 ## Installation
 
-From the repository root:
+From the repository root (use the same `python` / conda env you will run the GUI with):
 
 ```bash
-pip install .
+python -m pip install -e .
 ```
 
-For day-to-day work on a checkout (editable install, picks up code changes without reinstalling):
+Non-editable install:
 
 ```bash
-pip install -e .
+python -m pip install .
 ```
 
-In the case of a conda environment, (requires `conda-build` installed with 
-`conda install conda-build`).
+In a conda environment you can also use (requires `conda-build` / `conda install conda-build`):
+
 ```bash
 conda develop .
+```
+
+**OpenCV:** the default dependency is `opencv-python-headless` (no bundled Qt). Do **not** install `opencv-python` or `opencv-contrib-python` alongside PyQt5 — their Qt plugins break the GUI on Linux (`Could not load the Qt platform plugin "xcb" .../cv2/qt/plugins`).
+
+If an older env already has the full OpenCV build:
+
+```bash
+python -m pip uninstall -y opencv-contrib-python opencv-python
+python -m pip install opencv-python-headless
+unset QT_QPA_PLATFORM_PLUGIN_PATH QT_PLUGIN_PATH
+```
+
+### Linux (nott-server) notes
+
+```bash
+cd /path/to/NOTTControl
+python -m pip install -e .
+unset QT_QPA_PLATFORM_PLUGIN_PATH QT_PLUGIN_PATH
+python -m nottcontrol.main
+```
+
+If `xcb` still fails after switching to headless OpenCV, install system Qt/XCB libs (Debian/Ubuntu), for example:
+
+```bash
+sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 \
+  libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0
 ```
 
 Run the application from an environment where the package is installed. The entry script changes the working directory to the `nottcontrol` package folder so that **`config.ini`** and **`.ui`** files are found next to [`nottcontrol/main.py`](nottcontrol/main.py).
