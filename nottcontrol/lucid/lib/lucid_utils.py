@@ -88,7 +88,6 @@ class LucidUtils:
         > Changing the configuration (frame size, exposure time, ...) of connected cameras and their streams
         > Fetching camera frames by exchange of buffers
         > Fitting camera frames for beam centroid positions
-        > Enabling threading with user-specified callback function
         
     Example use case:
         
