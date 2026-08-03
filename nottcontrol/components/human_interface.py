@@ -855,7 +855,7 @@ class HumInt(object):
 
     # WIP
 
-    def configure_vis_cam_readout(self, name, params):
+    def configure_VIS_cam_readout(self, name, params):
         """
         Configure the readout parameters for camera {name}.
         Upon changing the PixelFormat parameter of the camera, re-initialize the associated shm buffer with the corresponding, new datatype.
@@ -868,14 +868,14 @@ class HumInt(object):
                 frame = myut.snap(name)
                 self._init_shm_VIS_cam(name, frame)
 
-    def configure_vis_cam_stream(self, name, params):
+    def configure_VIS_cam_stream(self, name, params):
         with LucidUtils() as ut:
             ut.configure_camera_stream(name, params)
 
     def push_to_shm(self, name, frame):
         """
         Function that pushes a frame from camera {name} to its associated shm buffer.
-        Datatypes of frame and buffer are forced to match at the level of buffer initialization / camera configuration.
+        The datatypes of frame and buffer objects are forced to match at the level of buffer initialization / camera configuration.
         """
         if name == "im_cam":
             if not hasattr(self, "buffer_im_VIS_im"):
@@ -888,16 +888,33 @@ class HumInt(object):
         else:
             raise ValueError(f"Camera {name} not recognized, expected either "im_cam" or "pup_cam")
 
-    
-        # Callback function passed to lucid_utils.start_thread() for visible camera streaming
+    def snap_VIS_cam(self, name):
+        """
+        Function that snaps a single frame from camera {name} and pushes it to the associated shm buffer.
+        Cannot be called if a streaming process is active on the camera.
+        This to avoid writing data to the buffer through two channels (snap_VIS_cam and the streaming process) and data corrupting as a result. 
+        """
+        if hasattr(self, "_stream_process") and self._stream_process.get(name) is not None:
+            raise RuntimeError(f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot.")
 
-        # WIP
+        with LucidUtils() as myut:
+            frame = myut.snap(name)
+        self.push_to_shm(name, frame)
+        return frame
 
-        # Based on camera name {name}, push the frame data {frame} to the right buffer.
-        # return nothing
-        return
+    def fit_VIS_cam(self, name, beam_nr, visual_feedback=False):
+        """
+        Function that fits a beam centroid to a frame acquired by camera {name}. Returns position (x,y) and radius r of beam number {beam_nr}.
+        Cannot be called if a streaming process is active on the camera. 
+        """       
+        if hasattr(self, "_stream_process") and self._stream_process.get(name) is not None:
+            raise RuntimeError(f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot.")
 
-    def start_stream_vis_cam(self, name, ut):
+        with LucidUtils() as myut:
+            x,y,r = myut.fit(name, beam_nr, visual_feedback)
+        return x,y,r
+
+    def start_stream_VIS_cam(self, name, ut):
         # Visible camera streaming, on camera {name}
 
         # WIP
