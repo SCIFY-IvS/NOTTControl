@@ -415,6 +415,13 @@ class HumInt(object):
 
     def __del__(self):
         self.opcua_conn.disconnect()
+
+        # Stop any active processes streaming to buffers.
+        for name, process in self._stream_process.items():
+            if process is not None:
+                process.terminate()
+                process.join()
+        
         if hasattr(self, "buffer_im_IR"):
             self.buffer_im_IR.close()
         if hasattr(self, "buffer_im_VIS_pup"):
