@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import multiprocessing as mp
 from time import sleep, time
 from tqdm import tqdm
 from copy import copy
@@ -745,6 +746,61 @@ class HumInt(object):
         with LucidUtils() as myut:
             x,y,r = myut.fit(name, beam_nr, visual_feedback)
         return x,y,r
+
+    @staticmethod
+    def _VIS_cam_process(name, shm_fname, stop_event):
+        """
+        Function that opens a connection to camera {name} (via LucidUtils) and streams acquired frames to shm object {shm_fname} until {stop_event} is set.
+        Target function for the visible camera streaming process, see below.
+        """
+        with LucidUtils() as myut:
+            myut.start_streaming(name)
+            shm_obj = shm(shm_fname)
+            try:
+                while not stop_event.is_set():
+                    frame = myut._get_frame(myut.devices[name], myut.devices[name].nodemap)
+                    shm_obj.set_data(frame)
+            finally:
+                myut.stop_streaming(name)
+
+    def start_stream_VIS_cam(self, name):
+        """
+        Function that starts a process dedicated to streaming frames from camera {name} to its associated shm buffer.
+        Returns (process, stop_event).
+        Call stop_stream_VIS_cam() to stop the process.
+        """
+        if name == "im_cam":
+            shm_fname = "/dev/shm/rtdisp/vis_cam_image.im.shm"
+        elif name == "pup_cam":
+            shm_fname = "/dev/shm/rtdisp/vis_cam_pupil.im.shm"
+        else:
+            raise ValueError(f"Camera {name} not recognized, expected either "im_cam" or "pup_cam"")
+
+        if not hasattr(self, "buffer_im_VIS_im") and name == "im_cam":
+            raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+        if not hasattr(self, "buffer_im_VIS_pup") and name == "pup_cam":
+            raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+
+        if not hasattr(self, "_stream_process"):
+            self._stream_process = {}
+        if self._stream_process.get(name) is not None:
+            raise RuntimeError(f"Camera {name} is already streaming.")
+
+        stop_event = mp.Event()
+        process = mp.Process(target=HumInt._vis_cam_process, args=(name, shm_fname, stop_event), daemon=True)
+        process.start()
+
+        self._stream_process[name] = process
+        return process, stop_event
+
+    def stop_stream_VIS_cam(self, name, process, stop_event):
+        """
+        Stop the visible camera streaming process for camera {name}. 
+        """
+        stop_event.set()
+        process.join()
+        self._stream_process[name] = None
+        print(f"Stream stopped for visible camera {name}.")
 
     def start_stream_VIS_cam(self, name, ut):
         # Visible camera streaming, on camera {name}
