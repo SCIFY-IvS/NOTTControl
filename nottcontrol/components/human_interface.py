@@ -802,19 +802,6 @@ class HumInt(object):
         self._stream_process[name] = None
         print(f"Stream stopped for visible camera {name}.")
 
-    def start_stream_VIS_cam(self, name, ut):
-        # Visible camera streaming, on camera {name}
-
-        # WIP
-
-        # Pass ut as parameter so you can call stop_streaming_callback on it from outside!!
-        # 1) Create a thread, passing the camera name and above callback function
-        # 2) Deprecate w,h in start_thread
-        # 3) Complete documentation: "call stop_streaming_callback" to stop the stream. Or wrap it in a method, your call.
-        # 4) ! Note: the callback function, passed to start_thread and thus called "inside lucid_utils", remembers where it comes from - where it is defined (here).
-        # hence you can call functions/fields/whatever defined in this script on it.
-        return
-
     #------------------#
     # Sample functions |
     # -----------------#
