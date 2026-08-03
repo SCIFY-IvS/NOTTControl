@@ -8,10 +8,17 @@ _scale_factor: float | None = None
 def configure_high_dpi() -> None:
     """Call before creating QApplication."""
     import os
+    import sys
 
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
     os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
+    # Linux/VNC: avoid GLX FBConfig failures and pyqtgraph OpenGL segfaults.
+    if sys.platform.startswith("linux"):
+        os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+        os.environ.setdefault("QT_OPENGL", "software")
+        os.environ.setdefault("QT_X11_NO_MITSHM", "1")
+        os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH", None)
 
 def init_ui_scale(app) -> None:
     """Record the primary screen scale factor after QApplication exists."""

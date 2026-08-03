@@ -28,6 +28,9 @@ def main():
     opcua_conn.connect()
 
     # set up the main window
+    # Must set OpenGL attribute before QApplication exists (Linux/VNC stability).
+    if sys.platform.startswith("linux"):
+        QApplication.setAttribute(Qt.AA_UseSoftwareOpenGL, True)
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     init_ui_scale(app)
@@ -35,7 +38,6 @@ def main():
     main_window = MainWindow(opcua_conn)
     main_window.show()
     sys.exit(app.exec_())
-
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] in ("--create-shortcut", "--shortcut"):
         from nottcontrol.windows.create_desktop_shortcut import create_desktop_shortcut

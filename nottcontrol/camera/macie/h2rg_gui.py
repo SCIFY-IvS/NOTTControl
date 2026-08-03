@@ -1094,7 +1094,12 @@ class H2rgMainWindow(QMainWindow):
 
         import pyqtgraph as pg
 
-        pg.setConfigOptions(imageAxisOrder="row-major")
+        # OpenGL under VNC/remote X often segfaults after setImage; use software path.
+        pg.setConfigOptions(
+            imageAxisOrder="row-major",
+            useOpenGL=False,
+            antialias=False,
+        )
         pg.setConfigOption("background", "#1a1a2e")
         pg.setConfigOption("foreground", "w")
 
@@ -1107,6 +1112,10 @@ class H2rgMainWindow(QMainWindow):
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
+        try:
+            self.image.getView().setAntialiasing(False)
+        except Exception:
+            pass
         host.addWidget(self.image)
         self.image.show()
         self.image.getView().setMouseEnabled(x=True, y=True)
