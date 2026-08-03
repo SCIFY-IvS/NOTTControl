@@ -65,6 +65,23 @@ sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0
 ```
 
+**VNC / remote desktop:** PyQt5 and pyqtgraph need OpenGL. Over VNC you often see
+`qglx_findConfig: Failed to finding matching FBConfig`. Use software rendering:
+
+```bash
+unset QT_QPA_PLATFORM_PLUGIN_PATH QT_PLUGIN_PATH
+export LIBGL_ALWAYS_SOFTWARE=1
+export QT_OPENGL=software
+export QT_X11_NO_MITSHM=1
+python -m nottcontrol.main
+```
+
+Optional Mesa packages if GL is missing entirely:
+
+```bash
+sudo apt-get install -y libgl1-mesa-dri mesa-utils
+```
+
 Run the application from an environment where the package is installed. The entry script changes the working directory to the `nottcontrol` package folder so that **`config.ini`** and **`.ui`** files are found next to [`nottcontrol/main.py`](nottcontrol/main.py).
 
 ## Configuration
