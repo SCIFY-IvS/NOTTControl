@@ -435,23 +435,44 @@ class HumInt(object):
 
     def disp_initialize_shm_IR_cam(self):
         """
-        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
-            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout.
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR camera images.
+            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout. 
         """
-        self.buffer_im_IR = SimpleShm(
-            "/dev/shm/rtdisp/nott_window.im.shm", shape=self.dark.master_full[0].shape
-        )
+        self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
+                                        shape=self.dark.master_full[0].shape)
 
+    def _init_shm_VIS_cam(self, name, frame):
+        """
+        Static function that initializes or re-initializes a buffer for real-time transfer (shm) and display (shmview) of visible camera images from camera {name}.
+        Use a freshly-snapped frame {frame} to correctly set the buffer shape and datatype.
+        Upon re-initialization, close the existing buffer.   
+        """
+        if name == "im_cam":
+            if hasattr(self, "buffer_im_VIS_im"):
+                self.buffer_im_VIS_im.close()
+            self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
+                                                shape=frame.shape, dtype=frame.dtype)
+        elif name == "pup_cam":
+            if hasattr(self, "buffer_im_VIS_pup"):
+                self.buffer_im_VIS_pup.close()
+            self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
+                                                shape=frame.shape, dtype=frame.dtype)
+        else:
+            raise ValueError(f"Camera {name} not recognized, expected either "im_cam" or "pup_cam".)
+        
     def disp_initialize_shm_VIS_cam(self):
         """
-        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR & visible camera images.
+        Function that initializes a buffer for real-time transfer (shm) and display (shmview) of visible camera images from both cameras.
+        Snaps a frame from each to determine the correct shape and data type.
             - buffer_im_VIS_pup; (VIS pupil frame shape); Pupil plane visible camera view of the latest readout.
             - buffer_im_VIS_im; (VIS image frame shape); Image plane visible camera view of the latest readout.
         """
-        # Snapping camera views
+
         with LucidUtils() as myut:
-            frame_pup = self.get_pupil_view(ut=myut, refresh=True)
-            frame_im = self.get_image_view(ut=myut, refresh=True)
+            for name in ("im_cam", "pup_cam"):
+                # Snapping camera view and initializing buffer
+                frame = myut.snap(name)
+                self._init_shm_VIS_cam(name, frame)
 
         self.buffer_im_VIS_pup = SimpleShm(
             "/dev/shm/rtdisp/vis_cam_pupil.im.shm",
@@ -834,38 +855,18 @@ class HumInt(object):
 
     # WIP
 
-    def get_image_view(self, ut=None, refresh=False):
-        if ut is None:
-            with LucidUtils() as ut:
-                frame_im = ut.snap("im_cam")
-        else:
-            frame_im = ut.snap("im_cam")
-
-        if refresh:
-            self.frame_VIS_im = frame_im
-        return frame_im
-
-    def get_pupil_view(self, ut=None, refresh=False):
-        if ut is None:
-            with LucidUtils() as ut:
-                frame_pup = ut.snap("pup_cam")
-        else:
-            frame_pup = ut.snap("pup_cam")
-
-        if refresh:
-            self.frame_VIS_pup = frame_pup
-        return frame_pup
-
     def configure_vis_cam_readout(self, name, params):
-        with LucidUtils() as ut:
-            ut.configure_camera_readout(name, params)
-            if name == "im_cam":
-                _ = self.get_image_view(ut, True)
-            elif name == "pup_cam":
-                _ = self.get_pupil_view(ut, True)
+        """
+        Configure the readout parameters for camera {name}.
+        Upon changing the PixelFormat parameter of the camera, re-initialize the associated shm buffer with the corresponding, new datatype.
+        """
 
-        # WIP: Upon change of camera pixelformat/datatype, refresh VIS_cam buffer dtypes
-        #      and find a way to propagate the new dtype to the shm level (see shmlib methods)
+        with LucidUtils() as myut:
+            myut.configure_camera_readout(name, params)
+            # If PixelFormat changed, refresh shm buffer datatype.
+            if "PixelFormat" in params:
+                frame = myut.snap(name)
+                self._init_shm_VIS_cam(name, frame)
 
     def configure_vis_cam_stream(self, name, params):
         with LucidUtils() as ut:
