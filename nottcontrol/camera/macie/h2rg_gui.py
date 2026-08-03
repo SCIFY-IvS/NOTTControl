@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 import numpy
 from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QColor, QDesktopServices, QImage, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
@@ -280,6 +280,148 @@ def _normalize_scene_pos(pos) -> QPointF:
     if isinstance(pos, (tuple, list)) and len(pos) >= 2:
         return QPointF(float(pos[0]), float(pos[1]))
     return pos
+
+
+def _use_pixmap_image_backend() -> bool:
+    """QGraphicsView/ImageView paint often segfaults under Linux VNC/remote X."""
+    return sys.platform.startswith("linux")
+
+
+class _PixmapImageView(QLabel):
+    """Software frame display that avoids QGraphicsScene (safe under VNC)."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAlignment(Qt.AlignCenter)
+        self.setMouseTracking(True)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setStyleSheet("background: #1a1a2e;")
+        self.image: numpy.ndarray | None = None
+        self._levels: tuple[float, float] = (0.0, 1.0)
+        self._roi_rects: dict[int, tuple[int, int, int, int]] = {}
+        self._roi_visible: set[int] = set()
+
+    def getImageItem(self):
+        return self
+
+    def getView(self):
+        return self
+
+    def setMouseEnabled(self, x: bool = True, y: bool = True) -> None:
+        return None
+
+    def setAspectLocked(self, locked: bool = True) -> None:
+        return None
+
+    def setAntialiasing(self, enabled: bool = False) -> None:
+        return None
+
+    def getLevels(self) -> tuple[float, float]:
+        return self._levels
+
+    def setLevels(self, *args) -> None:
+        if len(args) == 1 and isinstance(args[0], (tuple, list)):
+            vmin, vmax = args[0][0], args[0][1]
+        else:
+            vmin, vmax = args[0], args[1]
+        self._levels = (float(vmin), float(vmax))
+        self._rebuild_pixmap()
+
+    def setImage(
+        self,
+        data: numpy.ndarray,
+        autoLevels: bool = True,
+        levels=None,
+    ) -> None:
+        arr = numpy.asarray(data)
+        if arr.ndim > 2:
+            arr = arr[..., 0]
+        self.image = numpy.ascontiguousarray(arr)
+        if autoLevels:
+            finite = self.image[numpy.isfinite(self.image)]
+            if finite.size:
+                vmin = float(numpy.min(finite))
+                vmax = float(numpy.max(finite))
+                if vmin >= vmax:
+                    vmax = vmin + 1.0
+                self._levels = (vmin, vmax)
+        elif levels is not None:
+            self._levels = (float(levels[0]), float(levels[1]))
+        self._rebuild_pixmap()
+
+    def set_roi_overlays(
+        self,
+        rects: dict[int, tuple[int, int, int, int]],
+        visible: set[int],
+    ) -> None:
+        self._roi_rects = dict(rects)
+        self._roi_visible = set(visible)
+        self._rebuild_pixmap()
+
+    def widget_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
+        if self.image is None:
+            return None
+        pix = self.pixmap()
+        if pix is None or pix.isNull():
+            return None
+        if hasattr(pos, "x"):
+            px, py = float(pos.x()), float(pos.y())
+        else:
+            px, py = float(pos[0]), float(pos[1])
+        lw, lh = self.width(), self.height()
+        pw, ph = pix.width(), pix.height()
+        ox = (lw - pw) // 2
+        oy = (lh - ph) // 2
+        x = px - ox
+        y = py - oy
+        if x < 0 or y < 0 or x >= pw or y >= ph:
+            return None
+        img_h, img_w = self.image.shape[:2]
+        ix = int(x * img_w / max(pw, 1))
+        iy = int(y * img_h / max(ph, 1))
+        if ix < 0 or iy < 0 or ix >= img_w or iy >= img_h:
+            return None
+        return ix, iy
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._rebuild_pixmap()
+
+    def _rebuild_pixmap(self) -> None:
+        if self.image is None:
+            return
+        img = self.image
+        h, w = img.shape[:2]
+        vmin, vmax = self._levels
+        scale = 255.0 / max(vmax - vmin, 1e-12)
+        gray = numpy.clip((img - vmin) * scale, 0, 255)
+        gray = numpy.nan_to_num(gray, nan=0.0, posinf=255.0, neginf=0.0)
+        gray8 = numpy.ascontiguousarray(gray.astype(numpy.uint8))
+        qimg = QImage(gray8.data, w, h, w, QImage.Format_Grayscale8).copy()
+        pix = QPixmap.fromImage(qimg)
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        if tw > 1 and th > 1:
+            pix = pix.scaled(tw, th, Qt.KeepAspectRatio, Qt.FastTransformation)
+        if self._roi_rects and self._roi_visible:
+            painter = QPainter(pix)
+            try:
+                sx = pix.width() / max(w, 1)
+                sy = pix.height() / max(h, 1)
+                for index, (rx, ry, rw, rh) in self._roi_rects.items():
+                    if index not in self._roi_visible:
+                        continue
+                    color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
+                    painter.setPen(QPen(color, 2))
+                    painter.drawRect(
+                        int(rx * sx),
+                        int(ry * sy),
+                        max(1, int(rw * sx)),
+                        max(1, int(rh * sy)),
+                    )
+            finally:
+                painter.end()
+        self.setPixmap(pix)
 
 
 def _format_stat_value(value: float) -> str:
@@ -789,6 +931,11 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_level_max: QLineEdit | None = None
         self._manual_levels: tuple[float, float] | None = None
         self._acquire_previewed_names: set[str] = set()
+        self._pending_roi_display: numpy.ndarray | None = None
+        self._pending_roi_record = False
+        self._roi_update_timer = QTimer(self)
+        self._roi_update_timer.setSingleShot(True)
+        self._roi_update_timer.timeout.connect(self._flush_pending_roi_update)
         self._exposure_preview_timer = QTimer(self)
         self._exposure_preview_timer.setSingleShot(True)
         self._exposure_preview_timer.setInterval(450)
@@ -967,6 +1114,11 @@ class H2rgMainWindow(QMainWindow):
         if self._cursor_readout_proxy is not None:
             return
 
+        if isinstance(self.image, _PixmapImageView):
+            self.image.setMouseTracking(True)
+            self.image.installEventFilter(self)
+            return
+
         import pyqtgraph as pg
 
         view = self.image.getView()
@@ -990,6 +1142,8 @@ class H2rgMainWindow(QMainWindow):
     def _scene_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
         if self.image is None:
             return None
+        if isinstance(self.image, _PixmapImageView):
+            return self.image.widget_pos_to_image_xy(pos)
         image_item = self.image.getImageItem()
         if image_item is None or image_item.image is None:
             return None
@@ -1075,11 +1229,14 @@ class H2rgMainWindow(QMainWindow):
         ):
             self._layout_image_frame()
 
-        if self.image is not None:
-            view = self.image.getView()
-            if obj is view and event.type() == QEvent.MouseMove:
-                self._update_cursor_readout_from_view_pos(view.mapToScene(event.pos()))
-            elif obj is view and event.type() == QEvent.Leave:
+        if self.image is not None and obj is self.image.getView():
+            if event.type() == QEvent.MouseMove:
+                if isinstance(self.image, _PixmapImageView):
+                    self._update_cursor_readout_from_view_pos(event.pos())
+                else:
+                    view = self.image.getView()
+                    self._update_cursor_readout_from_view_pos(view.mapToScene(event.pos()))
+            elif event.type() == QEvent.Leave:
                 self._cursor_readout_pending = None
                 if self._cursor_readout is not None:
                     self._cursor_readout.setText(
@@ -1090,6 +1247,21 @@ class H2rgMainWindow(QMainWindow):
 
     def _ensure_image_view(self) -> None:
         if self.image is not None:
+            return
+
+        host = self._ensure_camera_host_layout()
+        self._clear_layout_widgets(host)
+        self._image_placeholder = None
+
+        if _use_pixmap_image_backend():
+            self.image = _PixmapImageView(self.ui.frame_camera)
+            host.addWidget(self.image)
+            self.image.show()
+            try:
+                self._setup_cursor_readout()
+            except Exception as exc:
+                print(f"H2RG cursor readout setup failed: {exc}")
+            self._setup_roi_overlays()
             return
 
         import pyqtgraph as pg
@@ -1103,15 +1275,21 @@ class H2rgMainWindow(QMainWindow):
         pg.setConfigOption("background", "#1a1a2e")
         pg.setConfigOption("foreground", "w")
 
-        host = self._ensure_camera_host_layout()
-        self._clear_layout_widgets(host)
-        self._image_placeholder = None
-
         self.image = pg.ImageView(self.ui.frame_camera)
         self.image.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
+        try:
+            # Detach unused ImageView chrome so paintSiblings is shallower.
+            for w in (
+                self.image.ui.histogram,
+                self.image.ui.roiBtn,
+                self.image.ui.menuBtn,
+            ):
+                w.setParent(None)
+        except Exception:
+            pass
         try:
             self.image.getView().setAntialiasing(False)
         except Exception:
@@ -1125,11 +1303,7 @@ class H2rgMainWindow(QMainWindow):
         except Exception as exc:
             print(f"H2RG cursor readout setup failed: {exc}")
 
-        if self._current_frame is not None:
-            self._display_frame(self._current_frame)
-
         self._setup_roi_overlays()
-
     def _resolved_zmq_address(self) -> str:
         if self._zmq_address is None:
             from nottcontrol.camera.macie.zmq_server_manager import (
@@ -1720,6 +1894,10 @@ class H2rgMainWindow(QMainWindow):
         if self.image is None or not self._h2rg_rois:
             return
 
+        if isinstance(self.image, _PixmapImageView):
+            self._update_roi_overlays()
+            return
+
         import pyqtgraph as pg
 
         view = self.image.getView()
@@ -1766,9 +1944,28 @@ class H2rgMainWindow(QMainWindow):
 
     def _update_roi_overlays(self) -> None:
         selected = set(self._selected_roi_indices())
+        if isinstance(self.image, _PixmapImageView):
+            self.image.set_roi_overlays(self._h2rg_rois, selected)
+            return
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
 
+    def _flush_pending_roi_update(self) -> None:
+        display = self._pending_roi_display
+        record = self._pending_roi_record
+        self._pending_roi_display = None
+        self._pending_roi_record = False
+        if display is None:
+            return
+        self._update_roi_values(display, record=record)
+
+    def _schedule_roi_update(
+        self, display: numpy.ndarray, *, record: bool
+    ) -> None:
+        self._pending_roi_display = display
+        self._pending_roi_record = record or self._pending_roi_record
+        if not self._roi_update_timer.isActive():
+            self._roi_update_timer.start(0)
     def _update_roi_values(
         self, frame: numpy.ndarray, *, record: bool
     ) -> None:
@@ -3353,18 +3550,29 @@ class H2rgMainWindow(QMainWindow):
             self._sync_cursor_readout_label()
             return
 
-        auto_levels = self._auto_levels_next
-        if auto_levels:
-            self.image.setImage(display, autoLevels=True)
-            self._auto_levels_next = False
-            self._sync_level_fields_from_image()
-        elif self._manual_levels is not None:
-            self.image.setImage(display, autoLevels=False, levels=self._manual_levels)
-        else:
-            self.image.setImage(display, autoLevels=False)
-            self._sync_level_fields_from_image()
+        # Contiguous float32 avoids large paint buffers / exotic dtypes under VNC.
+        display = numpy.ascontiguousarray(display, dtype=numpy.float32)
 
-        self._update_roi_values(display, record=is_new_frame)
+        auto_levels = self._auto_levels_next
+        self.setUpdatesEnabled(False)
+        try:
+            if auto_levels:
+                self.image.setImage(display, autoLevels=True)
+                self._auto_levels_next = False
+                self._sync_level_fields_from_image()
+            elif self._manual_levels is not None:
+                self.image.setImage(
+                    display, autoLevels=False, levels=self._manual_levels
+                )
+            else:
+                self.image.setImage(display, autoLevels=False)
+                self._sync_level_fields_from_image()
+            self._update_roi_overlays()
+        finally:
+            self.setUpdatesEnabled(True)
+
+        # Defer ROI panel/plot updates so they don't nest QGraphicsScene paints.
+        self._schedule_roi_update(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
 
