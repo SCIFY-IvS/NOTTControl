@@ -36,8 +36,13 @@ def main():
             QApplication.setAttribute(Qt.AA_DisableHighDpiScaling, True)
         except AttributeError:
             pass
+        try:
+            QApplication.setAttribute(Qt.AA_Use96Dpi, True)
+        except AttributeError:
+            pass
     app = QApplication(sys.argv)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    if not sys.platform.startswith("linux"):
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     apply_platform_font(app)
     init_ui_scale(app)
     apply_app_icon(app)

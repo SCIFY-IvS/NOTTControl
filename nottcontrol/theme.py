@@ -36,6 +36,19 @@ else:
     APP_FONT_FAMILY = "Segoe UI"
     APP_MONO_FAMILY = "Consolas"
 
+
+def linux_safe_stylesheet(css: str) -> str:
+    """Avoid stylesheet fonts on Linux: point sizes → FreeType transform SIGSEGV."""
+    if not sys.platform.startswith("linux") or not css:
+        return css
+    import re
+
+    # Drop font: rules so widgets use the pixel-size QApplication font only.
+    css = re.sub(r"font(?:-family|-size|-weight)?\s*:[^;{}]+;?", "", css, flags=re.I)
+    css = css.replace("Segoe UI", APP_FONT_FAMILY)
+    css = css.replace("Consolas", APP_MONO_FAMILY)
+    return css
+
 PANEL_STYLE = f"""
 QGroupBox {{
     font: 700 10pt {FONT};
@@ -205,34 +218,53 @@ QPushButton:disabled {{
 }}
 """
 
+# Strip stylesheet font rules on Linux (pixel QApplication font is applied in sanitize).
+if sys.platform.startswith("linux"):
+    for _style_name, _style_value in list(globals().items()):
+        if (
+            isinstance(_style_value, str)
+            and _style_name.isupper()
+            and "STYLE" in _style_name
+        ):
+            globals()[_style_name] = linux_safe_stylesheet(_style_value)
+
 
 def sanitize_widget_fonts(root: QWidget) -> None:
-    """Rewrite Windows-only font names in stylesheets for the current platform."""
+    """Rewrite font names/units in stylesheets; force pixel fonts on text widgets."""
     if not sys.platform.startswith("linux"):
         return
-    replacements = (
-        ("Segoe UI", APP_FONT_FAMILY),
-        ("Consolas", APP_MONO_FAMILY),
-    )
+
+    from PyQt5.QtGui import QFont
+    from PyQt5.QtWidgets import QApplication, QCheckBox, QComboBox, QGroupBox
+
+    app = QApplication.instance()
+    base = QFont(APP_FONT_FAMILY)
+    base.setPixelSize(13)
+    if app is not None:
+        base = QFont(app.font())
+        if base.pixelSize() <= 0:
+            base.setPixelSize(13)
+
     widgets = [root]
     widgets.extend(root.findChildren(QWidget))
     for widget in widgets:
         ss = widget.styleSheet()
-        if not ss:
-            continue
-        updated = ss
-        for old, new in replacements:
-            if old in updated:
-                updated = updated.replace(old, new)
-        if updated != ss:
-            widget.setStyleSheet(updated)
+        if ss:
+            updated = linux_safe_stylesheet(ss)
+            if updated != ss:
+                widget.setStyleSheet(updated)
+        if isinstance(
+            widget, (QLineEdit, QLabel, QPushButton, QCheckBox, QComboBox, QGroupBox)
+        ):
+            # Stylesheet font: still wins if present; pixel app font covers the rest.
+            widget.setFont(base)
 
 
 def apply_instrument_window_style(widget: QWidget) -> None:
     if isinstance(widget, QMainWindow):
-        widget.setStyleSheet(WINDOW_STYLE)
+        widget.setStyleSheet(linux_safe_stylesheet(WINDOW_STYLE))
     else:
-        widget.setStyleSheet(FORM_STYLE)
+        widget.setStyleSheet(linux_safe_stylesheet(FORM_STYLE))
     sanitize_widget_fonts(widget)
 
 
@@ -464,7 +496,7 @@ def style_piezo_widget(widget: QWidget) -> None:
 
 
 def apply_main_window_styles(main_window: QWidget) -> None:
-    main_window.setStyleSheet(WINDOW_STYLE)
+    main_window.setStyleSheet(linux_safe_stylesheet(WINDOW_STYLE))
     for name in (
         "pushButton_piezos",
         "pushButton_filter_wheel",
@@ -479,5 +511,5 @@ def apply_main_window_styles(main_window: QWidget) -> None:
     ):
         button = main_window.findChild(QPushButton, name)
         if button is not None:
-            button.setStyleSheet(NAV_BUTTON_STYLE)
+            button.setStyleSheet(linux_safe_stylesheet(NAV_BUTTON_STYLE))
     sanitize_widget_fonts(main_window)

@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
 )
 
 from nottcontrol.camera.infratec.utils.utils import BrightnessResults
-from nottcontrol.theme import FONT, MONO_FONT, PANEL_BUTTON_STYLE
+from nottcontrol.theme import PANEL_BUTTON_STYLE
 from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 ROI_COUNT = 10
@@ -93,18 +93,30 @@ def compute_roi_brightness(
 
 
 def _value_style(row_bg: str = "") -> str:
+    from nottcontrol.theme import MONO_FONT, linux_safe_stylesheet
+
     pt = scaled_font_pt(9)
-    return f"{row_bg} font: {pt}pt {MONO_FONT}; color: rgb(30, 30, 30);"
+    return linux_safe_stylesheet(
+        f"{row_bg} font: {pt}pt {MONO_FONT}; color: rgb(30, 30, 30);"
+    )
 
 
 def _header_style() -> str:
+    from nottcontrol.theme import FONT, linux_safe_stylesheet
+
     pt = scaled_font_pt(8)
-    return f"font: 700 {pt}pt {FONT}; color: rgb(90, 90, 90);"
+    return linux_safe_stylesheet(
+        f"font: 700 {pt}pt {FONT}; color: rgb(90, 90, 90);"
+    )
 
 
 def _title_style() -> str:
+    from nottcontrol.theme import FONT, linux_safe_stylesheet
+
     pt = scaled_font_pt(10)
-    return f"font: 600 {pt}pt {FONT}; color: rgb(50, 50, 50);"
+    return linux_safe_stylesheet(
+        f"font: 600 {pt}pt {FONT}; color: rgb(50, 50, 50);"
+    )
 
 
 def _style_light_plot(plot: pg.PlotWidget) -> None:

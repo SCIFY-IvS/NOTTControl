@@ -120,6 +120,7 @@ from nottcontrol.theme import (
     PANEL_FIELD_STYLE,
     PANEL_GROUP_STYLE,
     PANEL_LABEL_STYLE,
+    linux_safe_stylesheet,
     sanitize_widget_fonts,
 )
 
@@ -874,7 +875,9 @@ class H2rgMainWindow(QMainWindow):
         loading = QLabel("Loading H2RG controls…", self)
         loading.setAlignment(Qt.AlignCenter)
         loading.setStyleSheet(
-            f'font: 13pt {FONT}; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
+            linux_safe_stylesheet(
+                f'font: 13pt {FONT}; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
+            )
         )
         self.setCentralWidget(loading)
         self.show()
@@ -993,8 +996,10 @@ class H2rgMainWindow(QMainWindow):
         self._image_placeholder.setAlignment(Qt.AlignCenter)
         self._image_placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._image_placeholder.setStyleSheet(
-            f'color: rgb(200, 200, 220); font: 13pt {FONT};'
-            " background: transparent;"
+            linux_safe_stylesheet(
+                f'color: rgb(200, 200, 220); font: 13pt {FONT};'
+                " background: transparent;"
+            )
         )
         host.addWidget(self._image_placeholder)
 
@@ -1097,12 +1102,14 @@ class H2rgMainWindow(QMainWindow):
             self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
             self._cursor_readout.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self._cursor_readout.setStyleSheet(
-                f"font: 10pt {MONO_FONT};"
-                " color: rgb(50, 50, 50);"
-                " background-color: rgb(255, 255, 255);"
-                " border: 1px solid rgb(50, 129, 140);"
-                " border-radius: 4px;"
-                " padding-left: 8px;"
+                linux_safe_stylesheet(
+                    f"font: 10pt {MONO_FONT};"
+                    " color: rgb(50, 50, 50);"
+                    " background-color: rgb(255, 255, 255);"
+                    " border: 1px solid rgb(50, 129, 140);"
+                    " border-radius: 4px;"
+                    " padding-left: 8px;"
+                )
             )
         return self._cursor_readout
 
