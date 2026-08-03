@@ -110,13 +110,17 @@ MACIE_ROI_DEQUE_LENGTH = max(
 MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
 
 from nottcontrol.theme import (
+    APP_MONO_FAMILY,
     CHECKBOX_STYLE,
+    FONT,
     H2RG_WINDOW_STYLE,
     IMAGE_FRAME_STYLE,
+    MONO_FONT,
     PANEL_BUTTON_STYLE,
     PANEL_FIELD_STYLE,
     PANEL_GROUP_STYLE,
     PANEL_LABEL_STYLE,
+    sanitize_widget_fonts,
 )
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
@@ -464,7 +468,7 @@ class FitsHeaderDialog(QDialog):
         layout = QVBoxLayout(self)
         editor = QTextEdit(self)
         editor.setReadOnly(True)
-        editor.setFontFamily("Consolas")
+        editor.setFontFamily(APP_MONO_FAMILY)
         editor.setPlainText(text)
         layout.addWidget(editor)
 
@@ -870,7 +874,7 @@ class H2rgMainWindow(QMainWindow):
         loading = QLabel("Loading H2RG controls…", self)
         loading.setAlignment(Qt.AlignCenter)
         loading.setStyleSheet(
-            'font: 13pt "Segoe UI"; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
+            f'font: 13pt {FONT}; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
         )
         self.setCentralWidget(loading)
         self.show()
@@ -989,7 +993,7 @@ class H2rgMainWindow(QMainWindow):
         self._image_placeholder.setAlignment(Qt.AlignCenter)
         self._image_placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._image_placeholder.setStyleSheet(
-            'color: rgb(200, 200, 220); font: 13pt "Segoe UI";'
+            f'color: rgb(200, 200, 220); font: 13pt {FONT};'
             " background: transparent;"
         )
         host.addWidget(self._image_placeholder)
@@ -1093,7 +1097,7 @@ class H2rgMainWindow(QMainWindow):
             self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
             self._cursor_readout.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self._cursor_readout.setStyleSheet(
-                'font: 10pt "Consolas", monospace;'
+                f"font: 10pt {MONO_FONT};"
                 " color: rgb(50, 50, 50);"
                 " background-color: rgb(255, 255, 255);"
                 " border: 1px solid rgb(50, 129, 140);"
@@ -1728,6 +1732,8 @@ class H2rgMainWindow(QMainWindow):
                 )
             else:
                 widget.setStyleSheet(PANEL_FIELD_STYLE)
+
+        sanitize_widget_fonts(self)
 
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()

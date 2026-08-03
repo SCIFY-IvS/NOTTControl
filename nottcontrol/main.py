@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 from nottcontrol.app_icon import apply_app_icon, ensure_windows_app_identity
-from nottcontrol.ui_scale import configure_high_dpi, init_ui_scale
+from nottcontrol.ui_scale import apply_platform_font, configure_high_dpi, init_ui_scale
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.scifygui import MainWindow
 import os
@@ -31,8 +31,14 @@ def main():
     # Must set OpenGL attribute before QApplication exists (Linux/VNC stability).
     if sys.platform.startswith("linux"):
         QApplication.setAttribute(Qt.AA_UseSoftwareOpenGL, True)
+        # Prefer no high-DPI attribute path on Linux/VNC (see configure_high_dpi).
+        try:
+            QApplication.setAttribute(Qt.AA_DisableHighDpiScaling, True)
+        except AttributeError:
+            pass
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    apply_platform_font(app)
     init_ui_scale(app)
     apply_app_icon(app)
     main_window = MainWindow(opcua_conn)

@@ -1,6 +1,8 @@
-"""Shared NOTT instrument GUI theme (teal branding, Segoe UI)."""
+"""Shared NOTT instrument GUI theme (teal branding, platform fonts)."""
 
 from __future__ import annotations
+
+import sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QMainWindow, QVBoxLayout, QWidget
@@ -17,7 +19,22 @@ DISABLED = "rgb(180, 190, 192)"
 DANGER = "rgb(180, 60, 50)"
 DANGER_HOVER = "rgb(150, 45, 38)"
 
-FONT = '"Segoe UI"'
+# Segoe/Consolas are often missing on Linux; FreeType+XCB can SIGSEGV on bad fallbacks.
+if sys.platform.startswith("linux"):
+    FONT = '"DejaVu Sans", "Noto Sans", "Liberation Sans", sans-serif'
+    MONO_FONT = '"DejaVu Sans Mono", "Noto Sans Mono", "Liberation Mono", monospace'
+    APP_FONT_FAMILY = "DejaVu Sans"
+    APP_MONO_FAMILY = "DejaVu Sans Mono"
+elif sys.platform == "darwin":
+    FONT = '"Helvetica Neue", "Segoe UI", sans-serif'
+    MONO_FONT = '"Menlo", "Consolas", monospace'
+    APP_FONT_FAMILY = "Helvetica Neue"
+    APP_MONO_FAMILY = "Menlo"
+else:
+    FONT = '"Segoe UI"'
+    MONO_FONT = '"Consolas", monospace'
+    APP_FONT_FAMILY = "Segoe UI"
+    APP_MONO_FAMILY = "Consolas"
 
 PANEL_STYLE = f"""
 QGroupBox {{
@@ -189,11 +206,34 @@ QPushButton:disabled {{
 """
 
 
+def sanitize_widget_fonts(root: QWidget) -> None:
+    """Rewrite Windows-only font names in stylesheets for the current platform."""
+    if not sys.platform.startswith("linux"):
+        return
+    replacements = (
+        ("Segoe UI", APP_FONT_FAMILY),
+        ("Consolas", APP_MONO_FAMILY),
+    )
+    widgets = [root]
+    widgets.extend(root.findChildren(QWidget))
+    for widget in widgets:
+        ss = widget.styleSheet()
+        if not ss:
+            continue
+        updated = ss
+        for old, new in replacements:
+            if old in updated:
+                updated = updated.replace(old, new)
+        if updated != ss:
+            widget.setStyleSheet(updated)
+
+
 def apply_instrument_window_style(widget: QWidget) -> None:
     if isinstance(widget, QMainWindow):
         widget.setStyleSheet(WINDOW_STYLE)
     else:
         widget.setStyleSheet(FORM_STYLE)
+    sanitize_widget_fonts(widget)
 
 
 def _label(widget: QWidget, name: str) -> QLabel | None:
@@ -440,3 +480,4 @@ def apply_main_window_styles(main_window: QWidget) -> None:
         button = main_window.findChild(QPushButton, name)
         if button is not None:
             button.setStyleSheet(NAV_BUTTON_STYLE)
+    sanitize_widget_fonts(main_window)

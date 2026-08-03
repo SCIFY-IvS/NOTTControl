@@ -10,15 +10,44 @@ def configure_high_dpi() -> None:
     import os
     import sys
 
-    os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
-    os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
-
-    # Linux/VNC: avoid GLX FBConfig failures and pyqtgraph OpenGL segfaults.
+    # Linux/VNC: high-DPI transforms often crash FreeType in QFontEngineFT::loadGlyphSet.
     if sys.platform.startswith("linux"):
+        os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+        os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+        os.environ["QT_SCALE_FACTOR"] = "1"
         os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
         os.environ.setdefault("QT_OPENGL", "software")
         os.environ.setdefault("QT_X11_NO_MITSHM", "1")
+        os.environ.setdefault("QT_XCB_GL_INTEGRATION", "none")
         os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH", None)
+        return
+
+    os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
+    os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
+
+
+def apply_platform_font(app) -> None:
+    """Use fonts that exist on the host; avoids XCB FreeType segfaults on Linux."""
+    import sys
+
+    from PyQt5.QtGui import QFont
+
+    from nottcontrol.theme import APP_FONT_FAMILY
+
+    font = QFont(APP_FONT_FAMILY, 10)
+    if sys.platform.startswith("linux"):
+        # Avoid subpixel/transformed glyph paths that crash under remote X.
+        font.setStyleStrategy(
+            QFont.PreferDefault
+            | QFont.PreferQuality
+            | QFont.NoSubpixelAntialias
+        )
+        try:
+            font.setHintingPreference(QFont.PreferFullHinting)
+        except Exception:
+            pass
+    app.setFont(font)
+
 
 def init_ui_scale(app) -> None:
     """Record the primary screen scale factor after QApplication exists."""
