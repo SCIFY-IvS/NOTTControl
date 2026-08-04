@@ -135,3 +135,19 @@ class RedisClient:
                 self._mark_unavailable(exc)
                 return 0, list(redis_keys)
         return len(redis_keys) - len(skipped_keys), skipped_keys
+
+    def get_latest(self, key: str) -> float | None:
+        """Return the newest sample value for a Redis TimeSeries *key*, or None."""
+        if not self.is_available():
+            return None
+        try:
+            sample = self.ts.get(key)
+        except redis.RedisError as exc:
+            self._mark_unavailable(exc)
+            return None
+        if not sample:
+            return None
+        try:
+            return float(sample[1])
+        except (TypeError, ValueError, IndexError):
+            return None

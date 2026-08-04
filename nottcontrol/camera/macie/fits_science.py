@@ -143,6 +143,7 @@ def save_science_fits(
     tint_ms: float | None = None,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
+    extra_cards: list | dict | None = None,
 ) -> Path:
     from astropy.io import fits
 
@@ -163,6 +164,10 @@ def save_science_fits(
         for key in ("DATE-OBS", "AMPGAIN", "AMPINPUT", "DETTYPE", "SMPLMODE"):
             if key in source_header:
                 header[key] = source_header[key]
+    if extra_cards:
+        from nottcontrol.camera.macie.fits_header_meta import apply_fits_header_cards
+
+        apply_fits_header_cards(header, extra_cards)
 
     hdu = fits.PrimaryHDU(data=image.astype(numpy.float32), header=header)
     hdu.writeto(output_path, overwrite=True)

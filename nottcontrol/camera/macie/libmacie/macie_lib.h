@@ -114,7 +114,7 @@ typedef struct MACIE_Settings
   bool         bSaveData;           // Write FITS file to disk?
   std::string  saveDir;             // Directory to save FITS files
   std::string  filePrefix;          // Filename prefix: LMIR_YYYMMDD_*.fits
-  unsigned int uiFileNum;           // Ramp file number for incrementing; only use for test data offset...
+  unsigned int uiFileNum;           // Next free ramp FITS index (high-water mark)
 
   // MACIE and ASIC card selection
   // Nominally updated during MACIE and ASIC init

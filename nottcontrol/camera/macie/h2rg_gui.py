@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 import numpy
 from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QColor, QDesktopServices, QImage, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
@@ -37,6 +37,10 @@ from PyQt5.uic import loadUi
 
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
+from nottcontrol.camera.macie.fits_header_meta import (
+    fits_header_cards_from_redis,
+    header_cards_as_value_dict,
+)
 from nottcontrol.camera.macie.fits_science import (
     load_fits_data,
     save_science_fits,
@@ -106,13 +110,18 @@ MACIE_ROI_DEQUE_LENGTH = max(
 MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
 
 from nottcontrol.theme import (
+    APP_MONO_FAMILY,
     CHECKBOX_STYLE,
+    FONT,
     H2RG_WINDOW_STYLE,
     IMAGE_FRAME_STYLE,
+    MONO_FONT,
     PANEL_BUTTON_STYLE,
     PANEL_FIELD_STYLE,
     PANEL_GROUP_STYLE,
     PANEL_LABEL_STYLE,
+    linux_safe_stylesheet,
+    sanitize_widget_fonts,
 )
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
@@ -125,31 +134,56 @@ CAMERA_SQUARE_MIN = 420
 
 
 class _SquareCameraHost(QWidget):
-    """Host that keeps its child camera frame square and centered."""
+    """Host that keeps its child camera frame square and centered.
 
-    def __init__(self, camera: QWidget, parent: QWidget | None = None) -> None:
+    Optional *bottom* widget (e.g. pixel readout) is centered under the frame
+    and kept the same width as the square image.
+    """
+
+    def __init__(
+        self,
+        camera: QWidget,
+        bottom: QWidget | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self._camera = camera
+        self._bottom = bottom
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMinimumSize(CAMERA_SQUARE_MIN, CAMERA_SQUARE_MIN)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(camera, alignment=Qt.AlignCenter)
+        layout.setSpacing(6 if bottom is not None else 0)
+        layout.addStretch(1)
+        layout.addWidget(camera, alignment=Qt.AlignHCenter)
+        if bottom is not None:
+            layout.addWidget(bottom, alignment=Qt.AlignHCenter)
+        layout.addStretch(1)
+
+    def _bottom_height(self) -> int:
+        if self._bottom is None:
+            return 0
+        spacing = self.layout().spacing() if self.layout() is not None else 0
+        return spacing + max(self._bottom.sizeHint().height(), CURSOR_READOUT_HEIGHT)
 
     def hasHeightForWidth(self) -> bool:
         return True
 
     def heightForWidth(self, width: int) -> int:
-        return max(CAMERA_SQUARE_MIN, width)
+        return max(CAMERA_SQUARE_MIN, width) + self._bottom_height()
 
     def sizeHint(self) -> QSize:
-        return QSize(640, 640)
+        side = 640
+        return QSize(side, side + self._bottom_height())
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        side = max(CAMERA_SQUARE_MIN, min(self.width(), self.height()))
+        extra = self._bottom_height()
+        available_h = max(CAMERA_SQUARE_MIN, self.height() - extra)
+        side = max(CAMERA_SQUARE_MIN, min(self.width(), available_h))
         self._camera.setFixedSize(side, side)
+        if self._bottom is not None:
+            self._bottom.setFixedWidth(side)
 
 
 @dataclass(frozen=True)
@@ -193,7 +227,10 @@ def _channel_window(
 def _centered_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width vertical burst stripe (horizontal window off, parallel outputs)."""
+    """Full-width central rows (Y window; all parallel outputs kept).
+
+    For SC 1024 on a 2048 array this is y=[512, 1535].
+    """
     y0 = (array_size - height) // 2
     return 0, array_size - 1, y0, y0 + height - 1
 
@@ -250,6 +287,148 @@ def _normalize_scene_pos(pos) -> QPointF:
     return pos
 
 
+def _use_pixmap_image_backend() -> bool:
+    """QGraphicsView/ImageView paint often segfaults under Linux VNC/remote X."""
+    return sys.platform.startswith("linux")
+
+
+class _PixmapImageView(QLabel):
+    """Software frame display that avoids QGraphicsScene (safe under VNC)."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAlignment(Qt.AlignCenter)
+        self.setMouseTracking(True)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setStyleSheet("background: #1a1a2e;")
+        self.image: numpy.ndarray | None = None
+        self._levels: tuple[float, float] = (0.0, 1.0)
+        self._roi_rects: dict[int, tuple[int, int, int, int]] = {}
+        self._roi_visible: set[int] = set()
+
+    def getImageItem(self):
+        return self
+
+    def getView(self):
+        return self
+
+    def setMouseEnabled(self, x: bool = True, y: bool = True) -> None:
+        return None
+
+    def setAspectLocked(self, locked: bool = True) -> None:
+        return None
+
+    def setAntialiasing(self, enabled: bool = False) -> None:
+        return None
+
+    def getLevels(self) -> tuple[float, float]:
+        return self._levels
+
+    def setLevels(self, *args) -> None:
+        if len(args) == 1 and isinstance(args[0], (tuple, list)):
+            vmin, vmax = args[0][0], args[0][1]
+        else:
+            vmin, vmax = args[0], args[1]
+        self._levels = (float(vmin), float(vmax))
+        self._rebuild_pixmap()
+
+    def setImage(
+        self,
+        data: numpy.ndarray,
+        autoLevels: bool = True,
+        levels=None,
+    ) -> None:
+        arr = numpy.asarray(data)
+        if arr.ndim > 2:
+            arr = arr[..., 0]
+        self.image = numpy.ascontiguousarray(arr)
+        if autoLevels:
+            finite = self.image[numpy.isfinite(self.image)]
+            if finite.size:
+                vmin = float(numpy.min(finite))
+                vmax = float(numpy.max(finite))
+                if vmin >= vmax:
+                    vmax = vmin + 1.0
+                self._levels = (vmin, vmax)
+        elif levels is not None:
+            self._levels = (float(levels[0]), float(levels[1]))
+        self._rebuild_pixmap()
+
+    def set_roi_overlays(
+        self,
+        rects: dict[int, tuple[int, int, int, int]],
+        visible: set[int],
+    ) -> None:
+        self._roi_rects = dict(rects)
+        self._roi_visible = set(visible)
+        self._rebuild_pixmap()
+
+    def widget_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
+        if self.image is None:
+            return None
+        pix = self.pixmap()
+        if pix is None or pix.isNull():
+            return None
+        if hasattr(pos, "x"):
+            px, py = float(pos.x()), float(pos.y())
+        else:
+            px, py = float(pos[0]), float(pos[1])
+        lw, lh = self.width(), self.height()
+        pw, ph = pix.width(), pix.height()
+        ox = (lw - pw) // 2
+        oy = (lh - ph) // 2
+        x = px - ox
+        y = py - oy
+        if x < 0 or y < 0 or x >= pw or y >= ph:
+            return None
+        img_h, img_w = self.image.shape[:2]
+        ix = int(x * img_w / max(pw, 1))
+        iy = int(y * img_h / max(ph, 1))
+        if ix < 0 or iy < 0 or ix >= img_w or iy >= img_h:
+            return None
+        return ix, iy
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._rebuild_pixmap()
+
+    def _rebuild_pixmap(self) -> None:
+        if self.image is None:
+            return
+        img = self.image
+        h, w = img.shape[:2]
+        vmin, vmax = self._levels
+        scale = 255.0 / max(vmax - vmin, 1e-12)
+        gray = numpy.clip((img - vmin) * scale, 0, 255)
+        gray = numpy.nan_to_num(gray, nan=0.0, posinf=255.0, neginf=0.0)
+        gray8 = numpy.ascontiguousarray(gray.astype(numpy.uint8))
+        qimg = QImage(gray8.data, w, h, w, QImage.Format_Grayscale8).copy()
+        pix = QPixmap.fromImage(qimg)
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        if tw > 1 and th > 1:
+            pix = pix.scaled(tw, th, Qt.KeepAspectRatio, Qt.FastTransformation)
+        if self._roi_rects and self._roi_visible:
+            painter = QPainter(pix)
+            try:
+                sx = pix.width() / max(w, 1)
+                sy = pix.height() / max(h, 1)
+                for index, (rx, ry, rw, rh) in self._roi_rects.items():
+                    if index not in self._roi_visible:
+                        continue
+                    color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
+                    painter.setPen(QPen(color, 2))
+                    painter.drawRect(
+                        int(rx * sx),
+                        int(ry * sy),
+                        max(1, int(rw * sx)),
+                        max(1, int(rh * sy)),
+                    )
+            finally:
+                painter.end()
+        self.setPixmap(pix)
+
+
 def _format_stat_value(value: float) -> str:
     """Format detector ADU statistics without scientific notation."""
     if not numpy.isfinite(value):
@@ -290,7 +469,7 @@ class FitsHeaderDialog(QDialog):
         layout = QVBoxLayout(self)
         editor = QTextEdit(self)
         editor.setReadOnly(True)
-        editor.setFontFamily("Consolas")
+        editor.setFontFamily(APP_MONO_FAMILY)
         editor.setPlainText(text)
         layout.addWidget(editor)
 
@@ -323,19 +502,56 @@ def window_mode_index(
     y1: int,
     y2: int,
 ) -> int:
+    """Return the WINDOW_MODES index matching the programmed geometry, or -1."""
+    exact = -1
+    sc_fallback = -1
+    ny = y2 - y1 + 1
+    nx = x2 - x1 + 1
+    full = H2RG_ARRAY_SIZE - 1
     for index, mode in enumerate(WINDOW_MODES):
         if (mode.x_window, mode.y_window) != (x_window, y_window):
             continue
         if not mode.x_window and not mode.y_window:
             return index
-        if mode.x_window == x_window and mode.y_window == y_window and (
+        if (
             mode.x1,
             mode.x2,
             mode.y1,
             mode.y2,
         ) == (x1, x2, y1, y2):
-            return index
-    return -1
+            exact = index
+            break
+        # SC presets: full-width vertical stripe matched by height when the ASIC
+        # reports a slightly different y1 (e.g. ref-row offset in stripe mode).
+        if (
+            not mode.x_window
+            and mode.y_window
+            and not x_window
+            and y_window
+            and mode.x1 == 0
+            and mode.x2 == full
+            and x1 == 0
+            and x2 == full
+            and (mode.y2 - mode.y1 + 1) == ny
+            and sc_fallback < 0
+        ):
+            sc_fallback = index
+        # Centered XY windows matched by size when origin is close.
+        if (
+            mode.x_window
+            and mode.y_window
+            and x_window
+            and y_window
+            and (mode.x2 - mode.x1 + 1) == nx
+            and (mode.y2 - mode.y1 + 1) == ny
+            and abs(mode.x1 - x1) <= 4
+            and abs(mode.y1 - y1) <= 4
+            and sc_fallback < 0
+        ):
+            sc_fallback = index
+    if exact >= 0:
+        return exact
+    return sc_fallback
 
 
 def detector_config_file(mode_index: int) -> str:
@@ -496,8 +712,10 @@ def is_new_ramp_fits(
 ) -> bool:
     if not name or is_science_fits_name(name):
         return False
+    # Same basename can still be new when MACIE overwrites or SMB reuses a name
+    # with a newer mtime (previously this returned False and the GUI spun forever).
     if before_name and name == before_name:
-        return False
+        return mtime > before_mtime
     if mtime > before_mtime:
         return True
     return bool(before_name and name != before_name)
@@ -657,7 +875,9 @@ class H2rgMainWindow(QMainWindow):
         loading = QLabel("Loading H2RG controls…", self)
         loading.setAlignment(Qt.AlignCenter)
         loading.setStyleSheet(
-            'font: 13pt "Segoe UI"; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
+            linux_safe_stylesheet(
+                f'font: 13pt {FONT}; color: rgb(100, 100, 100); background: rgb(245, 248, 249);'
+            )
         )
         self.setCentralWidget(loading)
         self.show()
@@ -690,6 +910,7 @@ class H2rgMainWindow(QMainWindow):
         except Exception as exc:
             print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
+        self._live_frame_available = threading.Event()
         self._auto_levels_next = True
         self._operation_lock = threading.Lock()
         self._zmq_server = None
@@ -712,7 +933,16 @@ class H2rgMainWindow(QMainWindow):
         self._button_header: QPushButton | None = None
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
+        self._button_apply_levels: QPushButton | None = None
+        self._lineEdit_level_min: QLineEdit | None = None
+        self._lineEdit_level_max: QLineEdit | None = None
+        self._manual_levels: tuple[float, float] | None = None
         self._acquire_previewed_names: set[str] = set()
+        self._pending_roi_display: numpy.ndarray | None = None
+        self._pending_roi_record = False
+        self._roi_update_timer = QTimer(self)
+        self._roi_update_timer.setSingleShot(True)
+        self._roi_update_timer.timeout.connect(self._flush_pending_roi_update)
         self._exposure_preview_timer = QTimer(self)
         self._exposure_preview_timer.setSingleShot(True)
         self._exposure_preview_timer.setInterval(450)
@@ -741,6 +971,9 @@ class H2rgMainWindow(QMainWindow):
             self._connect_signals()
             self._button_set_exposure.clicked.connect(self._on_set_exposure_clicked)
             self._button_autoscale.clicked.connect(self._autoscale_image)
+            self._button_apply_levels.clicked.connect(self._apply_manual_levels)
+            self._lineEdit_level_min.editingFinished.connect(self._apply_manual_levels)
+            self._lineEdit_level_max.editingFinished.connect(self._apply_manual_levels)
             self._button_header.clicked.connect(self._show_fits_header)
             self._button_ds9.clicked.connect(self._open_fits_in_ds9)
             self._button_save_dir.clicked.connect(self._open_fits_save_dir)
@@ -763,8 +996,10 @@ class H2rgMainWindow(QMainWindow):
         self._image_placeholder.setAlignment(Qt.AlignCenter)
         self._image_placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._image_placeholder.setStyleSheet(
-            'color: rgb(200, 200, 220); font: 13pt "Segoe UI";'
-            " background: transparent;"
+            linux_safe_stylesheet(
+                f'color: rgb(200, 200, 220); font: 13pt {FONT};'
+                " background: transparent;"
+            )
         )
         host.addWidget(self._image_placeholder)
 
@@ -807,42 +1042,79 @@ class H2rgMainWindow(QMainWindow):
         button.setFixedWidth(96)
         return button
 
-    def _setup_image_tool_buttons(self) -> QWidget:
-        """Vertical Autoscale / Header / DS9 / Folder column left of the image."""
+    def _make_level_field(self, label_text: str) -> tuple[QWidget, QLineEdit]:
         host = QWidget()
+        host.setFixedWidth(96)
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        label = QLabel(label_text, host)
+        label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        label.setStyleSheet(PANEL_LABEL_STYLE)
+        field = QLineEdit(host)
+        field.setFixedHeight(CURSOR_READOUT_HEIGHT)
+        field.setStyleSheet(PANEL_FIELD_STYLE)
+        field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        field.setPlaceholderText("—")
+        layout.addWidget(label)
+        layout.addWidget(field)
+        return host, field
+
+    def _setup_image_tool_buttons(self) -> QWidget:
+        """Tool column left of the image: buttons then Min/Max, packed at top."""
+        host = QWidget()
+        host.setFixedWidth(110)
         host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         column = QVBoxLayout(host)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(8)
-        column.addStretch(1)
+        column.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
 
         self._button_autoscale = self._make_image_tool_button("Autoscale")
-        column.addWidget(self._button_autoscale)
+        column.addWidget(self._button_autoscale, 0, Qt.AlignHCenter)
+
+        self._button_apply_levels = self._make_image_tool_button("Apply")
+        self._button_apply_levels.setToolTip("Apply min/max color scale")
+        column.addWidget(self._button_apply_levels, 0, Qt.AlignHCenter)
+
         self._button_header = self._make_image_tool_button("Header")
-        column.addWidget(self._button_header)
+        column.addWidget(self._button_header, 0, Qt.AlignHCenter)
+
         self._button_ds9 = self._make_image_tool_button("DS9")
-        column.addWidget(self._button_ds9)
+        column.addWidget(self._button_ds9, 0, Qt.AlignHCenter)
+
         self._button_save_dir = self._make_image_tool_button("Folder")
         self._button_save_dir.setToolTip("Open FITS save directory")
-        column.addWidget(self._button_save_dir)
+        column.addWidget(self._button_save_dir, 0, Qt.AlignHCenter)
+
+        min_host, self._lineEdit_level_min = self._make_level_field("Min")
+        column.addWidget(min_host, 0, Qt.AlignHCenter)
+        max_host, self._lineEdit_level_max = self._make_level_field("Max")
+        column.addWidget(max_host, 0, Qt.AlignHCenter)
 
         column.addStretch(1)
         return host
 
-    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
+    def _ensure_cursor_readout(self) -> QLabel:
         if self._cursor_readout is None:
             self._cursor_readout = QLabel("Pixel: —  CV: —")
             self._cursor_readout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             self._cursor_readout.setFixedHeight(CURSOR_READOUT_HEIGHT)
+            self._cursor_readout.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self._cursor_readout.setStyleSheet(
-                'font: 10pt "Consolas", monospace;'
-                " color: rgb(50, 50, 50);"
-                " background-color: rgb(255, 255, 255);"
-                " border: 1px solid rgb(50, 129, 140);"
-                " border-radius: 4px;"
-                " padding-left: 8px;"
+                linux_safe_stylesheet(
+                    f"font: 10pt {MONO_FONT};"
+                    " color: rgb(50, 50, 50);"
+                    " background-color: rgb(255, 255, 255);"
+                    " border: 1px solid rgb(50, 129, 140);"
+                    " border-radius: 4px;"
+                    " padding-left: 8px;"
+                )
             )
-        parent_layout.addWidget(self._cursor_readout)
+        return self._cursor_readout
+
+    def _setup_cursor_readout_row(self, parent_layout: QVBoxLayout) -> None:
+        parent_layout.addWidget(self._ensure_cursor_readout())
 
     def _setup_nott_logo(self, parent_layout: QVBoxLayout) -> None:
         parent_layout.addWidget(make_nott_logo_title_header("H2RG / MACIE"))
@@ -851,6 +1123,11 @@ class H2rgMainWindow(QMainWindow):
         if self.image is None or self._cursor_readout is None:
             return
         if self._cursor_readout_proxy is not None:
+            return
+
+        if isinstance(self.image, _PixmapImageView):
+            self.image.setMouseTracking(True)
+            self.image.installEventFilter(self)
             return
 
         import pyqtgraph as pg
@@ -876,6 +1153,8 @@ class H2rgMainWindow(QMainWindow):
     def _scene_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
         if self.image is None:
             return None
+        if isinstance(self.image, _PixmapImageView):
+            return self.image.widget_pos_to_image_xy(pos)
         image_item = self.image.getImageItem()
         if image_item is None or image_item.image is None:
             return None
@@ -961,11 +1240,14 @@ class H2rgMainWindow(QMainWindow):
         ):
             self._layout_image_frame()
 
-        if self.image is not None:
-            view = self.image.getView()
-            if obj is view and event.type() == QEvent.MouseMove:
-                self._update_cursor_readout_from_view_pos(view.mapToScene(event.pos()))
-            elif obj is view and event.type() == QEvent.Leave:
+        if self.image is not None and obj is self.image.getView():
+            if event.type() == QEvent.MouseMove:
+                if isinstance(self.image, _PixmapImageView):
+                    self._update_cursor_readout_from_view_pos(event.pos())
+                else:
+                    view = self.image.getView()
+                    self._update_cursor_readout_from_view_pos(view.mapToScene(event.pos()))
+            elif event.type() == QEvent.Leave:
                 self._cursor_readout_pending = None
                 if self._cursor_readout is not None:
                     self._cursor_readout.setText(
@@ -978,21 +1260,51 @@ class H2rgMainWindow(QMainWindow):
         if self.image is not None:
             return
 
-        import pyqtgraph as pg
-
-        pg.setConfigOptions(imageAxisOrder="row-major")
-        pg.setConfigOption("background", "#1a1a2e")
-        pg.setConfigOption("foreground", "w")
-
         host = self._ensure_camera_host_layout()
         self._clear_layout_widgets(host)
         self._image_placeholder = None
+
+        if _use_pixmap_image_backend():
+            self.image = _PixmapImageView(self.ui.frame_camera)
+            host.addWidget(self.image)
+            self.image.show()
+            try:
+                self._setup_cursor_readout()
+            except Exception as exc:
+                print(f"H2RG cursor readout setup failed: {exc}")
+            self._setup_roi_overlays()
+            return
+
+        import pyqtgraph as pg
+
+        # OpenGL under VNC/remote X often segfaults after setImage; use software path.
+        pg.setConfigOptions(
+            imageAxisOrder="row-major",
+            useOpenGL=False,
+            antialias=False,
+        )
+        pg.setConfigOption("background", "#1a1a2e")
+        pg.setConfigOption("foreground", "w")
 
         self.image = pg.ImageView(self.ui.frame_camera)
         self.image.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.image.ui.histogram.hide()
         self.image.ui.roiBtn.hide()
         self.image.ui.menuBtn.hide()
+        try:
+            # Detach unused ImageView chrome so paintSiblings is shallower.
+            for w in (
+                self.image.ui.histogram,
+                self.image.ui.roiBtn,
+                self.image.ui.menuBtn,
+            ):
+                w.setParent(None)
+        except Exception:
+            pass
+        try:
+            self.image.getView().setAntialiasing(False)
+        except Exception:
+            pass
         host.addWidget(self.image)
         self.image.show()
         self.image.getView().setMouseEnabled(x=True, y=True)
@@ -1002,11 +1314,7 @@ class H2rgMainWindow(QMainWindow):
         except Exception as exc:
             print(f"H2RG cursor readout setup failed: {exc}")
 
-        if self._current_frame is not None:
-            self._display_frame(self._current_frame)
-
         self._setup_roi_overlays()
-
     def _resolved_zmq_address(self) -> str:
         if self._zmq_address is None:
             from nottcontrol.camera.macie.zmq_server_manager import (
@@ -1090,8 +1398,8 @@ class H2rgMainWindow(QMainWindow):
         combo_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         for combo in (self.ui.comboBox_detector_mode, self.ui.comboBox_window_mode):
             combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-            combo.setMinimumContentsLength(12)
-            combo.setMaximumWidth(132)
+            combo.setMinimumContentsLength(14)
+            combo.setMaximumWidth(168)
             combo.setSizePolicy(combo_policy)
         outer.addLayout(form, stretch=1)
 
@@ -1266,12 +1574,18 @@ class H2rgMainWindow(QMainWindow):
         image_row = QHBoxLayout()
         image_row.setContentsMargins(0, 0, 0, 0)
         image_row.setSpacing(8)
-        image_row.addWidget(self._setup_image_tool_buttons(), stretch=0)
-        self._camera_host = _SquareCameraHost(self.ui.frame_camera)
+        image_row.setAlignment(Qt.AlignTop)
+        image_row.addWidget(
+            self._setup_image_tool_buttons(),
+            stretch=0,
+            alignment=Qt.AlignHCenter | Qt.AlignTop,
+        )
+        self._camera_host = _SquareCameraHost(
+            self.ui.frame_camera,
+            bottom=self._ensure_cursor_readout(),
+        )
         image_row.addWidget(self._camera_host, stretch=1)
         image_column_layout.addLayout(image_row, stretch=1)
-
-        self._setup_cursor_readout_row(image_column_layout)
 
         self._roi_panel = H2rgRoiPanel(deque_length=MACIE_ROI_DEQUE_LENGTH)
         self._roi_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
@@ -1382,12 +1696,20 @@ class H2rgMainWindow(QMainWindow):
         for button in (
             getattr(self, "_button_set_exposure", None),
             getattr(self, "_button_autoscale", None),
+            getattr(self, "_button_apply_levels", None),
             getattr(self, "_button_header", None),
             getattr(self, "_button_ds9", None),
             getattr(self, "_button_save_dir", None),
         ):
             if button is not None:
                 button.setStyleSheet(PANEL_BUTTON_STYLE)
+
+        for field in (
+            getattr(self, "_lineEdit_level_min", None),
+            getattr(self, "_lineEdit_level_max", None),
+        ):
+            if field is not None:
+                field.setStyleSheet(PANEL_FIELD_STYLE)
 
         for widget in (
             getattr(self, "_label_ramp_mode", None),
@@ -1417,6 +1739,8 @@ class H2rgMainWindow(QMainWindow):
                 )
             else:
                 widget.setStyleSheet(PANEL_FIELD_STYLE)
+
+        sanitize_widget_fonts(self)
 
     def _populate_comboboxes(self) -> None:
         self.ui.comboBox_detector_mode.clear()
@@ -1583,6 +1907,10 @@ class H2rgMainWindow(QMainWindow):
         if self.image is None or not self._h2rg_rois:
             return
 
+        if isinstance(self.image, _PixmapImageView):
+            self._update_roi_overlays()
+            return
+
         import pyqtgraph as pg
 
         view = self.image.getView()
@@ -1594,19 +1922,63 @@ class H2rgMainWindow(QMainWindow):
                 [x, y],
                 [w, h],
                 pen=pg.mkPen(color, width=2),
-                movable=False,
+                movable=True,
                 removable=False,
             )
             roi.setZValue(20)
+            roi.sigRegionChangeFinished.connect(
+                lambda _r, idx=index: self._on_roi_geometry_changed(idx)
+            )
             view.addItem(roi)
             self._roi_overlays[index] = roi
         self._update_roi_overlays()
 
+    def _on_roi_geometry_changed(self, index: int) -> None:
+        roi = self._roi_overlays.get(index)
+        if roi is None:
+            return
+        pos = roi.pos()
+        size = roi.size()
+        x = int(round(float(pos.x())))
+        y = int(round(float(pos.y())))
+        w = max(1, int(round(float(size.x()))))
+        h = max(1, int(round(float(size.y()))))
+        self._h2rg_rois[index] = (x, y, w, h)
+        try:
+            if not config.config_parser.has_section(H2RG_SECTION):
+                config.config_parser.add_section(H2RG_SECTION)
+            config.config_parser.set(
+                H2RG_SECTION, f"ROI {index}", f"{x},{y},{w},{h}"
+            )
+            config.write()
+        except Exception as exc:
+            print(f"H2RG ROI config save failed: {exc}")
+        self._refresh_display()
+
     def _update_roi_overlays(self) -> None:
         selected = set(self._selected_roi_indices())
+        if isinstance(self.image, _PixmapImageView):
+            self.image.set_roi_overlays(self._h2rg_rois, selected)
+            return
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
 
+    def _flush_pending_roi_update(self) -> None:
+        display = self._pending_roi_display
+        record = self._pending_roi_record
+        self._pending_roi_display = None
+        self._pending_roi_record = False
+        if display is None:
+            return
+        self._update_roi_values(display, record=record)
+
+    def _schedule_roi_update(
+        self, display: numpy.ndarray, *, record: bool
+    ) -> None:
+        self._pending_roi_display = display
+        self._pending_roi_record = record or self._pending_roi_record
+        if not self._roi_update_timer.isActive():
+            self._roi_update_timer.start(0)
     def _update_roi_values(
         self, frame: numpy.ndarray, *, record: bool
     ) -> None:
@@ -1632,7 +2004,9 @@ class H2rgMainWindow(QMainWindow):
             if MACIE_RECORD_ROIS:
                 self._store_rois_to_redis(stamp, results)
 
-        self._refresh_roi_plots(force=not record)
+        # pyqtgraph PlotWidget axis text also hits FreeType under conda/VNC.
+        if not sys.platform.startswith("linux"):
+            self._refresh_roi_plots(force=not record)
 
     def _store_rois_to_redis(
         self, stamp: datetime, results: dict
@@ -1725,30 +2099,51 @@ class H2rgMainWindow(QMainWindow):
     def _stop_live_ui(self) -> None:
         self._live_active = False
         self._live_poll_stop.set()
+        self._live_frame_available.set()
         if self.ui is not None:
             self.ui.button_live.setText("Live")
         self._set_live_dependent_controls(False)
+        if self._macie is not None:
+            self._macie.set_live_frame_callback(None)
+
+    def _on_live_frame_written(self) -> None:
+        """Called from the Macie continuous thread after each acquire completes."""
+        self._live_frame_available.set()
 
     def _activate_live_ui(self) -> None:
         self._live_active = True
         self._live_poll_stop.clear()
+        self._live_frame_available.clear()
+        self._auto_levels_next = True
         if self.ui is not None:
             self.ui.button_live.setText("Stop live")
         self._set_live_dependent_controls(True)
+        if self._macie is not None:
+            self._macie.set_live_frame_callback(self._on_live_frame_written)
+            try:
+                self._sync_save_dir_from_server(self._macie)
+            except Exception:
+                pass
 
         def poll_frames() -> None:
-            import time
-
             while (
                 self._live_active
                 and self._macie is not None
                 and not self._live_poll_stop.is_set()
             ):
+                self._live_frame_available.wait(timeout=0.4)
+                self._live_frame_available.clear()
+                if (
+                    not self._live_active
+                    or self._macie is None
+                    or self._live_poll_stop.is_set()
+                ):
+                    break
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
-                    frame, _path = loaded
+                    frame, path = loaded
                     self.frame_ready.emit(frame)
-                time.sleep(0.5)
+                    self.status_updated.emit(f"Live — {path.name}")
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -1809,17 +2204,31 @@ class H2rgMainWindow(QMainWindow):
             mode.y1,
             mode.y2,
         )
+        # Confirm what the server actually programmed (helps catch SC mis-centers).
+        try:
+            x_win, y_win, x1, x2, y1, y2 = macie.read_frame_settings()
+            x1_i, x2_i, y1_i, y2_i = int(x1), int(x2), int(y1), int(y2)
+        except Exception:
+            x_win = mode.x_window
+            y_win = mode.y_window
+            x1_i, x2_i, y1_i, y2_i = mode.x1, mode.x2, mode.y1, mode.y2
+
+        matched = window_mode_index(x_win, y_win, x1_i, x2_i, y1_i, y2_i)
         if mode.y_window and not mode.x_window:
             status = (
-                f"{mode.label} — burst stripe y=[{mode.y1},{mode.y2}] "
-                "(32 outputs)"
+                f"{mode.label} — requested y=[{mode.y1},{mode.y2}], "
+                f"ASIC y=[{y1_i},{y2_i}] (full width, 32 outputs)"
             )
+            if (y1_i, y2_i) != (mode.y1, mode.y2):
+                status += " — WARNING: not centered as requested"
         elif mode.x_window or mode.y_window:
             status = (
-                f"{mode.label} — x=[{mode.x1},{mode.x2}] y=[{mode.y1},{mode.y2}]"
+                f"{mode.label} — ASIC x=[{x1_i},{x2_i}] y=[{y1_i},{y2_i}]"
             )
         else:
             status = mode.label
+        if matched >= 0 and matched != index:
+            status += f" (readback matches {WINDOW_MODES[matched].label})"
         self.status_updated.emit(status)
         self._refresh_exposure_timing(macie)
         if self._initialized:
@@ -1858,10 +2267,72 @@ class H2rgMainWindow(QMainWindow):
             status="Setting exposure…",
         )
 
-    def _autoscale_image(self) -> None:
-        if self.image is None or self._current_frame is None:
+    def _format_level_value(self, value: float) -> str:
+        if not numpy.isfinite(value):
+            return ""
+        rounded = float(numpy.round(value))
+        if abs(rounded - value) < 1e-6:
+            return str(int(rounded))
+        return f"{value:.2f}"
+
+    def _sync_level_fields(self, vmin: float, vmax: float) -> None:
+        if self._lineEdit_level_min is not None:
+            self._lineEdit_level_min.setText(self._format_level_value(vmin))
+        if self._lineEdit_level_max is not None:
+            self._lineEdit_level_max.setText(self._format_level_value(vmax))
+
+    def _sync_level_fields_from_image(self) -> None:
+        if self.image is None:
             return
-        self._auto_levels_next = True
+        try:
+            levels = self.image.getLevels()
+        except Exception:
+            return
+        if levels is None:
+            return
+        try:
+            vmin, vmax = float(levels[0]), float(levels[1])
+        except (TypeError, ValueError, IndexError):
+            return
+        self._manual_levels = (vmin, vmax)
+        self._sync_level_fields(vmin, vmax)
+
+    def _read_level_fields(self) -> tuple[float, float] | None:
+        if self._lineEdit_level_min is None or self._lineEdit_level_max is None:
+            return None
+        try:
+            vmin = float(self._lineEdit_level_min.text().strip())
+            vmax = float(self._lineEdit_level_max.text().strip())
+        except ValueError:
+            return None
+        if not numpy.isfinite(vmin) or not numpy.isfinite(vmax) or vmin >= vmax:
+            return None
+        return vmin, vmax
+
+    def _autoscale_image(self) -> None:
+        display = self._build_display_frame()
+        if self.image is None or display is None:
+            return
+        finite = display[numpy.isfinite(display)]
+        if finite.size == 0:
+            return
+        vmin = float(numpy.min(finite))
+        vmax = float(numpy.max(finite))
+        if vmin >= vmax:
+            vmax = vmin + 1.0
+        self._manual_levels = (vmin, vmax)
+        self._auto_levels_next = False
+        self.image.setLevels(vmin, vmax)
+        self._sync_level_fields(vmin, vmax)
+        self._refresh_display()
+
+    def _apply_manual_levels(self) -> None:
+        levels = self._read_level_fields()
+        if levels is None or self.image is None:
+            return
+        self._manual_levels = levels
+        self._auto_levels_next = False
+        self.image.setLevels(levels[0], levels[1])
         self._refresh_display()
 
     def _show_fits_header(self) -> None:
@@ -1963,8 +2434,11 @@ class H2rgMainWindow(QMainWindow):
             return
         status = self.ui.lineEdit_status
         status.setText(message)
-        status.setCursorPosition(0)
-        status.home(False)
+        # Avoid home()/setCursorPosition on Linux: extra text-layout work under
+        # broken conda FreeType. Cursor position is irrelevant for read-only status.
+        if not sys.platform.startswith("linux"):
+            status.setCursorPosition(0)
+            status.home(False)
 
     def _set_controls_enabled(self, enabled: bool) -> None:
         if self.ui is None:
@@ -2058,6 +2532,9 @@ class H2rgMainWindow(QMainWindow):
         else:
             self._macie.set_config_file(config_file)
         self._macie.set_live_error_callback(self._on_live_macie_error)
+        self._macie.set_live_frame_callback(
+            self._on_live_frame_written if self._live_active else None
+        )
         return self._macie
 
     def _run_macie_operation(
@@ -2313,12 +2790,34 @@ class H2rgMainWindow(QMainWindow):
     def _science_output_path(self, ramp_path: Path) -> Path:
         return science_fits_path(self._local_science_save_dir() / ramp_path.name)
 
+    def _cryo_fits_header_cards(self):
+        """Instrument status from Redis (temps, pressures, DL positions) for FITS."""
+        return fits_header_cards_from_redis(self._redis)
+
+    def _apply_cryo_temps_to_ramp(self, ramp_path: Path | None, cards) -> None:
+        """Stamp Redis status onto the in-memory and on-disk ramp headers when possible."""
+        if not cards:
+            return
+        if self._raw_fits_header is not None:
+            for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
+                self._raw_fits_header[keyword] = value
+        if ramp_path is None:
+            return
+        resolved = self._resolve_ramp_path(ramp_path)
+        if resolved is None or not resolved.is_file():
+            return
+        from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
+
+        update_fits_file_header_cards(resolved, cards)
+
     def _save_science_fits(
         self, frame: numpy.ndarray, ramp_path: Path | None
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
             return None
         output_path = self._science_output_path(ramp_path)
+        cards = self._cryo_fits_header_cards()
+        self._apply_cryo_temps_to_ramp(ramp_path, cards)
         try:
             save_science_fits(
                 output_path,
@@ -2327,6 +2826,7 @@ class H2rgMainWindow(QMainWindow):
                 tint_ms=self._last_tint_ms,
                 reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
                 fowler_pairs=self._fowler_pairs_value(),
+                extra_cards=cards,
             )
             return output_path
         except OSError as exc:
@@ -2355,6 +2855,13 @@ class H2rgMainWindow(QMainWindow):
             fowler_pairs=self._fowler_pairs_value(),
         )
         output_path = self._science_output_path(ramp_path)
+        cards = self._cryo_fits_header_cards()
+        for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
+            header[keyword] = value
+        self._raw_fits_header = dict(header)
+        from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
+
+        update_fits_file_header_cards(resolved, cards)
         try:
             save_science_fits(
                 output_path,
@@ -2363,6 +2870,7 @@ class H2rgMainWindow(QMainWindow):
                 tint_ms=self._last_tint_ms,
                 reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
                 fowler_pairs=self._fowler_pairs_value(),
+                extra_cards=cards,
             )
             return output_path
         except OSError as exc:
@@ -2444,6 +2952,7 @@ class H2rgMainWindow(QMainWindow):
         *,
         before_name: str | None,
         before_mtime: float,
+        already_seen: set[str] | None = None,
     ) -> bool:
         try:
             server_path = macie.get_newest_fits_path()
@@ -2454,7 +2963,7 @@ class H2rgMainWindow(QMainWindow):
         name = fits_basename(server_path)
         if not name or is_science_fits_name(name):
             return False
-        if before_name and name == before_name:
+        if already_seen is not None and name in already_seen:
             return False
         mapped = map_server_fits_path(server_path)
         if mapped is not None:
@@ -2462,6 +2971,10 @@ class H2rgMainWindow(QMainWindow):
                 mtime = mapped.stat().st_mtime
             except OSError:
                 # Mapped UNC/path not readable from this PC — trust basename.
+                if before_name and name == before_name:
+                    # Same name as pre-acquire snapshot: still fetch if we have
+                    # not loaded anything yet (already_seen empty / unknown).
+                    return already_seen is not None and len(already_seen) == 0
                 return True
             return is_new_ramp_fits(
                 name,
@@ -2469,7 +2982,10 @@ class H2rgMainWindow(QMainWindow):
                 before_name=before_name,
                 before_mtime=before_mtime,
             )
-        # No local mapping (typical Windows without SMB) — basename is enough.
+        # No local mapping (typical Windows without SMB) — basename is enough,
+        # but allow a post-acquire fetch of the snapshot name when seen is empty.
+        if before_name and name == before_name:
+            return already_seen is not None and len(already_seen) == 0
         return True
 
     def _fetch_fits_from_server(
@@ -2479,11 +2995,13 @@ class H2rgMainWindow(QMainWindow):
         before_mtime: float = 0.0,
         before_name: str | None = None,
         require_new: bool = True,
+        already_seen: set[str] | None = None,
     ) -> tuple[numpy.ndarray, Path] | None:
         if require_new and not self._server_fits_is_new(
             macie,
             before_name=before_name,
             before_mtime=before_mtime,
+            already_seen=already_seen,
         ):
             return None
         try:
@@ -2496,7 +3014,15 @@ class H2rgMainWindow(QMainWindow):
         filename, payload = fetched
         if is_science_fits_name(filename):
             return None
-        if require_new and before_name and filename == before_name:
+        if already_seen is not None and filename in already_seen:
+            return None
+        if (
+            require_new
+            and before_name
+            and filename == before_name
+            and already_seen is not None
+            and len(already_seen) > 0
+        ):
             return None
         path = self._cache_fetched_fits(filename, payload)
         try:
@@ -2774,12 +3300,15 @@ class H2rgMainWindow(QMainWindow):
                         macie,
                         before_name=before_name,
                         before_mtime=before_mtime,
+                        already_seen=set(seen) | zmq_seen,
                     ):
+                        self.status_updated.emit("Fetching FITS from server…")
                         fetched = self._fetch_fits_from_server(
                             macie,
                             before_mtime=before_mtime,
                             before_name=before_name,
                             require_new=True,
+                            already_seen=set(seen) | zmq_seen,
                         )
                         if fetched is not None:
                             _frame, path = fetched
@@ -2824,11 +3353,15 @@ class H2rgMainWindow(QMainWindow):
             ),
         )
         if not ramp_paths:
+            # Acquire finished but SMB never showed the file — pull newest over ZMQ
+            # even if the basename matches the pre-acquire snapshot.
+            self.status_updated.emit("Fetching FITS from server…")
             fetched = self._fetch_fits_from_server(
                 macie,
                 before_mtime=before_mtime,
                 before_name=before_name,
-                require_new=True,
+                require_new=False,
+                already_seen=zmq_seen,
             )
             if fetched is not None:
                 _frame, path = fetched
@@ -2925,8 +3458,11 @@ class H2rgMainWindow(QMainWindow):
     def _load_live_frame(
         self, macie
     ) -> tuple[numpy.ndarray, Path] | None:
-        """Return the next ramp FITS written since the last displayed frame."""
-        self._sync_save_dir_from_server(macie)
+        """Return the next ramp FITS written since the last displayed frame.
+
+        Prefer a local directory scan so Live display does not block on the same
+        ZMQ socket used by continuous acquire.
+        """
         before_mtime = self._last_fits_mtime
         before_name = self._last_loaded_basename
 
@@ -2941,14 +3477,9 @@ class H2rgMainWindow(QMainWindow):
                     return self._load_fits_from_path(path), path
                 except Exception as exc:
                     print(f"H2RG live skipped unreadable FITS {path.name}: {exc}")
-
-            loaded = self._try_load_path_if_new(
-                self._resolve_server_fits_path(macie),
-                before_mtime,
-                before_name=before_name,
-            )
-            if loaded is not None:
-                return loaded
+            # Local share is available — wait for the next poll instead of
+            # contending with continuous acquire on the ZMQ socket.
+            return None
 
         return self._fetch_fits_from_server(
             macie,
@@ -3037,12 +3568,29 @@ class H2rgMainWindow(QMainWindow):
             self._sync_cursor_readout_label()
             return
 
-        auto_levels = self._auto_levels_next
-        self.image.setImage(display, autoLevels=auto_levels)
-        if auto_levels:
-            self._auto_levels_next = False
+        # Contiguous float32 avoids large paint buffers / exotic dtypes under VNC.
+        display = numpy.ascontiguousarray(display, dtype=numpy.float32)
 
-        self._update_roi_values(display, record=is_new_frame)
+        auto_levels = self._auto_levels_next
+        self.setUpdatesEnabled(False)
+        try:
+            if auto_levels:
+                self.image.setImage(display, autoLevels=True)
+                self._auto_levels_next = False
+                self._sync_level_fields_from_image()
+            elif self._manual_levels is not None:
+                self.image.setImage(
+                    display, autoLevels=False, levels=self._manual_levels
+                )
+            else:
+                self.image.setImage(display, autoLevels=False)
+                self._sync_level_fields_from_image()
+            self._update_roi_overlays()
+        finally:
+            self.setUpdatesEnabled(True)
+
+        # Defer ROI panel/plot updates so they don't nest QGraphicsScene paints.
+        self._schedule_roi_update(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
 

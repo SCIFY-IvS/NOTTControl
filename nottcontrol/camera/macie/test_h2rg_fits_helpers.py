@@ -123,6 +123,16 @@ class NewRampFitsTests(unittest.TestCase):
             )
         )
 
+    def test_same_name_newer_mtime_is_new(self) -> None:
+        self.assertTrue(
+            is_new_ramp_fits(
+                "ramp001.fits",
+                200.0,
+                before_name="ramp001.fits",
+                before_mtime=100.0,
+            )
+        )
+
     def test_science_file_is_never_new(self) -> None:
         self.assertFalse(
             is_new_ramp_fits(

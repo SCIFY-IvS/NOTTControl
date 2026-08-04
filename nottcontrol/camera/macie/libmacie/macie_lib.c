@@ -799,11 +799,17 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         unsigned int ff_time_ms = ff_time_pix / ptUserData->pixelRate;
         unsigned int timeout = 0;
         unsigned int ypix = 0;
+        double exp_ft_ms = exposure_frametime_ms(ptUserData);
+        // Use the larger of full-frame and current geometry; keep a floor so
+        // window/stripe misconfig cannot leave us with a tiny timeout.
         if ((ypix_burst_stripe(ptUserData, &ypix, false) == true) || (nout > 1))
             timeout = 2 * ff_time_ms;
         else
-            timeout = 2 * exposure_frametime_ms(ptUserData);
-        // unsigned int timeout = 2 * exposure_frametime_ms(ptUserData);
+            timeout = 2 * (unsigned int)(exp_ft_ms + 0.5);
+        if (timeout < 2 * (unsigned int)(exp_ft_ms + 0.5))
+            timeout = 2 * (unsigned int)(exp_ft_ms + 0.5);
+        if (timeout < 10000)
+            timeout = 10000;
         if (timeout < time_wait)
             timeout = 2 * time_wait;
 
@@ -816,6 +822,7 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         if (WriteASICBits(ptUserData, regWrite) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "WriteASICReg failed in %s\n", __func__);
+            delete regWrite;
             return false;
         }
 
@@ -840,6 +847,7 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
             if (ReadASICBits(ptUserData, regWrite, &regtemp) == false)
             {
                 verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+                delete regWrite;
                 return false;
             }
 
@@ -851,8 +859,13 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfiguration failed with h%04x<%i:%i> = 0x%04x. Expecting 0x%04x\n",
                            regWrite->addr, regWrite->bit0, regWrite->bit1, regtemp, idle_value);
+            // Force halt so the next command is not stuck in reconfigure.
+            WriteASICReg(ptUserData, 0x6900, idle_value);
+            delay(200);
+            delete regWrite;
             return false;
         }
+        delete regWrite;
 
         // Make sure detector information is consistent
         unsigned int uiDetType = 0;
@@ -1749,38 +1762,75 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
                        "Cannot create/open saveDir '%s' (errno=%d). "
                        "Check path and permissions.\n",
                        strDir.c_str(), errno);
-        return 0;
+        return ptUserData->uiFileNum;
     }
 
-    // Go through files in save directory to find last written file number
+    // Go through files in save directory to find last written file number.
+    // Expect ramp names like nott_YYYYMMDD_000018.fits (6-digit counter before .fits).
+    // Skip derived *_science.fits products from the GUI.
     DIR *dir = opendir(strDir.c_str());
     if (dir == NULL)
     {
         verbose_printf(LOG_ERROR, ptUserData,
-                       "opendir('%s') failed (errno=%d); starting file index at 0.\n",
-                       strDir.c_str(), errno);
-        return 0;
+                       "opendir('%s') failed (errno=%d); using in-memory index %u.\n",
+                       strDir.c_str(), errno, ptUserData->uiFileNum);
+        return ptUserData->uiFileNum;
     }
 
     struct dirent *ent;
-    uint val;
     uint max_val = 0;
-    string s, sub;
+    string s;
     while ((ent = readdir(dir)) != NULL)
     {
         s = string(ent->d_name);
-        if ((s.rfind(".fits") != string::npos) && (s.size() > 6))
+        if (s.size() < 12)
+            continue;
+
+        // Case-insensitive .fits suffix
+        string lower = s;
+        for (size_t i = 0; i < lower.size(); ++i)
+            lower[i] = (char)tolower((unsigned char)lower[i]);
+        if (lower.size() < 5 || lower.compare(lower.size() - 5, 5, ".fits") != 0)
+            continue;
+        if (lower.size() >= 14 &&
+            lower.compare(lower.size() - 14, 14, "_science.fits") == 0)
+            continue;
+
+        // Require _NNNNNN.fits at the end (6 digits).
+        size_t dot = s.rfind('.');
+        if (dot == string::npos || dot < 7)
+            continue;
+        size_t under = s.rfind('_', dot - 1);
+        if (under == string::npos || dot < under + 7)
+            continue;
+        if (dot - under - 1 != 6)
+            continue;
+
+        bool digits = true;
+        unsigned int val = 0;
+        for (size_t i = under + 1; i < dot; ++i)
         {
-            size_t pos = s.rfind("_");
-            if (pos == string::npos)
-                continue;
-            sub = s.substr(pos + 1, 6);
-            val = atoi(sub.c_str());
-            if (val >= max_val)
-                max_val = val + 1;
+            if (!isdigit((unsigned char)s[i]))
+            {
+                digits = false;
+                break;
+            }
+            val = val * 10u + (unsigned int)(s[i] - '0');
         }
+        if (!digits)
+            continue;
+        if (val + 1 > max_val)
+            max_val = val + 1;
     }
     closedir(dir);
+
+    // Never go backwards relative to the in-memory high-water mark (avoids
+    // reusing a name when directory listing is stale or a prior write failed).
+    if (ptUserData->uiFileNum > max_val)
+        max_val = ptUserData->uiFileNum;
+
+    verbose_printf(LOG_INFO, ptUserData,
+                   "Next FITS file index in %s: %06u\n", strDir.c_str(), max_val);
     return max_val;
 }
 
@@ -1789,7 +1839,11 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
 /// \param ptUserData The user-set structure containing the hardware parameters
 std::vector<std::string> getFileNames(MACIE_Settings *ptUserData)
 {
+    // Ensure at least one filename when saving; uiNumSaves can still be 0 if
+    // acquire runs before exposure settings were applied to ptUserData.
     uint nfiles = ptUserData->uiNumSaves;
+    if (nfiles < 1)
+        nfiles = 1;
     string strDir = ptUserData->saveDir;
     string strPre = ptUserData->filePrefix;
     uint fnum = getFileNumStart(ptUserData);
@@ -1798,16 +1852,27 @@ std::vector<std::string> getFileNames(MACIE_Settings *ptUserData)
 
     string name = "";
     std::vector<std::string> names; // Empty on creation
-    // printf("nfiles: %i\n", nfiles);
     for (uint i = 0; i < nfiles; ++i)
     {
-        ss.str("");
-        ss << std::setw(6) << std::setfill('0') << fnum;
-        name = strDir + strPre + ss.str() + ".fits";
+        // Skip names that already exist so CFITSIO create never collides.
+        for (;;)
+        {
+            ss.str("");
+            ss.clear();
+            ss << std::setw(6) << std::setfill('0') << fnum;
+            name = strDir + strPre + ss.str() + ".fits";
+            struct stat st;
+            if (stat(name.c_str(), &st) != 0)
+                break;
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "FITS %s already exists — bumping index.\n", name.c_str());
+            fnum++;
+        }
         names.push_back(name);
-        // verbose_printf(LOG_INFO, ptUserData, " filename: %s\n", names[i].c_str());
         fnum++;
     }
+    // Persist next free index for subsequent acquires.
+    ptUserData->uiFileNum = fnum;
     return names;
 }
 
@@ -1999,6 +2064,17 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     int coadd_cnt = 0;
     int ifile = 0;
+    int nwritten = 0;
+    bool write_failed = false;
+    bool download_failed = false;
+
+    if (filenames.empty() && ptUserData->bSaveData)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "No FITS output names generated (saveDir='%s' prefix='%s').\n",
+                       ptUserData->saveDir.c_str(), ptUserData->filePrefix.c_str());
+        write_failed = true;
+    }
 
     // Flag indicating buffer is getting too full
     bool buff_flag = false;
@@ -2006,7 +2082,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     uint nbytes_req = uint(rampsize) * uint(nramps);
 
     t0 = get_timestamp();
-    for (int ii = 0; ii < nramps; ++ii)
+    for (int ii = 0; ii < nramps && !write_failed; ++ii)
     {
 
         // Testing of Halt Acquisition
@@ -2032,6 +2108,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Failed download on ramp %i of %i.\n", ii + 1, nramps);
             verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+            download_failed = true;
             break;
         }
         t = get_timestamp() - t;
@@ -2050,12 +2127,21 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             if (ptUserData->bSaveData)
             {
+                if (ifile >= (int)filenames.size())
+                {
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "No FITS filename left for ramp %i (uiNumSaves=%u, names=%zu).\n",
+                                   ii + 1, ptUserData->uiNumSaves, filenames.size());
+                    write_failed = true;
+                    break;
+                }
                 verbose_printf(LOG_INFO, ptUserData, "Writing: %s\n", filenames[ifile].c_str());
                 t = get_timestamp();
                 if (WriteFITSRamp(pData, naxis, USHORT_IMG, filenames[ifile]) == false)
                 {
                     verbose_printf(LOG_ERROR, ptUserData, "Failed to write FITS (16-bit) at %s\n", __func__);
                     verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+                    write_failed = true;
                     break;
                 }
                 t = get_timestamp() - t;
@@ -2063,6 +2149,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 verbose_printf(LOG_INFO, ptUserData, "  Time to write FITS file: %f seconds\n\n", time_taken);
                 // Increment file name index
                 ifile++;
+                nwritten++;
             }
         }
         // Otherwise add pData to 32-bit coadder
@@ -2094,6 +2181,14 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
                 if (ptUserData->bSaveData)
                 {
+                    if (ifile >= (int)filenames.size())
+                    {
+                        verbose_printf(LOG_ERROR, ptUserData,
+                                       "No FITS filename left for coadd product (uiNumSaves=%u).\n",
+                                       ptUserData->uiNumSaves);
+                        write_failed = true;
+                        break;
+                    }
                     // Save FITS files
                     verbose_printf(LOG_INFO, ptUserData, "Writing: %s\n", filenames[ifile].c_str());
                     t = get_timestamp();
@@ -2101,6 +2196,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     {
                         verbose_printf(LOG_ERROR, ptUserData, "Failed to write FITS (32-bit) at %s\n", __func__);
                         verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+                        write_failed = true;
                         break;
                     }
                     t = get_timestamp() - t;
@@ -2108,6 +2204,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     verbose_printf(LOG_INFO, ptUserData, "  Time to write FITS file: %f seconds\n\n", time_taken);
                     // Increment file name index
                     ifile++;
+                    nwritten++;
                 }
 
                 // Reset pRampBuffer to 0s
@@ -2163,7 +2260,30 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     }
     else
         verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
-    // Do this again??
+
+    if (download_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished with download failure (%i FITS file(s) written).\n",
+                       nwritten);
+        return false;
+    }
+    if (ptUserData->bSaveData && write_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished with FITS write failure (%i file(s) written).\n",
+                       nwritten);
+        return false;
+    }
+    if (ptUserData->bSaveData && nwritten == 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished but no FITS files were written "
+                       "(bSaveData=%i nramps=%i uiNumSaves=%u names=%zu).\n",
+                       (int)ptUserData->bSaveData, nramps, ptUserData->uiNumSaves,
+                       filenames.size());
+        return false;
+    }
 
     return true;
 }
@@ -2548,51 +2668,43 @@ bool WriteFITSRamp(void *pData, vector<long> naxis, int bitpix, string filename)
 
     int status = 0;
 
+    // CFITSIO: prefix "!" to overwrite if the file already exists.
+    string create_path = string("!") + filename;
+
     // create new FITS file
-    if (fits_create_file(&poutfits, filename.c_str(), &status))
+    if (fits_create_file(&poutfits, create_path.c_str(), &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_create_file()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_create_file(%s)\n", filename.c_str());
+        fits_report_error(stderr, status);
+        return false;
     }
 
     // Write the required keywords for the primary array image
     if (fits_create_img(poutfits, bitpix, naxes, &naxis[0], &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_create_img()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_create_img()\n");
+        fits_report_error(stderr, status);
+        fits_close_file(poutfits, &status);
+        return false;
     }
 
     // Write data array to the FITS file
     if (fits_write_img(poutfits, datatype, 1, npix, pData, &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_write_img()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_write_img()\n");
+        fits_report_error(stderr, status);
+        fits_close_file(poutfits, &status);
+        return false;
     }
 
     // Add header keywords
 
     // Close FITS file
     if (fits_close_file(poutfits, &status))
-        ;
     {
-        if (status)
-        {
-            printf("Failed at fits_close_file()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_close_file()\n");
+        fits_report_error(stderr, status);
+        return false;
     }
 
     return true;
@@ -3979,17 +4091,43 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // uint ny = y2 - y1 + 1;
     // uint nx = x2 - x1 + 1;
 
-    // First check if we're trying to set Stripe Mode
+    map<string, regInfo> &RegMap = ptUserData->RegMap;
+
+    // Vertical-only window = burst stripe when the microcode exposes it
+    // (centered SC via Read/Skip counters, keeps parallel outputs).
+    // Otherwise fall back to WinMode (single-output, much slower).
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        // Enable stripe mode
-        ASIC_STRIPEMode(ptUserData, true, true);
-
-        // // TODO: For the meantime, we are restricted to powers of 2
-        // if ((ny & (ny - 1)) != 0)
-        // {
-        //     verbose_printf(LOG_WARNING, ptUserData, "");
-        // }
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
+        {
+            ASIC_STRIPEMode(ptUserData, true, true);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): SC via burst stripe (parallel outputs).\n", __func__);
+        }
+        else
+        {
+            ptUserData->bStripeMode = false;
+            if (RegMap.count("HorzWinMode") > 0)
+                ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
+            if (RegMap.count("VertWinMode") > 0)
+                ASIC_Generic(ptUserData, "VertWinMode", true, 1);
+            else if (RegMap.count("WinMode") > 0)
+            {
+                ASIC_Generic(ptUserData, "WinMode", true, 1);
+                verbose_printf(LOG_WARNING, ptUserData,
+                               "%s(): SC via WinMode (no StripeReads* in %s); "
+                               "single-output window, not burst stripe.\n",
+                               __func__, ptUserData->ASICRegs);
+            }
+            else
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "%s(): Vertical window requested but no "
+                               "StripeReads*/WinMode/VertWinMode in %s.\n",
+                               __func__, ptUserData->ASICRegs);
+                return false;
+            }
+        }
     }
     else
     {
@@ -4017,6 +4155,16 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     ASIC_setY1(ptUserData, y1);
     ASIC_setY2(ptUserData, y2);
 
+    // Program skip/read counters before reconfigure. Otherwise stripe mode only
+    // shrinks RowsPerFrame and the ASIC clocks ny rows from row 0 (not from y1).
+    unsigned int ypix_stripe = 0;
+    if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): Burst stripe y1=%u y2=%u → %u rows.\n",
+                       __func__, y1, y2, ypix_stripe);
+    }
+
     if (ReconfigureASIC(ptUserData) == false)
     {
         verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
@@ -4030,7 +4178,6 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // where Enhanced mode causes the columns to shift every other acquisition.
     // The shifted column then persists after switching back to full frame.
     // Something is wrong with the pixel timing code.
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
     if (RegMap.count("PixelClkScheme") > 0)
     {
         uint pixClk = (bHorzWin == false) ? ptUserData->ffPixelClkScheme : ptUserData->winPixelClkScheme;
@@ -4086,11 +4233,21 @@ extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool
     x2 = ASIC_getX2(ptUserData);
     y1 = ASIC_getY1(ptUserData);
     y2 = ASIC_getY2(ptUserData);
+
+    // Unified WinMode cannot express "vertical-only" vs "horizontal-only".
+    // Infer from the programmed span so SC / Channel presets rematch correctly.
+    if (bHorzWin && bVertWin && x1 == 0 && x2 == ptUserData->uiDetectorWidth - 1)
+        bHorzWin = false;
+    if (bHorzWin && bVertWin && y1 == 0 && y2 == ptUserData->uiDetectorHeight - 1)
+        bVertWin = false;
 }
 
 // Subarray mode might not exist in certain microcodes.
 // If these parameters don't exist, then return detector limits.
 // If not in window mode, then return detector limits.
+
+// Full-frame idle for burst-stripe counters (defined with ypix_burst_stripe).
+static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData);
 
 // Set/get STRIPE mode
 bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
@@ -4130,15 +4287,8 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
-            // Turn off any burst Striping
-            if (RegMap.count("StripeReads1") > 0)
-                ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-            if (RegMap.count("StripeReads2") > 0)
-                ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-            if (RegMap.count("StripeSkips1") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-            if (RegMap.count("StripeSkips2") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
+            // Restore full-frame stripe counters (not zeros — see burst_stripe_write_ffidle)
+            burst_stripe_write_ffidle(ptUserData);
         }
     }
     else // Or simply get current state
@@ -4427,27 +4577,30 @@ unsigned int ASIC_setY2(MACIE_Settings *ptUserData, unsigned int val)
     return ASIC_Generic(ptUserData, addr_name, true, val);
 }
 
+// Full-frame idle for HxRG burst-stripe counters (MCD data table → 4024…).
+// Never write Reads*=0: that produced 0-byte GigE downloads on this microcode.
+static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData)
+{
+    map<string, regInfo> &RegMap = ptUserData->RegMap;
+    if (RegMap.count("StripeReads1") == 0)
+        return;
+
+    unsigned int ydet = ptUserData->uiDetectorHeight;
+    ASIC_Generic(ptUserData, "StripeReads1", true, ydet);
+    if (RegMap.count("StripeSkips1") > 0)
+        ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
+    if (RegMap.count("StripeReads2") > 0)
+        ASIC_Generic(ptUserData, "StripeReads2", true, 0);
+    if (RegMap.count("StripeSkips2") > 0)
+        ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
+    if (RegMap.count("RowReads") > 0)
+        ASIC_Generic(ptUserData, "RowReads", true, ydet);
+}
+
 // Call this function to set burst mode to full frame for idling purposes (after acquisition)
 void burst_stripe_set_ffidle(MACIE_Settings *ptUserData)
 {
-
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
-    unsigned int ydet = ptUserData->uiDetectorHeight;
-    unsigned int ypix = 0;
-    // If burst stripe mode is enabled,
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
-        if (RegMap.count("StripeReads1") > 0)
-            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-        if (RegMap.count("StripeReads2") > 0)
-            ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-        if (RegMap.count("StripeSkips1") > 0)
-            ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-        if (RegMap.count("StripeSkips2") > 0)
-            ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-        if (RegMap.count("RowReads") > 0)
-            ASIC_Generic(ptUserData, "RowReads", true, ydet);
-    }
+    burst_stripe_write_ffidle(ptUserData);
 }
 
 // Returns true if running Burst Stripe Mode, otherwise false
@@ -4460,24 +4613,12 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     unsigned int y2 = ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
-    // Set all to 0 if Stripe Mode is disabled or burst striping is not existent
-    // or y1 and y2 cover the entire active region
+    // Idle / full-span: not in stripe mode, no counters, or Y covers the array.
+    // If StripeReads* are not in RegMap, do not touch ASIC registers at all.
     if ((ASIC_STRIPEMode(ptUserData, false, 0) == 0) || (RegMap.count("StripeReads1") == 0) || ((y1 < 4) && (y2 > ydet - 5)))
     {
-        // Turn off any burst Striping
-        if (bSet)
-        {
-            if (RegMap.count("StripeReads1") > 0)
-                ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-            if (RegMap.count("StripeReads2") > 0)
-                ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-            if (RegMap.count("StripeSkips1") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-            if (RegMap.count("StripeSkips2") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            if (RegMap.count("RowReads") > 0)
-                ASIC_Generic(ptUserData, "RowReads", true, ydet);
-        }
+        if (bSet && RegMap.count("StripeReads1") > 0)
+            burst_stripe_write_ffidle(ptUserData);
 
         *ypix = ny;
         return false;
@@ -4496,7 +4637,8 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "StripeSkips1", true, ydet - yrows);
             ASIC_Generic(ptUserData, "StripeReads2", true, 4);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
     else if (y2 > ydet - 5) // Upper reference pixels included in active block
@@ -4509,20 +4651,35 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
             ASIC_Generic(ptUserData, "StripeReads2", true, ydet - y1 - 4);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
-    else // No reference pixels included in requested block
+    else // Middle of frame: center block [y1, y2]
     {
-        // yrows = ny + 8;
+        // Hardware sequence is Read1 → Skip1 → Read2 → Skip2 (same as
+        // lower/upper reference cases). Reads1 must be non-zero — a zero-length
+        // first read is ignored by this microcode and the ASIC then clocks ny
+        // rows from row 0 (first/last edge instead of the centered strip).
+        //
+        // After reading 4 bottom reference rows, skip (y1-4) so the next read
+        // starts at detector row y1 (SC 1024 → y=512…1535).
         yrows = ny;
         if (bSet)
         {
+            unsigned int skip_pre = (y1 >= 4) ? (y1 - 4) : y1;
+            unsigned int skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
+            unsigned int reads2 = (ny > 4) ? (ny - 4) : ny;
             ASIC_Generic(ptUserData, "StripeReads1", true, 4);
-            ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny - 8);
-            ASIC_Generic(ptUserData, "StripeSkips2", true, ydet - y2 - 1);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            ASIC_Generic(ptUserData, "StripeSkips1", true, skip_pre);
+            ASIC_Generic(ptUserData, "StripeReads2", true, reads2);
+            ASIC_Generic(ptUserData, "StripeSkips2", true, skip_post);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
+                           "(y1=%u y2=%u ny=%u)\n",
+                           __func__, skip_pre, reads2, skip_post, y1, y2, ny);
         }
     }
 

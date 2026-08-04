@@ -93,18 +93,30 @@ def compute_roi_brightness(
 
 
 def _value_style(row_bg: str = "") -> str:
+    from nottcontrol.theme import MONO_FONT, linux_safe_stylesheet
+
     pt = scaled_font_pt(9)
-    return f'{row_bg} font: {pt}pt "Consolas", monospace; color: rgb(30, 30, 30);'
+    return linux_safe_stylesheet(
+        f"{row_bg} font: {pt}pt {MONO_FONT}; color: rgb(30, 30, 30);"
+    )
 
 
 def _header_style() -> str:
+    from nottcontrol.theme import FONT, linux_safe_stylesheet
+
     pt = scaled_font_pt(8)
-    return f'font: 700 {pt}pt "Segoe UI"; color: rgb(90, 90, 90);'
+    return linux_safe_stylesheet(
+        f"font: 700 {pt}pt {FONT}; color: rgb(90, 90, 90);"
+    )
 
 
 def _title_style() -> str:
+    from nottcontrol.theme import FONT, linux_safe_stylesheet
+
     pt = scaled_font_pt(10)
-    return f'font: 600 {pt}pt "Segoe UI"; color: rgb(50, 50, 50);'
+    return linux_safe_stylesheet(
+        f"font: 600 {pt}pt {FONT}; color: rgb(50, 50, 50);"
+    )
 
 
 def _style_light_plot(plot: pg.PlotWidget) -> None:
@@ -179,14 +191,20 @@ class H2rgRoiRow:
             f"{self._row_bg} color: {color.name()}; font-weight: 600;"
         )
 
+    @staticmethod
+    def _format_int(value: float) -> str:
+        if not numpy.isfinite(value):
+            return "—"
+        return str(int(round(value)))
+
     def set_values(self, result: BrightnessResults | None) -> None:
         if result is None:
             for label in (self.min_label, self.max_label, self.avg_label):
                 label.setText("—")
             return
-        self.min_label.setText(f"{result.min:.1f}")
-        self.max_label.setText(f"{result.max:.1f}")
-        self.avg_label.setText(f"{result.avg:.1f}")
+        self.min_label.setText(self._format_int(result.min))
+        self.max_label.setText(self._format_int(result.max))
+        self.avg_label.setText(self._format_int(result.avg))
 
     def add_max_value(self, value: float) -> None:
         self.max_values.append(float(value))
