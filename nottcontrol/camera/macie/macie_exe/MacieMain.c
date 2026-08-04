@@ -1394,13 +1394,13 @@ bool ParseConfig(string configFile, MACIE_Settings *ptUserData, bool update_regs
                 // verbose_printf(LOG_INFO, ptUserData, "  str1: %s, str2: %s\n", str1.c_str(), str2.c_str());
 
                 if (str1.compare("MACIEFile") == 0)
-                    strncpy(ptUserData->MACIEFile, str2.c_str(), str2.size());
-                if (str1.compare("MACIEslot") == 0)
+                    snprintf(ptUserData->MACIEFile, sizeof(ptUserData->MACIEFile), "%s", str2.c_str());
+                else if (str1.compare("MACIEslot") == 0)
                     ptUserData->bMACIEslot1 = (str2uint(str2) == 1) ? true : false;
                 else if (str1.compare("ASICFile") == 0)
-                    strncpy(ptUserData->ASICFile, str2.c_str(), str2.size());
+                    snprintf(ptUserData->ASICFile, sizeof(ptUserData->ASICFile), "%s", str2.c_str());
                 else if (str1.compare("ASICRegs") == 0)
-                    strncpy(ptUserData->ASICRegs, str2.c_str(), str2.size());
+                    snprintf(ptUserData->ASICRegs, sizeof(ptUserData->ASICRegs), "%s", str2.c_str());
 
                 else if (str1.compare("saveDir") == 0)
                 {
