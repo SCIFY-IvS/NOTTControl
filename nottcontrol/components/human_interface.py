@@ -23,7 +23,7 @@ from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.components.delayline import DelayLine
 from nottcontrol.camera.frame import Frame
-from nottcontrol.lucid.lib.lucid_utils import LucidUtils
+from nottcontrol.lucid.lib.lucid_utils import LucidUtils, ref_state
 from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
 from nottcontrol import config 
@@ -746,16 +746,19 @@ class HumInt(object):
         self.push_to_shm(name, frame)
         return frame
 
-    def fit_VIS_cam(self, name, beam_nr, visual_feedback=False):
+    def fit_VIS_cam(self, name, beam_nr, visual_feedback=False, save_ref=False):
         """
         Function that fits a beam centroid to a frame acquired by camera {name}. Returns position (x,y) and radius r of beam number {beam_nr}.
-        Cannot be called if a streaming process is active on the camera. 
+        Cannot be called if a streaming process is active on the camera.
+        If save_ref is True, saves the acquired beam centroid and dimension to the config file.
         """       
         if self._stream_process.get(name) is not None:
             raise RuntimeError(f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot.")
 
         with LucidUtils() as myut:
             x,y,r = myut.fit(name, beam_nr, visual_feedback)
+        if save_ref:
+            self._save_ref(name, beam_nr, x, y, r)
         return x,y,r
 
     @staticmethod
@@ -810,6 +813,19 @@ class HumInt(object):
         process.join()
         self._stream_process[name] = None
         print(f"Stream stopped for visible camera {name}.")
+
+    @staticmethod
+    def _save_ref(self, name, beam_nr, x, y, r):
+        """
+        Function that stores a given beam centroid position and dimension in the reference state of lucid_utils and writes it to the config file.
+        """
+        beam_name = "beam"+str(beam_nr)
+        section = "ref_im" if name == "im_cam" else "ref_pup"
+        value = str((round(x, 4), round(y, 4), round(r, 4)))
+        ref_state[name][beam_name] = (x,y,r)
+        config.config_parser.set(section, beam_name, value)
+        config.write()
+        print(f"Reference beam state saved for {beam_name} on camera {name}: x={x:.4f}, y={y:.4f}, r={r:.4f}.")
 
     #------------------#
     # Sample functions |
