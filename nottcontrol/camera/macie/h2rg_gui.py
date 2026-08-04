@@ -2004,7 +2004,9 @@ class H2rgMainWindow(QMainWindow):
             if MACIE_RECORD_ROIS:
                 self._store_rois_to_redis(stamp, results)
 
-        self._refresh_roi_plots(force=not record)
+        # pyqtgraph PlotWidget axis text also hits FreeType under conda/VNC.
+        if not sys.platform.startswith("linux"):
+            self._refresh_roi_plots(force=not record)
 
     def _store_rois_to_redis(
         self, stamp: datetime, results: dict
@@ -2432,8 +2434,11 @@ class H2rgMainWindow(QMainWindow):
             return
         status = self.ui.lineEdit_status
         status.setText(message)
-        status.setCursorPosition(0)
-        status.home(False)
+        # Avoid home()/setCursorPosition on Linux: extra text-layout work under
+        # broken conda FreeType. Cursor position is irrelevant for read-only status.
+        if not sys.platform.startswith("linux"):
+            status.setCursorPosition(0)
+            status.home(False)
 
     def _set_controls_enabled(self, enabled: bool) -> None:
         if self.ui is None:

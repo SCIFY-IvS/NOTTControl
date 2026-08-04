@@ -98,6 +98,39 @@ def apply_platform_font(app) -> None:
         pass
     app.setFont(font)
     print(f"NOTTControl Linux UI font: {family} (mono={mono}, pixelSize=13)")
+    patch_linux_lineedit_paint()
+
+
+def patch_linux_lineedit_paint() -> None:
+    """Bypass QWidgetLineControl/FreeType path that SIGSEGVs under conda Qt+VNC."""
+    import sys
+
+    if not sys.platform.startswith("linux"):
+        return
+
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtGui import QPainter
+    from PyQt5.QtWidgets import QLineEdit
+
+    def _safe_paint(self, event) -> None:  # noqa: ANN001
+        painter = QPainter(self)
+        try:
+            painter.fillRect(self.rect(), self.palette().brush(self.backgroundRole()))
+            painter.setPen(self.palette().color(self.foregroundRole()))
+            painter.setFont(self.font())
+            text = self.text()
+            if self.echoMode() != QLineEdit.Normal:
+                text = "*" * len(text)
+            painter.drawText(
+                self.rect().adjusted(6, 0, -6, 0),
+                int(self.alignment()) | Qt.AlignVCenter,
+                text,
+            )
+        finally:
+            painter.end()
+
+    QLineEdit.paintEvent = _safe_paint  # type: ignore[method-assign]
+    print("NOTTControl Linux: using safe QLineEdit paint (avoid FreeType crash)")
 
 
 def init_ui_scale(app) -> None:
