@@ -59,6 +59,8 @@ def convert(dic,conversion_dic):
             dic[key] = str(dic[key])
         if conversion_dic[key] == "IntTuple":
             dic[key] = ast.literal_eval(dic[key])
+        if conversion_dic[key] == "FloatTuple":
+            dic[key] = tuple(float(v) for v in ast.literal_eval(dic[key]))
     return dic
 
 # Connectivity parameters
