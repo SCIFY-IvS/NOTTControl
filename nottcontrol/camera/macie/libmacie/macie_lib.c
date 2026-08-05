@@ -3662,8 +3662,9 @@ bool SetASICParameter(MACIE_Settings *ptUserData, string addr_name, unsigned int
 
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Check if addr_name key exists
-    // If it's not valid, throw warning, but return true.
+    // Check if addr_name key exists. Missing names are a hard failure for
+    // callers that require the bit; optional features (e.g. ExpMode on DevBrd
+    // fast microcode) must check RegMap themselves before calling.
     if (RegMap.count(addr_name) == 0)
     {
         verbose_printf(LOG_WARNING, ptUserData,
