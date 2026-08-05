@@ -153,6 +153,18 @@ class NewRampFitsTests(unittest.TestCase):
             )
         )
 
+    def test_older_different_name_is_not_new(self) -> None:
+        # Regression: Live used to flip between latest and previous because any
+        # different basename was treated as new regardless of mtime.
+        self.assertFalse(
+            is_new_ramp_fits(
+                "ramp001.fits",
+                100.0,
+                before_name="ramp002.fits",
+                before_mtime=200.0,
+            )
+        )
+
 
 class MapServerFitsPathTests(unittest.TestCase):
     def test_linux_absolute_path_without_mapping_returns_none_on_windows(self) -> None:

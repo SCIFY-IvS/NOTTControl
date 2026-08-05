@@ -16,6 +16,7 @@ from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QImage, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -740,6 +741,11 @@ def is_new_ramp_fits(
         return mtime > before_mtime
     if mtime > before_mtime:
         return True
+    # Same-second filesystem resolution: accept a different basename only when
+    # mtime is not older. Never treat an older file as new — that caused Live
+    # to flip forever between the latest ramp and the previous one.
+    if mtime < before_mtime:
+        return False
     return bool(before_name and name != before_name)
 
 
@@ -955,6 +961,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_header: QPushButton | None = None
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
+        self._checkBox_save_image: QCheckBox | None = None
         self._button_apply_levels: QPushButton | None = None
         self._lineEdit_level_min: QLineEdit | None = None
         self._lineEdit_level_max: QLineEdit | None = None
@@ -1540,6 +1547,8 @@ class H2rgMainWindow(QMainWindow):
         form.setColumnStretch(2, 0)
         outer.addLayout(form)
 
+        options = QHBoxLayout()
+        options.setSpacing(12)
         bg_box = self.ui.checkBox_substract_background
         bg_box.setText("Subtract background")
         bg_box.setEnabled(False)
@@ -1547,7 +1556,17 @@ class H2rgMainWindow(QMainWindow):
             "Subtract the stored background from the displayed image"
         )
         bg_box.show()
-        outer.addWidget(bg_box)
+        options.addWidget(bg_box)
+
+        save_box = QCheckBox("Save image")
+        save_box.setChecked(True)
+        save_box.setToolTip(
+            "Write FITS files to the save directory during acquire and live"
+        )
+        self._checkBox_save_image = save_box
+        options.addWidget(save_box)
+        options.addStretch(1)
+        outer.addLayout(options)
 
         self.ui.button_take_background.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Fixed
@@ -1686,6 +1705,8 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
 
         self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
+        if getattr(self, "_checkBox_save_image", None) is not None:
+            self._checkBox_save_image.setStyleSheet(CHECKBOX_STYLE)
 
         for name in (
             "label",
@@ -2625,6 +2646,12 @@ class H2rgMainWindow(QMainWindow):
             return
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
 
+    def _save_image_enabled(self) -> bool:
+        box = getattr(self, "_checkBox_save_image", None)
+        if box is None:
+            return True
+        return bool(box.isChecked())
+
     def _apply_exposure_settings(self, macie) -> dict[str, float | int]:
         try:
             ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
@@ -2655,7 +2682,7 @@ class H2rgMainWindow(QMainWindow):
             ngmax=MACIE_INTEGRATION_NGROUPS_MAX,
             ncoadds=ncoadds,
             nseq=nseq,
-            save=True,
+            save=self._save_image_enabled(),
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
@@ -2695,6 +2722,12 @@ class H2rgMainWindow(QMainWindow):
                 raise ValueError(f"Invalid exposure field: {exc}") from exc
 
             exposure = self._apply_exposure_settings(macie)
+            save_enabled = self._save_image_enabled()
+            if not save_enabled:
+                macie.acquire()
+                self.status_updated.emit("Acquire complete — saving disabled")
+                return
+
             self._fits_dir_ok = None
             before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
             wait_timeout_s = fits_wait_timeout_s(
@@ -2839,6 +2872,8 @@ class H2rgMainWindow(QMainWindow):
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
             return None
+        if not self._save_image_enabled():
+            return None
         output_path = self._science_output_path(ramp_path)
         cards = self._cryo_fits_header_cards()
         self._apply_cryo_temps_to_ramp(ramp_path, cards)
@@ -2859,6 +2894,8 @@ class H2rgMainWindow(QMainWindow):
 
     def _save_science_fits_from_ramp(self, ramp_path: Path) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS:
+            return None
+        if not self._save_image_enabled():
             return None
         resolved = self._resolve_ramp_path(ramp_path)
         if resolved is None:
@@ -3089,7 +3126,12 @@ class H2rgMainWindow(QMainWindow):
                 self._apply_exposure_settings(self._macie)
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
-                self.status_updated.emit("Live acquiring…")
+                if self._save_image_enabled():
+                    self.status_updated.emit("Live acquiring…")
+                else:
+                    self.status_updated.emit(
+                        "Live acquiring… (saving disabled — display will not update)"
+                    )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))
 
@@ -3491,12 +3533,15 @@ class H2rgMainWindow(QMainWindow):
         before_name = self._last_loaded_basename
 
         if self._local_fits_accessible(allow_probe=True):
-            for path in list_new_ramp_fits_in_dir(
+            # Prefer the newest pending ramp so Live stays on the latest frame
+            # when the poller falls behind a burst of acquires.
+            new_paths = list_new_ramp_fits_in_dir(
                 self._save_dir,
                 before_mtime=before_mtime,
                 before_name=before_name,
                 dir_ok=True,
-            ):
+            )
+            for path in reversed(new_paths):
                 try:
                     return self._load_fits_from_path(path), path
                 except Exception as exc:
