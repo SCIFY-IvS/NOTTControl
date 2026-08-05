@@ -134,6 +134,9 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
 
     ptUserData->bStripeModeAllowed = false;
     ptUserData->bStripeMode = false;
+    ptUserData->bSoftStripeActive = false;
+    ptUserData->uiSoftStripeY1 = 0;
+    ptUserData->uiSoftStripeY2 = 0;
 
     // Pixel clocking scheme for full frame and subarray window
     // Normal (0) or Enhanced (1)
@@ -1470,18 +1473,13 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
     // int buffsize = exposure_xpix(ptUserData) * exposure_ypix(ptUserData);
     // ptUserData->bUseSciDataFunc = false;
 
-    // Function to update any burst-stripe features (h4300-h4304 and h4034)
+    // Do not rewrite StripeReads* here: touching 4024… around GigE open/close
+    // starved downloads. Counters are programmed only in set_frame_settings.
     unsigned int ypix = ptUserData->uiDetectorHeight;
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
+    if (ypix_burst_stripe(ptUserData, &ypix, false) == true)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe is enabled with %i rows.\n", ypix);
-        // Delay partial frame time to ensure proper transition from full frame to stripe
-        delay(int(0.5 * ptUserData->frametime_ms));
-    }
     else
-    {
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
-    }
 
     if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
         return false;
@@ -1627,24 +1625,18 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     // int buffsize = exposure_xpix(ptUserData) * exposure_ypix(ptUserData);
     // ptUserData->bUseSciDataFunc = false;
 
-    // Function to update any burst-stripe features (h4300-h4304 and h4034)
+    // Do not rewrite StripeReads* here: touching 4024… around GigE open/close
+    // starved downloads. Counters are programmed only in set_frame_settings.
     unsigned int ypix = ptUserData->uiDetectorHeight;
     const bool reuse_science =
         ptUserData->bKeepScienceInterface &&
         ptUserData->bScienceInterfaceOpen &&
         ptUserData->nPixBufferScienceConfigured == ptUserData->nPixBuffer;
 
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
+    if (ypix_burst_stripe(ptUserData, &ypix, false) == true)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe is enabled with %i rows.\n", ypix);
-        // Transition delay only when opening a fresh science session.
-        if (!reuse_science)
-            delay(int(0.5 * ptUserData->frametime_ms));
-    }
     else
-    {
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
-    }
 
     if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
         return false;
@@ -4191,6 +4183,7 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Only edge-aligned Y (bottom/top refs) is proven on this Teledyne MCD;
     // centered middle stripes previously left GigE buffers at ~0xFFFF.
     // Otherwise fall back to WinMode (single-output, slower, valid pixels).
+    bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
         const bool edge_aligned = (y1 < 4) || (y2 > ydet - 5);
@@ -4198,14 +4191,21 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
             edge_aligned)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
+            use_burst_stripe = true;
+            // Keep ASIC Y at full frame: MCD data table 5402→4023(Y2) must stay
+            // ydet-1 alongside Reads2=0 (same as idle). Track SC height in soft state.
+            ptUserData->bSoftStripeActive = true;
+            ptUserData->uiSoftStripeY1 = y1;
+            ptUserData->uiSoftStripeY2 = y2;
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): SC via burst stripe (edge-aligned, parallel outputs) "
-                           "y=[%u,%u].\n",
-                           __func__, y1, y2);
+                           "soft y=[%u,%u]; ASIC Y kept [0,%u].\n",
+                           __func__, y1, y2, ydet - 1);
         }
         else
         {
             ptUserData->bStripeMode = false;
+            ptUserData->bSoftStripeActive = false;
             if (RegMap.count("HorzWinMode") > 0)
                 ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
             if (RegMap.count("VertWinMode") > 0)
@@ -4241,6 +4241,7 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
     else
     {
+        ptUserData->bSoftStripeActive = false;
         // Turn vertical window on/off first, then horizontal
         // Order matters, because ASIC_WinHorz will disable stripe
         ASIC_WinVert(ptUserData, true, (uint)bVertWin);
@@ -4253,7 +4254,7 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         y1 = 0;
         y2 = ydet - 1;
     }
-    // Set x1=0 and x2=ydet-1 if bHorzWin=False
+    // Set x1=0 and x2=xdet-1 if bHorzWin=False
     if (bHorzWin == false)
     {
         x1 = 0;
@@ -4262,8 +4263,17 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     ASIC_setX1(ptUserData, x1);
     ASIC_setX2(ptUserData, x2);
-    ASIC_setY1(ptUserData, y1);
-    ASIC_setY2(ptUserData, y2);
+    // Burst stripe: leave ASIC Y at full so data-table Y2 stays ydet-1.
+    if (use_burst_stripe)
+    {
+        ASIC_setY1(ptUserData, 0);
+        ASIC_setY2(ptUserData, ydet - 1);
+    }
+    else
+    {
+        ASIC_setY1(ptUserData, y1);
+        ASIC_setY2(ptUserData, y2);
+    }
 
     // Program skip/read counters before reconfigure. Otherwise stripe mode only
     // shrinks RowsPerFrame and the ASIC clocks ny rows from row 0 (not from y1).
@@ -4271,8 +4281,10 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
     {
         verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): Burst stripe y1=%u y2=%u → %u rows.\n",
-                       __func__, y1, y2, ypix_stripe);
+                       "%s(): Burst stripe soft y1=%u y2=%u → %u rows.\n",
+                       __func__,
+                       ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2,
+                       ypix_stripe);
     }
 
     if (ReconfigureASIC(ptUserData) == false)
@@ -4309,7 +4321,16 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     verbose_printf(LOG_INFO, ptUserData, "Horizontal Window: %i\n", ASIC_WinHorz(ptUserData, false, 0));
     verbose_printf(LOG_INFO, ptUserData, "  X1: %i X2: %i, xpix: %i\n", x1, x2, xpix);
     verbose_printf(LOG_INFO, ptUserData, "Vertical Window: %i\n", ASIC_WinVert(ptUserData, false, 0));
-    verbose_printf(LOG_INFO, ptUserData, "  Y1: %i Y2: %i, ypix: %i\n", y1, y2, ypix);
+    if (ptUserData->bSoftStripeActive)
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "  ASIC Y1: %i Y2: %i; soft SC Y1: %i Y2: %i, ypix: %i\n",
+                       y1, y2, ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2, ypix);
+    }
+    else
+    {
+        verbose_printf(LOG_INFO, ptUserData, "  Y1: %i Y2: %i, ypix: %i\n", y1, y2, ypix);
+    }
     verbose_printf(LOG_INFO, ptUserData, "STRIPE Mode: %i\n", (uint)ASIC_STRIPEMode(ptUserData, false, false));
     verbose_printf(LOG_INFO, ptUserData, "Frame time: %.3f ms\n", ptUserData->frametime_ms);
 
@@ -4336,6 +4357,17 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
     uint &x1, uint &x2, uint &y1, uint &y2)
 {
+    if (ptUserData->bSoftStripeActive)
+    {
+        bVertWin = true;
+        bHorzWin = false;
+        x1 = 0;
+        x2 = ptUserData->uiDetectorWidth - 1;
+        y1 = ptUserData->uiSoftStripeY1;
+        y2 = ptUserData->uiSoftStripeY2;
+        return;
+    }
+
     bVertWin = ASIC_WinVert(ptUserData, false, 0);
     bHorzWin = ASIC_WinHorz(ptUserData, false, 0);
 
@@ -4400,6 +4432,7 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Restore full-frame stripe counters before clearing the flag's
             // effect on later close/idle helpers (write while still allowed).
             burst_stripe_write_ffidle(ptUserData);
+            ptUserData->bSoftStripeActive = false;
         }
     }
     else // Or simply get current state
@@ -4725,8 +4758,13 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
     unsigned int ydet = ptUserData->uiDetectorHeight;
-    unsigned int y1 = ASIC_getY1(ptUserData);
-    unsigned int y2 = ASIC_getY2(ptUserData);
+    // Prefer soft SC bounds: ASIC Y stays full-frame for the MCD data table.
+    unsigned int y1 = ptUserData->bSoftStripeActive
+                          ? ptUserData->uiSoftStripeY1
+                          : ASIC_getY1(ptUserData);
+    unsigned int y2 = ptUserData->bSoftStripeActive
+                          ? ptUserData->uiSoftStripeY2
+                          : ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
     // No counter map → nothing to program.
@@ -4745,7 +4783,8 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     }
 
     // Stripe on but Y covers the full array → idle counters, not a stripe.
-    if ((y1 < 4) && (y2 > ydet - 5))
+    // Skip this when soft SC is active (ASIC Y is intentionally full-frame).
+    if (!ptUserData->bSoftStripeActive && (y1 < 4) && (y2 > ydet - 5))
     {
         if (bSet)
             burst_stripe_write_ffidle(ptUserData);
@@ -4757,9 +4796,7 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     unsigned int yrows = 0;
     // HxRG_Teledyne.mcd data table 5401–5405 loads:
     //   4024 StripeReads1, 4023 Y2, 4034 Skips2, 4033 Reads2, 4025 Skips1
-    // Idle is Reads1=ydet, Y2=ydet-1, Reads2=0 — so Y2 must stay Reads1-1 when
-    // Reads2=0. The older Reads1=ny-4 / Reads2=4 split left Y2=ny-1 ≠ Reads1-1
-    // and starved GigE (e.g. SC512: expect ~2 MB, only 8 KB available).
+    // Keep ASIC Y2=ydet-1 (soft SC). Bottom: Reads1=ny, Skips1=ydet-ny, Reads2=0.
     if (y1 < 4) // Lower reference pixels included in active block
     {
         yrows = ny;
@@ -4773,7 +4810,7 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=0 Skips2=0 "
-                           "(y1=%u y2=%u ny=%u; Y2 should equal Reads1-1)\n",
+                           "(soft y1=%u y2=%u ny=%u; ASIC Y2 left at full)\n",
                            __func__, yrows, ydet - yrows, y1, y2, ny);
         }
     }
