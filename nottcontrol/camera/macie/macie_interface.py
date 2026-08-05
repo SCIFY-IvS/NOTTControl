@@ -150,16 +150,12 @@ class MacieInterface():
         self._live_session_open = keep
 
     def _reset_live_science_interface(self) -> None:
-        """Close and reopen the science interface after a failed live ramp."""
+        """Ensure GigE is closed after a failed live ramp (no keep-alive)."""
         try:
             if self._live_session_open:
                 self._request("livesession;false")
                 self._live_session_open = False
-            if self._acquiring.is_set() and not self._closing.is_set():
-                self._request("livesession;true")
-                self._live_session_open = True
-                # Next ramp should reconfigure after a fresh GigE open.
-                self._live_first_acquire = True
+            self._live_first_acquire = True
         except Exception as exc:
             print(f"Live science interface reset failed: {exc}")
 
@@ -538,10 +534,14 @@ class MacieInterface():
 
     def start_continuous_acquisition(self):
         self._live_first_acquire = True
+        # Do not use livesession keep-alive: leaving GigE open between ramps
+        # caused channel-edge blink / desync and Live stop on SC. Each ramp
+        # opens and closes the science interface instead (ZMQ preview still
+        # avoids the FITS round-trip).
         try:
-            self._set_live_session(True)
+            self._set_live_session(False)
         except Exception as exc:
-            print(f"Live session start failed: {exc}")
+            print(f"Live session clear failed: {exc}")
         self._acquiring.set()
 
     def stop_continuous_acquisition(self):
@@ -565,9 +565,9 @@ class MacieInterface():
                 if self._pause_live.is_set():
                     continue
                 try:
-                    # First live ramp reconfigures; later ramps skip ReconfigureASIC.
-                    no_recon = not self._live_first_acquire
-                    result = self.acquire(no_recon=no_recon)
+                    # Always reconfigure on Live: skipping recon with keep-alive
+                    # produced alternating column-shifted frames (channel seams).
+                    result = self.acquire(no_recon=False)
                     self._live_first_acquire = False
                     failures = 0
                     frame_callback = self._live_frame_callback
@@ -576,13 +576,11 @@ class MacieInterface():
                             frame_callback(result.frame)
                         except Exception as callback_exc:
                             print(f"Live frame callback failed: {callback_exc}")
-                    # Brief yield so other ZMQ callers can run between ramps.
                     if self._acquiring.is_set() and not self._closing.is_set():
                         time.sleep(0.005)
                 except Exception as exc:
                     failures += 1
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
-                    # One bad ramp often leaves GigE keep-alive desynced; reopen.
                     self._reset_live_science_interface()
                     if failures < self._LIVE_MAX_FAILURES and self._acquiring.is_set():
                         time.sleep(0.5)

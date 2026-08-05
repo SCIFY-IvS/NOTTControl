@@ -1404,90 +1404,6 @@ static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_targe
     return nbytes >= nbytes_target;
 }
 
-/// Discard leftover GigE science bytes. Required for Live keep-alive: residual
-/// words from the previous ramp desynchronize the next download and produce
-/// salt-and-pepper / scrambled images.
-/// frame_bytes is one science frame in bytes (2 * xpix * ypix); used for logging.
-static void FlushLeftoverScienceData(MACIE_Settings *ptUserData, long frame_bytes)
-{
-    if (ptUserData == NULL || ptUserData->offline_develop)
-        return;
-    if (!ptUserData->bScienceInterfaceOpen || ptUserData->handle == 0)
-        return;
-
-    long nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-    if (nbytes <= 0)
-        return;
-
-    const long chunk_words = 256 * 1024;
-    unsigned short *tmp = NULL;
-    try
-    {
-        tmp = new unsigned short[chunk_words];
-    }
-    catch (const std::exception &)
-    {
-        return;
-    }
-
-    long total_bytes = 0;
-    long to_flush = nbytes;
-    // Prefer discarding only a partial trailing frame when the buffer is
-    // nearly empty of complete frames — avoids over-reading into a race with
-    // the next trigger. If one or more full frames remain after a finished
-    // ramp, discard everything (true keep-alive desync).
-    if (frame_bytes > 1)
-    {
-        long rem = nbytes % frame_bytes;
-        if (nbytes < frame_bytes)
-            to_flush = nbytes; // partial only
-        else if (rem != 0)
-            to_flush = nbytes; // partial + full leftovers
-        else
-            to_flush = nbytes; // unexpected full frame(s)
-    }
-
-    for (int round = 0; round < 64 && to_flush > 0; ++round)
-    {
-        long nbytes_now = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        if (nbytes_now <= 0)
-            break;
-
-        long nwords = nbytes_now / 2;
-        if (nwords < 1)
-            nwords = 1;
-        if (nwords > chunk_words)
-            nwords = chunk_words;
-        if ((nwords * 2) > to_flush)
-            nwords = to_flush / 2;
-        if (nwords < 1)
-            break;
-
-        int got = MACIE_ReadGigeScienceData(ptUserData->handle, 200, (int)nwords, tmp);
-        if (got <= 0)
-        {
-            ushort *ptemp = MACIE_ReadGigeScienceFrame(ptUserData->handle, 200);
-            if (ptemp == NULL)
-                break;
-            long step = (frame_bytes > 0) ? frame_bytes : 2;
-            total_bytes += step;
-            to_flush -= step;
-            continue;
-        }
-        total_bytes += (long)got * 2;
-        to_flush -= (long)got * 2;
-    }
-
-    if (total_bytes > 0)
-    {
-        verbose_printf(LOG_WARNING, ptUserData,
-                       "Flushed %li leftover science byte(s) from GigE buffer "
-                       "(live keep-alive).\n",
-                       total_bytes);
-    }
-    delete[] tmp;
-}
-
 static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
 {
     if (ptUserData->offline_develop)
@@ -1799,10 +1715,6 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     {
         verbose_printf(LOG_INFO, ptUserData,
                        "Keeping GigE science interface open (live continuous).\n");
-        // Drop any residual words so the next trigger starts frame-aligned.
-        long frame_bytes =
-            2L * (long)exposure_xpix(ptUserData) * (long)exposure_ypix(ptUserData);
-        FlushLeftoverScienceData(ptUserData, frame_bytes);
     }
 
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
@@ -2069,22 +1981,6 @@ void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
     }
     else
     {
-        // Enhanced pixel clock shifts columns every other acquisition on Slow
-        // v5+ microcode — Live then oscillates between clean CDS and channel
-        // boundary / horizontal-line frames. Force Normal for the live session.
-        if (ptUserData->RegMap.count("PixelClkScheme") > 0)
-        {
-            unsigned int cur = 0;
-            if (GetASICParameter(ptUserData, "PixelClkScheme", &cur) && cur != 0)
-            {
-                SetASICParameter(ptUserData, "PixelClkScheme", 0);
-                if (ReconfigureASIC(ptUserData))
-                {
-                    verbose_printf(LOG_INFO, ptUserData,
-                                   "Live: PixelClkScheme forced Normal (was Enhanced).\n");
-                }
-            }
-        }
         verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep enabled.\n");
     }
 }
@@ -2550,9 +2446,6 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     HaltCameraAcq(ptUserData);
     if (ptUserData->bKeepScienceInterface)
     {
-        // Drain residual science words so the next live ramp stays aligned.
-        long frame_bytes = 2L * (long)xpix * (long)ypix;
-        FlushLeftoverScienceData(ptUserData, frame_bytes);
         verbose_printf(LOG_INFO, ptUserData,
                        "Keeping GigE science interface open after download (live).\n");
     }
