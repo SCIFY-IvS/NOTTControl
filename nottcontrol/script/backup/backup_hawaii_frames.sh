@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Daily backup of H2RG / Hawaii FITS frames: /data/nott -> /archive/hawaii
+# Daily backup of H2RG / Hawaii FITS frames: /data/nott -> /archive/nott
 #
 # Default behaviour: incremental rsync of the full FITS tree.
 #
@@ -10,10 +10,10 @@
 #   ./nottcontrol/script/backup/backup_hawaii_frames.sh --mode day --day 20260805
 #
 # Cron example (daily at 03:15 UTC, previous UTC day only):
-#   15 3 * * * /home/labo/src/NOTTControl/nottcontrol/script/backup/backup_hawaii_frames.sh --mode day >> /archive/hawaii/cron.log 2>&1
+#   15 3 * * * /home/labo/src/NOTTControl/nottcontrol/script/backup/backup_hawaii_frames.sh --mode day >> /archive/nott/cron.log 2>&1
 #
 # Cron example (daily full incremental mirror at 04:15 UTC):
-#   15 4 * * * /home/labo/src/NOTTControl/nottcontrol/script/backup/backup_hawaii_frames.sh >> /archive/hawaii/cron.log 2>&1
+#   15 4 * * * /home/labo/src/NOTTControl/nottcontrol/script/backup/backup_hawaii_frames.sh >> /archive/nott/cron.log 2>&1
 
 # Re-exec under bash when invoked as `sh script.sh` (dash has no pipefail).
 if [ -z "${BASH_VERSION:-}" ]; then

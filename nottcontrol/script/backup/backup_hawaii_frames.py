@@ -6,7 +6,7 @@ Frames are stored as FITS files under UTC day folders:
     /data/nott/YYYYMMDD/nott_YYYYMMDD_NNNNNN.fits
     /data/nott/YYYYMMDD/nott_YYYYMMDD_NNNNNN_science.fits
 
-This script uses rsync for incremental copies into archive/hawaii/.
+This script uses rsync for incremental copies into archive/nott/.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from nottcontrol import config
 H2RG_SECTION = "H2RG DETECTOR"
 
 DEFAULT_SOURCE = Path("/data/nott")
-DEFAULT_DEST = Path("/archive/hawaii")
+DEFAULT_DEST = Path("/archive/nott")
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 
@@ -80,7 +80,7 @@ def rsync_copy(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Backup Hawaii/H2RG /data/nott FITS data to archive/hawaii.",
+        description="Backup Hawaii/H2RG /data/nott FITS data to archive/nott.",
     )
     parser.add_argument(
         "--source",
@@ -131,8 +131,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def configure_logging(log_file: Path | None) -> None:
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
     if log_file is not None:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+        try:
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+        except OSError as exc:
+            print(
+                f"warning: cannot write log file {log_file}: {exc}",
+                file=sys.stderr,
+            )
 
     logging.basicConfig(
         level=logging.INFO,

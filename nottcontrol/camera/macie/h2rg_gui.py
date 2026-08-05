@@ -1122,6 +1122,16 @@ class H2rgMainWindow(QMainWindow):
         max_host, self._lineEdit_level_max = self._make_level_field("Max")
         column.addWidget(max_host, 0, Qt.AlignHCenter)
 
+        autoscale_box = QCheckBox("Autoscale")
+        autoscale_box.setChecked(True)
+        autoscale_box.setToolTip(
+            "Automatically adjust the color scale when a new frame is shown. "
+            "Uncheck to keep the current min/max."
+        )
+        autoscale_box.setStyleSheet(CHECKBOX_STYLE)
+        self._checkBox_autoscale = autoscale_box
+        column.addWidget(autoscale_box, 0, Qt.AlignHCenter)
+
         column.addStretch(1)
         return host
 
@@ -1566,15 +1576,6 @@ class H2rgMainWindow(QMainWindow):
         )
         self._checkBox_save_image = save_box
         options.addWidget(save_box)
-
-        autoscale_box = QCheckBox("Autoscale")
-        autoscale_box.setChecked(True)
-        autoscale_box.setToolTip(
-            "Automatically adjust the color scale when a new frame is shown. "
-            "Uncheck to keep the current min/max."
-        )
-        self._checkBox_autoscale = autoscale_box
-        options.addWidget(autoscale_box)
         options.addStretch(1)
         outer.addLayout(options)
 
