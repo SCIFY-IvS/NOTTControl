@@ -151,14 +151,17 @@ def patch_linux_lineedit_paint() -> None:
             painter.drawText(content, int(self.alignment()) | Qt.AlignVCenter, text)
 
             # Stock paint drew the caret; without it focused fields look dead.
+            # cursorRect() is a character cell — fill only a 1px I-beam, not the
+            # whole rectangle (that looked like a solid black block).
             if self.hasFocus() and not self.isReadOnly():
                 try:
                     caret = self.cursorRect()
-                    if caret.isValid():
-                        bar = caret.adjusted(0, 2, 0, -2)
-                        if bar.width() < 2:
-                            bar.setWidth(2)
-                        painter.fillRect(bar, fg)
+                    if caret.isValid() and caret.height() > 0:
+                        x = int(caret.x())
+                        y = int(caret.y()) + 2
+                        h = max(1, int(caret.height()) - 4)
+                        painter.setPen(fg)
+                        painter.drawLine(x, y, x, y + h)
                 except Exception:
                     pass
         finally:

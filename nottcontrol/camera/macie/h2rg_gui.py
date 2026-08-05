@@ -955,7 +955,10 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
         self._live_frame_available = threading.Event()
-        self._auto_levels_next = True
+        self._frame_timing_t0: float | None = None
+        self._frame_timing_label = "Acquire"
+        self._frame_timing_skip_report = False
+        self._frame_timing_status: str | None = None
         self._operation_lock = threading.Lock()
         self._zmq_server = None
         self._zmq_address: str | None = None
@@ -1020,6 +1023,8 @@ class H2rgMainWindow(QMainWindow):
             self._button_apply_levels.clicked.connect(self._apply_manual_levels)
             self._lineEdit_level_min.editingFinished.connect(self._apply_manual_levels)
             self._lineEdit_level_max.editingFinished.connect(self._apply_manual_levels)
+            if self._checkBox_autoscale is not None:
+                self._checkBox_autoscale.toggled.connect(self._on_autoscale_toggled)
             self._button_header.clicked.connect(self._show_fits_header)
             self._button_ds9.clicked.connect(self._open_fits_in_ds9)
             self._button_save_dir.clicked.connect(self._open_fits_save_dir)
@@ -1141,8 +1146,8 @@ class H2rgMainWindow(QMainWindow):
         autoscale_box = QCheckBox("Autoscale")
         autoscale_box.setChecked(True)
         autoscale_box.setToolTip(
-            "Automatically adjust the color scale when a new frame is shown. "
-            "Uncheck to keep the current min/max."
+            "When checked, the color scale tracks each frame's min/max. "
+            "When unchecked, the color scale follows the Min/Max fields."
         )
         autoscale_box.setStyleSheet(CHECKBOX_STYLE)
         self._checkBox_autoscale = autoscale_box
@@ -2187,7 +2192,6 @@ class H2rgMainWindow(QMainWindow):
         self._live_active = True
         self._live_poll_stop.clear()
         self._live_frame_available.clear()
-        self._auto_levels_next = True
         if self.ui is not None:
             self.ui.button_live.setText("Stop live")
         self._set_live_dependent_controls(True)
@@ -2212,16 +2216,19 @@ class H2rgMainWindow(QMainWindow):
                     or self._live_poll_stop.is_set()
                 ):
                     break
+                self._arm_frame_timing("Live")
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
                     frame, path = loaded
-                    self.frame_ready.emit(frame)
                     if self._save_image_enabled():
-                        self.status_updated.emit(f"Live — {path.name}")
+                        status = f"Live — {path.name}"
                     else:
-                        self.status_updated.emit(
-                            f"Live — {path.name} (not archived)"
-                        )
+                        status = f"Live — {path.name} (not archived)"
+                    self._frame_timing_status = status
+                    self.frame_ready.emit(frame)
+                else:
+                    self._frame_timing_t0 = None
+                    self._frame_timing_status = None
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -2387,6 +2394,30 @@ class H2rgMainWindow(QMainWindow):
             return None
         return vmin, vmax
 
+    def _set_autoscale_checked(self, checked: bool) -> None:
+        box = getattr(self, "_checkBox_autoscale", None)
+        if box is None or box.isChecked() == checked:
+            return
+        box.blockSignals(True)
+        box.setChecked(checked)
+        box.blockSignals(False)
+
+    def _on_autoscale_toggled(self, checked: bool) -> None:
+        if not checked:
+            # Lock to the current scale (or Min/Max fields if already set).
+            levels = self._read_level_fields()
+            if levels is None and self.image is not None:
+                try:
+                    current = self.image.getLevels()
+                    if current is not None:
+                        levels = (float(current[0]), float(current[1]))
+                except Exception:
+                    levels = None
+            if levels is not None:
+                self._manual_levels = levels
+                self._sync_level_fields(levels[0], levels[1])
+        self._refresh_display()
+
     def _autoscale_image(self) -> None:
         display = self._build_display_frame()
         if self.image is None or display is None:
@@ -2399,9 +2430,9 @@ class H2rgMainWindow(QMainWindow):
         if vmin >= vmax:
             vmax = vmin + 1.0
         self._manual_levels = (vmin, vmax)
-        self._auto_levels_next = False
-        self.image.setLevels(vmin, vmax)
         self._sync_level_fields(vmin, vmax)
+        self._set_autoscale_checked(True)
+        self.image.setLevels(vmin, vmax)
         self._refresh_display()
 
     def _apply_manual_levels(self) -> None:
@@ -2409,7 +2440,7 @@ class H2rgMainWindow(QMainWindow):
         if levels is None or self.image is None:
             return
         self._manual_levels = levels
-        self._auto_levels_next = False
+        self._set_autoscale_checked(False)
         self.image.setLevels(levels[0], levels[1])
         self._refresh_display()
 
@@ -2765,6 +2796,7 @@ class H2rgMainWindow(QMainWindow):
             exposure = self._apply_exposure_settings(macie)
             keep_files = self._save_image_enabled()
             self._fits_dir_ok = None
+            self._arm_frame_timing("Acquire")
 
             if not keep_files:
                 preview = self._preview_fits_path()
@@ -2786,14 +2818,14 @@ class H2rgMainWindow(QMainWindow):
                     ),
                 )
                 if frame is None:
+                    self._frame_timing_t0 = None
                     self.status_updated.emit(self._missing_fits_status())
                     return
                 self._last_fits_path = None
-                self._auto_levels_next = True
-                self.frame_ready.emit(frame)
-                self.status_updated.emit(
+                self._frame_timing_status = (
                     f"Acquire complete — displayed via {path.name} (not archived)"
                 )
+                self.frame_ready.emit(frame)
                 return
 
             before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
@@ -2843,15 +2875,37 @@ class H2rgMainWindow(QMainWindow):
                     science_paths[-1] if science_paths else preview_path
                 )
                 self._last_fits_path = preview_science
-                self._auto_levels_next = True
-                self.frame_ready.emit(frame)
-                self.status_updated.emit(
-                    self._acquire_complete_status(ramp_paths, science_paths)
+                self._frame_timing_status = self._acquire_complete_status(
+                    ramp_paths, science_paths
                 )
+                self.frame_ready.emit(frame)
             else:
+                self._frame_timing_t0 = None
                 self.status_updated.emit(self._missing_fits_status())
 
         self._run_macie_operation("Acquire", operation)
+
+    def _arm_frame_timing(self, label: str = "Acquire") -> None:
+        """Start wall-clock timing; reported when the frame is displayed."""
+        self._frame_timing_t0 = time.perf_counter()
+        self._frame_timing_label = label
+
+    def _report_frame_timing(self) -> float | None:
+        t0 = self._frame_timing_t0
+        if t0 is None:
+            return None
+        elapsed = time.perf_counter() - t0
+        self._frame_timing_t0 = None
+        label = self._frame_timing_label or "Frame"
+        print(
+            f"H2RG: {label} took {elapsed:.2f} s (take + display)",
+            flush=True,
+        )
+        status = self._frame_timing_status
+        self._frame_timing_status = None
+        if status:
+            self.status_updated.emit(f"{status}  [{elapsed:.2f} s]")
+        return elapsed
 
     def _acquire_complete_status(
         self, ramp_paths: list[Path], science_paths: list[Path]
@@ -3380,7 +3434,8 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG acquire preview skipped {path.name}: {exc}")
             return None
         displayed.add(path.name)
-        self._auto_levels_next = index == 1
+        # Intermediate previews must not consume the acquire wall-clock timer.
+        self._frame_timing_skip_report = True
         self.frame_ready.emit(frame)
         self.status_updated.emit(
             f"Acquire: frame {index}/{expected_count} — {path.name}"
@@ -3765,25 +3820,30 @@ class H2rgMainWindow(QMainWindow):
         # Contiguous float32 avoids large paint buffers / exotic dtypes under VNC.
         display = numpy.ascontiguousarray(display, dtype=numpy.float32)
 
-        auto_levels = self._auto_levels_next and self._autoscale_enabled()
         self.setUpdatesEnabled(False)
         try:
-            if auto_levels:
+            if self._autoscale_enabled():
                 self.image.setImage(display, autoLevels=True)
-                self._auto_levels_next = False
                 self._sync_level_fields_from_image()
-            elif self._manual_levels is not None:
-                self.image.setImage(
-                    display, autoLevels=False, levels=self._manual_levels
-                )
-                self._auto_levels_next = False
             else:
-                self.image.setImage(display, autoLevels=False)
-                self._sync_level_fields_from_image()
-                self._auto_levels_next = False
+                levels = self._read_level_fields() or self._manual_levels
+                if levels is not None:
+                    self._manual_levels = levels
+                    self.image.setImage(
+                        display, autoLevels=False, levels=levels
+                    )
+                else:
+                    self.image.setImage(display, autoLevels=False)
+                    self._sync_level_fields_from_image()
             self._update_roi_overlays()
         finally:
             self.setUpdatesEnabled(True)
+
+        if is_new_frame:
+            if self._frame_timing_skip_report:
+                self._frame_timing_skip_report = False
+            else:
+                self._report_frame_timing()
 
         # Defer ROI panel/plot updates so they don't nest QGraphicsScene paints.
         self._schedule_roi_update(display, record=is_new_frame)
