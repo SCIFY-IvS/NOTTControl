@@ -560,13 +560,20 @@ class MacieInterface():
     def continuous_acquisition(self):
         # Run for as long as the interface is not closed
         failures = 0
+        ramp_count = 0
         while not self._closing.is_set():
             if self._acquiring.wait(0.1):
                 if self._pause_live.is_set():
                     continue
                 try:
                     # First live ramp reconfigures; later ramps skip ReconfigureASIC.
-                    no_recon = not self._live_first_acquire
+                    # Periodically force recon to limit soft-SC / clock drift.
+                    ramp_count += 1
+                    force_recon = (ramp_count % 20) == 0
+                    no_recon = (
+                        not self._live_first_acquire
+                        and not force_recon
+                    )
                     result = self.acquire(no_recon=no_recon)
                     self._live_first_acquire = False
                     failures = 0
@@ -584,6 +591,7 @@ class MacieInterface():
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
                     # One bad ramp often leaves GigE keep-alive desynced; reopen.
                     self._reset_live_science_interface()
+                    ramp_count = 0
                     if failures < self._LIVE_MAX_FAILURES and self._acquiring.is_set():
                         time.sleep(0.5)
                         continue

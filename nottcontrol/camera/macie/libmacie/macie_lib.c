@@ -1404,6 +1404,63 @@ static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_targe
     return nbytes >= nbytes_target;
 }
 
+/// Discard leftover GigE science bytes. Required for Live keep-alive: residual
+/// words from the previous ramp desynchronize the next download and produce
+/// salt-and-pepper / scrambled images.
+static void FlushLeftoverScienceData(MACIE_Settings *ptUserData)
+{
+    if (ptUserData == NULL || ptUserData->offline_develop)
+        return;
+    if (!ptUserData->bScienceInterfaceOpen || ptUserData->handle == 0)
+        return;
+
+    const long chunk_words = 256 * 1024;
+    unsigned short *tmp = NULL;
+    try
+    {
+        tmp = new unsigned short[chunk_words];
+    }
+    catch (const std::exception &)
+    {
+        return;
+    }
+
+    long total_bytes = 0;
+    for (int round = 0; round < 64; ++round)
+    {
+        long nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+        if (nbytes <= 0)
+            break;
+
+        long nwords = nbytes / 2;
+        if (nwords < 1)
+            nwords = 1;
+        if (nwords > chunk_words)
+            nwords = chunk_words;
+
+        int got = MACIE_ReadGigeScienceData(ptUserData->handle, 200, (int)nwords, tmp);
+        if (got <= 0)
+        {
+            // Fall back to frame-sized reads when word API returns nothing.
+            ushort *ptemp = MACIE_ReadGigeScienceFrame(ptUserData->handle, 200);
+            if (ptemp == NULL)
+                break;
+            total_bytes += 2; // unknown size; count that we discarded something
+            continue;
+        }
+        total_bytes += (long)got * 2;
+    }
+
+    if (total_bytes > 0)
+    {
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "Flushed %li leftover science byte(s) from GigE buffer "
+                       "(live keep-alive).\n",
+                       total_bytes);
+    }
+    delete[] tmp;
+}
+
 static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
 {
     if (ptUserData->offline_develop)
@@ -1715,6 +1772,8 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     {
         verbose_printf(LOG_INFO, ptUserData,
                        "Keeping GigE science interface open (live continuous).\n");
+        // Drop any residual words so the next trigger starts frame-aligned.
+        FlushLeftoverScienceData(ptUserData);
     }
 
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
@@ -2446,6 +2505,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     HaltCameraAcq(ptUserData);
     if (ptUserData->bKeepScienceInterface)
     {
+        // Drain residual science words so the next live ramp stays aligned.
+        FlushLeftoverScienceData(ptUserData);
         verbose_printf(LOG_INFO, ptUserData,
                        "Keeping GigE science interface open after download (live).\n");
     }
