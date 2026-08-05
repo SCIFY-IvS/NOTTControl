@@ -182,6 +182,8 @@ bool halt_acquisition(MACIE_Settings *ptUserData)
     bool ret = true;
     verbose_printf(LOG_INFO, ptUserData, "Halting Data Acquisition...\n");
 
+    ptUserData->bKeepScienceInterface = false;
+
     // What is the proper order?
     if(!HaltCameraAcq(ptUserData))
     {

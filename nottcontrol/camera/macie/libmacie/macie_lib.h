@@ -148,6 +148,9 @@ typedef struct MACIE_Settings
   unsigned long  nPixBuffer;        // Number of pixels currently set for a given buffer size
   bool           bUseSciDataFunc;  // Use MACIE_ReadUSBScienceData() instead of MACIE_ReadUSBScienceFrame()
   bool           bScienceInterfaceOpen; // Science data interface configured for acquisition
+  // Live / continuous: leave GigE science interface open between ramps.
+  bool           bKeepScienceInterface;
+  unsigned long  nPixBufferScienceConfigured; // Buffer size used for open science I/F
 
   // MACIE error counters
   unsigned short errArr[MACIE_ERROR_COUNTERS];
@@ -232,6 +235,7 @@ extern bool DownloadFrameUSB(MACIE_Settings *ptUserData, unsigned short pData[],
 extern bool CloseUSBScienceInterface(MACIE_Settings *ptUserData);
 extern bool CloseGigEScienceInterface(MACIE_Settings *ptUserData);
 extern bool CloseScienceInterface(MACIE_Settings *ptUserData);
+extern void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep);
 extern bool WriteFITSFile(MACIE_Settings *ptUserData, unsigned short *pData, char *fileName);
 extern bool WriteFITSRamp(void *pData, std::vector <long> naxis, int bitpix, std::string filename);
 extern void exposure_test_data(MACIE_Settings *ptUserData, unsigned short pData[], long SIZE);

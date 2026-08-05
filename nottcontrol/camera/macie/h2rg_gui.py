@@ -659,6 +659,22 @@ def is_science_fits_name(name: str) -> bool:
     return lowered.endswith("_science.fits")
 
 
+def fits_frame_number_label(name: str | None) -> str:
+    """Return the ramp index for the Frame number box (e.g. 000018)."""
+    if not name:
+        return "—"
+    stem = Path(name).stem
+    if stem.lower().endswith("_science"):
+        stem = stem[: -len("_science")]
+    if stem.lower() == "preview":
+        return "Last frame"
+    # Names look like nott_YYYYMMDD_000018
+    parts = stem.rsplit("_", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        return parts[1]
+    return stem
+
+
 def ramp_fits_path_for_viewer(path: Path) -> Path:
     """Prefer the raw ramp FITS over the derived science file."""
     if is_science_fits_name(path.name):
@@ -828,7 +844,7 @@ def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> lis
     candidates = [
         path
         for path in candidates
-        if not is_science_fits_name(path.name)
+        if not is_science_fits_name(path.name) and path.name.lower() != "preview.fits"
     ]
     return sorted(
         candidates,
@@ -1572,7 +1588,8 @@ class H2rgMainWindow(QMainWindow):
         save_box = QCheckBox("Save image")
         save_box.setChecked(True)
         save_box.setToolTip(
-            "Write FITS files to the save directory during acquire and live"
+            "Keep archived FITS in the save directory. Unchecked: still acquire and "
+            "display via a reusable preview.fits (no numbered archive files)."
         )
         self._checkBox_save_image = save_box
         options.addWidget(save_box)
@@ -2199,7 +2216,12 @@ class H2rgMainWindow(QMainWindow):
                 if loaded is not None:
                     frame, path = loaded
                     self.frame_ready.emit(frame)
-                    self.status_updated.emit(f"Live — {path.name}")
+                    if self._save_image_enabled():
+                        self.status_updated.emit(f"Live — {path.name}")
+                    else:
+                        self.status_updated.emit(
+                            f"Live — {path.name} (not archived)"
+                        )
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -2741,13 +2763,39 @@ class H2rgMainWindow(QMainWindow):
                 raise ValueError(f"Invalid exposure field: {exc}") from exc
 
             exposure = self._apply_exposure_settings(macie)
-            save_enabled = self._save_image_enabled()
-            if not save_enabled:
+            keep_files = self._save_image_enabled()
+            self._fits_dir_ok = None
+
+            if not keep_files:
+                preview = self._preview_fits_path()
+                try:
+                    before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
+                except OSError:
+                    before_mtime = 0.0
                 macie.acquire()
-                self.status_updated.emit("Acquire complete — saving disabled")
+                frame, path = self._wait_for_preview_fits(
+                    preview,
+                    before_mtime=before_mtime,
+                    timeout_s=fits_wait_timeout_s(
+                        float(exposure["execution_s"]),
+                        ncoadds=ncoadds,
+                        nseq=nseq,
+                        margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                        maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
+                        + MACIE_FITS_WAIT_MARGIN_S,
+                    ),
+                )
+                if frame is None:
+                    self.status_updated.emit(self._missing_fits_status())
+                    return
+                self._last_fits_path = None
+                self._auto_levels_next = True
+                self.frame_ready.emit(frame)
+                self.status_updated.emit(
+                    f"Acquire complete — displayed via {path.name} (not archived)"
+                )
                 return
 
-            self._fits_dir_ok = None
             before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
             wait_timeout_s = fits_wait_timeout_s(
                 float(exposure["execution_s"]),
@@ -2797,7 +2845,9 @@ class H2rgMainWindow(QMainWindow):
                 self._last_fits_path = preview_science
                 self._auto_levels_next = True
                 self.frame_ready.emit(frame)
-                self.status_updated.emit(self._acquire_complete_status(ramp_paths, science_paths))
+                self.status_updated.emit(
+                    self._acquire_complete_status(ramp_paths, science_paths)
+                )
             else:
                 self.status_updated.emit(self._missing_fits_status())
 
@@ -2885,6 +2935,42 @@ class H2rgMainWindow(QMainWindow):
         from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
 
         update_fits_file_header_cards(resolved, cards)
+
+    def _discard_fits_files(self, paths: list[Path]) -> None:
+        """Remove temporary ramp FITS used only for display when Save image is off."""
+        for path in paths:
+            try:
+                resolved = self._resolve_ramp_path(path) or path
+                if resolved.is_file():
+                    resolved.unlink()
+            except OSError as exc:
+                print(f"H2RG failed to remove unsaved FITS {path}: {exc}")
+
+    def _preview_fits_path(self) -> Path:
+        """Reusable preview FITS written when Save image is off."""
+        return self._save_dir / "preview.fits"
+
+    def _wait_for_preview_fits(
+        self,
+        preview: Path,
+        *,
+        before_mtime: float,
+        timeout_s: float,
+    ) -> tuple[numpy.ndarray | None, Path]:
+        deadline = time.monotonic() + max(1.0, float(timeout_s))
+        while time.monotonic() < deadline:
+            try:
+                if preview.is_file():
+                    mtime = preview.stat().st_mtime
+                    if mtime > before_mtime or before_mtime <= 0.0:
+                        # Allow a brief settle so the write is complete.
+                        time.sleep(0.05)
+                        frame = self._load_fits_from_path(preview)
+                        return frame, preview
+            except Exception as exc:
+                print(f"H2RG preview wait: {exc}")
+            time.sleep(0.1)
+        return None, preview
 
     def _save_science_fits(
         self, frame: numpy.ndarray, ramp_path: Path | None
@@ -3149,7 +3235,7 @@ class H2rgMainWindow(QMainWindow):
                     self.status_updated.emit("Live acquiring…")
                 else:
                     self.status_updated.emit(
-                        "Live acquiring… (saving disabled — display will not update)"
+                        "Live acquiring… (preview.fits only — not archived)"
                     )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))
@@ -3551,6 +3637,24 @@ class H2rgMainWindow(QMainWindow):
         before_mtime = self._last_fits_mtime
         before_name = self._last_loaded_basename
 
+        if not self._save_image_enabled():
+            preview = self._preview_fits_path()
+            try:
+                if not preview.is_file():
+                    return None
+                mtime = preview.stat().st_mtime
+            except OSError:
+                return None
+            if before_name == preview.name and mtime <= before_mtime:
+                return None
+            try:
+                frame = self._load_fits_from_path(preview)
+                self._last_fits_path = None
+                return frame, preview
+            except Exception as exc:
+                print(f"H2RG live preview skipped: {exc}")
+                return None
+
         if self._local_fits_accessible(allow_probe=True):
             # Prefer the newest pending ramp so Live stays on the latest frame
             # when the poller falls behind a burst of acquires.
@@ -3561,6 +3665,8 @@ class H2rgMainWindow(QMainWindow):
                 dir_ok=True,
             )
             for path in reversed(new_paths):
+                if path.name == "preview.fits":
+                    continue
                 try:
                     return self._load_fits_from_path(path), path
                 except Exception as exc:
@@ -3685,7 +3791,13 @@ class H2rgMainWindow(QMainWindow):
         self._sync_cursor_readout_label()
 
         if self._last_fits_path is not None:
-            self.ui.lineEdit_frame_nb.setText(self._last_fits_path.name)
+            self.ui.lineEdit_frame_nb.setText(
+                fits_frame_number_label(self._last_fits_path.name)
+            )
+        elif self._last_loaded_basename:
+            self.ui.lineEdit_frame_nb.setText(
+                fits_frame_number_label(self._last_loaded_basename)
+            )
 
     def get_dashboard_status(self) -> dict[str, object]:
         powered = None

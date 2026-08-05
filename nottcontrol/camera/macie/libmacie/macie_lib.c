@@ -123,6 +123,8 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->nBytesMax = UINT_MAX;    // Maximum number of total bytes allowed for mem allocation
     ptUserData->bUseSciDataFunc = false; // Use MACIE_ReadUSBScienceData() or MACIE_ReadUSBFrameData()?
     ptUserData->bScienceInterfaceOpen = false;
+    ptUserData->bKeepScienceInterface = false;
+    ptUserData->nPixBufferScienceConfigured = 0;
 
     ptUserData->bSaveData = false;
     ptUserData->uiFileNum = 0;
@@ -1627,11 +1629,17 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
 
     // Function to update any burst-stripe features (h4300-h4304 and h4034)
     unsigned int ypix = ptUserData->uiDetectorHeight;
+    const bool reuse_science =
+        ptUserData->bKeepScienceInterface &&
+        ptUserData->bScienceInterfaceOpen &&
+        ptUserData->nPixBufferScienceConfigured == ptUserData->nPixBuffer;
+
     if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
     {
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe is enabled with %i rows.\n", ypix);
-        // Delay partial frame time to ensure proper transition from full frame to stripe
-        delay(int(0.5 * ptUserData->frametime_ms));
+        // Transition delay only when opening a fresh science session.
+        if (!reuse_science)
+            delay(int(0.5 * ptUserData->frametime_ms));
     }
     else
     {
@@ -1642,52 +1650,62 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
-    // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
-    CloseScienceInterface(ptUserData);
-    delay(100);
-
-    // Set up GigE science data interface for image acquisition.
-    verbose_printf(LOG_INFO, ptUserData, "Configuring science interface...\n");
-    verbose_printf(LOG_INFO, ptUserData, "  nbuf = %i\n", nbuf);
-    verbose_printf(LOG_INFO, ptUserData, "  buffsize = %i pixels\n", buffsize);
-    if (ptUserData->offline_develop == false)
+    if (!reuse_science)
     {
-        bool configured = false;
-        for (int attempt = 0; attempt < 2; ++attempt)
+        // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+        CloseScienceInterface(ptUserData);
+        delay(100);
+
+        // Set up GigE science data interface for image acquisition.
+        verbose_printf(LOG_INFO, ptUserData, "Configuring science interface...\n");
+        verbose_printf(LOG_INFO, ptUserData, "  nbuf = %i\n", nbuf);
+        verbose_printf(LOG_INFO, ptUserData, "  buffsize = %i pixels\n", buffsize);
+        if (ptUserData->offline_develop == false)
         {
-            delay(100);
-            try
+            bool configured = false;
+            for (int attempt = 0; attempt < 2; ++attempt)
             {
-                int bufferSize;
-                int remotePort = 42037; //TODO:verify
-                if (MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) == MACIE_OK)
+                delay(100);
+                try
                 {
-                    configured = true;
-                    break;
+                    int bufferSize;
+                    int remotePort = 42037; //TODO:verify
+                    if (MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) == MACIE_OK)
+                    {
+                        configured = true;
+                        break;
+                    }
+
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "Science interface configuration failed (attempt %i): %s\n",
+                                   attempt + 1, MACIE_Error());
+                }
+                catch (const std::exception &e)
+                {
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "Caught exception at %s during AcquireDataGigE() (attempt %i).\n",
+                                   __func__, attempt + 1);
+                    std::cerr << e.what() << '\n';
                 }
 
-                verbose_printf(LOG_ERROR, ptUserData,
-                               "Science interface configuration failed (attempt %i): %s\n",
-                               attempt + 1, MACIE_Error());
-            }
-            catch (const std::exception &e)
-            {
-                verbose_printf(LOG_ERROR, ptUserData,
-                               "Caught exception at %s during AcquireDataGigE() (attempt %i).\n",
-                               __func__, attempt + 1);
-                std::cerr << e.what() << '\n';
+                HaltCameraAcq(ptUserData);
+                CloseScienceInterface(ptUserData);
+                delay(500);
             }
 
-            HaltCameraAcq(ptUserData);
-            CloseScienceInterface(ptUserData);
-            delay(500);
+            if (configured == false)
+                return false;
         }
-
-        if (configured == false)
-            return false;
+        ptUserData->bScienceInterfaceOpen = true;
+        ptUserData->nPixBufferScienceConfigured = ptUserData->nPixBuffer;
+        verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
     }
-    verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
-    ptUserData->bScienceInterfaceOpen = true;
+    else
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "Keeping GigE science interface open (live continuous).\n");
+    }
+
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1931,10 +1949,29 @@ bool CloseScienceInterface(MACIE_Settings *ptUserData)
         return true;
     }
 
+    bool ok;
     if (ptUserData->connection == MACIE_USB)
-        return CloseUSBScienceInterface(ptUserData);
+        ok = CloseUSBScienceInterface(ptUserData);
+    else
+        ok = CloseGigEScienceInterface(ptUserData);
+    ptUserData->nPixBufferScienceConfigured = 0;
+    return ok;
+}
 
-    return CloseGigEScienceInterface(ptUserData);
+void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
+{
+    if (SettingsCheckNULL(ptUserData) == false)
+        return;
+    ptUserData->bKeepScienceInterface = keep;
+    if (!keep)
+    {
+        CloseScienceInterface(ptUserData);
+        verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep disabled; interface closed.\n");
+    }
+    else
+    {
+        verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep enabled.\n");
+    }
 }
 
 bool HaltCameraAcq(MACIE_Settings *ptUserData)
@@ -2151,6 +2188,22 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 ifile++;
                 nwritten++;
             }
+            else
+            {
+                // Preview-only: overwrite a fixed FITS for GUI display (no archive).
+                string preview = ptUserData->saveDir;
+                if (!preview.empty() && preview.back() != '/')
+                    preview += "/";
+                preview += "preview.fits";
+                verbose_printf(LOG_INFO, ptUserData, "Writing preview: %s\n", preview.c_str());
+                if (WriteFITSRamp(pData, naxis, USHORT_IMG, preview) == false)
+                {
+                    verbose_printf(LOG_ERROR, ptUserData, "Failed to write preview FITS at %s\n", __func__);
+                    write_failed = true;
+                    break;
+                }
+                nwritten++;
+            }
         }
         // Otherwise add pData to 32-bit coadder
         else
@@ -2206,6 +2259,21 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     ifile++;
                     nwritten++;
                 }
+                else
+                {
+                    string preview = ptUserData->saveDir;
+                    if (!preview.empty() && preview.back() != '/')
+                        preview += "/";
+                    preview += "preview.fits";
+                    verbose_printf(LOG_INFO, ptUserData, "Writing preview: %s\n", preview.c_str());
+                    if (WriteFITSRamp(pRampBuffer, naxis, FLOAT_IMG, preview) == false)
+                    {
+                        verbose_printf(LOG_ERROR, ptUserData, "Failed to write preview FITS at %s\n", __func__);
+                        write_failed = true;
+                        break;
+                    }
+                    nwritten++;
+                }
 
                 // Reset pRampBuffer to 0s
                 memset(pRampBuffer, 0, rampsize * sizeof(pRampBuffer[0]));
@@ -2252,14 +2320,22 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     // Explicitly send Halt command (h6900=0x8000)
     HaltCameraAcq(ptUserData);
-    delay(100);
-    if (CloseGigEScienceInterface(ptUserData) == false)
+    if (ptUserData->bKeepScienceInterface)
     {
-        verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface failed after acquisition\n");
-        return false;
+        verbose_printf(LOG_INFO, ptUserData,
+                       "Keeping GigE science interface open after download (live).\n");
     }
     else
-        verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
+    {
+        delay(100);
+        if (CloseGigEScienceInterface(ptUserData) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface failed after acquisition\n");
+            return false;
+        }
+        else
+            verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
+    }
 
     if (download_failed)
     {
@@ -2275,6 +2351,11 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                        nwritten);
         return false;
     }
+    if (!ptUserData->bSaveData && write_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "Acquisition finished with preview FITS write failure.\n");
+        return false;
+    }
     if (ptUserData->bSaveData && nwritten == 0)
     {
         verbose_printf(LOG_ERROR, ptUserData,
@@ -2282,6 +2363,12 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                        "(bSaveData=%i nramps=%i uiNumSaves=%u names=%zu).\n",
                        (int)ptUserData->bSaveData, nramps, ptUserData->uiNumSaves,
                        filenames.size());
+        return false;
+    }
+    if (!ptUserData->bSaveData && nwritten == 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished but preview FITS was not written.\n");
         return false;
     }
 

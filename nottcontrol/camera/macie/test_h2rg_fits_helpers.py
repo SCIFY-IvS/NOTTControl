@@ -15,6 +15,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     _channel_window,
     central_value_median,
     fits_basename,
+    fits_frame_number_label,
     fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
@@ -81,6 +82,23 @@ class ScienceFitsNameTests(unittest.TestCase):
     def test_ramp_names_are_not_science(self) -> None:
         self.assertFalse(is_science_fits_name("frame_001.fits"))
         self.assertFalse(is_science_fits_name("ramp.fits"))
+
+
+class FitsFrameNumberLabelTests(unittest.TestCase):
+    def test_extracts_trailing_index(self) -> None:
+        self.assertEqual(
+            fits_frame_number_label("nott_20260805_00001.fits"),
+            "00001",
+        )
+
+    def test_science_suffix_stripped(self) -> None:
+        self.assertEqual(
+            fits_frame_number_label("nott_20260805_00018_science.fits"),
+            "00018",
+        )
+
+    def test_preview_label(self) -> None:
+        self.assertEqual(fits_frame_number_label("preview.fits"), "Last frame")
 
 
 class ViewerFitsPathTests(unittest.TestCase):

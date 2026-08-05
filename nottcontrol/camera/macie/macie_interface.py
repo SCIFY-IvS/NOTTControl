@@ -72,6 +72,7 @@ class MacieInterface():
         self._pause_live = Event()
         self._live_error_callback: Callable[[Exception], None] | None = None
         self._live_frame_callback: Callable[[], None] | None = None
+        self._live_first_acquire = True
 
     def set_live_error_callback(
         self, callback: Callable[[Exception], None] | None
@@ -453,10 +454,19 @@ class MacieInterface():
             raise Exception("Unexpected reply to getmode")
 
     def start_continuous_acquisition(self):
+        self._live_first_acquire = True
+        try:
+            self._request("livesession;true")
+        except Exception as exc:
+            print(f"Live session start failed: {exc}")
         self._acquiring.set()
 
     def stop_continuous_acquisition(self):
         self._acquiring.clear()
+        try:
+            self._request("livesession;false")
+        except Exception as exc:
+            print(f"Live session stop failed: {exc}")
 
     def pause_live_acquisition(self) -> None:
         self._pause_live.set()
@@ -471,20 +481,26 @@ class MacieInterface():
                 if self._pause_live.is_set():
                     continue
                 try:
-                    self.acquire()
+                    # First live ramp reconfigures; later ramps skip ReconfigureASIC.
+                    no_recon = not self._live_first_acquire
+                    self.acquire(no_recon=no_recon)
+                    self._live_first_acquire = False
                     frame_callback = self._live_frame_callback
                     if frame_callback is not None:
                         try:
                             frame_callback()
                         except Exception as callback_exc:
                             print(f"Live frame callback failed: {callback_exc}")
-                    # Yield the ZMQ lock so the GUI can poll/fetch the new FITS
-                    # before the next ramp starts.
+                    # Brief yield so the GUI can load preview/FITS on the ZMQ lock.
                     if self._acquiring.is_set() and not self._closing.is_set():
-                        time.sleep(0.15)
+                        time.sleep(0.02)
                 except Exception as exc:
                     print(f"Live acquire failed: {exc}")
                     self._acquiring.clear()
+                    try:
+                        self._request("livesession;false")
+                    except Exception:
+                        pass
                     callback = self._live_error_callback
                     if callback is not None:
                         try:
