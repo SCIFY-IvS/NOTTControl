@@ -228,11 +228,10 @@ def _channel_window(
 def _centered_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width central rows (Y window).
+    """Full-width central rows (Y window) for SC burst stripe.
 
     For a 1024-row stripe on a 2048 array this is y=[512, 1535].
-    Centered stripes need WinMode on this microcode (middle burst counters
-    are not yet verified); prefer `_bottom_vertical_stripe` for fast SC.
+    Applied via soft-tracked burst counters (ASIC Y stays full-frame).
     """
     y0 = (array_size - height) // 2
     return 0, array_size - 1, y0, y0 + height - 1
@@ -241,10 +240,10 @@ def _centered_vertical_stripe(
 def _bottom_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width bottom-aligned rows for HxRG burst stripe (32 outputs).
+    """Full-width bottom-aligned rows (edge burst path).
 
-    This is the historically working Slow burst path: y=[0, height-1], which
-    hits the lower-reference Read/Skip formula (not the broken centered path).
+    Prefer `_centered_vertical_stripe` for SC presets; this remains for tests
+    and any explicit bottom ROI.
     """
     if height < 1 or height > array_size:
         raise ValueError(f"height must be in 1..{array_size}, got {height}")
@@ -260,25 +259,25 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
             "SC 128",
             False,
             True,
-            *_bottom_vertical_stripe(128, array_size=array_size),
+            *_centered_vertical_stripe(128, array_size=array_size),
         ),
         WindowMode(
             "SC 256",
             False,
             True,
-            *_bottom_vertical_stripe(256, array_size=array_size),
+            *_centered_vertical_stripe(256, array_size=array_size),
         ),
         WindowMode(
             "SC 512",
             False,
             True,
-            *_bottom_vertical_stripe(512, array_size=array_size),
+            *_centered_vertical_stripe(512, array_size=array_size),
         ),
         WindowMode(
             "SC 1024",
             False,
             True,
-            *_bottom_vertical_stripe(1024, array_size=array_size),
+            *_centered_vertical_stripe(1024, array_size=array_size),
         ),
         WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
@@ -2592,7 +2591,7 @@ class H2rgMainWindow(QMainWindow):
             elif mode.y2 > H2RG_ARRAY_SIZE - 5:
                 stripe_note = "burst stripe, top-aligned, 32 outputs"
             else:
-                stripe_note = "vertical window (centered)"
+                stripe_note = "burst stripe, centered, 32 outputs"
             status = (
                 f"{mode.label} — requested y=[{mode.y1},{mode.y2}], "
                 f"ASIC y=[{y1_i},{y2_i}] ({stripe_note})"

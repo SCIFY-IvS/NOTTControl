@@ -4180,25 +4180,23 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
     // Vertical-only window = burst stripe when the microcode exposes it.
-    // Only edge-aligned Y (bottom/top refs) is proven on this Teledyne MCD;
-    // centered middle stripes previously left GigE buffers at ~0xFFFF.
+    // Soft-track requested Y and keep ASIC Y at full frame (MCD data table
+    // slot 5402→Y2 stays ydet-1). Edge and centered SC both use StripeReads*.
     // Otherwise fall back to WinMode (single-output, slower, valid pixels).
     bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        const bool edge_aligned = (y1 < 4) || (y2 > ydet - 5);
-        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0 &&
-            edge_aligned)
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
             use_burst_stripe = true;
             // Keep ASIC Y at full frame: MCD data table 5402→4023(Y2) must stay
-            // ydet-1 alongside Reads2=0 (same as idle). Track SC height in soft state.
+            // ydet-1 alongside Reads2 handling. Track SC height in soft state.
             ptUserData->bSoftStripeActive = true;
             ptUserData->uiSoftStripeY1 = y1;
             ptUserData->uiSoftStripeY2 = y2;
             verbose_printf(LOG_INFO, ptUserData,
-                           "%s(): SC via burst stripe (edge-aligned, parallel outputs) "
+                           "%s(): SC via burst stripe (parallel outputs) "
                            "soft y=[%u,%u]; ASIC Y kept [0,%u].\n",
                            __func__, y1, y2, ydet - 1);
         }
@@ -4213,21 +4211,10 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
             else if (RegMap.count("WinMode") > 0)
             {
                 ASIC_Generic(ptUserData, "WinMode", true, 1);
-                if (ptUserData->bStripeModeAllowed && !edge_aligned)
-                {
-                    verbose_printf(LOG_WARNING, ptUserData,
-                                   "%s(): centered SC y=[%u,%u] uses WinMode "
-                                   "(middle burst not enabled); prefer bottom-aligned "
-                                   "SC for 32-output burst.\n",
-                                   __func__, y1, y2);
-                }
-                else
-                {
-                    verbose_printf(LOG_WARNING, ptUserData,
-                                   "%s(): SC via WinMode (burst stripe unavailable in %s); "
-                                   "single-output window.\n",
-                                   __func__, ptUserData->ASICRegs);
-                }
+                verbose_printf(LOG_WARNING, ptUserData,
+                               "%s(): SC via WinMode (burst stripe unavailable in %s); "
+                               "single-output window.\n",
+                               __func__, ptUserData->ASICRegs);
             }
             else
             {
@@ -4851,7 +4838,7 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
-                           "(y1=%u y2=%u ny=%u → %u rows incl. bottom refs)\n",
+                           "(soft y1=%u y2=%u ny=%u → %u rows incl. bottom refs)\n",
                            __func__, skip_pre, ny, skip_post, y1, y2, ny, yrows);
         }
     }
