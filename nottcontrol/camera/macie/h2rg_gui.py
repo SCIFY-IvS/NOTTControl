@@ -318,7 +318,9 @@ class _PixmapImageView(QLabel):
     _ZOOM_MIN = 1.0
     _ZOOM_MAX = 32.0
     _ZOOM_STEP = 1.25
-    _ROI_HANDLE_IMG_PX = 10
+    _ROI_HANDLE_IMG_PX = 8
+    _ROI_PEN_PX = 1
+    _ROI_HANDLE_DISP_PX = 5
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -660,15 +662,14 @@ class _PixmapImageView(QLabel):
                     if index not in self._roi_visible:
                         continue
                     color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
-                    pen_w = max(1, int(round(2 * zoom)))
-                    painter.setPen(QPen(color, pen_w))
+                    painter.setPen(QPen(color, self._ROI_PEN_PX))
                     rx_s = int(rx * sx)
                     ry_s = int(ry * sy)
                     rw_s = max(1, int(rw * sx))
                     rh_s = max(1, int(rh * sy))
                     painter.drawRect(rx_s, ry_s, rw_s, rh_s)
-                    # SE resize handle (visible cue for pixmap ROI interaction).
-                    handle = max(6, int(round(10 * zoom)))
+                    # SE resize handle (screen pixels; keep small and readable).
+                    handle = self._ROI_HANDLE_DISP_PX
                     painter.fillRect(
                         rx_s + rw_s - handle,
                         ry_s + rh_s - handle,
