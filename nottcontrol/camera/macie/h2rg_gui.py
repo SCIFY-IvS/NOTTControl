@@ -3067,8 +3067,9 @@ class H2rgMainWindow(QMainWindow):
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
-        if ramp_mode != "Fowler":
-            self.ui.lineEdit_integration_time.setText(f"{self._last_tint_ms:.6g}")
+        # Keep the user's requested DIT in the edit box. Photon time (read-only)
+        # already shows the achieved value; rewriting the request from actual
+        # frametime caused SC512 photon/frame times to drift every acquire.
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
         self._refresh_exposure_timing(macie)
         if ramp_mode == "Fowler":

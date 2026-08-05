@@ -905,14 +905,27 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         }
     }
 
-    // Check if STRIPE Mode is enabled
-    // We need to update RowsPerFrame since this is not done properly
+    // Check if STRIPE Mode is enabled.
+    // RowsPerFrame / PixPerRow are ASIC *output* regs (cfg "(Out)"): under soft SC
+    // the ASIC Y window stays full-frame, so those outs often reflect full height and
+    // can change after each acquire. Force the delivered geometry into the outs for
+    // MACIE buffer sizing, but exposure_frametime_ms() uses the same geometry
+    // formula so UI timing stays stable.
     if (ASIC_STRIPEMode(ptUserData, false, false))
     {
         unsigned int ypix_sub = exposure_ypix(ptUserData);
-
+        unsigned int xpix_sub = exposure_xpix(ptUserData);
         unsigned int ExtraLines = 0;
+        unsigned int ExtraPixels = 0;
+        unsigned int nout = ASIC_NumOutputs(ptUserData);
+        if (nout < 1)
+            nout = 1;
         GetASICParameter(ptUserData, "ExtraLines", &ExtraLines);
+        GetASICParameter(ptUserData, "ExtraPixels", &ExtraPixels);
+        unsigned int ppr = xpix_sub / nout + ExtraPixels;
+        if (ptUserData->DetectorMode == CAMERA_MODE_SLOW)
+            ppr += 8;
+        SetASICParameter(ptUserData, "PixPerRow", ppr);
         SetASICParameter(ptUserData, "RowsPerFrame", ypix_sub + ExtraLines + 1);
     }
 
@@ -923,7 +936,8 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         return false;
     }
 
-    // Save exposure frame and ramp times to ptUserData for use during acquisition
+    // Soft/burst stripe: prefer geometry-based frame time (Out regs may have been
+    // clobbered again by GetASICSettings reading full-frame ASIC Y).
     ptUserData->frametime_ms = exposure_frametime_ms(ptUserData);
     ptUserData->ramptime_ms = exposure_ramptime_ms(ptUserData);
 
@@ -4983,22 +4997,36 @@ unsigned int exposure_frametime_pix(MACIE_Settings *ptUserData)
     if (SettingsCheckNULL(ptUserData) == false)
         return false;
 
-    // Update PixPerRow & RowsPerFrame for offline testing mode
-    if (ptUserData->offline_develop == true)
+    // Soft / burst stripe: PixPerRow & RowsPerFrame are ASIC output registers and
+    // often track full-frame Y (soft SC keeps ASIC Y full). Derive pixel count from
+    // the delivered geometry so frame/photon times stay stable across acquires.
+    unsigned int y_burst = 0;
+    const bool burst = ypix_burst_stripe(ptUserData, &y_burst, false) ||
+                       ptUserData->bSoftStripeActive;
+    if (burst || ptUserData->offline_develop == true)
     {
-        LOG_LEVEL log_prev = get_verbose(ptUserData);
-        set_verbose(ptUserData, LOG_WARNING);
         unsigned int nout = ASIC_NumOutputs(ptUserData);
-        unsigned int xtra_pix = ASIC_Generic(ptUserData, "ExtraPixels", false, 0);
-        unsigned int xtra_lines = ASIC_Generic(ptUserData, "ExtraLines", false, 0);
-        unsigned int ppr = exposure_xpix(ptUserData) / nout + xtra_pix;
-        unsigned int rpf = exposure_ypix(ptUserData) + xtra_lines;
+        if (nout < 1)
+            nout = 1;
+        unsigned int xtra_pix = 0;
+        unsigned int xtra_lines = 0;
+        GetASICParameter(ptUserData, "ExtraPixels", &xtra_pix);
+        GetASICParameter(ptUserData, "ExtraLines", &xtra_lines);
+        unsigned int xpix = exposure_xpix(ptUserData);
+        unsigned int ypix = exposure_ypix(ptUserData);
+        unsigned int ppr = xpix / nout + xtra_pix;
+        unsigned int rpf = ypix + xtra_lines + 1;
         if (ptUserData->DetectorMode == CAMERA_MODE_SLOW)
-            SetASICParameter(ptUserData, "PixPerRow", ppr + 8);
-        else
+            ppr += 8;
+        if (ptUserData->offline_develop == true)
+        {
+            LOG_LEVEL log_prev = get_verbose(ptUserData);
+            set_verbose(ptUserData, LOG_WARNING);
             SetASICParameter(ptUserData, "PixPerRow", ppr);
-        SetASICParameter(ptUserData, "RowsPerFrame", rpf + 1);
-        set_verbose(ptUserData, log_prev);
+            SetASICParameter(ptUserData, "RowsPerFrame", rpf);
+            set_verbose(ptUserData, log_prev);
+        }
+        return ppr * rpf;
     }
 
     unsigned int PixPerRow = 0;
