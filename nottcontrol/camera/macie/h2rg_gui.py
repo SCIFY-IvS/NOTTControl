@@ -311,12 +311,15 @@ def _use_pixmap_image_backend() -> bool:
 class _PixmapImageView(QLabel):
     """Software frame display that avoids QGraphicsScene (safe under VNC).
 
-    Supports mouse-wheel zoom and left-drag pan (Linux ImageView replacement).
+    Supports mouse-wheel zoom, left-drag pan, and interactive ROI move/resize.
     """
+
+    roiGeometryChanged = pyqtSignal(int, int, int, int, int)  # index, x, y, w, h
 
     _ZOOM_MIN = 1.0
     _ZOOM_MAX = 32.0
     _ZOOM_STEP = 1.25
+    _ROI_HANDLE_IMG_PX = 10
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -325,7 +328,10 @@ class _PixmapImageView(QLabel):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("background: #1a1a2e;")
-        self.setToolTip("Scroll to zoom · drag to pan · double-click to reset")
+        self.setToolTip(
+            "Scroll to zoom · drag ROI to move · corner to resize · "
+            "drag background to pan · double-click to reset"
+        )
         self.image: numpy.ndarray | None = None
         self._levels: tuple[float, float] = (0.0, 1.0)
         self._roi_rects: dict[int, tuple[int, int, int, int]] = {}
@@ -336,6 +342,8 @@ class _PixmapImageView(QLabel):
         self._panning = False
         self._pan_last = None
         self._source_pix: QPixmap | None = None
+        # ROI interaction: {"mode": "move"|"resize", "index", "origin", "geom"}
+        self._roi_drag: dict | None = None
 
     def getImageItem(self):
         return self
@@ -452,6 +460,63 @@ class _PixmapImageView(QLabel):
             return None
         return ix, iy
 
+    def _hit_test_roi(self, ix: int, iy: int) -> tuple[int | None, str | None]:
+        """Return (roi_index, 'move'|'resize') for the topmost visible ROI under the point."""
+        handle = max(4, int(round(self._ROI_HANDLE_IMG_PX / max(self._zoom, 1.0))))
+        for index in sorted(self._roi_visible, reverse=True):
+            geom = self._roi_rects.get(index)
+            if geom is None:
+                continue
+            x, y, w, h = geom
+            if not (x <= ix < x + w and y <= iy < y + h):
+                continue
+            if ix >= x + w - handle and iy >= y + h - handle:
+                return index, "resize"
+            return index, "move"
+        return None, None
+
+    def _clamp_roi_geom(
+        self, x: int, y: int, w: int, h: int
+    ) -> tuple[int, int, int, int]:
+        if self.image is None:
+            return x, y, max(1, w), max(1, h)
+        img_h, img_w = self.image.shape[:2]
+        w = max(1, min(w, img_w))
+        h = max(1, min(h, img_h))
+        x = int(numpy.clip(x, 0, img_w - w))
+        y = int(numpy.clip(y, 0, img_h - h))
+        return x, y, w, h
+
+    def _apply_roi_drag(self, ix: int, iy: int) -> None:
+        drag = self._roi_drag
+        if drag is None:
+            return
+        index = drag["index"]
+        ox, oy = drag["origin"]
+        sx, sy, sw, sh = drag["geom"]
+        dx = ix - ox
+        dy = iy - oy
+        if drag["mode"] == "resize":
+            x, y, w, h = self._clamp_roi_geom(sx, sy, sw + dx, sh + dy)
+        else:
+            x, y, w, h = self._clamp_roi_geom(sx + dx, sy + dy, sw, sh)
+        self._roi_rects[index] = (x, y, w, h)
+        self._rebuild_pixmap()
+
+    def _finish_roi_drag(self) -> None:
+        drag = self._roi_drag
+        self._roi_drag = None
+        self.unsetCursor()
+        if drag is None:
+            return
+        index = drag["index"]
+        geom = self._roi_rects.get(index)
+        if geom is None:
+            return
+        x, y, w, h = geom
+        if (x, y, w, h) != drag["geom"]:
+            self.roiGeometryChanged.emit(index, x, y, w, h)
+
     def wheelEvent(self, event) -> None:
         if self.image is None:
             return
@@ -485,15 +550,39 @@ class _PixmapImageView(QLabel):
         event.accept()
 
     def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.LeftButton and self._zoom > 1.0 + 1e-6:
-            self._panning = True
-            self._pan_last = event.pos()
-            self.setCursor(Qt.ClosedHandCursor)
-            event.accept()
-            return
+        if event.button() == Qt.LeftButton:
+            xy = self.widget_pos_to_image_xy(event.pos())
+            if xy is not None:
+                index, mode = self._hit_test_roi(xy[0], xy[1])
+                if index is not None and mode is not None:
+                    geom = self._roi_rects.get(index)
+                    if geom is not None:
+                        self._roi_drag = {
+                            "mode": mode,
+                            "index": index,
+                            "origin": xy,
+                            "geom": geom,
+                        }
+                        self.setCursor(
+                            Qt.SizeFDiagCursor if mode == "resize" else Qt.SizeAllCursor
+                        )
+                        event.accept()
+                        return
+            if self._zoom > 1.0 + 1e-6:
+                self._panning = True
+                self._pan_last = event.pos()
+                self.setCursor(Qt.ClosedHandCursor)
+                event.accept()
+                return
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
+        if self._roi_drag is not None:
+            xy = self.widget_pos_to_image_xy(event.pos())
+            if xy is not None:
+                self._apply_roi_drag(xy[0], xy[1])
+            event.accept()
+            return
         if self._panning and self._pan_last is not None:
             dx = event.pos().x() - self._pan_last.x()
             dy = event.pos().y() - self._pan_last.y()
@@ -504,9 +593,25 @@ class _PixmapImageView(QLabel):
             self._rebuild_pixmap()
             event.accept()
             return
+        # Hover cursor over ROI / resize handle.
+        xy = self.widget_pos_to_image_xy(event.pos())
+        if xy is not None:
+            _index, mode = self._hit_test_roi(xy[0], xy[1])
+            if mode == "resize":
+                self.setCursor(Qt.SizeFDiagCursor)
+            elif mode == "move":
+                self.setCursor(Qt.SizeAllCursor)
+            else:
+                self.unsetCursor()
+        else:
+            self.unsetCursor()
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self._roi_drag is not None:
+            self._finish_roi_drag()
+            event.accept()
+            return
         if event.button() == Qt.LeftButton and self._panning:
             self._panning = False
             self._pan_last = None
@@ -556,12 +661,21 @@ class _PixmapImageView(QLabel):
                     if index not in self._roi_visible:
                         continue
                     color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
-                    painter.setPen(QPen(color, max(1, int(round(2 * zoom)))))
-                    painter.drawRect(
-                        int(rx * sx),
-                        int(ry * sy),
-                        max(1, int(rw * sx)),
-                        max(1, int(rh * sy)),
+                    pen_w = max(1, int(round(2 * zoom)))
+                    painter.setPen(QPen(color, pen_w))
+                    rx_s = int(rx * sx)
+                    ry_s = int(ry * sy)
+                    rw_s = max(1, int(rw * sx))
+                    rh_s = max(1, int(rh * sy))
+                    painter.drawRect(rx_s, ry_s, rw_s, rh_s)
+                    # SE resize handle (visible cue for pixmap ROI interaction).
+                    handle = max(6, int(round(10 * zoom)))
+                    painter.fillRect(
+                        rx_s + rw_s - handle,
+                        ry_s + rh_s - handle,
+                        handle,
+                        handle,
+                        color,
                     )
             finally:
                 painter.end()
@@ -2142,6 +2256,11 @@ class H2rgMainWindow(QMainWindow):
             return
 
         if isinstance(self.image, _PixmapImageView):
+            try:
+                self.image.roiGeometryChanged.disconnect(self._commit_roi_geometry)
+            except TypeError:
+                pass
+            self.image.roiGeometryChanged.connect(self._commit_roi_geometry)
             self._update_roi_overlays()
             return
 
@@ -2167,16 +2286,11 @@ class H2rgMainWindow(QMainWindow):
             self._roi_overlays[index] = roi
         self._update_roi_overlays()
 
-    def _on_roi_geometry_changed(self, index: int) -> None:
-        roi = self._roi_overlays.get(index)
-        if roi is None:
-            return
-        pos = roi.pos()
-        size = roi.size()
-        x = int(round(float(pos.x())))
-        y = int(round(float(pos.y())))
-        w = max(1, int(round(float(size.x()))))
-        h = max(1, int(round(float(size.y()))))
+    def _commit_roi_geometry(self, index: int, x: int, y: int, w: int, h: int) -> None:
+        w = max(1, int(w))
+        h = max(1, int(h))
+        x = int(x)
+        y = int(y)
         self._h2rg_rois[index] = (x, y, w, h)
         try:
             if not config.config_parser.has_section(H2RG_SECTION):
@@ -2189,10 +2303,27 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG ROI config save failed: {exc}")
         self._refresh_display()
 
+    def _on_roi_geometry_changed(self, index: int) -> None:
+        roi = self._roi_overlays.get(index)
+        if roi is None:
+            return
+        pos = roi.pos()
+        size = roi.size()
+        x = int(round(float(pos.x())))
+        y = int(round(float(pos.y())))
+        w = max(1, int(round(float(size.x()))))
+        h = max(1, int(round(float(size.y()))))
+        self._commit_roi_geometry(index, x, y, w, h)
+
     def _update_roi_overlays(self) -> None:
         selected = set(self._selected_roi_indices())
         if isinstance(self.image, _PixmapImageView):
-            self.image.set_roi_overlays(self._h2rg_rois, selected)
+            # Keep in-progress drag geometry; only sync from config when idle.
+            if self.image._roi_drag is None:
+                self.image.set_roi_overlays(self._h2rg_rois, selected)
+            else:
+                self.image._roi_visible = set(selected)
+                self.image._rebuild_pixmap()
             return
         for index, roi in self._roi_overlays.items():
             roi.setVisible(index in selected)
