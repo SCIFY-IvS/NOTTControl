@@ -4755,24 +4755,26 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     }
 
     unsigned int yrows = 0;
-    // If Stripe Mode is enabled and Burst Striping exists, update registers based on Y1 and Y2
-    // We also want to always include the top/bottom reference rows
+    // HxRG_Teledyne.mcd data table 5401–5405 loads:
+    //   4024 StripeReads1, 4023 Y2, 4034 Skips2, 4033 Reads2, 4025 Skips1
+    // Idle is Reads1=ydet, Y2=ydet-1, Reads2=0 — so Y2 must stay Reads1-1 when
+    // Reads2=0. The older Reads1=ny-4 / Reads2=4 split left Y2=ny-1 ≠ Reads1-1
+    // and starved GigE (e.g. SC512: expect ~2 MB, only 8 KB available).
     if (y1 < 4) // Lower reference pixels included in active block
     {
-        // yrows = ny + y1 + 4; // Number of requested rows plus bottom plus top
         yrows = ny;
         if (bSet)
         {
-            ASIC_Generic(ptUserData, "StripeReads1", true, yrows - 4);
+            ASIC_Generic(ptUserData, "StripeReads1", true, yrows);
             ASIC_Generic(ptUserData, "StripeSkips1", true, ydet - yrows);
-            ASIC_Generic(ptUserData, "StripeReads2", true, 4);
+            ASIC_Generic(ptUserData, "StripeReads2", true, 0);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
             if (RegMap.count("RowReads") > 0)
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
-                           "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=4 Skips2=0 "
-                           "(y1=%u y2=%u ny=%u)\n",
-                           __func__, yrows - 4, ydet - yrows, y1, y2, ny);
+                           "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=0 Skips2=0 "
+                           "(y1=%u y2=%u ny=%u; Y2 should equal Reads1-1)\n",
+                           __func__, yrows, ydet - yrows, y1, y2, ny);
         }
     }
     else if (y2 > ydet - 5) // Upper reference pixels included in active block
