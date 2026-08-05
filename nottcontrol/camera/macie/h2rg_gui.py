@@ -12,7 +12,7 @@ from pathlib import Path, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
-from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import QEvent, QPointF, QRect, QSize, Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QImage, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
@@ -309,18 +309,33 @@ def _use_pixmap_image_backend() -> bool:
 
 
 class _PixmapImageView(QLabel):
-    """Software frame display that avoids QGraphicsScene (safe under VNC)."""
+    """Software frame display that avoids QGraphicsScene (safe under VNC).
+
+    Supports mouse-wheel zoom and left-drag pan (Linux ImageView replacement).
+    """
+
+    _ZOOM_MIN = 1.0
+    _ZOOM_MAX = 32.0
+    _ZOOM_STEP = 1.25
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
         self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.StrongFocus)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("background: #1a1a2e;")
+        self.setToolTip("Scroll to zoom · drag to pan · double-click to reset")
         self.image: numpy.ndarray | None = None
         self._levels: tuple[float, float] = (0.0, 1.0)
         self._roi_rects: dict[int, tuple[int, int, int, int]] = {}
         self._roi_visible: set[int] = set()
+        self._zoom = 1.0
+        self._pan_x = 0.0
+        self._pan_y = 0.0
+        self._panning = False
+        self._pan_last = None
+        self._source_pix: QPixmap | None = None
 
     def getImageItem(self):
         return self
@@ -379,30 +394,133 @@ class _PixmapImageView(QLabel):
         self._roi_visible = set(visible)
         self._rebuild_pixmap()
 
+    def reset_view(self) -> None:
+        self._zoom = 1.0
+        self._pan_x = 0.0
+        self._pan_y = 0.0
+        self._rebuild_pixmap()
+
+    def _fit_scale(self, img_w: int, img_h: int) -> float:
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        return min(tw / max(img_w, 1), th / max(img_h, 1))
+
+    def _clamp_pan(self, disp_w: int, disp_h: int) -> None:
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        max_x = max(0.0, (disp_w - tw) / 2.0)
+        max_y = max(0.0, (disp_h - th) / 2.0)
+        self._pan_x = float(numpy.clip(self._pan_x, -max_x, max_x))
+        self._pan_y = float(numpy.clip(self._pan_y, -max_y, max_y))
+        if self._zoom <= 1.0 + 1e-6:
+            self._pan_x = 0.0
+            self._pan_y = 0.0
+
+    def _visible_origin(self, disp_w: int, disp_h: int) -> tuple[int, int]:
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        self._clamp_pan(disp_w, disp_h)
+        ox = int(round((disp_w - tw) / 2.0 + self._pan_x))
+        oy = int(round((disp_h - th) / 2.0 + self._pan_y))
+        ox = int(numpy.clip(ox, 0, max(0, disp_w - tw)))
+        oy = int(numpy.clip(oy, 0, max(0, disp_h - th)))
+        return ox, oy
+
     def widget_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
-        if self.image is None:
-            return None
-        pix = self.pixmap()
-        if pix is None or pix.isNull():
+        if self.image is None or self._source_pix is None or self._source_pix.isNull():
             return None
         if hasattr(pos, "x"):
             px, py = float(pos.x()), float(pos.y())
         else:
             px, py = float(pos[0]), float(pos[1])
-        lw, lh = self.width(), self.height()
-        pw, ph = pix.width(), pix.height()
-        ox = (lw - pw) // 2
-        oy = (lh - ph) // 2
-        x = px - ox
-        y = py - oy
-        if x < 0 or y < 0 or x >= pw or y >= ph:
-            return None
         img_h, img_w = self.image.shape[:2]
-        ix = int(x * img_w / max(pw, 1))
-        iy = int(y * img_h / max(ph, 1))
+        disp_w = self._source_pix.width()
+        disp_h = self._source_pix.height()
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        ox, oy = self._visible_origin(disp_w, disp_h)
+        # Letterbox when zoomed-out pixmap is smaller than the widget.
+        pad_x = max(0, (tw - disp_w) // 2)
+        pad_y = max(0, (th - disp_h) // 2)
+        x = px - pad_x + ox
+        y = py - pad_y + oy
+        if x < 0 or y < 0 or x >= disp_w or y >= disp_h:
+            return None
+        ix = int(x * img_w / max(disp_w, 1))
+        iy = int(y * img_h / max(disp_h, 1))
         if ix < 0 or iy < 0 or ix >= img_w or iy >= img_h:
             return None
         return ix, iy
+
+    def wheelEvent(self, event) -> None:
+        if self.image is None:
+            return
+        delta = event.angleDelta().y()
+        if delta == 0:
+            delta = event.pixelDelta().y()
+        if delta == 0:
+            return
+        factor = self._ZOOM_STEP if delta > 0 else 1.0 / self._ZOOM_STEP
+        old_zoom = self._zoom
+        new_zoom = float(numpy.clip(old_zoom * factor, self._ZOOM_MIN, self._ZOOM_MAX))
+        if abs(new_zoom - old_zoom) < 1e-9:
+            event.accept()
+            return
+
+        # Keep the image point under the cursor stable while zooming.
+        before = self.widget_pos_to_image_xy(event.pos())
+        self._zoom = new_zoom
+        self._rebuild_pixmap()
+        if before is not None:
+            after = self.widget_pos_to_image_xy(event.pos())
+            if after is not None and self._source_pix is not None:
+                img_h, img_w = self.image.shape[:2]
+                disp_w = self._source_pix.width()
+                disp_h = self._source_pix.height()
+                sx = disp_w / max(img_w, 1)
+                sy = disp_h / max(img_h, 1)
+                self._pan_x += (before[0] - after[0]) * sx
+                self._pan_y += (before[1] - after[1]) * sy
+                self._rebuild_pixmap()
+        event.accept()
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self._zoom > 1.0 + 1e-6:
+            self._panning = True
+            self._pan_last = event.pos()
+            self.setCursor(Qt.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._panning and self._pan_last is not None:
+            dx = event.pos().x() - self._pan_last.x()
+            dy = event.pos().y() - self._pan_last.y()
+            self._pan_last = event.pos()
+            # Dragging the image with the mouse (grab-hand feel).
+            self._pan_x -= float(dx)
+            self._pan_y -= float(dy)
+            self._rebuild_pixmap()
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self._panning:
+            self._panning = False
+            self._pan_last = None
+            self.unsetCursor()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.reset_view()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -419,21 +537,26 @@ class _PixmapImageView(QLabel):
         gray = numpy.nan_to_num(gray, nan=0.0, posinf=255.0, neginf=0.0)
         gray8 = numpy.ascontiguousarray(gray.astype(numpy.uint8))
         qimg = QImage(gray8.data, w, h, w, QImage.Format_Grayscale8).copy()
-        pix = QPixmap.fromImage(qimg)
+        base = QPixmap.fromImage(qimg)
+
         tw = max(1, self.width())
         th = max(1, self.height())
-        if tw > 1 and th > 1:
-            pix = pix.scaled(tw, th, Qt.KeepAspectRatio, Qt.FastTransformation)
+        fit = self._fit_scale(w, h)
+        zoom = max(self._ZOOM_MIN, float(self._zoom))
+        disp_w = max(1, int(round(w * fit * zoom)))
+        disp_h = max(1, int(round(h * fit * zoom)))
+        source = base.scaled(disp_w, disp_h, Qt.IgnoreAspectRatio, Qt.FastTransformation)
+
         if self._roi_rects and self._roi_visible:
-            painter = QPainter(pix)
+            painter = QPainter(source)
             try:
-                sx = pix.width() / max(w, 1)
-                sy = pix.height() / max(h, 1)
+                sx = source.width() / max(w, 1)
+                sy = source.height() / max(h, 1)
                 for index, (rx, ry, rw, rh) in self._roi_rects.items():
                     if index not in self._roi_visible:
                         continue
                     color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
-                    painter.setPen(QPen(color, 2))
+                    painter.setPen(QPen(color, max(1, int(round(2 * zoom)))))
                     painter.drawRect(
                         int(rx * sx),
                         int(ry * sy),
@@ -442,7 +565,24 @@ class _PixmapImageView(QLabel):
                     )
             finally:
                 painter.end()
-        self.setPixmap(pix)
+
+        self._source_pix = source
+        ox, oy = self._visible_origin(source.width(), source.height())
+        if source.width() <= tw and source.height() <= th:
+            # Fit / letterbox: show the whole scaled image centered.
+            canvas = QPixmap(tw, th)
+            canvas.fill(QColor(0x1A, 0x1A, 0x2E))
+            painter = QPainter(canvas)
+            try:
+                painter.drawPixmap((tw - source.width()) // 2, (th - source.height()) // 2, source)
+            finally:
+                painter.end()
+            self.setPixmap(canvas)
+            return
+
+        crop_w = min(tw, source.width())
+        crop_h = min(th, source.height())
+        self.setPixmap(source.copy(QRect(ox, oy, crop_w, crop_h)))
 
 
 def _format_stat_value(value: float) -> str:
