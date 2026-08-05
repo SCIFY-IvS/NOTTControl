@@ -167,6 +167,11 @@ typedef struct MACIE_Settings
   // Is STRIPE mode allowed?
   bool bStripeModeAllowed;
   bool bStripeMode;
+  // Soft SC window: ASIC Y1/Y2 stay full-frame (MCD data table slot 5402→Y2
+  // must remain ydet-1 with Reads2=0). Requested stripe height is tracked here.
+  bool bSoftStripeActive;
+  unsigned int uiSoftStripeY1;
+  unsigned int uiSoftStripeY2;
 
   // Pixel clocking scheme for full frame and subarray window
   // Normal (0) or Enhanced (1)
