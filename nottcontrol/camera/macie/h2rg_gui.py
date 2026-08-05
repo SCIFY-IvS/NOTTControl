@@ -228,9 +228,10 @@ def _channel_window(
 def _centered_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width central rows (Y window; all parallel outputs kept).
+    """Full-width central rows (Y window).
 
     For SC 1024 on a 2048 array this is y=[512, 1535].
+    Slow path currently uses WinMode (1 output) until burst stripe is verified.
     """
     y0 = (array_size - height) // 2
     return 0, array_size - 1, y0, y0 + height - 1
@@ -964,6 +965,7 @@ class H2rgMainWindow(QMainWindow):
         self._zmq_address: str | None = None
         self._shutting_down = False
         self._last_tint_ms: float | None = None
+        self._last_exposure_report: dict[str, float | int | str] | None = None
         self._initialized = False
         self._macie_operation_busy = False
         self._last_zmq_fits_poll = 0.0
@@ -2302,7 +2304,7 @@ class H2rgMainWindow(QMainWindow):
         if mode.y_window and not mode.x_window:
             status = (
                 f"{mode.label} — requested y=[{mode.y1},{mode.y2}], "
-                f"ASIC y=[{y1_i},{y2_i}] (full width, 32 outputs)"
+                f"ASIC y=[{y1_i},{y2_i}] (full width, WinMode 1-output)"
             )
             if (y1_i, y2_i) != (mode.y1, mode.y2):
                 status += " — WARNING: not centered as requested"
@@ -2776,7 +2778,57 @@ class H2rgMainWindow(QMainWindow):
             f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon, "
             f"{mode_detail}, frames={nseq}"
         )
+        self._last_exposure_report = {
+            **result,
+            "mode_detail": mode_detail,
+        }
+        self._print_efficiency_report(self._last_exposure_report)
         return result
+
+    def _print_efficiency_report(
+        self,
+        report: dict[str, float | int | str],
+        *,
+        wall_s: float | None = None,
+        label: str = "Exposure",
+    ) -> None:
+        """Print ASIC duty-cycle efficiency and ramp timing to the terminal."""
+        try:
+            frametime_ms = float(report.get("frametime_ms", 0.0))
+            inttime_ms = float(report.get("inttime_ms", 0.0))
+            ramptime_ms = float(report.get("ramptime_ms", 0.0))
+            execution_s = float(report.get("execution_s", 0.0))
+            efficiency = float(report.get("efficiency", 0.0))
+            ngroups = int(report.get("ngroups", 0))
+            nreads = int(report.get("nreads", 0))
+            ndrops = int(report.get("ndrops", 0))
+            ncoadds = int(report.get("ncoadds", 1))
+            nseq = int(report.get("nseq", 1))
+            ramp_mode = str(report.get("ramp_mode", "?"))
+            mode_detail = str(report.get("mode_detail", ramp_mode))
+        except (TypeError, ValueError):
+            return
+
+        overhead_ms = max(0.0, ramptime_ms - inttime_ms)
+        lines = [
+            f"H2RG: {label} efficiency",
+            f"  mode: {ramp_mode} ({mode_detail})",
+            f"  ramp: ngroups={ngroups} nreads={nreads} ndrops={ndrops} "
+            f"ncoadds={ncoadds} nseq={nseq}",
+            f"  frame={frametime_ms:.3f} ms  photon={inttime_ms:.3f} ms  "
+            f"ramp={ramptime_ms:.3f} ms  overhead={overhead_ms:.3f} ms",
+            f"  ASIC duty cycle: {efficiency * 100:.1f}%  "
+            f"(photon/ramp; estimated ASIC exec {execution_s:.3f} s)",
+        ]
+        if wall_s is not None and wall_s > 0:
+            wall_eff = (inttime_ms / 1000.0) / wall_s if inttime_ms > 0 else 0.0
+            asic_vs_wall = (execution_s / wall_s) if execution_s > 0 else 0.0
+            lines.append(
+                f"  wall clock: {wall_s:.2f} s  "
+                f"(photon/wall {wall_eff * 100:.1f}%, "
+                f"ASIC-est/wall {asic_vs_wall * 100:.1f}%)"
+            )
+        print("\n".join(lines), flush=True)
 
     def acquire(self) -> None:
         if self._live_active:
@@ -2901,6 +2953,27 @@ class H2rgMainWindow(QMainWindow):
             f"H2RG: {label} took {elapsed:.2f} s (take + display)",
             flush=True,
         )
+        if self._last_exposure_report is not None:
+            if label == "Live":
+                try:
+                    inttime_ms = float(self._last_exposure_report.get("inttime_ms", 0.0))
+                    execution_s = float(self._last_exposure_report.get("execution_s", 0.0))
+                    efficiency = float(self._last_exposure_report.get("efficiency", 0.0))
+                except (TypeError, ValueError):
+                    inttime_ms = execution_s = efficiency = 0.0
+                wall_eff = (inttime_ms / 1000.0) / elapsed if elapsed > 0 else 0.0
+                print(
+                    f"H2RG: Live efficiency — ASIC duty {efficiency * 100:.1f}%, "
+                    f"photon/wall {wall_eff * 100:.1f}%, "
+                    f"ASIC-est {execution_s:.3f} s / wall {elapsed:.2f} s",
+                    flush=True,
+                )
+            else:
+                self._print_efficiency_report(
+                    self._last_exposure_report,
+                    wall_s=elapsed,
+                    label=label,
+                )
         status = self._frame_timing_status
         self._frame_timing_status = None
         if status:

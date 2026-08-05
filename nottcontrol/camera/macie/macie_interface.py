@@ -378,6 +378,10 @@ class MacieInterface():
             "ramptime_ms": timing["ramptime_s"] * 1000.0,
             "execution_s": timing["execution_s"],
             "frametime_ms": timing["frametime_s"] * 1000.0,
+            "efficiency": timing["efficiency"],
+            "ncoadds": int(ncoadds),
+            "nseq": int(nseq),
+            "ramp_mode": ramp_mode,
         }
 
     def set_integration_time(

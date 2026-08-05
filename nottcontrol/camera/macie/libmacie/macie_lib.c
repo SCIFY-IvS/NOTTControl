@@ -4119,10 +4119,16 @@ bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
     double rtime_ms = ptUserData->ramptime_ms;         // Ramp time including reset frames
     double itime_ms = exposure_inttime_ms(ptUserData); // Photon collection time
     double etime_sec = rtime_ms * ncoadds * nsaved_ramps / 1000;
+    double eff = exposure_efficiency(ptUserData);
     verbose_printf(LOG_INFO, ptUserData, "MACIE Clock Rate = %i MHz\n", ptUserData->clkRateM);
     verbose_printf(LOG_INFO, ptUserData, "Frame time: %.3f ms\n", ptUserData->frametime_ms);
     verbose_printf(LOG_INFO, ptUserData, "Ramp time: %.3f ms\n", rtime_ms);
     verbose_printf(LOG_INFO, ptUserData, "Ramp photon-collection time: %.3f ms\n", itime_ms);
+    verbose_printf(LOG_INFO, ptUserData, "Ramp overhead (ramp-photon): %.3f ms\n",
+                   rtime_ms - itime_ms);
+    verbose_printf(LOG_INFO, ptUserData,
+                   "ASIC duty-cycle efficiency: %.1f%%  (ng=%u nr=%u nd=%u nk=%u)\n",
+                   eff * 100.0, ngroups, nreads, ndrops, nresets);
     verbose_printf(LOG_INFO, ptUserData, "Estimated time to execute Exposure: %.3f sec\n", etime_sec);
 
     return true;
@@ -4184,8 +4190,10 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Vertical-only window = burst stripe when the microcode exposes it
     // (centered SC via Read/Skip counters, keeps parallel outputs).
     // Otherwise fall back to WinMode (single-output, much slower).
-    if ((bVertWin == true) && (bHorzWin == false))
+        if ((bVertWin == true) && (bHorzWin == false))
     {
+        // Prefer WinMode for SC until burst-stripe counters are verified on
+        // this microcode. Writing 0x4024… produced frames stuck at ~65535 ADU.
         if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
@@ -4203,8 +4211,8 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
             {
                 ASIC_Generic(ptUserData, "WinMode", true, 1);
                 verbose_printf(LOG_WARNING, ptUserData,
-                               "%s(): SC via WinMode (no StripeReads* in %s); "
-                               "single-output window, not burst stripe.\n",
+                               "%s(): SC via WinMode (burst stripe disabled in %s); "
+                               "single-output window — valid pixels, slower than stripe.\n",
                                __func__, ptUserData->ASICRegs);
             }
             else
