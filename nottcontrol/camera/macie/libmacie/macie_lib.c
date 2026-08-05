@@ -1407,11 +1407,16 @@ static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_targe
 /// Discard leftover GigE science bytes. Required for Live keep-alive: residual
 /// words from the previous ramp desynchronize the next download and produce
 /// salt-and-pepper / scrambled images.
-static void FlushLeftoverScienceData(MACIE_Settings *ptUserData)
+/// frame_bytes is one science frame in bytes (2 * xpix * ypix); used for logging.
+static void FlushLeftoverScienceData(MACIE_Settings *ptUserData, long frame_bytes)
 {
     if (ptUserData == NULL || ptUserData->offline_develop)
         return;
     if (!ptUserData->bScienceInterfaceOpen || ptUserData->handle == 0)
+        return;
+
+    long nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+    if (nbytes <= 0)
         return;
 
     const long chunk_words = 256 * 1024;
@@ -1426,29 +1431,51 @@ static void FlushLeftoverScienceData(MACIE_Settings *ptUserData)
     }
 
     long total_bytes = 0;
-    for (int round = 0; round < 64; ++round)
+    long to_flush = nbytes;
+    // Prefer discarding only a partial trailing frame when the buffer is
+    // nearly empty of complete frames — avoids over-reading into a race with
+    // the next trigger. If one or more full frames remain after a finished
+    // ramp, discard everything (true keep-alive desync).
+    if (frame_bytes > 1)
     {
-        long nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        if (nbytes <= 0)
+        long rem = nbytes % frame_bytes;
+        if (nbytes < frame_bytes)
+            to_flush = nbytes; // partial only
+        else if (rem != 0)
+            to_flush = nbytes; // partial + full leftovers
+        else
+            to_flush = nbytes; // unexpected full frame(s)
+    }
+
+    for (int round = 0; round < 64 && to_flush > 0; ++round)
+    {
+        long nbytes_now = (long)MACIE_AvailableScienceData(ptUserData->handle);
+        if (nbytes_now <= 0)
             break;
 
-        long nwords = nbytes / 2;
+        long nwords = nbytes_now / 2;
         if (nwords < 1)
             nwords = 1;
         if (nwords > chunk_words)
             nwords = chunk_words;
+        if ((nwords * 2) > to_flush)
+            nwords = to_flush / 2;
+        if (nwords < 1)
+            break;
 
         int got = MACIE_ReadGigeScienceData(ptUserData->handle, 200, (int)nwords, tmp);
         if (got <= 0)
         {
-            // Fall back to frame-sized reads when word API returns nothing.
             ushort *ptemp = MACIE_ReadGigeScienceFrame(ptUserData->handle, 200);
             if (ptemp == NULL)
                 break;
-            total_bytes += 2; // unknown size; count that we discarded something
+            long step = (frame_bytes > 0) ? frame_bytes : 2;
+            total_bytes += step;
+            to_flush -= step;
             continue;
         }
         total_bytes += (long)got * 2;
+        to_flush -= (long)got * 2;
     }
 
     if (total_bytes > 0)
@@ -1773,7 +1800,9 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         verbose_printf(LOG_INFO, ptUserData,
                        "Keeping GigE science interface open (live continuous).\n");
         // Drop any residual words so the next trigger starts frame-aligned.
-        FlushLeftoverScienceData(ptUserData);
+        long frame_bytes =
+            2L * (long)exposure_xpix(ptUserData) * (long)exposure_ypix(ptUserData);
+        FlushLeftoverScienceData(ptUserData, frame_bytes);
     }
 
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
@@ -2040,6 +2069,22 @@ void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
     }
     else
     {
+        // Enhanced pixel clock shifts columns every other acquisition on Slow
+        // v5+ microcode — Live then oscillates between clean CDS and channel
+        // boundary / horizontal-line frames. Force Normal for the live session.
+        if (ptUserData->RegMap.count("PixelClkScheme") > 0)
+        {
+            unsigned int cur = 0;
+            if (GetASICParameter(ptUserData, "PixelClkScheme", &cur) && cur != 0)
+            {
+                SetASICParameter(ptUserData, "PixelClkScheme", 0);
+                if (ReconfigureASIC(ptUserData))
+                {
+                    verbose_printf(LOG_INFO, ptUserData,
+                                   "Live: PixelClkScheme forced Normal (was Enhanced).\n");
+                }
+            }
+        }
         verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep enabled.\n");
     }
 }
@@ -2506,7 +2551,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     if (ptUserData->bKeepScienceInterface)
     {
         // Drain residual science words so the next live ramp stays aligned.
-        FlushLeftoverScienceData(ptUserData);
+        long frame_bytes = 2L * (long)xpix * (long)ypix;
+        FlushLeftoverScienceData(ptUserData, frame_bytes);
         verbose_printf(LOG_INFO, ptUserData,
                        "Keeping GigE science interface open after download (live).\n");
     }
@@ -4474,20 +4520,24 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
 
     // TODO:
-    // Pixel Clock scheme checks (i.e., Normal vs Enhanced) are necessary if there are
-    // differences between full frame and subarray window clocking schemes. Normally
-    // these would be the same, but there is a bug in the Slow Mode v5.0+ microcode
-    // where Enhanced mode causes the columns to shift every other acquisition.
-    // The shifted column then persists after switching back to full frame.
-    // Something is wrong with the pixel timing code.
+    // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
+    // acquisition. Full-frame may use Enhanced; any window / burst-stripe SC
+    // must stay Normal (0) or Live oscillates between clean CDS and channel
+    // seams / horizontal artifacts.
     if (RegMap.count("PixelClkScheme") > 0)
     {
-        uint pixClk = (bHorzWin == false) ? ptUserData->ffPixelClkScheme : ptUserData->winPixelClkScheme;
+        uint pixClk = ptUserData->ffPixelClkScheme;
+        if (use_burst_stripe || bVertWin || bHorzWin)
+            pixClk = ptUserData->winPixelClkScheme; // Normal
         SetASICParameter(ptUserData, "PixelClkScheme", pixClk);
         if (ReconfigureASIC(ptUserData) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
         }
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): PixelClkScheme=%u (%s)\n",
+                       __func__, pixClk,
+                       (use_burst_stripe || bVertWin || bHorzWin) ? "window/SC Normal" : "full-frame");
     }
 
     x1 = ASIC_getX1(ptUserData);
