@@ -173,6 +173,13 @@ typedef struct MACIE_Settings
   unsigned int uiSoftStripeY1;
   unsigned int uiSoftStripeY2;
 
+  // In-memory 2D CDS/single-frame preview for ZMQ acquire multipart reply.
+  // Owned by this struct; freed by ClearDisplayPreview / free_resources.
+  float *pDisplayPreview;
+  int displayPreviewNx;
+  int displayPreviewNy;
+  bool bDisplayPreviewValid;
+
   // Pixel clocking scheme for full frame and subarray window
   // Normal (0) or Enhanced (1)
   // Only here until Enhanced+Window works correctly in future ASIC microcode
@@ -229,6 +236,13 @@ extern bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger);
 extern bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger);
 extern bool HaltCameraAcq(MACIE_Settings *ptUserData);
 extern bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData);
+extern void ClearDisplayPreview(MACIE_Settings *ptUserData);
+extern bool StoreDisplayPreviewU16(MACIE_Settings *ptUserData,
+                                   int xpix, int ypix, int nframes_ramp,
+                                   const unsigned short *pU16);
+extern bool StoreDisplayPreviewF32(MACIE_Settings *ptUserData,
+                                   int xpix, int ypix, int nframes_ramp,
+                                   const float *pF32);
 extern bool DownloadRampUSB(MACIE_Settings *ptUserData, unsigned short pData[], long framesize, 
                             long nframes_save, int triggerTimeout, int wait_delta);
 extern bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], long framesize,

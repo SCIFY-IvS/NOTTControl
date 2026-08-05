@@ -138,6 +138,11 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->uiSoftStripeY1 = 0;
     ptUserData->uiSoftStripeY2 = 0;
 
+    ptUserData->pDisplayPreview = NULL;
+    ptUserData->displayPreviewNx = 0;
+    ptUserData->displayPreviewNy = 0;
+    ptUserData->bDisplayPreviewValid = false;
+
     // Pixel clocking scheme for full frame and subarray window
     // Normal (0) or Enhanced (1)
     // Only here until Enhanced+Window works correctly in future ASIC microcode
@@ -1989,6 +1994,96 @@ bool HaltCameraAcq(MACIE_Settings *ptUserData)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// \brief ClearDisplayPreview Free the in-memory ZMQ display preview buffer.
+void ClearDisplayPreview(MACIE_Settings *ptUserData)
+{
+    if (ptUserData == NULL)
+        return;
+    delete[] ptUserData->pDisplayPreview;
+    ptUserData->pDisplayPreview = NULL;
+    ptUserData->displayPreviewNx = 0;
+    ptUserData->displayPreviewNy = 0;
+    ptUserData->bDisplayPreviewValid = false;
+}
+
+/// CDS = last − first when nframes≥2, else copy the single plane (float32).
+static bool store_display_preview_plane(MACIE_Settings *ptUserData,
+                                        int xpix, int ypix, int nframes_ramp,
+                                        const unsigned short *pU16,
+                                        const float *pF32)
+{
+    if (ptUserData == NULL || xpix <= 0 || ypix <= 0 || nframes_ramp < 1)
+        return false;
+    if (pU16 == NULL && pF32 == NULL)
+        return false;
+
+    const long framesize = (long)xpix * (long)ypix;
+    float *disp = NULL;
+    try
+    {
+        disp = new float[framesize];
+    }
+    catch (const std::exception &e)
+    {
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "display preview alloc failed: %s\n", e.what());
+        return false;
+    }
+
+    if (nframes_ramp == 1)
+    {
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[i];
+        }
+    }
+    else
+    {
+        const long last0 = framesize * (long)(nframes_ramp - 1);
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[last0 + i] - pF32[i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[last0 + i] - (float)pU16[i];
+        }
+    }
+
+    ClearDisplayPreview(ptUserData);
+    ptUserData->pDisplayPreview = disp;
+    ptUserData->displayPreviewNx = xpix;
+    ptUserData->displayPreviewNy = ypix;
+    ptUserData->bDisplayPreviewValid = true;
+    verbose_printf(LOG_INFO, ptUserData,
+                   "  Stored display preview %dx%d (CDS/single) for ZMQ\n",
+                   xpix, ypix);
+    return true;
+}
+
+bool StoreDisplayPreviewU16(MACIE_Settings *ptUserData,
+                            int xpix, int ypix, int nframes_ramp,
+                            const unsigned short *pU16)
+{
+    return store_display_preview_plane(ptUserData, xpix, ypix, nframes_ramp, pU16, NULL);
+}
+
+bool StoreDisplayPreviewF32(MACIE_Settings *ptUserData,
+                            int xpix, int ypix, int nframes_ramp,
+                            const float *pF32)
+{
+    return store_display_preview_plane(ptUserData, xpix, ypix, nframes_ramp, NULL, pF32);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// \brief DownloadAndSaveAllUSB Function to download all requested frames
 ///  from MACIE, coadd average if requested, and save to FITS.
 /// \param ptUserData The user-set structure containing all the hardware parameters.
@@ -1999,6 +2094,9 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     verbose_printf(LOG_INFO, ptUserData, "DownloadAndSaveAllUSB: saveDir=%s\n",
                    ptUserData->saveDir.c_str());
+
+    // Drop any stale preview until this acquire produces a new one.
+    ClearDisplayPreview(ptUserData);
 
     const int xpix = (int)exposure_xpix(ptUserData);
     const int ypix = (int)exposure_ypix(ptUserData);
@@ -2154,6 +2252,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         // If no coadding, keep in 16-bit format and save
         if (ncoadds == 1)
         {
+            // In-memory CDS for ZMQ acquire reply (before / instead of disk preview).
+            const bool have_preview = StoreDisplayPreviewU16(
+                ptUserData, xpix, ypix, nframes_ramp, pData);
+
             if (ptUserData->bSaveData)
             {
                 if (ifile >= (int)filenames.size())
@@ -2180,9 +2282,9 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 ifile++;
                 nwritten++;
             }
-            else
+            else if (!have_preview)
             {
-                // Preview-only: overwrite a fixed FITS for GUI display (no archive).
+                // Fallback for clients that still poll preview.fits.
                 string preview = ptUserData->saveDir;
                 if (!preview.empty() && preview.back() != '/')
                     preview += "/";
@@ -2194,6 +2296,12 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     write_failed = true;
                     break;
                 }
+                nwritten++;
+            }
+            else
+            {
+                verbose_printf(LOG_INFO, ptUserData,
+                               "Skipping preview.fits (ZMQ display preview ready).\n");
                 nwritten++;
             }
         }
@@ -2224,6 +2332,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     verbose_printf(LOG_INFO, ptUserData, "  Time to take average: %f seconds\n", time_taken);
                 }
 
+                // In-memory CDS for ZMQ acquire reply (before / instead of disk preview).
+                const bool have_preview = StoreDisplayPreviewF32(
+                    ptUserData, xpix, ypix, nframes_ramp, pRampBuffer);
+
                 if (ptUserData->bSaveData)
                 {
                     if (ifile >= (int)filenames.size())
@@ -2251,7 +2363,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     ifile++;
                     nwritten++;
                 }
-                else
+                else if (!have_preview)
                 {
                     string preview = ptUserData->saveDir;
                     if (!preview.empty() && preview.back() != '/')
@@ -2264,6 +2376,12 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                         write_failed = true;
                         break;
                     }
+                    nwritten++;
+                }
+                else
+                {
+                    verbose_printf(LOG_INFO, ptUserData,
+                                   "Skipping preview.fits (ZMQ display preview ready).\n");
                     nwritten++;
                 }
 

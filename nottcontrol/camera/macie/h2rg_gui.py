@@ -1224,6 +1224,7 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
         self._live_frame_available = threading.Event()
+        self._live_pending_frame: numpy.ndarray | None = None
         self._frame_timing_t0: float | None = None
         self._frame_timing_label = "Acquire"
         self._frame_timing_skip_report = False
@@ -2471,14 +2472,16 @@ class H2rgMainWindow(QMainWindow):
         if self._macie is not None:
             self._macie.set_live_frame_callback(None)
 
-    def _on_live_frame_written(self) -> None:
+    def _on_live_frame_written(self, frame=None) -> None:
         """Called from the Macie continuous thread after each acquire completes."""
+        self._live_pending_frame = frame
         self._live_frame_available.set()
 
     def _activate_live_ui(self) -> None:
         self._live_active = True
         self._live_poll_stop.clear()
         self._live_frame_available.clear()
+        self._live_pending_frame = None
         if self.ui is not None:
             self.ui.button_live.setText("Stop live")
         self._set_live_dependent_controls(True)
@@ -2504,6 +2507,19 @@ class H2rgMainWindow(QMainWindow):
                 ):
                     break
                 self._arm_frame_timing("Live")
+                pending = self._live_pending_frame
+                self._live_pending_frame = None
+                if pending is not None:
+                    self._raw_fits_cube = None
+                    self._raw_fits_header = None
+                    self._last_fits_path = None
+                    if self._save_image_enabled():
+                        status = "Live — ZMQ preview"
+                    else:
+                        status = "Live — ZMQ preview (not archived)"
+                    self._frame_timing_status = status
+                    self.frame_ready.emit(numpy.asarray(pending, dtype=numpy.float32))
+                    continue
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
                     frame, path = loaded
@@ -3147,7 +3163,18 @@ class H2rgMainWindow(QMainWindow):
                     before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
                 except OSError:
                     before_mtime = 0.0
-                macie.acquire()
+                result = macie.acquire()
+                if result.frame is not None:
+                    self._raw_fits_cube = None
+                    self._raw_fits_header = None
+                    self._last_fits_path = None
+                    self._frame_timing_status = (
+                        "Acquire complete — displayed via ZMQ preview (not archived)"
+                    )
+                    self.frame_ready.emit(
+                        numpy.asarray(result.frame, dtype=numpy.float32)
+                    )
+                    return
                 frame, path = self._wait_for_preview_fits(
                     preview,
                     before_mtime=before_mtime,
@@ -3189,10 +3216,17 @@ class H2rgMainWindow(QMainWindow):
             )
             preview_thread.start()
             try:
-                macie.acquire()
+                result = macie.acquire()
             finally:
                 stop_preview.set()
                 preview_thread.join(timeout=2.0)
+
+            if result.frame is not None:
+                self._frame_timing_skip_report = True
+                self.frame_ready.emit(
+                    numpy.asarray(result.frame, dtype=numpy.float32)
+                )
+                self.status_updated.emit("Acquire: preview — ZMQ")
 
             ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
                 before_mtime,
@@ -3222,6 +3256,12 @@ class H2rgMainWindow(QMainWindow):
                     ramp_paths, science_paths
                 )
                 self.frame_ready.emit(frame)
+            elif result.frame is not None:
+                self._last_fits_path = None
+                self._frame_timing_status = (
+                    "Acquire complete — ZMQ preview (archive FITS missing)"
+                )
+                self._report_frame_timing()
             else:
                 self._frame_timing_t0 = None
                 self.status_updated.emit(self._missing_fits_status())

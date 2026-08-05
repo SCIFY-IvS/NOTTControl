@@ -1295,6 +1295,8 @@ bool free_resources(MACIE_Settings *ptUserData)
     if (SettingsCheckNULL(ptUserData) == false)
         return false;
 
+    ClearDisplayPreview(ptUserData);
+
     if (MACIE_Free() != MACIE_OK)
     {
         verbose_printf(LOG_ERROR, ptUserData, "MACIE_Free failed:\n %s\n", MACIE_Error());

@@ -2,9 +2,12 @@ import os
 import ctypes
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
 from threading import Thread, Event, Lock
 import zmq
+
+import numpy
 
 from nottcontrol import config
 
@@ -35,6 +38,54 @@ def parse_zmq_float(value: str | float | int) -> float:
         return float(value)
     normalized = str(value).strip().replace(",", ".")
     return float(normalized)
+
+
+@dataclass(frozen=True)
+class AcquireResult:
+    """Result of an acquire ZMQ round-trip.
+
+    *frame* is the in-memory CDS/single-plane preview from the server when the
+    multipart reply includes it; otherwise None (fall back to FITS).
+    """
+
+    frame: numpy.ndarray | None = None
+
+
+def parse_acquire_preview_parts(
+    parts: list[bytes] | tuple[bytes, ...] | None,
+) -> AcquireResult:
+    """Parse acquire multipart reply into an optional float32 image (ny, nx)."""
+    if not parts:
+        return AcquireResult()
+    header = parts[0]
+    if isinstance(header, bytes):
+        header = header.decode("utf-8", errors="replace")
+    tokens = str(header).split(";")
+    if not tokens or tokens[0] != "ok":
+        detail = tokens[1] if len(tokens) > 1 else str(header)
+        raise Exception(f"Operation failed: {detail}")
+    if len(parts) < 2 or len(tokens) < 5 or tokens[1] != "preview":
+        return AcquireResult()
+    try:
+        nx = int(tokens[2])
+        ny = int(tokens[3])
+    except ValueError as exc:
+        raise Exception(f"Invalid acquire preview header: {header}") from exc
+    dtype_name = tokens[4].lower()
+    if dtype_name not in ("float32", "f32"):
+        raise Exception(f"Unsupported acquire preview dtype: {dtype_name}")
+    if nx <= 0 or ny <= 0:
+        return AcquireResult()
+    payload = parts[1]
+    if isinstance(payload, str):
+        payload = payload.encode("latin1")
+    expected = nx * ny * 4
+    if len(payload) < expected:
+        raise Exception(
+            f"Acquire preview truncated: got {len(payload)} bytes, need {expected}"
+        )
+    frame = numpy.frombuffer(payload[:expected], dtype="<f4").reshape((ny, nx)).copy()
+    return AcquireResult(frame=frame)
 
 
 class DetectorMode(Enum):
@@ -71,7 +122,7 @@ class MacieInterface():
         self._closing = Event()
         self._pause_live = Event()
         self._live_error_callback: Callable[[Exception], None] | None = None
-        self._live_frame_callback: Callable[[], None] | None = None
+        self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
 
     def set_live_error_callback(
@@ -80,9 +131,9 @@ class MacieInterface():
         self._live_error_callback = callback
 
     def set_live_frame_callback(
-        self, callback: Callable[[], None] | None
+        self, callback: Callable[[numpy.ndarray | None], None] | None
     ) -> None:
-        """Optional hook invoked after each successful live acquire completes."""
+        """Optional hook after each live acquire; may receive the ZMQ preview frame."""
         self._live_frame_callback = callback
 
     def _attempt_halt_after_timeout(self) -> None:
@@ -265,11 +316,12 @@ class MacieInterface():
                     self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
             return parts
 
-    def acquire(self, no_recon=False):
-        return self._request(
+    def acquire(self, no_recon=False) -> AcquireResult:
+        parts = self._request_multipart(
             f"acquire;{str(no_recon).lower()}",
             timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
         )
+        return parse_acquire_preview_parts(parts)
 
     def get_save_dir(self) -> str | None:
         return self._request("getsavedir")
@@ -487,17 +539,17 @@ class MacieInterface():
                 try:
                     # First live ramp reconfigures; later ramps skip ReconfigureASIC.
                     no_recon = not self._live_first_acquire
-                    self.acquire(no_recon=no_recon)
+                    result = self.acquire(no_recon=no_recon)
                     self._live_first_acquire = False
                     frame_callback = self._live_frame_callback
                     if frame_callback is not None:
                         try:
-                            frame_callback()
+                            frame_callback(result.frame)
                         except Exception as callback_exc:
                             print(f"Live frame callback failed: {callback_exc}")
-                    # Brief yield so the GUI can load preview/FITS on the ZMQ lock.
+                    # Brief yield so other ZMQ callers can run between ramps.
                     if self._acquiring.is_set() and not self._closing.is_set():
-                        time.sleep(0.02)
+                        time.sleep(0.005)
                 except Exception as exc:
                     print(f"Live acquire failed: {exc}")
                     self._acquiring.clear()

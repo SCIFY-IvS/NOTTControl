@@ -394,6 +394,23 @@ int main () {
                     norecon = true;
                 }
                 result = M_acquire(norecon);
+                if (result && _ptUserData != NULL &&
+                    _ptUserData->bDisplayPreviewValid &&
+                    _ptUserData->pDisplayPreview != NULL &&
+                    _ptUserData->displayPreviewNx > 0 &&
+                    _ptUserData->displayPreviewNy > 0)
+                {
+                    const int nx = _ptUserData->displayPreviewNx;
+                    const int ny = _ptUserData->displayPreviewNy;
+                    const size_t nbytes =
+                        (size_t)nx * (size_t)ny * sizeof(float);
+                    binary_payload.assign(
+                        reinterpret_cast<const char *>(_ptUserData->pDisplayPreview),
+                        nbytes);
+                    answer = "preview;" + std::to_string(nx) + ";" +
+                             std::to_string(ny) + ";float32";
+                    send_binary = true;
+                }
             }
             else if (command == "halt")
             {
