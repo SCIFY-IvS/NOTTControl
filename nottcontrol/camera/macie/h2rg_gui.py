@@ -962,6 +962,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
         self._checkBox_save_image: QCheckBox | None = None
+        self._checkBox_autoscale: QCheckBox | None = None
         self._button_apply_levels: QPushButton | None = None
         self._lineEdit_level_min: QLineEdit | None = None
         self._lineEdit_level_max: QLineEdit | None = None
@@ -1565,6 +1566,15 @@ class H2rgMainWindow(QMainWindow):
         )
         self._checkBox_save_image = save_box
         options.addWidget(save_box)
+
+        autoscale_box = QCheckBox("Autoscale")
+        autoscale_box.setChecked(True)
+        autoscale_box.setToolTip(
+            "Automatically adjust the color scale when a new frame is shown. "
+            "Uncheck to keep the current min/max."
+        )
+        self._checkBox_autoscale = autoscale_box
+        options.addWidget(autoscale_box)
         options.addStretch(1)
         outer.addLayout(options)
 
@@ -1707,6 +1717,8 @@ class H2rgMainWindow(QMainWindow):
         self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
         if getattr(self, "_checkBox_save_image", None) is not None:
             self._checkBox_save_image.setStyleSheet(CHECKBOX_STYLE)
+        if getattr(self, "_checkBox_autoscale", None) is not None:
+            self._checkBox_autoscale.setStyleSheet(CHECKBOX_STYLE)
 
         for name in (
             "label",
@@ -2648,6 +2660,12 @@ class H2rgMainWindow(QMainWindow):
 
     def _save_image_enabled(self) -> bool:
         box = getattr(self, "_checkBox_save_image", None)
+        if box is None:
+            return True
+        return bool(box.isChecked())
+
+    def _autoscale_enabled(self) -> bool:
+        box = getattr(self, "_checkBox_autoscale", None)
         if box is None:
             return True
         return bool(box.isChecked())
@@ -3640,7 +3658,7 @@ class H2rgMainWindow(QMainWindow):
         # Contiguous float32 avoids large paint buffers / exotic dtypes under VNC.
         display = numpy.ascontiguousarray(display, dtype=numpy.float32)
 
-        auto_levels = self._auto_levels_next
+        auto_levels = self._auto_levels_next and self._autoscale_enabled()
         self.setUpdatesEnabled(False)
         try:
             if auto_levels:
@@ -3651,9 +3669,11 @@ class H2rgMainWindow(QMainWindow):
                 self.image.setImage(
                     display, autoLevels=False, levels=self._manual_levels
                 )
+                self._auto_levels_next = False
             else:
                 self.image.setImage(display, autoLevels=False)
                 self._sync_level_fields_from_image()
+                self._auto_levels_next = False
             self._update_roi_overlays()
         finally:
             self.setUpdatesEnabled(True)
