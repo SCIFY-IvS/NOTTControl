@@ -30,9 +30,9 @@ class ParseAcquirePreviewPartsTests(unittest.TestCase):
         with self.assertRaises(Exception):
             parse_acquire_preview_parts([b"nok;failed"])
 
-    def test_truncated_payload_raises(self) -> None:
-        with self.assertRaises(Exception):
-            parse_acquire_preview_parts([b"ok;preview;2;2;float32", b"xxxx"])
+    def test_truncated_payload_is_ignored(self) -> None:
+        result = parse_acquire_preview_parts([b"ok;preview;2;2;float32", b"xxxx"])
+        self.assertIsNone(result.frame)
 
 
 if __name__ == "__main__":

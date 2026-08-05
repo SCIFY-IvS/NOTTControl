@@ -69,11 +69,13 @@ def parse_acquire_preview_parts(
     try:
         nx = int(tokens[2])
         ny = int(tokens[3])
-    except ValueError as exc:
-        raise Exception(f"Invalid acquire preview header: {header}") from exc
+    except ValueError:
+        print(f"H2RG acquire preview ignored (bad size): {header}")
+        return AcquireResult()
     dtype_name = tokens[4].lower()
     if dtype_name not in ("float32", "f32"):
-        raise Exception(f"Unsupported acquire preview dtype: {dtype_name}")
+        print(f"H2RG acquire preview ignored (dtype {dtype_name})")
+        return AcquireResult()
     if nx <= 0 or ny <= 0:
         return AcquireResult()
     payload = parts[1]
@@ -81,9 +83,10 @@ def parse_acquire_preview_parts(
         payload = payload.encode("latin1")
     expected = nx * ny * 4
     if len(payload) < expected:
-        raise Exception(
-            f"Acquire preview truncated: got {len(payload)} bytes, need {expected}"
+        print(
+            f"H2RG acquire preview ignored (truncated: {len(payload)}/{expected} bytes)"
         )
+        return AcquireResult()
     frame = numpy.frombuffer(payload[:expected], dtype="<f4").reshape((ny, nx)).copy()
     return AcquireResult(frame=frame)
 
@@ -97,6 +100,8 @@ class DetectorMode(Enum):
 # By using the python 'with' statement, you can ensure that both the initialization
 # and the de-initialization are done
 class MacieInterface():
+
+    _LIVE_MAX_FAILURES = 3
 
     def __init__(
         self,
@@ -121,6 +126,7 @@ class MacieInterface():
         self._acquiring.clear()
         self._closing = Event()
         self._pause_live = Event()
+        self._live_session_open = False
         self._live_error_callback: Callable[[Exception], None] | None = None
         self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
@@ -135,6 +141,27 @@ class MacieInterface():
     ) -> None:
         """Optional hook after each live acquire; may receive the ZMQ preview frame."""
         self._live_frame_callback = callback
+
+    def _set_live_session(self, keep: bool) -> None:
+        """Enable/disable GigE keep-alive; no-op if already in the requested state."""
+        if keep == self._live_session_open:
+            return
+        self._request(f"livesession;{str(keep).lower()}")
+        self._live_session_open = keep
+
+    def _reset_live_science_interface(self) -> None:
+        """Close and reopen the science interface after a failed live ramp."""
+        try:
+            if self._live_session_open:
+                self._request("livesession;false")
+                self._live_session_open = False
+            if self._acquiring.is_set() and not self._closing.is_set():
+                self._request("livesession;true")
+                self._live_session_open = True
+                # Next ramp should reconfigure after a fresh GigE open.
+                self._live_first_acquire = True
+        except Exception as exc:
+            print(f"Live science interface reset failed: {exc}")
 
     def _attempt_halt_after_timeout(self) -> None:
         try:
@@ -512,7 +539,7 @@ class MacieInterface():
     def start_continuous_acquisition(self):
         self._live_first_acquire = True
         try:
-            self._request("livesession;true")
+            self._set_live_session(True)
         except Exception as exc:
             print(f"Live session start failed: {exc}")
         self._acquiring.set()
@@ -520,7 +547,7 @@ class MacieInterface():
     def stop_continuous_acquisition(self):
         self._acquiring.clear()
         try:
-            self._request("livesession;false")
+            self._set_live_session(False)
         except Exception as exc:
             print(f"Live session stop failed: {exc}")
 
@@ -532,6 +559,7 @@ class MacieInterface():
 
     def continuous_acquisition(self):
         # Run for as long as the interface is not closed
+        failures = 0
         while not self._closing.is_set():
             if self._acquiring.wait(0.1):
                 if self._pause_live.is_set():
@@ -541,6 +569,7 @@ class MacieInterface():
                     no_recon = not self._live_first_acquire
                     result = self.acquire(no_recon=no_recon)
                     self._live_first_acquire = False
+                    failures = 0
                     frame_callback = self._live_frame_callback
                     if frame_callback is not None:
                         try:
@@ -551,10 +580,16 @@ class MacieInterface():
                     if self._acquiring.is_set() and not self._closing.is_set():
                         time.sleep(0.005)
                 except Exception as exc:
-                    print(f"Live acquire failed: {exc}")
+                    failures += 1
+                    print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
+                    # One bad ramp often leaves GigE keep-alive desynced; reopen.
+                    self._reset_live_science_interface()
+                    if failures < self._LIVE_MAX_FAILURES and self._acquiring.is_set():
+                        time.sleep(0.5)
+                        continue
                     self._acquiring.clear()
                     try:
-                        self._request("livesession;false")
+                        self._set_live_session(False)
                     except Exception:
                         pass
                     callback = self._live_error_callback
