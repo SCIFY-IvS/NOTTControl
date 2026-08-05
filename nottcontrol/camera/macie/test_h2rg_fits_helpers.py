@@ -188,6 +188,19 @@ class MapServerFitsPathTests(unittest.TestCase):
         mapped = map_server_fits_path("/data/fits/frame.fits")
         self.assertEqual(mapped, Path("/data/fits/frame.fits"))
 
+    def test_linux_does_not_apply_unc_mapping(self) -> None:
+        with patch("nottcontrol.camera.macie.h2rg_gui.sys.platform", "linux"):
+            with patch(
+                "nottcontrol.camera.macie.h2rg_gui.FITS_LINUX_PATH_PREFIX",
+                "/data",
+            ):
+                with patch(
+                    "nottcontrol.camera.macie.h2rg_gui.FITS_WINDOWS_UNC_ROOT",
+                    r"\\nott-server.ster.kuleuven.be\Data",
+                ):
+                    mapped = map_server_fits_path("/data/nott/20260805/")
+        self.assertEqual(mapped, Path("/data/nott/20260805"))
+
     def test_basename_helper(self) -> None:
         self.assertEqual(fits_basename("/tmp/a/b.fits"), "b.fits")
         self.assertIsNone(fits_basename(None))

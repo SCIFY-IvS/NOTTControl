@@ -8,7 +8,7 @@ import time
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
@@ -581,9 +581,24 @@ def parse_macie_save_dir(config_path: Path) -> Path:
     return Path(os.path.expanduser(save_dir))
 
 
+def _looks_like_windows_unc(path: str) -> bool:
+    """True for \\\\server\\share or //server/share style paths."""
+    normalized = path.strip()
+    if normalized.startswith("\\\\") or normalized.startswith("//"):
+        return True
+    # config.ini often stores a single leading backslash before the server name
+    if normalized.startswith("\\") and not normalized.startswith("\\/"):
+        return True
+    return False
+
+
 def resolve_fits_save_dir(config_path: Path) -> Path:
     configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
-    if configured:
+    # On Linux/macOS, never use the Windows SMB path from config.ini as a local
+    # directory — it becomes a relative junk path under the process cwd.
+    if configured and not (
+        sys.platform != "win32" and _looks_like_windows_unc(configured)
+    ):
         return Path(os.path.expanduser(configured))
     return parse_macie_save_dir(config_path)
 
@@ -596,20 +611,27 @@ def zmq_server_hostname(zmq_address: str) -> str | None:
 def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path | None:
     """Map a Linux server FITS path to a local path when configured.
 
-    Returns None on Windows when no explicit Linux-to-UNC mapping is configured,
-    so callers fall back to ZMQ fetch instead of inventing invalid UNC paths.
+    On Linux/macOS, absolute server paths are returned unchanged (e.g. /data/nott).
+    On Windows, optional UNC mapping is applied; without mapping, returns None so
+    callers fall back to ZMQ fetch instead of inventing invalid UNC paths.
     """
-    normalized = server_path.replace("\\", "/")
+    normalized = server_path.replace("\\", "/").strip()
+    if not normalized:
+        return None
+
+    if sys.platform != "win32":
+        if normalized.startswith("/"):
+            return Path(normalized)
+        return Path(server_path)
+
     if FITS_LINUX_PATH_PREFIX and FITS_WINDOWS_UNC_ROOT:
         prefix = FITS_LINUX_PATH_PREFIX.replace("\\", "/").rstrip("/")
         if normalized.startswith(prefix):
             suffix = normalized[len(prefix) :].lstrip("/")
             unc_root = FITS_WINDOWS_UNC_ROOT.rstrip("\\/")
-            if sys.platform == "win32":
-                return Path(unc_root) / PureWindowsPath(suffix.replace("/", "\\"))
-            return Path(unc_root) / Path(*PurePosixPath(suffix).parts)
+            return Path(unc_root) / PureWindowsPath(suffix.replace("/", "\\"))
 
-    if sys.platform == "win32" and normalized.startswith("/"):
+    if normalized.startswith("/"):
         return None
 
     return Path(server_path)
@@ -2775,7 +2797,9 @@ class H2rgMainWindow(QMainWindow):
             return self._save_dir
 
         configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
-        if configured:
+        if configured and not (
+            sys.platform != "win32" and _looks_like_windows_unc(configured)
+        ):
             path = Path(os.path.expanduser(configured))
             try:
                 path.mkdir(parents=True, exist_ok=True)
