@@ -4288,7 +4288,8 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
-            // Restore full-frame stripe counters (not zeros — see burst_stripe_write_ffidle)
+            // Restore full-frame stripe counters before clearing the flag's
+            // effect on later close/idle helpers (write while still allowed).
             burst_stripe_write_ffidle(ptUserData);
         }
     }
@@ -4580,6 +4581,8 @@ unsigned int ASIC_setY2(MACIE_Settings *ptUserData, unsigned int val)
 
 // Full-frame idle for HxRG burst-stripe counters (MCD data table → 4024…).
 // Never write Reads*=0: that produced 0-byte GigE downloads on this microcode.
+// Only call this while stripe mode is (or was just) active — writing these
+// registers on a pristine full-frame Slow path also broke GigE downloads.
 static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData)
 {
     map<string, regInfo> &RegMap = ptUserData->RegMap;
@@ -4598,10 +4601,13 @@ static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData)
         ASIC_Generic(ptUserData, "RowReads", true, ydet);
 }
 
-// Call this function to set burst mode to full frame for idling purposes (after acquisition)
+// Call this after closing the science interface. Do not rewrite stripe counters
+// here: touching 4024… after every GigE close broke full-frame downloads even
+// with Reads1=ydet. Full-frame idle is restored only when ASIC_STRIPEMode
+// turns stripe off (return to Full Frame / XY window).
 void burst_stripe_set_ffidle(MACIE_Settings *ptUserData)
 {
-    burst_stripe_write_ffidle(ptUserData);
+    (void)ptUserData;
 }
 
 // Returns true if running Burst Stripe Mode, otherwise false
@@ -4614,11 +4620,25 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     unsigned int y2 = ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
-    // Idle / full-span: not in stripe mode, no counters, or Y covers the array.
-    // If StripeReads* are not in RegMap, do not touch ASIC registers at all.
-    if ((ASIC_STRIPEMode(ptUserData, false, 0) == 0) || (RegMap.count("StripeReads1") == 0) || ((y1 < 4) && (y2 > ydet - 5)))
+    // No counter map → nothing to program.
+    if (RegMap.count("StripeReads1") == 0)
     {
-        if (bSet && RegMap.count("StripeReads1") > 0)
+        *ypix = ny;
+        return false;
+    }
+
+    // Full-frame / stripe off: do NOT touch 4024… (that broke GigE when done
+    // on every acquire). Only restore idle when leaving an active stripe span.
+    if (ASIC_STRIPEMode(ptUserData, false, 0) == 0)
+    {
+        *ypix = ny;
+        return false;
+    }
+
+    // Stripe on but Y covers the full array → idle counters, not a stripe.
+    if ((y1 < 4) && (y2 > ydet - 5))
+    {
+        if (bSet)
             burst_stripe_write_ffidle(ptUserData);
 
         *ypix = ny;
