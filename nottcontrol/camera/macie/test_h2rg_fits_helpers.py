@@ -11,6 +11,8 @@ from unittest.mock import patch
 import numpy
 
 from nottcontrol.camera.macie.h2rg_gui import (
+    WINDOW_MODES,
+    _bottom_vertical_stripe,
     _centered_vertical_stripe,
     _channel_window,
     central_value_median,
@@ -48,6 +50,28 @@ class StripeWindowTests(unittest.TestCase):
 
     def test_centered_stripe_1024_rows(self) -> None:
         self.assertEqual(_centered_vertical_stripe(1024), (0, 2047, 512, 1535))
+
+    def test_bottom_stripe_128_rows(self) -> None:
+        self.assertEqual(_bottom_vertical_stripe(128), (0, 2047, 0, 127))
+
+    def test_bottom_stripe_256_rows(self) -> None:
+        self.assertEqual(_bottom_vertical_stripe(256), (0, 2047, 0, 255))
+
+    def test_sc_presets_are_bottom_aligned_burst(self) -> None:
+        by_label = {mode.label: mode for mode in WINDOW_MODES}
+        for label, height in (
+            ("SC 128", 128),
+            ("SC 256", 256),
+            ("SC 512", 512),
+            ("SC 1024", 1024),
+        ):
+            mode = by_label[label]
+            self.assertFalse(mode.x_window)
+            self.assertTrue(mode.y_window)
+            self.assertEqual(
+                (mode.x1, mode.x2, mode.y1, mode.y2),
+                _bottom_vertical_stripe(height),
+            )
 
 
 class CentralValueTests(unittest.TestCase):

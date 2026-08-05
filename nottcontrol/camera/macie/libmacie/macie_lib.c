@@ -4187,18 +4187,21 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Vertical-only window = burst stripe when the microcode exposes it
-    // (centered SC via Read/Skip counters, keeps parallel outputs).
-    // Otherwise fall back to WinMode (single-output, much slower).
-        if ((bVertWin == true) && (bHorzWin == false))
+    // Vertical-only window = burst stripe when the microcode exposes it.
+    // Only edge-aligned Y (bottom/top refs) is proven on this Teledyne MCD;
+    // centered middle stripes previously left GigE buffers at ~0xFFFF.
+    // Otherwise fall back to WinMode (single-output, slower, valid pixels).
+    if ((bVertWin == true) && (bHorzWin == false))
     {
-        // Prefer WinMode for SC until burst-stripe counters are verified on
-        // this microcode. Writing 0x4024… produced frames stuck at ~65535 ADU.
-        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
+        const bool edge_aligned = (y1 < 4) || (y2 > ydet - 5);
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0 &&
+            edge_aligned)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
             verbose_printf(LOG_INFO, ptUserData,
-                           "%s(): SC via burst stripe (parallel outputs).\n", __func__);
+                           "%s(): SC via burst stripe (edge-aligned, parallel outputs) "
+                           "y=[%u,%u].\n",
+                           __func__, y1, y2);
         }
         else
         {
@@ -4210,10 +4213,21 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
             else if (RegMap.count("WinMode") > 0)
             {
                 ASIC_Generic(ptUserData, "WinMode", true, 1);
-                verbose_printf(LOG_WARNING, ptUserData,
-                               "%s(): SC via WinMode (burst stripe disabled in %s); "
-                               "single-output window — valid pixels, slower than stripe.\n",
-                               __func__, ptUserData->ASICRegs);
+                if (ptUserData->bStripeModeAllowed && !edge_aligned)
+                {
+                    verbose_printf(LOG_WARNING, ptUserData,
+                                   "%s(): centered SC y=[%u,%u] uses WinMode "
+                                   "(middle burst not enabled); prefer bottom-aligned "
+                                   "SC for 32-output burst.\n",
+                                   __func__, y1, y2);
+                }
+                else
+                {
+                    verbose_printf(LOG_WARNING, ptUserData,
+                                   "%s(): SC via WinMode (burst stripe unavailable in %s); "
+                                   "single-output window.\n",
+                                   __func__, ptUserData->ASICRegs);
+                }
             }
             else
             {
@@ -4755,6 +4769,10 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
             if (RegMap.count("RowReads") > 0)
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=4 Skips2=0 "
+                           "(y1=%u y2=%u ny=%u)\n",
+                           __func__, yrows - 4, ydet - yrows, y1, y2, ny);
         }
     }
     else if (y2 > ydet - 5) // Upper reference pixels included in active block
