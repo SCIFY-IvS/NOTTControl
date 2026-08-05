@@ -109,23 +109,61 @@ def patch_linux_lineedit_paint() -> None:
         return
 
     from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QPainter
+    from PyQt5.QtGui import QColor, QFontMetrics, QPainter
     from PyQt5.QtWidgets import QLineEdit
 
     def _safe_paint(self, event) -> None:  # noqa: ANN001
         painter = QPainter(self)
         try:
             painter.fillRect(self.rect(), self.palette().brush(self.backgroundRole()))
-            painter.setPen(self.palette().color(self.foregroundRole()))
             painter.setFont(self.font())
             text = self.text()
             if self.echoMode() != QLineEdit.Normal:
                 text = "*" * len(text)
-            painter.drawText(
-                self.rect().adjusted(6, 0, -6, 0),
-                int(self.alignment()) | Qt.AlignVCenter,
-                text,
-            )
+            content = self.rect().adjusted(6, 0, -6, 0)
+            fg = self.palette().color(self.foregroundRole())
+
+            if self.hasFocus() and self.hasSelectedText() and text:
+                try:
+                    start = max(0, int(self.selectionStart()))
+                    selected = self.selectedText()
+                    if selected:
+                        fm = QFontMetrics(self.font())
+                        before = text[:start]
+                        align = int(self.alignment())
+                        text_w = fm.horizontalAdvance(text)
+                        before_w = fm.horizontalAdvance(before)
+                        if align & int(Qt.AlignRight):
+                            x0 = content.right() - text_w + before_w
+                        elif align & int(Qt.AlignHCenter):
+                            x0 = content.left() + (content.width() - text_w) // 2 + before_w
+                        else:
+                            x0 = content.left() + before_w
+                        sel_w = max(1, fm.horizontalAdvance(selected))
+                        sel_rect = content.adjusted(0, 2, 0, -2)
+                        sel_rect.setLeft(int(x0))
+                        sel_rect.setWidth(int(sel_w))
+                        painter.fillRect(sel_rect, QColor(50, 129, 140, 90))
+                except Exception:
+                    pass
+
+            painter.setPen(fg)
+            painter.drawText(content, int(self.alignment()) | Qt.AlignVCenter, text)
+
+            # Stock paint drew the caret; without it focused fields look dead.
+            # cursorRect() is a character cell — fill only a 1px I-beam, not the
+            # whole rectangle (that looked like a solid black block).
+            if self.hasFocus() and not self.isReadOnly():
+                try:
+                    caret = self.cursorRect()
+                    if caret.isValid() and caret.height() > 0:
+                        x = int(caret.x())
+                        y = int(caret.y()) + 2
+                        h = max(1, int(caret.height()) - 4)
+                        painter.setPen(fg)
+                        painter.drawLine(x, y, x, y + h)
+                except Exception:
+                    pass
         finally:
             painter.end()
 

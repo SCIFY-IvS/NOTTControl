@@ -8,14 +8,15 @@ import time
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from urllib.parse import urlparse
 
 import numpy
-from PyQt5.QtCore import QEvent, QPointF, QSize, Qt, QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import QEvent, QPointF, QRect, QSize, Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QImage, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -227,12 +228,27 @@ def _channel_window(
 def _centered_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width central rows (Y window; all parallel outputs kept).
+    """Full-width central rows (Y window).
 
-    For SC 1024 on a 2048 array this is y=[512, 1535].
+    For a 1024-row stripe on a 2048 array this is y=[512, 1535].
+    Centered stripes need WinMode on this microcode (middle burst counters
+    are not yet verified); prefer `_bottom_vertical_stripe` for fast SC.
     """
     y0 = (array_size - height) // 2
     return 0, array_size - 1, y0, y0 + height - 1
+
+
+def _bottom_vertical_stripe(
+    height: int, array_size: int = H2RG_ARRAY_SIZE
+) -> tuple[int, int, int, int]:
+    """Full-width bottom-aligned rows for HxRG burst stripe (32 outputs).
+
+    This is the historically working Slow burst path: y=[0, height-1], which
+    hits the lower-reference Read/Skip formula (not the broken centered path).
+    """
+    if height < 1 or height > array_size:
+        raise ValueError(f"height must be in 1..{array_size}, got {height}")
+    return 0, array_size - 1, 0, height - 1
 
 
 def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, ...]:
@@ -244,25 +260,25 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
             "SC 128",
             False,
             True,
-            *_centered_vertical_stripe(128, array_size=array_size),
+            *_bottom_vertical_stripe(128, array_size=array_size),
         ),
         WindowMode(
             "SC 256",
             False,
             True,
-            *_centered_vertical_stripe(256, array_size=array_size),
+            *_bottom_vertical_stripe(256, array_size=array_size),
         ),
         WindowMode(
             "SC 512",
             False,
             True,
-            *_centered_vertical_stripe(512, array_size=array_size),
+            *_bottom_vertical_stripe(512, array_size=array_size),
         ),
         WindowMode(
             "SC 1024",
             False,
             True,
-            *_centered_vertical_stripe(1024, array_size=array_size),
+            *_bottom_vertical_stripe(1024, array_size=array_size),
         ),
         WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
@@ -293,18 +309,33 @@ def _use_pixmap_image_backend() -> bool:
 
 
 class _PixmapImageView(QLabel):
-    """Software frame display that avoids QGraphicsScene (safe under VNC)."""
+    """Software frame display that avoids QGraphicsScene (safe under VNC).
+
+    Supports mouse-wheel zoom and left-drag pan (Linux ImageView replacement).
+    """
+
+    _ZOOM_MIN = 1.0
+    _ZOOM_MAX = 32.0
+    _ZOOM_STEP = 1.25
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
         self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.StrongFocus)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("background: #1a1a2e;")
+        self.setToolTip("Scroll to zoom · drag to pan · double-click to reset")
         self.image: numpy.ndarray | None = None
         self._levels: tuple[float, float] = (0.0, 1.0)
         self._roi_rects: dict[int, tuple[int, int, int, int]] = {}
         self._roi_visible: set[int] = set()
+        self._zoom = 1.0
+        self._pan_x = 0.0
+        self._pan_y = 0.0
+        self._panning = False
+        self._pan_last = None
+        self._source_pix: QPixmap | None = None
 
     def getImageItem(self):
         return self
@@ -363,30 +394,133 @@ class _PixmapImageView(QLabel):
         self._roi_visible = set(visible)
         self._rebuild_pixmap()
 
+    def reset_view(self) -> None:
+        self._zoom = 1.0
+        self._pan_x = 0.0
+        self._pan_y = 0.0
+        self._rebuild_pixmap()
+
+    def _fit_scale(self, img_w: int, img_h: int) -> float:
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        return min(tw / max(img_w, 1), th / max(img_h, 1))
+
+    def _clamp_pan(self, disp_w: int, disp_h: int) -> None:
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        max_x = max(0.0, (disp_w - tw) / 2.0)
+        max_y = max(0.0, (disp_h - th) / 2.0)
+        self._pan_x = float(numpy.clip(self._pan_x, -max_x, max_x))
+        self._pan_y = float(numpy.clip(self._pan_y, -max_y, max_y))
+        if self._zoom <= 1.0 + 1e-6:
+            self._pan_x = 0.0
+            self._pan_y = 0.0
+
+    def _visible_origin(self, disp_w: int, disp_h: int) -> tuple[int, int]:
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        self._clamp_pan(disp_w, disp_h)
+        ox = int(round((disp_w - tw) / 2.0 + self._pan_x))
+        oy = int(round((disp_h - th) / 2.0 + self._pan_y))
+        ox = int(numpy.clip(ox, 0, max(0, disp_w - tw)))
+        oy = int(numpy.clip(oy, 0, max(0, disp_h - th)))
+        return ox, oy
+
     def widget_pos_to_image_xy(self, pos) -> tuple[int, int] | None:
-        if self.image is None:
-            return None
-        pix = self.pixmap()
-        if pix is None or pix.isNull():
+        if self.image is None or self._source_pix is None or self._source_pix.isNull():
             return None
         if hasattr(pos, "x"):
             px, py = float(pos.x()), float(pos.y())
         else:
             px, py = float(pos[0]), float(pos[1])
-        lw, lh = self.width(), self.height()
-        pw, ph = pix.width(), pix.height()
-        ox = (lw - pw) // 2
-        oy = (lh - ph) // 2
-        x = px - ox
-        y = py - oy
-        if x < 0 or y < 0 or x >= pw or y >= ph:
-            return None
         img_h, img_w = self.image.shape[:2]
-        ix = int(x * img_w / max(pw, 1))
-        iy = int(y * img_h / max(ph, 1))
+        disp_w = self._source_pix.width()
+        disp_h = self._source_pix.height()
+        tw = max(1, self.width())
+        th = max(1, self.height())
+        ox, oy = self._visible_origin(disp_w, disp_h)
+        # Letterbox when zoomed-out pixmap is smaller than the widget.
+        pad_x = max(0, (tw - disp_w) // 2)
+        pad_y = max(0, (th - disp_h) // 2)
+        x = px - pad_x + ox
+        y = py - pad_y + oy
+        if x < 0 or y < 0 or x >= disp_w or y >= disp_h:
+            return None
+        ix = int(x * img_w / max(disp_w, 1))
+        iy = int(y * img_h / max(disp_h, 1))
         if ix < 0 or iy < 0 or ix >= img_w or iy >= img_h:
             return None
         return ix, iy
+
+    def wheelEvent(self, event) -> None:
+        if self.image is None:
+            return
+        delta = event.angleDelta().y()
+        if delta == 0:
+            delta = event.pixelDelta().y()
+        if delta == 0:
+            return
+        factor = self._ZOOM_STEP if delta > 0 else 1.0 / self._ZOOM_STEP
+        old_zoom = self._zoom
+        new_zoom = float(numpy.clip(old_zoom * factor, self._ZOOM_MIN, self._ZOOM_MAX))
+        if abs(new_zoom - old_zoom) < 1e-9:
+            event.accept()
+            return
+
+        # Keep the image point under the cursor stable while zooming.
+        before = self.widget_pos_to_image_xy(event.pos())
+        self._zoom = new_zoom
+        self._rebuild_pixmap()
+        if before is not None:
+            after = self.widget_pos_to_image_xy(event.pos())
+            if after is not None and self._source_pix is not None:
+                img_h, img_w = self.image.shape[:2]
+                disp_w = self._source_pix.width()
+                disp_h = self._source_pix.height()
+                sx = disp_w / max(img_w, 1)
+                sy = disp_h / max(img_h, 1)
+                self._pan_x += (before[0] - after[0]) * sx
+                self._pan_y += (before[1] - after[1]) * sy
+                self._rebuild_pixmap()
+        event.accept()
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self._zoom > 1.0 + 1e-6:
+            self._panning = True
+            self._pan_last = event.pos()
+            self.setCursor(Qt.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._panning and self._pan_last is not None:
+            dx = event.pos().x() - self._pan_last.x()
+            dy = event.pos().y() - self._pan_last.y()
+            self._pan_last = event.pos()
+            # Dragging the image with the mouse (grab-hand feel).
+            self._pan_x -= float(dx)
+            self._pan_y -= float(dy)
+            self._rebuild_pixmap()
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton and self._panning:
+            self._panning = False
+            self._pan_last = None
+            self.unsetCursor()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.reset_view()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -403,21 +537,26 @@ class _PixmapImageView(QLabel):
         gray = numpy.nan_to_num(gray, nan=0.0, posinf=255.0, neginf=0.0)
         gray8 = numpy.ascontiguousarray(gray.astype(numpy.uint8))
         qimg = QImage(gray8.data, w, h, w, QImage.Format_Grayscale8).copy()
-        pix = QPixmap.fromImage(qimg)
+        base = QPixmap.fromImage(qimg)
+
         tw = max(1, self.width())
         th = max(1, self.height())
-        if tw > 1 and th > 1:
-            pix = pix.scaled(tw, th, Qt.KeepAspectRatio, Qt.FastTransformation)
+        fit = self._fit_scale(w, h)
+        zoom = max(self._ZOOM_MIN, float(self._zoom))
+        disp_w = max(1, int(round(w * fit * zoom)))
+        disp_h = max(1, int(round(h * fit * zoom)))
+        source = base.scaled(disp_w, disp_h, Qt.IgnoreAspectRatio, Qt.FastTransformation)
+
         if self._roi_rects and self._roi_visible:
-            painter = QPainter(pix)
+            painter = QPainter(source)
             try:
-                sx = pix.width() / max(w, 1)
-                sy = pix.height() / max(h, 1)
+                sx = source.width() / max(w, 1)
+                sy = source.height() / max(h, 1)
                 for index, (rx, ry, rw, rh) in self._roi_rects.items():
                     if index not in self._roi_visible:
                         continue
                     color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
-                    painter.setPen(QPen(color, 2))
+                    painter.setPen(QPen(color, max(1, int(round(2 * zoom)))))
                     painter.drawRect(
                         int(rx * sx),
                         int(ry * sy),
@@ -426,7 +565,24 @@ class _PixmapImageView(QLabel):
                     )
             finally:
                 painter.end()
-        self.setPixmap(pix)
+
+        self._source_pix = source
+        ox, oy = self._visible_origin(source.width(), source.height())
+        if source.width() <= tw and source.height() <= th:
+            # Fit / letterbox: show the whole scaled image centered.
+            canvas = QPixmap(tw, th)
+            canvas.fill(QColor(0x1A, 0x1A, 0x2E))
+            painter = QPainter(canvas)
+            try:
+                painter.drawPixmap((tw - source.width()) // 2, (th - source.height()) // 2, source)
+            finally:
+                painter.end()
+            self.setPixmap(canvas)
+            return
+
+        crop_w = min(tw, source.width())
+        crop_h = min(th, source.height())
+        self.setPixmap(source.copy(QRect(ox, oy, crop_w, crop_h)))
 
 
 def _format_stat_value(value: float) -> str:
@@ -581,9 +737,24 @@ def parse_macie_save_dir(config_path: Path) -> Path:
     return Path(os.path.expanduser(save_dir))
 
 
+def _looks_like_windows_unc(path: str) -> bool:
+    """True for \\\\server\\share or //server/share style paths."""
+    normalized = path.strip()
+    if normalized.startswith("\\\\") or normalized.startswith("//"):
+        return True
+    # config.ini often stores a single leading backslash before the server name
+    if normalized.startswith("\\") and not normalized.startswith("\\/"):
+        return True
+    return False
+
+
 def resolve_fits_save_dir(config_path: Path) -> Path:
     configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
-    if configured:
+    # On Linux/macOS, never use the Windows SMB path from config.ini as a local
+    # directory — it becomes a relative junk path under the process cwd.
+    if configured and not (
+        sys.platform != "win32" and _looks_like_windows_unc(configured)
+    ):
         return Path(os.path.expanduser(configured))
     return parse_macie_save_dir(config_path)
 
@@ -596,20 +767,27 @@ def zmq_server_hostname(zmq_address: str) -> str | None:
 def map_server_fits_path(server_path: str, zmq_address: str = MACIE_ZMQ_ADDRESS) -> Path | None:
     """Map a Linux server FITS path to a local path when configured.
 
-    Returns None on Windows when no explicit Linux-to-UNC mapping is configured,
-    so callers fall back to ZMQ fetch instead of inventing invalid UNC paths.
+    On Linux/macOS, absolute server paths are returned unchanged (e.g. /data/nott).
+    On Windows, optional UNC mapping is applied; without mapping, returns None so
+    callers fall back to ZMQ fetch instead of inventing invalid UNC paths.
     """
-    normalized = server_path.replace("\\", "/")
+    normalized = server_path.replace("\\", "/").strip()
+    if not normalized:
+        return None
+
+    if sys.platform != "win32":
+        if normalized.startswith("/"):
+            return Path(normalized)
+        return Path(server_path)
+
     if FITS_LINUX_PATH_PREFIX and FITS_WINDOWS_UNC_ROOT:
         prefix = FITS_LINUX_PATH_PREFIX.replace("\\", "/").rstrip("/")
         if normalized.startswith(prefix):
             suffix = normalized[len(prefix) :].lstrip("/")
             unc_root = FITS_WINDOWS_UNC_ROOT.rstrip("\\/")
-            if sys.platform == "win32":
-                return Path(unc_root) / PureWindowsPath(suffix.replace("/", "\\"))
-            return Path(unc_root) / Path(*PurePosixPath(suffix).parts)
+            return Path(unc_root) / PureWindowsPath(suffix.replace("/", "\\"))
 
-    if sys.platform == "win32" and normalized.startswith("/"):
+    if normalized.startswith("/"):
         return None
 
     return Path(server_path)
@@ -634,6 +812,22 @@ def load_fits_image_from_bytes(
 def is_science_fits_name(name: str) -> bool:
     lowered = name.lower()
     return lowered.endswith("_science.fits")
+
+
+def fits_frame_number_label(name: str | None) -> str:
+    """Return the ramp index for the Frame number box (e.g. 000018)."""
+    if not name:
+        return "—"
+    stem = Path(name).stem
+    if stem.lower().endswith("_science"):
+        stem = stem[: -len("_science")]
+    if stem.lower() == "preview":
+        return "Last frame"
+    # Names look like nott_YYYYMMDD_000018
+    parts = stem.rsplit("_", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        return parts[1]
+    return stem
 
 
 def ramp_fits_path_for_viewer(path: Path) -> Path:
@@ -718,6 +912,11 @@ def is_new_ramp_fits(
         return mtime > before_mtime
     if mtime > before_mtime:
         return True
+    # Same-second filesystem resolution: accept a different basename only when
+    # mtime is not older. Never treat an older file as new — that caused Live
+    # to flip forever between the latest ramp and the previous one.
+    if mtime < before_mtime:
+        return False
     return bool(before_name and name != before_name)
 
 
@@ -800,7 +999,7 @@ def list_ramp_fits_in_dir(directory: Path, *, dir_ok: bool | None = None) -> lis
     candidates = [
         path
         for path in candidates
-        if not is_science_fits_name(path.name)
+        if not is_science_fits_name(path.name) and path.name.lower() != "preview.fits"
     ]
     return sorted(
         candidates,
@@ -911,12 +1110,16 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
         self._live_frame_available = threading.Event()
-        self._auto_levels_next = True
+        self._frame_timing_t0: float | None = None
+        self._frame_timing_label = "Acquire"
+        self._frame_timing_skip_report = False
+        self._frame_timing_status: str | None = None
         self._operation_lock = threading.Lock()
         self._zmq_server = None
         self._zmq_address: str | None = None
         self._shutting_down = False
         self._last_tint_ms: float | None = None
+        self._last_exposure_report: dict[str, float | int | str] | None = None
         self._initialized = False
         self._macie_operation_busy = False
         self._last_zmq_fits_poll = 0.0
@@ -933,6 +1136,8 @@ class H2rgMainWindow(QMainWindow):
         self._button_header: QPushButton | None = None
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
+        self._checkBox_save_image: QCheckBox | None = None
+        self._checkBox_autoscale: QCheckBox | None = None
         self._button_apply_levels: QPushButton | None = None
         self._lineEdit_level_min: QLineEdit | None = None
         self._lineEdit_level_max: QLineEdit | None = None
@@ -974,6 +1179,8 @@ class H2rgMainWindow(QMainWindow):
             self._button_apply_levels.clicked.connect(self._apply_manual_levels)
             self._lineEdit_level_min.editingFinished.connect(self._apply_manual_levels)
             self._lineEdit_level_max.editingFinished.connect(self._apply_manual_levels)
+            if self._checkBox_autoscale is not None:
+                self._checkBox_autoscale.toggled.connect(self._on_autoscale_toggled)
             self._button_header.clicked.connect(self._show_fits_header)
             self._button_ds9.clicked.connect(self._open_fits_in_ds9)
             self._button_save_dir.clicked.connect(self._open_fits_save_dir)
@@ -1091,6 +1298,16 @@ class H2rgMainWindow(QMainWindow):
         column.addWidget(min_host, 0, Qt.AlignHCenter)
         max_host, self._lineEdit_level_max = self._make_level_field("Max")
         column.addWidget(max_host, 0, Qt.AlignHCenter)
+
+        autoscale_box = QCheckBox("Autoscale")
+        autoscale_box.setChecked(True)
+        autoscale_box.setToolTip(
+            "When checked, the color scale tracks each frame's min/max. "
+            "When unchecked, the color scale follows the Min/Max fields."
+        )
+        autoscale_box.setStyleSheet(CHECKBOX_STYLE)
+        self._checkBox_autoscale = autoscale_box
+        column.addWidget(autoscale_box, 0, Qt.AlignHCenter)
 
         column.addStretch(1)
         return host
@@ -1518,6 +1735,8 @@ class H2rgMainWindow(QMainWindow):
         form.setColumnStretch(2, 0)
         outer.addLayout(form)
 
+        options = QHBoxLayout()
+        options.setSpacing(12)
         bg_box = self.ui.checkBox_substract_background
         bg_box.setText("Subtract background")
         bg_box.setEnabled(False)
@@ -1525,7 +1744,18 @@ class H2rgMainWindow(QMainWindow):
             "Subtract the stored background from the displayed image"
         )
         bg_box.show()
-        outer.addWidget(bg_box)
+        options.addWidget(bg_box)
+
+        save_box = QCheckBox("Save image")
+        save_box.setChecked(True)
+        save_box.setToolTip(
+            "Keep archived FITS in the save directory. Unchecked: still acquire and "
+            "display via a reusable preview.fits (no numbered archive files)."
+        )
+        self._checkBox_save_image = save_box
+        options.addWidget(save_box)
+        options.addStretch(1)
+        outer.addLayout(options)
 
         self.ui.button_take_background.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Fixed
@@ -1664,6 +1894,10 @@ class H2rgMainWindow(QMainWindow):
             getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
 
         self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
+        if getattr(self, "_checkBox_save_image", None) is not None:
+            self._checkBox_save_image.setStyleSheet(CHECKBOX_STYLE)
+        if getattr(self, "_checkBox_autoscale", None) is not None:
+            self._checkBox_autoscale.setStyleSheet(CHECKBOX_STYLE)
 
         for name in (
             "label",
@@ -2114,7 +2348,6 @@ class H2rgMainWindow(QMainWindow):
         self._live_active = True
         self._live_poll_stop.clear()
         self._live_frame_available.clear()
-        self._auto_levels_next = True
         if self.ui is not None:
             self.ui.button_live.setText("Stop live")
         self._set_live_dependent_controls(True)
@@ -2139,11 +2372,19 @@ class H2rgMainWindow(QMainWindow):
                     or self._live_poll_stop.is_set()
                 ):
                     break
+                self._arm_frame_timing("Live")
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
                     frame, path = loaded
+                    if self._save_image_enabled():
+                        status = f"Live — {path.name}"
+                    else:
+                        status = f"Live — {path.name} (not archived)"
+                    self._frame_timing_status = status
                     self.frame_ready.emit(frame)
-                    self.status_updated.emit(f"Live — {path.name}")
+                else:
+                    self._frame_timing_t0 = None
+                    self._frame_timing_status = None
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -2215,12 +2456,18 @@ class H2rgMainWindow(QMainWindow):
 
         matched = window_mode_index(x_win, y_win, x1_i, x2_i, y1_i, y2_i)
         if mode.y_window and not mode.x_window:
+            if mode.y1 < 4:
+                stripe_note = "burst stripe, bottom-aligned, 32 outputs"
+            elif mode.y2 > H2RG_ARRAY_SIZE - 5:
+                stripe_note = "burst stripe, top-aligned, 32 outputs"
+            else:
+                stripe_note = "vertical window (centered)"
             status = (
                 f"{mode.label} — requested y=[{mode.y1},{mode.y2}], "
-                f"ASIC y=[{y1_i},{y2_i}] (full width, 32 outputs)"
+                f"ASIC y=[{y1_i},{y2_i}] ({stripe_note})"
             )
             if (y1_i, y2_i) != (mode.y1, mode.y2):
-                status += " — WARNING: not centered as requested"
+                status += " — WARNING: Y readback differs from request"
         elif mode.x_window or mode.y_window:
             status = (
                 f"{mode.label} — ASIC x=[{x1_i},{x2_i}] y=[{y1_i},{y2_i}]"
@@ -2309,6 +2556,30 @@ class H2rgMainWindow(QMainWindow):
             return None
         return vmin, vmax
 
+    def _set_autoscale_checked(self, checked: bool) -> None:
+        box = getattr(self, "_checkBox_autoscale", None)
+        if box is None or box.isChecked() == checked:
+            return
+        box.blockSignals(True)
+        box.setChecked(checked)
+        box.blockSignals(False)
+
+    def _on_autoscale_toggled(self, checked: bool) -> None:
+        if not checked:
+            # Lock to the current scale (or Min/Max fields if already set).
+            levels = self._read_level_fields()
+            if levels is None and self.image is not None:
+                try:
+                    current = self.image.getLevels()
+                    if current is not None:
+                        levels = (float(current[0]), float(current[1]))
+                except Exception:
+                    levels = None
+            if levels is not None:
+                self._manual_levels = levels
+                self._sync_level_fields(levels[0], levels[1])
+        self._refresh_display()
+
     def _autoscale_image(self) -> None:
         display = self._build_display_frame()
         if self.image is None or display is None:
@@ -2321,9 +2592,9 @@ class H2rgMainWindow(QMainWindow):
         if vmin >= vmax:
             vmax = vmin + 1.0
         self._manual_levels = (vmin, vmax)
-        self._auto_levels_next = False
-        self.image.setLevels(vmin, vmax)
         self._sync_level_fields(vmin, vmax)
+        self._set_autoscale_checked(True)
+        self.image.setLevels(vmin, vmax)
         self._refresh_display()
 
     def _apply_manual_levels(self) -> None:
@@ -2331,7 +2602,7 @@ class H2rgMainWindow(QMainWindow):
         if levels is None or self.image is None:
             return
         self._manual_levels = levels
-        self._auto_levels_next = False
+        self._set_autoscale_checked(False)
         self.image.setLevels(levels[0], levels[1])
         self._refresh_display()
 
@@ -2603,6 +2874,18 @@ class H2rgMainWindow(QMainWindow):
             return
         self._run_macie_operation("Power off", lambda: self._ensure_macie().power_off())
 
+    def _save_image_enabled(self) -> bool:
+        box = getattr(self, "_checkBox_save_image", None)
+        if box is None:
+            return True
+        return bool(box.isChecked())
+
+    def _autoscale_enabled(self) -> bool:
+        box = getattr(self, "_checkBox_autoscale", None)
+        if box is None:
+            return True
+        return bool(box.isChecked())
+
     def _apply_exposure_settings(self, macie) -> dict[str, float | int]:
         try:
             ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
@@ -2633,7 +2916,7 @@ class H2rgMainWindow(QMainWindow):
             ngmax=MACIE_INTEGRATION_NGROUPS_MAX,
             ncoadds=ncoadds,
             nseq=nseq,
-            save=True,
+            save=self._save_image_enabled(),
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
@@ -2655,7 +2938,57 @@ class H2rgMainWindow(QMainWindow):
             f"Ramp {ramp_mode}: {self._last_tint_ms:.3g} ms photon, "
             f"{mode_detail}, frames={nseq}"
         )
+        self._last_exposure_report = {
+            **result,
+            "mode_detail": mode_detail,
+        }
+        self._print_efficiency_report(self._last_exposure_report)
         return result
+
+    def _print_efficiency_report(
+        self,
+        report: dict[str, float | int | str],
+        *,
+        wall_s: float | None = None,
+        label: str = "Exposure",
+    ) -> None:
+        """Print ASIC duty-cycle efficiency and ramp timing to the terminal."""
+        try:
+            frametime_ms = float(report.get("frametime_ms", 0.0))
+            inttime_ms = float(report.get("inttime_ms", 0.0))
+            ramptime_ms = float(report.get("ramptime_ms", 0.0))
+            execution_s = float(report.get("execution_s", 0.0))
+            efficiency = float(report.get("efficiency", 0.0))
+            ngroups = int(report.get("ngroups", 0))
+            nreads = int(report.get("nreads", 0))
+            ndrops = int(report.get("ndrops", 0))
+            ncoadds = int(report.get("ncoadds", 1))
+            nseq = int(report.get("nseq", 1))
+            ramp_mode = str(report.get("ramp_mode", "?"))
+            mode_detail = str(report.get("mode_detail", ramp_mode))
+        except (TypeError, ValueError):
+            return
+
+        overhead_ms = max(0.0, ramptime_ms - inttime_ms)
+        lines = [
+            f"H2RG: {label} efficiency",
+            f"  mode: {ramp_mode} ({mode_detail})",
+            f"  ramp: ngroups={ngroups} nreads={nreads} ndrops={ndrops} "
+            f"ncoadds={ncoadds} nseq={nseq}",
+            f"  frame={frametime_ms:.3f} ms  photon={inttime_ms:.3f} ms  "
+            f"ramp={ramptime_ms:.3f} ms  overhead={overhead_ms:.3f} ms",
+            f"  ASIC duty cycle: {efficiency * 100:.1f}%  "
+            f"(photon/ramp; estimated ASIC exec {execution_s:.3f} s)",
+        ]
+        if wall_s is not None and wall_s > 0:
+            wall_eff = (inttime_ms / 1000.0) / wall_s if inttime_ms > 0 else 0.0
+            asic_vs_wall = (execution_s / wall_s) if execution_s > 0 else 0.0
+            lines.append(
+                f"  wall clock: {wall_s:.2f} s  "
+                f"(photon/wall {wall_eff * 100:.1f}%, "
+                f"ASIC-est/wall {asic_vs_wall * 100:.1f}%)"
+            )
+        print("\n".join(lines), flush=True)
 
     def acquire(self) -> None:
         if self._live_active:
@@ -2673,7 +3006,40 @@ class H2rgMainWindow(QMainWindow):
                 raise ValueError(f"Invalid exposure field: {exc}") from exc
 
             exposure = self._apply_exposure_settings(macie)
+            keep_files = self._save_image_enabled()
             self._fits_dir_ok = None
+            self._arm_frame_timing("Acquire")
+
+            if not keep_files:
+                preview = self._preview_fits_path()
+                try:
+                    before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
+                except OSError:
+                    before_mtime = 0.0
+                macie.acquire()
+                frame, path = self._wait_for_preview_fits(
+                    preview,
+                    before_mtime=before_mtime,
+                    timeout_s=fits_wait_timeout_s(
+                        float(exposure["execution_s"]),
+                        ncoadds=ncoadds,
+                        nseq=nseq,
+                        margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                        maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
+                        + MACIE_FITS_WAIT_MARGIN_S,
+                    ),
+                )
+                if frame is None:
+                    self._frame_timing_t0 = None
+                    self.status_updated.emit(self._missing_fits_status())
+                    return
+                self._last_fits_path = None
+                self._frame_timing_status = (
+                    f"Acquire complete — displayed via {path.name} (not archived)"
+                )
+                self.frame_ready.emit(frame)
+                return
+
             before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
             wait_timeout_s = fits_wait_timeout_s(
                 float(exposure["execution_s"]),
@@ -2721,13 +3087,58 @@ class H2rgMainWindow(QMainWindow):
                     science_paths[-1] if science_paths else preview_path
                 )
                 self._last_fits_path = preview_science
-                self._auto_levels_next = True
+                self._frame_timing_status = self._acquire_complete_status(
+                    ramp_paths, science_paths
+                )
                 self.frame_ready.emit(frame)
-                self.status_updated.emit(self._acquire_complete_status(ramp_paths, science_paths))
             else:
+                self._frame_timing_t0 = None
                 self.status_updated.emit(self._missing_fits_status())
 
         self._run_macie_operation("Acquire", operation)
+
+    def _arm_frame_timing(self, label: str = "Acquire") -> None:
+        """Start wall-clock timing; reported when the frame is displayed."""
+        self._frame_timing_t0 = time.perf_counter()
+        self._frame_timing_label = label
+
+    def _report_frame_timing(self) -> float | None:
+        t0 = self._frame_timing_t0
+        if t0 is None:
+            return None
+        elapsed = time.perf_counter() - t0
+        self._frame_timing_t0 = None
+        label = self._frame_timing_label or "Frame"
+        print(
+            f"H2RG: {label} took {elapsed:.2f} s (take + display)",
+            flush=True,
+        )
+        if self._last_exposure_report is not None:
+            if label == "Live":
+                try:
+                    inttime_ms = float(self._last_exposure_report.get("inttime_ms", 0.0))
+                    execution_s = float(self._last_exposure_report.get("execution_s", 0.0))
+                    efficiency = float(self._last_exposure_report.get("efficiency", 0.0))
+                except (TypeError, ValueError):
+                    inttime_ms = execution_s = efficiency = 0.0
+                wall_eff = (inttime_ms / 1000.0) / elapsed if elapsed > 0 else 0.0
+                print(
+                    f"H2RG: Live efficiency — ASIC duty {efficiency * 100:.1f}%, "
+                    f"photon/wall {wall_eff * 100:.1f}%, "
+                    f"ASIC-est {execution_s:.3f} s / wall {elapsed:.2f} s",
+                    flush=True,
+                )
+            else:
+                self._print_efficiency_report(
+                    self._last_exposure_report,
+                    wall_s=elapsed,
+                    label=label,
+                )
+        status = self._frame_timing_status
+        self._frame_timing_status = None
+        if status:
+            self.status_updated.emit(f"{status}  [{elapsed:.2f} s]")
+        return elapsed
 
     def _acquire_complete_status(
         self, ramp_paths: list[Path], science_paths: list[Path]
@@ -2775,7 +3186,9 @@ class H2rgMainWindow(QMainWindow):
             return self._save_dir
 
         configured = config.get(H2RG_SECTION, "fits_directory", fallback="").strip()
-        if configured:
+        if configured and not (
+            sys.platform != "win32" and _looks_like_windows_unc(configured)
+        ):
             path = Path(os.path.expanduser(configured))
             try:
                 path.mkdir(parents=True, exist_ok=True)
@@ -2810,10 +3223,48 @@ class H2rgMainWindow(QMainWindow):
 
         update_fits_file_header_cards(resolved, cards)
 
+    def _discard_fits_files(self, paths: list[Path]) -> None:
+        """Remove temporary ramp FITS used only for display when Save image is off."""
+        for path in paths:
+            try:
+                resolved = self._resolve_ramp_path(path) or path
+                if resolved.is_file():
+                    resolved.unlink()
+            except OSError as exc:
+                print(f"H2RG failed to remove unsaved FITS {path}: {exc}")
+
+    def _preview_fits_path(self) -> Path:
+        """Reusable preview FITS written when Save image is off."""
+        return self._save_dir / "preview.fits"
+
+    def _wait_for_preview_fits(
+        self,
+        preview: Path,
+        *,
+        before_mtime: float,
+        timeout_s: float,
+    ) -> tuple[numpy.ndarray | None, Path]:
+        deadline = time.monotonic() + max(1.0, float(timeout_s))
+        while time.monotonic() < deadline:
+            try:
+                if preview.is_file():
+                    mtime = preview.stat().st_mtime
+                    if mtime > before_mtime or before_mtime <= 0.0:
+                        # Allow a brief settle so the write is complete.
+                        time.sleep(0.05)
+                        frame = self._load_fits_from_path(preview)
+                        return frame, preview
+            except Exception as exc:
+                print(f"H2RG preview wait: {exc}")
+            time.sleep(0.1)
+        return None, preview
+
     def _save_science_fits(
         self, frame: numpy.ndarray, ramp_path: Path | None
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
+            return None
+        if not self._save_image_enabled():
             return None
         output_path = self._science_output_path(ramp_path)
         cards = self._cryo_fits_header_cards()
@@ -2835,6 +3286,8 @@ class H2rgMainWindow(QMainWindow):
 
     def _save_science_fits_from_ramp(self, ramp_path: Path) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS:
+            return None
+        if not self._save_image_enabled():
             return None
         resolved = self._resolve_ramp_path(ramp_path)
         if resolved is None:
@@ -3065,7 +3518,12 @@ class H2rgMainWindow(QMainWindow):
                 self._apply_exposure_settings(self._macie)
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
-                self.status_updated.emit("Live acquiring…")
+                if self._save_image_enabled():
+                    self.status_updated.emit("Live acquiring…")
+                else:
+                    self.status_updated.emit(
+                        "Live acquiring… (preview.fits only — not archived)"
+                    )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))
 
@@ -3209,7 +3667,8 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG acquire preview skipped {path.name}: {exc}")
             return None
         displayed.add(path.name)
-        self._auto_levels_next = index == 1
+        # Intermediate previews must not consume the acquire wall-clock timer.
+        self._frame_timing_skip_report = True
         self.frame_ready.emit(frame)
         self.status_updated.emit(
             f"Acquire: frame {index}/{expected_count} — {path.name}"
@@ -3466,13 +3925,36 @@ class H2rgMainWindow(QMainWindow):
         before_mtime = self._last_fits_mtime
         before_name = self._last_loaded_basename
 
+        if not self._save_image_enabled():
+            preview = self._preview_fits_path()
+            try:
+                if not preview.is_file():
+                    return None
+                mtime = preview.stat().st_mtime
+            except OSError:
+                return None
+            if before_name == preview.name and mtime <= before_mtime:
+                return None
+            try:
+                frame = self._load_fits_from_path(preview)
+                self._last_fits_path = None
+                return frame, preview
+            except Exception as exc:
+                print(f"H2RG live preview skipped: {exc}")
+                return None
+
         if self._local_fits_accessible(allow_probe=True):
-            for path in list_new_ramp_fits_in_dir(
+            # Prefer the newest pending ramp so Live stays on the latest frame
+            # when the poller falls behind a burst of acquires.
+            new_paths = list_new_ramp_fits_in_dir(
                 self._save_dir,
                 before_mtime=before_mtime,
                 before_name=before_name,
                 dir_ok=True,
-            ):
+            )
+            for path in reversed(new_paths):
+                if path.name == "preview.fits":
+                    continue
                 try:
                     return self._load_fits_from_path(path), path
                 except Exception as exc:
@@ -3571,23 +4053,30 @@ class H2rgMainWindow(QMainWindow):
         # Contiguous float32 avoids large paint buffers / exotic dtypes under VNC.
         display = numpy.ascontiguousarray(display, dtype=numpy.float32)
 
-        auto_levels = self._auto_levels_next
         self.setUpdatesEnabled(False)
         try:
-            if auto_levels:
+            if self._autoscale_enabled():
                 self.image.setImage(display, autoLevels=True)
-                self._auto_levels_next = False
                 self._sync_level_fields_from_image()
-            elif self._manual_levels is not None:
-                self.image.setImage(
-                    display, autoLevels=False, levels=self._manual_levels
-                )
             else:
-                self.image.setImage(display, autoLevels=False)
-                self._sync_level_fields_from_image()
+                levels = self._read_level_fields() or self._manual_levels
+                if levels is not None:
+                    self._manual_levels = levels
+                    self.image.setImage(
+                        display, autoLevels=False, levels=levels
+                    )
+                else:
+                    self.image.setImage(display, autoLevels=False)
+                    self._sync_level_fields_from_image()
             self._update_roi_overlays()
         finally:
             self.setUpdatesEnabled(True)
+
+        if is_new_frame:
+            if self._frame_timing_skip_report:
+                self._frame_timing_skip_report = False
+            else:
+                self._report_frame_timing()
 
         # Defer ROI panel/plot updates so they don't nest QGraphicsScene paints.
         self._schedule_roi_update(display, record=is_new_frame)
@@ -3595,7 +4084,13 @@ class H2rgMainWindow(QMainWindow):
         self._sync_cursor_readout_label()
 
         if self._last_fits_path is not None:
-            self.ui.lineEdit_frame_nb.setText(self._last_fits_path.name)
+            self.ui.lineEdit_frame_nb.setText(
+                fits_frame_number_label(self._last_fits_path.name)
+            )
+        elif self._last_loaded_basename:
+            self.ui.lineEdit_frame_nb.setText(
+                fits_frame_number_label(self._last_loaded_basename)
+            )
 
     def get_dashboard_status(self) -> dict[str, object]:
         powered = None

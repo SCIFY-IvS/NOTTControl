@@ -15,6 +15,11 @@
 # Cron example (daily full incremental mirror at 04:00 UTC):
 #   0 4 * * * /home/labo/src/NOTTControl/nottcontrol/script/backup/backup_infratec_frames.sh >> /archive/infratec/cron.log 2>&1
 
+# Re-exec under bash when invoked as `sh script.sh` (dash has no pipefail).
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

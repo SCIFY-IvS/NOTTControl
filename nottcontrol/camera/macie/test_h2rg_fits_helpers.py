@@ -11,10 +11,13 @@ from unittest.mock import patch
 import numpy
 
 from nottcontrol.camera.macie.h2rg_gui import (
+    WINDOW_MODES,
+    _bottom_vertical_stripe,
     _centered_vertical_stripe,
     _channel_window,
     central_value_median,
     fits_basename,
+    fits_frame_number_label,
     fits_header_text,
     is_new_ramp_fits,
     is_science_fits_name,
@@ -47,6 +50,28 @@ class StripeWindowTests(unittest.TestCase):
 
     def test_centered_stripe_1024_rows(self) -> None:
         self.assertEqual(_centered_vertical_stripe(1024), (0, 2047, 512, 1535))
+
+    def test_bottom_stripe_128_rows(self) -> None:
+        self.assertEqual(_bottom_vertical_stripe(128), (0, 2047, 0, 127))
+
+    def test_bottom_stripe_256_rows(self) -> None:
+        self.assertEqual(_bottom_vertical_stripe(256), (0, 2047, 0, 255))
+
+    def test_sc_presets_are_bottom_aligned_burst(self) -> None:
+        by_label = {mode.label: mode for mode in WINDOW_MODES}
+        for label, height in (
+            ("SC 128", 128),
+            ("SC 256", 256),
+            ("SC 512", 512),
+            ("SC 1024", 1024),
+        ):
+            mode = by_label[label]
+            self.assertFalse(mode.x_window)
+            self.assertTrue(mode.y_window)
+            self.assertEqual(
+                (mode.x1, mode.x2, mode.y1, mode.y2),
+                _bottom_vertical_stripe(height),
+            )
 
 
 class CentralValueTests(unittest.TestCase):
@@ -81,6 +106,23 @@ class ScienceFitsNameTests(unittest.TestCase):
     def test_ramp_names_are_not_science(self) -> None:
         self.assertFalse(is_science_fits_name("frame_001.fits"))
         self.assertFalse(is_science_fits_name("ramp.fits"))
+
+
+class FitsFrameNumberLabelTests(unittest.TestCase):
+    def test_extracts_trailing_index(self) -> None:
+        self.assertEqual(
+            fits_frame_number_label("nott_20260805_00001.fits"),
+            "00001",
+        )
+
+    def test_science_suffix_stripped(self) -> None:
+        self.assertEqual(
+            fits_frame_number_label("nott_20260805_00018_science.fits"),
+            "00018",
+        )
+
+    def test_preview_label(self) -> None:
+        self.assertEqual(fits_frame_number_label("preview.fits"), "Last frame")
 
 
 class ViewerFitsPathTests(unittest.TestCase):
@@ -153,6 +195,18 @@ class NewRampFitsTests(unittest.TestCase):
             )
         )
 
+    def test_older_different_name_is_not_new(self) -> None:
+        # Regression: Live used to flip between latest and previous because any
+        # different basename was treated as new regardless of mtime.
+        self.assertFalse(
+            is_new_ramp_fits(
+                "ramp001.fits",
+                100.0,
+                before_name="ramp002.fits",
+                before_mtime=200.0,
+            )
+        )
+
 
 class MapServerFitsPathTests(unittest.TestCase):
     def test_linux_absolute_path_without_mapping_returns_none_on_windows(self) -> None:
@@ -187,6 +241,19 @@ class MapServerFitsPathTests(unittest.TestCase):
     def test_linux_path_unchanged_on_posix(self) -> None:
         mapped = map_server_fits_path("/data/fits/frame.fits")
         self.assertEqual(mapped, Path("/data/fits/frame.fits"))
+
+    def test_linux_does_not_apply_unc_mapping(self) -> None:
+        with patch("nottcontrol.camera.macie.h2rg_gui.sys.platform", "linux"):
+            with patch(
+                "nottcontrol.camera.macie.h2rg_gui.FITS_LINUX_PATH_PREFIX",
+                "/data",
+            ):
+                with patch(
+                    "nottcontrol.camera.macie.h2rg_gui.FITS_WINDOWS_UNC_ROOT",
+                    r"\\nott-server.ster.kuleuven.be\Data",
+                ):
+                    mapped = map_server_fits_path("/data/nott/20260805/")
+        self.assertEqual(mapped, Path("/data/nott/20260805"))
 
     def test_basename_helper(self) -> None:
         self.assertEqual(fits_basename("/tmp/a/b.fits"), "b.fits")

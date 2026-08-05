@@ -58,6 +58,12 @@ extern "C" bool M_halt_acquisition()
     return halt_acquisition(_ptUserData);
 }
 
+extern "C" bool M_set_keep_science_interface(bool keep)
+{
+    set_keep_science_interface(_ptUserData, keep);
+    return true;
+}
+
 extern "C" bool M_initCamera()
 {
     std::cout << "Calling initCamera" << std::endl;;
@@ -161,6 +167,14 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
 {
     if (_ptUserData == NULL)
         return false;
+
+    // Fast DevBrd microcode (H2RG_12bit_32output_5MHz) has no ExpMode bit.
+    // CDS/Fowler/UTR are expressed via NumGroups/NumReads only; treat as no-op.
+    if (_ptUserData->RegMap.count("ExpMode") == 0)
+    {
+        printf("ExpMode not in register map; skipping ASIC write (mode=%u)\n", mode);
+        return true;
+    }
 
     if (SetASICParameter(_ptUserData, "ExpMode", mode) == false)
         return false;
@@ -384,6 +398,13 @@ int main () {
             else if (command == "halt")
             {
                 result = M_halt_acquisition();
+            }
+            else if (command == "livesession")
+            {
+                bool keep = false;
+                if (tokens.size() > 1 && (tokens[1] == "true" || tokens[1] == "1"))
+                    keep = true;
+                result = M_set_keep_science_interface(keep);
             }
             else if (command == "poweron")
             {
