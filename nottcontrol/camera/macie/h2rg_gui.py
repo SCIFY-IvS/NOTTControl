@@ -2193,8 +2193,9 @@ class H2rgMainWindow(QMainWindow):
             elif self._selected_ramp_mode() == "Ramp":
                 label = "Integration time:"
                 tooltip = (
-                    "Target DIT for raw readout at end of integration (ms). "
-                    "Uses MACIE drop frames between groups (same timing as CDS)."
+                    "Target DIT (ms), rounded to N×frame time on Set. "
+                    "On SC/window modes the minimum is 2×frame (1-frame ramps "
+                    "read the wrong Y band on this ASIC)."
                 )
             else:
                 label = "Integration time:"
@@ -3046,7 +3047,8 @@ class H2rgMainWindow(QMainWindow):
         nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
         fowler_pairs = self._fowler_pairs_value()
         window_index = self.ui.comboBox_window_mode.currentIndex()
-        windowed_cds = self._windowed_cds_layout() and ramp_mode == "CDS"
+        windowed = self._windowed_cds_layout()
+        windowed_cds = windowed and ramp_mode == "CDS"
         if ramp_mode in ("Fowler", "SingleFrame"):
             tint_key: str | float = "auto"
         else:
@@ -3064,7 +3066,7 @@ class H2rgMainWindow(QMainWindow):
             self._save_image_enabled(),
             tint_key,
             window_index,
-            windowed_cds,
+            windowed,  # soft SC / any window — ramp plan must stay geometry-stable
             MACIE_INTEGRATION_NGROUPS_MAX,
         )
 
@@ -3145,7 +3147,8 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=self._save_image_enabled(),
-            windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
+            # Soft SC / any window: keep a geometry-stable plan (never 1-read).
+            windowed_cds=self._windowed_cds_layout(),
         )
         self._last_tint_ms = float(result["inttime_ms"])
         # Ramp mode rounds DIT to N×frametime — mirror that in the request box.

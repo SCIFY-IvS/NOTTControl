@@ -56,10 +56,12 @@ def calc_ramp_plan(
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
 
     SingleFrame uses one group × one read with no drop frames (one clocked frame).
+    On window/stripe (soft SC), SingleFrame is promoted to the same 1×2 plan as
+    windowed CDS — a lone read ignores StripeSkips1 and clocks from row 0.
 
-    Ramp rounds the requested DIT to the nearest whole number of frame times
-    (minimum one frame). One frame → single read; two or more → two groups with
-    drop frames between so the last raw sample is at that photon time.
+    Ramp rounds the requested DIT to the nearest whole number of frame times.
+    On window/stripe, the minimum is two frames (1-frame ramps show the bottom
+    of the array instead of the soft-SC band).
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -73,12 +75,22 @@ def calc_ramp_plan(
         return {"ngroups": 1, "nreads": nreads, "ndrops": 0, "fowler_pairs": fowler_pairs}
 
     if mode == "SingleFrame":
+        if windowed_cds:
+            # Soft SC: one read clocks from row 0; need two reads in one group.
+            return {
+                "ngroups": 1,
+                "nreads": 2,
+                "ndrops": 0,
+                "fowler_pairs": 0,
+                "tint_ms": 2.0 * frametime_ms,
+            }
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
 
     if mode == "Ramp":
         # Photon time is quantized in whole frame times — round the request
-        # to the nearest multiple (at least one frame).
-        n_frames = max(1, int(round(tint_ms / frametime_ms)))
+        # to the nearest multiple (at least one frame; two on soft SC / window).
+        n_min = 2 if windowed_cds else 1
+        n_frames = max(n_min, int(round(tint_ms / frametime_ms)))
         tint_rounded = n_frames * frametime_ms
         if n_frames == 1:
             return {
@@ -96,13 +108,19 @@ def calc_ramp_plan(
             "tint_ms": tint_rounded,
         }
 
-    # CDS — mirror calc_ramp_settings (ngmax=2 path)
+    # CDS — window/stripe before the short-DIT shortcut so soft SC never gets
+    # a 1-read plan (that ignores StripeSkips1 and shows the bottom of the array).
+    if windowed_cds:
+        return {
+            "ngroups": 1,
+            "nreads": 2,
+            "ndrops": 0,
+            "fowler_pairs": 0,
+            "tint_ms": 2.0 * frametime_ms,
+        }
+
     if tint_ms < frametime_ms:
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
-
-    if windowed_cds:
-        # NDrops only apply between groups; keep one group so both reads are spatially aligned.
-        return {"ngroups": 1, "nreads": 2, "ndrops": 0, "fowler_pairs": 0}
 
     nftot = int(math.ceil(tint_ms / frametime_ms))
     if ngmax <= 2:

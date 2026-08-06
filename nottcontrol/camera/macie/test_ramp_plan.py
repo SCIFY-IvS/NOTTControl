@@ -56,18 +56,38 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["tint_ms"], 400.0)
 
     def test_ramp_short_integration_single_read(self) -> None:
-        # 50 ms → rounds to 1×200 ms single read.
+        # 50 ms → rounds to 1×200 ms single read (full frame).
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp")
         self.assertEqual(plan["ngroups"], 1)
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
         self.assertEqual(plan["tint_ms"], 200.0)
 
+    def test_ramp_windowed_minimum_two_frames(self) -> None:
+        # Soft SC: never allow 1-frame ramps (StripeSkips1 ignored → bottom rows).
+        plan = calc_ramp_plan(50.0, 200.0, mode="Ramp", windowed_cds=True)
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 0)
+        self.assertEqual(plan["tint_ms"], 400.0)
+
     def test_cds_windowed_uses_single_group_two_reads(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="CDS", windowed_cds=True)
         self.assertEqual(plan["ngroups"], 1)
         self.assertEqual(plan["nreads"], 2)
         self.assertEqual(plan["ndrops"], 0)
+
+    def test_cds_windowed_short_dit_still_two_reads(self) -> None:
+        # Must not fall through to the full-frame 1-read short-DIT shortcut.
+        plan = calc_ramp_plan(50.0, 200.0, mode="CDS", windowed_cds=True)
+        self.assertEqual(plan["ngroups"], 1)
+        self.assertEqual(plan["nreads"], 2)
+        self.assertEqual(plan["ndrops"], 0)
+
+    def test_single_frame_windowed_promoted_to_two_reads(self) -> None:
+        plan = calc_ramp_plan(500.0, 200.0, mode="SingleFrame", windowed_cds=True)
+        self.assertEqual(plan["ngroups"], 1)
+        self.assertEqual(plan["nreads"], 2)
 
     def test_fowler_uses_single_group_and_even_reads(self) -> None:
         plan = calc_ramp_plan(180.0, 100.0, mode="Fowler", fowler_pairs=2)
