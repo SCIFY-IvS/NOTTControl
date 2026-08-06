@@ -10,7 +10,8 @@ Default acquisition blocks follow the lab log (Full frame):
     closed 341-345 / open 346-350   DIT ~1475 ms (beamsplitter in)
 
 For each block the script computes ``mean(open) - mean(closed)``, writes that
-2-D float32 image to FITS, and plots fixed random pixels vs DIT.
+2-D float32 image to FITS, writes a cube of ``open[i] - mean(closed)`` for
+each open frame, and plots fixed random pixels vs DIT.
 
 Frames before 301 are ignored. Illuminated pixels are drawn from a 20×20 box
 centred at image coordinates (X=1045, Y=943).
@@ -115,6 +116,7 @@ class DitBlock:
     difference: np.ndarray
     closed_mean: np.ndarray
     open_mean: np.ndarray
+    open_darksub: np.ndarray
     n_closed: int
     n_open: int
     label: str = "open"
@@ -314,6 +316,10 @@ def build_dit_block_from_spec(
     closed_mean = average_stack(closed_images)
     open_mean = average_stack(open_images)
     difference = open_mean - closed_mean
+    open_darksub = np.stack(
+        [np.asarray(img, dtype=np.float64) - closed_mean for img in open_images],
+        axis=0,
+    )
     block = DitBlock(
         dit_s=dit_ref,
         frame_start=spec.frame_start,
@@ -325,6 +331,7 @@ def build_dit_block_from_spec(
         difference=difference,
         closed_mean=closed_mean,
         open_mean=open_mean,
+        open_darksub=open_darksub,
         n_closed=spec.n_closed,
         n_open=spec.n_open,
         label=spec.label,
@@ -453,7 +460,7 @@ def save_block_cubes(
     *,
     day_label: str,
 ) -> list[Path]:
-    """Write one dark-subtracted mean image FITS per DIT block."""
+    """Write dark-subtracted mean image + per-open-frame cube FITS per DIT block."""
     from astropy.io import fits
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -461,13 +468,12 @@ def save_block_cubes(
     for block in blocks:
         dit_ms = block.dit_s * 1000.0
         label_slug = re.sub(r"[^A-Za-z0-9]+", "_", block.label).strip("_") or "block"
-        filename = (
+        stem = (
             f"linearity_{day_label}_{label_slug}_"
             f"dit{dit_ms:.0f}ms_"
             f"c{block.closed_start:06d}-{block.closed_end:06d}_"
-            f"o{block.open_start:06d}-{block.open_end:06d}.fits"
+            f"o{block.open_start:06d}-{block.open_end:06d}"
         )
-        path = output_dir / filename
 
         header = fits.Header()
         header["IMTYPE"] = ("DARKSUB", "mean(open/BS) - mean(closed)")
@@ -484,15 +490,44 @@ def save_block_cubes(
         header["NOPEN"] = (block.n_open, "Number of open/BS frames averaged")
         header["COMMENT"] = "Image = mean(open/BS) - mean(closed)."
 
+        mean_path = output_dir / f"{stem}.fits"
         fits.PrimaryHDU(
             data=np.asarray(block.difference, dtype=np.float32),
             header=header,
-        ).writeto(path, overwrite=True)
-        written.append(path)
+        ).writeto(mean_path, overwrite=True)
+        written.append(mean_path)
         logging.info(
-            "Wrote dark-sub FITS: %s  %s",
-            path.name,
+            "Wrote dark-sub mean FITS: %s  %s",
+            mean_path.name,
             block.difference.shape,
+        )
+
+        cube = np.asarray(block.open_darksub, dtype=np.float32)
+        if cube.ndim != 3:
+            raise ValueError(
+                f"Expected open_darksub cube (n,y,x), got shape {cube.shape}"
+            )
+        cube_header = header.copy()
+        cube_header["IMTYPE"] = (
+            "OPEN-DARK",
+            "Each plane = open/BS frame - mean(closed)",
+        )
+        cube_header["NAXIS"] = 3
+        cube_header["NAXIS1"] = cube.shape[2]
+        cube_header["NAXIS2"] = cube.shape[1]
+        cube_header["NAXIS3"] = cube.shape[0]
+        cube_header["COMMENT"] = (
+            "Cube plane k = open/BS frame k - mean(closed) for this DIT block."
+        )
+        cube_path = output_dir / f"{stem}_opencube.fits"
+        fits.PrimaryHDU(data=cube, header=cube_header).writeto(
+            cube_path, overwrite=True
+        )
+        written.append(cube_path)
+        logging.info(
+            "Wrote open dark-sub cube: %s  %s",
+            cube_path.name,
+            cube.shape,
         )
     return written
 
@@ -884,14 +919,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Directory for dark-subtracted mean FITS images "
+            "Directory for dark-subtracted mean FITS and open-frame cubes "
             "(default: <script_dir>/linearity_<day>_darksub)"
         ),
     )
     parser.add_argument(
         "--no-fits",
         action="store_true",
-        help="Do not write dark-subtracted FITS images",
+        help="Do not write dark-subtracted FITS images / open cubes",
     )
     parser.add_argument(
         "--show",

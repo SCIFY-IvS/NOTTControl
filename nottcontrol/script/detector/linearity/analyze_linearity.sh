@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # H2RG detector linearity: dark-subtracted flux vs DIT.
 #
+# Writes mean(open)-mean(closed) images and a cube of each open frame
+# minus mean(closed) under linearity_<day>_darksub/.
+#
 # Default: frames 301–340 (shutter open) plus 341–350 (beamsplitter in)
 # under today's UTC day folder.
 # Data root resolution:
