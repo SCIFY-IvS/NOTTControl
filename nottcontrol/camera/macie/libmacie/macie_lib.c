@@ -137,6 +137,13 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->bSoftStripeActive = false;
     ptUserData->uiSoftStripeY1 = 0;
     ptUserData->uiSoftStripeY2 = 0;
+    ptUserData->bSoftSerialRamps = false;
+    ptUserData->uiSoftSerialNRamps = 0;
+
+    ptUserData->pDisplayPreview = NULL;
+    ptUserData->displayPreviewNx = 0;
+    ptUserData->displayPreviewNy = 0;
+    ptUserData->bDisplayPreviewValid = false;
 
     // Pixel clocking scheme for full frame and subarray window
     // Normal (0) or Enhanced (1)
@@ -794,6 +801,17 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
     }
     else // Slow Mode
     {
+        // Soft SC: refresh StripeReads*/Skips* before the h6900 latch so a DIT
+        // reconfigure copies the soft window into the MCD data table (5401–5405).
+        // Do NOT rewrite those counters after reconfigure — that desyncs GigE
+        // (~0xFFFF / 65535 ADU), same class of bug as touching 4024 around open/close.
+        if (ptUserData->bSoftStripeActive &&
+            ASIC_STRIPEMode(ptUserData, false, false))
+        {
+            unsigned int ypix_pre = 0;
+            ypix_burst_stripe(ptUserData, &ypix_pre, true);
+        }
+
         unsigned int idle_value = 0;
         unsigned int regtemp = 0;
         unsigned int time_tot = 0;
@@ -900,14 +918,27 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         }
     }
 
-    // Check if STRIPE Mode is enabled
-    // We need to update RowsPerFrame since this is not done properly
+    // Check if STRIPE Mode is enabled.
+    // RowsPerFrame / PixPerRow are ASIC *output* regs (cfg "(Out)"): under soft SC
+    // the ASIC Y window stays full-frame, so those outs often reflect full height and
+    // can change after each acquire. Force the delivered geometry into the outs for
+    // MACIE buffer sizing, but exposure_frametime_ms() uses the same geometry
+    // formula so UI timing stays stable.
     if (ASIC_STRIPEMode(ptUserData, false, false))
     {
         unsigned int ypix_sub = exposure_ypix(ptUserData);
-
+        unsigned int xpix_sub = exposure_xpix(ptUserData);
         unsigned int ExtraLines = 0;
+        unsigned int ExtraPixels = 0;
+        unsigned int nout = ASIC_NumOutputs(ptUserData);
+        if (nout < 1)
+            nout = 1;
         GetASICParameter(ptUserData, "ExtraLines", &ExtraLines);
+        GetASICParameter(ptUserData, "ExtraPixels", &ExtraPixels);
+        unsigned int ppr = xpix_sub / nout + ExtraPixels;
+        if (ptUserData->DetectorMode == CAMERA_MODE_SLOW)
+            ppr += 8;
+        SetASICParameter(ptUserData, "PixPerRow", ppr);
         SetASICParameter(ptUserData, "RowsPerFrame", ypix_sub + ExtraLines + 1);
     }
 
@@ -918,7 +949,8 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         return false;
     }
 
-    // Save exposure frame and ramp times to ptUserData for use during acquisition
+    // Soft/burst stripe: prefer geometry-based frame time (Out regs may have been
+    // clobbered again by GetASICSettings reading full-frame ASIC Y).
     ptUserData->frametime_ms = exposure_frametime_ms(ptUserData);
     ptUserData->ramptime_ms = exposure_ramptime_ms(ptUserData);
 
@@ -1989,6 +2021,96 @@ bool HaltCameraAcq(MACIE_Settings *ptUserData)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// \brief ClearDisplayPreview Free the in-memory ZMQ display preview buffer.
+void ClearDisplayPreview(MACIE_Settings *ptUserData)
+{
+    if (ptUserData == NULL)
+        return;
+    delete[] ptUserData->pDisplayPreview;
+    ptUserData->pDisplayPreview = NULL;
+    ptUserData->displayPreviewNx = 0;
+    ptUserData->displayPreviewNy = 0;
+    ptUserData->bDisplayPreviewValid = false;
+}
+
+/// CDS = last − first when nframes≥2, else copy the single plane (float32).
+static bool store_display_preview_plane(MACIE_Settings *ptUserData,
+                                        int xpix, int ypix, int nframes_ramp,
+                                        const unsigned short *pU16,
+                                        const float *pF32)
+{
+    if (ptUserData == NULL || xpix <= 0 || ypix <= 0 || nframes_ramp < 1)
+        return false;
+    if (pU16 == NULL && pF32 == NULL)
+        return false;
+
+    const long framesize = (long)xpix * (long)ypix;
+    float *disp = NULL;
+    try
+    {
+        disp = new float[framesize];
+    }
+    catch (const std::exception &e)
+    {
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "display preview alloc failed: %s\n", e.what());
+        return false;
+    }
+
+    if (nframes_ramp == 1)
+    {
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[i];
+        }
+    }
+    else
+    {
+        const long last0 = framesize * (long)(nframes_ramp - 1);
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[last0 + i] - pF32[i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[last0 + i] - (float)pU16[i];
+        }
+    }
+
+    ClearDisplayPreview(ptUserData);
+    ptUserData->pDisplayPreview = disp;
+    ptUserData->displayPreviewNx = xpix;
+    ptUserData->displayPreviewNy = ypix;
+    ptUserData->bDisplayPreviewValid = true;
+    verbose_printf(LOG_INFO, ptUserData,
+                   "  Stored display preview %dx%d (CDS/single) for ZMQ\n",
+                   xpix, ypix);
+    return true;
+}
+
+bool StoreDisplayPreviewU16(MACIE_Settings *ptUserData,
+                            int xpix, int ypix, int nframes_ramp,
+                            const unsigned short *pU16)
+{
+    return store_display_preview_plane(ptUserData, xpix, ypix, nframes_ramp, pU16, NULL);
+}
+
+bool StoreDisplayPreviewF32(MACIE_Settings *ptUserData,
+                            int xpix, int ypix, int nframes_ramp,
+                            const float *pF32)
+{
+    return store_display_preview_plane(ptUserData, xpix, ypix, nframes_ramp, NULL, pF32);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// \brief DownloadAndSaveAllUSB Function to download all requested frames
 ///  from MACIE, coadd average if requested, and save to FITS.
 /// \param ptUserData The user-set structure containing all the hardware parameters.
@@ -2000,13 +2122,21 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     verbose_printf(LOG_INFO, ptUserData, "DownloadAndSaveAllUSB: saveDir=%s\n",
                    ptUserData->saveDir.c_str());
 
+    // Drop any stale preview until this acquire produces a new one.
+    ClearDisplayPreview(ptUserData);
+
     const int xpix = (int)exposure_xpix(ptUserData);
     const int ypix = (int)exposure_ypix(ptUserData);
     // Number of pixels in frame for download
     const int framesize = xpix * ypix;
 
     // Number of requested ramps
-    const int nramps = (int)ASIC_NRamps(ptUserData, false, 0);
+    // Soft SC serial mode: ASIC NumRamps stays 1; download this many single-ramp
+    // triggers (re-armed inside the loop) so middle-stripe geometry stays stable.
+    const int nramps = (ptUserData->bSoftSerialRamps && ptUserData->uiSoftSerialNRamps > 0)
+                           ? (int)ptUserData->uiSoftSerialNRamps
+                           : (int)ASIC_NRamps(ptUserData, false, 0);
+    const bool soft_serial = ptUserData->bSoftSerialRamps && (nramps > 1);
     // Number of groups in a ramp
     const int ngroups = (int)ASIC_NGroups(ptUserData, false, 0);
     // Number of frame reads in a group
@@ -2121,6 +2251,22 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         //     break;
         // }
 
+        // Soft SC serial: first ramp was triggered by acquire(); each further
+        // ramp is a new single-ramp trigger with GigE reused (no reconfigure).
+        if (soft_serial && ii > 0)
+        {
+            verbose_printf(LOG_INFO, ptUserData,
+                           "Soft SC serial: trigger ramp %i of %i\n", ii + 1, nramps);
+            if (AcquireDataGigE(ptUserData, false) == false)
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "AcquireDataGigE failed on soft-SC serial ramp %i of %i.\n",
+                               ii + 1, nramps);
+                download_failed = true;
+                break;
+            }
+        }
+
         // If the memory buffer is 90% full, then set buffer overflow flag.
         // But only if the number of requested bytes is greater than max buffer size.
         // Resume when we've gone below 65%
@@ -2154,6 +2300,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         // If no coadding, keep in 16-bit format and save
         if (ncoadds == 1)
         {
+            // In-memory CDS for ZMQ acquire reply (before / instead of disk preview).
+            const bool have_preview = StoreDisplayPreviewU16(
+                ptUserData, xpix, ypix, nframes_ramp, pData);
+
             if (ptUserData->bSaveData)
             {
                 if (ifile >= (int)filenames.size())
@@ -2180,9 +2330,9 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 ifile++;
                 nwritten++;
             }
-            else
+            else if (!have_preview)
             {
-                // Preview-only: overwrite a fixed FITS for GUI display (no archive).
+                // Fallback for clients that still poll preview.fits.
                 string preview = ptUserData->saveDir;
                 if (!preview.empty() && preview.back() != '/')
                     preview += "/";
@@ -2194,6 +2344,12 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     write_failed = true;
                     break;
                 }
+                nwritten++;
+            }
+            else
+            {
+                verbose_printf(LOG_INFO, ptUserData,
+                               "Skipping preview.fits (ZMQ display preview ready).\n");
                 nwritten++;
             }
         }
@@ -2224,6 +2380,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     verbose_printf(LOG_INFO, ptUserData, "  Time to take average: %f seconds\n", time_taken);
                 }
 
+                // In-memory CDS for ZMQ acquire reply (before / instead of disk preview).
+                const bool have_preview = StoreDisplayPreviewF32(
+                    ptUserData, xpix, ypix, nframes_ramp, pRampBuffer);
+
                 if (ptUserData->bSaveData)
                 {
                     if (ifile >= (int)filenames.size())
@@ -2251,7 +2411,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     ifile++;
                     nwritten++;
                 }
-                else
+                else if (!have_preview)
                 {
                     string preview = ptUserData->saveDir;
                     if (!preview.empty() && preview.back() != '/')
@@ -2264,6 +2424,12 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                         write_failed = true;
                         break;
                     }
+                    nwritten++;
+                }
+                else
+                {
+                    verbose_printf(LOG_INFO, ptUserData,
+                                   "Skipping preview.fits (ZMQ display preview ready).\n");
                     nwritten++;
                 }
 
@@ -4180,25 +4346,23 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
     // Vertical-only window = burst stripe when the microcode exposes it.
-    // Only edge-aligned Y (bottom/top refs) is proven on this Teledyne MCD;
-    // centered middle stripes previously left GigE buffers at ~0xFFFF.
+    // Soft-track requested Y and keep ASIC Y at full frame (MCD data table
+    // slot 5402→Y2 stays ydet-1). Edge and centered SC both use StripeReads*.
     // Otherwise fall back to WinMode (single-output, slower, valid pixels).
     bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        const bool edge_aligned = (y1 < 4) || (y2 > ydet - 5);
-        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0 &&
-            edge_aligned)
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
             use_burst_stripe = true;
             // Keep ASIC Y at full frame: MCD data table 5402→4023(Y2) must stay
-            // ydet-1 alongside Reads2=0 (same as idle). Track SC height in soft state.
+            // ydet-1 alongside Reads2 handling. Track SC height in soft state.
             ptUserData->bSoftStripeActive = true;
             ptUserData->uiSoftStripeY1 = y1;
             ptUserData->uiSoftStripeY2 = y2;
             verbose_printf(LOG_INFO, ptUserData,
-                           "%s(): SC via burst stripe (edge-aligned, parallel outputs) "
+                           "%s(): SC via burst stripe (parallel outputs) "
                            "soft y=[%u,%u]; ASIC Y kept [0,%u].\n",
                            __func__, y1, y2, ydet - 1);
         }
@@ -4213,21 +4377,10 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
             else if (RegMap.count("WinMode") > 0)
             {
                 ASIC_Generic(ptUserData, "WinMode", true, 1);
-                if (ptUserData->bStripeModeAllowed && !edge_aligned)
-                {
-                    verbose_printf(LOG_WARNING, ptUserData,
-                                   "%s(): centered SC y=[%u,%u] uses WinMode "
-                                   "(middle burst not enabled); prefer bottom-aligned "
-                                   "SC for 32-output burst.\n",
-                                   __func__, y1, y2);
-                }
-                else
-                {
-                    verbose_printf(LOG_WARNING, ptUserData,
-                                   "%s(): SC via WinMode (burst stripe unavailable in %s); "
-                                   "single-output window.\n",
-                                   __func__, ptUserData->ASICRegs);
-                }
+                verbose_printf(LOG_WARNING, ptUserData,
+                               "%s(): SC via WinMode (burst stripe unavailable in %s); "
+                               "single-output window.\n",
+                               __func__, ptUserData->ASICRegs);
             }
             else
             {
@@ -4294,20 +4447,24 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
 
     // TODO:
-    // Pixel Clock scheme checks (i.e., Normal vs Enhanced) are necessary if there are
-    // differences between full frame and subarray window clocking schemes. Normally
-    // these would be the same, but there is a bug in the Slow Mode v5.0+ microcode
-    // where Enhanced mode causes the columns to shift every other acquisition.
-    // The shifted column then persists after switching back to full frame.
-    // Something is wrong with the pixel timing code.
+    // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
+    // acquisition. Full-frame may use Enhanced; any window / burst-stripe SC
+    // must stay Normal (0) or Live oscillates between clean CDS and channel
+    // seams / horizontal artifacts.
     if (RegMap.count("PixelClkScheme") > 0)
     {
-        uint pixClk = (bHorzWin == false) ? ptUserData->ffPixelClkScheme : ptUserData->winPixelClkScheme;
+        uint pixClk = ptUserData->ffPixelClkScheme;
+        if (use_burst_stripe || bVertWin || bHorzWin)
+            pixClk = ptUserData->winPixelClkScheme; // Normal
         SetASICParameter(ptUserData, "PixelClkScheme", pixClk);
         if (ReconfigureASIC(ptUserData) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
         }
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): PixelClkScheme=%u (%s)\n",
+                       __func__, pixClk,
+                       (use_burst_stripe || bVertWin || bHorzWin) ? "window/SC Normal" : "full-frame");
     }
 
     x1 = ASIC_getX1(ptUserData);
@@ -4851,7 +5008,7 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
-                           "(y1=%u y2=%u ny=%u → %u rows incl. bottom refs)\n",
+                           "(soft y1=%u y2=%u ny=%u → %u rows incl. bottom refs)\n",
                            __func__, skip_pre, ny, skip_post, y1, y2, ny, yrows);
         }
     }
@@ -4878,22 +5035,36 @@ unsigned int exposure_frametime_pix(MACIE_Settings *ptUserData)
     if (SettingsCheckNULL(ptUserData) == false)
         return false;
 
-    // Update PixPerRow & RowsPerFrame for offline testing mode
-    if (ptUserData->offline_develop == true)
+    // Soft / burst stripe: PixPerRow & RowsPerFrame are ASIC output registers and
+    // often track full-frame Y (soft SC keeps ASIC Y full). Derive pixel count from
+    // the delivered geometry so frame/photon times stay stable across acquires.
+    unsigned int y_burst = 0;
+    const bool burst = ypix_burst_stripe(ptUserData, &y_burst, false) ||
+                       ptUserData->bSoftStripeActive;
+    if (burst || ptUserData->offline_develop == true)
     {
-        LOG_LEVEL log_prev = get_verbose(ptUserData);
-        set_verbose(ptUserData, LOG_WARNING);
         unsigned int nout = ASIC_NumOutputs(ptUserData);
-        unsigned int xtra_pix = ASIC_Generic(ptUserData, "ExtraPixels", false, 0);
-        unsigned int xtra_lines = ASIC_Generic(ptUserData, "ExtraLines", false, 0);
-        unsigned int ppr = exposure_xpix(ptUserData) / nout + xtra_pix;
-        unsigned int rpf = exposure_ypix(ptUserData) + xtra_lines;
+        if (nout < 1)
+            nout = 1;
+        unsigned int xtra_pix = 0;
+        unsigned int xtra_lines = 0;
+        GetASICParameter(ptUserData, "ExtraPixels", &xtra_pix);
+        GetASICParameter(ptUserData, "ExtraLines", &xtra_lines);
+        unsigned int xpix = exposure_xpix(ptUserData);
+        unsigned int ypix = exposure_ypix(ptUserData);
+        unsigned int ppr = xpix / nout + xtra_pix;
+        unsigned int rpf = ypix + xtra_lines + 1;
         if (ptUserData->DetectorMode == CAMERA_MODE_SLOW)
-            SetASICParameter(ptUserData, "PixPerRow", ppr + 8);
-        else
+            ppr += 8;
+        if (ptUserData->offline_develop == true)
+        {
+            LOG_LEVEL log_prev = get_verbose(ptUserData);
+            set_verbose(ptUserData, LOG_WARNING);
             SetASICParameter(ptUserData, "PixPerRow", ppr);
-        SetASICParameter(ptUserData, "RowsPerFrame", rpf + 1);
-        set_verbose(ptUserData, log_prev);
+            SetASICParameter(ptUserData, "RowsPerFrame", rpf);
+            set_verbose(ptUserData, log_prev);
+        }
+        return ppr * rpf;
     }
 
     unsigned int PixPerRow = 0;

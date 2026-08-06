@@ -57,7 +57,7 @@ class StripeWindowTests(unittest.TestCase):
     def test_bottom_stripe_256_rows(self) -> None:
         self.assertEqual(_bottom_vertical_stripe(256), (0, 2047, 0, 255))
 
-    def test_sc_presets_are_bottom_aligned_burst(self) -> None:
+    def test_sc_presets_are_centered_burst(self) -> None:
         by_label = {mode.label: mode for mode in WINDOW_MODES}
         for label, height in (
             ("SC 128", 128),
@@ -70,7 +70,7 @@ class StripeWindowTests(unittest.TestCase):
             self.assertTrue(mode.y_window)
             self.assertEqual(
                 (mode.x1, mode.x2, mode.y1, mode.y2),
-                _bottom_vertical_stripe(height),
+                _centered_vertical_stripe(height),
             )
 
 

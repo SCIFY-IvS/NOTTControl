@@ -51,6 +51,7 @@ from nottcontrol.theme import (
     PANEL_FIELD_STYLE,
     PANEL_GROUP_STYLE,
     PANEL_LABEL_STYLE,
+    style_line_edit_field,
 )
 from nottcontrol import config
 from collections import deque
@@ -439,7 +440,7 @@ class MainWindow(QMainWindow):
             label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             grid.addWidget(label, row, 0, Qt.AlignLeft | Qt.AlignVCenter)
             widget.setSizePolicy(field_policy)
-            widget.setStyleSheet(PANEL_FIELD_STYLE)
+            style_line_edit_field(widget)
             grid.addWidget(widget, row, 1, Qt.AlignRight | Qt.AlignVCenter)
 
         _add_row(0, "Min:", self.ui.lineEdit_minBrightness)

@@ -123,6 +123,7 @@ from nottcontrol.theme import (
     PANEL_LABEL_STYLE,
     linux_safe_stylesheet,
     sanitize_widget_fonts,
+    style_line_edit_field,
 )
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
@@ -228,11 +229,10 @@ def _channel_window(
 def _centered_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width central rows (Y window).
+    """Full-width central rows (Y window) for SC burst stripe.
 
     For a 1024-row stripe on a 2048 array this is y=[512, 1535].
-    Centered stripes need WinMode on this microcode (middle burst counters
-    are not yet verified); prefer `_bottom_vertical_stripe` for fast SC.
+    Applied via soft-tracked burst counters (ASIC Y stays full-frame).
     """
     y0 = (array_size - height) // 2
     return 0, array_size - 1, y0, y0 + height - 1
@@ -241,10 +241,10 @@ def _centered_vertical_stripe(
 def _bottom_vertical_stripe(
     height: int, array_size: int = H2RG_ARRAY_SIZE
 ) -> tuple[int, int, int, int]:
-    """Full-width bottom-aligned rows for HxRG burst stripe (32 outputs).
+    """Full-width bottom-aligned rows (edge burst path).
 
-    This is the historically working Slow burst path: y=[0, height-1], which
-    hits the lower-reference Read/Skip formula (not the broken centered path).
+    Prefer `_centered_vertical_stripe` for SC presets; this remains for tests
+    and any explicit bottom ROI.
     """
     if height < 1 or height > array_size:
         raise ValueError(f"height must be in 1..{array_size}, got {height}")
@@ -260,25 +260,25 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
             "SC 128",
             False,
             True,
-            *_bottom_vertical_stripe(128, array_size=array_size),
+            *_centered_vertical_stripe(128, array_size=array_size),
         ),
         WindowMode(
             "SC 256",
             False,
             True,
-            *_bottom_vertical_stripe(256, array_size=array_size),
+            *_centered_vertical_stripe(256, array_size=array_size),
         ),
         WindowMode(
             "SC 512",
             False,
             True,
-            *_bottom_vertical_stripe(512, array_size=array_size),
+            *_centered_vertical_stripe(512, array_size=array_size),
         ),
         WindowMode(
             "SC 1024",
             False,
             True,
-            *_bottom_vertical_stripe(1024, array_size=array_size),
+            *_centered_vertical_stripe(1024, array_size=array_size),
         ),
         WindowMode("Channel 16", True, False, *_channel_window(16, array_size=array_size)),
         WindowMode("LL 1024x1024", True, True, *_window_region(0, 0, 1024)),
@@ -319,7 +319,9 @@ class _PixmapImageView(QLabel):
     _ZOOM_MIN = 1.0
     _ZOOM_MAX = 32.0
     _ZOOM_STEP = 1.25
-    _ROI_HANDLE_IMG_PX = 10
+    _ROI_HANDLE_IMG_PX = 8
+    _ROI_PEN_PX = 1
+    _ROI_HANDLE_DISP_PX = 5
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -661,15 +663,14 @@ class _PixmapImageView(QLabel):
                     if index not in self._roi_visible:
                         continue
                     color = QColor(ROI_COLORS[(index - 1) % len(ROI_COLORS)])
-                    pen_w = max(1, int(round(2 * zoom)))
-                    painter.setPen(QPen(color, pen_w))
+                    painter.setPen(QPen(color, self._ROI_PEN_PX))
                     rx_s = int(rx * sx)
                     ry_s = int(ry * sy)
                     rw_s = max(1, int(rw * sx))
                     rh_s = max(1, int(rh * sy))
                     painter.drawRect(rx_s, ry_s, rw_s, rh_s)
-                    # SE resize handle (visible cue for pixmap ROI interaction).
-                    handle = max(6, int(round(10 * zoom)))
+                    # SE resize handle (screen pixels; keep small and readable).
+                    handle = self._ROI_HANDLE_DISP_PX
                     painter.fillRect(
                         rx_s + rw_s - handle,
                         ry_s + rh_s - handle,
@@ -1157,6 +1158,7 @@ class H2rgMainWindow(QMainWindow):
     readouts_updated = pyqtSignal(object)
     init_button_state = pyqtSignal(str)
     exposure_timing_updated = pyqtSignal(object)
+    integration_time_updated = pyqtSignal(str)
     macie_operation_busy = pyqtSignal(bool)
 
     def __init__(self) -> None:
@@ -1180,6 +1182,9 @@ class H2rgMainWindow(QMainWindow):
         self.init_button_state.connect(self._apply_init_button_state, Qt.QueuedConnection)
         self.exposure_timing_updated.connect(
             self._apply_exposure_timing, Qt.QueuedConnection
+        )
+        self.integration_time_updated.connect(
+            self._apply_integration_time_text, Qt.QueuedConnection
         )
         self.macie_operation_busy.connect(
             self._apply_macie_operation_busy, Qt.QueuedConnection
@@ -1224,6 +1229,7 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG Redis client unavailable: {exc}")
         self._live_poll_stop = threading.Event()
         self._live_frame_available = threading.Event()
+        self._live_pending_frame: numpy.ndarray | None = None
         self._frame_timing_t0: float | None = None
         self._frame_timing_label = "Acquire"
         self._frame_timing_skip_report = False
@@ -1259,6 +1265,7 @@ class H2rgMainWindow(QMainWindow):
         self._acquire_previewed_names: set[str] = set()
         self._pending_roi_display: numpy.ndarray | None = None
         self._pending_roi_record = False
+        self._applied_exposure_fingerprint: tuple | None = None
         self._roi_update_timer = QTimer(self)
         self._roi_update_timer.setSingleShot(True)
         self._roi_update_timer.timeout.connect(self._flush_pending_roi_update)
@@ -1374,9 +1381,11 @@ class H2rgMainWindow(QMainWindow):
         label.setStyleSheet(PANEL_LABEL_STYLE)
         field = QLineEdit(host)
         field.setFixedHeight(CURSOR_READOUT_HEIGHT)
-        field.setStyleSheet(PANEL_FIELD_STYLE)
+        style_line_edit_field(field)
         field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         field.setPlaceholderText("—")
+        # Typing in Min/Max should lock the scale (setText does not emit textEdited).
+        field.textEdited.connect(lambda _text: self._set_autoscale_checked(False))
         layout.addWidget(label)
         layout.addWidget(field)
         return host, field
@@ -1787,7 +1796,12 @@ class H2rgMainWindow(QMainWindow):
             self._label_fowler_pairs,
             self._lineEdit_fowler_pairs,
         ):
-            widget.setStyleSheet(PANEL_LABEL_STYLE if isinstance(widget, QLabel) else PANEL_FIELD_STYLE)
+            if isinstance(widget, QLabel):
+                widget.setStyleSheet(PANEL_LABEL_STYLE)
+            elif isinstance(widget, QLineEdit):
+                style_line_edit_field(widget)
+            else:
+                widget.setStyleSheet(PANEL_FIELD_STYLE)
         form.addWidget(self._label_ramp_mode, mode_row, 0)
         form.addWidget(self._comboBox_ramp_mode, mode_row, 1)
         form.addWidget(self._label_fowler_pairs, mode_row + 1, 0)
@@ -1824,8 +1838,9 @@ class H2rgMainWindow(QMainWindow):
             )
         ):
             label.setStyleSheet(PANEL_LABEL_STYLE)
-            field.setStyleSheet(
-                PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+            style_line_edit_field(
+                field,
+                PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }",
             )
             label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
             field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -2035,10 +2050,15 @@ class H2rgMainWindow(QMainWindow):
             "comboBox_detector_mode",
             "comboBox_window_mode",
         ):
-            getattr(self.ui, name).setStyleSheet(PANEL_FIELD_STYLE)
+            widget = getattr(self.ui, name)
+            if isinstance(widget, QLineEdit):
+                style_line_edit_field(widget)
+            else:
+                widget.setStyleSheet(PANEL_FIELD_STYLE)
 
-        self.ui.lineEdit_status.setStyleSheet(
-            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+        style_line_edit_field(
+            self.ui.lineEdit_status,
+            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }",
         )
 
         for button in (
@@ -2057,7 +2077,7 @@ class H2rgMainWindow(QMainWindow):
             getattr(self, "_lineEdit_level_max", None),
         ):
             if field is not None:
-                field.setStyleSheet(PANEL_FIELD_STYLE)
+                style_line_edit_field(field)
 
         for widget in (
             getattr(self, "_label_ramp_mode", None),
@@ -2081,10 +2101,13 @@ class H2rgMainWindow(QMainWindow):
             if widget is None:
                 continue
             if isinstance(widget, QLineEdit):
-                widget.setStyleSheet(
+                readonly_bg = (
                     PANEL_FIELD_STYLE
                     + " QLineEdit { background: rgb(250, 252, 252); }"
+                    if widget.isReadOnly()
+                    else None
                 )
+                style_line_edit_field(widget, readonly_bg)
             else:
                 widget.setStyleSheet(PANEL_FIELD_STYLE)
 
@@ -2187,8 +2210,9 @@ class H2rgMainWindow(QMainWindow):
             elif self._selected_ramp_mode() == "Ramp":
                 label = "Integration time:"
                 tooltip = (
-                    "Target DIT for raw readout at end of integration (ms). "
-                    "Uses MACIE drop frames between groups (same timing as CDS)."
+                    "Target DIT (ms), rounded to N×frame time on Set "
+                    "(minimum one frame). On SC, 1×frame can show the wrong "
+                    "Y band; use ≥2×frame or CDS if the window must stay fixed."
                 )
             else:
                 label = "Integration time:"
@@ -2471,14 +2495,16 @@ class H2rgMainWindow(QMainWindow):
         if self._macie is not None:
             self._macie.set_live_frame_callback(None)
 
-    def _on_live_frame_written(self) -> None:
+    def _on_live_frame_written(self, frame=None) -> None:
         """Called from the Macie continuous thread after each acquire completes."""
+        self._live_pending_frame = frame
         self._live_frame_available.set()
 
     def _activate_live_ui(self) -> None:
         self._live_active = True
         self._live_poll_stop.clear()
         self._live_frame_available.clear()
+        self._live_pending_frame = None
         if self.ui is not None:
             self.ui.button_live.setText("Stop live")
         self._set_live_dependent_controls(True)
@@ -2504,6 +2530,19 @@ class H2rgMainWindow(QMainWindow):
                 ):
                     break
                 self._arm_frame_timing("Live")
+                pending = self._live_pending_frame
+                self._live_pending_frame = None
+                if pending is not None:
+                    self._raw_fits_cube = None
+                    self._raw_fits_header = None
+                    self._last_fits_path = None
+                    if self._save_image_enabled():
+                        status = "Live — ZMQ preview"
+                    else:
+                        status = "Live — ZMQ preview (not archived)"
+                    self._frame_timing_status = status
+                    self.frame_ready.emit(numpy.asarray(pending, dtype=numpy.float32))
+                    continue
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
                     frame, path = loaded
@@ -2592,7 +2631,7 @@ class H2rgMainWindow(QMainWindow):
             elif mode.y2 > H2RG_ARRAY_SIZE - 5:
                 stripe_note = "burst stripe, top-aligned, 32 outputs"
             else:
-                stripe_note = "vertical window (centered)"
+                stripe_note = "burst stripe, centered, 32 outputs"
             status = (
                 f"{mode.label} — requested y=[{mode.y1},{mode.y2}], "
                 f"ASIC y=[{y1_i},{y2_i}] ({stripe_note})"
@@ -2608,9 +2647,10 @@ class H2rgMainWindow(QMainWindow):
         if matched >= 0 and matched != index:
             status += f" (readback matches {WINDOW_MODES[matched].label})"
         self.status_updated.emit(status)
-        self._refresh_exposure_timing(macie)
-        if self._initialized:
-            self._on_exposure_fields_changed()
+        # Frametime changed with the window — apply the same ramp plan Acquire
+        # uses so photon/execution match immediately (not only on Acquire).
+        self._applied_exposure_fingerprint = None
+        self._apply_exposure_settings(macie)
 
     def _apply_detector_mode_to_macie(
         self, macie, mode_index: int, window_index: int
@@ -2618,17 +2658,16 @@ class H2rgMainWindow(QMainWindow):
         config_file = detector_config_file(mode_index)
         self.status_updated.emit(f"Switching to {DETECTOR_MODES[mode_index]} mode…")
         macie.reinit_camera(config_file)
+        self._applied_exposure_fingerprint = None
         if 0 <= window_index < len(WINDOW_MODES):
             self._apply_window_mode_to_macie(macie, window_index)
         self._sync_save_dir_from_server(macie)
         self._refresh_readouts(macie)
-        self._refresh_exposure_timing(macie)
         self.status_updated.emit(f"Detector mode: {DETECTOR_MODES[mode_index]}")
 
     def _on_exposure_fields_changed(self) -> None:
+        # GUI-only preview of total integration; ASIC updates only via Set / Init / window.
         self._update_total_integration_label()
-        if self._initialized and self._macie is not None:
-            self._exposure_preview_timer.start()
 
     def _on_set_exposure_clicked(self) -> None:
         self._update_total_integration_label()
@@ -2637,7 +2676,7 @@ class H2rgMainWindow(QMainWindow):
             return
 
         def operation() -> None:
-            self._apply_exposure_settings(self._ensure_macie())
+            self._apply_exposure_settings(self._ensure_macie(), force=True)
 
         self._run_macie_operation(
             "Set exposure",
@@ -2654,9 +2693,10 @@ class H2rgMainWindow(QMainWindow):
         return f"{value:.2f}"
 
     def _sync_level_fields(self, vmin: float, vmax: float) -> None:
-        if self._lineEdit_level_min is not None:
+        # Never overwrite a field the user is editing — that jumps the caret.
+        if self._lineEdit_level_min is not None and not self._lineEdit_level_min.hasFocus():
             self._lineEdit_level_min.setText(self._format_level_value(vmin))
-        if self._lineEdit_level_max is not None:
+        if self._lineEdit_level_max is not None and not self._lineEdit_level_max.hasFocus():
             self._lineEdit_level_max.setText(self._format_level_value(vmax))
 
     def _sync_level_fields_from_image(self) -> None:
@@ -2873,6 +2913,7 @@ class H2rgMainWindow(QMainWindow):
             button.setText("Re-init")
             return
         self._initialized = False
+        self._applied_exposure_fingerprint = None
         button.setEnabled(True)
         button.setText("Init")
 
@@ -2884,6 +2925,16 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_execution_time.setText(f"{timing['execution_s'] * 1000:.4g}")
         self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
 
+    def _apply_integration_time_text(self, text: str) -> None:
+        if self.ui is None:
+            return
+        field = self.ui.lineEdit_integration_time
+        # Avoid fighting the caret if the user is mid-edit when a late Set reply arrives.
+        if field.hasFocus() and field.text() == text:
+            return
+        field.setText(text)
+        self._update_total_integration_label()
+
     def _refresh_exposure_timing(self, macie) -> None:
         try:
             timing = macie.read_exposure_timing()
@@ -2892,14 +2943,8 @@ class H2rgMainWindow(QMainWindow):
         self.exposure_timing_updated.emit(timing)
 
     def _schedule_exposure_timing_preview(self) -> None:
-        if not self._initialized or self._macie is None:
-            return
-
-        def operation() -> None:
-            self._apply_exposure_settings(self._macie)
-            self._refresh_exposure_timing(self._macie)
-
-        self._run_macie_operation("Update timing", operation)
+        # Kept for the timer wiring; field edits no longer push to the ASIC.
+        self._update_total_integration_label()
 
     def _on_operation_failed(self, message: str) -> None:
         self._set_status(message)
@@ -2974,11 +3019,11 @@ class H2rgMainWindow(QMainWindow):
         def operation() -> None:
             macie = self._ensure_macie(detector_config_file(detector_index))
             macie.reinit_camera()
+            self._applied_exposure_fingerprint = None
             if 0 <= window_index < len(WINDOW_MODES):
                 self._apply_window_mode_to_macie(macie, window_index)
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
-            self._refresh_exposure_timing(macie)
             self.status_updated.emit("Initialized")
             self.controls_enabled.emit(True)
             self.init_button_state.emit("done")
@@ -3017,7 +3062,92 @@ class H2rgMainWindow(QMainWindow):
             return True
         return bool(box.isChecked())
 
-    def _apply_exposure_settings(self, macie) -> dict[str, float | int]:
+    def _exposure_request_fingerprint(self) -> tuple:
+        """GUI fields that define the ramp plan (skip ASIC reconfigure if unchanged)."""
+        ramp_mode = self._selected_ramp_mode()
+        ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
+        nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
+        fowler_pairs = self._fowler_pairs_value()
+        window_index = self.ui.comboBox_window_mode.currentIndex()
+        windowed = self._windowed_cds_layout()
+        windowed_cds = windowed and ramp_mode == "CDS"
+        if ramp_mode in ("Fowler", "SingleFrame"):
+            tint_key: str | float = "auto"
+        else:
+            text = (
+                self.ui.lineEdit_integration_time.text()
+                .strip()
+                .replace(",", ".")
+            )
+            tint_key = float(text) if text else "default"
+        return (
+            ramp_mode,
+            int(fowler_pairs),
+            ncoadds,
+            nseq,
+            self._save_image_enabled(),
+            tint_key,
+            window_index,
+            windowed,  # soft SC / any window — ramp plan must stay geometry-stable
+            MACIE_INTEGRATION_NGROUPS_MAX,
+        )
+
+    def _requested_tint_ms(self, macie, ramp_mode: str) -> float:
+        """Integration time from the GUI, or frametime if the field is empty."""
+        if ramp_mode in ("Fowler", "SingleFrame"):
+            try:
+                return float(macie.read_exposure_timing()["frametime_s"] * 1000.0)
+            except Exception:
+                return 1.0
+        text = self.ui.lineEdit_integration_time.text().strip().replace(",", ".")
+        if not text:
+            try:
+                return float(macie.read_exposure_timing()["frametime_s"] * 1000.0)
+            except Exception:
+                return 1.0
+        tint_ms = float(text)
+        if tint_ms <= 0:
+            raise ValueError("Integration time must be greater than zero")
+        return tint_ms
+
+    def _exposure_report_from_server(self, macie) -> dict[str, float | int]:
+        """Timing/ramp snapshot for Acquire when Set has not been clicked yet."""
+        timing = macie.read_exposure_timing()
+        _save, ncoadds, nseq, ngroups, nreads, ndrops, _nresets = (
+            macie.read_exposure_settings()
+        )
+        return {
+            "ngroups": int(ngroups),
+            "nreads": int(nreads),
+            "ndrops": int(ndrops),
+            "fowler_pairs": int(self._fowler_pairs),
+            "inttime_ms": float(timing["inttime_s"] * 1000.0),
+            "ramptime_ms": float(timing["ramptime_s"] * 1000.0),
+            "execution_s": float(timing["execution_s"]),
+            "frametime_ms": float(timing["frametime_s"] * 1000.0),
+            "efficiency": float(timing["efficiency"]),
+            "ncoadds": int(ncoadds),
+            "nseq": int(nseq),
+            "ramp_mode": self._selected_ramp_mode(),
+            "mode_detail": "server",
+        }
+
+    def _apply_exposure_settings(
+        self, macie, *, force: bool = False
+    ) -> dict[str, float | int]:
+        try:
+            fingerprint = self._exposure_request_fingerprint()
+        except ValueError as exc:
+            raise ValueError(f"Invalid exposure field: {exc}") from exc
+
+        if (
+            not force
+            and fingerprint == self._applied_exposure_fingerprint
+            and self._last_exposure_report is not None
+        ):
+            self._refresh_exposure_timing(macie)
+            return self._last_exposure_report
+
         try:
             ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
             nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
@@ -3026,19 +3156,10 @@ class H2rgMainWindow(QMainWindow):
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
         ramp_mode = self._selected_ramp_mode()
-        if ramp_mode in ("Fowler", "SingleFrame"):
-            try:
-                preview_timing = macie.read_exposure_timing()
-                tint_ms = preview_timing["frametime_s"] * 1000.0
-            except Exception:
-                tint_ms = 1.0
-        else:
-            try:
-                tint_ms = float(self.ui.lineEdit_integration_time.text().strip())
-            except ValueError as exc:
-                raise ValueError(f"Invalid integration time: {exc}") from exc
-            if tint_ms <= 0:
-                raise ValueError("Integration time must be greater than zero")
+        try:
+            tint_ms = self._requested_tint_ms(macie, ramp_mode)
+        except ValueError as exc:
+            raise ValueError(f"Invalid integration time: {exc}") from exc
 
         result = macie.configure_ramp_exposure(
             tint_ms,
@@ -3048,11 +3169,27 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=self._save_image_enabled(),
-            windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
+            # Soft SC / any window: keep a geometry-stable plan (never 1-read).
+            windowed_cds=self._windowed_cds_layout(),
         )
         self._last_tint_ms = float(result["inttime_ms"])
-        if ramp_mode != "Fowler":
-            self.ui.lineEdit_integration_time.setText(f"{self._last_tint_ms:.6g}")
+        # Ramp/CDS on soft SC quantize DIT to N×frametime — mirror in the box.
+        rounded = result.get("rounded_tint_ms")
+        if ramp_mode in ("Ramp", "CDS") and rounded is not None:
+            rounded_f = float(rounded)
+            self.integration_time_updated.emit(f"{rounded_f:.6g}")
+            fingerprint = (
+                fingerprint[0],
+                fingerprint[1],
+                fingerprint[2],
+                fingerprint[3],
+                fingerprint[4],
+                rounded_f,
+                fingerprint[6],
+                fingerprint[7],
+                fingerprint[8],
+            )
+        # Photon time (read-only) shows the achieved value.
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
         self._refresh_exposure_timing(macie)
         if ramp_mode == "Fowler":
@@ -3073,6 +3210,7 @@ class H2rgMainWindow(QMainWindow):
             **result,
             "mode_detail": mode_detail,
         }
+        self._applied_exposure_fingerprint = fingerprint
         self._print_efficiency_report(self._last_exposure_report)
         return result
 
@@ -3130,13 +3268,17 @@ class H2rgMainWindow(QMainWindow):
             from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
 
             macie = self._ensure_macie()
+            # Acquire does not reprogram the ramp — use last Set / Init / window plan.
+            if self._last_exposure_report is not None:
+                exposure = self._last_exposure_report
+                self._refresh_exposure_timing(macie)
+            else:
+                exposure = self._exposure_report_from_server(macie)
             try:
-                ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
-                nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
-            except ValueError as exc:
-                raise ValueError(f"Invalid exposure field: {exc}") from exc
-
-            exposure = self._apply_exposure_settings(macie)
+                ncoadds = int(exposure.get("ncoadds", 1))
+                nseq = int(exposure.get("nseq", 1))
+            except (TypeError, ValueError):
+                ncoadds, nseq = 1, 1
             keep_files = self._save_image_enabled()
             self._fits_dir_ok = None
             self._arm_frame_timing("Acquire")
@@ -3147,7 +3289,18 @@ class H2rgMainWindow(QMainWindow):
                     before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
                 except OSError:
                     before_mtime = 0.0
-                macie.acquire()
+                result = macie.acquire()
+                if result.frame is not None:
+                    self._raw_fits_cube = None
+                    self._raw_fits_header = None
+                    self._last_fits_path = None
+                    self._frame_timing_status = (
+                        "Acquire complete — displayed via ZMQ preview (not archived)"
+                    )
+                    self.frame_ready.emit(
+                        numpy.asarray(result.frame, dtype=numpy.float32)
+                    )
+                    return
                 frame, path = self._wait_for_preview_fits(
                     preview,
                     before_mtime=before_mtime,
@@ -3189,10 +3342,17 @@ class H2rgMainWindow(QMainWindow):
             )
             preview_thread.start()
             try:
-                macie.acquire()
+                result = macie.acquire()
             finally:
                 stop_preview.set()
                 preview_thread.join(timeout=2.0)
+
+            if result.frame is not None:
+                self._frame_timing_skip_report = True
+                self.frame_ready.emit(
+                    numpy.asarray(result.frame, dtype=numpy.float32)
+                )
+                self.status_updated.emit("Acquire: preview — ZMQ")
 
             ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
                 before_mtime,
@@ -3222,6 +3382,12 @@ class H2rgMainWindow(QMainWindow):
                     ramp_paths, science_paths
                 )
                 self.frame_ready.emit(frame)
+            elif result.frame is not None:
+                self._last_fits_path = None
+                self._frame_timing_status = (
+                    "Acquire complete — ZMQ preview (archive FITS missing)"
+                )
+                self._report_frame_timing()
             else:
                 self._frame_timing_t0 = None
                 self.status_updated.emit(self._missing_fits_status())
@@ -3646,15 +3812,12 @@ class H2rgMainWindow(QMainWindow):
 
         def worker() -> None:
             try:
-                self._apply_exposure_settings(self._macie)
+                # Live arms a single-ramp session (nseq=1) and keeps GigE open.
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
-                if self._save_image_enabled():
-                    self.status_updated.emit("Live acquiring…")
-                else:
-                    self.status_updated.emit(
-                        "Live acquiring… (preview.fits only — not archived)"
-                    )
+                self.status_updated.emit(
+                    "Live acquiring… (1 ramp/frame, GigE keep-alive)"
+                )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))
 

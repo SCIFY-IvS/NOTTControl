@@ -2,9 +2,12 @@ import os
 import ctypes
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
 from threading import Thread, Event, Lock
 import zmq
+
+import numpy
 
 from nottcontrol import config
 
@@ -37,6 +40,57 @@ def parse_zmq_float(value: str | float | int) -> float:
     return float(normalized)
 
 
+@dataclass(frozen=True)
+class AcquireResult:
+    """Result of an acquire ZMQ round-trip.
+
+    *frame* is the in-memory CDS/single-plane preview from the server when the
+    multipart reply includes it; otherwise None (fall back to FITS).
+    """
+
+    frame: numpy.ndarray | None = None
+
+
+def parse_acquire_preview_parts(
+    parts: list[bytes] | tuple[bytes, ...] | None,
+) -> AcquireResult:
+    """Parse acquire multipart reply into an optional float32 image (ny, nx)."""
+    if not parts:
+        return AcquireResult()
+    header = parts[0]
+    if isinstance(header, bytes):
+        header = header.decode("utf-8", errors="replace")
+    tokens = str(header).split(";")
+    if not tokens or tokens[0] != "ok":
+        detail = tokens[1] if len(tokens) > 1 else str(header)
+        raise Exception(f"Operation failed: {detail}")
+    if len(parts) < 2 or len(tokens) < 5 or tokens[1] != "preview":
+        return AcquireResult()
+    try:
+        nx = int(tokens[2])
+        ny = int(tokens[3])
+    except ValueError:
+        print(f"H2RG acquire preview ignored (bad size): {header}")
+        return AcquireResult()
+    dtype_name = tokens[4].lower()
+    if dtype_name not in ("float32", "f32"):
+        print(f"H2RG acquire preview ignored (dtype {dtype_name})")
+        return AcquireResult()
+    if nx <= 0 or ny <= 0:
+        return AcquireResult()
+    payload = parts[1]
+    if isinstance(payload, str):
+        payload = payload.encode("latin1")
+    expected = nx * ny * 4
+    if len(payload) < expected:
+        print(
+            f"H2RG acquire preview ignored (truncated: {len(payload)}/{expected} bytes)"
+        )
+        return AcquireResult()
+    frame = numpy.frombuffer(payload[:expected], dtype="<f4").reshape((ny, nx)).copy()
+    return AcquireResult(frame=frame)
+
+
 class DetectorMode(Enum):
     SLOW = 1
     FAST = 2
@@ -46,6 +100,8 @@ class DetectorMode(Enum):
 # By using the python 'with' statement, you can ensure that both the initialization
 # and the de-initialization are done
 class MacieInterface():
+
+    _LIVE_MAX_FAILURES = 3
 
     def __init__(
         self,
@@ -70,8 +126,10 @@ class MacieInterface():
         self._acquiring.clear()
         self._closing = Event()
         self._pause_live = Event()
+        self._live_session_open = False
+        self._live_restore_exposure: tuple | None = None
         self._live_error_callback: Callable[[Exception], None] | None = None
-        self._live_frame_callback: Callable[[], None] | None = None
+        self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
 
     def set_live_error_callback(
@@ -80,10 +138,59 @@ class MacieInterface():
         self._live_error_callback = callback
 
     def set_live_frame_callback(
-        self, callback: Callable[[], None] | None
+        self, callback: Callable[[numpy.ndarray | None], None] | None
     ) -> None:
-        """Optional hook invoked after each successful live acquire completes."""
+        """Optional hook after each live acquire; may receive the ZMQ preview frame."""
         self._live_frame_callback = callback
+
+    def _set_live_session(self, keep: bool) -> None:
+        """Enable/disable GigE keep-alive; no-op if already in the requested state."""
+        if keep == self._live_session_open:
+            return
+        self._request(f"livesession;{str(keep).lower()}")
+        self._live_session_open = keep
+
+    def _reset_live_science_interface(self) -> None:
+        """Close GigE after a failed live ramp so the next acquire can reopen cleanly."""
+        try:
+            if self._live_session_open:
+                self._request("livesession;false")
+                self._live_session_open = False
+            self._live_first_acquire = True
+        except Exception as exc:
+            print(f"Live science interface reset failed: {exc}")
+
+    def _arm_live_single_ramp(self) -> None:
+        """Force nseq=1 / ncoadds=1 / save off for Live; remember prior settings."""
+        save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
+            self.read_exposure_settings()
+        )
+        self._live_restore_exposure = (
+            bool(save),
+            int(ncoadds),
+            int(nseq),
+            int(ngroups),
+            int(nreads),
+            int(ndrops),
+            int(nresets),
+        )
+        # One ramp per acquire; keep the latched CDS/Ramp group structure.
+        self.exposure_settings(
+            False, 1, 1, int(ngroups), int(nreads), int(ndrops), int(nresets)
+        )
+
+    def _restore_exposure_after_live(self) -> None:
+        saved = self._live_restore_exposure
+        self._live_restore_exposure = None
+        if saved is None:
+            return
+        try:
+            save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = saved
+            self.exposure_settings(
+                save, ncoadds, nseq, ngroups, nreads, ndrops, nresets
+            )
+        except Exception as exc:
+            print(f"Live restore exposure failed: {exc}")
 
     def _attempt_halt_after_timeout(self) -> None:
         try:
@@ -265,11 +372,13 @@ class MacieInterface():
                     self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
             return parts
 
-    def acquire(self, no_recon=False):
-        return self._request(
+    def acquire(self, no_recon: bool = True) -> AcquireResult:
+        """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched)."""
+        parts = self._request_multipart(
             f"acquire;{str(no_recon).lower()}",
             timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
         )
+        return parse_acquire_preview_parts(parts)
 
     def get_save_dir(self) -> str | None:
         return self._request("getsavedir")
@@ -382,6 +491,9 @@ class MacieInterface():
             "ncoadds": int(ncoadds),
             "nseq": int(nseq),
             "ramp_mode": ramp_mode,
+            "rounded_tint_ms": float(plan["tint_ms"])
+            if "tint_ms" in plan
+            else float(tint_ms),
         }
 
     def set_integration_time(
@@ -460,7 +572,14 @@ class MacieInterface():
     def start_continuous_acquisition(self):
         self._live_first_acquire = True
         try:
-            self._request("livesession;true")
+            self._arm_live_single_ramp()
+        except Exception as exc:
+            print(f"Live single-ramp arm failed: {exc}")
+            self._live_restore_exposure = None
+        # Keep GigE open between single-ramp acquires so cadence tracks the
+        # detector instead of open/close overhead every frame.
+        try:
+            self._set_live_session(True)
         except Exception as exc:
             print(f"Live session start failed: {exc}")
         self._acquiring.set()
@@ -468,9 +587,10 @@ class MacieInterface():
     def stop_continuous_acquisition(self):
         self._acquiring.clear()
         try:
-            self._request("livesession;false")
+            self._set_live_session(False)
         except Exception as exc:
             print(f"Live session stop failed: {exc}")
+        self._restore_exposure_after_live()
 
     def pause_live_acquisition(self) -> None:
         self._pause_live.set()
@@ -480,31 +600,42 @@ class MacieInterface():
 
     def continuous_acquisition(self):
         # Run for as long as the interface is not closed
+        failures = 0
         while not self._closing.is_set():
             if self._acquiring.wait(0.1):
                 if self._pause_live.is_set():
                     continue
                 try:
-                    # First live ramp reconfigures; later ramps skip ReconfigureASIC.
-                    no_recon = not self._live_first_acquire
-                    self.acquire(no_recon=no_recon)
+                    # Single-ramp acquire, no ASIC reconfigure; GigE kept open
+                    # via livesession for steadier Live cadence.
+                    result = self.acquire(no_recon=True)
                     self._live_first_acquire = False
+                    failures = 0
                     frame_callback = self._live_frame_callback
                     if frame_callback is not None:
                         try:
-                            frame_callback()
+                            frame_callback(result.frame)
                         except Exception as callback_exc:
                             print(f"Live frame callback failed: {callback_exc}")
-                    # Brief yield so the GUI can load preview/FITS on the ZMQ lock.
                     if self._acquiring.is_set() and not self._closing.is_set():
-                        time.sleep(0.02)
+                        time.sleep(0.005)
                 except Exception as exc:
-                    print(f"Live acquire failed: {exc}")
+                    failures += 1
+                    print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
+                    self._reset_live_science_interface()
+                    if failures < self._LIVE_MAX_FAILURES and self._acquiring.is_set():
+                        try:
+                            self._set_live_session(True)
+                        except Exception:
+                            pass
+                        time.sleep(0.5)
+                        continue
                     self._acquiring.clear()
                     try:
-                        self._request("livesession;false")
+                        self._set_live_session(False)
                     except Exception:
                         pass
+                    self._restore_exposure_after_live()
                     callback = self._live_error_callback
                     if callback is not None:
                         try:
