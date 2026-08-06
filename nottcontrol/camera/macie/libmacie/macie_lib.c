@@ -137,6 +137,8 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->bSoftStripeActive = false;
     ptUserData->uiSoftStripeY1 = 0;
     ptUserData->uiSoftStripeY2 = 0;
+    ptUserData->bSoftSerialRamps = false;
+    ptUserData->uiSoftSerialNRamps = 0;
 
     ptUserData->pDisplayPreview = NULL;
     ptUserData->displayPreviewNx = 0;
@@ -2129,7 +2131,12 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     const int framesize = xpix * ypix;
 
     // Number of requested ramps
-    const int nramps = (int)ASIC_NRamps(ptUserData, false, 0);
+    // Soft SC serial mode: ASIC NumRamps stays 1; download this many single-ramp
+    // triggers (re-armed inside the loop) so middle-stripe geometry stays stable.
+    const int nramps = (ptUserData->bSoftSerialRamps && ptUserData->uiSoftSerialNRamps > 0)
+                           ? (int)ptUserData->uiSoftSerialNRamps
+                           : (int)ASIC_NRamps(ptUserData, false, 0);
+    const bool soft_serial = ptUserData->bSoftSerialRamps && (nramps > 1);
     // Number of groups in a ramp
     const int ngroups = (int)ASIC_NGroups(ptUserData, false, 0);
     // Number of frame reads in a group
@@ -2243,6 +2250,22 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         //     verbose_printf(LOG_ERROR, ptUserData, "Halt encountered on ramp %i of %i.\n", ii+1, nramps);
         //     break;
         // }
+
+        // Soft SC serial: first ramp was triggered by acquire(); each further
+        // ramp is a new single-ramp trigger with GigE reused (no reconfigure).
+        if (soft_serial && ii > 0)
+        {
+            verbose_printf(LOG_INFO, ptUserData,
+                           "Soft SC serial: trigger ramp %i of %i\n", ii + 1, nramps);
+            if (AcquireDataGigE(ptUserData, false) == false)
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "AcquireDataGigE failed on soft-SC serial ramp %i of %i.\n",
+                               ii + 1, nramps);
+                download_failed = true;
+                break;
+            }
+        }
 
         // If the memory buffer is 90% full, then set buffer overflow flag.
         // But only if the number of requested bytes is greater than max buffer size.

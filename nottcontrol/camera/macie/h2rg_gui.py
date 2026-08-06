@@ -123,6 +123,7 @@ from nottcontrol.theme import (
     PANEL_LABEL_STYLE,
     linux_safe_stylesheet,
     sanitize_widget_fonts,
+    style_line_edit_field,
 )
 
 _MACIE_UI = Path(__file__).resolve().parent / "ui" / "MacieControl.ui"
@@ -1380,9 +1381,11 @@ class H2rgMainWindow(QMainWindow):
         label.setStyleSheet(PANEL_LABEL_STYLE)
         field = QLineEdit(host)
         field.setFixedHeight(CURSOR_READOUT_HEIGHT)
-        field.setStyleSheet(PANEL_FIELD_STYLE)
+        style_line_edit_field(field)
         field.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         field.setPlaceholderText("—")
+        # Typing in Min/Max should lock the scale (setText does not emit textEdited).
+        field.textEdited.connect(lambda _text: self._set_autoscale_checked(False))
         layout.addWidget(label)
         layout.addWidget(field)
         return host, field
@@ -1793,7 +1796,12 @@ class H2rgMainWindow(QMainWindow):
             self._label_fowler_pairs,
             self._lineEdit_fowler_pairs,
         ):
-            widget.setStyleSheet(PANEL_LABEL_STYLE if isinstance(widget, QLabel) else PANEL_FIELD_STYLE)
+            if isinstance(widget, QLabel):
+                widget.setStyleSheet(PANEL_LABEL_STYLE)
+            elif isinstance(widget, QLineEdit):
+                style_line_edit_field(widget)
+            else:
+                widget.setStyleSheet(PANEL_FIELD_STYLE)
         form.addWidget(self._label_ramp_mode, mode_row, 0)
         form.addWidget(self._comboBox_ramp_mode, mode_row, 1)
         form.addWidget(self._label_fowler_pairs, mode_row + 1, 0)
@@ -1830,8 +1838,9 @@ class H2rgMainWindow(QMainWindow):
             )
         ):
             label.setStyleSheet(PANEL_LABEL_STYLE)
-            field.setStyleSheet(
-                PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+            style_line_edit_field(
+                field,
+                PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }",
             )
             label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
             field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -2041,10 +2050,15 @@ class H2rgMainWindow(QMainWindow):
             "comboBox_detector_mode",
             "comboBox_window_mode",
         ):
-            getattr(self.ui, name).setStyleSheet(PANEL_FIELD_STYLE)
+            widget = getattr(self.ui, name)
+            if isinstance(widget, QLineEdit):
+                style_line_edit_field(widget)
+            else:
+                widget.setStyleSheet(PANEL_FIELD_STYLE)
 
-        self.ui.lineEdit_status.setStyleSheet(
-            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }"
+        style_line_edit_field(
+            self.ui.lineEdit_status,
+            PANEL_FIELD_STYLE + " QLineEdit { background: rgb(250, 252, 252); }",
         )
 
         for button in (
@@ -2063,7 +2077,7 @@ class H2rgMainWindow(QMainWindow):
             getattr(self, "_lineEdit_level_max", None),
         ):
             if field is not None:
-                field.setStyleSheet(PANEL_FIELD_STYLE)
+                style_line_edit_field(field)
 
         for widget in (
             getattr(self, "_label_ramp_mode", None),
@@ -2087,10 +2101,13 @@ class H2rgMainWindow(QMainWindow):
             if widget is None:
                 continue
             if isinstance(widget, QLineEdit):
-                widget.setStyleSheet(
+                readonly_bg = (
                     PANEL_FIELD_STYLE
                     + " QLineEdit { background: rgb(250, 252, 252); }"
+                    if widget.isReadOnly()
+                    else None
                 )
+                style_line_edit_field(widget, readonly_bg)
             else:
                 widget.setStyleSheet(PANEL_FIELD_STYLE)
 
@@ -2676,9 +2693,10 @@ class H2rgMainWindow(QMainWindow):
         return f"{value:.2f}"
 
     def _sync_level_fields(self, vmin: float, vmax: float) -> None:
-        if self._lineEdit_level_min is not None:
+        # Never overwrite a field the user is editing — that jumps the caret.
+        if self._lineEdit_level_min is not None and not self._lineEdit_level_min.hasFocus():
             self._lineEdit_level_min.setText(self._format_level_value(vmin))
-        if self._lineEdit_level_max is not None:
+        if self._lineEdit_level_max is not None and not self._lineEdit_level_max.hasFocus():
             self._lineEdit_level_max.setText(self._format_level_value(vmax))
 
     def _sync_level_fields_from_image(self) -> None:
@@ -2910,7 +2928,11 @@ class H2rgMainWindow(QMainWindow):
     def _apply_integration_time_text(self, text: str) -> None:
         if self.ui is None:
             return
-        self.ui.lineEdit_integration_time.setText(text)
+        field = self.ui.lineEdit_integration_time
+        # Avoid fighting the caret if the user is mid-edit when a late Set reply arrives.
+        if field.hasFocus() and field.text() == text:
+            return
+        field.setText(text)
         self._update_total_integration_label()
 
     def _refresh_exposure_timing(self, macie) -> None:
