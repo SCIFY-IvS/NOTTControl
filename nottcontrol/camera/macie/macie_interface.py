@@ -24,6 +24,10 @@ ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
 MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "shutdown_timeout_ms", fallback=2_000
 )
+# Live runs multi-ramp batches like Acquire-with-N-frames for uniform cadence.
+MACIE_LIVE_BATCH_NRAMPS = config.getint(
+    H2RG_SECTION, "live_batch_nramps", fallback=32
+)
 
 
 def server_config_path(config_file: str) -> str:
@@ -128,6 +132,7 @@ class MacieInterface():
         self._pause_live = Event()
         self._live_session_open = False
         self._live_restore_exposure: tuple | None = None
+        self._live_batch_nramps_armed = 1
         self._live_error_callback: Callable[[Exception], None] | None = None
         self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
@@ -161,7 +166,12 @@ class MacieInterface():
             print(f"Live science interface reset failed: {exc}")
 
     def _arm_live_single_ramp(self) -> None:
-        """Force nseq=1 / ncoadds=1 / save off for Live; remember prior settings."""
+        """Arm Live as a multi-ramp batch (like Acquire with many frames).
+
+        Full-frame uses one ASIC multi-ramp trigger per batch (uniform cadence).
+        Soft SC is serialized to single-ramp triggers inside acquire(). GigE stays
+        open via livesession; Halt is skipped between ramps while keep-alive is on.
+        """
         save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
             self.read_exposure_settings()
         )
@@ -174,14 +184,34 @@ class MacieInterface():
             int(ndrops),
             int(nresets),
         )
-        # One ramp per acquire; keep the latched CDS/Ramp group structure.
-        self.exposure_settings(
-            False, 1, 1, int(ngroups), int(nreads), int(ndrops), int(nresets)
+        batch = self._live_batch_nramps(
+            ncoadds=int(ncoadds), nseq=int(nseq)
         )
+        # Save off for Live; batch size replaces nseq. Keep group/read/drop plan.
+        self.exposure_settings(
+            False, 1, batch, int(ngroups), int(nreads), int(ndrops), int(nresets)
+        )
+        self._live_batch_nramps_armed = batch
+
+    def _live_batch_nramps(self, *, ncoadds: int = 1, nseq: int = 1) -> int:
+        """Choose a batch that fits under the ZMQ acquire timeout."""
+        max_batch = max(1, int(MACIE_LIVE_BATCH_NRAMPS))
+        try:
+            timing = self.read_exposure_timing()
+            total_s = max(0.05, float(timing["execution_s"]))
+            # execution_s covers the currently armed ncoadds×nseq — get per-ramp.
+            n_cur = max(1, int(ncoadds) * int(nseq))
+            exec_s = total_s / n_cur
+        except Exception:
+            exec_s = 2.0
+        budget_s = (ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) * 0.65
+        fit = int(budget_s / max(exec_s, 0.05))
+        return max(1, min(max_batch, fit))
 
     def _restore_exposure_after_live(self) -> None:
         saved = self._live_restore_exposure
         self._live_restore_exposure = None
+        self._live_batch_nramps_armed = 1
         if saved is None:
             return
         try:
@@ -606,8 +636,9 @@ class MacieInterface():
                 if self._pause_live.is_set():
                     continue
                 try:
-                    # Single-ramp acquire, no ASIC reconfigure; GigE kept open
-                    # via livesession for steadier Live cadence.
+                    # Multi-ramp batch (full-frame) or soft-SC serial batch —
+                    # same path as Acquire with many frames; GigE kept open and
+                    # Halt skipped between ramps for uniform detector cadence.
                     result = self.acquire(no_recon=True)
                     self._live_first_acquire = False
                     failures = 0
@@ -617,8 +648,6 @@ class MacieInterface():
                             frame_callback(result.frame)
                         except Exception as callback_exc:
                             print(f"Live frame callback failed: {callback_exc}")
-                    if self._acquiring.is_set() and not self._closing.is_set():
-                        time.sleep(0.005)
                 except Exception as exc:
                     failures += 1
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
@@ -626,6 +655,8 @@ class MacieInterface():
                     if failures < self._LIVE_MAX_FAILURES and self._acquiring.is_set():
                         try:
                             self._set_live_session(True)
+                            # Re-arm batch after a failed acquire reset.
+                            self._arm_live_single_ramp()
                         except Exception:
                             pass
                         time.sleep(0.5)

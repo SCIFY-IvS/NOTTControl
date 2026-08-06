@@ -2521,7 +2521,7 @@ class H2rgMainWindow(QMainWindow):
                 and self._macie is not None
                 and not self._live_poll_stop.is_set()
             ):
-                self._live_frame_available.wait(timeout=0.4)
+                self._live_frame_available.wait(timeout=0.05)
                 self._live_frame_available.clear()
                 if (
                     not self._live_active
@@ -2529,10 +2529,10 @@ class H2rgMainWindow(QMainWindow):
                     or self._live_poll_stop.is_set()
                 ):
                     break
-                self._arm_frame_timing("Live")
                 pending = self._live_pending_frame
                 self._live_pending_frame = None
                 if pending is not None:
+                    self._arm_frame_timing("Live")
                     self._raw_fits_cube = None
                     self._raw_fits_header = None
                     self._last_fits_path = None
@@ -2542,9 +2542,10 @@ class H2rgMainWindow(QMainWindow):
                         status = "Live — ZMQ preview (not archived)"
                     self._frame_timing_status = status
                     self.frame_ready.emit(numpy.asarray(pending, dtype=numpy.float32))
-                    continue
+                # Also poll preview.fits / ramp FITS during multi-ramp batches.
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
+                    self._arm_frame_timing("Live")
                     frame, path = loaded
                     if self._save_image_enabled():
                         status = f"Live — {path.name}"
@@ -2552,9 +2553,6 @@ class H2rgMainWindow(QMainWindow):
                         status = f"Live — {path.name} (not archived)"
                     self._frame_timing_status = status
                     self.frame_ready.emit(frame)
-                else:
-                    self._frame_timing_t0 = None
-                    self._frame_timing_status = None
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -3816,7 +3814,7 @@ class H2rgMainWindow(QMainWindow):
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
                 self.status_updated.emit(
-                    "Live acquiring… (1 ramp/frame, GigE keep-alive)"
+                    "Live acquiring… (multi-ramp batches, GigE keep-alive)"
                 )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))

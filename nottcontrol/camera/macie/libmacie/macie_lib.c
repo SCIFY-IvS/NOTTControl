@@ -1989,6 +1989,8 @@ void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
     ptUserData->bKeepScienceInterface = keep;
     if (!keep)
     {
+        // Live skips Halt between ramps; stop cleanly when keep-alive ends.
+        HaltCameraAcq(ptUserData);
         CloseScienceInterface(ptUserData);
         verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep disabled; interface closed.\n");
     }
@@ -2330,9 +2332,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 ifile++;
                 nwritten++;
             }
-            else if (!have_preview)
+            else if (!have_preview || ptUserData->bKeepScienceInterface)
             {
-                // Fallback for clients that still poll preview.fits.
+                // Live keep-alive: rewrite preview.fits every ramp so the GUI can
+                // poll mid-batch (same cadence as multi-frame Acquire display).
                 string preview = ptUserData->saveDir;
                 if (!preview.empty() && preview.back() != '/')
                     preview += "/";
@@ -2476,15 +2479,19 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     delete[] pData;
     delete[] pRampBuffer;
 
-    // Explicitly send Halt command (h6900=0x8000)
-    HaltCameraAcq(ptUserData);
+    // Explicitly send Halt command (h6900=0x8000) — but not during Live /
+    // keep-alive: Halt has a ~100 ms delay and breaks uniform multi-ramp cadence.
+    // The ASIC is already idle after a completed ramp; the next trigger (or
+    // livesession;false) handles cleanup.
     if (ptUserData->bKeepScienceInterface)
     {
         verbose_printf(LOG_INFO, ptUserData,
-                       "Keeping GigE science interface open after download (live).\n");
+                       "Keeping GigE science interface open after download (live); "
+                       "skipping Halt for uniform cadence.\n");
     }
     else
     {
+        HaltCameraAcq(ptUserData);
         delay(100);
         if (CloseGigEScienceInterface(ptUserData) == false)
         {
