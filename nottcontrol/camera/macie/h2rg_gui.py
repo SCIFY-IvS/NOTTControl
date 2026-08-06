@@ -1260,6 +1260,7 @@ class H2rgMainWindow(QMainWindow):
         self._acquire_previewed_names: set[str] = set()
         self._pending_roi_display: numpy.ndarray | None = None
         self._pending_roi_record = False
+        self._applied_exposure_fingerprint: tuple | None = None
         self._roi_update_timer = QTimer(self)
         self._roi_update_timer.setSingleShot(True)
         self._roi_update_timer.timeout.connect(self._flush_pending_roi_update)
@@ -2624,9 +2625,10 @@ class H2rgMainWindow(QMainWindow):
         if matched >= 0 and matched != index:
             status += f" (readback matches {WINDOW_MODES[matched].label})"
         self.status_updated.emit(status)
-        self._refresh_exposure_timing(macie)
-        if self._initialized:
-            self._on_exposure_fields_changed()
+        # Frametime changed with the window — apply the same ramp plan Acquire
+        # uses so photon/execution match immediately (not only on Acquire).
+        self._applied_exposure_fingerprint = None
+        self._apply_exposure_settings(macie)
 
     def _apply_detector_mode_to_macie(
         self, macie, mode_index: int, window_index: int
@@ -2634,11 +2636,11 @@ class H2rgMainWindow(QMainWindow):
         config_file = detector_config_file(mode_index)
         self.status_updated.emit(f"Switching to {DETECTOR_MODES[mode_index]} mode…")
         macie.reinit_camera(config_file)
+        self._applied_exposure_fingerprint = None
         if 0 <= window_index < len(WINDOW_MODES):
             self._apply_window_mode_to_macie(macie, window_index)
         self._sync_save_dir_from_server(macie)
         self._refresh_readouts(macie)
-        self._refresh_exposure_timing(macie)
         self.status_updated.emit(f"Detector mode: {DETECTOR_MODES[mode_index]}")
 
     def _on_exposure_fields_changed(self) -> None:
@@ -2889,6 +2891,7 @@ class H2rgMainWindow(QMainWindow):
             button.setText("Re-init")
             return
         self._initialized = False
+        self._applied_exposure_fingerprint = None
         button.setEnabled(True)
         button.setText("Init")
 
@@ -2990,11 +2993,11 @@ class H2rgMainWindow(QMainWindow):
         def operation() -> None:
             macie = self._ensure_macie(detector_config_file(detector_index))
             macie.reinit_camera()
+            self._applied_exposure_fingerprint = None
             if 0 <= window_index < len(WINDOW_MODES):
                 self._apply_window_mode_to_macie(macie, window_index)
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
-            self._refresh_exposure_timing(macie)
             self.status_updated.emit("Initialized")
             self.controls_enabled.emit(True)
             self.init_button_state.emit("done")
@@ -3033,7 +3036,46 @@ class H2rgMainWindow(QMainWindow):
             return True
         return bool(box.isChecked())
 
-    def _apply_exposure_settings(self, macie) -> dict[str, float | int]:
+    def _exposure_request_fingerprint(self) -> tuple:
+        """GUI fields that define the ramp plan (skip ASIC reconfigure if unchanged)."""
+        ramp_mode = self._selected_ramp_mode()
+        ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
+        nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
+        fowler_pairs = self._fowler_pairs_value()
+        window_index = self.ui.comboBox_window_mode.currentIndex()
+        windowed_cds = self._windowed_cds_layout() and ramp_mode == "CDS"
+        if ramp_mode in ("Fowler", "SingleFrame"):
+            tint_key: str | float = "auto"
+        else:
+            tint_key = float(self.ui.lineEdit_integration_time.text().strip())
+        return (
+            ramp_mode,
+            int(fowler_pairs),
+            ncoadds,
+            nseq,
+            self._save_image_enabled(),
+            tint_key,
+            window_index,
+            windowed_cds,
+            MACIE_INTEGRATION_NGROUPS_MAX,
+        )
+
+    def _apply_exposure_settings(
+        self, macie, *, force: bool = False
+    ) -> dict[str, float | int]:
+        try:
+            fingerprint = self._exposure_request_fingerprint()
+        except ValueError as exc:
+            raise ValueError(f"Invalid exposure field: {exc}") from exc
+
+        if (
+            not force
+            and fingerprint == self._applied_exposure_fingerprint
+            and self._last_exposure_report is not None
+        ):
+            self._refresh_exposure_timing(macie)
+            return self._last_exposure_report
+
         try:
             ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
             nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
@@ -3090,6 +3132,7 @@ class H2rgMainWindow(QMainWindow):
             **result,
             "mode_detail": mode_detail,
         }
+        self._applied_exposure_fingerprint = fingerprint
         self._print_efficiency_report(self._last_exposure_report)
         return result
 
