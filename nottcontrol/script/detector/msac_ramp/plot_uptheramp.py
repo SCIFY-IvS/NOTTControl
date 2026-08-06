@@ -40,8 +40,11 @@ DEFAULT_ILLUM_CENTER_Y = 943
 DEFAULT_SEED = 0
 DEFAULT_N_SIGMA = 3.0
 
-# MSAC names typically end with _M000001 or _N000001 before .fits
-FILE_INDEX_RE = re.compile(r"_(?P<tag>[MN])(?P<index>\d+)\s*$", re.IGNORECASE)
+# MSAC names often embed both counters, e.g. ``…_N000012_M000001.fits``.
+# Prefer the tag (M or N) that varies across the session; do not assume it is
+# the trailing field (that is often a constant ``_M000001``).
+FILE_INDEX_RE = re.compile(r"_(?P<tag>[MN])(?P<index>\d+)", re.IGNORECASE)
+TRAILING_DIGITS_RE = re.compile(r"_(\d+)\s*$")
 
 
 def _fits_in_dir(directory: Path) -> list[Path]:
@@ -82,13 +85,75 @@ def resolve_ramp_dir(path: Path) -> Path:
     )
 
 
-def file_index_from_name(name: str) -> tuple[str, int] | None:
-    """Return ``(tag, index)`` from ``…_M000012.fits`` / ``…_N000012.fits``."""
+def file_indices_from_name(name: str) -> dict[str, int]:
+    """Return all ``M``/``N`` counters found in *name* (last wins per tag)."""
     stem = Path(name).stem
-    match = FILE_INDEX_RE.search(stem)
-    if not match:
+    found: dict[str, int] = {}
+    for match in FILE_INDEX_RE.finditer(stem):
+        found[match.group("tag").upper()] = int(match.group("index"))
+    return found
+
+
+def choose_index_tag(paths: list[Path]) -> str | None:
+    """Pick ``M`` or ``N`` according to which varies most across *paths*."""
+    values: dict[str, set[int]] = {"M": set(), "N": set()}
+    for path in paths:
+        for tag, index in file_indices_from_name(path.name).items():
+            values[tag].add(index)
+
+    candidates = [
+        (tag, len(vals))
+        for tag, vals in values.items()
+        if vals
+    ]
+    if not candidates:
         return None
-    return match.group("tag").upper(), int(match.group("index"))
+    # Prefer the tag with the most distinct values; tie-break N then M
+    # (N often carries the acquisition counter when M is fixed at 1).
+    candidates.sort(key=lambda item: (item[1], item[0] == "N"), reverse=True)
+    tag, n_unique = candidates[0]
+    logging.info(
+        "File-index tags across session: M=%s N=%s → using %s (%d unique)",
+        sorted(values["M"])[:8] if values["M"] else "—",
+        sorted(values["N"])[:8] if values["N"] else "—",
+        tag,
+        n_unique,
+    )
+    if n_unique <= 1 and len(paths) > 1:
+        logging.warning(
+            "Chosen tag %s has only %d unique value(s) for %d files; "
+            "check MSAC naming",
+            tag,
+            n_unique,
+            len(paths),
+        )
+    return tag
+
+
+def file_index_from_name(
+    name: str, *, preferred_tag: str | None = None
+) -> tuple[str, int] | None:
+    """Return ``(tag, index)`` for plotting.
+
+    If *preferred_tag* is set (``M``/``N``), use that counter. Otherwise use
+    the last ``_M``/``_N`` field in the name, then trailing ``_######``.
+    """
+    found = file_indices_from_name(name)
+    if preferred_tag:
+        tag = preferred_tag.upper()
+        if tag in found:
+            return tag, found[tag]
+    if found:
+        # Last match in the filename order: re-scan for ordering.
+        stem = Path(name).stem
+        matches = list(FILE_INDEX_RE.finditer(stem))
+        match = matches[-1]
+        return match.group("tag").upper(), int(match.group("index"))
+
+    trailing = TRAILING_DIGITS_RE.search(Path(name).stem)
+    if trailing:
+        return "#", int(trailing.group(1))
+    return None
 
 
 def illuminated_box(
@@ -333,6 +398,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Plot every FITS in --ramp-dir (default behaviour)",
     )
     parser.add_argument(
+        "--index-tag",
+        choices=("M", "N", "auto"),
+        default="auto",
+        help=(
+            "Which filename counter to use on the x-axis: M, N, or auto "
+            "(pick the tag that varies most across files; default: auto)"
+        ),
+    )
+    parser.add_argument(
         "--n-illum-pixels",
         type=int,
         default=DEFAULT_N_ILLUM_PIXELS,
@@ -423,6 +497,12 @@ def main(argv: list[str] | None = None) -> int:
             paths = all_paths
         logging.info("Using %d ramp file(s) from %s", len(paths), ramp_dir)
 
+    if args.index_tag == "auto":
+        preferred_tag = choose_index_tag(paths)
+    else:
+        preferred_tag = args.index_tag
+        logging.info("Using forced file-index tag: %s", preferred_tag)
+
     if args.illum_size is None:
         illum_h = illum_w = DEFAULT_ILLUM_SIZE
     elif len(args.illum_size) == 1:
@@ -442,10 +522,10 @@ def main(argv: list[str] | None = None) -> int:
     index_tag = "M"
 
     for path in paths:
-        parsed = file_index_from_name(path.name)
+        parsed = file_index_from_name(path.name, preferred_tag=preferred_tag)
         if parsed is None:
             logging.warning(
-                "Skipping %s: no _M###### or _N###### index in the name",
+                "Skipping %s: no _M###### / _N###### (or trailing _######) index",
                 path.name,
             )
             continue
