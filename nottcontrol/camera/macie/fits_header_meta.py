@@ -13,7 +13,38 @@ if TYPE_CHECKING:
     from nottcontrol.redisclient import RedisClient
 
 # (keyword, value, comment). COMMENT cards use value=None.
-HeaderCard = tuple[str, float | None, str]
+HeaderCard = tuple[str, float | str | None, str]
+
+DETMODE_COMMENT = "Detector readout mode"
+EXPTIME_COMMENT = "Photon collection time (s)"
+
+
+def detector_mode_fits_card(mode: str) -> HeaderCard:
+    """FITS card for the GUI/ASIC ramp readout mode."""
+    return ("DETMODE", str(mode), DETMODE_COMMENT)
+
+
+def exposure_fits_cards(
+    *,
+    mode: str | None = None,
+    tint_ms: float | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
+    ndrops: int | None = None,
+) -> list[HeaderCard]:
+    """Acquisition timing/mode cards for ramp and science FITS headers."""
+    cards: list[HeaderCard] = []
+    if mode is not None:
+        cards.append(detector_mode_fits_card(mode))
+    if tint_ms is not None:
+        cards.append(("EXPTIME", float(tint_ms) / 1000.0, EXPTIME_COMMENT))
+    if ngroups is not None:
+        cards.append(("NGROUPS", int(ngroups), "Number of groups in ramp"))
+    if nreads is not None:
+        cards.append(("NREADS", int(nreads), "Reads per group"))
+    if ndrops is not None:
+        cards.append(("NDROPS", int(ndrops), "Drop frames between groups"))
+    return cards
 
 # FITS keyword, Redis temperature tag, header comment (unit in brackets).
 H2RG_FITS_TEMP_FIELDS: tuple[tuple[str, str, str], ...] = (
@@ -27,6 +58,14 @@ H2RG_FITS_DL_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("DL2POS", "DL_2_pos", "Delay line 2 position [um]"),
     ("DL3POS", "DL_3_pos", "Delay line 3 position [um]"),
     ("DL4POS", "DL_4_pos", "Delay line 4 position [um]"),
+)
+
+# Shutter positions logged as ``Shutter N_pos`` (millimetres; open≈5, closed≈35).
+H2RG_FITS_SHUTTER_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("SH1POS", "Shutter 1_pos", "Shutter 1 position [mm]"),
+    ("SH2POS", "Shutter 2_pos", "Shutter 2 position [mm]"),
+    ("SH3POS", "Shutter 3_pos", "Shutter 3 position [mm]"),
+    ("SH4POS", "Shutter 4_pos", "Shutter 4 position [mm]"),
 )
 
 # Pressure sensors from sensors.ini (tag → FITS keyword / comment).
@@ -132,6 +171,19 @@ def delay_line_positions_for_fits(
     )
 
 
+def shutter_positions_for_fits(
+    redis_client: RedisClient | None,
+) -> list[HeaderCard]:
+    """Return Shutter 1…4 position cards from Redis (mm, 2 decimals)."""
+    if redis_client is None:
+        return []
+    return _value_cards_from_redis(
+        redis_client,
+        H2RG_FITS_SHUTTER_FIELDS,
+        resolve_key=lambda key: key,
+    )
+
+
 def pressures_for_fits(
     redis_client: RedisClient | None,
 ) -> list[HeaderCard]:
@@ -162,7 +214,7 @@ def pressures_for_fits(
 def fits_header_cards_from_redis(
     redis_client: RedisClient | None,
 ) -> list[HeaderCard]:
-    """Ordered FITS cards: temperatures, pressures, then delay lines.
+    """Ordered FITS cards: temperatures, pressures, delay lines, shutters.
 
     Groups are separated with COMMENT markers and include units in comments.
     """
@@ -183,13 +235,18 @@ def fits_header_cards_from_redis(
         cards.append(("COMMENT", None, "----- Delay line positions [um] -----"))
         cards.extend(positions)
 
+    shutters = shutter_positions_for_fits(redis_client)
+    if shutters:
+        cards.append(("COMMENT", None, "----- Shutter positions [mm] -----"))
+        cards.extend(shutters)
+
     return cards
 
 
 def header_cards_as_value_dict(
     cards: list[HeaderCard],
-) -> dict[str, tuple[float, str]]:
-    """Map of numeric keywords only (no COMMENT), for in-memory headers."""
+) -> dict[str, tuple[float | str, str]]:
+    """Map of value keywords only (no COMMENT), for in-memory headers."""
     return {
         keyword: (value, comment)
         for keyword, value, comment in cards

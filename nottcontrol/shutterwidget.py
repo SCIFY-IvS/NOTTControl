@@ -48,31 +48,28 @@ class ShutterWidget(QWidget):
     
     def load_position(self):
         try:
-            hw_status = self._shutter.get_hardware_state()
+            current_pos_mm, _speed = self._shutter.getPositionAndSpeed()[:2]
+            hw_status = self._shutter.hardware_state_from_position(current_pos_mm)
             self.apply_hardware_state(hw_status)
+            self._log_shutter_position(float(current_pos_mm))
         except Exception as e:
             print(e)
             self.ui.label_error.setText(str(e))
 
     def apply_hardware_state(self, hw_status):
-        shutter_pos = -1
-        if hw_status == "Open":
-            shutter_pos = 1
-        elif hw_status == "Closed":
-            shutter_pos = 0
-        if shutter_pos < 0:
-            return
+        self.ui.label_opened.setText(str(hw_status))
 
+    def _log_shutter_position(self, position_mm: float) -> None:
         now = datetime.utcnow()
         if (
             self.timestamp is None
             or (now - self.timestamp).total_seconds() >= 1.0
-            or shutter_pos != getattr(self, "_last_redis_pos", shutter_pos)
+            or abs(position_mm - getattr(self, "_last_redis_pos", position_mm)) >= 0.05
         ):
             self.redis_client.add_shutter_position(
-                self._shutter.name, now, shutter_pos
+                self._shutter.name, now, position_mm
             )
-            self._last_redis_pos = shutter_pos
+            self._last_redis_pos = position_mm
             self.timestamp = now
 
     def reset(self):

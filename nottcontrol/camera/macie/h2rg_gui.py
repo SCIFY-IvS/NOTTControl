@@ -39,6 +39,7 @@ from PyQt5.uic import loadUi
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_header_meta import (
+    exposure_fits_cards,
     fits_header_cards_from_redis,
     header_cards_as_value_dict,
 )
@@ -90,7 +91,7 @@ MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
     H2RG_SECTION, "fowler_pairs_default", fallback=2
 )
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
-    H2RG_SECTION, "save_science_fits", fallback=True
+    H2RG_SECTION, "save_science_fits", fallback=False
 )
 MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
@@ -930,19 +931,31 @@ def is_science_fits_name(name: str) -> bool:
 
 
 def fits_frame_number_label(name: str | None) -> str:
-    """Return the ramp index for the Frame number box (e.g. 000018)."""
+    """Return the ramp index from a FITS basename (e.g. 000018)."""
     if not name:
         return "—"
     stem = Path(name).stem
     if stem.lower().endswith("_science"):
         stem = stem[: -len("_science")]
     if stem.lower() == "preview":
-        return "Last frame"
+        return "—"
     # Names look like nott_YYYYMMDD_000018
     parts = stem.rsplit("_", 1)
     if len(parts) == 2 and parts[1].isdigit():
         return parts[1]
     return stem
+
+
+def next_fits_frame_number(
+    directory: Path, *, dir_ok: bool | None = None, width: int = 6
+) -> str:
+    """Return the next free ramp index in *directory* (matches MACIE getFileNumStart)."""
+    max_index = -1
+    for path in list_ramp_fits_in_dir(directory, dir_ok=dir_ok):
+        label = fits_frame_number_label(path.name)
+        if label.isdigit():
+            max_index = max(max_index, int(label))
+    return f"{max_index + 1:0{width}d}"
 
 
 def ramp_fits_path_for_viewer(path: Path) -> Path:
@@ -1763,6 +1776,11 @@ class H2rgMainWindow(QMainWindow):
         self.ui.label_5.setText("Integration time:")
         self.ui.label_7.setText("Number of frames:")
         self.ui.label_4.setText("Total integration time:")
+        self.ui.label_8.setText("Next frame:")
+        self.ui.lineEdit_frame_nb.setReadOnly(True)
+        self.ui.lineEdit_frame_nb.setToolTip(
+            "Next FITS ramp index that will be written in the save directory"
+        )
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
             field = getattr(self.ui, field_name)
@@ -1898,6 +1916,7 @@ class H2rgMainWindow(QMainWindow):
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             actions.addWidget(button)
         outer.addLayout(actions)
+        self._update_next_frame_number()
 
     def _layout_visualisation_panel(self) -> None:
         # Replaced by H2RG ROI values panel; hide unused .ui controls.
@@ -3365,6 +3384,9 @@ class H2rgMainWindow(QMainWindow):
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
                 for ramp_path in ramp_paths:
+                    # Always stamp DETMODE / cryo cards on the ramp archive,
+                    # including when science FITS writes are disabled.
+                    self._stamp_ramp_fits_headers(ramp_path)
                     if (
                         ramp_path.name == preview_path.name
                         and self._raw_fits_header is not None
@@ -3504,6 +3526,19 @@ class H2rgMainWindow(QMainWindow):
         """Instrument status from Redis (temps, pressures, DL positions) for FITS."""
         return fits_header_cards_from_redis(self._redis)
 
+    def _acquisition_fits_header_cards(self):
+        """Cards stamped on ramp/science FITS after acquire (mode + timing + cryo)."""
+        report = self._last_exposure_report or {}
+        cards = exposure_fits_cards(
+            mode=self._selected_ramp_mode(),
+            tint_ms=self._last_tint_ms,
+            ngroups=report.get("ngroups"),
+            nreads=report.get("nreads"),
+            ndrops=report.get("ndrops"),
+        )
+        cards.extend(self._cryo_fits_header_cards())
+        return cards
+
     def _apply_cryo_temps_to_ramp(self, ramp_path: Path | None, cards) -> None:
         """Stamp Redis status onto the in-memory and on-disk ramp headers when possible."""
         if not cards:
@@ -3519,6 +3554,12 @@ class H2rgMainWindow(QMainWindow):
         from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
 
         update_fits_file_header_cards(resolved, cards)
+
+    def _stamp_ramp_fits_headers(self, ramp_path: Path | None) -> list:
+        """Write DETMODE/EXPTIME (+ cryo cards) onto the on-disk ramp FITS."""
+        cards = self._acquisition_fits_header_cards()
+        self._apply_cryo_temps_to_ramp(ramp_path, cards)
+        return cards
 
     def _discard_fits_files(self, paths: list[Path]) -> None:
         """Remove temporary ramp FITS used only for display when Save image is off."""
@@ -3564,8 +3605,7 @@ class H2rgMainWindow(QMainWindow):
         if not self._save_image_enabled():
             return None
         output_path = self._science_output_path(ramp_path)
-        cards = self._cryo_fits_header_cards()
-        self._apply_cryo_temps_to_ramp(ramp_path, cards)
+        cards = self._acquisition_fits_header_cards()
         try:
             save_science_fits(
                 output_path,
@@ -3605,13 +3645,10 @@ class H2rgMainWindow(QMainWindow):
             fowler_pairs=self._fowler_pairs_value(),
         )
         output_path = self._science_output_path(ramp_path)
-        cards = self._cryo_fits_header_cards()
+        cards = self._acquisition_fits_header_cards()
         for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
             header[keyword] = value
         self._raw_fits_header = dict(header)
-        from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
-
-        update_fits_file_header_cards(resolved, cards)
         try:
             save_science_fits(
                 output_path,
@@ -3643,6 +3680,19 @@ class H2rgMainWindow(QMainWindow):
         if mapped != self._save_dir:
             self._save_dir = mapped
             self._fits_dir_ok = None
+        self._update_next_frame_number()
+
+    def _update_next_frame_number(self) -> None:
+        """Show the next free FITS ramp index in the acquisition panel."""
+        if self.ui is None:
+            return
+        try:
+            text = next_fits_frame_number(
+                self._save_dir, dir_ok=self._fits_dir_ok
+            )
+        except Exception:
+            text = "—"
+        self.ui.lineEdit_frame_nb.setText(text)
 
     def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
         if self._fits_dir_ok is False and not allow_probe:
@@ -4250,19 +4300,27 @@ class H2rgMainWindow(QMainWindow):
                 if path.name == "preview.fits":
                     continue
                 try:
-                    return self._load_fits_from_path(path), path
+                    frame = self._load_fits_from_path(path)
+                    self._stamp_ramp_fits_headers(path)
+                    return frame, path
                 except Exception as exc:
                     print(f"H2RG live skipped unreadable FITS {path.name}: {exc}")
             # Local share is available — wait for the next poll instead of
             # contending with continuous acquire on the ZMQ socket.
             return None
 
-        return self._fetch_fits_from_server(
+        fetched = self._fetch_fits_from_server(
             macie,
             before_mtime=before_mtime,
             before_name=before_name,
             require_new=True,
         )
+        if fetched is not None:
+            frame, path = fetched
+            if path.name != "preview.fits":
+                self._stamp_ramp_fits_headers(path)
+            return frame, path
+        return None
 
     def _load_latest_frame(
         self, force: bool = False, macie=None
@@ -4376,15 +4434,7 @@ class H2rgMainWindow(QMainWindow):
         self._schedule_roi_update(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
-
-        if self._last_fits_path is not None:
-            self.ui.lineEdit_frame_nb.setText(
-                fits_frame_number_label(self._last_fits_path.name)
-            )
-        elif self._last_loaded_basename:
-            self.ui.lineEdit_frame_nb.setText(
-                fits_frame_number_label(self._last_loaded_basename)
-            )
+        self._update_next_frame_number()
 
     def get_dashboard_status(self) -> dict[str, object]:
         powered = None
