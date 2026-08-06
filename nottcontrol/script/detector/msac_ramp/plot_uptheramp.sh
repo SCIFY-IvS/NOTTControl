@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Plot illuminated-region ADU along MSAC UpTheRamp FITS cubes.
 #
-# Default directory: ~/frames/H2RG_ASIC/UpTheRamp/
+# Default root: ~/frames/H2RG_ASIC/UpTheRamp/
+# The script uses the latest subdirectory under that root (session folder).
 #
 # Usage (on the acquisition machine):
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
@@ -10,7 +11,7 @@
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --file myramp.fits --show
 #
 # Environment:
-#   MSAC_RAMP_DIR   override default ramp directory
+#   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)
 
 if [ -z "${BASH_VERSION:-}" ]; then
   exec bash "$0" "$@"

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Plot illuminated-region ADU along MSAC Up-the-Ramp FITS cubes.
 
-Default data directory (on the acquisition machine)::
+Default data root (on the acquisition machine)::
 
     ~/frames/H2RG_ASIC/UpTheRamp/
+
+MSAC writes each session into a subdirectory of that root. By default the
+script selects the **latest** subdirectory (by modification time), then
+loads FITS from there.
 
 Uses the same illuminated box as the linearity analysis
 (20×20 centred at X=1045, Y=943) and reports a 3σ-clipped mean of
@@ -24,13 +28,52 @@ import numpy as np
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
-DEFAULT_RAMP_DIR = Path.home() / "frames" / "H2RG_ASIC" / "UpTheRamp"
+DEFAULT_RAMP_ROOT = Path.home() / "frames" / "H2RG_ASIC" / "UpTheRamp"
 DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_ILLUM_SIZE = 20
 DEFAULT_ILLUM_CENTER_X = 1045
 DEFAULT_ILLUM_CENTER_Y = 943
 DEFAULT_SEED = 0
 DEFAULT_N_SIGMA = 3.0
+
+
+def _fits_in_dir(directory: Path) -> list[Path]:
+    return [
+        p
+        for p in directory.iterdir()
+        if p.is_file() and p.suffix.lower() == ".fits"
+    ]
+
+
+def resolve_ramp_dir(path: Path) -> Path:
+    """Resolve *path* to a directory that contains FITS.
+
+    If *path* already has ``.fits`` files, use it. Otherwise pick the
+    newest subdirectory (by ``mtime``, then name) that contains FITS.
+    """
+    root = path.expanduser().resolve()
+    if not root.is_dir():
+        raise FileNotFoundError(f"Ramp directory not found: {root}")
+
+    if _fits_in_dir(root):
+        return root
+
+    subdirs = [p for p in root.iterdir() if p.is_dir()]
+    if not subdirs:
+        raise FileNotFoundError(
+            f"No FITS files and no subdirectories under {root}"
+        )
+
+    # Newest folder first (mtime), with name as tie-breaker.
+    subdirs.sort(key=lambda p: (p.stat().st_mtime, p.name), reverse=True)
+    for candidate in subdirs:
+        if _fits_in_dir(candidate):
+            logging.info("Using latest session folder: %s", candidate)
+            return candidate.resolve()
+
+    raise FileNotFoundError(
+        f"No FITS files found in {root} or its subdirectories"
+    )
 
 
 def illuminated_box(
@@ -138,11 +181,7 @@ def list_ramp_fits(directory: Path) -> list[Path]:
     if not directory.is_dir():
         raise FileNotFoundError(f"Ramp directory not found: {directory}")
     paths = sorted(
-        [
-            p
-            for p in directory.iterdir()
-            if p.is_file() and p.suffix.lower() == ".fits"
-        ],
+        _fits_in_dir(directory),
         key=lambda p: (p.stat().st_mtime, p.name.lower()),
     )
     if not paths:
@@ -257,8 +296,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--ramp-dir",
         type=Path,
-        default=DEFAULT_RAMP_DIR,
-        help=f"Directory with MSAC ramp FITS (default: {DEFAULT_RAMP_DIR})",
+        default=DEFAULT_RAMP_ROOT,
+        help=(
+            "MSAC UpTheRamp root or a specific session folder "
+            f"(default: {DEFAULT_RAMP_ROOT}; picks the latest subfolder "
+            "that contains FITS)"
+        ),
     )
     parser.add_argument(
         "--file",
@@ -348,7 +391,7 @@ def main(argv: list[str] | None = None) -> int:
         format=LOG_FORMAT,
     )
 
-    ramp_dir = args.ramp_dir.expanduser().resolve()
+    ramp_dir = resolve_ramp_dir(args.ramp_dir)
     if args.file:
         paths: list[Path] = []
         for item in args.file:
