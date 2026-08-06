@@ -9,10 +9,10 @@ MSAC writes each session into a subdirectory of that root. By default the
 script selects the **latest** subdirectory (by modification time), then
 loads **all** FITS there.
 
-For each file it takes the last ramp sample (or the only plane), measures a
-3σ-clipped mean in the same illuminated box as the linearity analysis
-(20×20 at X=1045, Y=943), and plots that mean vs the file index parsed from
-the name (``_M######`` or ``_N######``).
+Frames are stacked in file-index order (last plane of each FITS, or all
+planes of a single multi-sample cube). A **CDS-relative cube** is written
+next to the plot: plane ``k`` is ``frame[k] - frame[0]``. The illuminated
+mean plot uses that differential cube (first point is ~0).
 """
 
 from __future__ import annotations
@@ -272,6 +272,64 @@ def last_plane(cube: np.ndarray) -> np.ndarray:
     return cube[-1]
 
 
+def relative_to_first(cube: np.ndarray) -> np.ndarray:
+    """Return ``cube[k] - cube[0]`` for every plane (float64)."""
+    if cube.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
+    if cube.shape[0] < 1:
+        raise ValueError("Cube has no planes")
+    first = cube[0]
+    return np.asarray(cube, dtype=np.float64) - first
+
+
+def save_cube_fits(
+    path: Path,
+    cube: np.ndarray,
+    *,
+    reference_header: dict | None = None,
+    history: str,
+) -> None:
+    """Write a ``(n, y, x)`` float32 cube to *path*."""
+    from astropy.io import fits
+
+    path = path.expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = np.asarray(cube, dtype=np.float32)
+    if data.ndim != 3:
+        raise ValueError(f"Expected 3-D cube, got shape {data.shape}")
+
+    header = fits.Header()
+    if reference_header:
+        for key in (
+            "TELESCOP",
+            "INSTRUME",
+            "DETECTOR",
+            "ORIGIN",
+            "OBJECT",
+            "DATE-OBS",
+            "EXPTIME",
+            "NGROUPS",
+            "NREADS",
+            "NDROPS",
+            "DETMODE",
+        ):
+            if key in reference_header:
+                try:
+                    header[key] = reference_header[key]
+                except (ValueError, TypeError):
+                    pass
+    header["BUNIT"] = "ADU"
+    header["REDUCT"] = ("FRAME-FIRST", "Each plane = sample - first sample")
+    header["NAXIS"] = 3
+    header["NAXIS1"] = data.shape[2]
+    header["NAXIS2"] = data.shape[1]
+    header["NAXIS3"] = data.shape[0]
+    header.add_history(history)
+
+    fits.PrimaryHDU(data=data, header=header).writeto(path, overwrite=True)
+    logging.info("Wrote CDS-relative cube (%d planes): %s", data.shape[0], path)
+
+
 def illuminated_mean_for_image(
     image: np.ndarray,
     pixels: np.ndarray,
@@ -329,7 +387,7 @@ def plot_file_series(
             int(index),
             mean_val,
         )
-    ax_mean.set_ylabel("Illuminated mean [ADU]")
+    ax_mean.set_ylabel("Illuminated mean (frame−first) [ADU]")
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
 
@@ -344,7 +402,7 @@ def plot_file_series(
                 linewidth=0.7,
                 color="C1",
             )
-        ax_pix.set_ylabel("Pixel ADU")
+        ax_pix.set_ylabel("Pixel ADU (frame−first)")
         ax_pix.set_xlabel(f"File index ({index_tag})")
         ax_pix.grid(True, alpha=0.3)
     else:
@@ -458,6 +516,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--cds-cube",
+        type=Path,
+        default=None,
+        help=(
+            "Output FITS cube path for planes = frame - first "
+            "(default: msac_uptheramp_frame_minus_first.fits in the session dir)"
+        ),
+    )
+    parser.add_argument(
+        "--no-cds-cube",
+        action="store_true",
+        help="Skip writing the frame-minus-first FITS cube",
+    )
+    parser.add_argument(
         "--show",
         action="store_true",
         help="Accepted for compatibility; plot is always written to PNG (Agg backend)",
@@ -517,70 +589,74 @@ def main(argv: list[str] | None = None) -> int:
     else:
         center_x, center_y = int(args.illum_center[0]), int(args.illum_center[1])
 
-    records: list[tuple[int, str, str, float, np.ndarray | None]] = []
-    pixels: np.ndarray | None = None
+    records: list[tuple[int, str, str, np.ndarray, dict]] = []
     index_tag = "M"
+    ref_header: dict | None = None
 
-    for path in paths:
-        parsed = file_index_from_name(path.name, preferred_tag=preferred_tag)
-        if parsed is None:
-            logging.warning(
-                "Skipping %s: no _M###### / _N###### (or trailing _######) index",
-                path.name,
+    # Single multi-sample FITS → treat planes as the ramp; otherwise one
+    # sample per file (last plane).
+    use_planes_from_one_cube = False
+    if len(paths) == 1:
+        only_cube, only_header = load_ramp_cube(paths[0])
+        if only_cube.shape[0] > 1:
+            use_planes_from_one_cube = True
+            ref_header = only_header
+            parsed = file_index_from_name(
+                paths[0].name, preferred_tag=preferred_tag
             )
-            continue
-        tag, index = parsed
-        index_tag = tag
-
-        cube, header = load_ramp_cube(path)
-        ny, nx = cube.shape[-2], cube.shape[-1]
-        logging.info(
-            "%s: shape=%s  NAXIS=%s  index=%s%d",
-            path.name,
-            cube.shape,
-            header.get("NAXIS", "?"),
-            tag,
-            index,
-        )
-        if pixels is None:
-            row0, row1, col0, col1 = illuminated_box(
-                (ny, nx),
-                illum_h,
-                illum_w,
-                center_x=center_x,
-                center_y=center_y,
-            )
-            n_illum = min(args.n_illum_pixels, (row1 - row0) * (col1 - col0))
-            pixels = choose_pixels(
-                (ny, nx),
-                n_illum,
-                args.seed,
-                row_slice=(row0, row1),
-                col_slice=(col0, col1),
-            )
+            base_tag = parsed[0] if parsed else "P"
+            index_tag = base_tag
+            for iplane, plane in enumerate(only_cube):
+                records.append(
+                    (
+                        iplane + 1,
+                        base_tag,
+                        f"{paths[0].name}[plane{iplane}]",
+                        np.asarray(plane, dtype=np.float64),
+                        only_header,
+                    )
+                )
             logging.info(
-                "Illuminated box %dx%d at X=%d Y=%d -> rows[%d:%d) cols[%d:%d); "
-                "%d pixels (seed=%d)",
-                illum_h,
-                illum_w,
-                center_x,
-                center_y,
-                row0,
-                row1,
-                col0,
-                col1,
-                n_illum,
-                args.seed,
+                "%s: using %d planes as ramp samples",
+                paths[0].name,
+                only_cube.shape[0],
             )
 
-        image = last_plane(cube)
-        mean_val = illuminated_mean_for_image(
-            image, pixels, n_sigma=args.n_sigma
-        )
-        pix_vals = (
-            pixel_values(image, pixels) if args.show_pixels else None
-        )
-        records.append((index, tag, path.name, mean_val, pix_vals))
+    if not use_planes_from_one_cube:
+        for path in paths:
+            parsed = file_index_from_name(
+                path.name, preferred_tag=preferred_tag
+            )
+            if parsed is None:
+                logging.warning(
+                    "Skipping %s: no _M###### / _N###### (or trailing _######) "
+                    "index",
+                    path.name,
+                )
+                continue
+            tag, index = parsed
+            index_tag = tag
+
+            cube, header = load_ramp_cube(path)
+            if ref_header is None:
+                ref_header = header
+            logging.info(
+                "%s: shape=%s  NAXIS=%s  index=%s%d",
+                path.name,
+                cube.shape,
+                header.get("NAXIS", "?"),
+                tag,
+                index,
+            )
+            records.append(
+                (
+                    index,
+                    tag,
+                    path.name,
+                    np.asarray(last_plane(cube), dtype=np.float64),
+                    header,
+                )
+            )
 
     if not records:
         raise RuntimeError(
@@ -588,15 +664,54 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     records.sort(key=lambda row: (row[0], row[2].lower()))
+    stack = np.stack([row[3] for row in records], axis=0)
+    cds_cube = relative_to_first(stack)
     indices = np.array([row[0] for row in records], dtype=np.int64)
-    means = np.array([row[3] for row in records], dtype=np.float64)
     names = [row[2] for row in records]
     index_tag = records[0][1]
+    ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
 
+    row0, row1, col0, col1 = illuminated_box(
+        (ny, nx),
+        illum_h,
+        illum_w,
+        center_x=center_x,
+        center_y=center_y,
+    )
+    n_illum = min(args.n_illum_pixels, (row1 - row0) * (col1 - col0))
+    pixels = choose_pixels(
+        (ny, nx),
+        n_illum,
+        args.seed,
+        row_slice=(row0, row1),
+        col_slice=(col0, col1),
+    )
+    logging.info(
+        "Illuminated box %dx%d at X=%d Y=%d -> rows[%d:%d) cols[%d:%d); "
+        "%d pixels (seed=%d)",
+        illum_h,
+        illum_w,
+        center_x,
+        center_y,
+        row0,
+        row1,
+        col0,
+        col1,
+        n_illum,
+        args.seed,
+    )
+
+    means = np.array(
+        [
+            illuminated_mean_for_image(plane, pixels, n_sigma=args.n_sigma)
+            for plane in cds_cube
+        ],
+        dtype=np.float64,
+    )
     pixel_matrix: np.ndarray | None = None
     if args.show_pixels:
         pixel_matrix = np.stack(
-            [row[4] for row in records if row[4] is not None],
+            [pixel_values(plane, pixels) for plane in cds_cube],
             axis=0,
         )
 
@@ -609,8 +724,27 @@ def main(argv: list[str] | None = None) -> int:
     else:
         output = ramp_dir / "msac_uptheramp_illum_vs_file.png"
 
+    if not args.no_cds_cube:
+        if args.cds_cube is not None:
+            cds_path = args.cds_cube.expanduser()
+            if not cds_path.is_absolute():
+                cds_path = (ramp_dir / cds_path).resolve()
+            else:
+                cds_path = cds_path.resolve()
+        else:
+            cds_path = ramp_dir / "msac_uptheramp_frame_minus_first.fits"
+        save_cube_fits(
+            cds_path,
+            cds_cube,
+            reference_header=ref_header,
+            history=(
+                "MSAC UpTheRamp CDS-relative cube: each plane = "
+                "sample - first sample (ordered by file/plane index)."
+            ),
+        )
+
     title = (
-        f"MSAC UpTheRamp — illum mean vs file index "
+        f"MSAC UpTheRamp — illum mean (frame−first) vs index "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     plot_file_series(
