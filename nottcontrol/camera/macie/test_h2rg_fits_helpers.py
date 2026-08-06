@@ -23,6 +23,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     is_science_fits_name,
     list_ramp_fits_in_dir,
     local_fits_file_for_viewer,
+    next_fits_frame_number,
     map_server_fits_path,
     newest_fits_file,
     ramp_fits_path_for_viewer,
@@ -122,7 +123,22 @@ class FitsFrameNumberLabelTests(unittest.TestCase):
         )
 
     def test_preview_label(self) -> None:
-        self.assertEqual(fits_frame_number_label("preview.fits"), "Last frame")
+        self.assertEqual(fits_frame_number_label("preview.fits"), "—")
+
+
+class NextFitsFrameNumberTests(unittest.TestCase):
+    def test_empty_directory_starts_at_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(next_fits_frame_number(Path(tmp)), "000000")
+
+    def test_increments_past_highest_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / "nott_20260805_00003.fits").write_bytes(b"")
+            (directory / "nott_20260805_00018.fits").write_bytes(b"")
+            (directory / "nott_20260805_00018_science.fits").write_bytes(b"")
+            (directory / "preview.fits").write_bytes(b"")
+            self.assertEqual(next_fits_frame_number(directory), "000019")
 
 
 class ViewerFitsPathTests(unittest.TestCase):

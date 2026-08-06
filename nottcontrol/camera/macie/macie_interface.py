@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from threading import Thread, Event, Lock
+from urllib.parse import urlparse
 import zmq
 
 import numpy
@@ -28,6 +29,15 @@ MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
 MACIE_LIVE_BATCH_NRAMPS = config.getint(
     H2RG_SECTION, "live_batch_nramps", fallback=32
 )
+
+
+def halt_interrupt_address(zmq_address: str) -> str:
+    """Derive the async halt port (main ZMQ port + 1)."""
+    normalized = zmq_address if "://" in zmq_address else f"tcp://{zmq_address}"
+    parsed = urlparse(normalized)
+    host = parsed.hostname or "localhost"
+    port = (parsed.port or 65534) + 1
+    return f"tcp://{host}:{port}"
 
 
 def server_config_path(config_file: str) -> str:
@@ -136,6 +146,7 @@ class MacieInterface():
         self._live_error_callback: Callable[[Exception], None] | None = None
         self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
+        self._halt_requested = Event()
 
     def set_live_error_callback(
         self, callback: Callable[[Exception], None] | None
@@ -404,11 +415,18 @@ class MacieInterface():
 
     def acquire(self, no_recon: bool = True) -> AcquireResult:
         """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched)."""
-        parts = self._request_multipart(
-            f"acquire;{str(no_recon).lower()}",
-            timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
-        )
-        return parse_acquire_preview_parts(parts)
+        try:
+            parts = self._request_multipart(
+                f"acquire;{str(no_recon).lower()}",
+                timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
+            )
+            return parse_acquire_preview_parts(parts)
+        except Exception:
+            # Leave _halt_requested set so the GUI operation worker can report Halted
+            # instead of a generic acquire failure.
+            if self._halt_requested.is_set():
+                return AcquireResult(frame=None)
+            raise
 
     def get_save_dir(self) -> str | None:
         return self._request("getsavedir")
@@ -466,6 +484,45 @@ class MacieInterface():
 
     def halt_acquisition(self):
         return self._request("halt")
+
+    def consume_halt_requested(self) -> bool:
+        """Return True once if Halt was requested (clears the flag)."""
+        if not self._halt_requested.is_set():
+            return False
+        self._halt_requested.clear()
+        return True
+
+    def halt_acquisition_interrupt(self) -> None:
+        """Abort an in-progress acquire without waiting on the main ZMQ lock.
+
+        Uses the server's halt interrupt port (main port + 1) so a long multi-ramp
+        Acquire / Live batch can be stopped while the main REP socket is busy.
+        """
+        self._halt_requested.set()
+        self._acquiring.clear()
+        address = halt_interrupt_address(self._zmq_address)
+        sock = None
+        try:
+            sock = self._context.socket(zmq.REQ)
+            sock.setsockopt(zmq.LINGER, 0)
+            sock.setsockopt(zmq.RCVTIMEO, 5_000)
+            sock.setsockopt(zmq.SNDTIMEO, 5_000)
+            sock.connect(address)
+            sock.send_string("halt")
+            reply = sock.recv_string()
+            if not reply.startswith("ok"):
+                raise Exception(f"Halt interrupt failed: {reply}")
+        finally:
+            if sock is not None:
+                try:
+                    sock.close(linger=0)
+                except Exception:
+                    pass
+        # Drop a wedged main acquire socket so the next command can reconnect.
+        try:
+            self._reset_socket()
+        except Exception as exc:
+            print(f"Halt interrupt socket reset failed: {exc}")
 
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
@@ -649,6 +706,9 @@ class MacieInterface():
                         except Exception as callback_exc:
                             print(f"Live frame callback failed: {callback_exc}")
                 except Exception as exc:
+                    if self.consume_halt_requested():
+                        failures = 0
+                        continue
                     failures += 1
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
                     self._reset_live_science_interface()

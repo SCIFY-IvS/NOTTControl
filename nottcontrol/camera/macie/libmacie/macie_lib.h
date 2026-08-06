@@ -176,6 +176,8 @@ typedef struct MACIE_Settings
   // (center/bottom oscillation). Serialize as N× single-ramp triggers instead.
   bool bSoftSerialRamps;
   unsigned int uiSoftSerialNRamps;
+  // Set by halt while an acquire is downloading; download loops exit early.
+  volatile bool bAbortAcquire;
 
   // In-memory 2D CDS/single-frame preview for ZMQ acquire multipart reply.
   // Owned by this struct; freed by ClearDisplayPreview / free_resources.

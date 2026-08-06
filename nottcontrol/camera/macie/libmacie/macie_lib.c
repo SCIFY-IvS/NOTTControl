@@ -139,6 +139,7 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->uiSoftStripeY2 = 0;
     ptUserData->bSoftSerialRamps = false;
     ptUserData->uiSoftSerialNRamps = 0;
+    ptUserData->bAbortAcquire = false;
 
     ptUserData->pDisplayPreview = NULL;
     ptUserData->displayPreviewNx = 0;
@@ -1394,6 +1395,14 @@ static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_targe
 
     while (wait_total <= timeout_ms)
     {
+        if (ptUserData->bAbortAcquire)
+        {
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "Acquire aborted while waiting for science data.\n");
+            if (nbytes_out != NULL)
+                *nbytes_out = nbytes;
+            return false;
+        }
         if (ptUserData->offline_develop)
             nbytes = nbytes_target;
         else
@@ -2255,6 +2264,13 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
         // Soft SC serial: first ramp was triggered by acquire(); each further
         // ramp is a new single-ramp trigger with GigE reused (no reconfigure).
+        if (ptUserData->bAbortAcquire)
+        {
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "Acquire aborted before ramp %i of %i.\n", ii + 1, nramps);
+            download_failed = true;
+            break;
+        }
         if (soft_serial && ii > 0)
         {
             verbose_printf(LOG_INFO, ptUserData,

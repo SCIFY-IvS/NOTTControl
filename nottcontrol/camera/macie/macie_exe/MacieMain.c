@@ -182,6 +182,8 @@ bool halt_acquisition(MACIE_Settings *ptUserData)
     bool ret = true;
     verbose_printf(LOG_INFO, ptUserData, "Halting Data Acquisition...\n");
 
+    // Signal any in-progress DownloadAndSave loop to exit promptly.
+    ptUserData->bAbortAcquire = true;
     ptUserData->bKeepScienceInterface = false;
 
     // What is the proper order?
@@ -214,6 +216,7 @@ bool acquire(bool no_recon, MACIE_Settings *ptUserData )
     // trigger (Skips1 intermittently ignored → bottom of array). Keep the true
     // subframe burst counters latched and fire N× single-ramp triggers instead,
     // with GigE kept open (no re-init / no ReconfigureASIC between ramps).
+    ptUserData->bAbortAcquire = false;
     const unsigned int nramps_req = ASIC_NRamps(ptUserData, false, 0);
     const bool soft_serial =
         ptUserData->bSoftStripeActive && (nramps_req > 1);
