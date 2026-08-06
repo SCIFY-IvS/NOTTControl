@@ -799,6 +799,16 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
     }
     else // Slow Mode
     {
+        // Soft SC: program StripeReads*/Skips* before the h6900 latch so the
+        // MCD data table does not reload full-frame stripe geometry when only
+        // exposure (DIT) registers changed.
+        if (ptUserData->bSoftStripeActive &&
+            ASIC_STRIPEMode(ptUserData, false, false))
+        {
+            unsigned int ypix_pre = 0;
+            ypix_burst_stripe(ptUserData, &ypix_pre, true);
+        }
+
         unsigned int idle_value = 0;
         unsigned int regtemp = 0;
         unsigned int time_tot = 0;
@@ -913,7 +923,19 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
     // formula so UI timing stays stable.
     if (ASIC_STRIPEMode(ptUserData, false, false))
     {
-        unsigned int ypix_sub = exposure_ypix(ptUserData);
+        // Soft SC: h6900 reconfigure reloads the MCD data table (5401–5405),
+        // which can rewrite StripeReads*/Skips* from full-frame Y2. Re-apply
+        // soft-tracked counters so DIT / exposure changes do not move the window.
+        unsigned int ypix_sub = 0;
+        if (ptUserData->bSoftStripeActive)
+        {
+            if (ypix_burst_stripe(ptUserData, &ypix_sub, true) == false)
+                ypix_sub = exposure_ypix(ptUserData);
+        }
+        else
+        {
+            ypix_sub = exposure_ypix(ptUserData);
+        }
         unsigned int xpix_sub = exposure_xpix(ptUserData);
         unsigned int ExtraLines = 0;
         unsigned int ExtraPixels = 0;
