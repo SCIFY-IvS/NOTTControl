@@ -11,7 +11,8 @@ Default acquisition blocks follow the lab log (Full frame):
 
 For each block the script computes ``mean(open) - mean(closed)``, writes that
 2-D float32 image to FITS, writes a cube of ``open[i] - mean(closed)`` for
-each open frame, and plots fixed random pixels vs DIT.
+each open frame, writes a global ``mean(all open) - mean(all closed)``
+image over the shutter-open blocks, and plots fixed random pixels vs DIT.
 
 Frames before 301 are ignored. Illuminated pixels are drawn from a 20×20 box
 centred at image coordinates (X=1045, Y=943).
@@ -530,6 +531,74 @@ def save_block_cubes(
             cube.shape,
         )
     return written
+
+
+def save_combined_open_minus_closed(
+    blocks: list[DitBlock],
+    output_dir: Path,
+    *,
+    day_label: str,
+) -> Path | None:
+    """Write ``mean(all open) - mean(all closed)`` over *blocks* (equal frame weight)."""
+    from astropy.io import fits
+
+    if not blocks:
+        return None
+
+    # Rebuild global means with one vote per frame (n_closed / n_open may differ).
+    closed_acc: np.ndarray | None = None
+    open_acc: np.ndarray | None = None
+    n_closed = 0
+    n_open = 0
+    frame_lo = min(b.frame_start for b in blocks)
+    frame_hi = max(b.frame_end for b in blocks)
+    dit_ms_list = [b.dit_s * 1000.0 for b in blocks]
+
+    for block in blocks:
+        if closed_acc is None:
+            closed_acc = np.zeros_like(block.closed_mean, dtype=np.float64)
+            open_acc = np.zeros_like(block.open_mean, dtype=np.float64)
+        closed_acc += block.closed_mean * block.n_closed
+        open_acc += block.open_mean * block.n_open
+        n_closed += block.n_closed
+        n_open += block.n_open
+
+    assert closed_acc is not None and open_acc is not None
+    if n_closed < 1 or n_open < 1:
+        raise ValueError("Need at least one closed and one open frame for combined diff")
+
+    combined = open_acc / n_open - closed_acc / n_closed
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"linearity_{day_label}_open_minus_closed_avg.fits"
+
+    header = fits.Header()
+    header["IMTYPE"] = ("OPEN-CL-AVG", "mean(all open) - mean(all closed)")
+    header["NBLOCKS"] = (len(blocks), "Number of DIT blocks included")
+    header["NCLOSED"] = (n_closed, "Total shutter-closed frames averaged")
+    header["NOPEN"] = (n_open, "Total open frames averaged")
+    header["FRMSTART"] = (frame_lo, "First frame number among blocks")
+    header["FRMEND"] = (frame_hi, "Last frame number among blocks")
+    header["DITMSMIN"] = (float(min(dit_ms_list)), "Min block DIT (ms)")
+    header["DITMSMAX"] = (float(max(dit_ms_list)), "Max block DIT (ms)")
+    header["COMMENT"] = (
+        "Global mean(open)-mean(closed) over shutter-open linearity blocks "
+        "(beamsplitter-in excluded). Equal weight per frame."
+    )
+
+    fits.PrimaryHDU(
+        data=np.asarray(combined, dtype=np.float32),
+        header=header,
+    ).writeto(path, overwrite=True)
+    logging.info(
+        "Wrote combined open−closed average: %s  shape=%s  "
+        "n_closed=%d n_open=%d  mean=%.4g ADU",
+        path.name,
+        combined.shape,
+        n_closed,
+        n_open,
+        float(np.mean(combined)),
+    )
+    return path
 
 
 def choose_pixels(
@@ -1098,6 +1167,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             save_block_cubes(
                 all_blocks,
+                fits_dir,
+                day_label=day_label,
+            )
+            save_combined_open_minus_closed(
+                open_blocks,
                 fits_dir,
                 day_label=day_label,
             )
