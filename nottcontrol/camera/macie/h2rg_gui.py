@@ -931,19 +931,31 @@ def is_science_fits_name(name: str) -> bool:
 
 
 def fits_frame_number_label(name: str | None) -> str:
-    """Return the ramp index for the Frame number box (e.g. 000018)."""
+    """Return the ramp index from a FITS basename (e.g. 000018)."""
     if not name:
         return "—"
     stem = Path(name).stem
     if stem.lower().endswith("_science"):
         stem = stem[: -len("_science")]
     if stem.lower() == "preview":
-        return "Last frame"
+        return "—"
     # Names look like nott_YYYYMMDD_000018
     parts = stem.rsplit("_", 1)
     if len(parts) == 2 and parts[1].isdigit():
         return parts[1]
     return stem
+
+
+def next_fits_frame_number(
+    directory: Path, *, dir_ok: bool | None = None, width: int = 6
+) -> str:
+    """Return the next free ramp index in *directory* (matches MACIE getFileNumStart)."""
+    max_index = -1
+    for path in list_ramp_fits_in_dir(directory, dir_ok=dir_ok):
+        label = fits_frame_number_label(path.name)
+        if label.isdigit():
+            max_index = max(max_index, int(label))
+    return f"{max_index + 1:0{width}d}"
 
 
 def ramp_fits_path_for_viewer(path: Path) -> Path:
@@ -1764,6 +1776,11 @@ class H2rgMainWindow(QMainWindow):
         self.ui.label_5.setText("Integration time:")
         self.ui.label_7.setText("Number of frames:")
         self.ui.label_4.setText("Total integration time:")
+        self.ui.label_8.setText("Next frame:")
+        self.ui.lineEdit_frame_nb.setReadOnly(True)
+        self.ui.lineEdit_frame_nb.setToolTip(
+            "Next FITS ramp index that will be written in the save directory"
+        )
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
             field = getattr(self.ui, field_name)
@@ -1899,6 +1916,7 @@ class H2rgMainWindow(QMainWindow):
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             actions.addWidget(button)
         outer.addLayout(actions)
+        self._update_next_frame_number()
 
     def _layout_visualisation_panel(self) -> None:
         # Replaced by H2RG ROI values panel; hide unused .ui controls.
@@ -3662,6 +3680,19 @@ class H2rgMainWindow(QMainWindow):
         if mapped != self._save_dir:
             self._save_dir = mapped
             self._fits_dir_ok = None
+        self._update_next_frame_number()
+
+    def _update_next_frame_number(self) -> None:
+        """Show the next free FITS ramp index in the acquisition panel."""
+        if self.ui is None:
+            return
+        try:
+            text = next_fits_frame_number(
+                self._save_dir, dir_ok=self._fits_dir_ok
+            )
+        except Exception:
+            text = "—"
+        self.ui.lineEdit_frame_nb.setText(text)
 
     def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
         if self._fits_dir_ok is False and not allow_probe:
@@ -4403,15 +4434,7 @@ class H2rgMainWindow(QMainWindow):
         self._schedule_roi_update(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
-
-        if self._last_fits_path is not None:
-            self.ui.lineEdit_frame_nb.setText(
-                fits_frame_number_label(self._last_fits_path.name)
-            )
-        elif self._last_loaded_basename:
-            self.ui.lineEdit_frame_nb.setText(
-                fits_frame_number_label(self._last_loaded_basename)
-            )
+        self._update_next_frame_number()
 
     def get_dashboard_status(self) -> dict[str, object]:
         powered = None

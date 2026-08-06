@@ -60,6 +60,14 @@ H2RG_FITS_DL_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("DL4POS", "DL_4_pos", "Delay line 4 position [um]"),
 )
 
+# Shutter positions logged as ``Shutter N_pos`` (millimetres; open≈5, closed≈35).
+H2RG_FITS_SHUTTER_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("SH1POS", "Shutter 1_pos", "Shutter 1 position [mm]"),
+    ("SH2POS", "Shutter 2_pos", "Shutter 2 position [mm]"),
+    ("SH3POS", "Shutter 3_pos", "Shutter 3 position [mm]"),
+    ("SH4POS", "Shutter 4_pos", "Shutter 4 position [mm]"),
+)
+
 # Pressure sensors from sensors.ini (tag → FITS keyword / comment).
 # Pump foreline is logged in hPa; convert to mbar (1 hPa == 1 mbar).
 H2RG_FITS_PRESSURE_FIELDS: tuple[tuple[str, str, str], ...] = (
@@ -163,6 +171,19 @@ def delay_line_positions_for_fits(
     )
 
 
+def shutter_positions_for_fits(
+    redis_client: RedisClient | None,
+) -> list[HeaderCard]:
+    """Return Shutter 1…4 position cards from Redis (mm, 2 decimals)."""
+    if redis_client is None:
+        return []
+    return _value_cards_from_redis(
+        redis_client,
+        H2RG_FITS_SHUTTER_FIELDS,
+        resolve_key=lambda key: key,
+    )
+
+
 def pressures_for_fits(
     redis_client: RedisClient | None,
 ) -> list[HeaderCard]:
@@ -193,7 +214,7 @@ def pressures_for_fits(
 def fits_header_cards_from_redis(
     redis_client: RedisClient | None,
 ) -> list[HeaderCard]:
-    """Ordered FITS cards: temperatures, pressures, then delay lines.
+    """Ordered FITS cards: temperatures, pressures, delay lines, shutters.
 
     Groups are separated with COMMENT markers and include units in comments.
     """
@@ -213,6 +234,11 @@ def fits_header_cards_from_redis(
     if positions:
         cards.append(("COMMENT", None, "----- Delay line positions [um] -----"))
         cards.extend(positions)
+
+    shutters = shutter_positions_for_fits(redis_client)
+    if shutters:
+        cards.append(("COMMENT", None, "----- Shutter positions [mm] -----"))
+        cards.extend(shutters)
 
     return cards
 

@@ -591,6 +591,7 @@ class MainWindow(QMainWindow):
 
     def load_shutter_status(self):
         values = self.opcua_conn.read_nodes(self.shutter_status_opc_nodes)
+        now = datetime.utcnow()
         for index, shutter_key in enumerate(self.shutter_status_keys):
             status = values[index * 3]
             state = values[index * 3 + 1]
@@ -598,6 +599,23 @@ class MainWindow(QMainWindow):
             self.shutter_status_panel.update_status(
                 shutter_key, status, state, position_mm
             )
+            if position_mm is None or not self.redis_client.is_available():
+                continue
+            # Same Redis keys as ShutterWindow widgets ("Shutter 1_pos", …).
+            name = f"Shutter {index + 1}"
+            last = getattr(self, "_last_shutter_redis_pos", None)
+            if last is None:
+                last = {}
+                self._last_shutter_redis_pos = last
+            previous = last.get(name)
+            if (
+                previous is None
+                or abs(float(position_mm) - previous) >= 0.05
+            ):
+                self.redis_client.add_shutter_position(
+                    name, now, float(position_mm)
+                )
+                last[name] = float(position_mm)
     
     def read_and_store_sensor_values(self):
         try:

@@ -20,6 +20,7 @@ from nottcontrol.camera.macie.fits_header_meta import (
     pressures_for_fits,
     redis_key_for_pressure_tag,
     redis_key_for_temperature_tag,
+    shutter_positions_for_fits,
     update_fits_file_header_cards,
 )
 from nottcontrol.camera.macie.fits_science import save_science_fits
@@ -65,6 +66,7 @@ class FitsHeaderTempTests(unittest.TestCase):
     def test_missing_redis_returns_empty(self) -> None:
         self.assertEqual(cryo_temperatures_for_fits(None), [])
         self.assertEqual(delay_line_positions_for_fits(None), [])
+        self.assertEqual(shutter_positions_for_fits(None), [])
         self.assertEqual(pressures_for_fits(None), [])
         self.assertEqual(fits_header_cards_from_redis(None), [])
 
@@ -80,6 +82,19 @@ class FitsHeaderTempTests(unittest.TestCase):
         self.assertEqual(cards["DL1POS"][0], 100.46)
         self.assertEqual(cards["DL2POS"][0], 200.0)
         self.assertIn("[um]", cards["DL1POS"][1])
+
+    def test_shutter_positions_from_redis(self) -> None:
+        client = MagicMock()
+        client.get_latest.side_effect = lambda key: {
+            "Shutter 1_pos": 5.0,
+            "Shutter 2_pos": 35.01,
+            "Shutter 3_pos": 5.02,
+            "Shutter 4_pos": 34.98,
+        }.get(key)
+        cards = _card_map(shutter_positions_for_fits(client))
+        self.assertEqual(cards["SH1POS"][0], 5.0)
+        self.assertEqual(cards["SH2POS"][0], 35.01)
+        self.assertIn("[mm]", cards["SH1POS"][1])
 
     def test_pressures_from_redis(self) -> None:
         vagc_key = redis_key_for_pressure_tag("VAGC.stat.lrPressure")
@@ -107,6 +122,7 @@ class FitsHeaderTempTests(unittest.TestCase):
         client.get_latest.side_effect = lambda key: {
             det_key: 80.0,
             "DL_1_pos": 12.5,
+            "Shutter 1_pos": 5.0,
             vagc_key: 3e-7,
         }.get(key)
         cards = fits_header_cards_from_redis(client)
@@ -114,10 +130,12 @@ class FitsHeaderTempTests(unittest.TestCase):
         self.assertTrue(any("Temperatures" in c[2] for c in comments))
         self.assertTrue(any("Pressures" in c[2] for c in comments))
         self.assertTrue(any("Delay line" in c[2] for c in comments))
-        # Order: temperatures group before pressures before delay lines
+        self.assertTrue(any("Shutter" in c[2] for c in comments))
+        # Order: temperatures group before pressures before delay lines before shutters
         keywords = [c[0] for c in cards if c[0] != "COMMENT"]
         self.assertLess(keywords.index("DETTEMP"), keywords.index("PRESVAGC"))
         self.assertLess(keywords.index("PRESVAGC"), keywords.index("DL1POS"))
+        self.assertLess(keywords.index("DL1POS"), keywords.index("SH1POS"))
 
     def test_save_science_fits_writes_grouped_cards(self) -> None:
         image = numpy.zeros((8, 8), dtype=numpy.float32)
