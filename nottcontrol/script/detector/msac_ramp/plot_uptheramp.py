@@ -375,7 +375,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--output",
         type=Path,
         default=None,
-        help="Output PNG path (default: next to first ramp / script dir)",
+        help=(
+            "Output PNG path (default: inside the session data directory, "
+            "next to the ramp FITS)"
+        ),
     )
     parser.add_argument(
         "--show",
@@ -477,9 +480,14 @@ def main(argv: list[str] | None = None) -> int:
         series.append((path.name, samples, means, tracks))
 
     if args.output is not None:
-        output = args.output.expanduser().resolve()
+        output = args.output.expanduser()
+        if not output.is_absolute():
+            output = (ramp_dir / output).resolve()
+        else:
+            output = output.resolve()
     elif len(paths) == 1:
-        output = paths[0].with_name(f"{paths[0].stem}_illum_ramp.png")
+        # Always write into the session data directory (same folder as the FITS).
+        output = ramp_dir / f"{paths[0].stem}_illum_ramp.png"
     else:
         output = ramp_dir / "msac_uptheramp_illum.png"
 

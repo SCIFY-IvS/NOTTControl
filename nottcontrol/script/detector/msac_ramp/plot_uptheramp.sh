@@ -8,7 +8,9 @@
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --latest 3
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --all --show-pixels
-#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --file myramp.fits --show
+#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --file myramp.fits
+#
+# PNG is written into the session data folder (latest under UpTheRamp by default).
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)
