@@ -90,7 +90,7 @@ MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
     H2RG_SECTION, "fowler_pairs_default", fallback=2
 )
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
-    H2RG_SECTION, "save_science_fits", fallback=True
+    H2RG_SECTION, "save_science_fits", fallback=False
 )
 MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
