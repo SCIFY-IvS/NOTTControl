@@ -930,31 +930,19 @@ def is_science_fits_name(name: str) -> bool:
 
 
 def fits_frame_number_label(name: str | None) -> str:
-    """Return the ramp index from a FITS basename (e.g. 000018)."""
+    """Return the ramp index for the Frame number box (e.g. 000018)."""
     if not name:
         return "—"
     stem = Path(name).stem
     if stem.lower().endswith("_science"):
         stem = stem[: -len("_science")]
     if stem.lower() == "preview":
-        return "—"
+        return "Last frame"
     # Names look like nott_YYYYMMDD_000018
     parts = stem.rsplit("_", 1)
     if len(parts) == 2 and parts[1].isdigit():
         return parts[1]
     return stem
-
-
-def next_fits_frame_number(
-    directory: Path, *, dir_ok: bool | None = None, width: int = 6
-) -> str:
-    """Return the next free ramp index in *directory* (matches MACIE getFileNumStart)."""
-    max_index = -1
-    for path in list_ramp_fits_in_dir(directory, dir_ok=dir_ok):
-        label = fits_frame_number_label(path.name)
-        if label.isdigit():
-            max_index = max(max_index, int(label))
-    return f"{max_index + 1:0{width}d}"
 
 
 def ramp_fits_path_for_viewer(path: Path) -> Path:
@@ -1775,11 +1763,6 @@ class H2rgMainWindow(QMainWindow):
         self.ui.label_5.setText("Integration time:")
         self.ui.label_7.setText("Number of frames:")
         self.ui.label_4.setText("Total integration time:")
-        self.ui.label_8.setText("Next frame number:")
-        self.ui.lineEdit_frame_nb.setReadOnly(True)
-        self.ui.lineEdit_frame_nb.setToolTip(
-            "Next FITS ramp index that will be written in the save directory"
-        )
         for row, (label_name, field_name) in enumerate(editable_rows):
             label = getattr(self.ui, label_name)
             field = getattr(self.ui, field_name)
@@ -2474,14 +2457,10 @@ class H2rgMainWindow(QMainWindow):
                 self._button_set_exposure.setEnabled(False)
             self.ui.button_init.setEnabled(False)
             self._set_exposure_panel_enabled(False)
-            # Always allow aborting a long Acquire / Live batch.
-            self.ui.button_halt.setEnabled(True)
             return
 
         if self._live_active:
             self._set_live_dependent_controls(True)
-            self.ui.button_halt.setEnabled(True)
-            self.ui.button_live.setEnabled(True)
             return
 
         self._set_controls_enabled(self._initialized)
@@ -2542,7 +2521,7 @@ class H2rgMainWindow(QMainWindow):
                 and self._macie is not None
                 and not self._live_poll_stop.is_set()
             ):
-                self._live_frame_available.wait(timeout=0.05)
+                self._live_frame_available.wait(timeout=0.4)
                 self._live_frame_available.clear()
                 if (
                     not self._live_active
@@ -2550,10 +2529,10 @@ class H2rgMainWindow(QMainWindow):
                     or self._live_poll_stop.is_set()
                 ):
                     break
+                self._arm_frame_timing("Live")
                 pending = self._live_pending_frame
                 self._live_pending_frame = None
                 if pending is not None:
-                    self._arm_frame_timing("Live")
                     self._raw_fits_cube = None
                     self._raw_fits_header = None
                     self._last_fits_path = None
@@ -2563,10 +2542,9 @@ class H2rgMainWindow(QMainWindow):
                         status = "Live — ZMQ preview (not archived)"
                     self._frame_timing_status = status
                     self.frame_ready.emit(numpy.asarray(pending, dtype=numpy.float32))
-                # Also poll preview.fits / ramp FITS during multi-ramp batches.
+                    continue
                 loaded = self._load_live_frame(self._macie)
                 if loaded is not None:
-                    self._arm_frame_timing("Live")
                     frame, path = loaded
                     if self._save_image_enabled():
                         status = f"Live — {path.name}"
@@ -2574,6 +2552,9 @@ class H2rgMainWindow(QMainWindow):
                         status = f"Live — {path.name} (not archived)"
                     self._frame_timing_status = status
                     self.frame_ready.emit(frame)
+                else:
+                    self._frame_timing_t0 = None
+                    self._frame_timing_status = None
 
         threading.Thread(target=poll_frames, daemon=True).start()
 
@@ -3018,10 +2999,7 @@ class H2rgMainWindow(QMainWindow):
                 with self._operation_lock:
                     operation()
             except Exception as exc:
-                if macie is not None and macie.consume_halt_requested():
-                    self.status_updated.emit("Halted")
-                else:
-                    self.operation_failed.emit(f"{label} failed: {exc}")
+                self.operation_failed.emit(f"{label} failed: {exc}")
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
@@ -3312,10 +3290,6 @@ class H2rgMainWindow(QMainWindow):
                 except OSError:
                     before_mtime = 0.0
                 result = macie.acquire()
-                if macie.consume_halt_requested():
-                    self._frame_timing_t0 = None
-                    self.status_updated.emit("Halted")
-                    return
                 if result.frame is not None:
                     self._raw_fits_cube = None
                     self._raw_fits_header = None
@@ -3372,11 +3346,6 @@ class H2rgMainWindow(QMainWindow):
             finally:
                 stop_preview.set()
                 preview_thread.join(timeout=2.0)
-
-            if macie.consume_halt_requested():
-                self._frame_timing_t0 = None
-                self.status_updated.emit("Halted")
-                return
 
             if result.frame is not None:
                 self._frame_timing_skip_report = True
@@ -3674,19 +3643,8 @@ class H2rgMainWindow(QMainWindow):
         if mapped != self._save_dir:
             self._save_dir = mapped
             self._fits_dir_ok = None
-        self._update_next_frame_number()
 
-    def _update_next_frame_number(self) -> None:
-        """Show the next free FITS ramp index in the acquisition panel."""
-        if self.ui is None:
-            return
-        try:
-            text = next_fits_frame_number(
-                self._save_dir, dir_ok=self._fits_dir_ok
-            )
-        except Exception:
-            text = "—"
-        self.ui.lineEdit_frame_nb.setText(text)
+    def _local_fits_accessible(self, *, allow_probe: bool = False) -> bool:
         if self._fits_dir_ok is False and not allow_probe:
             return False
         try:
@@ -3858,7 +3816,7 @@ class H2rgMainWindow(QMainWindow):
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
                 self.status_updated.emit(
-                    "Live acquiring… (multi-ramp batches, GigE keep-alive)"
+                    "Live acquiring… (1 ramp/frame, GigE keep-alive)"
                 )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))
@@ -3866,32 +3824,13 @@ class H2rgMainWindow(QMainWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def halt(self) -> None:
-        """Abort Live / in-progress Acquire without waiting for the busy lock."""
-        self._set_status("Halting…")
         if self._live_active and self._macie is not None:
             self._macie.stop_continuous_acquisition()
             self._stop_live_ui()
 
-        macie = self._macie
-        if macie is None:
-            self._set_status("Halted")
-            return
-
-        def worker() -> None:
-            try:
-                macie.halt_acquisition_interrupt()
-                self.status_updated.emit("Halted")
-            except Exception as exc:
-                # Fall back to the main socket if the interrupt port is unavailable.
-                try:
-                    macie.halt_acquisition()
-                    self.status_updated.emit("Halted")
-                except Exception:
-                    self.operation_failed.emit(f"Halt failed: {exc}")
-            finally:
-                self.macie_operation_busy.emit(False)
-
-        threading.Thread(target=worker, daemon=True).start()
+        if self._macie is not None:
+            self._run_macie_operation("Halt", self._macie.halt_acquisition)
+        self._set_status("Halted")
 
     def take_background(self) -> None:
         frame = self._frame_from_display_mode()
@@ -4437,7 +4376,15 @@ class H2rgMainWindow(QMainWindow):
         self._schedule_roi_update(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
-        self._update_next_frame_number()
+
+        if self._last_fits_path is not None:
+            self.ui.lineEdit_frame_nb.setText(
+                fits_frame_number_label(self._last_fits_path.name)
+            )
+        elif self._last_loaded_basename:
+            self.ui.lineEdit_frame_nb.setText(
+                fits_frame_number_label(self._last_loaded_basename)
+            )
 
     def get_dashboard_status(self) -> dict[str, object]:
         powered = None

@@ -139,7 +139,6 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->uiSoftStripeY2 = 0;
     ptUserData->bSoftSerialRamps = false;
     ptUserData->uiSoftSerialNRamps = 0;
-    ptUserData->bAbortAcquire = false;
 
     ptUserData->pDisplayPreview = NULL;
     ptUserData->displayPreviewNx = 0;
@@ -1395,14 +1394,6 @@ static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_targe
 
     while (wait_total <= timeout_ms)
     {
-        if (ptUserData->bAbortAcquire)
-        {
-            verbose_printf(LOG_WARNING, ptUserData,
-                           "Acquire aborted while waiting for science data.\n");
-            if (nbytes_out != NULL)
-                *nbytes_out = nbytes;
-            return false;
-        }
         if (ptUserData->offline_develop)
             nbytes = nbytes_target;
         else
@@ -1998,8 +1989,6 @@ void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
     ptUserData->bKeepScienceInterface = keep;
     if (!keep)
     {
-        // Live skips Halt between ramps; stop cleanly when keep-alive ends.
-        HaltCameraAcq(ptUserData);
         CloseScienceInterface(ptUserData);
         verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep disabled; interface closed.\n");
     }
@@ -2264,13 +2253,6 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
         // Soft SC serial: first ramp was triggered by acquire(); each further
         // ramp is a new single-ramp trigger with GigE reused (no reconfigure).
-        if (ptUserData->bAbortAcquire)
-        {
-            verbose_printf(LOG_WARNING, ptUserData,
-                           "Acquire aborted before ramp %i of %i.\n", ii + 1, nramps);
-            download_failed = true;
-            break;
-        }
         if (soft_serial && ii > 0)
         {
             verbose_printf(LOG_INFO, ptUserData,
@@ -2348,10 +2330,9 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 ifile++;
                 nwritten++;
             }
-            else if (!have_preview || ptUserData->bKeepScienceInterface)
+            else if (!have_preview)
             {
-                // Live keep-alive: rewrite preview.fits every ramp so the GUI can
-                // poll mid-batch (same cadence as multi-frame Acquire display).
+                // Fallback for clients that still poll preview.fits.
                 string preview = ptUserData->saveDir;
                 if (!preview.empty() && preview.back() != '/')
                     preview += "/";
@@ -2495,19 +2476,15 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     delete[] pData;
     delete[] pRampBuffer;
 
-    // Explicitly send Halt command (h6900=0x8000) — but not during Live /
-    // keep-alive: Halt has a ~100 ms delay and breaks uniform multi-ramp cadence.
-    // The ASIC is already idle after a completed ramp; the next trigger (or
-    // livesession;false) handles cleanup.
+    // Explicitly send Halt command (h6900=0x8000)
+    HaltCameraAcq(ptUserData);
     if (ptUserData->bKeepScienceInterface)
     {
         verbose_printf(LOG_INFO, ptUserData,
-                       "Keeping GigE science interface open after download (live); "
-                       "skipping Halt for uniform cadence.\n");
+                       "Keeping GigE science interface open after download (live).\n");
     }
     else
     {
-        HaltCameraAcq(ptUserData);
         delay(100);
         if (CloseGigEScienceInterface(ptUserData) == false)
         {

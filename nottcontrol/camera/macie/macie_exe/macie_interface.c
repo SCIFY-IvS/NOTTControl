@@ -9,9 +9,6 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <vector>
-#include <thread>
-#include <atomic>
-#include <cstring>
 
 #include <zmq.hpp>
 #include <locale>
@@ -19,7 +16,6 @@
 
 string _configFile = "";
 MACIE_Settings *_ptUserData;
-static std::atomic<bool> g_halt_thread_started{false};
 
 static std::string format_double(double value)
 {
@@ -248,49 +244,6 @@ s_recv (zmq::socket_t & socket, zmq::recv_flags flags = zmq::recv_flags::none) {
 
 }
 
-static void s_send_string(zmq::socket_t &socket, const std::string &payload)
-{
-    zmq::message_t reply(payload.size());
-    memcpy(reply.data(), payload.data(), payload.size());
-    socket.send(reply, zmq::send_flags::none);
-}
-
-// Parallel REP on main_port+1 so Halt can interrupt a blocking acquire on :65534.
-static void halt_interrupt_thread_main()
-{
-    try
-    {
-        zmq::context_t ctx(1);
-        zmq::socket_t sock(ctx, zmq::socket_type::rep);
-        sock.bind("tcp://*:65535");
-        std::cout << "Halt interrupt socket bound on tcp://*:65535" << std::endl;
-        while (true)
-        {
-            std::string request = s_recv(sock);
-            std::cout << "Halt interrupt received: " << request << std::endl;
-            bool ok = false;
-            if (request == "halt" || request.rfind("halt;", 0) == 0)
-            {
-                if (_ptUserData != NULL)
-                    ok = M_halt_acquisition();
-            }
-            s_send_string(sock, ok ? "ok;" : "nok;halt failed");
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Halt interrupt thread failed: " << e.what() << std::endl;
-    }
-}
-
-static void ensure_halt_interrupt_thread()
-{
-    bool expected = false;
-    if (!g_halt_thread_started.compare_exchange_strong(expected, true))
-        return;
-    std::thread(halt_interrupt_thread_main).detach();
-}
-
 std::vector<std::string> split(std::string s, const std::string& delimiter) {
     std::vector<std::string> tokens;
     size_t pos = 0;
@@ -388,7 +341,6 @@ int main () {
     zmq::context_t context (kNumberOfThreads);
     zmq::socket_t socket (context, zmq::socket_type::rep);
     socket.bind ("tcp://*:65534");
-    ensure_halt_interrupt_thread();
 
     while (true) {
         //  Wait for next request from client

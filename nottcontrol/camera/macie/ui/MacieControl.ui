@@ -254,7 +254,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Next frame number:</string>
+     <string>Frame number:</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="lineEdit_frame_nb">
