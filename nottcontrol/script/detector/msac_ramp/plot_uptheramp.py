@@ -23,6 +23,11 @@ import logging
 import sys
 from pathlib import Path
 
+# Avoid Qt ABI clashes on nott-server (e.g. system Qt 5.15.17 vs pip 5.15.15).
+# This script only needs file/interactive backends that do not load PyQt.
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -282,9 +287,11 @@ def plot_ramps(
     fig.savefig(output, dpi=150)
     logging.info("Wrote plot: %s", output)
     if show:
-        plt.show()
-    else:
-        plt.close(fig)
+        # Agg has no window; keep this reliable on nott-server (no Qt mix).
+        logging.info(
+            "Interactive --show is disabled (Agg backend); open the PNG instead."
+        )
+    plt.close(fig)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -373,7 +380,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--show",
         action="store_true",
-        help="Display the plot interactively",
+        help="Accepted for compatibility; plot is always written to PNG (Agg backend)",
     )
     parser.add_argument(
         "-v",
