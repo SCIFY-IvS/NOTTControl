@@ -3790,15 +3790,12 @@ class H2rgMainWindow(QMainWindow):
 
         def worker() -> None:
             try:
-                # Live uses the last Set / Init / window plan (no reconfigure here).
+                # Live arms a single-ramp session (nseq=1) and keeps GigE open.
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
-                if self._save_image_enabled():
-                    self.status_updated.emit("Live acquiring…")
-                else:
-                    self.status_updated.emit(
-                        "Live acquiring… (preview.fits only — not archived)"
-                    )
+                self.status_updated.emit(
+                    "Live acquiring… (1 ramp/frame, GigE keep-alive)"
+                )
             except Exception as exc:
                 self.live_acquisition_failed.emit(str(exc))
 

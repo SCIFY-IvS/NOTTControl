@@ -127,6 +127,7 @@ class MacieInterface():
         self._closing = Event()
         self._pause_live = Event()
         self._live_session_open = False
+        self._live_restore_exposure: tuple | None = None
         self._live_error_callback: Callable[[Exception], None] | None = None
         self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
@@ -150,7 +151,7 @@ class MacieInterface():
         self._live_session_open = keep
 
     def _reset_live_science_interface(self) -> None:
-        """Ensure GigE is closed after a failed live ramp (no keep-alive)."""
+        """Close GigE after a failed live ramp so the next acquire can reopen cleanly."""
         try:
             if self._live_session_open:
                 self._request("livesession;false")
@@ -158,6 +159,38 @@ class MacieInterface():
             self._live_first_acquire = True
         except Exception as exc:
             print(f"Live science interface reset failed: {exc}")
+
+    def _arm_live_single_ramp(self) -> None:
+        """Force nseq=1 / ncoadds=1 / save off for Live; remember prior settings."""
+        save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
+            self.read_exposure_settings()
+        )
+        self._live_restore_exposure = (
+            bool(save),
+            int(ncoadds),
+            int(nseq),
+            int(ngroups),
+            int(nreads),
+            int(ndrops),
+            int(nresets),
+        )
+        # One ramp per acquire; keep the latched CDS/Ramp group structure.
+        self.exposure_settings(
+            False, 1, 1, int(ngroups), int(nreads), int(ndrops), int(nresets)
+        )
+
+    def _restore_exposure_after_live(self) -> None:
+        saved = self._live_restore_exposure
+        self._live_restore_exposure = None
+        if saved is None:
+            return
+        try:
+            save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = saved
+            self.exposure_settings(
+                save, ncoadds, nseq, ngroups, nreads, ndrops, nresets
+            )
+        except Exception as exc:
+            print(f"Live restore exposure failed: {exc}")
 
     def _attempt_halt_after_timeout(self) -> None:
         try:
@@ -538,14 +571,17 @@ class MacieInterface():
 
     def start_continuous_acquisition(self):
         self._live_first_acquire = True
-        # Do not use livesession keep-alive: leaving GigE open between ramps
-        # caused channel-edge blink / desync and Live stop on SC. Each ramp
-        # opens and closes the science interface instead (ZMQ preview still
-        # avoids the FITS round-trip).
         try:
-            self._set_live_session(False)
+            self._arm_live_single_ramp()
         except Exception as exc:
-            print(f"Live session clear failed: {exc}")
+            print(f"Live single-ramp arm failed: {exc}")
+            self._live_restore_exposure = None
+        # Keep GigE open between single-ramp acquires so cadence tracks the
+        # detector instead of open/close overhead every frame.
+        try:
+            self._set_live_session(True)
+        except Exception as exc:
+            print(f"Live session start failed: {exc}")
         self._acquiring.set()
 
     def stop_continuous_acquisition(self):
@@ -554,6 +590,7 @@ class MacieInterface():
             self._set_live_session(False)
         except Exception as exc:
             print(f"Live session stop failed: {exc}")
+        self._restore_exposure_after_live()
 
     def pause_live_acquisition(self) -> None:
         self._pause_live.set()
@@ -569,9 +606,8 @@ class MacieInterface():
                 if self._pause_live.is_set():
                     continue
                 try:
-                    # Skip ASIC reconfigure: Init / Set / window already latched
-                    # the ramp and soft-SC counters. Reconfigure on every Live
-                    # frame rewrote StripeReads* and cost ~3 s per ramp.
+                    # Single-ramp acquire, no ASIC reconfigure; GigE kept open
+                    # via livesession for steadier Live cadence.
                     result = self.acquire(no_recon=True)
                     self._live_first_acquire = False
                     failures = 0
@@ -588,6 +624,10 @@ class MacieInterface():
                     print(f"Live acquire failed ({failures}/{self._LIVE_MAX_FAILURES}): {exc}")
                     self._reset_live_science_interface()
                     if failures < self._LIVE_MAX_FAILURES and self._acquiring.is_set():
+                        try:
+                            self._set_live_session(True)
+                        except Exception:
+                            pass
                         time.sleep(0.5)
                         continue
                     self._acquiring.clear()
@@ -595,6 +635,7 @@ class MacieInterface():
                         self._set_live_session(False)
                     except Exception:
                         pass
+                    self._restore_exposure_after_live()
                     callback = self._live_error_callback
                     if callback is not None:
                         try:
