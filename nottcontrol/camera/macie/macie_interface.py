@@ -339,7 +339,8 @@ class MacieInterface():
                     self._socket.setsockopt(zmq.SNDTIMEO, self._request_timeout_ms)
             return parts
 
-    def acquire(self, no_recon=False) -> AcquireResult:
+    def acquire(self, no_recon: bool = True) -> AcquireResult:
+        """Trigger one ramp. Default skips ASIC reconfigure (Init/Set already latched)."""
         parts = self._request_multipart(
             f"acquire;{str(no_recon).lower()}",
             timeout_ms=ZMQ_ACQUIRE_TIMEOUT_MS,
@@ -568,9 +569,10 @@ class MacieInterface():
                 if self._pause_live.is_set():
                     continue
                 try:
-                    # Always reconfigure on Live: skipping recon with keep-alive
-                    # produced alternating column-shifted frames (channel seams).
-                    result = self.acquire(no_recon=False)
+                    # Skip ASIC reconfigure: Init / Set / window already latched
+                    # the ramp and soft-SC counters. Reconfigure on every Live
+                    # frame rewrote StripeReads* and cost ~3 s per ramp.
+                    result = self.acquire(no_recon=True)
                     self._live_first_acquire = False
                     failures = 0
                     frame_callback = self._live_frame_callback
