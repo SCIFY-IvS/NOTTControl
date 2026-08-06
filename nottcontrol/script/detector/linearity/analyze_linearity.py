@@ -47,8 +47,8 @@ DEFAULT_BS_END = 350
 DEFAULT_GROUP_SIZE = 10
 DEFAULT_N_CLOSED = 5
 DEFAULT_N_OPEN = 5
-DEFAULT_N_PIXELS = 50
-DEFAULT_N_ILLUM_PIXELS = 50
+DEFAULT_N_PIXELS = 100
+DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_ILLUM_SIZE = 20
 # Illuminated spot centre in image coordinates (X=column, Y=row).
 DEFAULT_ILLUM_CENTER_X = 1045
@@ -579,6 +579,7 @@ def plot_mean_series(
     n_sigma: float,
     color: str,
     label: str,
+    bs_label: str | None = None,
     marker: str = "o",
     bs_marker: str = "s",
     log_prefix: str = "Mean",
@@ -613,6 +614,7 @@ def plot_mean_series(
     )
 
     if beamsplitter_blocks:
+        bs_legend = bs_label
         for block in beamsplitter_blocks:
             mean_val, n_kept, n_rej = sigma_clip_mean(
                 pixel_fluxes(block, pixels), n_sigma=n_sigma
@@ -637,7 +639,9 @@ def plot_mean_series(
                 edgecolors="k",
                 linewidths=0.5,
                 zorder=7,
+                label=bs_legend,
             )
+            bs_legend = None
 
 
 def plot_pixel_linearity(
@@ -683,7 +687,8 @@ def plot_pixel_linearity(
         beamsplitter_blocks=beamsplitter_blocks,
         n_sigma=clip_sigma,
         color="C0",
-        label="Random, non illuminated pixels",
+        label="non illuminated pixels",
+        bs_label="beamsplitter in (non illuminated)",
         marker="o",
         bs_marker="s",
         log_prefix="Non-illuminated mean",
@@ -699,6 +704,7 @@ def plot_pixel_linearity(
             n_sigma=clip_sigma,
             color="C3",
             label="Illuminated pixels",
+            bs_label="beamsplitter in (illuminated)",
             marker="^",
             bs_marker="D",
             log_prefix="Illuminated mean",
