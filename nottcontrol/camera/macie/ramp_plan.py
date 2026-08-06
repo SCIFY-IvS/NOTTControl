@@ -37,6 +37,28 @@ def fits_wait_timeout_s(
     return total
 
 
+def _windowed_one_group_plan(
+    frametime_ms: float,
+    *,
+    n_frames: int,
+) -> dict[str, float | int]:
+    """Soft SC / stripe: one group × N reads (no inter-group drops).
+
+    A lone read ignores StripeSkips1 and clocks from row 0 (wrong Y band).
+    Drop frames between groups can also desync soft-SC geometry. Keep all
+    samples in one group so middle-stripe counters stay latched for every read.
+    Photon time reported by MACIE is N × frametime (minus resets separately).
+    """
+    n_frames = max(2, int(n_frames))
+    return {
+        "ngroups": 1,
+        "nreads": n_frames,
+        "ndrops": 0,
+        "fowler_pairs": 0,
+        "tint_ms": n_frames * frametime_ms,
+    }
+
+
 def calc_ramp_plan(
     tint_ms: float,
     frametime_ms: float,
@@ -49,8 +71,8 @@ def calc_ramp_plan(
     """Return ngroups, nreads, ndrops for a ramp at the requested integration time.
 
     CDS uses two correlated samples with drop frames when tint exceeds one frame
-    time. Full frame: two groups × one read. Window/stripe modes: one group × two
-    reads so both samples share the same detector geometry.
+    time. Full frame: two groups × one read. Window/stripe modes: one group × N
+    reads (N ≥ 2) so samples share detector geometry and long DIT is honored.
 
     Fowler uses one group with an even number of reads (2 × fowler_pairs) and
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
@@ -60,8 +82,9 @@ def calc_ramp_plan(
     windowed CDS — a lone read ignores StripeSkips1 and clocks from row 0.
 
     Ramp rounds the requested DIT to the nearest whole number of frame times
-    (minimum one frame). One frame → single read; two or more → two groups with
-    drop frames between so the last raw sample is at that photon time.
+    (minimum one frame on full frame). One frame → single read; two or more →
+    two groups with drop frames between. On window/stripe, Ramp uses one group ×
+    N reads (minimum two) for the same soft-SC stability reasons as CDS.
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -88,9 +111,13 @@ def calc_ramp_plan(
 
     if mode == "Ramp":
         # Photon time is quantized in whole frame times — round the request
-        # to the nearest multiple (at least one frame). Do not force 2×frame on
-        # SC here: operators need 1×frame Ramp for minimum photon time.
+        # to the nearest multiple (at least one frame on full frame).
         n_frames = max(1, int(round(tint_ms / frametime_ms)))
+        if windowed_cds:
+            # Soft SC: never 1-read; never inter-group drops (geometry).
+            return _windowed_one_group_plan(
+                frametime_ms, n_frames=n_frames
+            )
         tint_rounded = n_frames * frametime_ms
         if n_frames == 1:
             return {
@@ -110,14 +137,10 @@ def calc_ramp_plan(
 
     # CDS — window/stripe before the short-DIT shortcut so soft SC never gets
     # a 1-read plan (that ignores StripeSkips1 and shows the bottom of the array).
+    # Scale NReads so requested long DIT is actually clocked (was stuck at 1×2).
     if windowed_cds:
-        return {
-            "ngroups": 1,
-            "nreads": 2,
-            "ndrops": 0,
-            "fowler_pairs": 0,
-            "tint_ms": 2.0 * frametime_ms,
-        }
+        n_frames = max(2, int(math.ceil(tint_ms / frametime_ms)))
+        return _windowed_one_group_plan(frametime_ms, n_frames=n_frames)
 
     if tint_ms < frametime_ms:
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}

@@ -3151,9 +3151,9 @@ class H2rgMainWindow(QMainWindow):
             windowed_cds=self._windowed_cds_layout(),
         )
         self._last_tint_ms = float(result["inttime_ms"])
-        # Ramp mode rounds DIT to N×frametime — mirror that in the request box.
+        # Ramp/CDS on soft SC quantize DIT to N×frametime — mirror in the box.
         rounded = result.get("rounded_tint_ms")
-        if ramp_mode == "Ramp" and rounded is not None:
+        if ramp_mode in ("Ramp", "CDS") and rounded is not None:
             rounded_f = float(rounded)
             self.integration_time_updated.emit(f"{rounded_f:.6g}")
             fingerprint = (
