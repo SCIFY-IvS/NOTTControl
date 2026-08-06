@@ -59,9 +59,9 @@ def calc_ramp_plan(
     On window/stripe (soft SC), SingleFrame is promoted to the same 1×2 plan as
     windowed CDS — a lone read ignores StripeSkips1 and clocks from row 0.
 
-    Ramp rounds the requested DIT to the nearest whole number of frame times.
-    On window/stripe, the minimum is two frames (1-frame ramps show the bottom
-    of the array instead of the soft-SC band).
+    Ramp rounds the requested DIT to the nearest whole number of frame times
+    (minimum one frame). One frame → single read; two or more → two groups with
+    drop frames between so the last raw sample is at that photon time.
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -88,9 +88,9 @@ def calc_ramp_plan(
 
     if mode == "Ramp":
         # Photon time is quantized in whole frame times — round the request
-        # to the nearest multiple (at least one frame; two on soft SC / window).
-        n_min = 2 if windowed_cds else 1
-        n_frames = max(n_min, int(round(tint_ms / frametime_ms)))
+        # to the nearest multiple (at least one frame). Do not force 2×frame on
+        # SC here: operators need 1×frame Ramp for minimum photon time.
+        n_frames = max(1, int(round(tint_ms / frametime_ms)))
         tint_rounded = n_frames * frametime_ms
         if n_frames == 1:
             return {

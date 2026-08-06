@@ -63,13 +63,13 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["ndrops"], 0)
         self.assertEqual(plan["tint_ms"], 200.0)
 
-    def test_ramp_windowed_minimum_two_frames(self) -> None:
-        # Soft SC: never allow 1-frame ramps (StripeSkips1 ignored → bottom rows).
+    def test_ramp_windowed_allows_one_frame(self) -> None:
+        # Ramp on SC may use 1×frame for minimum photon time (geometry caveat).
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["ngroups"], 1)
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
-        self.assertEqual(plan["tint_ms"], 400.0)
+        self.assertEqual(plan["tint_ms"], 200.0)
 
     def test_cds_windowed_uses_single_group_two_reads(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="CDS", windowed_cds=True)

@@ -2193,9 +2193,9 @@ class H2rgMainWindow(QMainWindow):
             elif self._selected_ramp_mode() == "Ramp":
                 label = "Integration time:"
                 tooltip = (
-                    "Target DIT (ms), rounded to N×frame time on Set. "
-                    "On SC/window modes the minimum is 2×frame (1-frame ramps "
-                    "read the wrong Y band on this ASIC)."
+                    "Target DIT (ms), rounded to N×frame time on Set "
+                    "(minimum one frame). On SC, 1×frame can show the wrong "
+                    "Y band; use ≥2×frame or CDS if the window must stay fixed."
                 )
             else:
                 label = "Integration time:"
