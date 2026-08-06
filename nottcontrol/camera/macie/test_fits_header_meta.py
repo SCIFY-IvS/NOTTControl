@@ -149,6 +149,23 @@ class FitsHeaderTempTests(unittest.TestCase):
         self.assertEqual(value, "CDS")
         self.assertIn("readout mode", comment.lower())
 
+    def test_exposure_fits_cards(self) -> None:
+        from nottcontrol.camera.macie.fits_header_meta import exposure_fits_cards
+
+        cards = exposure_fits_cards(
+            mode="Ramp",
+            tint_ms=1475.28,
+            ngroups=2,
+            nreads=1,
+            ndrops=3,
+        )
+        by_key = {k: v for k, v, _c in cards}
+        self.assertEqual(by_key["DETMODE"], "Ramp")
+        self.assertAlmostEqual(by_key["EXPTIME"], 1.47528)
+        self.assertEqual(by_key["NGROUPS"], 2)
+        self.assertEqual(by_key["NREADS"], 1)
+        self.assertEqual(by_key["NDROPS"], 3)
+
     def test_update_fits_file_header_cards(self) -> None:
         image = numpy.ones((4, 4), dtype=numpy.float32)
         with tempfile.TemporaryDirectory() as tmp:

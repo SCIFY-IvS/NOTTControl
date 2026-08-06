@@ -39,7 +39,7 @@ from PyQt5.uic import loadUi
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_header_meta import (
-    detector_mode_fits_card,
+    exposure_fits_cards,
     fits_header_cards_from_redis,
     header_cards_as_value_dict,
 )
@@ -3509,8 +3509,15 @@ class H2rgMainWindow(QMainWindow):
         return fits_header_cards_from_redis(self._redis)
 
     def _acquisition_fits_header_cards(self):
-        """Cards stamped on ramp/science FITS after acquire (mode + instrument status)."""
-        cards = [detector_mode_fits_card(self._selected_ramp_mode())]
+        """Cards stamped on ramp/science FITS after acquire (mode + timing + cryo)."""
+        report = self._last_exposure_report or {}
+        cards = exposure_fits_cards(
+            mode=self._selected_ramp_mode(),
+            tint_ms=self._last_tint_ms,
+            ngroups=report.get("ngroups"),
+            nreads=report.get("nreads"),
+            ndrops=report.get("ndrops"),
+        )
         cards.extend(self._cryo_fits_header_cards())
         return cards
 
@@ -3531,7 +3538,7 @@ class H2rgMainWindow(QMainWindow):
         update_fits_file_header_cards(resolved, cards)
 
     def _stamp_ramp_fits_headers(self, ramp_path: Path | None) -> list:
-        """Write DETMODE (+ cryo cards) onto the on-disk ramp FITS; return the cards."""
+        """Write DETMODE/EXPTIME (+ cryo cards) onto the on-disk ramp FITS."""
         cards = self._acquisition_fits_header_cards()
         self._apply_cryo_temps_to_ramp(ramp_path, cards)
         return cards
@@ -4262,19 +4269,27 @@ class H2rgMainWindow(QMainWindow):
                 if path.name == "preview.fits":
                     continue
                 try:
-                    return self._load_fits_from_path(path), path
+                    frame = self._load_fits_from_path(path)
+                    self._stamp_ramp_fits_headers(path)
+                    return frame, path
                 except Exception as exc:
                     print(f"H2RG live skipped unreadable FITS {path.name}: {exc}")
             # Local share is available — wait for the next poll instead of
             # contending with continuous acquire on the ZMQ socket.
             return None
 
-        return self._fetch_fits_from_server(
+        fetched = self._fetch_fits_from_server(
             macie,
             before_mtime=before_mtime,
             before_name=before_name,
             require_new=True,
         )
+        if fetched is not None:
+            frame, path = fetched
+            if path.name != "preview.fits":
+                self._stamp_ramp_fits_headers(path)
+            return frame, path
+        return None
 
     def _load_latest_frame(
         self, force: bool = False, macie=None

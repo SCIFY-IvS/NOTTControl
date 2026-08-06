@@ -16,11 +16,35 @@ if TYPE_CHECKING:
 HeaderCard = tuple[str, float | str | None, str]
 
 DETMODE_COMMENT = "Detector readout mode"
+EXPTIME_COMMENT = "Photon collection time (s)"
 
 
 def detector_mode_fits_card(mode: str) -> HeaderCard:
     """FITS card for the GUI/ASIC ramp readout mode."""
     return ("DETMODE", str(mode), DETMODE_COMMENT)
+
+
+def exposure_fits_cards(
+    *,
+    mode: str | None = None,
+    tint_ms: float | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
+    ndrops: int | None = None,
+) -> list[HeaderCard]:
+    """Acquisition timing/mode cards for ramp and science FITS headers."""
+    cards: list[HeaderCard] = []
+    if mode is not None:
+        cards.append(detector_mode_fits_card(mode))
+    if tint_ms is not None:
+        cards.append(("EXPTIME", float(tint_ms) / 1000.0, EXPTIME_COMMENT))
+    if ngroups is not None:
+        cards.append(("NGROUPS", int(ngroups), "Number of groups in ramp"))
+    if nreads is not None:
+        cards.append(("NREADS", int(nreads), "Reads per group"))
+    if ndrops is not None:
+        cards.append(("NDROPS", int(ndrops), "Drop frames between groups"))
+    return cards
 
 # FITS keyword, Redis temperature tag, header comment (unit in brackets).
 H2RG_FITS_TEMP_FIELDS: tuple[tuple[str, str, str], ...] = (
