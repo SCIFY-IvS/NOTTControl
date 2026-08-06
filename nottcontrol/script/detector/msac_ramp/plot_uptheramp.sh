@@ -6,11 +6,13 @@
 #
 # Usage (on the acquisition machine):
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
-#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --latest 3
-#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --all --show-pixels
-#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --file myramp.fits
+#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --latest 10
+#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --show-pixels
 #
-# PNG is written into the session data folder (latest under UpTheRamp by default).
+# Default: all FITS in the latest UpTheRamp session folder.
+# X = file index from the name (_M###### or _N######); Y = illuminated mean.
+#
+# PNG is written into the session data folder.
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)
