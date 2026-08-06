@@ -13,7 +13,14 @@ if TYPE_CHECKING:
     from nottcontrol.redisclient import RedisClient
 
 # (keyword, value, comment). COMMENT cards use value=None.
-HeaderCard = tuple[str, float | None, str]
+HeaderCard = tuple[str, float | str | None, str]
+
+DETMODE_COMMENT = "Detector readout mode"
+
+
+def detector_mode_fits_card(mode: str) -> HeaderCard:
+    """FITS card for the GUI/ASIC ramp readout mode."""
+    return ("DETMODE", str(mode), DETMODE_COMMENT)
 
 # FITS keyword, Redis temperature tag, header comment (unit in brackets).
 H2RG_FITS_TEMP_FIELDS: tuple[tuple[str, str, str], ...] = (
@@ -188,8 +195,8 @@ def fits_header_cards_from_redis(
 
 def header_cards_as_value_dict(
     cards: list[HeaderCard],
-) -> dict[str, tuple[float, str]]:
-    """Map of numeric keywords only (no COMMENT), for in-memory headers."""
+) -> dict[str, tuple[float | str, str]]:
+    """Map of value keywords only (no COMMENT), for in-memory headers."""
     return {
         keyword: (value, comment)
         for keyword, value, comment in cards

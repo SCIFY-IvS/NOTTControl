@@ -129,16 +129,25 @@ class FitsHeaderTempTests(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "frame_science.fits"
-            save_science_fits(path, image, extra_cards=cards)
+            save_science_fits(path, image, reduction="Ramp", extra_cards=cards)
             from astropy.io import fits
 
             with fits.open(path) as hdul:
                 header = hdul[0].header
+                self.assertEqual(header["DETMODE"], "Ramp")
                 self.assertAlmostEqual(float(header["DETTEMP"]), 80.12)
                 self.assertAlmostEqual(float(header["PRESVAGC"]), 1.2e-6)
                 comment_text = " ".join(str(c) for c in header["COMMENT"])
                 self.assertIn("Temperatures", comment_text)
                 self.assertIn("Pressures", comment_text)
+
+    def test_detector_mode_fits_card(self) -> None:
+        from nottcontrol.camera.macie.fits_header_meta import detector_mode_fits_card
+
+        key, value, comment = detector_mode_fits_card("CDS")
+        self.assertEqual(key, "DETMODE")
+        self.assertEqual(value, "CDS")
+        self.assertIn("readout mode", comment.lower())
 
     def test_update_fits_file_header_cards(self) -> None:
         image = numpy.ones((4, 4), dtype=numpy.float32)

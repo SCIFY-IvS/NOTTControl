@@ -39,6 +39,7 @@ from PyQt5.uic import loadUi
 from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_header_meta import (
+    detector_mode_fits_card,
     fits_header_cards_from_redis,
     header_cards_as_value_dict,
 )
@@ -3365,6 +3366,9 @@ class H2rgMainWindow(QMainWindow):
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
                 for ramp_path in ramp_paths:
+                    # Always stamp DETMODE / cryo cards on the ramp archive,
+                    # including when science FITS writes are disabled.
+                    self._stamp_ramp_fits_headers(ramp_path)
                     if (
                         ramp_path.name == preview_path.name
                         and self._raw_fits_header is not None
@@ -3504,6 +3508,12 @@ class H2rgMainWindow(QMainWindow):
         """Instrument status from Redis (temps, pressures, DL positions) for FITS."""
         return fits_header_cards_from_redis(self._redis)
 
+    def _acquisition_fits_header_cards(self):
+        """Cards stamped on ramp/science FITS after acquire (mode + instrument status)."""
+        cards = [detector_mode_fits_card(self._selected_ramp_mode())]
+        cards.extend(self._cryo_fits_header_cards())
+        return cards
+
     def _apply_cryo_temps_to_ramp(self, ramp_path: Path | None, cards) -> None:
         """Stamp Redis status onto the in-memory and on-disk ramp headers when possible."""
         if not cards:
@@ -3519,6 +3529,12 @@ class H2rgMainWindow(QMainWindow):
         from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
 
         update_fits_file_header_cards(resolved, cards)
+
+    def _stamp_ramp_fits_headers(self, ramp_path: Path | None) -> list:
+        """Write DETMODE (+ cryo cards) onto the on-disk ramp FITS; return the cards."""
+        cards = self._acquisition_fits_header_cards()
+        self._apply_cryo_temps_to_ramp(ramp_path, cards)
+        return cards
 
     def _discard_fits_files(self, paths: list[Path]) -> None:
         """Remove temporary ramp FITS used only for display when Save image is off."""
@@ -3564,8 +3580,7 @@ class H2rgMainWindow(QMainWindow):
         if not self._save_image_enabled():
             return None
         output_path = self._science_output_path(ramp_path)
-        cards = self._cryo_fits_header_cards()
-        self._apply_cryo_temps_to_ramp(ramp_path, cards)
+        cards = self._acquisition_fits_header_cards()
         try:
             save_science_fits(
                 output_path,
@@ -3605,13 +3620,10 @@ class H2rgMainWindow(QMainWindow):
             fowler_pairs=self._fowler_pairs_value(),
         )
         output_path = self._science_output_path(ramp_path)
-        cards = self._cryo_fits_header_cards()
+        cards = self._acquisition_fits_header_cards()
         for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
             header[keyword] = value
         self._raw_fits_header = dict(header)
-        from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
-
-        update_fits_file_header_cards(resolved, cards)
         try:
             save_science_fits(
                 output_path,

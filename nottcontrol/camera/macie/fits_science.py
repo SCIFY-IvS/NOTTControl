@@ -150,6 +150,10 @@ def save_science_fits(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     header = fits.Header()
     header["IMTYPE"] = ("SCIENCE", "Reduced science image")
+    from nottcontrol.camera.macie.fits_header_meta import detector_mode_fits_card
+
+    mode_key, mode_val, mode_comment = detector_mode_fits_card(reduction)
+    header[mode_key] = (mode_val, mode_comment)
     if reduction == "Fowler":
         header["REDUCT"] = (f"Fowler{fowler_pairs}", "Mean pair-difference ramp")
     elif reduction == "SingleFrame":
