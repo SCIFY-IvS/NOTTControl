@@ -1157,6 +1157,7 @@ class H2rgMainWindow(QMainWindow):
     readouts_updated = pyqtSignal(object)
     init_button_state = pyqtSignal(str)
     exposure_timing_updated = pyqtSignal(object)
+    integration_time_updated = pyqtSignal(str)
     macie_operation_busy = pyqtSignal(bool)
 
     def __init__(self) -> None:
@@ -1180,6 +1181,9 @@ class H2rgMainWindow(QMainWindow):
         self.init_button_state.connect(self._apply_init_button_state, Qt.QueuedConnection)
         self.exposure_timing_updated.connect(
             self._apply_exposure_timing, Qt.QueuedConnection
+        )
+        self.integration_time_updated.connect(
+            self._apply_integration_time_text, Qt.QueuedConnection
         )
         self.macie_operation_busy.connect(
             self._apply_macie_operation_busy, Qt.QueuedConnection
@@ -2644,9 +2648,8 @@ class H2rgMainWindow(QMainWindow):
         self.status_updated.emit(f"Detector mode: {DETECTOR_MODES[mode_index]}")
 
     def _on_exposure_fields_changed(self) -> None:
+        # GUI-only preview of total integration; ASIC updates only via Set / Init / window.
         self._update_total_integration_label()
-        if self._initialized and self._macie is not None:
-            self._exposure_preview_timer.start()
 
     def _on_set_exposure_clicked(self) -> None:
         self._update_total_integration_label()
@@ -2655,7 +2658,7 @@ class H2rgMainWindow(QMainWindow):
             return
 
         def operation() -> None:
-            self._apply_exposure_settings(self._ensure_macie())
+            self._apply_exposure_settings(self._ensure_macie(), force=True)
 
         self._run_macie_operation(
             "Set exposure",
@@ -2903,6 +2906,12 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_execution_time.setText(f"{timing['execution_s'] * 1000:.4g}")
         self._lineEdit_efficiency.setText(f"{timing['efficiency'] * 100:.1f}")
 
+    def _apply_integration_time_text(self, text: str) -> None:
+        if self.ui is None:
+            return
+        self.ui.lineEdit_integration_time.setText(text)
+        self._update_total_integration_label()
+
     def _refresh_exposure_timing(self, macie) -> None:
         try:
             timing = macie.read_exposure_timing()
@@ -2911,14 +2920,8 @@ class H2rgMainWindow(QMainWindow):
         self.exposure_timing_updated.emit(timing)
 
     def _schedule_exposure_timing_preview(self) -> None:
-        if not self._initialized or self._macie is None:
-            return
-
-        def operation() -> None:
-            self._apply_exposure_settings(self._macie)
-            self._refresh_exposure_timing(self._macie)
-
-        self._run_macie_operation("Update timing", operation)
+        # Kept for the timer wiring; field edits no longer push to the ASIC.
+        self._update_total_integration_label()
 
     def _on_operation_failed(self, message: str) -> None:
         self._set_status(message)
@@ -3047,7 +3050,12 @@ class H2rgMainWindow(QMainWindow):
         if ramp_mode in ("Fowler", "SingleFrame"):
             tint_key: str | float = "auto"
         else:
-            tint_key = float(self.ui.lineEdit_integration_time.text().strip())
+            text = (
+                self.ui.lineEdit_integration_time.text()
+                .strip()
+                .replace(",", ".")
+            )
+            tint_key = float(text) if text else "default"
         return (
             ramp_mode,
             int(fowler_pairs),
@@ -3059,6 +3067,46 @@ class H2rgMainWindow(QMainWindow):
             windowed_cds,
             MACIE_INTEGRATION_NGROUPS_MAX,
         )
+
+    def _requested_tint_ms(self, macie, ramp_mode: str) -> float:
+        """Integration time from the GUI, or frametime if the field is empty."""
+        if ramp_mode in ("Fowler", "SingleFrame"):
+            try:
+                return float(macie.read_exposure_timing()["frametime_s"] * 1000.0)
+            except Exception:
+                return 1.0
+        text = self.ui.lineEdit_integration_time.text().strip().replace(",", ".")
+        if not text:
+            try:
+                return float(macie.read_exposure_timing()["frametime_s"] * 1000.0)
+            except Exception:
+                return 1.0
+        tint_ms = float(text)
+        if tint_ms <= 0:
+            raise ValueError("Integration time must be greater than zero")
+        return tint_ms
+
+    def _exposure_report_from_server(self, macie) -> dict[str, float | int]:
+        """Timing/ramp snapshot for Acquire when Set has not been clicked yet."""
+        timing = macie.read_exposure_timing()
+        _save, ncoadds, nseq, ngroups, nreads, ndrops, _nresets = (
+            macie.read_exposure_settings()
+        )
+        return {
+            "ngroups": int(ngroups),
+            "nreads": int(nreads),
+            "ndrops": int(ndrops),
+            "fowler_pairs": int(self._fowler_pairs),
+            "inttime_ms": float(timing["inttime_s"] * 1000.0),
+            "ramptime_ms": float(timing["ramptime_s"] * 1000.0),
+            "execution_s": float(timing["execution_s"]),
+            "frametime_ms": float(timing["frametime_s"] * 1000.0),
+            "efficiency": float(timing["efficiency"]),
+            "ncoadds": int(ncoadds),
+            "nseq": int(nseq),
+            "ramp_mode": self._selected_ramp_mode(),
+            "mode_detail": "server",
+        }
 
     def _apply_exposure_settings(
         self, macie, *, force: bool = False
@@ -3084,19 +3132,10 @@ class H2rgMainWindow(QMainWindow):
             raise ValueError(f"Invalid exposure field: {exc}") from exc
 
         ramp_mode = self._selected_ramp_mode()
-        if ramp_mode in ("Fowler", "SingleFrame"):
-            try:
-                preview_timing = macie.read_exposure_timing()
-                tint_ms = preview_timing["frametime_s"] * 1000.0
-            except Exception:
-                tint_ms = 1.0
-        else:
-            try:
-                tint_ms = float(self.ui.lineEdit_integration_time.text().strip())
-            except ValueError as exc:
-                raise ValueError(f"Invalid integration time: {exc}") from exc
-            if tint_ms <= 0:
-                raise ValueError("Integration time must be greater than zero")
+        try:
+            tint_ms = self._requested_tint_ms(macie, ramp_mode)
+        except ValueError as exc:
+            raise ValueError(f"Invalid integration time: {exc}") from exc
 
         result = macie.configure_ramp_exposure(
             tint_ms,
@@ -3109,9 +3148,23 @@ class H2rgMainWindow(QMainWindow):
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
-        # Keep the user's requested DIT in the edit box. Photon time (read-only)
-        # already shows the achieved value; rewriting the request from actual
-        # frametime caused SC512 photon/frame times to drift every acquire.
+        # Ramp mode rounds DIT to N×frametime — mirror that in the request box.
+        rounded = result.get("rounded_tint_ms")
+        if ramp_mode == "Ramp" and rounded is not None:
+            rounded_f = float(rounded)
+            self.integration_time_updated.emit(f"{rounded_f:.6g}")
+            fingerprint = (
+                fingerprint[0],
+                fingerprint[1],
+                fingerprint[2],
+                fingerprint[3],
+                fingerprint[4],
+                rounded_f,
+                fingerprint[6],
+                fingerprint[7],
+                fingerprint[8],
+            )
+        # Photon time (read-only) shows the achieved value.
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)
         self._refresh_exposure_timing(macie)
         if ramp_mode == "Fowler":
@@ -3190,13 +3243,17 @@ class H2rgMainWindow(QMainWindow):
             from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
 
             macie = self._ensure_macie()
+            # Acquire does not reprogram the ramp — use last Set / Init / window plan.
+            if self._last_exposure_report is not None:
+                exposure = self._last_exposure_report
+                self._refresh_exposure_timing(macie)
+            else:
+                exposure = self._exposure_report_from_server(macie)
             try:
-                ncoadds = int(self.ui.lineEdit_nb_coadd.text().strip() or "1")
-                nseq = int(self.ui.lineEdit_nb_frames.text().strip() or "1")
-            except ValueError as exc:
-                raise ValueError(f"Invalid exposure field: {exc}") from exc
-
-            exposure = self._apply_exposure_settings(macie)
+                ncoadds = int(exposure.get("ncoadds", 1))
+                nseq = int(exposure.get("nseq", 1))
+            except (TypeError, ValueError):
+                ncoadds, nseq = 1, 1
             keep_files = self._save_image_enabled()
             self._fits_dir_ok = None
             self._arm_frame_timing("Acquire")
@@ -3730,7 +3787,7 @@ class H2rgMainWindow(QMainWindow):
 
         def worker() -> None:
             try:
-                self._apply_exposure_settings(self._macie)
+                # Live uses the last Set / Init / window plan (no reconfigure here).
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
                 if self._save_image_enabled():

@@ -57,9 +57,9 @@ def calc_ramp_plan(
 
     SingleFrame uses one group × one read with no drop frames (one clocked frame).
 
-    Ramp uses two groups × one read with drop frames between groups (same MACIE
-    timing as CDS) so the requested DIT is actually clocked; the saved/displayed
-    sample is the last raw read, not a CDS difference.
+    Ramp rounds the requested DIT to the nearest whole number of frame times
+    (minimum one frame). One frame → single read; two or more → two groups with
+    drop frames between so the last raw sample is at that photon time.
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -76,10 +76,25 @@ def calc_ramp_plan(
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
 
     if mode == "Ramp":
-        if tint_ms < frametime_ms:
-            return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
-        nftot = max(2, int(math.ceil(tint_ms / frametime_ms)))
-        return {"ngroups": 2, "nreads": 1, "ndrops": max(0, nftot - 2), "fowler_pairs": 0}
+        # Photon time is quantized in whole frame times — round the request
+        # to the nearest multiple (at least one frame).
+        n_frames = max(1, int(round(tint_ms / frametime_ms)))
+        tint_rounded = n_frames * frametime_ms
+        if n_frames == 1:
+            return {
+                "ngroups": 1,
+                "nreads": 1,
+                "ndrops": 0,
+                "fowler_pairs": 0,
+                "tint_ms": tint_rounded,
+            }
+        return {
+            "ngroups": 2,
+            "nreads": 1,
+            "ndrops": n_frames - 2,
+            "fowler_pairs": 0,
+            "tint_ms": tint_rounded,
+        }
 
     # CDS — mirror calc_ramp_settings (ngmax=2 path)
     if tint_ms < frametime_ms:

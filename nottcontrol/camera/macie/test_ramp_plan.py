@@ -40,16 +40,28 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["ndrops"], 0)
 
     def test_ramp_long_integration_uses_group_drops(self) -> None:
-        plan = calc_ramp_plan(500.0, 200.0, mode="Ramp")
+        # 600 ms → nearest 3×200; two groups with one drop between.
+        plan = calc_ramp_plan(600.0, 200.0, mode="Ramp")
         self.assertEqual(plan["ngroups"], 2)
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 1)
+        self.assertEqual(plan["tint_ms"], 600.0)
+
+    def test_ramp_rounds_to_nearest_frame_multiple(self) -> None:
+        # 500 ms with 200 ms frames → round to 2×200 (not ceil to 3).
+        plan = calc_ramp_plan(500.0, 200.0, mode="Ramp")
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 0)
+        self.assertEqual(plan["tint_ms"], 400.0)
 
     def test_ramp_short_integration_single_read(self) -> None:
+        # 50 ms → rounds to 1×200 ms single read.
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp")
         self.assertEqual(plan["ngroups"], 1)
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
+        self.assertEqual(plan["tint_ms"], 200.0)
 
     def test_cds_windowed_uses_single_group_two_reads(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="CDS", windowed_cds=True)

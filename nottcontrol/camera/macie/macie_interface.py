@@ -457,6 +457,9 @@ class MacieInterface():
             "ncoadds": int(ncoadds),
             "nseq": int(nseq),
             "ramp_mode": ramp_mode,
+            "rounded_tint_ms": float(plan["tint_ms"])
+            if "tint_ms" in plan
+            else float(tint_ms),
         }
 
     def set_integration_time(
