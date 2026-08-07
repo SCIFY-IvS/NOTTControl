@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Average H2RG snake FOV dwells (5 frames/position).
+# Average H2RG snake FOV dwells.
 #
-# Default log: snake_20260806.log (301–889, alternating close/open).
+# Default: frames 301–889; open/closed from FITS SH1POS…SH4POS.
 # Positions cube is background-subtracted (closest closed mean) unless --no-bg-sub.
 #
 # Usage:
 #   ./nottcontrol/script/acquisition/average_snake_positions.sh --day 20260806
 #   ./nottcontrol/script/acquisition/average_snake_positions.sh \
 #       --day 20260806 --data-root "/Volumes/T7 Data/Data/nott"
+#   ./nottcontrol/script/acquisition/average_snake_positions.sh --log my_plan.log
 #
 # Environment:
 #   NOTT_DATA_ROOT   parent of YYYYMMDD folders (optional)
@@ -33,17 +34,4 @@ else
   exit 1
 fi
 
-EXTRA=()
-# Use bundled log unless the caller already passed --log.
-has_log=0
-for arg in "$@"; do
-  if [[ "${arg}" == "--log" || "${arg}" == --log=* ]]; then
-    has_log=1
-    break
-  fi
-done
-if [[ "${has_log}" -eq 0 && -f "${SCRIPT_DIR}/snake_20260806.log" ]]; then
-  EXTRA+=(--log "${SCRIPT_DIR}/snake_20260806.log")
-fi
-
-exec "${PYTHON}" "${SCRIPT_DIR}/average_snake_positions.py" "${EXTRA[@]}" "$@"
+exec "${PYTHON}" "${SCRIPT_DIR}/average_snake_positions.py" "$@"

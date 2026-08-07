@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Average H2RG frames at each snake FOV scan position.
 
-Default log (2026-08-06): frames **301–889**, alternating closed / open
-five-frame dwells (see ``snake_20260806.log``).
+Default (2026-08-06): frames **301–889**. Open vs closed is taken from
+FITS shutter positions ``SH1POS``…``SH4POS`` (open≈5 mm, closed≈35 mm):
+all closed → background; any open → snake dwell. Consecutive frames with
+the same state are grouped into blocks.
 
-For each **Snake** (open) block the script writes ``mean(frames)`` minus
-the **closest** background mean. The positions cube
-(``snake_*_positions_cube.fits``) is always stacked from those
-background-subtracted means (unless ``--no-bg-sub``).
+Each snake mean subtracts the **closest** background mean. The positions
+cube is stacked from those background-subtracted means (unless
+``--no-bg-sub``). Pass ``--log`` to override header-based classification.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from pathlib import Path
 import numpy as np
 
 from nottcontrol.script.detector.linearity.analyze_linearity import (
+    FrameFile,
     build_frame_catalog,
     frames_for_range,
     load_image,
@@ -34,7 +36,11 @@ DEFAULT_LOG = SCRIPT_DIR / "snake_20260806.log"
 # Inclusive frame range for the bundled 2026-08-06 snake scan.
 DEFAULT_SNAKE_FIRST = 301
 DEFAULT_SNAKE_LAST = 889
-DEFAULT_DWELL_FRAMES = 5
+
+# FITS cards from fits_header_meta.H2RG_FITS_SHUTTER_FIELDS.
+SHUTTER_POS_KEYS = ("SH1POS", "SH2POS", "SH3POS", "SH4POS")
+# open≈5 mm, closed≈35 mm — classify with midpoint threshold.
+SHUTTER_CLOSED_MM = 20.0
 
 
 @dataclass(frozen=True)
@@ -67,6 +73,69 @@ class ScanBlock:
         return self.label.lower().startswith("snake")
 
 
+def read_fits_header(path: Path) -> dict:
+    from astropy.io import fits
+
+    with fits.open(path, memmap=True) as hdul:
+        return dict(hdul[0].header)
+
+
+def shutter_state_from_header(header: dict) -> str:
+    """Return ``close`` if all reported shutters are closed, else ``open``.
+
+    Missing ``SHnPOS`` cards are ignored. Raises ``KeyError`` if none are
+    present.
+    """
+    positions: list[float] = []
+    for key in SHUTTER_POS_KEYS:
+        if key in header and header[key] is not None:
+            positions.append(float(header[key]))
+    if not positions:
+        raise KeyError(
+            "No shutter position cards "
+            f"({', '.join(SHUTTER_POS_KEYS)}) in FITS header"
+        )
+    if all(pos >= SHUTTER_CLOSED_MM for pos in positions):
+        return "close"
+    return "open"
+
+
+def blocks_from_shutter_headers(
+    catalog: dict[int, FrameFile],
+    first: int,
+    last: int,
+) -> list[ScanBlock]:
+    """Group consecutive frames by open/closed state from FITS headers."""
+    files = frames_for_range(catalog, first, last)
+    states: list[tuple[int, str]] = []
+    for item in files:
+        try:
+            state = shutter_state_from_header(read_fits_header(item.path))
+        except KeyError as exc:
+            raise KeyError(f"Frame {item.frame:06d} ({item.path.name}): {exc}") from exc
+        states.append((item.frame, state))
+        logging.info(
+            "Frame %06d shutter=%s  %s",
+            item.frame,
+            state,
+            item.path.name,
+        )
+
+    blocks: list[ScanBlock] = []
+    run_start, run_state = states[0]
+    prev = run_start
+    for frame, state in states[1:]:
+        if state == run_state and frame == prev + 1:
+            prev = frame
+            continue
+        label = "background" if run_state == "close" else "snake"
+        blocks.append(ScanBlock(run_start, prev, label, run_state))
+        run_start, run_state, prev = frame, state, frame
+    label = "background" if run_state == "close" else "snake"
+    blocks.append(ScanBlock(run_start, prev, label, run_state))
+    return blocks
+
+
 def parse_log_file(path: Path) -> list[ScanBlock]:
     """Parse a simple log: ``START END LABEL SHUTTER`` (``#`` comments ok)."""
     blocks: list[ScanBlock] = []
@@ -74,7 +143,6 @@ def parse_log_file(path: Path) -> list[ScanBlock]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        # Allow "301-305 snake open" or "301 305 snake open"
         line = line.replace(",", " ")
         m = re.match(
             r"^(?P<a>\d+)\s*[-:]\s*(?P<b>\d+)\s+"
@@ -105,30 +173,6 @@ def parse_log_file(path: Path) -> list[ScanBlock]:
     if not blocks:
         raise ValueError(f"No blocks parsed from {path}")
     return blocks
-
-
-def default_blocks() -> list[ScanBlock]:
-    """Alternating closed / open 5-frame dwells over DEFAULT_SNAKE_FIRST…LAST."""
-    blocks: list[ScanBlock] = []
-    start = DEFAULT_SNAKE_FIRST
-    index = 0
-    while start <= DEFAULT_SNAKE_LAST:
-        end = min(start + DEFAULT_DWELL_FRAMES - 1, DEFAULT_SNAKE_LAST)
-        if index % 2 == 0:
-            blocks.append(ScanBlock(start, end, "background", "close"))
-        else:
-            blocks.append(ScanBlock(start, end, "snake", "open"))
-        start = end + 1
-        index += 1
-    return blocks
-
-
-def resolve_blocks(log: Path | None) -> list[ScanBlock]:
-    if log is not None:
-        return parse_log_file(log)
-    if DEFAULT_LOG.is_file():
-        return parse_log_file(DEFAULT_LOG)
-    return default_blocks()
 
 
 def closest_background(
@@ -193,8 +237,8 @@ def save_fits(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Average H2RG snake FOV dwells (5 frames/position) and "
-            "optionally subtract the closed-shutter background block."
+            "Average H2RG snake FOV dwells and subtract the closest "
+            "closed-shutter background (from FITS SHnPOS, or --log)."
         )
     )
     parser.add_argument(
@@ -216,13 +260,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="UTC day folder under --data-root (default: today UTC)",
     )
     parser.add_argument(
+        "--first",
+        type=int,
+        default=DEFAULT_SNAKE_FIRST,
+        help=f"First frame (inclusive) when using headers (default: {DEFAULT_SNAKE_FIRST})",
+    )
+    parser.add_argument(
+        "--last",
+        type=int,
+        default=DEFAULT_SNAKE_LAST,
+        help=f"Last frame (inclusive) when using headers (default: {DEFAULT_SNAKE_LAST})",
+    )
+    parser.add_argument(
         "--log",
         type=Path,
         default=None,
         help=(
-            "Optional scan log file (START-END LABEL SHUTTER per line). "
-            f"Default: {DEFAULT_LOG.name} (frames "
-            f"{DEFAULT_SNAKE_FIRST}–{DEFAULT_SNAKE_LAST}) if present."
+            "Optional scan log (START-END LABEL SHUTTER). "
+            "If omitted, open/closed is read from FITS SH1POS…SH4POS."
         ),
     )
     parser.add_argument(
@@ -239,9 +294,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--no-bg-sub",
         action="store_true",
-        help=(
-            "Do not subtract background means from snake dwell means"
-        ),
+        help="Do not subtract background means from snake dwell means",
     )
     parser.add_argument(
         "--output-dir",
@@ -279,15 +332,6 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     logging.info("Data directory: %s", data_dir)
-    blocks = resolve_blocks(args.log)
-    for block in blocks:
-        logging.info(
-            "Plan: %06d–%06d  %-14s  shutter=%s",
-            block.start,
-            block.end,
-            block.label,
-            block.shutter,
-        )
 
     try:
         catalog = build_frame_catalog(
@@ -296,6 +340,35 @@ def main(argv: list[str] | None = None) -> int:
     except FileNotFoundError as exc:
         logging.error("%s", exc)
         return 1
+
+    try:
+        if args.log is not None:
+            blocks = parse_log_file(args.log)
+            logging.info("Scan plan from log: %s", args.log)
+        else:
+            if args.last < args.first:
+                logging.error("--last (%d) < --first (%d)", args.last, args.first)
+                return 1
+            logging.info(
+                "Scan plan from FITS shutter headers (frames %d–%d)",
+                args.first,
+                args.last,
+            )
+            blocks = blocks_from_shutter_headers(
+                catalog, args.first, args.last
+            )
+    except (FileNotFoundError, KeyError, ValueError, OSError) as exc:
+        logging.error("%s", exc)
+        return 1
+
+    for block in blocks:
+        logging.info(
+            "Plan: %06d–%06d  %-14s  shutter=%s",
+            block.start,
+            block.end,
+            block.label,
+            block.shutter,
+        )
 
     day_label = args.day or data_dir.name
     out_dir = args.output_dir or (
@@ -346,15 +419,15 @@ def main(argv: list[str] | None = None) -> int:
         logging.info("Skipping background subtraction (--no-bg-sub)")
     else:
         logging.error(
-            "No background block in log; positions cube must be "
-            "background-subtracted. Add 'START-END background close' "
-            "lines, or pass --no-bg-sub for a raw cube."
+            "No closed-shutter blocks found; positions cube must be "
+            "background-subtracted. Check SHnPOS in the FITS headers, "
+            "or pass --no-bg-sub for a raw cube."
         )
         return 1
 
     snake_blocks = [b for b in blocks if b.is_snake]
     if not snake_blocks:
-        logging.error("No snake positions in the log")
+        logging.error("No open-shutter (snake) blocks found")
         return 1
 
     means: list[np.ndarray] = []
