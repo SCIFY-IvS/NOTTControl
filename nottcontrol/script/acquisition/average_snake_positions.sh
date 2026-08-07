@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Average H2RG snake FOV dwells (5 frames/position).
 #
-# Default log: snake_20260806.log next to this script.
+# Default log: snake_20260806.log next to this script (snake starts at 889).
 # Subtracts the Background (close) block unless --no-bg-sub.
 #
 # Usage:
-#   ./nottcontrol/script/detector/snake_fov/average_snake_positions.sh --day 20260806
-#   ./nottcontrol/script/detector/snake_fov/average_snake_positions.sh \
+#   ./nottcontrol/script/acquisition/average_snake_positions.sh --day 20260806
+#   ./nottcontrol/script/acquisition/average_snake_positions.sh \
 #       --day 20260806 --data-root "/Volumes/T7 Data/Data/nott"
 #
 # Environment:
@@ -19,7 +19,7 @@ fi
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 cd "${REPO_ROOT}"
 export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"

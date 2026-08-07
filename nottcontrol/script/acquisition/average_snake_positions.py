@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Average H2RG frames at each snake FOV scan position.
 
-Default log (2026-08-06 lab notes, 5 frames per dwell)::
+Default log (2026-08-06 lab notes, 5 frames per dwell, starts at 889)::
 
-    405-409  Snake        open
-    410-414  Background   close
-    415-419  Snake        open
+    889-893  Snake        open
+    894-898  Background   close
+    899-903  Snake        open
     …
-    455-459  Snake/double open
-    460-464  Snake        open
+    939-943  Snake/double open
+    944-948  Snake        open
 
 For each **Snake** (and Snake/double) block the script writes
 ``mean(frames)``. Optionally subtracts ``mean(background)`` from the
@@ -38,18 +38,18 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 # (start, end, label, shutter) — shutter open/close from the lab log.
 DEFAULT_BLOCKS: tuple[tuple[int, int, str, str], ...] = (
-    (405, 409, "snake", "open"),
-    (410, 414, "background", "close"),
-    (415, 419, "snake", "open"),
-    (420, 424, "snake", "open"),
-    (425, 429, "snake", "open"),
-    (430, 434, "snake", "open"),
-    (435, 439, "snake", "open"),
-    (440, 444, "snake", "open"),
-    (445, 449, "snake", "open"),
-    (450, 454, "snake", "open"),
-    (455, 459, "snake_double", "open"),
-    (460, 464, "snake", "open"),
+    (889, 893, "snake", "open"),
+    (894, 898, "background", "close"),
+    (899, 903, "snake", "open"),
+    (904, 908, "snake", "open"),
+    (909, 913, "snake", "open"),
+    (914, 918, "snake", "open"),
+    (919, 923, "snake", "open"),
+    (924, 928, "snake", "open"),
+    (929, 933, "snake", "open"),
+    (934, 938, "snake", "open"),
+    (939, 943, "snake_double", "open"),
+    (944, 948, "snake", "open"),
 )
 
 
@@ -80,7 +80,7 @@ def parse_log_file(path: Path) -> list[ScanBlock]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        # Allow "405-409 snake open" or "405 409 snake open"
+        # Allow "889-893 snake open" or "889 893 snake open"
         line = line.replace(",", " ")
         m = re.match(
             r"^(?P<a>\d+)\s*[-:]\s*(?P<b>\d+)\s+"
@@ -197,7 +197,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help=(
             "Optional scan log file (START-END LABEL SHUTTER per line). "
-            "Default: built-in 2026-08-06 snake log."
+            "Default: built-in 2026-08-06 snake log (starts at 889)."
         ),
     )
     parser.add_argument(
