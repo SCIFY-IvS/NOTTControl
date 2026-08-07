@@ -13,6 +13,10 @@ Frames are stacked in file-index order (last plane of each FITS, or all
 planes of a single multi-sample cube). A **CDS-relative cube** is written
 next to the plot: plane ``k`` is ``frame[k] - frame[0]``. The illuminated
 mean plot uses that differential cube (first point is ~0).
+
+Illuminated box: full-frame default centre ``(X=1045, Y=943)``; if the
+image is smaller than 2048×2048 (windowed), the centre defaults to the
+middle of the frame unless ``--illum-center`` is set.
 """
 
 from __future__ import annotations
@@ -37,6 +41,8 @@ DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_ILLUM_SIZE = 20
 DEFAULT_ILLUM_CENTER_X = 1045
 DEFAULT_ILLUM_CENTER_Y = 943
+# Full-frame H2RG; smaller shapes are treated as windowed readouts.
+DEFAULT_FULL_FRAME = 2048
 DEFAULT_SEED = 0
 DEFAULT_N_SIGMA = 3.0
 
@@ -179,6 +185,38 @@ def illuminated_box(
             f"(rows[{row0}:{row1}), cols[{col0}:{col1}))"
         )
     return row0, row1, col0, col1
+
+
+def resolve_illum_center(
+    shape: tuple[int, int],
+    *,
+    center_x: int | None,
+    center_y: int | None,
+    full_frame: int = DEFAULT_FULL_FRAME,
+) -> tuple[int, int]:
+    """Pick illuminated-box centre for full-frame vs windowed readouts.
+
+    Explicit ``center_x`` / ``center_y`` always win. Otherwise a frame smaller
+    than *full_frame* in either axis is assumed windowed with the spot at the
+    image centre; full-frame uses the lab defaults (X=1045, Y=943).
+    """
+    height, width = int(shape[0]), int(shape[1])
+    if center_x is not None and center_y is not None:
+        return int(center_x), int(center_y)
+    if height < full_frame or width < full_frame:
+        cx = width // 2
+        cy = height // 2
+        logging.info(
+            "Windowed frame %d×%d (< %d): illuminated centre at image mid "
+            "X=%d Y=%d",
+            width,
+            height,
+            full_frame,
+            cx,
+            cy,
+        )
+        return cx, cy
+    return DEFAULT_ILLUM_CENTER_X, DEFAULT_ILLUM_CENTER_Y
 
 
 def choose_pixels(
@@ -485,8 +523,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         metavar=("X", "Y"),
         help=(
-            f"Illuminated centre X Y "
-            f"(default: {DEFAULT_ILLUM_CENTER_X} {DEFAULT_ILLUM_CENTER_Y})"
+            "Illuminated centre X Y (image coords). Default: full-frame "
+            f"({DEFAULT_ILLUM_CENTER_X}, {DEFAULT_ILLUM_CENTER_Y}); "
+            f"for frames smaller than {DEFAULT_FULL_FRAME}×{DEFAULT_FULL_FRAME}, "
+            "use the image centre."
         ),
     )
     parser.add_argument(
@@ -584,10 +624,9 @@ def main(argv: list[str] | None = None) -> int:
     else:
         raise ValueError("--illum-size accepts SIZE or HEIGHT WIDTH")
 
-    if args.illum_center is None:
-        center_x, center_y = DEFAULT_ILLUM_CENTER_X, DEFAULT_ILLUM_CENTER_Y
-    else:
-        center_x, center_y = int(args.illum_center[0]), int(args.illum_center[1])
+    explicit_center = args.illum_center is not None
+    req_center_x = int(args.illum_center[0]) if explicit_center else None
+    req_center_y = int(args.illum_center[1]) if explicit_center else None
 
     records: list[tuple[int, str, str, np.ndarray, dict]] = []
     index_tag = "M"
@@ -670,6 +709,11 @@ def main(argv: list[str] | None = None) -> int:
     names = [row[2] for row in records]
     index_tag = records[0][1]
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
+    center_x, center_y = resolve_illum_center(
+        (ny, nx),
+        center_x=req_center_x,
+        center_y=req_center_y,
+    )
 
     row0, row1, col0, col1 = illuminated_box(
         (ny, nx),

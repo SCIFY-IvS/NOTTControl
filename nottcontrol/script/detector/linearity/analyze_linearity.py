@@ -462,6 +462,8 @@ def write_darksub_preview(
     output: Path,
     *,
     crop: tuple[int, int, int, int],
+    center_x: int | None = None,
+    center_y: int | None = None,
     title: str | None = None,
     zoom_half: int = 150,
 ) -> Path:
@@ -475,8 +477,15 @@ def write_darksub_preview(
     height, width = data.shape
     box_h = row1 - row0
     box_w = col1 - col0
-    center_y = 0.5 * (row0 + row1 - 1)
-    center_x = 0.5 * (col0 + col1 - 1)
+    if center_y is None:
+        center_y = int(round(0.5 * (row0 + row1 - 1)))
+    else:
+        center_y = int(center_y)
+    if center_x is None:
+        center_x = int(round(0.5 * (col0 + col1 - 1)))
+    else:
+        center_x = int(center_x)
+    center_label = f"center X={center_x}, Y={center_y}"
 
     lo, hi = np.percentile(data, [1.0, 99.5])
     if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
@@ -512,6 +521,7 @@ def write_darksub_preview(
             linewidth=1.2,
         )
     )
+    axes[0].plot(center_x, center_y, "r+", markersize=8)
     axes[0].set_title(f"full 1–99.5% [{lo:.1f},{hi:.1f}]")
     fig.colorbar(im0, ax=axes[0], fraction=0.046)
 
@@ -535,11 +545,21 @@ def write_darksub_preview(
         )
     )
     axes[1].plot(center_x, center_y, "r+", markersize=10)
+    axes[1].annotate(
+        center_label,
+        xy=(center_x, center_y),
+        xytext=(8, 8),
+        textcoords="offset points",
+        color="C3",
+        fontsize=8,
+        fontweight="bold",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "alpha": 0.8, "edgecolor": "C3"},
+    )
     axes[1].set_title(f"zoom X{zoom_x0}–{zoom_x1} Y{zoom_y0}–{zoom_y1}")
     fig.colorbar(im1, ax=axes[1], fraction=0.046)
 
     # Inset: the exact illuminated-pixel sampling box.
-    axins = axes[1].inset_axes([0.58, 0.58, 0.40, 0.40])
+    axins = axes[1].inset_axes([0.58, 0.08, 0.40, 0.40])
     axins.imshow(
         illum,
         origin="lower",
@@ -548,7 +568,8 @@ def write_darksub_preview(
         vmin=i_lo,
         vmax=i_hi,
     )
-    axins.set_title(f"illum {box_w}×{box_h}", fontsize=8, color="C3")
+    axins.plot(center_x, center_y, "r+", markersize=8)
+    axins.set_title(f"illum {box_w}×{box_h}\n{center_label}", fontsize=7, color="C3")
     axins.tick_params(labelsize=7)
     axes[1].indicate_inset_zoom(axins, edgecolor="C3")
 
@@ -572,6 +593,8 @@ def save_block_cubes(
     *,
     day_label: str,
     crop: tuple[int, int, int, int] | None = None,
+    center_x: int | None = None,
+    center_y: int | None = None,
 ) -> list[Path]:
     """Write dark-subtracted mean image + per-open-frame cube FITS per DIT block.
 
@@ -624,6 +647,8 @@ def save_block_cubes(
                 block.difference,
                 preview_path,
                 crop=crop,
+                center_x=center_x,
+                center_y=center_y,
                 title=mean_path.name,
             )
             written.append(preview_path)
@@ -663,6 +688,10 @@ def save_block_cubes(
             crop_header["CROPR1"] = (row1, "Crop row end (0-based, exclusive)")
             crop_header["CROPC0"] = (col0, "Crop col start (0-based, inclusive)")
             crop_header["CROPC1"] = (col1, "Crop col end (0-based, exclusive)")
+            if center_x is not None:
+                crop_header["ILLUMX"] = (int(center_x), "Illuminated box centre X (col)")
+            if center_y is not None:
+                crop_header["ILLUMY"] = (int(center_y), "Illuminated box centre Y (row)")
             crop_header["COMMENT"] = "Illuminated crop of mean(open)-mean(closed)."
             mean_crop = np.asarray(
                 block.difference[row0:row1, col0:col1], dtype=np.float32
@@ -1340,6 +1369,8 @@ def main(argv: list[str] | None = None) -> int:
                 fits_dir,
                 day_label=day_label,
                 crop=(row0, row1, col0, col1),
+                center_x=center_x,
+                center_y=center_y,
             )
             save_combined_open_minus_closed(
                 open_blocks,
