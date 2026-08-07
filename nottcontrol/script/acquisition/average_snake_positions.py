@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Average H2RG frames at each snake FOV scan position.
 
-Default log (2026-08-06): frames **301–889**, five frames per dwell
-(last dwell may be shorter). See ``snake_20260806.log``.
+Default log (2026-08-06): frames **301–889**, alternating closed / open
+five-frame dwells (see ``snake_20260806.log``).
 
-For each **Snake** (and Snake/double) block the script writes
-``mean(frames)`` and, when background blocks are present, subtracts the
-**closest** background mean (by frame-number midpoint). Background blocks
-are lines labeled ``background`` or with shutter ``close``/``closed``.
-Also writes a cube with one plane per snake position.
+For each **Snake** (open) block the script writes ``mean(frames)`` minus
+the **closest** background mean. The positions cube
+(``snake_*_positions_cube.fits``) is always stacked from those
+background-subtracted means (unless ``--no-bg-sub``).
 """
 
 from __future__ import annotations
@@ -109,13 +108,18 @@ def parse_log_file(path: Path) -> list[ScanBlock]:
 
 
 def default_blocks() -> list[ScanBlock]:
-    """Build 5-frame snake dwells covering DEFAULT_SNAKE_FIRST…LAST."""
+    """Alternating closed / open 5-frame dwells over DEFAULT_SNAKE_FIRST…LAST."""
     blocks: list[ScanBlock] = []
     start = DEFAULT_SNAKE_FIRST
+    index = 0
     while start <= DEFAULT_SNAKE_LAST:
         end = min(start + DEFAULT_DWELL_FRAMES - 1, DEFAULT_SNAKE_LAST)
-        blocks.append(ScanBlock(start, end, "snake", "open"))
+        if index % 2 == 0:
+            blocks.append(ScanBlock(start, end, "background", "close"))
+        else:
+            blocks.append(ScanBlock(start, end, "snake", "open"))
         start = end + 1
+        index += 1
     return blocks
 
 
@@ -341,10 +345,12 @@ def main(argv: list[str] | None = None) -> int:
     elif args.no_bg_sub:
         logging.info("Skipping background subtraction (--no-bg-sub)")
     else:
-        logging.warning(
-            "No background block in log; writing raw means only. "
-            "Add lines like '410-414 background close' for bg-sub."
+        logging.error(
+            "No background block in log; positions cube must be "
+            "background-subtracted. Add 'START-END background close' "
+            "lines, or pass --no-bg-sub for a raw cube."
         )
+        return 1
 
     snake_blocks = [b for b in blocks if b.is_snake]
     if not snake_blocks:
@@ -413,23 +419,29 @@ def main(argv: list[str] | None = None) -> int:
 
     cube = np.stack(means, axis=0)
     cube_path = out_dir / f"snake_{day_label}_positions_cube.fits"
+    if used_bg:
+        cube_imtype = "SNAKECUBE-BG"
+        cube_comment = (
+            "Plane k = bg-sub mean at snake position k (closest background)"
+        )
+    else:
+        cube_imtype = "SNAKECUBE"
+        cube_comment = "Plane k = raw mean at snake position k (--no-bg-sub)"
     save_fits(
         cube_path,
         cube,
         header_cards={
-            "IMTYPE": (
-                "SNAKECUBE",
-                "Plane k = mean at snake position k (closest-bg if enabled)",
-            ),
+            "IMTYPE": (cube_imtype, cube_comment),
             "NPOS": (len(means), "Number of snake positions"),
-            "BGSUB": (used_bg, "Background subtracted"),
+            "BGSUB": (used_bg, "Each plane is background-subtracted"),
             "COMMENT": "Planes: " + "; ".join(labels),
         },
     )
     logging.info(
-        "Snake FOV average done: %d positions → %s",
+        "Snake FOV average done: %d positions → %s (%s)",
         len(means),
         out_dir,
+        "bg-subtracted cube" if used_bg else "raw cube",
     )
     return 0
 
