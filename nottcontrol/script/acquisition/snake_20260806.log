@@ -1,16 +1,16 @@
 # Snake FOV scan log — 2026-08-06
 # START-END  LABEL  SHUTTER
 # Five frames per dwell. Background = closed shutter.
-# Snake starts at file 889.
-889-893  snake         open
-894-898  background    close
-899-903  snake         open
-904-908  snake         open
-909-913  snake         open
-914-918  snake         open
-919-923  snake         open
-924-928  snake         open
-929-933  snake         open
-934-938  snake         open
-939-943  snake_double  open
-944-948  snake         open
+# Snake sequence ends at file 889.
+830-834  snake         open
+835-839  background    close
+840-844  snake         open
+845-849  snake         open
+850-854  snake         open
+855-859  snake         open
+860-864  snake         open
+865-869  snake         open
+870-874  snake         open
+875-879  snake         open
+880-884  snake_double  open
+885-889  snake         open

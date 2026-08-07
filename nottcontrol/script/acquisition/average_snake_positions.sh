@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Average H2RG snake FOV dwells (5 frames/position).
 #
-# Default log: snake_20260806.log next to this script (snake starts at 889).
+# Default log: snake_20260806.log next to this script (snake ends at 889).
 # Subtracts the Background (close) block unless --no-bg-sub.
 #
 # Usage:
