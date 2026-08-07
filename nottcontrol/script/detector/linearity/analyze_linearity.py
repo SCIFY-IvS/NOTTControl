@@ -11,11 +11,12 @@ Default acquisition blocks follow the lab log (Full frame):
 
 For each block the script computes ``mean(open) - mean(closed)``, writes that
 2-D float32 image to FITS, writes a cube of ``open[i] - mean(closed)`` for
-each open frame, writes a global ``mean(all open) - mean(all closed)``
-image over the shutter-open blocks, and plots fixed random pixels vs DIT.
+each open frame (full frame and illuminated-region crop), writes a global
+``mean(all open) - mean(all closed)`` image over the shutter-open blocks, and
+plots fixed random pixels vs DIT.
 
 Frames before 301 are ignored. Illuminated pixels are drawn from a 20×20 box
-centred at image coordinates (X=1045, Y=943).
+centred at image coordinates (X=1045, Y=943); the same box defines the crop.
 """
 
 from __future__ import annotations
@@ -460,8 +461,13 @@ def save_block_cubes(
     output_dir: Path,
     *,
     day_label: str,
+    crop: tuple[int, int, int, int] | None = None,
 ) -> list[Path]:
-    """Write dark-subtracted mean image + per-open-frame cube FITS per DIT block."""
+    """Write dark-subtracted mean image + per-open-frame cube FITS per DIT block.
+
+    If *crop* is ``(row0, row1, col0, col1)`` (exclusive ends), also write
+    illuminated-region crops of the mean image and of the open dark-sub cube.
+    """
     from astropy.io import fits
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -530,6 +536,50 @@ def save_block_cubes(
             cube_path.name,
             cube.shape,
         )
+
+        if crop is not None:
+            row0, row1, col0, col1 = crop
+            crop_header = header.copy()
+            crop_header["CROPR0"] = (row0, "Crop row start (0-based, inclusive)")
+            crop_header["CROPR1"] = (row1, "Crop row end (0-based, exclusive)")
+            crop_header["CROPC0"] = (col0, "Crop col start (0-based, inclusive)")
+            crop_header["CROPC1"] = (col1, "Crop col end (0-based, exclusive)")
+            crop_header["COMMENT"] = "Illuminated crop of mean(open)-mean(closed)."
+            mean_crop = np.asarray(
+                block.difference[row0:row1, col0:col1], dtype=np.float32
+            )
+            mean_crop_path = output_dir / f"{stem}_crop.fits"
+            fits.PrimaryHDU(data=mean_crop, header=crop_header).writeto(
+                mean_crop_path, overwrite=True
+            )
+            written.append(mean_crop_path)
+            logging.info(
+                "Wrote dark-sub crop mean: %s  %s",
+                mean_crop_path.name,
+                mean_crop.shape,
+            )
+
+            cube_crop = np.asarray(cube[:, row0:row1, col0:col1], dtype=np.float32)
+            cube_crop_header = crop_header.copy()
+            cube_crop_header["IMTYPE"] = (
+                "OPEN-DARK-CROP",
+                "Illuminated crop; open/BS - mean(closed)",
+            )
+            cube_crop_header["NAXIS"] = 3
+            cube_crop_header["NAXIS1"] = cube_crop.shape[2]
+            cube_crop_header["NAXIS2"] = cube_crop.shape[1]
+            cube_crop_header["NAXIS3"] = cube_crop.shape[0]
+            cube_crop_header["COMMENT"] = "Illuminated crop of open-darksub cube."
+            cube_crop_path = output_dir / f"{stem}_opencube_crop.fits"
+            fits.PrimaryHDU(data=cube_crop, header=cube_crop_header).writeto(
+                cube_crop_path, overwrite=True
+            )
+            written.append(cube_crop_path)
+            logging.info(
+                "Wrote open dark-sub crop cube: %s  %s",
+                cube_crop_path.name,
+                cube_crop.shape,
+            )
     return written
 
 
@@ -988,14 +1038,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Directory for dark-subtracted mean FITS and open-frame cubes "
+            "Directory for dark-subtracted mean FITS, open-frame cubes, "
+            "and illuminated-region crops "
             "(default: <script_dir>/linearity_<day>_darksub)"
         ),
     )
     parser.add_argument(
         "--no-fits",
         action="store_true",
-        help="Do not write dark-subtracted FITS images / open cubes",
+        help="Do not write dark-subtracted FITS images / open cubes / crops",
     )
     parser.add_argument(
         "--show",
@@ -1169,6 +1220,7 @@ def main(argv: list[str] | None = None) -> int:
                 all_blocks,
                 fits_dir,
                 day_label=day_label,
+                crop=(row0, row1, col0, col1),
             )
             save_combined_open_minus_closed(
                 open_blocks,
