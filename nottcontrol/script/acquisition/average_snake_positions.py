@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Average H2RG frames at each snake FOV scan position.
 
-Default (2026-08-06): frames **301–889**. Open vs closed is taken from
-FITS shutter positions ``SH1POS``…``SH4POS`` (open≈5 mm, closed≈35 mm):
-all closed → background; any open → snake dwell. Consecutive frames with
-the same state are grouped into blocks.
+Day presets (overridable with ``--first`` / ``--last``)::
+
+    20260806 → frames 301–889
+    20260807 → frames 51–end of folder
+
+Open vs closed is taken from FITS shutter positions ``SH1POS``…``SH4POS``
+(open≈5 mm, closed≈35 mm): all closed → background; any open → snake
+dwell. Consecutive frames with the same state are grouped into blocks.
+Missing frame numbers on disk are skipped.
 
 Each snake mean subtracts the **closest** background mean. The positions
 cube is stacked from those background-subtracted means (unless
@@ -25,7 +30,6 @@ import numpy as np
 from nottcontrol.script.detector.linearity.analyze_linearity import (
     FrameFile,
     build_frame_catalog,
-    frames_for_range,
     load_image,
     resolve_data_dir,
 )
@@ -33,7 +37,12 @@ from nottcontrol.script.detector.linearity.analyze_linearity import (
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_LOG = SCRIPT_DIR / "snake_20260806.log"
-# Inclusive frame range for the bundled 2026-08-06 snake scan.
+
+# Inclusive start/end per UTC day. ``None`` end → last frame id on disk.
+DAY_FRAME_RANGES: dict[str, tuple[int, int | None]] = {
+    "20260806": (301, 889),
+    "20260807": (51, None),
+}
 DEFAULT_SNAKE_FIRST = 301
 DEFAULT_SNAKE_LAST = 889
 
@@ -100,13 +109,79 @@ def shutter_state_from_header(header: dict) -> str:
     return "open"
 
 
+def resolve_frame_range(
+    day: str,
+    catalog: dict[int, FrameFile],
+    *,
+    first: int | None,
+    last: int | None,
+) -> tuple[int, int]:
+    """Resolve inclusive frame bounds from CLI, day preset, or catalog."""
+    preset = DAY_FRAME_RANGES.get(day)
+    catalog_min = min(catalog)
+    catalog_max = max(catalog)
+
+    if first is not None:
+        start = first
+    elif preset is not None:
+        start = preset[0]
+    else:
+        start = catalog_min
+
+    if last is not None:
+        stop = last
+    elif preset is not None and preset[1] is not None:
+        stop = preset[1]
+    else:
+        stop = catalog_max
+
+    return start, stop
+
+
+def existing_frames_in_range(
+    catalog: dict[int, FrameFile],
+    start: int,
+    end: int,
+) -> list[FrameFile]:
+    """Return catalog frames in ``[start, end]`` that actually exist on disk.
+
+    Does not require a contiguous frame list; missing numbers are skipped.
+    """
+    if end < start:
+        return []
+    present = sorted(n for n in catalog if start <= n <= end)
+    span = end - start + 1
+    missing = span - len(present)
+    if missing:
+        logging.info(
+            "Frames %d–%d: %d on disk (%d missing of %d requested)",
+            start,
+            end,
+            len(present),
+            missing,
+            span,
+        )
+    else:
+        logging.debug(
+            "Frames %d–%d: %d on disk (complete)",
+            start,
+            end,
+            len(present),
+        )
+    return [catalog[n] for n in present]
+
+
 def blocks_from_shutter_headers(
     catalog: dict[int, FrameFile],
     first: int,
     last: int,
 ) -> list[ScanBlock]:
-    """Group consecutive frames by open/closed state from FITS headers."""
-    files = frames_for_range(catalog, first, last)
+    """Group consecutive existing frames by open/closed state from FITS headers."""
+    files = existing_frames_in_range(catalog, first, last)
+    if not files:
+        raise FileNotFoundError(
+            f"No FITS frames found in catalog for range {first}–{last}"
+        )
     states: list[tuple[int, str]] = []
     for item in files:
         try:
@@ -194,7 +269,11 @@ def average_block(
     *,
     reduction: str,
 ) -> tuple[np.ndarray, list[int]]:
-    files = frames_for_range(catalog, block.start, block.end)
+    files = existing_frames_in_range(catalog, block.start, block.end)
+    if not files:
+        raise FileNotFoundError(
+            f"No frames on disk for block {block.start}–{block.end} ({block.label})"
+        )
     images: list[np.ndarray] = []
     for item in files:
         image, dit_s = load_image(item.path, reduction=reduction)
@@ -262,14 +341,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--first",
         type=int,
-        default=DEFAULT_SNAKE_FIRST,
-        help=f"First frame (inclusive) when using headers (default: {DEFAULT_SNAKE_FIRST})",
+        default=None,
+        help=(
+            "First frame (inclusive). Default: day preset "
+            f"(20260806→{DAY_FRAME_RANGES['20260806'][0]}, "
+            f"20260807→{DAY_FRAME_RANGES['20260807'][0]}) "
+            "or first id on disk"
+        ),
     )
     parser.add_argument(
         "--last",
         type=int,
-        default=DEFAULT_SNAKE_LAST,
-        help=f"Last frame (inclusive) when using headers (default: {DEFAULT_SNAKE_LAST})",
+        default=None,
+        help=(
+            "Last frame (inclusive). Default: day preset end, else last id on disk"
+        ),
     )
     parser.add_argument(
         "--log",
@@ -341,22 +427,40 @@ def main(argv: list[str] | None = None) -> int:
         logging.error("%s", exc)
         return 1
 
+    if not catalog:
+        logging.error("No FITS frames found in %s", data_dir)
+        return 1
+    catalog_min = min(catalog)
+    catalog_max = max(catalog)
+    logging.info(
+        "Catalog: %d frames on disk (ids %d–%d)",
+        len(catalog),
+        catalog_min,
+        catalog_max,
+    )
+
+    day_label = args.day or data_dir.name
+
     try:
         if args.log is not None:
             blocks = parse_log_file(args.log)
             logging.info("Scan plan from log: %s", args.log)
         else:
-            if args.last < args.first:
-                logging.error("--last (%d) < --first (%d)", args.last, args.first)
+            first, last = resolve_frame_range(
+                day_label,
+                catalog,
+                first=args.first,
+                last=args.last,
+            )
+            if last < first:
+                logging.error("--last (%d) < --first (%d)", last, first)
                 return 1
             logging.info(
                 "Scan plan from FITS shutter headers (frames %d–%d)",
-                args.first,
-                args.last,
+                first,
+                last,
             )
-            blocks = blocks_from_shutter_headers(
-                catalog, args.first, args.last
-            )
+            blocks = blocks_from_shutter_headers(catalog, first, last)
     except (FileNotFoundError, KeyError, ValueError, OSError) as exc:
         logging.error("%s", exc)
         return 1
@@ -370,7 +474,6 @@ def main(argv: list[str] | None = None) -> int:
             block.shutter,
         )
 
-    day_label = args.day or data_dir.name
     out_dir = args.output_dir or (
         Path(__file__).resolve().parent / f"snake_{day_label}_avg"
     )
@@ -380,10 +483,13 @@ def main(argv: list[str] | None = None) -> int:
     if bg_blocks and not args.no_bg_sub:
         for bg_block in bg_blocks:
             try:
-                bg_img, _ = average_block(
+                bg_img, bg_frame_ids = average_block(
                     catalog, bg_block, reduction=args.reduction
                 )
-            except (FileNotFoundError, ValueError, KeyError, OSError) as exc:
+            except FileNotFoundError as exc:
+                logging.warning("Skipping empty background block: %s", exc)
+                continue
+            except (ValueError, KeyError, OSError) as exc:
                 logging.error(
                     "Background block %d–%d failed: %s",
                     bg_block.start,
@@ -404,9 +510,9 @@ def main(argv: list[str] | None = None) -> int:
                         "BGMEAN",
                         "mean of closed-shutter background frames",
                     ),
-                    "FRMSTART": (bg_block.start, "First background frame"),
-                    "FRMEND": (bg_block.end, "Last background frame"),
-                    "NFRAMES": (bg_block.n_frames, "Frames averaged"),
+                    "FRMSTART": (bg_frame_ids[0], "First background frame used"),
+                    "FRMEND": (bg_frame_ids[-1], "Last background frame used"),
+                    "NFRAMES": (len(bg_frame_ids), "Frames averaged (present on disk)"),
                     "LABEL": (bg_block.label, "Log label"),
                     "SHUTTER": (bg_block.shutter, "Shutter state"),
                 },
@@ -438,7 +544,10 @@ def main(argv: list[str] | None = None) -> int:
             mean_img, frame_ids = average_block(
                 catalog, block, reduction=args.reduction
             )
-        except (FileNotFoundError, ValueError, KeyError, OSError) as exc:
+        except FileNotFoundError as exc:
+            logging.warning("Skipping empty snake block: %s", exc)
+            continue
+        except (ValueError, KeyError, OSError) as exc:
             logging.error("Snake block %d–%d failed: %s", block.start, block.end, exc)
             return 1
 
@@ -467,9 +576,9 @@ def main(argv: list[str] | None = None) -> int:
         header_cards = {
             "IMTYPE": (imtype, "mean(snake dwell) [- closest background]"),
             "POSINDEX": (index, "Snake position index (1-based)"),
-            "FRMSTART": (block.start, "First dwell frame"),
-            "FRMEND": (block.end, "Last dwell frame"),
-            "NFRAMES": (block.n_frames, "Frames averaged"),
+            "FRMSTART": (frame_ids[0], "First dwell frame used"),
+            "FRMEND": (frame_ids[-1], "Last dwell frame used"),
+            "NFRAMES": (len(frame_ids), "Frames averaged (present on disk)"),
             "LABEL": (block.label, "Log label"),
             "SHUTTER": (block.shutter, "Shutter state"),
             "BGSUB": (bg_block is not None, "Background subtracted"),
@@ -489,6 +598,10 @@ def main(argv: list[str] | None = None) -> int:
         save_fits(path, product, header_cards=header_cards)
         means.append(np.asarray(product, dtype=np.float32))
         labels.append(f"pos{index:02d}:{block.start}-{block.end}")
+
+    if not means:
+        logging.error("No snake positions produced (all blocks empty or skipped)")
+        return 1
 
     cube = np.stack(means, axis=0)
     cube_path = out_dir / f"snake_{day_label}_positions_cube.fits"

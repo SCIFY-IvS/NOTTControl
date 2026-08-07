@@ -2,8 +2,11 @@
 # Default mode does NOT use this file: open/closed comes from FITS
 # shutter positions SH1POS…SH4POS (open≈5 mm, closed≈35 mm).
 #
-# 2026-08-06 snake FOV frame range: 301–889
+# Day presets (see average_snake_positions.py DAY_FRAME_RANGES):
+#   20260806 → frames 301–889
+#   20260807 → frames 51–last on disk
+#
 # Format: START-END  LABEL  SHUTTER
 # Example:
-# 301-305  background  close
-# 306-310  snake       open
+# 51-55  background  close
+# 56-60  snake       open

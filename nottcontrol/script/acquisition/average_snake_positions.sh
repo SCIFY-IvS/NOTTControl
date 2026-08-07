@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Average H2RG snake FOV dwells.
 #
-# Default: frames 301–889; open/closed from FITS SH1POS…SH4POS.
+# Default: day presets + FITS SH1POS…SH4POS for open/closed.
+#   --day 20260806 → frames 301–889
+#   --day 20260807 → frames 51–last on disk
 # Positions cube is background-subtracted (closest closed mean) unless --no-bg-sub.
 #
 # Usage:
-#   ./nottcontrol/script/acquisition/average_snake_positions.sh --day 20260806
+#   ./nottcontrol/script/acquisition/average_snake_positions.sh --day 20260807
 #   ./nottcontrol/script/acquisition/average_snake_positions.sh \
-#       --day 20260806 --data-root "/Volumes/T7 Data/Data/nott"
+#       --day 20260807 --data-root "/Volumes/T7 Data/Data/nott"
 #   ./nottcontrol/script/acquisition/average_snake_positions.sh --log my_plan.log
 #
 # Environment:
