@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """Average H2RG frames at each snake FOV scan position.
 
-Default log (2026-08-06 lab notes, 5 frames per dwell, ends at 889)::
-
-    830-834  Snake        open
-    835-839  Background   close
-    840-844  Snake        open
-    …
-    880-884  Snake/double open
-    885-889  Snake        open
+Default log (2026-08-06): frames **301–889**, five frames per dwell
+(last dwell may be shorter). See ``snake_20260806.log``.
 
 For each **Snake** (and Snake/double) block the script writes
 ``mean(frames)``. Optionally subtracts ``mean(background)`` from the
@@ -35,22 +29,12 @@ from nottcontrol.script.detector.linearity.analyze_linearity import (
 )
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
-
-# (start, end, label, shutter) — shutter open/close from the lab log.
-DEFAULT_BLOCKS: tuple[tuple[int, int, str, str], ...] = (
-    (830, 834, "snake", "open"),
-    (835, 839, "background", "close"),
-    (840, 844, "snake", "open"),
-    (845, 849, "snake", "open"),
-    (850, 854, "snake", "open"),
-    (855, 859, "snake", "open"),
-    (860, 864, "snake", "open"),
-    (865, 869, "snake", "open"),
-    (870, 874, "snake", "open"),
-    (875, 879, "snake", "open"),
-    (880, 884, "snake_double", "open"),
-    (885, 889, "snake", "open"),
-)
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_LOG = SCRIPT_DIR / "snake_20260806.log"
+# Inclusive frame range for the bundled 2026-08-06 snake scan.
+DEFAULT_SNAKE_FIRST = 301
+DEFAULT_SNAKE_LAST = 889
+DEFAULT_DWELL_FRAMES = 5
 
 
 @dataclass(frozen=True)
@@ -80,7 +64,7 @@ def parse_log_file(path: Path) -> list[ScanBlock]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        # Allow "830-834 snake open" or "830 834 snake open"
+        # Allow "301-305 snake open" or "301 305 snake open"
         line = line.replace(",", " ")
         m = re.match(
             r"^(?P<a>\d+)\s*[-:]\s*(?P<b>\d+)\s+"
@@ -114,10 +98,22 @@ def parse_log_file(path: Path) -> list[ScanBlock]:
 
 
 def default_blocks() -> list[ScanBlock]:
-    return [
-        ScanBlock(a, b, label, shutter)
-        for a, b, label, shutter in DEFAULT_BLOCKS
-    ]
+    """Build 5-frame snake dwells covering DEFAULT_SNAKE_FIRST…LAST."""
+    blocks: list[ScanBlock] = []
+    start = DEFAULT_SNAKE_FIRST
+    while start <= DEFAULT_SNAKE_LAST:
+        end = min(start + DEFAULT_DWELL_FRAMES - 1, DEFAULT_SNAKE_LAST)
+        blocks.append(ScanBlock(start, end, "snake", "open"))
+        start = end + 1
+    return blocks
+
+
+def resolve_blocks(log: Path | None) -> list[ScanBlock]:
+    if log is not None:
+        return parse_log_file(log)
+    if DEFAULT_LOG.is_file():
+        return parse_log_file(DEFAULT_LOG)
+    return default_blocks()
 
 
 def average_block(
@@ -197,7 +193,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help=(
             "Optional scan log file (START-END LABEL SHUTTER per line). "
-            "Default: built-in 2026-08-06 snake log (ends at 889)."
+            f"Default: {DEFAULT_LOG.name} (frames "
+            f"{DEFAULT_SNAKE_FIRST}–{DEFAULT_SNAKE_LAST}) if present."
         ),
     )
     parser.add_argument(
@@ -252,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     logging.info("Data directory: %s", data_dir)
-    blocks = parse_log_file(args.log) if args.log else default_blocks()
+    blocks = resolve_blocks(args.log)
     for block in blocks:
         logging.info(
             "Plan: %06d–%06d  %-14s  shutter=%s",
