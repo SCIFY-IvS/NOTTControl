@@ -88,7 +88,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def acquire_via_gui(args: argparse.Namespace) -> int:
     timeout_s = max(5.0, args.timeout_ms / 1000.0)
-    print(f"Sending acquire → GUI {args.gui_host}:{args.gui_port}")
+    print(f"Sending acquire → GUI tcp://{args.gui_host}:{args.gui_port}")
     t0 = time.perf_counter()
     try:
         reply = send_gui_command(
@@ -97,7 +97,7 @@ def acquire_via_gui(args: argparse.Namespace) -> int:
             port=args.gui_port,
             timeout_s=timeout_s,
         )
-    except OSError as exc:
+    except (OSError, zmq.ZMQError, zmq.Again) as exc:
         print(f"error: GUI control failed: {exc}", file=sys.stderr)
         return 1
     elapsed = time.perf_counter() - t0
