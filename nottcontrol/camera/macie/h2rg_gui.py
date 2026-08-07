@@ -2284,7 +2284,7 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_powerOff.clicked.connect(self.power_off)
         self.ui.button_take_background.clicked.connect(self.take_background)
         self.ui.button_live.clicked.connect(self.live_clicked)
-        self.ui.button_acquire.clicked.connect(self.acquire)
+        self.ui.button_acquire.clicked.connect(lambda: self.acquire())
         self.ui.button_halt.clicked.connect(self.halt)
         self.ui.checkBox_substract_background.toggled.connect(self._refresh_display)
 
@@ -3164,14 +3164,14 @@ class H2rgMainWindow(QMainWindow):
                     operation()
             except Exception as exc:
                 message = f"{label} failed: {exc}"
-                if done_event is not None:
+                if isinstance(done_event, threading.Event):
                     self._remote_op_error = message
                 self.operation_failed.emit(message)
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
                 self.macie_operation_busy.emit(False)
-                if done_event is not None:
+                if isinstance(done_event, threading.Event):
                     done_event.set()
 
         threading.Thread(target=worker, daemon=True).start()
@@ -3432,9 +3432,12 @@ class H2rgMainWindow(QMainWindow):
         print("\n".join(lines), flush=True)
 
     def acquire(self, done_event: threading.Event | None = None) -> None:
+        # Guard: QPushButton.clicked emits a bool; never treat that as done_event.
+        if done_event is not None and not isinstance(done_event, threading.Event):
+            done_event = None
         if self._live_active:
             self._on_operation_failed("Stop live mode before acquiring")
-            if done_event is not None:
+            if isinstance(done_event, threading.Event):
                 done_event.set()
             return
 
