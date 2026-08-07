@@ -49,6 +49,10 @@ from nottcontrol.camera.macie.fits_science import (
     science_fits_path,
     science_image_from_cube,
 )
+from nottcontrol.camera.macie.gui_remote import (
+    DEFAULT_TIMEOUT_S as GUI_CONTROL_TIMEOUT_S,
+    GuiControlServer,
+)
 from nottcontrol.camera.macie.h2rg_roi_panel import (
     ROI_COLORS,
     H2rgRoiPanel,
@@ -98,6 +102,7 @@ MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
     H2RG_SECTION, "fits_wait_margin_s", fallback=30.0
 )
 MACIE_RECORD_ROIS = config.getboolean(H2RG_SECTION, "record_rois", fallback=True)
+MACIE_FITS_WATCH_S = config.getfloat(H2RG_SECTION, "gui_fits_watch_s", fallback=2.0)
 MACIE_ROI_TIME_WINDOW_S = config.getfloat(
     H2RG_SECTION, "roi_time_plot_window_seconds", fallback=60.0
 )
@@ -1173,6 +1178,8 @@ class H2rgMainWindow(QMainWindow):
     exposure_timing_updated = pyqtSignal(object)
     integration_time_updated = pyqtSignal(str)
     macie_operation_busy = pyqtSignal(bool)
+    remote_acquire_requested = pyqtSignal()
+    remote_load_newest_requested = pyqtSignal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -1201,6 +1208,12 @@ class H2rgMainWindow(QMainWindow):
         )
         self.macie_operation_busy.connect(
             self._apply_macie_operation_busy, Qt.QueuedConnection
+        )
+        self.remote_acquire_requested.connect(
+            self._on_remote_acquire, Qt.QueuedConnection
+        )
+        self.remote_load_newest_requested.connect(
+            self._on_remote_load_newest, Qt.QueuedConnection
         )
 
         loading = QLabel("Loading H2RG controls…", self)
@@ -1288,6 +1301,11 @@ class H2rgMainWindow(QMainWindow):
         self._exposure_preview_timer.timeout.connect(
             self._schedule_exposure_timing_preview
         )
+        self._gui_control: GuiControlServer | None = None
+        self._fits_watch_timer: QTimer | None = None
+        self._pending_remote_acquire_done: threading.Event | None = None
+        self._pending_remote_load: tuple[dict, threading.Event] | None = None
+        self._remote_op_error: str | None = None
 
     def _stage_load_ui(self) -> None:
         QApplication.processEvents()
@@ -1325,10 +1343,130 @@ class H2rgMainWindow(QMainWindow):
             self._populate_comboboxes()
             self._sync_ramp_mode_fields()
             self._set_status("Not connected")
+            self._start_gui_services()
             threading.Thread(target=self._background_startup, daemon=True).start()
         except Exception as exc:
             print(f"H2RG GUI setup failed: {exc}")
             self._set_status(f"GUI setup failed: {exc}")
+
+    def _start_gui_services(self) -> None:
+        """Local control socket + optional FITS directory watcher."""
+        self._gui_control = GuiControlServer(
+            on_acquire=self._remote_acquire_handler,
+            on_load_newest=self._remote_load_newest_handler,
+            on_status=self._remote_status_handler,
+        )
+        try:
+            self._gui_control.start()
+            print(f"H2RG GUI control listening on {self._gui_control.endpoint}")
+        except OSError as exc:
+            print(f"H2RG GUI control socket not started: {exc}")
+            self._gui_control = None
+
+        if MACIE_FITS_WATCH_S > 0:
+            self._fits_watch_timer = QTimer(self)
+            self._fits_watch_timer.setInterval(max(200, int(MACIE_FITS_WATCH_S * 1000)))
+            self._fits_watch_timer.timeout.connect(self._poll_new_fits)
+            self._fits_watch_timer.start()
+
+    def _stop_gui_services(self) -> None:
+        if self._fits_watch_timer is not None:
+            self._fits_watch_timer.stop()
+            self._fits_watch_timer = None
+        if self._gui_control is not None:
+            self._gui_control.stop()
+            self._gui_control = None
+
+    def _remote_status_handler(self) -> str:
+        return (
+            "ok;"
+            f"initialized={int(self._initialized)};"
+            f"busy={int(self._macie_operation_busy)};"
+            f"live={int(self._live_active)}"
+        )
+
+    def _remote_acquire_handler(self) -> str:
+        if self._shutting_down:
+            return "nok;shutting_down"
+        if not self._initialized:
+            return "nok;not_initialized"
+        if self._live_active:
+            return "nok;live_active"
+        if self._macie_operation_busy:
+            return "nok;busy"
+        done = threading.Event()
+        self._remote_op_error = None
+        self._pending_remote_acquire_done = done
+        self.remote_acquire_requested.emit()
+        if not done.wait(timeout=GUI_CONTROL_TIMEOUT_S):
+            return "nok;timeout"
+        if self._remote_op_error:
+            return f"nok;{self._remote_op_error}"
+        return "ok;acquire_done"
+
+    def _on_remote_acquire(self) -> None:
+        done = self._pending_remote_acquire_done
+        self._pending_remote_acquire_done = None
+        try:
+            if self._live_active:
+                self._remote_op_error = "live_active"
+                self._on_operation_failed("Stop live mode before acquiring")
+                return
+            if self._macie_operation_busy:
+                self._remote_op_error = "busy"
+                return
+            self.acquire(done_event=done)
+            done = None
+        finally:
+            if done is not None:
+                done.set()
+
+    def _remote_load_newest_handler(self) -> str:
+        if self._shutting_down:
+            return "nok;shutting_down"
+        holder: dict[str, str] = {"reply": "nok;internal"}
+        done = threading.Event()
+        self._pending_remote_load = (holder, done)
+        self.remote_load_newest_requested.emit()
+        if not done.wait(timeout=60.0):
+            return "nok;timeout"
+        return holder.get("reply", "nok;internal")
+
+    def _on_remote_load_newest(self) -> None:
+        pending = self._pending_remote_load
+        self._pending_remote_load = None
+        if pending is None:
+            return
+        holder, done = pending
+        try:
+            loaded = self._load_latest_frame(force=True, macie=self._macie)
+            if loaded is None:
+                holder["reply"] = "nok;no_fits"
+                return
+            frame, path = loaded
+            self._last_fits_path = path
+            self._frame_timing_skip_report = True
+            self.frame_ready.emit(frame)
+            self.status_updated.emit(f"Loaded {path.name}")
+            holder["reply"] = f"ok;{path.name}"
+        except Exception as exc:  # noqa: BLE001 — surface to control client
+            holder["reply"] = f"nok;{exc}"
+        finally:
+            done.set()
+
+    def _poll_new_fits(self) -> None:
+        """Refresh the display when a new ramp appears on disk (e.g. script ZMQ)."""
+        if self._shutting_down or not self._initialized:
+            return
+        if self._live_active or self._macie_operation_busy:
+            return
+        loaded = self._load_latest_frame(force=False, macie=self._macie)
+        if loaded is None:
+            return
+        frame, path = loaded
+        self._frame_timing_skip_report = True
+        self.frame_ready.emit(frame)
+        self.status_updated.emit(f"New FITS: {path.name}")
 
     def _setup_image_placeholder(self) -> None:
         host = self._ensure_camera_host_layout()
@@ -3004,7 +3142,12 @@ class H2rgMainWindow(QMainWindow):
         return self._macie
 
     def _run_macie_operation(
-        self, label: str, operation, *, status: str | None = None
+        self,
+        label: str,
+        operation,
+        *,
+        status: str | None = None,
+        done_event: threading.Event | None = None,
     ) -> None:
         if status:
             self.status_updated.emit(status)
@@ -3018,11 +3161,16 @@ class H2rgMainWindow(QMainWindow):
                 with self._operation_lock:
                     operation()
             except Exception as exc:
-                self.operation_failed.emit(f"{label} failed: {exc}")
+                message = f"{label} failed: {exc}"
+                if done_event is not None:
+                    self._remote_op_error = message
+                self.operation_failed.emit(message)
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
                 self.macie_operation_busy.emit(False)
+                if done_event is not None:
+                    done_event.set()
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -3278,9 +3426,11 @@ class H2rgMainWindow(QMainWindow):
             )
         print("\n".join(lines), flush=True)
 
-    def acquire(self) -> None:
+    def acquire(self, done_event: threading.Event | None = None) -> None:
         if self._live_active:
             self._on_operation_failed("Stop live mode before acquiring")
+            if done_event is not None:
+                done_event.set()
             return
 
         def operation() -> None:
@@ -3414,7 +3564,7 @@ class H2rgMainWindow(QMainWindow):
                 self._frame_timing_t0 = None
                 self.status_updated.emit(self._missing_fits_status())
 
-        self._run_macie_operation("Acquire", operation)
+        self._run_macie_operation("Acquire", operation, done_event=done_event)
 
     def _arm_frame_timing(self, label: str = "Acquire") -> None:
         """Start wall-clock timing; reported when the frame is displayed."""
@@ -4456,6 +4606,7 @@ class H2rgMainWindow(QMainWindow):
             return
         self._shutting_down = True
 
+        self._stop_gui_services()
         halt_server = self._live_active
         self._cursor_readout_timer.stop()
         self._live_poll_stop.set()

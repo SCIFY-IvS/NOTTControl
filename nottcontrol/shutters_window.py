@@ -1,4 +1,10 @@
-from PyQt5.QtWidgets import QGridLayout, QMainWindow, QSizePolicy
+from PyQt5.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QMainWindow,
+    QPushButton,
+    QSizePolicy,
+)
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
 from nottcontrol import config
@@ -7,6 +13,11 @@ from nottcontrol.components.shutter import Shutter
 from nottcontrol.components.device_polling import (
     shutter_status_opc_nodes,
     split_shutter_status_values,
+)
+from nottcontrol.theme import (
+    PANEL_BUTTON_STYLE,
+    PANEL_BUTTON_SECONDARY_STYLE,
+    linux_safe_stylesheet,
 )
 
 class ShutterWindow(QMainWindow):
@@ -48,6 +59,8 @@ class ShutterWindow(QMainWindow):
 
         self.ui.actionClose_all.triggered.connect(self.close_all)
         self.ui.actionOpen_all.triggered.connect(self.open_all)
+        self._btn_open_all.clicked.connect(self.open_all)
+        self._btn_close_all.clicked.connect(self.close_all)
 
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
@@ -67,6 +80,28 @@ class ShutterWindow(QMainWindow):
         layout = QGridLayout(container)
         layout.setContentsMargins(12, 8, 12, 12)
         layout.setSpacing(12)
+
+        self._btn_open_all = QPushButton("Open all", container)
+        self._btn_close_all = QPushButton("Close all", container)
+        self._btn_open_all.setObjectName("pb_open_all")
+        self._btn_close_all.setObjectName("pb_close_all")
+        self._btn_open_all.setMinimumWidth(110)
+        self._btn_close_all.setMinimumWidth(110)
+        self._btn_open_all.setMinimumHeight(32)
+        self._btn_close_all.setMinimumHeight(32)
+        self._btn_open_all.setStyleSheet(linux_safe_stylesheet(PANEL_BUTTON_STYLE))
+        self._btn_close_all.setStyleSheet(
+            linux_safe_stylesheet(PANEL_BUTTON_SECONDARY_STYLE)
+        )
+
+        actions = QHBoxLayout()
+        actions.setContentsMargins(0, 0, 0, 0)
+        actions.setSpacing(10)
+        actions.addStretch(1)
+        actions.addWidget(self._btn_open_all)
+        actions.addWidget(self._btn_close_all)
+        layout.addLayout(actions, 0, 0, 1, 2)
+
         widgets = (
             self.ui.shutter_widget_1,
             self.ui.shutter_widget_2,
@@ -76,7 +111,7 @@ class ShutterWindow(QMainWindow):
         for index, widget in enumerate(widgets):
             widget.setMinimumHeight(200)
             widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            layout.addWidget(widget, index // 2, index % 2)
+            layout.addWidget(widget, 1 + index // 2, index % 2)
 
     def closeEvent(self, *args):
         self.t.stop()
