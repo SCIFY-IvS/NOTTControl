@@ -11,7 +11,8 @@ Default acquisition blocks follow the lab log (Full frame):
 
 For each block the script computes ``mean(open) - mean(closed)``, writes that
 2-D float32 image to FITS, writes a cube of ``open[i] - mean(closed)`` for
-each open frame (full frame and illuminated-region crop), writes a global
+each open frame (full frame and illuminated-region crop), writes a preview PNG
+with an inset of the illuminated box, writes a global
 ``mean(all open) - mean(all closed)`` image over the shutter-open blocks, and
 plots fixed random pixels vs DIT.
 
@@ -456,6 +457,115 @@ def illuminated_box(
     return row0, row1, col0, col1
 
 
+def write_darksub_preview(
+    image: np.ndarray,
+    output: Path,
+    *,
+    crop: tuple[int, int, int, int],
+    title: str | None = None,
+    zoom_half: int = 150,
+) -> Path:
+    """Write a 3-panel preview PNG with an inset of the illuminated pixel box."""
+    from matplotlib.patches import Rectangle
+
+    data = np.asarray(image, dtype=np.float64)
+    if data.ndim != 2:
+        raise ValueError(f"Preview expects a 2-D image, got shape {data.shape}")
+    row0, row1, col0, col1 = crop
+    height, width = data.shape
+    box_h = row1 - row0
+    box_w = col1 - col0
+    center_y = 0.5 * (row0 + row1 - 1)
+    center_x = 0.5 * (col0 + col1 - 1)
+
+    lo, hi = np.percentile(data, [1.0, 99.5])
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        lo, hi = float(np.nanmin(data)), float(np.nanmax(data))
+        if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+            lo, hi = 0.0, 1.0
+
+    zoom_y0 = max(0, int(center_y) - zoom_half)
+    zoom_y1 = min(height, int(center_y) + zoom_half)
+    zoom_x0 = max(0, int(center_x) - zoom_half)
+    zoom_x1 = min(width, int(center_x) + zoom_half)
+    zoom = data[zoom_y0:zoom_y1, zoom_x0:zoom_x1]
+    z_hi = max(hi, float(np.percentile(zoom, 99.5)) if zoom.size else hi)
+
+    illum = data[row0:row1, col0:col1]
+    if illum.size:
+        i_lo, i_hi = np.percentile(illum, [1.0, 99.5])
+        if not np.isfinite(i_lo) or not np.isfinite(i_hi) or i_hi <= i_lo:
+            i_lo, i_hi = float(np.nanmin(illum)), float(np.nanmax(illum))
+    else:
+        i_lo, i_hi = lo, hi
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
+
+    im0 = axes[0].imshow(data, origin="lower", cmap="gray", vmin=lo, vmax=hi)
+    axes[0].add_patch(
+        Rectangle(
+            (col0 - 0.5, row0 - 0.5),
+            box_w,
+            box_h,
+            fill=False,
+            edgecolor="C3",
+            linewidth=1.2,
+        )
+    )
+    axes[0].set_title(f"full 1–99.5% [{lo:.1f},{hi:.1f}]")
+    fig.colorbar(im0, ax=axes[0], fraction=0.046)
+
+    im1 = axes[1].imshow(
+        zoom,
+        origin="lower",
+        cmap="gray",
+        extent=(zoom_x0, zoom_x1, zoom_y0, zoom_y1),
+        vmin=lo,
+        vmax=z_hi,
+    )
+    axes[1].add_patch(
+        Rectangle(
+            (col0 - 0.5, row0 - 0.5),
+            box_w,
+            box_h,
+            fill=False,
+            edgecolor="C3",
+            linewidth=1.5,
+            label="illuminated box",
+        )
+    )
+    axes[1].plot(center_x, center_y, "r+", markersize=10)
+    axes[1].set_title(f"zoom X{zoom_x0}–{zoom_x1} Y{zoom_y0}–{zoom_y1}")
+    fig.colorbar(im1, ax=axes[1], fraction=0.046)
+
+    # Inset: the exact illuminated-pixel sampling box.
+    axins = axes[1].inset_axes([0.58, 0.58, 0.40, 0.40])
+    axins.imshow(
+        illum,
+        origin="lower",
+        cmap="gray",
+        extent=(col0, col1, row0, row1),
+        vmin=i_lo,
+        vmax=i_hi,
+    )
+    axins.set_title(f"illum {box_w}×{box_h}", fontsize=8, color="C3")
+    axins.tick_params(labelsize=7)
+    axes[1].indicate_inset_zoom(axins, edgecolor="C3")
+
+    axes[2].hist(data.ravel(), bins=200, range=(-50, 400), color="C0")
+    axes[2].set_yscale("log")
+    axes[2].set_title("hist (-50..400)")
+    axes[2].set_xlabel("ADU")
+
+    fig.suptitle(title or output.name, fontsize=9)
+    fig.tight_layout()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, dpi=120)
+    plt.close(fig)
+    logging.info("Wrote preview: %s", output)
+    return output
+
+
 def save_block_cubes(
     blocks: list[DitBlock],
     output_dir: Path,
@@ -508,6 +618,15 @@ def save_block_cubes(
             mean_path.name,
             block.difference.shape,
         )
+        if crop is not None:
+            preview_path = output_dir / f"{stem}.preview.png"
+            write_darksub_preview(
+                block.difference,
+                preview_path,
+                crop=crop,
+                title=mean_path.name,
+            )
+            written.append(preview_path)
 
         cube = np.asarray(block.open_darksub, dtype=np.float32)
         if cube.ndim != 3:

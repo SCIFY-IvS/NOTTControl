@@ -2,7 +2,8 @@
 # H2RG detector linearity: dark-subtracted flux vs DIT.
 #
 # Writes mean(open)-mean(closed) images, a cube of each open frame
-# minus mean(closed), and a global mean(all open)-mean(all closed)
+# minus mean(closed), illuminated-region crops, preview PNGs with an
+# inset of the illuminated box, and a global mean(all open)-mean(all closed)
 # average under linearity_<day>_darksub/.
 #
 # Default: frames 301–340 (shutter open) plus 341–350 (beamsplitter in)
