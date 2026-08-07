@@ -2823,7 +2823,9 @@ class H2rgMainWindow(QMainWindow):
         self.status_updated.emit(f"Detector mode: {DETECTOR_MODES[mode_index]}")
 
     def _on_exposure_fields_changed(self) -> None:
-        # GUI-only preview of total integration; ASIC updates only via Set / Init / window.
+        # GUI-only preview until Set / Acquire / window apply latches the ASIC.
+        # Drop the fingerprint so the next Apply/Acquire does not skip reconfigure.
+        self._applied_exposure_fingerprint = None
         self._update_total_integration_label()
 
     def _on_set_exposure_clicked(self) -> None:
@@ -3191,9 +3193,12 @@ class H2rgMainWindow(QMainWindow):
                 self._apply_window_mode_to_macie(macie, window_index)
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
-            self.status_updated.emit("Initialized")
-            self.controls_enabled.emit(True)
+            self.status_updated.emit(
+                "Initialized — edit DIT then Set (or Acquire latches DIT automatically)"
+            )
+            # Mark initialized before enabling controls (QueuedConnection order).
             self.init_button_state.emit("done")
+            self.controls_enabled.emit(True)
 
         def worker() -> None:
             try:
@@ -3437,12 +3442,9 @@ class H2rgMainWindow(QMainWindow):
             from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
 
             macie = self._ensure_macie()
-            # Acquire does not reprogram the ramp — use last Set / Init / window plan.
-            if self._last_exposure_report is not None:
-                exposure = self._last_exposure_report
-                self._refresh_exposure_timing(macie)
-            else:
-                exposure = self._exposure_report_from_server(macie)
+            # Latch current GUI DIT/mode before trigger (Init alone left a stale
+            # plan if the user edited integration time and skipped Set).
+            exposure = self._apply_exposure_settings(macie)
             try:
                 ncoadds = int(exposure.get("ncoadds", 1))
                 nseq = int(exposure.get("nseq", 1))
@@ -4012,6 +4014,8 @@ class H2rgMainWindow(QMainWindow):
 
         def worker() -> None:
             try:
+                # Latch GUI DIT/mode before arming continuous acquires.
+                self._apply_exposure_settings(self._macie)
                 # Live arms a single-ramp session (nseq=1) and keeps GigE open.
                 self._macie.start_continuous_acquisition()
                 QTimer.singleShot(0, self._activate_live_ui)
