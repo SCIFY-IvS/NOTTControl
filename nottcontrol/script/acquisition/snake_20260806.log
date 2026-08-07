@@ -1,7 +1,9 @@
 # Snake FOV scan log — 2026-08-06
 # START-END  LABEL  SHUTTER
 # Five frames per dwell (last dwell may be shorter).
-# Snake data: frames 301–889. Add a 'background close' block if needed.
+# Snake data: frames 301–889.
+# For bg-sub, insert blocks e.g. "890-894 background close";
+# each snake dwell subtracts the closest background mean.
 301-305  snake         open
 306-310  snake         open
 311-315  snake         open

@@ -2,7 +2,8 @@
 # Average H2RG snake FOV dwells (5 frames/position).
 #
 # Default log: snake_20260806.log (frames 301–889).
-# Subtracts the Background (close) block unless --no-bg-sub.
+# Subtracts the closest background mean unless --no-bg-sub.
+# Mark backgrounds in the log, e.g. "410-414 background close".
 #
 # Usage:
 #   ./nottcontrol/script/acquisition/average_snake_positions.sh --day 20260806

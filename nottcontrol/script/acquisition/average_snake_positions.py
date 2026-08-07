@@ -5,9 +5,10 @@ Default log (2026-08-06): frames **301–889**, five frames per dwell
 (last dwell may be shorter). See ``snake_20260806.log``.
 
 For each **Snake** (and Snake/double) block the script writes
-``mean(frames)``. Optionally subtracts ``mean(background)`` from the
-closed-shutter Background block. Also writes a cube with one plane per
-snake position.
+``mean(frames)`` and, when background blocks are present, subtracts the
+**closest** background mean (by frame-number midpoint). Background blocks
+are lines labeled ``background`` or with shutter ``close``/``closed``.
+Also writes a cube with one plane per snake position.
 """
 
 from __future__ import annotations
@@ -49,8 +50,18 @@ class ScanBlock:
         return self.end - self.start + 1
 
     @property
+    def midpoint(self) -> float:
+        return 0.5 * (self.start + self.end)
+
+    @property
     def is_background(self) -> bool:
-        return self.label.lower().startswith("background")
+        label = self.label.lower()
+        if label.startswith("snake"):
+            return False
+        return label.startswith("background") or self.shutter in (
+            "close",
+            "closed",
+        )
 
     @property
     def is_snake(self) -> bool:
@@ -114,6 +125,19 @@ def resolve_blocks(log: Path | None) -> list[ScanBlock]:
     if DEFAULT_LOG.is_file():
         return parse_log_file(DEFAULT_LOG)
     return default_blocks()
+
+
+def closest_background(
+    snake: ScanBlock,
+    backgrounds: list[tuple[ScanBlock, np.ndarray]],
+) -> tuple[ScanBlock, np.ndarray]:
+    """Return the background mean whose frame range is nearest to *snake*."""
+    if not backgrounds:
+        raise ValueError("No background means available")
+    return min(
+        backgrounds,
+        key=lambda item: abs(item[0].midpoint - snake.midpoint),
+    )
 
 
 def average_block(
@@ -211,7 +235,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--no-bg-sub",
         action="store_true",
-        help="Do not subtract the Background (close) block mean",
+        help=(
+            "Do not subtract background means from snake dwell means"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -272,43 +298,53 @@ def main(argv: list[str] | None = None) -> int:
         Path(__file__).resolve().parent / f"snake_{day_label}_avg"
     )
 
-    background: np.ndarray | None = None
+    bg_means: list[tuple[ScanBlock, np.ndarray]] = []
     bg_blocks = [b for b in blocks if b.is_background]
     if bg_blocks and not args.no_bg_sub:
-        if len(bg_blocks) > 1:
-            logging.warning(
-                "Multiple background blocks (%d); using the first (%d–%d)",
-                len(bg_blocks),
-                bg_blocks[0].start,
-                bg_blocks[0].end,
+        for bg_block in bg_blocks:
+            try:
+                bg_img, _ = average_block(
+                    catalog, bg_block, reduction=args.reduction
+                )
+            except (FileNotFoundError, ValueError, KeyError, OSError) as exc:
+                logging.error(
+                    "Background block %d–%d failed: %s",
+                    bg_block.start,
+                    bg_block.end,
+                    exc,
+                )
+                return 1
+            bg_means.append((bg_block, bg_img))
+            bg_path = out_dir / (
+                f"snake_{day_label}_background_"
+                f"{bg_block.start:06d}-{bg_block.end:06d}_mean.fits"
             )
-        try:
-            background, _ = average_block(
-                catalog, bg_blocks[0], reduction=args.reduction
+            save_fits(
+                bg_path,
+                bg_img,
+                header_cards={
+                    "IMTYPE": (
+                        "BGMEAN",
+                        "mean of closed-shutter background frames",
+                    ),
+                    "FRMSTART": (bg_block.start, "First background frame"),
+                    "FRMEND": (bg_block.end, "Last background frame"),
+                    "NFRAMES": (bg_block.n_frames, "Frames averaged"),
+                    "LABEL": (bg_block.label, "Log label"),
+                    "SHUTTER": (bg_block.shutter, "Shutter state"),
+                },
             )
-        except (FileNotFoundError, ValueError, KeyError, OSError) as exc:
-            logging.error("Background block failed: %s", exc)
-            return 1
-        bg_path = out_dir / (
-            f"snake_{day_label}_background_"
-            f"{bg_blocks[0].start:06d}-{bg_blocks[0].end:06d}_mean.fits"
-        )
-        save_fits(
-            bg_path,
-            background,
-            header_cards={
-                "IMTYPE": ("BGMEAN", "mean of closed-shutter background frames"),
-                "FRMSTART": (bg_blocks[0].start, "First background frame"),
-                "FRMEND": (bg_blocks[0].end, "Last background frame"),
-                "NFRAMES": (bg_blocks[0].n_frames, "Frames averaged"),
-                "LABEL": (bg_blocks[0].label, "Log label"),
-                "SHUTTER": (bg_blocks[0].shutter, "Shutter state"),
-            },
+        logging.info(
+            "Loaded %d background mean(s); each snake uses the closest",
+            len(bg_means),
         )
     elif args.no_bg_sub:
         logging.info("Skipping background subtraction (--no-bg-sub)")
     else:
-        logging.warning("No background block in log; writing raw means only")
+        logging.warning(
+            "No background block in log; writing raw means only. "
+            "Add lines like '410-414 background close' for bg-sub."
+        )
 
     snake_blocks = [b for b in blocks if b.is_snake]
     if not snake_blocks:
@@ -317,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
 
     means: list[np.ndarray] = []
     labels: list[str] = []
+    used_bg = False
     for index, block in enumerate(snake_blocks, start=1):
         try:
             mean_img, frame_ids = average_block(
@@ -328,32 +365,49 @@ def main(argv: list[str] | None = None) -> int:
 
         product = mean_img
         imtype = "SNAKEMEAN"
-        if background is not None:
+        bg_block: ScanBlock | None = None
+        if bg_means:
+            bg_block, background = closest_background(block, bg_means)
             product = mean_img - background
             imtype = "SNAKE-BG"
+            used_bg = True
+            logging.info(
+                "pos %02d frames %06d–%06d: subtract bg %06d–%06d",
+                index,
+                block.start,
+                block.end,
+                bg_block.start,
+                bg_block.end,
+            )
 
         slug = re.sub(r"[^A-Za-z0-9]+", "_", block.label).strip("_") or "snake"
         path = out_dir / (
             f"snake_{day_label}_pos{index:02d}_{slug}_"
             f"{block.start:06d}-{block.end:06d}_mean.fits"
         )
-        save_fits(
-            path,
-            product,
-            header_cards={
-                "IMTYPE": (imtype, "mean(snake dwell) [- background]"),
-                "POSINDEX": (index, "Snake position index (1-based)"),
-                "FRMSTART": (block.start, "First dwell frame"),
-                "FRMEND": (block.end, "Last dwell frame"),
-                "NFRAMES": (block.n_frames, "Frames averaged"),
-                "LABEL": (block.label, "Log label"),
-                "SHUTTER": (block.shutter, "Shutter state"),
-                "BGSUB": (background is not None, "Background subtracted"),
-                "COMMENT": (
-                    f"Frames averaged: {', '.join(f'{n:06d}' for n in frame_ids)}"
-                ),
-            },
-        )
+        header_cards = {
+            "IMTYPE": (imtype, "mean(snake dwell) [- closest background]"),
+            "POSINDEX": (index, "Snake position index (1-based)"),
+            "FRMSTART": (block.start, "First dwell frame"),
+            "FRMEND": (block.end, "Last dwell frame"),
+            "NFRAMES": (block.n_frames, "Frames averaged"),
+            "LABEL": (block.label, "Log label"),
+            "SHUTTER": (block.shutter, "Shutter state"),
+            "BGSUB": (bg_block is not None, "Background subtracted"),
+            "COMMENT": (
+                f"Frames averaged: {', '.join(f'{n:06d}' for n in frame_ids)}"
+            ),
+        }
+        if bg_block is not None:
+            header_cards["BGSTART"] = (
+                bg_block.start,
+                "Closest background first frame",
+            )
+            header_cards["BGEND"] = (
+                bg_block.end,
+                "Closest background last frame",
+            )
+        save_fits(path, product, header_cards=header_cards)
         means.append(np.asarray(product, dtype=np.float32))
         labels.append(f"pos{index:02d}:{block.start}-{block.end}")
 
@@ -365,10 +419,10 @@ def main(argv: list[str] | None = None) -> int:
         header_cards={
             "IMTYPE": (
                 "SNAKECUBE",
-                "Plane k = mean at snake position k (bg-sub if enabled)",
+                "Plane k = mean at snake position k (closest-bg if enabled)",
             ),
             "NPOS": (len(means), "Number of snake positions"),
-            "BGSUB": (background is not None, "Background subtracted"),
+            "BGSUB": (used_bg, "Background subtracted"),
             "COMMENT": "Planes: " + "; ".join(labels),
         },
     )
