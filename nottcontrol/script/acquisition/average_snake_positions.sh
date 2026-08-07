@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Average H2RG snake FOV dwells.
 #
-# Default: day presets + FITS SH1POS…SH4POS for open/closed.
+# Default: day presets + FITS SH1POS…SH4POS; average in groups of 5 frames/dwell.
 #   --day 20260806 → frames 301–889
 #   --day 20260807 → frames 51–last on disk
 # Positions cube is background-subtracted (closest closed mean) unless --no-bg-sub.

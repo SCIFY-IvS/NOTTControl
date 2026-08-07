@@ -7,9 +7,10 @@ Day presets (overridable with ``--first`` / ``--last``)::
     20260807 → frames 51–end of folder
 
 Open vs closed is taken from FITS shutter positions ``SH1POS``…``SH4POS``
-(open≈5 mm, closed≈35 mm): all closed → background; any open → snake
-dwell. Consecutive frames with the same state are grouped into blocks.
-Missing frame numbers on disk are skipped.
+(open≈5 mm, closed≈35 mm): all closed → background; any open → snake.
+Consecutive same-state frames are split into **5-frame dwells** (one mean
+per FOV position / background sample). Missing frame numbers on disk are
+skipped.
 
 Each snake mean subtracts the **closest** background mean. The positions
 cube is stacked from those background-subtracted means (unless
@@ -45,6 +46,8 @@ DAY_FRAME_RANGES: dict[str, tuple[int, int | None]] = {
 }
 DEFAULT_SNAKE_FIRST = 301
 DEFAULT_SNAKE_LAST = 889
+# Frames averaged per FOV dwell / background sample.
+DEFAULT_DWELL_FRAMES = 5
 
 # FITS cards from fits_header_meta.H2RG_FITS_SHUTTER_FIELDS.
 SHUTTER_POS_KEYS = ("SH1POS", "SH2POS", "SH3POS", "SH4POS")
@@ -171,12 +174,43 @@ def existing_frames_in_range(
     return [catalog[n] for n in present]
 
 
+def dwell_blocks_from_run(
+    run_start: int,
+    run_end: int,
+    state: str,
+    *,
+    dwell_frames: int = DEFAULT_DWELL_FRAMES,
+) -> list[ScanBlock]:
+    """Split a contiguous same-shutter run into fixed-size dwells."""
+    if dwell_frames < 1:
+        raise ValueError(f"dwell_frames must be >= 1, got {dwell_frames}")
+    label = "background" if state == "close" else "snake"
+    blocks: list[ScanBlock] = []
+    start = run_start
+    while start <= run_end:
+        end = min(start + dwell_frames - 1, run_end)
+        blocks.append(ScanBlock(start, end, label, state))
+        if end - start + 1 < dwell_frames:
+            logging.warning(
+                "Short dwell %06d–%06d (%d of %d frames, shutter=%s)",
+                start,
+                end,
+                end - start + 1,
+                dwell_frames,
+                state,
+            )
+        start = end + 1
+    return blocks
+
+
 def blocks_from_shutter_headers(
     catalog: dict[int, FrameFile],
     first: int,
     last: int,
+    *,
+    dwell_frames: int = DEFAULT_DWELL_FRAMES,
 ) -> list[ScanBlock]:
-    """Group consecutive existing frames by open/closed state from FITS headers."""
+    """Build 5-frame (default) dwells from consecutive open/closed header runs."""
     files = existing_frames_in_range(catalog, first, last)
     if not files:
         raise FileNotFoundError(
@@ -189,7 +223,7 @@ def blocks_from_shutter_headers(
         except KeyError as exc:
             raise KeyError(f"Frame {item.frame:06d} ({item.path.name}): {exc}") from exc
         states.append((item.frame, state))
-        logging.info(
+        logging.debug(
             "Frame %06d shutter=%s  %s",
             item.frame,
             state,
@@ -203,11 +237,25 @@ def blocks_from_shutter_headers(
         if state == run_state and frame == prev + 1:
             prev = frame
             continue
-        label = "background" if run_state == "close" else "snake"
-        blocks.append(ScanBlock(run_start, prev, label, run_state))
+        blocks.extend(
+            dwell_blocks_from_run(
+                run_start, prev, run_state, dwell_frames=dwell_frames
+            )
+        )
         run_start, run_state, prev = frame, state, frame
-    label = "background" if run_state == "close" else "snake"
-    blocks.append(ScanBlock(run_start, prev, label, run_state))
+    blocks.extend(
+        dwell_blocks_from_run(
+            run_start, prev, run_state, dwell_frames=dwell_frames
+        )
+    )
+    logging.info(
+        "Grouped into %d dwells of up to %d frames "
+        "(%d snake, %d background)",
+        len(blocks),
+        dwell_frames,
+        sum(1 for b in blocks if b.is_snake),
+        sum(1 for b in blocks if b.is_background),
+    )
     return blocks
 
 
@@ -367,6 +415,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--dwell",
+        type=int,
+        default=DEFAULT_DWELL_FRAMES,
+        metavar="N",
+        help=f"Frames per FOV/background dwell (default: {DEFAULT_DWELL_FRAMES})",
+    )
+    parser.add_argument(
         "--reduction",
         choices=("CDS", "Ramp", "Fowler", "SingleFrame"),
         default="Ramp",
@@ -455,12 +510,18 @@ def main(argv: list[str] | None = None) -> int:
             if last < first:
                 logging.error("--last (%d) < --first (%d)", last, first)
                 return 1
+            if args.dwell < 1:
+                logging.error("--dwell must be >= 1, got %d", args.dwell)
+                return 1
             logging.info(
-                "Scan plan from FITS shutter headers (frames %d–%d)",
+                "Scan plan from FITS shutter headers (frames %d–%d, dwell=%d)",
                 first,
                 last,
+                args.dwell,
             )
-            blocks = blocks_from_shutter_headers(catalog, first, last)
+            blocks = blocks_from_shutter_headers(
+                catalog, first, last, dwell_frames=args.dwell
+            )
     except (FileNotFoundError, KeyError, ValueError, OSError) as exc:
         logging.error("%s", exc)
         return 1
