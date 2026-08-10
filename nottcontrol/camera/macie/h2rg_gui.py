@@ -1165,6 +1165,9 @@ def list_new_ramp_fits_in_dir(
 class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
+    # Intermediate multi-frame acquires: BlockingQueued so each image paints
+    # before the worker loads the next FITS (QueuedConnection only showed the last).
+    acquire_preview_ready = pyqtSignal(object, str)
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
     status_updated = pyqtSignal(str)
@@ -1188,6 +1191,9 @@ class H2rgMainWindow(QMainWindow):
         self._init_runtime_state()
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
+        self.acquire_preview_ready.connect(
+            self._display_acquire_preview, Qt.BlockingQueuedConnection
+        )
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
             self._on_live_acquisition_failed, Qt.QueuedConnection
@@ -1285,6 +1291,7 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_level_max: QLineEdit | None = None
         self._manual_levels: tuple[float, float] | None = None
         self._acquire_previewed_names: set[str] = set()
+        self._acquire_preview_lock = threading.Lock()
         self._pending_roi_display: numpy.ndarray | None = None
         self._pending_roi_record = False
         self._applied_exposure_fingerprint: tuple | None = None
@@ -2542,10 +2549,9 @@ class H2rgMainWindow(QMainWindow):
             if MACIE_RECORD_ROIS:
                 self._store_rois_to_redis(stamp, results)
 
-        # Throttled for Live; force during Acquire so multi-frame previews refresh.
-        self._refresh_roi_plots(
-            force=self._macie_operation_busy or not record
-        )
+        # Throttled redraw of T / 1D plots (do not force every Acquire preview —
+        # pyqtgraph axis paints can stall the GUI under VNC).
+        self._refresh_roi_plots(force=not record)
 
     def _store_rois_to_redis(
         self, stamp: datetime, results: dict
@@ -3505,7 +3511,7 @@ class H2rgMainWindow(QMainWindow):
             stop_preview = threading.Event()
             preview_thread = threading.Thread(
                 target=self._poll_acquire_previews,
-                args=(before_mtime, before_name, expected, stop_preview),
+                args=(macie, before_mtime, before_name, expected, stop_preview),
                 daemon=True,
             )
             preview_thread.start()
@@ -3513,9 +3519,13 @@ class H2rgMainWindow(QMainWindow):
                 result = macie.acquire()
             finally:
                 stop_preview.set()
-                preview_thread.join(timeout=2.0)
+                # Allow in-flight BlockingQueued paints + dwell to finish.
+                preview_thread.join(timeout=max(2.0, expected * 0.6))
 
-            if result.frame is not None:
+            # Multi-frame: skip early ZMQ paint — it is only the last ramp and
+            # QueuedConnection + processEvents would jump the GUI to the end
+            # while FITS previews are still being shown.
+            if result.frame is not None and expected <= 1:
                 self._frame_timing_skip_report = True
                 self.frame_ready.emit(
                     numpy.asarray(result.frame, dtype=numpy.float32)
@@ -3558,7 +3568,12 @@ class H2rgMainWindow(QMainWindow):
                 self._frame_timing_status = (
                     "Acquire complete — ZMQ preview (archive FITS missing)"
                 )
-                self._report_frame_timing()
+                if expected > 1:
+                    self.frame_ready.emit(
+                        numpy.asarray(result.frame, dtype=numpy.float32)
+                    )
+                else:
+                    self._report_frame_timing()
             else:
                 self._frame_timing_t0 = None
                 self.status_updated.emit(self._missing_fits_status())
@@ -4148,30 +4163,32 @@ class H2rgMainWindow(QMainWindow):
         expected_count: int,
     ) -> numpy.ndarray | None:
         """Load *path* and show it in the GUI if not already displayed."""
-        displayed = getattr(self, "_acquire_previewed_names", None)
-        if displayed is None:
-            displayed = set()
-            self._acquire_previewed_names = displayed
-        if path.name in displayed:
-            return None
-        try:
-            if not path.is_file():
+        with self._acquire_preview_lock:
+            displayed = getattr(self, "_acquire_previewed_names", None)
+            if displayed is None:
+                displayed = set()
+                self._acquire_previewed_names = displayed
+            if path.name in displayed:
                 return None
-            frame = self._load_fits_from_path(path)
-        except Exception as exc:
-            print(f"H2RG acquire preview skipped {path.name}: {exc}")
-            return None
-        displayed.add(path.name)
-        # Intermediate previews must not consume the acquire wall-clock timer.
-        self._frame_timing_skip_report = True
-        self.frame_ready.emit(frame)
-        self.status_updated.emit(
-            f"Acquire: frame {index}/{expected_count} — {path.name}"
-        )
+            try:
+                if not path.is_file():
+                    return None
+                frame = self._load_fits_from_path(path)
+            except Exception as exc:
+                print(f"H2RG acquire preview skipped {path.name}: {exc}")
+                return None
+            displayed.add(path.name)
+            status = f"Acquire: frame {index}/{expected_count} — {path.name}"
+        # Block until the GUI paints this frame so multi-frame sequences are visible.
+        self.acquire_preview_ready.emit(frame, status)
+        # When several FITS appear in a burst, dwell so each image is perceptible.
+        if expected_count > 1:
+            time.sleep(0.35)
         return frame
 
     def _poll_acquire_previews(
         self,
+        macie,
         before_mtime: float,
         before_name: str | None,
         expected_count: int,
@@ -4179,7 +4196,11 @@ class H2rgMainWindow(QMainWindow):
     ) -> None:
         """While acquire() blocks, show each new local FITS as it is written."""
         while not stop_event.wait(0.25):
-            if not self._local_fits_accessible(allow_probe=False):
+            try:
+                self._sync_save_dir_from_server(macie)
+            except Exception:
+                pass
+            if not self._local_fits_accessible(allow_probe=True):
                 continue
             for path in self._collect_new_ramp_paths(
                 before_mtime, before_name=before_name
@@ -4191,6 +4212,38 @@ class H2rgMainWindow(QMainWindow):
                 )
             if len(self._acquire_previewed_names) >= expected_count:
                 break
+
+    def _display_acquire_preview(self, frame, status: str = "") -> None:
+        """Lightweight image update for multi-frame Acquire (GUI thread)."""
+        self._ensure_image_view()
+        if self.image is None or frame is None:
+            return
+        self._current_frame = numpy.asarray(frame)
+        self._update_central_value(self._current_frame)
+        display = self._build_display_frame()
+        if display is None:
+            return
+        display = numpy.ascontiguousarray(display, dtype=numpy.float32)
+        # Avoid setUpdatesEnabled(False) and processEvents here — both let
+        # Queued paints coalesce / jump so only the last frame was visible.
+        # ROI panel updates wait for the final frame_ready after Acquire.
+        if self._autoscale_enabled():
+            self.image.setImage(display, autoLevels=True)
+        else:
+            levels = self._read_level_fields() or self._manual_levels
+            if levels is not None:
+                self._manual_levels = levels
+                self.image.setImage(display, autoLevels=False, levels=levels)
+            else:
+                self.image.setImage(display, autoLevels=False)
+        self._update_roi_overlays()
+        if status:
+            self._set_status(status)
+        self._sync_cursor_readout_label()
+        if hasattr(self.image, "update"):
+            self.image.update()
+        if hasattr(self.image, "repaint"):
+            self.image.repaint()
 
     def _wait_for_acquire_frames(
         self,
