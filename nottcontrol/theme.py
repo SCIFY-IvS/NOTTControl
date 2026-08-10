@@ -143,25 +143,30 @@ QPushButton:disabled {{
 }}
 """
 
-# Horizontal padding on QLineEdit via QSS mis-maps the caret/click position on
-# macOS (and some Linux themes). Use style_line_edit_field() for side margins.
+# Any QSS padding on QLineEdit mis-maps the caret/click position relative to the
+# text on macOS (and some Linux themes). Use style_line_edit_field() so inset
+# comes from QLineEdit text margins instead.
 PANEL_FIELD_STYLE = (
     f'font: 9pt {FONT}; color: {TEXT};'
     " QComboBox, QSpinBox {"
     " padding: 2px 6px; min-height: 24px;"
     f" background: {BG_WHITE}; border: 1px solid {BORDER}; border-radius: 4px; }}"
     " QLineEdit {"
-    " padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 0px;"
-    " min-height: 24px;"
+    " padding: 0px; min-height: 24px;"
     f" background: {BG_WHITE}; border: 1px solid {BORDER}; border-radius: 4px; }}"
 )
 
-_LINE_EDIT_TEXT_MARGINS = (6, 0, 6, 0)
+_LINE_EDIT_TEXT_MARGINS = (6, 2, 6, 2)
+_LINE_EDIT_ZERO_PADDING = (
+    " QLineEdit { padding: 0px; padding-left: 0px; padding-right: 0px;"
+    " padding-top: 0px; padding-bottom: 0px; }"
+)
 
 
 def style_line_edit_field(field: QLineEdit, stylesheet: str | None = None) -> None:
     """Apply panel field style without breaking QLineEdit caret hit-testing."""
-    field.setStyleSheet(stylesheet if stylesheet is not None else PANEL_FIELD_STYLE)
+    base = stylesheet if stylesheet is not None else PANEL_FIELD_STYLE
+    field.setStyleSheet(base + _LINE_EDIT_ZERO_PADDING)
     left, top, right, bottom = _LINE_EDIT_TEXT_MARGINS
     field.setTextMargins(left, top, right, bottom)
 
