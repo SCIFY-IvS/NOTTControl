@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import sys
 from collections import deque
 from datetime import datetime, timezone
 
 import numpy
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtWidgets import (
     QCheckBox,
     QGridLayout,
@@ -122,10 +123,20 @@ def _title_style() -> str:
 def _style_light_plot(plot: pg.PlotWidget) -> None:
     plot.setBackground("w")
     item = plot.getPlotItem()
+    tick_font = None
+    if sys.platform.startswith("linux"):
+        # Pixel-size + PreferBitmap avoids conda Qt FreeType SIGSEGV on VNC.
+        from nottcontrol.theme import APP_FONT_FAMILY
+
+        tick_font = QFont(APP_FONT_FAMILY)
+        tick_font.setPixelSize(11)
+        tick_font.setStyleStrategy(QFont.PreferBitmap)
     for name in ("left", "bottom", "right", "top"):
         axis = item.getAxis(name)
         axis.setPen(pg.mkPen(color=(40, 40, 40)))
         axis.setTextPen(pg.mkPen(color=(40, 40, 40)))
+        if tick_font is not None:
+            axis.setTickFont(tick_font)
     item.showGrid(x=True, y=True, alpha=0.2)
 
 

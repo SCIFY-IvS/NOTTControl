@@ -2542,9 +2542,8 @@ class H2rgMainWindow(QMainWindow):
             if MACIE_RECORD_ROIS:
                 self._store_rois_to_redis(stamp, results)
 
-        # pyqtgraph PlotWidget axis text also hits FreeType under conda/VNC.
-        if not sys.platform.startswith("linux"):
-            self._refresh_roi_plots(force=not record)
+        # Throttled redraw of T / 1D plots (Linux uses safe axis fonts in H2rgRoiPlots).
+        self._refresh_roi_plots(force=not record)
 
     def _store_rois_to_redis(
         self, stamp: datetime, results: dict
