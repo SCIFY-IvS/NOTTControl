@@ -4,8 +4,13 @@
 # Default root: ~/frames/H2RG_ASIC/UpTheRamp/
 # The script uses the latest subdirectory under that root (session folder).
 #
+# Default illuminated region: [H2RG DETECTOR] ROI 2
+# Default background / reference: ROI 8 (pedestal subtracted per plane)
+# Override with --illum-roi / --bg-roi / --illum-center / --illum-size;
+# disable pedestal with --no-bg-roi.
+#
 # Builds CDS-relative cubes (each plane = frame - first; first zero plane
-# omitted) next to the PNG plot:
+# omitted; optional ROI-8 pedestal) next to the PNG plot:
 #   msac_uptheramp_frame_minus_first.fits       — full frame
 #   msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
 #
@@ -16,7 +21,7 @@
 #
 # Default: all FITS in the latest UpTheRamp session folder.
 # X = file index from the name (_M###### or _N######);
-# Y = illuminated mean of (frame − first).
+# Y = illuminated mean − background ROI (frame − first).
 #
 # PNG + FITS cubes are written into the session data folder.
 #

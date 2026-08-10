@@ -20,9 +20,11 @@ The zero self-subtraction plane (``frame[0] - frame[0]``) is **omitted**
 from both cubes. The illuminated-mean plot still includes that first point
 (~0) for reference.
 
-Illuminated box: full-frame default centre ``(X=1045, Y=943)``; if the
-image is smaller than 2048×2048 (windowed), the centre defaults to the
-middle of the frame unless ``--illum-center`` is set.
+Illuminated box defaults to **H2RG ROI 2**; background / reference
+defaults to **H2RG ROI 8** (``config.ini`` / ``config.local.ini``).
+Each CDS plane is pedestal-corrected by subtracting the sigma-clipped
+mean of the background ROI. Override with ``--illum-roi``, ``--bg-roi``,
+``--illum-center``, or ``--illum-size``; disable with ``--no-bg-roi``.
 """
 
 from __future__ import annotations
@@ -47,6 +49,9 @@ DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_ILLUM_SIZE = 20
 DEFAULT_ILLUM_CENTER_X = 1045
 DEFAULT_ILLUM_CENTER_Y = 943
+DEFAULT_ILLUM_ROI = 2
+DEFAULT_BG_ROI = 8
+H2RG_SECTION = "H2RG DETECTOR"
 # Full-frame H2RG; smaller shapes are treated as windowed readouts.
 DEFAULT_FULL_FRAME = 2048
 DEFAULT_SEED = 0
@@ -193,6 +198,50 @@ def illuminated_box(
     return row0, row1, col0, col1
 
 
+def load_h2rg_roi_xywh(index: int) -> tuple[int, int, int, int] | None:
+    """Return ``(x, y, w, h)`` for H2RG ROI *index* from merged config, or None."""
+    try:
+        from nottcontrol import config
+    except Exception as exc:
+        logging.warning("Could not import nottcontrol config: %s", exc)
+        return None
+    key = f"ROI {index}"
+    try:
+        values = config.getarray(H2RG_SECTION, key, dtype=int)
+    except Exception:
+        return None
+    if len(values) != 4:
+        logging.warning(
+            "[%s] %s has %d values (need x,y,w,h)",
+            H2RG_SECTION,
+            key,
+            len(values),
+        )
+        return None
+    return int(values[0]), int(values[1]), int(values[2]), int(values[3])
+
+
+def illuminated_box_from_xywh(
+    shape: tuple[int, int],
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+) -> tuple[int, int, int, int]:
+    """Return ``(row0, row1, col0, col1)`` for an ``x,y,w,h`` ROI."""
+    height, width = shape
+    if w <= 0 or h <= 0:
+        raise ValueError(f"ROI size must be positive (got w={w}, h={h})")
+    row0, col0 = int(y), int(x)
+    row1, col1 = row0 + int(h), col0 + int(w)
+    if row0 < 0 or col0 < 0 or row1 > height or col1 > width:
+        raise ValueError(
+            f"ROI x={x},y={y},w={w},h={h} is outside image shape {shape} "
+            f"(rows[{row0}:{row1}), cols[{col0}:{col1}))"
+        )
+    return row0, row1, col0, col1
+
+
 def resolve_illum_center(
     shape: tuple[int, int],
     *,
@@ -326,6 +375,45 @@ def relative_to_first(cube: np.ndarray) -> np.ndarray:
     return np.asarray(cube, dtype=np.float64) - first
 
 
+def region_mean(
+    image: np.ndarray,
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    *,
+    n_sigma: float,
+) -> float:
+    """Sigma-clipped mean of ``image[row0:row1, col0:col1]``."""
+    region = np.asarray(image[row0:row1, col0:col1], dtype=np.float64).ravel()
+    mean_val, _n_kept, _n_rej = sigma_clip_mean(region, n_sigma=n_sigma)
+    return float(mean_val)
+
+
+def subtract_roi_pedestal(
+    cube: np.ndarray,
+    *,
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    n_sigma: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Subtract per-plane sigma-clipped ROI mean from *cube*.
+
+    Returns ``(corrected_cube, pedestal_per_plane)``.
+    """
+    if cube.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
+    out = np.empty(cube.shape, dtype=np.float64)
+    pedestals = np.empty(cube.shape[0], dtype=np.float64)
+    for i, plane in enumerate(cube):
+        ped = region_mean(plane, row0, row1, col0, col1, n_sigma=n_sigma)
+        pedestals[i] = ped
+        out[i] = np.asarray(plane, dtype=np.float64) - ped
+    return out, pedestals
+
+
 def drop_reference_plane(cube: np.ndarray) -> np.ndarray:
     """Drop plane 0 of a frame−first cube (always ~0)."""
     if cube.ndim != 3:
@@ -457,7 +545,7 @@ def plot_file_series(
             int(index),
             mean_val,
         )
-    ax_mean.set_ylabel("Illuminated mean (frame−first) [ADU]")
+    ax_mean.set_ylabel("Illuminated − bg ROI (frame−first) [ADU]")
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
 
@@ -472,7 +560,7 @@ def plot_file_series(
                 linewidth=0.7,
                 color="C1",
             )
-        ax_pix.set_ylabel("Pixel ADU (frame−first)")
+        ax_pix.set_ylabel("Pixel − bg ROI (frame−first) [ADU]")
         ax_pix.set_xlabel(f"File index ({index_tag})")
         ax_pix.grid(True, alpha=0.3)
     else:
@@ -541,12 +629,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"Random pixels in illuminated box (default: {DEFAULT_N_ILLUM_PIXELS})",
     )
     parser.add_argument(
+        "--illum-roi",
+        type=int,
+        default=DEFAULT_ILLUM_ROI,
+        metavar="N",
+        help=(
+            f"Use [H2RG DETECTOR] ROI N as the illuminated box "
+            f"(default: {DEFAULT_ILLUM_ROI}). Ignored if --illum-center "
+            "or --illum-size is set."
+        ),
+    )
+    parser.add_argument(
+        "--bg-roi",
+        type=int,
+        default=DEFAULT_BG_ROI,
+        metavar="N",
+        help=(
+            f"Use [H2RG DETECTOR] ROI N as background / reference pixels "
+            f"(default: {DEFAULT_BG_ROI}). Subtracted per plane after "
+            "frame−first."
+        ),
+    )
+    parser.add_argument(
+        "--no-bg-roi",
+        action="store_true",
+        help="Do not subtract a background ROI pedestal",
+    )
+    parser.add_argument(
         "--illum-size",
         type=int,
         nargs="+",
         default=None,
         metavar="N",
-        help=f"Box size SIZE or HEIGHT WIDTH (default: {DEFAULT_ILLUM_SIZE})",
+        help=(
+            f"Box size SIZE or HEIGHT WIDTH (overrides ROI; "
+            f"legacy default was {DEFAULT_ILLUM_SIZE})"
+        ),
     )
     parser.add_argument(
         "--illum-center",
@@ -555,10 +673,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         metavar=("X", "Y"),
         help=(
-            "Illuminated centre X Y (image coords). Default: full-frame "
-            f"({DEFAULT_ILLUM_CENTER_X}, {DEFAULT_ILLUM_CENTER_Y}); "
-            f"for frames smaller than {DEFAULT_FULL_FRAME}×{DEFAULT_FULL_FRAME}, "
-            "use the image centre."
+            "Illuminated centre X Y (overrides ROI). Legacy full-frame "
+            f"default was ({DEFAULT_ILLUM_CENTER_X}, {DEFAULT_ILLUM_CENTER_Y})."
         ),
     )
     parser.add_argument(
@@ -663,7 +779,7 @@ def main(argv: list[str] | None = None) -> int:
         logging.info("Using forced file-index tag: %s", preferred_tag)
 
     if args.illum_size is None:
-        illum_h = illum_w = DEFAULT_ILLUM_SIZE
+        illum_h = illum_w = None
     elif len(args.illum_size) == 1:
         illum_h = illum_w = int(args.illum_size[0])
     elif len(args.illum_size) == 2:
@@ -674,6 +790,10 @@ def main(argv: list[str] | None = None) -> int:
     explicit_center = args.illum_center is not None
     req_center_x = int(args.illum_center[0]) if explicit_center else None
     req_center_y = int(args.illum_center[1]) if explicit_center else None
+    use_manual_illum = explicit_center or illum_h is not None
+    illum_roi_index = int(args.illum_roi)
+    bg_roi_index = int(args.bg_roi)
+    use_bg_roi = not args.no_bg_roi
 
     records: list[tuple[int, str, str, np.ndarray, dict]] = []
     index_tag = "M"
@@ -756,19 +876,89 @@ def main(argv: list[str] | None = None) -> int:
     names = [row[2] for row in records]
     index_tag = records[0][1]
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
-    center_x, center_y = resolve_illum_center(
-        (ny, nx),
-        center_x=req_center_x,
-        center_y=req_center_y,
-    )
 
-    row0, row1, col0, col1 = illuminated_box(
-        (ny, nx),
-        illum_h,
-        illum_w,
-        center_x=center_x,
-        center_y=center_y,
-    )
+    illum_source = "manual"
+    if use_manual_illum:
+        if illum_h is None:
+            illum_h = illum_w = DEFAULT_ILLUM_SIZE
+        center_x, center_y = resolve_illum_center(
+            (ny, nx),
+            center_x=req_center_x,
+            center_y=req_center_y,
+        )
+        row0, row1, col0, col1 = illuminated_box(
+            (ny, nx),
+            illum_h,
+            illum_w,
+            center_x=center_x,
+            center_y=center_y,
+        )
+    else:
+        roi = load_h2rg_roi_xywh(illum_roi_index)
+        if roi is None:
+            raise RuntimeError(
+                f"No [{H2RG_SECTION}] ROI {illum_roi_index} in config.ini "
+                "(or config.local.ini); set ROI or pass --illum-center / "
+                "--illum-size"
+            )
+        x, y, w, h = roi
+        try:
+            row0, row1, col0, col1 = illuminated_box_from_xywh(
+                (ny, nx), x, y, w, h
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"H2RG ROI {illum_roi_index}={x},{y},{w},{h} does not fit "
+                f"image {ny}×{nx}: {exc}"
+            ) from exc
+        illum_h, illum_w = h, w
+        center_x = x + w // 2
+        center_y = y + h // 2
+        illum_source = f"ROI {illum_roi_index}"
+
+    bg_source = "none"
+    bg_row0 = bg_row1 = bg_col0 = bg_col1 = 0
+    if use_bg_roi:
+        bg_roi = load_h2rg_roi_xywh(bg_roi_index)
+        if bg_roi is None:
+            raise RuntimeError(
+                f"No [{H2RG_SECTION}] ROI {bg_roi_index} in config.ini "
+                "(or config.local.ini); set ROI or pass --no-bg-roi"
+            )
+        bx, by, bw, bh = bg_roi
+        try:
+            bg_row0, bg_row1, bg_col0, bg_col1 = illuminated_box_from_xywh(
+                (ny, nx), bx, by, bw, bh
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"H2RG ROI {bg_roi_index}={bx},{by},{bw},{bh} does not fit "
+                f"image {ny}×{nx}: {exc}"
+            ) from exc
+        cds_cube, bg_pedestals = subtract_roi_pedestal(
+            cds_cube,
+            row0=bg_row0,
+            row1=bg_row1,
+            col0=bg_col0,
+            col1=bg_col1,
+            n_sigma=args.n_sigma,
+        )
+        bg_source = f"ROI {bg_roi_index}"
+        logging.info(
+            "Background ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d); "
+            "pedestal mean over ramp=%.4g ADU",
+            bg_roi_index,
+            bx,
+            by,
+            bw,
+            bh,
+            bg_row0,
+            bg_row1,
+            bg_col0,
+            bg_col1,
+            float(np.nanmean(bg_pedestals)),
+        )
+
     n_illum = min(args.n_illum_pixels, (row1 - row0) * (col1 - col0))
     pixels = choose_pixels(
         (ny, nx),
@@ -778,18 +968,20 @@ def main(argv: list[str] | None = None) -> int:
         col_slice=(col0, col1),
     )
     logging.info(
-        "Illuminated box %dx%d at X=%d Y=%d -> rows[%d:%d) cols[%d:%d); "
-        "%d pixels (seed=%d)",
+        "Illuminated box %dx%d at X=%d Y=%d (%s) -> rows[%d:%d) cols[%d:%d); "
+        "%d pixels (seed=%d); bg=%s",
         illum_h,
         illum_w,
         center_x,
         center_y,
+        illum_source,
         row0,
         row1,
         col0,
         col1,
         n_illum,
         args.seed,
+        bg_source,
     )
 
     means = np.array(
@@ -843,7 +1035,13 @@ def main(argv: list[str] | None = None) -> int:
                     history=(
                         "MSAC UpTheRamp CDS-relative cube: each plane = "
                         "sample - first sample (ordered by file/plane index); "
-                        "zero reference plane omitted."
+                        "zero reference plane omitted"
+                        + (
+                            f"; pedestal = mean(ROI {bg_roi_index})"
+                            if use_bg_roi
+                            else ""
+                        )
+                        + "."
                     ),
                 )
             if write_illum:
@@ -858,9 +1056,23 @@ def main(argv: list[str] | None = None) -> int:
                     history=(
                         "MSAC UpTheRamp CDS-relative illuminated crop: each "
                         "plane = sample - first sample; zero reference plane "
-                        "omitted; spatial crop is the illuminated analysis box."
+                        "omitted; spatial crop is the illuminated analysis box"
+                        + (
+                            f"; pedestal = mean(ROI {bg_roi_index})"
+                            if use_bg_roi
+                            else ""
+                        )
+                        + "."
                     ),
                     extra_cards={
+                        "ILLUMROI": (
+                            0 if use_manual_illum else illum_roi_index,
+                            "H2RG ROI index used for crop (0=manual)",
+                        ),
+                        "BGROI": (
+                            bg_roi_index if use_bg_roi else 0,
+                            "H2RG ROI index used as pedestal (0=none)",
+                        ),
                         "ILLUMX0": (col0, "Crop col start (inclusive, 0-based)"),
                         "ILLUMX1": (col1, "Crop col end (exclusive, 0-based)"),
                         "ILLUMY0": (row0, "Crop row start (inclusive, 0-based)"),
@@ -871,8 +1083,9 @@ def main(argv: list[str] | None = None) -> int:
                 )
 
     title = (
-        f"MSAC UpTheRamp — illum mean (frame−first) vs index "
-        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
+        f"MSAC UpTheRamp — illum−bg (frame−first) vs index "
+        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; "
+        f"{illum_source}, bg={bg_source})"
     )
     plot_file_series(
         indices=indices,
