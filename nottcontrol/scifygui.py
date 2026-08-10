@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
         try:
             from nottcontrol.camera.macie.h2rg_gui import H2rgMainWindow
 
-            self.h2rg_window = H2rgMainWindow()
+            self.h2rg_window = H2rgMainWindow(opcua_conn=self.opcua_conn)
             self.h2rg_window.closing.connect(self.clear_h2rg_window)
             self._dashboard_camera = "H2RG"
             self.load_camera_status()

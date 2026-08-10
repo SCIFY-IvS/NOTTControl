@@ -118,6 +118,13 @@ MACIE_ROI_DEQUE_LENGTH = max(
 MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
 # Multi-frame Acquire: GUI only paints; a worker loads FITS off-thread.
 MACIE_ACQUIRE_PREVIEW_INTERVAL_MS = 250
+MACIE_SHUTTER_WAIT_TIMEOUT_S = 20.0
+MACIE_SHUTTER_NODES = (
+    ("ns=4;s=MAIN.nott_ics.Shutters.NSH1", "Shutter 1"),
+    ("ns=4;s=MAIN.nott_ics.Shutters.NSH2", "Shutter 2"),
+    ("ns=4;s=MAIN.nott_ics.Shutters.NSH3", "Shutter 3"),
+    ("ns=4;s=MAIN.nott_ics.Shutters.NSH4", "Shutter 4"),
+)
 
 from nottcontrol.theme import (
     APP_MONO_FAMILY,
@@ -1182,8 +1189,9 @@ class H2rgMainWindow(QMainWindow):
     macie_operation_busy = pyqtSignal(bool)
     remote_acquire_requested = pyqtSignal()
     remote_load_newest_requested = pyqtSignal()
+    background_ready = pyqtSignal()
 
-    def __init__(self) -> None:
+    def __init__(self, opcua_conn=None) -> None:
         super().__init__()
         self.setWindowTitle("H2RG / MACIE")
         app_icon = load_app_icon()
@@ -1191,6 +1199,8 @@ class H2rgMainWindow(QMainWindow):
             self.setWindowIcon(app_icon)
         self.setMinimumSize(1100, 920)
         self.ui = None
+        self._opcua_conn = opcua_conn
+        self._shutters = None
         self._init_runtime_state()
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
@@ -1223,6 +1233,7 @@ class H2rgMainWindow(QMainWindow):
         self.remote_load_newest_requested.connect(
             self._on_remote_load_newest, Qt.QueuedConnection
         )
+        self.background_ready.connect(self._on_background_ready, Qt.QueuedConnection)
 
         loading = QLabel("Loading H2RG controls…", self)
         loading.setAlignment(Qt.AlignCenter)
@@ -2062,8 +2073,21 @@ class H2rgMainWindow(QMainWindow):
         options.addStretch(1)
         outer.addLayout(options)
 
+        self._button_acquire_background = QPushButton("Take Background")
+        self._button_acquire_background.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Fixed
+        )
+        self._button_acquire_background.setToolTip(
+            "Close all shutters, acquire one frame as background, then re-open shutters"
+        )
+        outer.addWidget(self._button_acquire_background)
+
+        self.ui.button_take_background.setText("Use as Background")
         self.ui.button_take_background.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Fixed
+        )
+        self.ui.button_take_background.setToolTip(
+            "Store the currently displayed image as the background"
         )
         outer.addWidget(self.ui.button_take_background)
 
@@ -2198,6 +2222,8 @@ class H2rgMainWindow(QMainWindow):
             "button_halt",
         ):
             getattr(self.ui, name).setStyleSheet(PANEL_BUTTON_STYLE)
+        if getattr(self, "_button_acquire_background", None) is not None:
+            self._button_acquire_background.setStyleSheet(PANEL_BUTTON_STYLE)
 
         self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
         if getattr(self, "_checkBox_save_image", None) is not None:
@@ -2302,7 +2328,9 @@ class H2rgMainWindow(QMainWindow):
         self.ui.button_init.clicked.connect(self.init_camera)
         self.ui.button_powerOn.clicked.connect(self.power_on)
         self.ui.button_powerOff.clicked.connect(self.power_off)
-        self.ui.button_take_background.clicked.connect(self.take_background)
+        self.ui.button_take_background.clicked.connect(self.use_as_background)
+        if getattr(self, "_button_acquire_background", None) is not None:
+            self._button_acquire_background.clicked.connect(self.acquire_background)
         self.ui.button_live.clicked.connect(self.live_clicked)
         self.ui.button_acquire.clicked.connect(lambda: self.acquire())
         self.ui.button_halt.clicked.connect(self.halt)
@@ -2661,6 +2689,10 @@ class H2rgMainWindow(QMainWindow):
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
         self.ui.button_take_background.setEnabled(enabled)
+        if getattr(self, "_button_acquire_background", None) is not None:
+            self._button_acquire_background.setEnabled(
+                enabled and self._opcua_conn is not None
+            )
         self.ui.comboBox_detector_mode.setEnabled(enabled)
         self.ui.comboBox_window_mode.setEnabled(enabled)
         self.ui.button_init.setEnabled(enabled)
@@ -3079,6 +3111,10 @@ class H2rgMainWindow(QMainWindow):
             "button_halt",
         ):
             getattr(self.ui, name).setEnabled(enabled)
+        if getattr(self, "_button_acquire_background", None) is not None:
+            self._button_acquire_background.setEnabled(
+                enabled and self._opcua_conn is not None
+            )
         if hasattr(self, "_button_set_exposure"):
             self._button_set_exposure.setEnabled(enabled)
         if enabled and not self._macie_operation_busy and not self._live_active:
@@ -4087,7 +4123,8 @@ class H2rgMainWindow(QMainWindow):
             self._run_macie_operation("Halt", self._macie.halt_acquisition)
         self._set_status("Halted")
 
-    def take_background(self) -> None:
+    def use_as_background(self) -> None:
+        """Store the currently displayed image as the background (no shutter move)."""
         frame = self._frame_from_display_mode()
         if frame is None:
             loaded = self._load_latest_frame()
@@ -4096,9 +4133,188 @@ class H2rgMainWindow(QMainWindow):
                 return
             frame, _path = loaded
             frame = self._frame_from_display_mode() or frame
-        self._background = numpy.asarray(frame, dtype=numpy.float32).copy()
-        self.ui.checkBox_substract_background.setEnabled(True)
+        self._store_background_frame(frame)
         self._set_status("Background stored")
+
+    def take_background(self) -> None:
+        """Alias kept for older call sites / UI hooks."""
+        self.use_as_background()
+
+    def _on_background_ready(self) -> None:
+        if self.ui is None:
+            return
+        self.ui.checkBox_substract_background.setEnabled(True)
+        self.ui.checkBox_substract_background.setChecked(True)
+        self._refresh_display()
+
+    def _store_background_frame(self, frame) -> None:
+        self._background = numpy.asarray(frame, dtype=numpy.float32).copy()
+        self.background_ready.emit()
+
+    def _ensure_shutters(self):
+        if self._opcua_conn is None:
+            raise RuntimeError("OPC UA connection is not available for shutters")
+        if self._shutters is None:
+            from nottcontrol.components.shutter import Shutter
+
+            self._shutters = [
+                Shutter(self._opcua_conn, prefix, name)
+                for prefix, name in MACIE_SHUTTER_NODES
+            ]
+        return self._shutters
+
+    def _close_all_shutters(self, shutters) -> None:
+        for shutter in shutters:
+            shutter.close()
+
+    def _open_all_shutters(self, shutters) -> None:
+        for shutter in shutters:
+            shutter.open()
+
+    def _wait_shutters(
+        self, shutters, *, want_closed: bool, timeout_s: float = MACIE_SHUTTER_WAIT_TIMEOUT_S
+    ) -> None:
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            try:
+                if want_closed:
+                    ready = all(shutter.is_closed for shutter in shutters)
+                else:
+                    ready = all(shutter.is_open for shutter in shutters)
+            except Exception:
+                ready = False
+            if ready:
+                return
+            time.sleep(0.15)
+        states = []
+        for shutter in shutters:
+            try:
+                states.append(f"{shutter.name}={shutter.get_hardware_state()}")
+            except Exception as exc:
+                states.append(f"{shutter.name}=error({exc})")
+        action = "closed" if want_closed else "open"
+        raise TimeoutError(
+            f"Timed out waiting for shutters to be {action}: {', '.join(states)}"
+        )
+
+    def _acquire_single_frame_for_background(self, macie):
+        """Run one acquire (nseq forced to 1) and return the science frame."""
+        from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
+
+        exposure = self._apply_exposure_settings(macie)
+        try:
+            ncoadds = int(exposure.get("ncoadds", 1))
+        except (TypeError, ValueError):
+            ncoadds = 1
+        # Background darks only need one ramp.
+        try:
+            save, _ncoadds, _nseq, ngroups, nreads, ndrops, nresets = (
+                macie.read_exposure_settings()
+            )
+            macie.exposure_settings(
+                save, ncoadds, 1, ngroups, nreads, ndrops, nresets
+            )
+        except Exception:
+            pass
+        nseq = 1
+        keep_files = self._save_image_enabled()
+        self._fits_dir_ok = None
+        self._arm_frame_timing("Take Background")
+
+        if not keep_files:
+            preview = self._preview_fits_path()
+            try:
+                before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
+            except OSError:
+                before_mtime = 0.0
+            result = macie.acquire()
+            if result.frame is not None:
+                return numpy.asarray(result.frame, dtype=numpy.float32)
+            frame, _path = self._wait_for_preview_fits(
+                preview,
+                before_mtime=before_mtime,
+                timeout_s=fits_wait_timeout_s(
+                    float(exposure["execution_s"]),
+                    ncoadds=ncoadds,
+                    nseq=nseq,
+                    margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                    maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
+                    + MACIE_FITS_WAIT_MARGIN_S,
+                ),
+            )
+            if frame is None:
+                raise RuntimeError(self._missing_fits_status())
+            return numpy.asarray(frame, dtype=numpy.float32)
+
+        before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
+        wait_timeout_s = fits_wait_timeout_s(
+            float(exposure["execution_s"]),
+            ncoadds=ncoadds,
+            nseq=nseq,
+            margin_s=MACIE_FITS_WAIT_MARGIN_S,
+            maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
+        )
+        result = macie.acquire()
+        ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
+            before_mtime,
+            macie,
+            before_name=before_name,
+            expected_count=1,
+            timeout_s=wait_timeout_s,
+            display_each=False,
+        )
+        if frame is not None:
+            return numpy.asarray(frame, dtype=numpy.float32)
+        if result.frame is not None:
+            return numpy.asarray(result.frame, dtype=numpy.float32)
+        raise RuntimeError(self._missing_fits_status())
+
+    def acquire_background(self) -> None:
+        """Close shutters, acquire a dark, store as background, re-open shutters."""
+        if self._live_active:
+            self._on_operation_failed("Stop live mode before taking background")
+            return
+        if self._opcua_conn is None:
+            self._on_operation_failed(
+                "Take Background requires OPC UA (open H2RG from the main GUI)"
+            )
+            return
+        if not self._initialized:
+            self._on_operation_failed("Initialize the camera before taking background")
+            return
+
+        def operation() -> None:
+            shutters = self._ensure_shutters()
+            reopen_error: Exception | None = None
+            try:
+                self.status_updated.emit("Take Background: closing shutters…")
+                self._close_all_shutters(shutters)
+                self._wait_shutters(shutters, want_closed=True)
+                self.status_updated.emit("Take Background: acquiring…")
+                macie = self._ensure_macie()
+                frame = self._acquire_single_frame_for_background(macie)
+                self._background = numpy.asarray(frame, dtype=numpy.float32).copy()
+                self._frame_timing_status = "Background stored (shutters closed acquire)"
+                self.frame_ready.emit(self._background)
+                self.background_ready.emit()
+            finally:
+                try:
+                    self.status_updated.emit("Take Background: opening shutters…")
+                    self._open_all_shutters(shutters)
+                    self._wait_shutters(shutters, want_closed=False)
+                except Exception as exc:
+                    reopen_error = exc
+            if reopen_error is not None:
+                raise RuntimeError(
+                    f"Background stored, but re-opening shutters failed: {reopen_error}"
+                )
+            self.status_updated.emit("Background stored — shutters open")
+
+        self._run_macie_operation(
+            "Take Background",
+            operation,
+            status="Taking background…",
+        )
 
     def _refresh_readouts(self, macie) -> None:
         from nottcontrol.camera.macie.macie_interface import DetectorMode
