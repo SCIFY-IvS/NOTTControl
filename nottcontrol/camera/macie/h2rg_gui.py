@@ -2474,12 +2474,8 @@ class H2rgMainWindow(QMainWindow):
         y = int(y)
         self._h2rg_rois[index] = (x, y, w, h)
         try:
-            if not config.config_parser.has_section(H2RG_SECTION):
-                config.config_parser.add_section(H2RG_SECTION)
-            config.config_parser.set(
-                H2RG_SECTION, f"ROI {index}", f"{x},{y},{w},{h}"
-            )
-            config.write()
+            config.set_local(H2RG_SECTION, f"ROI {index}", f"{x},{y},{w},{h}")
+            config.write_local()
         except Exception as exc:
             print(f"H2RG ROI config save failed: {exc}")
         self._refresh_display()

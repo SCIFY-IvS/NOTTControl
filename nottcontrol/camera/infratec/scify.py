@@ -1464,18 +1464,19 @@ class MainWindow(QMainWindow):
 
 
     def save_roi_positions_to_config(self):
-        if not config.config_parser.has_section(INFRATEC_SECTION):
-            config.config_parser.add_section(INFRATEC_SECTION)
-
         for roi_widget in self.roi_widgets:
             self.save_roi_position_to_config(roi_widget.roi, roi_widget.name)
 
-        config.write()
+        config.write_local()
 
     def save_roi_position_to_config(self, roi, key):
         roi_pos = roi.pos()
         roi_size = roi.size()
-        config.config_parser.set(INFRATEC_SECTION, key, f'{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}')
+        config.set_local(
+            INFRATEC_SECTION,
+            key,
+            f"{roi_pos[0]},{roi_pos[1]},{roi_size[0]},{roi_size[1]}",
+        )
 
     def connectSignalSlots(self):
         self.ui.button_connect.clicked.connect(self.connect_clicked)
