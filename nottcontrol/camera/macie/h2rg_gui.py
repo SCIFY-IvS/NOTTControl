@@ -1172,7 +1172,7 @@ def list_new_ramp_fits_in_dir(
 class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
-    # Multi-frame Acquire: emit each ramp as it is written (BlockingQueued → GUI paint).
+    # Multi-frame Acquire: emit each ramp as it is written (Queued → GUI paint).
     acquire_preview_frame = pyqtSignal(object, str)
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
@@ -1200,11 +1200,8 @@ class H2rgMainWindow(QMainWindow):
         self._init_runtime_state()
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
-        # BlockingQueued: paint finishes before the poll thread loads the next
-        # FITS (avoids a post-acquire paint queue). Safe because the poller
-        # never holds the MACIE ZMQ lock.
         self.acquire_preview_frame.connect(
-            self._display_acquire_preview, Qt.BlockingQueuedConnection
+            self._display_acquire_preview, Qt.QueuedConnection
         )
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
@@ -1308,6 +1305,7 @@ class H2rgMainWindow(QMainWindow):
         self._acquire_preview_reduction = "CDS"
         self._acquire_preview_fowler = 2
         self._pending_roi_display: numpy.ndarray | None = None
+        self._cached_files_today: int | None = None
         self._pending_roi_record = False
         self._applied_exposure_fingerprint: tuple | None = None
         self._roi_update_timer = QTimer(self)
@@ -4500,7 +4498,6 @@ class H2rgMainWindow(QMainWindow):
             displayed.add(path.name)
             status = f"Acquire: frame {index}/{expected_count} — {path.name}"
         frame = numpy.asarray(frame, dtype=numpy.float32)
-        # BlockingQueuedConnection: wait until the GUI paints this frame.
         self.acquire_preview_frame.emit(frame, status)
         return frame
 
@@ -4960,14 +4957,14 @@ class H2rgMainWindow(QMainWindow):
             self._update_next_frame_number()
 
     def get_dashboard_status(self) -> dict[str, object]:
-        utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
-        powered = None
-        if self._macie is not None:
-            try:
-                powered = self._macie.get_power()
-            except Exception:
-                powered = None
+        """Fast snapshot for the main Camera panel.
 
+        Must never block on MACIE ZMQ or SMB rglob: the main GUI timer calls
+        this on the Qt GUI thread. During Acquire the ZMQ lock is held for the
+        whole soft-SC sequence, so get_power() would freeze paints until the
+        end (stall then burst).
+        """
+        utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
         connected = self._macie is not None
         live = bool(self._live_active)
         acquiring = bool(self._macie_operation_busy) and not live
@@ -4978,16 +4975,20 @@ class H2rgMainWindow(QMainWindow):
         else:
             frame_size = "—"
 
-        try:
-            files_today = sum(
-                1
-                for path in list_ramp_fits_in_dir(
-                    self._save_dir, dir_ok=self._fits_dir_ok
+        # Skip directory walks while busy; reuse the last idle count.
+        files_today = self._cached_files_today
+        if not self._macie_operation_busy and not live:
+            try:
+                files_today = sum(
+                    1
+                    for path in list_ramp_fits_in_dir(
+                        self._save_dir, dir_ok=self._fits_dir_ok
+                    )
+                    if utc_day in path.name
                 )
-                if utc_day in path.name
-            )
-        except Exception:
-            files_today = None
+                self._cached_files_today = files_today
+            except Exception:
+                files_today = self._cached_files_today
 
         return {
             "mode": "H2RG",
@@ -4995,7 +4996,8 @@ class H2rgMainWindow(QMainWindow):
             "recording": False,
             "acquiring": acquiring,
             "live": live,
-            "powered": powered,
+            # Do not call macie.get_power() here — it needs the ZMQ lock.
+            "powered": None,
             "files_today": files_today,
             "utc_day": utc_day,
             "frame_size": frame_size,
