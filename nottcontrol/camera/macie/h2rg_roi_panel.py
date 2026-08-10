@@ -71,14 +71,132 @@ def extract_roi_region(
     return frame[y:y_end, x:x_end]
 
 
+def map_roi_full_to_image(
+    roi: tuple[int, int, int, int],
+    *,
+    origin_x: int,
+    origin_y: int,
+    image_w: int,
+    image_h: int,
+    pad_top: int = 0,
+    window_x1: int | None = None,
+    window_x2: int | None = None,
+    window_y1: int | None = None,
+    window_y2: int | None = None,
+) -> tuple[int, int, int, int] | None:
+    """Map a full-frame ROI into the current image; None if no overlap.
+
+    *origin_x* / *origin_y* are the full-frame coordinates of image pixel (0, 0)
+    for science content (before *pad_top*). Soft-SC middle stripes prepend
+    *pad_top* reference rows, so science row *origin_y* lands at image y=*pad_top*.
+
+    Optional *window_** (inclusive full-frame bounds) reject ROIs that miss the
+    programmed science window even if image-local clipping would still hit pixels.
+    """
+    fx, fy, fw, fh = (int(v) for v in roi)
+    if None not in (window_x1, window_x2, window_y1, window_y2):
+        if (
+            fx + fw - 1 < int(window_x1)
+            or fx > int(window_x2)
+            or fy + fh - 1 < int(window_y1)
+            or fy > int(window_y2)
+        ):
+            return None
+    ix = fx - int(origin_x)
+    iy = fy - int(origin_y) + int(pad_top)
+    x0 = max(0, ix)
+    y0 = max(0, iy)
+    x1 = min(int(image_w), ix + max(1, fw))
+    y1 = min(int(image_h), iy + max(1, fh))
+    if x1 <= x0 or y1 <= y0:
+        return None
+    return x0, y0, x1 - x0, y1 - y0
+
+
+def map_roi_image_to_full(
+    roi: tuple[int, int, int, int],
+    *,
+    origin_x: int,
+    origin_y: int,
+    pad_top: int = 0,
+) -> tuple[int, int, int, int]:
+    """Map an image-local ROI back to full-frame detector coordinates."""
+    ix, iy, iw, ih = (int(v) for v in roi)
+    return (
+        ix + int(origin_x),
+        iy - int(pad_top) + int(origin_y),
+        max(1, iw),
+        max(1, ih),
+    )
+
+
+def remap_rois_to_image(
+    rois: dict[int, tuple[int, int, int, int]],
+    *,
+    origin_x: int,
+    origin_y: int,
+    image_w: int,
+    image_h: int,
+    pad_top: int = 0,
+    window_x1: int | None = None,
+    window_x2: int | None = None,
+    window_y1: int | None = None,
+    window_y2: int | None = None,
+) -> dict[int, tuple[int, int, int, int]]:
+    """Return only ROIs that intersect the current image, in image coords."""
+    mapped: dict[int, tuple[int, int, int, int]] = {}
+    for index, geom in rois.items():
+        local = map_roi_full_to_image(
+            geom,
+            origin_x=origin_x,
+            origin_y=origin_y,
+            image_w=image_w,
+            image_h=image_h,
+            pad_top=pad_top,
+            window_x1=window_x1,
+            window_x2=window_x2,
+            window_y1=window_y1,
+            window_y2=window_y2,
+        )
+        if local is not None:
+            mapped[index] = local
+    return mapped
+
+
 def compute_roi_brightness(
     frame: numpy.ndarray,
     rois: dict[int, tuple[int, int, int, int]],
+    *,
+    origin_x: int = 0,
+    origin_y: int = 0,
+    pad_top: int = 0,
+    window_x1: int | None = None,
+    window_x2: int | None = None,
+    window_y1: int | None = None,
+    window_y2: int | None = None,
 ) -> tuple[dict[int, BrightnessResults], dict[int, numpy.ndarray]]:
-    """Return per-ROI brightness and cropped regions for configured ROIs."""
+    """Return per-ROI brightness and cropped regions for configured ROIs.
+
+    *rois* are full-frame detector coordinates. When the frame is a subframe,
+    pass the window *origin_* and optional soft-SC *pad_top* so the correct
+    detector pixels are sampled. ROIs outside the science window are omitted.
+    """
+    height, width = frame.shape[:2]
+    local_rois = remap_rois_to_image(
+        rois,
+        origin_x=origin_x,
+        origin_y=origin_y,
+        image_w=width,
+        image_h=height,
+        pad_top=pad_top,
+        window_x1=window_x1,
+        window_x2=window_x2,
+        window_y1=window_y1,
+        window_y2=window_y2,
+    )
     results: dict[int, BrightnessResults] = {}
     regions: dict[int, numpy.ndarray] = {}
-    for index, geom in rois.items():
+    for index, geom in local_rois.items():
         region = extract_roi_region(frame, geom)
         if region is None or region.size == 0:
             continue

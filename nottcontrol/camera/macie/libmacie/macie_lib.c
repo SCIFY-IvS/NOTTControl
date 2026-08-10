@@ -1439,7 +1439,10 @@ static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
                        "ASIC h6900<5:0>=0x%04x before acquire; halting (attempt %i)\n",
                        regval, attempt + 1);
         HaltCameraAcq(ptUserData);
-        CloseScienceInterface(ptUserData);
+        // Soft-SC / live keep GigE open across serial triggers. Closing here
+        // forced a reopen race (and a segfault when reuse_science was stale).
+        if (!ptUserData->bKeepScienceInterface)
+            CloseScienceInterface(ptUserData);
         delay(300);
     }
 
@@ -1660,10 +1663,6 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     // Do not rewrite StripeReads* here: touching 4024… around GigE open/close
     // starved downloads. Counters are programmed only in set_frame_settings.
     unsigned int ypix = ptUserData->uiDetectorHeight;
-    const bool reuse_science =
-        ptUserData->bKeepScienceInterface &&
-        ptUserData->bScienceInterfaceOpen &&
-        ptUserData->nPixBufferScienceConfigured == ptUserData->nPixBuffer;
 
     if (ypix_burst_stripe(ptUserData, &ypix, false) == true)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe is enabled with %i rows.\n", ypix);
@@ -1673,6 +1672,14 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
         return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
+
+    // Compute AFTER idle check: EnsureAsicIdle may CloseScienceInterface when the
+    // ASIC was still busy. Using a stale reuse_science flag skipped GigE
+    // reconfigure and triggered with a closed interface (soft-SC serial ramp 2+ segfault).
+    const bool reuse_science =
+        ptUserData->bKeepScienceInterface &&
+        ptUserData->bScienceInterfaceOpen &&
+        ptUserData->nPixBufferScienceConfigured == ptUserData->nPixBuffer;
 
     if (!reuse_science)
     {

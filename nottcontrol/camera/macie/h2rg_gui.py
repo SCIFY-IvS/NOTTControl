@@ -58,7 +58,9 @@ from nottcontrol.camera.macie.h2rg_roi_panel import (
     H2rgRoiPanel,
     H2rgRoiPlots,
     compute_roi_brightness,
+    map_roi_image_to_full,
     redis_key_for_roi,
+    remap_rois_to_image,
     roi_profile_1d,
 )
 from nottcontrol.camera.macie.ramp_plan import RAMP_MODE_ITEMS, RAMP_MODES, fits_wait_timeout_s
@@ -305,6 +307,68 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
 
 WINDOW_MODES = _build_window_modes()
 DETECTOR_MODES = ("Slow", "Fast")
+
+
+def soft_sc_top_pad(mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE) -> int:
+    """Leading reference rows in soft-SC FITS (middle stripe only: ny+4)."""
+    if mode.x_window or not mode.y_window:
+        return 0
+    if mode.y1 < 4:
+        return 0
+    if mode.y2 > array_size - 5:
+        return 0
+    return 4
+
+
+def display_window_origin(mode: WindowMode) -> tuple[int, int, int]:
+    """Return (origin_x, origin_y, pad_top) for mapping full-frame ROIs into image."""
+    return mode.x1, mode.y1, soft_sc_top_pad(mode)
+
+
+def window_origin_for_frame(
+    frame_shape: tuple[int, ...],
+    mode: WindowMode,
+    *,
+    array_size: int = H2RG_ARRAY_SIZE,
+    candidates: tuple[WindowMode, ...] | None = None,
+) -> tuple[int, int, int]:
+    """Pick ROI remap origin from the *delivered* frame size.
+
+    A full-frame buffer always maps 1:1 (even if the GUI combo already says SC),
+    so we never sample "stripe" coordinates out of a leftover 2048×2048 image.
+    """
+    height, width = int(frame_shape[0]), int(frame_shape[1])
+    if height >= array_size - 16 and width >= array_size - 16:
+        return 0, 0, 0
+
+    modes = candidates if candidates is not None else (mode,)
+
+    def match(candidate: WindowMode) -> tuple[int, int, int] | None:
+        ny = candidate.y2 - candidate.y1 + 1
+        nx = candidate.x2 - candidate.x1 + 1
+        pad = soft_sc_top_pad(candidate, array_size=array_size)
+        if candidate.y_window and not candidate.x_window:
+            if abs(width - array_size) > 16:
+                return None
+            if pad and height == ny + pad:
+                return candidate.x1, candidate.y1, pad
+            if height == ny:
+                return candidate.x1, candidate.y1, 0
+            return None
+        if candidate.x_window or candidate.y_window:
+            if width == nx and height == ny:
+                return candidate.x1, candidate.y1, 0
+        return None
+
+    hit = match(mode)
+    if hit is not None:
+        return hit
+    for candidate in modes:
+        hit = match(candidate)
+        if hit is not None:
+            return hit
+    # Unknown subframe: keep selected-mode origin so out-of-window ROIs stay empty.
+    return display_window_origin(mode)
 
 
 def _normalize_scene_pos(pos) -> QPointF:
@@ -1186,6 +1250,8 @@ class H2rgMainWindow(QMainWindow):
     remote_acquire_requested = pyqtSignal()
     remote_load_newest_requested = pyqtSignal()
     background_ready = pyqtSignal()
+    # Full-frame window used for ROI remap: (origin_x, origin_y, pad_top).
+    display_window_updated = pyqtSignal(object)
 
     def __init__(self, opcua_conn=None) -> None:
         super().__init__()
@@ -1227,6 +1293,9 @@ class H2rgMainWindow(QMainWindow):
             self._on_remote_load_newest, Qt.QueuedConnection
         )
         self.background_ready.connect(self._on_background_ready, Qt.QueuedConnection)
+        self.display_window_updated.connect(
+            self._apply_display_window, Qt.QueuedConnection
+        )
 
         loading = QLabel("Loading H2RG controls…", self)
         loading.setAlignment(Qt.AlignCenter)
@@ -1260,6 +1329,10 @@ class H2rgMainWindow(QMainWindow):
         self._roi_plots: H2rgRoiPlots | None = None
         self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
         self._last_roi_plot_refresh = 0.0
+        # Full-frame origin of the displayed subframe + soft-SC top pad.
+        self._display_origin_x = 0
+        self._display_origin_y = 0
+        self._display_pad_top = 0
         self._redis: RedisClient | None = None
         try:
             self._redis = RedisClient(config["DEFAULT"]["databaseurl"])
@@ -1358,6 +1431,7 @@ class H2rgMainWindow(QMainWindow):
             self._layout_image_frame()
             self._populate_comboboxes()
             self._sync_ramp_mode_fields()
+            self._set_display_window_from_mode()
             self._set_status("Not connected")
             self._start_gui_services()
             threading.Thread(target=self._background_startup, daemon=True).start()
@@ -2357,6 +2431,151 @@ class H2rgMainWindow(QMainWindow):
     def _on_roi_plot_toggled(self, _state: int = 0) -> None:
         self._refresh_roi_plots(force=True)
 
+    def _selected_window_mode(self) -> WindowMode:
+        index = 0
+        if self.ui is not None:
+            index = self.ui.comboBox_window_mode.currentIndex()
+        if index < 0 or index >= len(WINDOW_MODES):
+            index = 0
+        return WINDOW_MODES[index]
+
+    def _set_display_window_from_mode(self, mode: WindowMode | None = None) -> None:
+        mode = mode or self._selected_window_mode()
+        ox, oy, pad = display_window_origin(mode)
+        self._apply_display_window((ox, oy, pad))
+
+    def _apply_display_window(self, geom) -> None:
+        try:
+            ox, oy, pad = int(geom[0]), int(geom[1]), int(geom[2])
+        except (TypeError, ValueError, IndexError):
+            return
+        changed = (
+            ox != self._display_origin_x
+            or oy != self._display_origin_y
+            or pad != self._display_pad_top
+        )
+        self._display_origin_x = ox
+        self._display_origin_y = oy
+        self._display_pad_top = pad
+        self._update_roi_overlays()
+        if changed and self._current_frame is not None:
+            self._update_roi_values(self._current_frame, record=False)
+
+    def _refine_pad_top_for_frame(self, frame: numpy.ndarray) -> int:
+        """Match soft-SC pad to delivered height (ny+4 vs ny)."""
+        _ox, _oy, pad = window_origin_for_frame(
+            frame.shape,
+            self._selected_window_mode(),
+            candidates=WINDOW_MODES,
+        )
+        return pad
+
+    def _roi_window_args_for_frame(
+        self, frame: numpy.ndarray
+    ) -> dict[str, int | None]:
+        """Origin/pad/bounds for remapping full-frame ROIs onto *frame*."""
+        mode = self._selected_window_mode()
+        ox, oy, pad = window_origin_for_frame(
+            frame.shape, mode, candidates=WINDOW_MODES
+        )
+        self._display_origin_x = ox
+        self._display_origin_y = oy
+        self._display_pad_top = pad
+        # Full-frame identity: no extra science-window gate.
+        if ox == 0 and oy == 0 and pad == 0 and (
+            int(frame.shape[0]) >= H2RG_ARRAY_SIZE - 16
+            and int(frame.shape[1]) >= H2RG_ARRAY_SIZE - 16
+        ):
+            return {
+                "origin_x": 0,
+                "origin_y": 0,
+                "pad_top": 0,
+                "window_x1": None,
+                "window_x2": None,
+                "window_y1": None,
+                "window_y2": None,
+            }
+        # Prefer bounds of the mode that matched the frame size.
+        matched = mode
+        for candidate in WINDOW_MODES:
+            hit = window_origin_for_frame(frame.shape, candidate)
+            if hit == (ox, oy, pad):
+                matched = candidate
+                break
+        return {
+            "origin_x": ox,
+            "origin_y": oy,
+            "pad_top": pad,
+            "window_x1": matched.x1,
+            "window_x2": matched.x2,
+            "window_y1": matched.y1,
+            "window_y2": matched.y2,
+        }
+
+    def _rois_in_image_coords(
+        self, frame_shape: tuple[int, ...] | None = None
+    ) -> dict[int, tuple[int, int, int, int]]:
+        if self._current_frame is not None and (
+            frame_shape is None or frame_shape[:2] == self._current_frame.shape[:2]
+        ):
+            args = self._roi_window_args_for_frame(self._current_frame)
+            height, width = (int(self._current_frame.shape[0]), int(self._current_frame.shape[1]))
+            return remap_rois_to_image(
+                self._h2rg_rois,
+                image_w=width,
+                image_h=height,
+                **args,  # type: ignore[arg-type]
+            )
+        if frame_shape is None:
+            if (
+                self.image is not None
+                and getattr(self.image, "image", None) is not None
+            ):
+                frame_shape = self.image.image.shape
+            else:
+                mode = self._selected_window_mode()
+                ox, oy, pad = display_window_origin(mode)
+                self._display_origin_x = ox
+                self._display_origin_y = oy
+                self._display_pad_top = pad
+                frame_shape = (
+                    mode.y2 - mode.y1 + 1 + pad,
+                    mode.x2 - mode.x1 + 1,
+                )
+                return remap_rois_to_image(
+                    self._h2rg_rois,
+                    origin_x=ox,
+                    origin_y=oy,
+                    image_w=int(frame_shape[1]),
+                    image_h=int(frame_shape[0]),
+                    pad_top=pad,
+                    window_x1=mode.x1,
+                    window_x2=mode.x2,
+                    window_y1=mode.y1,
+                    window_y2=mode.y2,
+                )
+        height, width = int(frame_shape[0]), int(frame_shape[1])
+        mode = self._selected_window_mode()
+        ox, oy, pad = window_origin_for_frame(
+            frame_shape, mode, candidates=WINDOW_MODES
+        )
+        self._display_origin_x = ox
+        self._display_origin_y = oy
+        self._display_pad_top = pad
+        use_gate = not (ox == 0 and oy == 0 and pad == 0 and height >= H2RG_ARRAY_SIZE - 16)
+        return remap_rois_to_image(
+            self._h2rg_rois,
+            origin_x=ox,
+            origin_y=oy,
+            image_w=width,
+            image_h=height,
+            pad_top=pad,
+            window_x1=mode.x1 if use_gate else None,
+            window_x2=mode.x2 if use_gate else None,
+            window_y1=mode.y1 if use_gate else None,
+            window_y2=mode.y2 if use_gate else None,
+        )
+
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
             data = self._comboBox_ramp_mode.currentData()
@@ -2504,13 +2723,27 @@ class H2rgMainWindow(QMainWindow):
         self._update_roi_overlays()
 
     def _commit_roi_geometry(self, index: int, x: int, y: int, w: int, h: int) -> None:
+        # Overlay / drag coordinates are image-local; persist full-frame.
         w = max(1, int(w))
         h = max(1, int(h))
         x = int(x)
         y = int(y)
-        self._h2rg_rois[index] = (x, y, w, h)
+        pad = self._display_pad_top
+        if self._current_frame is not None:
+            pad = self._refine_pad_top_for_frame(self._current_frame)
+        fx, fy, fw, fh = map_roi_image_to_full(
+            (x, y, w, h),
+            origin_x=self._display_origin_x,
+            origin_y=self._display_origin_y,
+            pad_top=pad,
+        )
+        fx = int(numpy.clip(fx, 0, H2RG_ARRAY_SIZE - 1))
+        fy = int(numpy.clip(fy, 0, H2RG_ARRAY_SIZE - 1))
+        fw = max(1, min(fw, H2RG_ARRAY_SIZE - fx))
+        fh = max(1, min(fh, H2RG_ARRAY_SIZE - fy))
+        self._h2rg_rois[index] = (fx, fy, fw, fh)
         try:
-            config.set_local(H2RG_SECTION, f"ROI {index}", f"{x},{y},{w},{h}")
+            config.set_local(H2RG_SECTION, f"ROI {index}", f"{fx},{fy},{fw},{fh}")
             config.write_local()
         except Exception as exc:
             print(f"H2RG ROI config save failed: {exc}")
@@ -2530,21 +2763,29 @@ class H2rgMainWindow(QMainWindow):
 
     def _update_roi_overlays(self) -> None:
         selected = set(self._selected_roi_indices())
+        local = self._rois_in_image_coords()
+        visible = selected & set(local)
         if isinstance(self.image, _PixmapImageView):
             # Keep in-progress drag geometry; only sync from config when idle.
             if self.image._roi_drag is None:
-                # Skip rebuild when overlays are unchanged (setImage already paints them).
                 if (
-                    self.image._roi_rects == self._h2rg_rois
-                    and self.image._roi_visible == selected
+                    self.image._roi_rects == local
+                    and self.image._roi_visible == visible
                 ):
                     return
-                self.image.set_roi_overlays(self._h2rg_rois, selected)
+                self.image.set_roi_overlays(local, visible)
             else:
-                self.image._roi_visible = set(selected)
+                self.image._roi_visible = set(visible)
                 self.image._rebuild_pixmap()
             return
         for index, roi in self._roi_overlays.items():
+            geom = local.get(index)
+            if geom is None:
+                roi.setVisible(False)
+                continue
+            x, y, w, h = geom
+            roi.setPos([x, y])
+            roi.setSize([w, h])
             roi.setVisible(index in selected)
 
     def _flush_pending_roi_update(self) -> None:
@@ -2569,7 +2810,12 @@ class H2rgMainWindow(QMainWindow):
     ) -> None:
         if self._roi_panel is None or not self._h2rg_rois:
             return
-        results, regions = compute_roi_brightness(frame, self._h2rg_rois)
+        args = self._roi_window_args_for_frame(frame)
+        results, regions = compute_roi_brightness(
+            frame,
+            self._h2rg_rois,
+            **args,  # type: ignore[arg-type]
+        )
         for index, row in self._roi_panel.rows.items():
             row.set_values(results.get(index))
 
@@ -2807,6 +3053,9 @@ class H2rgMainWindow(QMainWindow):
     def _on_window_mode_changed(self, index: int) -> None:
         if not self._initialized:
             return
+        if 0 <= index < len(WINDOW_MODES):
+            # Remap ROI overlays immediately to the selected geometry.
+            self._set_display_window_from_mode(WINDOW_MODES[index])
         self._schedule_window_mode_apply(index)
 
     def _schedule_window_mode_apply(self, index: int) -> None:
@@ -2865,6 +3114,8 @@ class H2rgMainWindow(QMainWindow):
         # uses so photon/execution match immediately (not only on Acquire).
         self._applied_exposure_fingerprint = None
         self._apply_exposure_settings(macie)
+        # Keep ROI remap in sync (worker → GUI) with the mode we programmed.
+        self.display_window_updated.emit(display_window_origin(mode))
 
     def _apply_detector_mode_to_macie(
         self, macie, mode_index: int, window_index: int
@@ -4422,8 +4673,12 @@ class H2rgMainWindow(QMainWindow):
             combo.blockSignals(True)
             combo.setCurrentIndex(window_index)
             combo.blockSignals(False)
+            self._set_display_window_from_mode(WINDOW_MODES[window_index])
         elif data["windowed"]:
             self._set_status(data["window_status"])
+            self._set_display_window_from_mode()
+        else:
+            self._set_display_window_from_mode(WINDOW_MODES[0])
         self.ui.lineEdit_nb_coadd.setText(data["ncoadds"])
         self.ui.lineEdit_nb_frames.setText(data["nseq"])
         if data.get("tint_s") is not None:
@@ -4555,8 +4810,9 @@ class H2rgMainWindow(QMainWindow):
                 self.image.setImage(display, autoLevels=False)
         if status:
             self._set_status(status)
-        # Sync ROI numbers + plots each frame (natural soft-SC spacing is fine).
+        # Sync overlays to subframe geometry, then ROI numbers + plots.
         self._update_roi_values(display, record=True)
+        self._update_roi_overlays()
         self._refresh_roi_plots(force=True)
 
     def _wait_for_acquire_frames(
@@ -4937,6 +5193,8 @@ class H2rgMainWindow(QMainWindow):
                 else:
                     self.image.setImage(display, autoLevels=False)
                     self._sync_level_fields_from_image()
+            # Sync remap origin from this buffer before painting overlays.
+            self._roi_window_args_for_frame(display)
             self._update_roi_overlays()
         finally:
             self.setUpdatesEnabled(True)
