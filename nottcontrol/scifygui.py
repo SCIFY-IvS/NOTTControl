@@ -470,6 +470,7 @@ class MainWindow(QMainWindow):
                 connected=bool(status.get("connected")),
                 recording=bool(status.get("recording")),
                 live=bool(status.get("live")),
+                acquiring=bool(status.get("acquiring")),
                 files_today=status.get("files_today"),
                 frame_size=str(status.get("frame_size", "—")),
                 utc_day=status.get("utc_day"),

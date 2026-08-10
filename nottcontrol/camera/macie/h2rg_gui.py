@@ -2542,8 +2542,10 @@ class H2rgMainWindow(QMainWindow):
             if MACIE_RECORD_ROIS:
                 self._store_rois_to_redis(stamp, results)
 
-        # Throttled redraw of T / 1D plots (Linux uses safe axis fonts in H2rgRoiPlots).
-        self._refresh_roi_plots(force=not record)
+        # Throttled for Live; force during Acquire so multi-frame previews refresh.
+        self._refresh_roi_plots(
+            force=self._macie_operation_busy or not record
+        )
 
     def _store_rois_to_redis(
         self, stamp: datetime, results: dict
@@ -2607,6 +2609,7 @@ class H2rgMainWindow(QMainWindow):
             self._set_exposure_panel_enabled(False)
             return
 
+        self._update_next_frame_number()
         if self._live_active:
             self._set_live_dependent_controls(True)
             return
@@ -4272,12 +4275,14 @@ class H2rgMainWindow(QMainWindow):
             if local_ok and len(seen) >= expected_count:
                 stable_since = None
                 break
-            elif local_ok and seen:
+            elif local_ok and seen and expected_count <= 1:
+                # Single-frame acquire: stop once the first new file looks stable.
                 if stable_since is None:
                     stable_since = time.monotonic()
                 elif time.monotonic() - stable_since >= 1.0:
                     break
             else:
+                # Still waiting for more of the expected multi-frame set.
                 stable_since = None
 
             now = time.monotonic()
@@ -4582,7 +4587,10 @@ class H2rgMainWindow(QMainWindow):
         self._schedule_roi_update(display, record=is_new_frame)
         self._layout_image_frame()
         self._sync_cursor_readout_label()
-        self._update_next_frame_number()
+        # Skip during Acquire: next_fits_frame_number rglob's the save tree and
+        # freezes the GUI so multi-frame previews never paint.
+        if not self._macie_operation_busy:
+            self._update_next_frame_number()
 
     def get_dashboard_status(self) -> dict[str, object]:
         utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -4595,7 +4603,7 @@ class H2rgMainWindow(QMainWindow):
 
         connected = self._macie is not None
         live = bool(self._live_active)
-        recording = bool(self._macie_operation_busy) and not live
+        acquiring = bool(self._macie_operation_busy) and not live
 
         frame = self._current_frame
         if frame is not None and getattr(frame, "ndim", 0) >= 2:
@@ -4617,7 +4625,8 @@ class H2rgMainWindow(QMainWindow):
         return {
             "mode": "H2RG",
             "connected": connected,
-            "recording": recording,
+            "recording": False,
+            "acquiring": acquiring,
             "live": live,
             "powered": powered,
             "files_today": files_today,

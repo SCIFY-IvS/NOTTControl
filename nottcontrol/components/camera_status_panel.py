@@ -10,6 +10,7 @@ from nottcontrol.ui_scale import scaled
 def _value_style(style_key: str) -> str:
     colors = {
         "recording": "rgb(0, 140, 70)",
+        "acquiring": "rgb(0, 140, 70)",
         "live": "rgb(0, 140, 70)",
         "idle": "rgb(50, 129, 140)",
         "disconnected": "rgb(140, 140, 140)",
@@ -71,6 +72,7 @@ class CameraStatusPanel(QWidget):
         utc_day: str | None = None,
         mode: str | None = None,
         live: bool = False,
+        acquiring: bool = False,
     ) -> None:
         mode_text = (mode or "—").strip() or "—"
         self._mode_label.setText(mode_text)
@@ -84,6 +86,9 @@ class CameraStatusPanel(QWidget):
         elif live:
             acquisition = "Live"
             style_key = "live"
+        elif acquiring:
+            acquisition = "Acquiring"
+            style_key = "acquiring"
         elif recording:
             acquisition = "Recording"
             style_key = "recording"
