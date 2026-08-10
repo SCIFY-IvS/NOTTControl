@@ -1165,9 +1165,10 @@ def list_new_ramp_fits_in_dir(
 class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
-    # Intermediate multi-frame acquires: BlockingQueued so each image paints
-    # before the worker loads the next FITS (QueuedConnection only showed the last).
-    acquire_preview_ready = pyqtSignal(object, str)
+    # Intermediate multi-frame acquires: frame, status, threading.Event ack.
+    # QueuedConnection + Event.wait — BlockingQueued is unreliable from plain
+    # Python threads (not QThread), so paints never reached the GUI thread.
+    acquire_preview_ready = pyqtSignal(object, str, object)
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
     status_updated = pyqtSignal(str)
@@ -1192,7 +1193,7 @@ class H2rgMainWindow(QMainWindow):
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
         self.acquire_preview_ready.connect(
-            self._display_acquire_preview, Qt.BlockingQueuedConnection
+            self._display_acquire_preview, Qt.QueuedConnection
         )
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
@@ -3153,6 +3154,9 @@ class H2rgMainWindow(QMainWindow):
     ) -> None:
         if status:
             self.status_updated.emit(status)
+        # Set busy synchronously so worker-side checks (save-dir sync, next-frame
+        # rglob) see it before the Queued GUI slot runs.
+        self._macie_operation_busy = True
         self.macie_operation_busy.emit(True)
 
         def worker() -> None:
@@ -3170,6 +3174,7 @@ class H2rgMainWindow(QMainWindow):
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
+                self._macie_operation_busy = False
                 self.macie_operation_busy.emit(False)
                 if isinstance(done_event, threading.Event):
                     done_event.set()
@@ -3519,8 +3524,8 @@ class H2rgMainWindow(QMainWindow):
                 result = macie.acquire()
             finally:
                 stop_preview.set()
-                # Allow in-flight BlockingQueued paints + dwell to finish.
-                preview_thread.join(timeout=max(2.0, expected * 0.6))
+                # Allow in-flight GUI paints + dwell to finish.
+                preview_thread.join(timeout=max(2.0, expected * 0.75))
 
             # Multi-frame: skip early ZMQ paint — it is only the last ramp and
             # QueuedConnection + processEvents would jump the GUI to the end
@@ -3844,7 +3849,10 @@ class H2rgMainWindow(QMainWindow):
         if mapped != self._save_dir:
             self._save_dir = mapped
             self._fits_dir_ok = None
-        self._update_next_frame_number()
+        # Preview poll calls this from a worker thread during Acquire; rglob +
+        # QLineEdit updates freeze/corrupt the GUI so intermediate frames never show.
+        if not self._macie_operation_busy:
+            self._update_next_frame_number()
 
     def _update_next_frame_number(self) -> None:
         """Show the next free FITS ramp index in the acquisition panel."""
@@ -4179,11 +4187,14 @@ class H2rgMainWindow(QMainWindow):
                 return None
             displayed.add(path.name)
             status = f"Acquire: frame {index}/{expected_count} — {path.name}"
-        # Block until the GUI paints this frame so multi-frame sequences are visible.
-        self.acquire_preview_ready.emit(frame, status)
+        # Queue paint on the GUI thread, then wait until it finishes (and flushes).
+        done = threading.Event()
+        self.acquire_preview_ready.emit(frame, status, done)
+        if not done.wait(timeout=15.0):
+            print(f"H2RG acquire preview GUI ack timed out for {path.name}")
         # When several FITS appear in a burst, dwell so each image is perceptible.
         if expected_count > 1:
-            time.sleep(0.35)
+            time.sleep(0.45)
         return frame
 
     def _poll_acquire_previews(
@@ -4213,37 +4224,45 @@ class H2rgMainWindow(QMainWindow):
             if len(self._acquire_previewed_names) >= expected_count:
                 break
 
-    def _display_acquire_preview(self, frame, status: str = "") -> None:
-        """Lightweight image update for multi-frame Acquire (GUI thread)."""
-        self._ensure_image_view()
-        if self.image is None or frame is None:
-            return
-        self._current_frame = numpy.asarray(frame)
-        self._update_central_value(self._current_frame)
-        display = self._build_display_frame()
-        if display is None:
-            return
-        display = numpy.ascontiguousarray(display, dtype=numpy.float32)
-        # Avoid setUpdatesEnabled(False) and processEvents here — both let
-        # Queued paints coalesce / jump so only the last frame was visible.
-        # ROI panel updates wait for the final frame_ready after Acquire.
-        if self._autoscale_enabled():
-            self.image.setImage(display, autoLevels=True)
-        else:
-            levels = self._read_level_fields() or self._manual_levels
-            if levels is not None:
-                self._manual_levels = levels
-                self.image.setImage(display, autoLevels=False, levels=levels)
+    def _display_acquire_preview(
+        self, frame, status: str = "", done=None
+    ) -> None:
+        """Paint one Acquire frame + ROI plots on the GUI thread, then ack."""
+        try:
+            self._ensure_image_view()
+            if self.image is None or frame is None:
+                return
+            self._current_frame = numpy.asarray(frame)
+            self._update_central_value(self._current_frame)
+            display = self._build_display_frame()
+            if display is None:
+                return
+            display = numpy.ascontiguousarray(display, dtype=numpy.float32)
+            # No setUpdatesEnabled(False) — that coalesced multi-frame paints.
+            if self._autoscale_enabled():
+                self.image.setImage(display, autoLevels=True)
             else:
-                self.image.setImage(display, autoLevels=False)
-        self._update_roi_overlays()
-        if status:
-            self._set_status(status)
-        self._sync_cursor_readout_label()
-        if hasattr(self.image, "update"):
-            self.image.update()
-        if hasattr(self.image, "repaint"):
-            self.image.repaint()
+                levels = self._read_level_fields() or self._manual_levels
+                if levels is not None:
+                    self._manual_levels = levels
+                    self.image.setImage(display, autoLevels=False, levels=levels)
+                else:
+                    self.image.setImage(display, autoLevels=False)
+            self._update_roi_overlays()
+            if status:
+                self._set_status(status)
+            # Sync ROI panel/plots each frame (Jul 19 behavior); deferred timer
+            # only kept the last sample during a Queued burst.
+            self._update_roi_values(display, record=True)
+            self._refresh_roi_plots(force=True)
+            self._sync_cursor_readout_label()
+            if hasattr(self.image, "repaint"):
+                self.image.repaint()
+            # Flush to the display before the worker continues (needed under VNC).
+            QApplication.processEvents()
+        finally:
+            if done is not None:
+                done.set()
 
     def _wait_for_acquire_frames(
         self,
