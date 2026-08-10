@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import queue
 import subprocess
 import sys
 import threading
@@ -115,6 +116,8 @@ MACIE_ROI_DEQUE_LENGTH = max(
     60, int(MACIE_ROI_TIME_WINDOW_S * MACIE_ROI_TIME_PLOT_MAX_HZ)
 )
 MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
+# Multi-frame Acquire: GUI only paints; a worker loads FITS off-thread.
+MACIE_ACQUIRE_PREVIEW_INTERVAL_MS = 250
 
 from nottcontrol.theme import (
     APP_MONO_FAMILY,
@@ -1165,10 +1168,9 @@ def list_new_ramp_fits_in_dir(
 class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
-    # Intermediate multi-frame acquires: frame, status, threading.Event ack.
-    # QueuedConnection + Event.wait — BlockingQueued is unreliable from plain
-    # Python threads (not QThread), so paints never reached the GUI thread.
-    acquire_preview_ready = pyqtSignal(object, str, object)
+    # Start/stop GUI-thread FITS preview polling during multi-frame Acquire.
+    acquire_preview_start = pyqtSignal(float, object, int)  # mtime, before_name, expected
+    acquire_preview_stop = pyqtSignal()
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
     status_updated = pyqtSignal(str)
@@ -1192,8 +1194,11 @@ class H2rgMainWindow(QMainWindow):
         self._init_runtime_state()
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
-        self.acquire_preview_ready.connect(
-            self._display_acquire_preview, Qt.QueuedConnection
+        self.acquire_preview_start.connect(
+            self._on_acquire_preview_start, Qt.QueuedConnection
+        )
+        self.acquire_preview_stop.connect(
+            self._on_acquire_preview_stop, Qt.QueuedConnection
         )
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
@@ -1292,7 +1297,18 @@ class H2rgMainWindow(QMainWindow):
         self._lineEdit_level_max: QLineEdit | None = None
         self._manual_levels: tuple[float, float] | None = None
         self._acquire_previewed_names: set[str] = set()
-        self._acquire_preview_lock = threading.Lock()
+        self._acquire_preview_before_mtime = 0.0
+        self._acquire_preview_before_name: str | None = None
+        self._acquire_preview_expected = 1
+        self._acquire_preview_finishing = False
+        self._acquire_complete_pending = False
+        self._acquire_preview_queue: queue.SimpleQueue | None = None
+        self._acquire_load_stop: threading.Event | None = None
+        self._acquire_loader_done = threading.Event()
+        self._acquire_loader_done.set()
+        self._acquire_preview_timer = QTimer(self)
+        self._acquire_preview_timer.setInterval(MACIE_ACQUIRE_PREVIEW_INTERVAL_MS)
+        self._acquire_preview_timer.timeout.connect(self._on_acquire_preview_tick)
         self._pending_roi_display: numpy.ndarray | None = None
         self._pending_roi_record = False
         self._applied_exposure_fingerprint: tuple | None = None
@@ -2501,6 +2517,12 @@ class H2rgMainWindow(QMainWindow):
         if isinstance(self.image, _PixmapImageView):
             # Keep in-progress drag geometry; only sync from config when idle.
             if self.image._roi_drag is None:
+                # Skip rebuild when overlays are unchanged (setImage already paints them).
+                if (
+                    self.image._roi_rects == self._h2rg_rois
+                    and self.image._roi_visible == selected
+                ):
+                    return
                 self.image.set_roi_overlays(self._h2rg_rois, selected)
             else:
                 self.image._roi_visible = set(selected)
@@ -2524,7 +2546,10 @@ class H2rgMainWindow(QMainWindow):
         self._pending_roi_display = display
         self._pending_roi_record = record or self._pending_roi_record
         if not self._roi_update_timer.isActive():
-            self._roi_update_timer.start(0)
+            # Coalesce ROI/plot work during multi-frame Acquire previews.
+            delay_ms = 80 if self._acquire_preview_timer.isActive() else 0
+            self._roi_update_timer.start(delay_ms)
+
     def _update_roi_values(
         self, frame: numpy.ndarray, *, record: bool
     ) -> None:
@@ -3513,38 +3538,38 @@ class H2rgMainWindow(QMainWindow):
             )
             expected = max(1, nseq)
             self._acquire_previewed_names = set()
-            stop_preview = threading.Event()
-            preview_thread = threading.Thread(
-                target=self._poll_acquire_previews,
-                args=(macie, before_mtime, before_name, expected, stop_preview),
-                daemon=True,
-            )
-            preview_thread.start()
+            # GUI-thread timer shows each new FITS as it appears (one per tick).
+            # Avoid worker-thread paints / Event.wait / processEvents — those made
+            # the GUI sluggish and still only showed the last frame.
+            if expected > 1:
+                self.acquire_preview_start.emit(before_mtime, before_name, expected)
+            result = None
+            ramp_paths: list[Path] = []
+            frame = None
+            preview_path = None
             try:
                 result = macie.acquire()
-            finally:
-                stop_preview.set()
-                # Allow in-flight GUI paints + dwell to finish.
-                preview_thread.join(timeout=max(2.0, expected * 0.75))
+                # Multi-frame: skip early ZMQ paint — it is only the last ramp.
+                if result.frame is not None and expected <= 1:
+                    self._frame_timing_skip_report = True
+                    self.frame_ready.emit(
+                        numpy.asarray(result.frame, dtype=numpy.float32)
+                    )
+                    self.status_updated.emit("Acquire: preview — ZMQ")
 
-            # Multi-frame: skip early ZMQ paint — it is only the last ramp and
-            # QueuedConnection + processEvents would jump the GUI to the end
-            # while FITS previews are still being shown.
-            if result.frame is not None and expected <= 1:
-                self._frame_timing_skip_report = True
-                self.frame_ready.emit(
-                    numpy.asarray(result.frame, dtype=numpy.float32)
+                ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
+                    before_mtime,
+                    macie,
+                    before_name=before_name,
+                    expected_count=expected,
+                    timeout_s=wait_timeout_s,
+                    display_each=False,
                 )
-                self.status_updated.emit("Acquire: preview — ZMQ")
+            except Exception:
+                if expected > 1:
+                    self.acquire_preview_stop.emit()
+                raise
 
-            ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
-                before_mtime,
-                macie,
-                before_name=before_name,
-                expected_count=expected,
-                timeout_s=wait_timeout_s,
-                display_each=True,
-            )
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
                 for ramp_path in ramp_paths:
@@ -3567,21 +3592,27 @@ class H2rgMainWindow(QMainWindow):
                 self._frame_timing_status = self._acquire_complete_status(
                     ramp_paths, science_paths
                 )
-                self.frame_ready.emit(frame)
-            elif result.frame is not None:
-                self._last_fits_path = None
-                self._frame_timing_status = (
-                    "Acquire complete — ZMQ preview (archive FITS missing)"
-                )
                 if expected > 1:
+                    # Paced GUI timer shows each ramp; skip final frame_ready so
+                    # we don't jump straight to the last image.
+                    self._acquire_complete_pending = True
+                    self.acquire_preview_stop.emit()
+                else:
+                    self.frame_ready.emit(frame)
+            else:
+                if expected > 1:
+                    self.acquire_preview_stop.emit()
+                if result is not None and result.frame is not None:
+                    self._last_fits_path = None
+                    self._frame_timing_status = (
+                        "Acquire complete — ZMQ preview (archive FITS missing)"
+                    )
                     self.frame_ready.emit(
                         numpy.asarray(result.frame, dtype=numpy.float32)
                     )
                 else:
-                    self._report_frame_timing()
-            else:
-                self._frame_timing_t0 = None
-                self.status_updated.emit(self._missing_fits_status())
+                    self._frame_timing_t0 = None
+                    self.status_updated.emit(self._missing_fits_status())
 
         self._run_macie_operation("Acquire", operation, done_event=done_event)
 
@@ -4163,106 +4194,178 @@ class H2rgMainWindow(QMainWindow):
             dir_ok=True,
         )
 
-    def _emit_acquire_preview(
-        self,
-        path: Path,
-        *,
-        index: int,
-        expected_count: int,
-    ) -> numpy.ndarray | None:
-        """Load *path* and show it in the GUI if not already displayed."""
-        with self._acquire_preview_lock:
-            displayed = getattr(self, "_acquire_previewed_names", None)
-            if displayed is None:
-                displayed = set()
-                self._acquire_previewed_names = displayed
-            if path.name in displayed:
-                return None
-            try:
-                if not path.is_file():
-                    return None
-                frame = self._load_fits_from_path(path)
-            except Exception as exc:
-                print(f"H2RG acquire preview skipped {path.name}: {exc}")
-                return None
-            displayed.add(path.name)
-            status = f"Acquire: frame {index}/{expected_count} — {path.name}"
-        # Queue paint on the GUI thread, then wait until it finishes (and flushes).
-        done = threading.Event()
-        self.acquire_preview_ready.emit(frame, status, done)
-        if not done.wait(timeout=15.0):
-            print(f"H2RG acquire preview GUI ack timed out for {path.name}")
-        # When several FITS appear in a burst, dwell so each image is perceptible.
-        if expected_count > 1:
-            time.sleep(0.45)
-        return frame
+    def _on_acquire_preview_start(
+        self, before_mtime: float, before_name, expected: int
+    ) -> None:
+        """GUI thread: start off-thread FITS loading + paced image paints."""
+        if self._acquire_load_stop is not None:
+            self._acquire_load_stop.set()
+        self._acquire_previewed_names = set()
+        self._acquire_preview_before_mtime = float(before_mtime)
+        self._acquire_preview_before_name = before_name
+        self._acquire_preview_expected = max(1, int(expected))
+        self._acquire_preview_finishing = False
+        self._acquire_complete_pending = False
+        self._acquire_preview_queue = queue.SimpleQueue()
+        self._acquire_load_stop = threading.Event()
+        self._acquire_loader_done.clear()
+        reduction = self._selected_ramp_mode()
+        fowler = self._fowler_pairs_value()
+        threading.Thread(
+            target=self._acquire_preview_loader,
+            args=(
+                float(before_mtime),
+                before_name,
+                self._acquire_preview_expected,
+                self._acquire_load_stop,
+                reduction,
+                fowler,
+            ),
+            daemon=True,
+            name="h2rg-acquire-preview",
+        ).start()
+        if not self._acquire_preview_timer.isActive():
+            self._acquire_preview_timer.start()
 
-    def _poll_acquire_previews(
+    def _on_acquire_preview_stop(self) -> None:
+        """GUI thread: stop the loader; keep painting queued frames at the timer rate."""
+        self._acquire_preview_finishing = True
+        if self._acquire_load_stop is not None:
+            self._acquire_load_stop.set()
+        if not self._acquire_preview_timer.isActive():
+            self._acquire_preview_timer.start()
+        QTimer.singleShot(0, self._on_acquire_preview_tick)
+
+    def _finish_acquire_preview_sequence(self) -> None:
+        self._acquire_preview_timer.stop()
+        self._acquire_preview_finishing = False
+        if self._acquire_load_stop is not None:
+            self._acquire_load_stop.set()
+        if self._acquire_complete_pending:
+            self._acquire_complete_pending = False
+            self._report_frame_timing()
+
+    def _acquire_preview_loader(
         self,
-        macie,
         before_mtime: float,
         before_name: str | None,
-        expected_count: int,
+        expected: int,
         stop_event: threading.Event,
+        reduction: str,
+        fowler: int,
     ) -> None:
-        """While acquire() blocks, show each new local FITS as it is written."""
-        while not stop_event.wait(0.25):
-            try:
-                self._sync_save_dir_from_server(macie)
-            except Exception:
-                pass
-            if not self._local_fits_accessible(allow_probe=True):
-                continue
-            for path in self._collect_new_ramp_paths(
-                before_mtime, before_name=before_name
-            ):
-                self._emit_acquire_preview(
-                    path,
-                    index=len(self._acquire_previewed_names) + 1,
-                    expected_count=expected_count,
-                )
-            if len(self._acquire_previewed_names) >= expected_count:
-                break
+        """Load new ramp FITS off the GUI thread; enqueue arrays for paced display."""
+        loaded: set[str] = set()
 
-    def _display_acquire_preview(
-        self, frame, status: str = "", done=None
-    ) -> None:
-        """Paint one Acquire frame + ROI plots on the GUI thread, then ack."""
+        def ingest() -> None:
+            if len(loaded) >= expected:
+                return
+            try:
+                if not self._local_fits_accessible(allow_probe=True):
+                    return
+                paths = list_new_ramp_fits_in_dir(
+                    self._save_dir,
+                    before_mtime=before_mtime,
+                    before_name=before_name,
+                    dir_ok=True,
+                )
+            except Exception:
+                return
+            ordered = sorted(
+                paths,
+                key=lambda path: (
+                    path.stat().st_mtime if path.exists() else 0.0,
+                    path.name.lower(),
+                ),
+            )
+            q = self._acquire_preview_queue
+            for path in ordered:
+                if len(loaded) >= expected:
+                    return
+                if path.name in loaded:
+                    continue
+                try:
+                    if not path.is_file():
+                        continue
+                    data, header = load_fits_data(path)
+                    frame = science_image_from_cube(
+                        data,
+                        header,
+                        reduction=reduction,  # type: ignore[arg-type]
+                        fowler_pairs=fowler,
+                    )
+                except Exception as exc:
+                    print(f"H2RG acquire preview skipped {path.name}: {exc}")
+                    continue
+                loaded.add(path.name)
+                status = f"Acquire: frame {len(loaded)}/{expected} — {path.name}"
+                if q is not None:
+                    q.put((path.name, numpy.asarray(frame, dtype=numpy.float32), status))
+
         try:
-            self._ensure_image_view()
-            if self.image is None or frame is None:
-                return
-            self._current_frame = numpy.asarray(frame)
-            self._update_central_value(self._current_frame)
-            display = self._build_display_frame()
-            if display is None:
-                return
-            display = numpy.ascontiguousarray(display, dtype=numpy.float32)
-            # No setUpdatesEnabled(False) — that coalesced multi-frame paints.
-            if self._autoscale_enabled():
-                self.image.setImage(display, autoLevels=True)
-            else:
-                levels = self._read_level_fields() or self._manual_levels
-                if levels is not None:
-                    self._manual_levels = levels
-                    self.image.setImage(display, autoLevels=False, levels=levels)
-                else:
-                    self.image.setImage(display, autoLevels=False)
-            self._update_roi_overlays()
-            if status:
-                self._set_status(status)
-            # Sync ROI panel/plots each frame (Jul 19 behavior); deferred timer
-            # only kept the last sample during a Queued burst.
-            self._update_roi_values(display, record=True)
-            self._refresh_roi_plots(force=True)
-            self._sync_cursor_readout_label()
-            if hasattr(self.image, "repaint"):
-                self.image.repaint()
-            # Flush to the display before the worker continues (needed under VNC).
-            QApplication.processEvents()
+            while not stop_event.wait(0.2):
+                ingest()
+                if len(loaded) >= expected:
+                    return
+            ingest()
         finally:
-            if done is not None:
-                done.set()
+            self._acquire_loader_done.set()
+
+    def _on_acquire_preview_tick(self) -> bool:
+        """Paint at most one queued preview frame (no FITS I/O on the GUI thread)."""
+        if self._acquire_preview_expected <= 1:
+            return False
+        if len(self._acquire_previewed_names) >= self._acquire_preview_expected:
+            self._finish_acquire_preview_sequence()
+            return False
+        q = self._acquire_preview_queue
+        if q is None:
+            if self._acquire_preview_finishing:
+                self._finish_acquire_preview_sequence()
+            return False
+        try:
+            name, frame, status = q.get_nowait()
+        except queue.Empty:
+            if self._acquire_preview_finishing and self._acquire_loader_done.is_set():
+                self._finish_acquire_preview_sequence()
+            return False
+        if name in self._acquire_previewed_names:
+            return True
+        self._acquire_previewed_names.add(name)
+        self._display_acquire_preview(frame, status)
+        if len(self._acquire_previewed_names) >= self._acquire_preview_expected:
+            self._finish_acquire_preview_sequence()
+        return True
+
+    def _display_acquire_preview(self, frame, status: str = "") -> None:
+        """Minimal Acquire paint: one setImage + deferred ROI (no processEvents)."""
+        self._ensure_image_view()
+        if self.image is None or frame is None:
+            return
+        # Use the 2D science plane directly — do not restamp _raw_fits_cube here.
+        frame = numpy.asarray(frame, dtype=numpy.float32)
+        self._current_frame = frame
+        display = frame
+        if (
+            self.ui is not None
+            and self.ui.checkBox_substract_background.isChecked()
+            and self._background is not None
+            and self._background.shape == frame.shape
+        ):
+            display = frame - self._background
+        display = numpy.ascontiguousarray(display, dtype=numpy.float32)
+        if self._autoscale_enabled():
+            self.image.setImage(display, autoLevels=True)
+        else:
+            levels = self._read_level_fields() or self._manual_levels
+            if levels is not None:
+                self._manual_levels = levels
+                self.image.setImage(display, autoLevels=False, levels=levels)
+            else:
+                self.image.setImage(display, autoLevels=False)
+        if status:
+            self._set_status(status)
+        self._schedule_roi_update(display, record=True)
 
     def _wait_for_acquire_frames(
         self,
@@ -4274,45 +4377,23 @@ class H2rgMainWindow(QMainWindow):
         timeout_s: float = 30.0,
         display_each: bool = False,
     ) -> tuple[list[Path], numpy.ndarray | None, Path | None]:
+        # display_each is unused: multi-frame painting is owned by the GUI
+        # _acquire_preview_timer (one frame per tick). Kept for call-site compat.
+        del display_each
         import time
 
         self._sync_save_dir_from_server(macie)
         deadline = time.monotonic() + timeout_s
         seen: dict[str, Path] = {}
         zmq_seen: set[str] = set()
-        last_frame: numpy.ndarray | None = None
         server_path_checked_at = 0.0
         stable_since: float | None = None
-        if display_each and not hasattr(self, "_acquire_previewed_names"):
-            self._acquire_previewed_names = set()
-
-        def preview_seen() -> None:
-            nonlocal last_frame
-            if not display_each:
-                return
-            displayed = self._acquire_previewed_names
-            ordered = sorted(
-                seen.values(),
-                key=lambda path: (
-                    path.stat().st_mtime if path.exists() else 0.0,
-                    path.name.lower(),
-                ),
-            )
-            for path in ordered:
-                frame = self._emit_acquire_preview(
-                    path,
-                    index=len(displayed) + 1,
-                    expected_count=expected_count,
-                )
-                if frame is not None:
-                    last_frame = frame
 
         while time.monotonic() < deadline:
             for path in self._collect_new_ramp_paths(
                 before_mtime, before_name=before_name
             ):
                 seen[path.name] = path
-            preview_seen()
 
             local_ok = self._local_fits_accessible(allow_probe=True)
             # ZMQ fetch when the configured local fits_directory is missing *or*
@@ -4341,7 +4422,6 @@ class H2rgMainWindow(QMainWindow):
                             seen[path.name] = path
                             zmq_seen.add(path.name)
                             before_name = path.name
-                            preview_seen()
                 if len(seen) >= expected_count:
                     break
             if local_ok and len(seen) >= expected_count:
@@ -4370,7 +4450,6 @@ class H2rgMainWindow(QMainWindow):
                     if loaded is not None:
                         _frame, path = loaded
                         seen[path.name] = path
-                        preview_seen()
             time.sleep(0.2)
 
         ramp_paths = sorted(
@@ -4398,19 +4477,7 @@ class H2rgMainWindow(QMainWindow):
         if not ramp_paths:
             return [], None, None
 
-        preview_seen()
         preview_path = ramp_paths[-1]
-        if display_each and last_frame is not None and preview_path.name in getattr(
-            self, "_acquire_previewed_names", set()
-        ):
-            # Already shown during acquire; reload so science save has a fresh header.
-            try:
-                if preview_path.is_file():
-                    return ramp_paths, self._load_fits_from_path(preview_path), preview_path
-            except Exception:
-                return ramp_paths, last_frame, preview_path
-            return ramp_paths, last_frame, preview_path
-
         try:
             if preview_path.is_file():
                 frame = self._load_fits_from_path(preview_path)
