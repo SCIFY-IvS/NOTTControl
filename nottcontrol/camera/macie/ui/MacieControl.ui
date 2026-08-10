@@ -280,7 +280,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Take Background</string>
+     <string>Use as Background</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_live">

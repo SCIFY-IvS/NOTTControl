@@ -10,16 +10,18 @@ from nottcontrol.ui_scale import scaled
 def _value_style(style_key: str) -> str:
     colors = {
         "recording": "rgb(0, 140, 70)",
+        "live": "rgb(0, 140, 70)",
         "idle": "rgb(50, 129, 140)",
         "disconnected": "rgb(140, 140, 140)",
         "neutral": "rgb(60, 60, 60)",
+        "mode": "rgb(50, 129, 140)",
     }
     color = colors.get(style_key, colors["neutral"])
     return f'font: 700 10pt "Segoe UI"; color: {color};'
 
 
 class CameraStatusPanel(QWidget):
-    """Compact INFRATEC camera status for the main dashboard."""
+    """Compact camera status for the main dashboard (INFRATEC or H2RG)."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -37,6 +39,7 @@ class CameraStatusPanel(QWidget):
         grid.setVerticalSpacing(6)
 
         rows = (
+            ("Camera mode", "_mode_label", None),
             ("Acquisition", "_acquisition_label", None),
             ("Files today", "_files_label", "_files_name_label"),
             ("Frame size", "_frame_size_label", None),
@@ -66,10 +69,21 @@ class CameraStatusPanel(QWidget):
         files_today: int | None,
         frame_size: str,
         utc_day: str | None = None,
+        mode: str | None = None,
+        live: bool = False,
     ) -> None:
+        mode_text = (mode or "—").strip() or "—"
+        self._mode_label.setText(mode_text)
+        self._mode_label.setStyleSheet(
+            _value_style("mode" if mode_text != "—" else "disconnected")
+        )
+
         if not connected:
             acquisition = "Disconnected"
             style_key = "disconnected"
+        elif live:
+            acquisition = "Live"
+            style_key = "live"
         elif recording:
             acquisition = "Recording"
             style_key = "recording"

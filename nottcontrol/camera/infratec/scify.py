@@ -98,8 +98,10 @@ def camera_status_snapshot(camera_window=None) -> dict[str, object]:
         return camera_window.get_dashboard_status()
     utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
     return {
+        "mode": "—",
         "connected": False,
         "recording": False,
+        "live": False,
         "files_today": count_frames_saved_for_utc_day(utc_day),
         "utc_day": utc_day,
         "frame_size": "—",
@@ -2075,8 +2077,10 @@ class MainWindow(QMainWindow):
         frame_size = self._frame_size_text()
 
         return {
+            "mode": "INFRATEC",
             "connected": self.connected,
             "recording": recording,
+            "live": False,
             "files_today": files_today,
             "utc_day": utc_day,
             "frame_size": frame_size,

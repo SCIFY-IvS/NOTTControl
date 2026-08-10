@@ -4585,16 +4585,44 @@ class H2rgMainWindow(QMainWindow):
         self._update_next_frame_number()
 
     def get_dashboard_status(self) -> dict[str, object]:
+        utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
         powered = None
         if self._macie is not None:
             try:
                 powered = self._macie.get_power()
             except Exception:
                 powered = None
+
+        connected = self._macie is not None
+        live = bool(self._live_active)
+        recording = bool(self._macie_operation_busy) and not live
+
+        frame = self._current_frame
+        if frame is not None and getattr(frame, "ndim", 0) >= 2:
+            frame_size = f"{int(frame.shape[1])} × {int(frame.shape[0])}"
+        else:
+            frame_size = "—"
+
+        try:
+            files_today = sum(
+                1
+                for path in list_ramp_fits_in_dir(
+                    self._save_dir, dir_ok=self._fits_dir_ok
+                )
+                if utc_day in path.name
+            )
+        except Exception:
+            files_today = None
+
         return {
-            "connected": self._macie is not None,
-            "live": self._live_active,
+            "mode": "H2RG",
+            "connected": connected,
+            "recording": recording,
+            "live": live,
             "powered": powered,
+            "files_today": files_today,
+            "utc_day": utc_day,
+            "frame_size": frame_size,
             "save_dir": str(self._save_dir),
         }
 

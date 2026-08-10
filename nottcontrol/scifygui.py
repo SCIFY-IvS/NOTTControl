@@ -92,7 +92,7 @@ PRESSURE_PANEL_H = 200
 TT_PANEL_H = 285
 SHUTTER_PANEL_H = 165
 TEMP_PANEL_H = 96
-CAMERA_PANEL_H = 115
+CAMERA_PANEL_H = 140
 NAV_BUTTONS_TOP_Y = 118
 
 
@@ -105,6 +105,8 @@ class MainWindow(QMainWindow):
         self.camera_window = None
         self.h2rg_window = None
         self._h2rg_opening = False
+        # Last camera opened for dashboard status when both windows exist.
+        self._dashboard_camera: str | None = None
         self.delayline_window = None
         self.shutter_window = None
         self.tiptilt_window = None
@@ -373,6 +375,7 @@ class MainWindow(QMainWindow):
                 self.camera_window.closing.connect(self.clear_camera_window)
             else:
                 self.camera_window.activateWindow()
+            self._dashboard_camera = "INFRATEC"
             self.load_camera_status()
 
         except Exception as e:
@@ -380,11 +383,15 @@ class MainWindow(QMainWindow):
     
     def clear_camera_window(self):
         self.camera_window = None
+        if self._dashboard_camera == "INFRATEC":
+            self._dashboard_camera = "H2RG" if self.h2rg_window is not None else None
         self.load_camera_status()
 
     def open_h2rg_interface(self):
         if self.h2rg_window is not None:
             self.h2rg_window.activateWindow()
+            self._dashboard_camera = "H2RG"
+            self.load_camera_status()
             return
         if self._h2rg_opening:
             return
@@ -413,6 +420,8 @@ class MainWindow(QMainWindow):
 
             self.h2rg_window = H2rgMainWindow()
             self.h2rg_window.closing.connect(self.clear_h2rg_window)
+            self._dashboard_camera = "H2RG"
+            self.load_camera_status()
         except Exception as exc:
             self._on_h2rg_open_failed(str(exc))
         else:
@@ -430,16 +439,41 @@ class MainWindow(QMainWindow):
 
     def clear_h2rg_window(self):
         self.h2rg_window = None
+        if self._dashboard_camera == "H2RG":
+            self._dashboard_camera = (
+                "INFRATEC" if self.camera_window is not None else None
+            )
+        self.load_camera_status()
 
     def load_camera_status(self):
         try:
-            status = camera_status_snapshot(self.camera_window)
+            window = None
+            mode = self._dashboard_camera
+            if mode == "H2RG" and self.h2rg_window is not None:
+                window = self.h2rg_window
+            elif mode == "INFRATEC" and self.camera_window is not None:
+                window = self.camera_window
+            elif self.h2rg_window is not None:
+                window = self.h2rg_window
+                mode = "H2RG"
+            elif self.camera_window is not None:
+                window = self.camera_window
+                mode = "INFRATEC"
+
+            if window is not None:
+                status = window.get_dashboard_status()
+            else:
+                status = camera_status_snapshot(None)
+                mode = "—"
+
             self.camera_status_panel.update_status(
                 connected=bool(status.get("connected")),
                 recording=bool(status.get("recording")),
+                live=bool(status.get("live")),
                 files_today=status.get("files_today"),
                 frame_size=str(status.get("frame_size", "—")),
                 utc_day=status.get("utc_day"),
+                mode=str(status.get("mode") or mode or "—"),
             )
         except Exception as e:
             print(f"Camera status: {e}")
