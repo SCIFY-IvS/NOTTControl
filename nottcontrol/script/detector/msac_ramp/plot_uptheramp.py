@@ -10,9 +10,15 @@ script selects the **latest** subdirectory (by modification time), then
 loads **all** FITS there.
 
 Frames are stacked in file-index order (last plane of each FITS, or all
-planes of a single multi-sample cube). A **CDS-relative cube** is written
-next to the plot: plane ``k`` is ``frame[k] - frame[0]``. The illuminated
-mean plot uses that differential cube (first point is ~0).
+planes of a single multi-sample cube). Two **CDS-relative cubes** are
+written next to the plot (plane ``k`` = ``frame[k] - frame[0]``):
+
+* full-frame ``msac_uptheramp_frame_minus_first.fits``
+* illuminated-box crop ``msac_uptheramp_frame_minus_first_illum.fits``
+
+The zero self-subtraction plane (``frame[0] - frame[0]``) is **omitted**
+from both cubes. The illuminated-mean plot still includes that first point
+(~0) for reference.
 
 Illuminated box: full-frame default centre ``(X=1045, Y=943)``; if the
 image is smaller than 2048×2048 (windowed), the centre defaults to the
@@ -320,12 +326,25 @@ def relative_to_first(cube: np.ndarray) -> np.ndarray:
     return np.asarray(cube, dtype=np.float64) - first
 
 
+def drop_reference_plane(cube: np.ndarray) -> np.ndarray:
+    """Drop plane 0 of a frame−first cube (always ~0)."""
+    if cube.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
+    if cube.shape[0] < 2:
+        raise ValueError(
+            "Need at least 2 samples to write a cube without the zero "
+            f"reference plane (got {cube.shape[0]})"
+        )
+    return cube[1:]
+
+
 def save_cube_fits(
     path: Path,
     cube: np.ndarray,
     *,
     reference_header: dict | None = None,
     history: str,
+    extra_cards: dict | None = None,
 ) -> None:
     """Write a ``(n, y, x)`` float32 cube to *path*."""
     from astropy.io import fits
@@ -358,14 +377,27 @@ def save_cube_fits(
                     pass
     header["BUNIT"] = "ADU"
     header["REDUCT"] = ("FRAME-FIRST", "Each plane = sample - first sample")
+    header["SKIPREF"] = (
+        True,
+        "Omitted plane 0 (frame0-frame0 == 0)",
+    )
     header["NAXIS"] = 3
     header["NAXIS1"] = data.shape[2]
     header["NAXIS2"] = data.shape[1]
     header["NAXIS3"] = data.shape[0]
+    if extra_cards:
+        for key, value in extra_cards.items():
+            header[key] = value
     header.add_history(history)
 
     fits.PrimaryHDU(data=data, header=header).writeto(path, overwrite=True)
-    logging.info("Wrote CDS-relative cube (%d planes): %s", data.shape[0], path)
+    logging.info(
+        "Wrote CDS-relative cube (%d planes, %d×%d): %s",
+        data.shape[0],
+        data.shape[1],
+        data.shape[2],
+        path,
+    )
 
 
 def illuminated_mean_for_image(
@@ -560,14 +592,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Output FITS cube path for planes = frame - first "
-            "(default: msac_uptheramp_frame_minus_first.fits in the session dir)"
+            "Full-frame FITS cube path (planes = frame - first, first zero "
+            "plane omitted; default: "
+            "msac_uptheramp_frame_minus_first.fits in the session dir)"
         ),
     )
     parser.add_argument(
         "--no-cds-cube",
         action="store_true",
-        help="Skip writing the frame-minus-first FITS cube",
+        help="Skip writing the full-frame frame-minus-first FITS cube",
+    )
+    parser.add_argument(
+        "--illum-cube",
+        type=Path,
+        default=None,
+        help=(
+            "Illuminated-box crop FITS cube path (same reduction as --cds-cube; "
+            "default: msac_uptheramp_frame_minus_first_illum.fits)"
+        ),
+    )
+    parser.add_argument(
+        "--no-illum-cube",
+        action="store_true",
+        help="Skip writing the illuminated-region crop FITS cube",
     )
     parser.add_argument(
         "--show",
@@ -768,24 +815,60 @@ def main(argv: list[str] | None = None) -> int:
     else:
         output = ramp_dir / "msac_uptheramp_illum_vs_file.png"
 
-    if not args.no_cds_cube:
-        if args.cds_cube is not None:
-            cds_path = args.cds_cube.expanduser()
-            if not cds_path.is_absolute():
-                cds_path = (ramp_dir / cds_path).resolve()
-            else:
-                cds_path = cds_path.resolve()
+    def _resolve_out(path: Path | None, default_name: str) -> Path:
+        if path is not None:
+            out = path.expanduser()
+            if not out.is_absolute():
+                return (ramp_dir / out).resolve()
+            return out.resolve()
+        return (ramp_dir / default_name).resolve()
+
+    write_full = not args.no_cds_cube
+    write_illum = not args.no_illum_cube
+    if write_full or write_illum:
+        try:
+            cds_for_disk = drop_reference_plane(cds_cube)
+        except ValueError as exc:
+            logging.warning("Skipping CDS cube write(s): %s", exc)
+            write_full = False
+            write_illum = False
         else:
-            cds_path = ramp_dir / "msac_uptheramp_frame_minus_first.fits"
-        save_cube_fits(
-            cds_path,
-            cds_cube,
-            reference_header=ref_header,
-            history=(
-                "MSAC UpTheRamp CDS-relative cube: each plane = "
-                "sample - first sample (ordered by file/plane index)."
-            ),
-        )
+            if write_full:
+                save_cube_fits(
+                    _resolve_out(
+                        args.cds_cube, "msac_uptheramp_frame_minus_first.fits"
+                    ),
+                    cds_for_disk,
+                    reference_header=ref_header,
+                    history=(
+                        "MSAC UpTheRamp CDS-relative cube: each plane = "
+                        "sample - first sample (ordered by file/plane index); "
+                        "zero reference plane omitted."
+                    ),
+                )
+            if write_illum:
+                illum_crop = cds_for_disk[:, row0:row1, col0:col1]
+                save_cube_fits(
+                    _resolve_out(
+                        args.illum_cube,
+                        "msac_uptheramp_frame_minus_first_illum.fits",
+                    ),
+                    illum_crop,
+                    reference_header=ref_header,
+                    history=(
+                        "MSAC UpTheRamp CDS-relative illuminated crop: each "
+                        "plane = sample - first sample; zero reference plane "
+                        "omitted; spatial crop is the illuminated analysis box."
+                    ),
+                    extra_cards={
+                        "ILLUMX0": (col0, "Crop col start (inclusive, 0-based)"),
+                        "ILLUMX1": (col1, "Crop col end (exclusive, 0-based)"),
+                        "ILLUMY0": (row0, "Crop row start (inclusive, 0-based)"),
+                        "ILLUMY1": (row1, "Crop row end (exclusive, 0-based)"),
+                        "ILLUMCX": (center_x, "Illuminated box centre X"),
+                        "ILLUMCY": (center_y, "Illuminated box centre Y"),
+                    },
+                )
 
     title = (
         f"MSAC UpTheRamp — illum mean (frame−first) vs index "

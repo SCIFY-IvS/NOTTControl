@@ -4,8 +4,10 @@
 # Default root: ~/frames/H2RG_ASIC/UpTheRamp/
 # The script uses the latest subdirectory under that root (session folder).
 #
-# Builds a CDS-relative cube (each plane = frame - first) saved as
-# msac_uptheramp_frame_minus_first.fits next to the PNG plot.
+# Builds CDS-relative cubes (each plane = frame - first; first zero plane
+# omitted) next to the PNG plot:
+#   msac_uptheramp_frame_minus_first.fits       — full frame
+#   msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
 #
 # Usage (on the acquisition machine):
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
@@ -16,7 +18,7 @@
 # X = file index from the name (_M###### or _N######);
 # Y = illuminated mean of (frame − first).
 #
-# PNG + FITS cube are written into the session data folder.
+# PNG + FITS cubes are written into the session data folder.
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)
