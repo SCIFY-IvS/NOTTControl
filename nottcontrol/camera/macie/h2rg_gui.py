@@ -3112,10 +3112,17 @@ class H2rgMainWindow(QMainWindow):
         self.status_updated.emit(status)
         # Frametime changed with the window — apply the same ramp plan Acquire
         # uses so photon/execution match immediately (not only on Acquire).
+        # force=True: soft SC must never keep a leftover 1-read full-frame plan
+        # (1-read ignores StripeSkips1 → bottom of the array).
         self._applied_exposure_fingerprint = None
-        self._apply_exposure_settings(macie)
-        # Keep ROI remap in sync (worker → GUI) with the mode we programmed.
+        report = self._apply_exposure_settings(macie, force=True)
         self.display_window_updated.emit(display_window_origin(mode))
+        if mode.y_window and not mode.x_window:
+            nreads = int(report.get("nreads", 0))
+            if nreads < 2:
+                self.status_updated.emit(
+                    f"{status} — WARNING: nreads={nreads} (need ≥2 for centered SC)"
+                )
 
     def _apply_detector_mode_to_macie(
         self, macie, mode_index: int, window_index: int
