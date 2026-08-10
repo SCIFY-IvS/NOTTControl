@@ -1172,7 +1172,7 @@ def list_new_ramp_fits_in_dir(
 class H2rgMainWindow(QMainWindow):
     closing = pyqtSignal()
     frame_ready = pyqtSignal(object)
-    # Multi-frame Acquire: emit each ramp as it is written (Queued → GUI paint).
+    # Multi-frame Acquire: emit each ramp as it is written (BlockingQueued → GUI paint).
     acquire_preview_frame = pyqtSignal(object, str)
     operation_failed = pyqtSignal(str)
     live_acquisition_failed = pyqtSignal(str)
@@ -1200,8 +1200,11 @@ class H2rgMainWindow(QMainWindow):
         self._init_runtime_state()
 
         self.frame_ready.connect(self._display_frame, Qt.QueuedConnection)
+        # BlockingQueued: paint finishes before the poll thread loads the next
+        # FITS (avoids a post-acquire paint queue). Safe because the poller
+        # never holds the MACIE ZMQ lock.
         self.acquire_preview_frame.connect(
-            self._display_acquire_preview, Qt.QueuedConnection
+            self._display_acquire_preview, Qt.BlockingQueuedConnection
         )
         self.operation_failed.connect(self._on_operation_failed, Qt.QueuedConnection)
         self.live_acquisition_failed.connect(
@@ -3582,7 +3585,6 @@ class H2rgMainWindow(QMainWindow):
                 preview_thread = threading.Thread(
                     target=self._poll_acquire_previews,
                     args=(
-                        macie,
                         before_mtime,
                         before_name,
                         expected,
@@ -3923,8 +3925,9 @@ class H2rgMainWindow(QMainWindow):
         if mapped != self._save_dir:
             self._save_dir = mapped
             self._fits_dir_ok = None
-        # Preview poll calls this from a worker thread during Acquire; rglob +
-        # QLineEdit updates freeze/corrupt the GUI so intermediate frames never show.
+        # Never call this from the mid-acquire preview poll: acquire() holds the
+        # MACIE ZMQ lock for the whole soft-SC sequence, so get_save_dir() would
+        # block until the end and all previews would fire at once.
         if not self._macie_operation_busy:
             self._update_next_frame_number()
 
@@ -4497,24 +4500,23 @@ class H2rgMainWindow(QMainWindow):
             displayed.add(path.name)
             status = f"Acquire: frame {index}/{expected_count} — {path.name}"
         frame = numpy.asarray(frame, dtype=numpy.float32)
-        # Fire-and-forget Queued paint — do not block the acquire/poll thread.
+        # BlockingQueuedConnection: wait until the GUI paints this frame.
         self.acquire_preview_frame.emit(frame, status)
         return frame
 
     def _poll_acquire_previews(
         self,
-        macie,
         before_mtime: float,
         before_name: str | None,
         expected_count: int,
         stop_event: threading.Event,
     ) -> None:
-        """While acquire() runs, show each new local FITS as soft-SC writes it."""
-        while not stop_event.wait(0.2):
-            try:
-                self._sync_save_dir_from_server(macie)
-            except Exception:
-                pass
+        """While acquire() runs, show each new local FITS as soft-SC writes it.
+
+        Must not call macie/ZMQ: acquire() holds the client lock until soft-SC
+        finishes, so any get_save_dir() here would stall until the end.
+        """
+        while not stop_event.wait(0.15):
             if not self._local_fits_accessible(allow_probe=True):
                 continue
             for path in self._collect_new_ramp_paths(
