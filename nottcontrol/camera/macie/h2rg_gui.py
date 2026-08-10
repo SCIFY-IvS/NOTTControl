@@ -336,10 +336,6 @@ class _PixmapImageView(QLabel):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("background: #1a1a2e;")
-        self.setToolTip(
-            "Scroll to zoom · drag ROI to move · corner to resize · "
-            "drag background to pan · double-click to reset"
-        )
         self.image: numpy.ndarray | None = None
         self._levels: tuple[float, float] = (0.0, 1.0)
         self._roi_rects: dict[int, tuple[int, int, int, int]] = {}
