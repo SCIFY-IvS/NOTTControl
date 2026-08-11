@@ -324,6 +324,25 @@ def soft_sc_top_pad(mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE) -> int:
     return 4
 
 
+def soft_sc_delivered_height(
+    mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE
+) -> int:
+    """Rows written to FITS for a soft-SC window (includes GigE pad).
+
+    Middle stripes deliver ny+4 reference-inclusive rows, then pad up to a
+    multiple of 256 so MACIE GigE ramp bytes stay on a 1 MiB boundary.
+    """
+    ny = mode.y2 - mode.y1 + 1
+    pad = soft_sc_top_pad(mode, array_size=array_size)
+    raw = ny + pad
+    if pad == 0:
+        return ny
+    align = 256
+    if raw % align == 0:
+        return raw
+    return raw + (align - raw % align)
+
+
 def display_window_origin(mode: WindowMode) -> tuple[int, int, int]:
     """Return (origin_x, origin_y, pad_top) for mapping full-frame ROIs into image."""
     return mode.x1, mode.y1, soft_sc_top_pad(mode)
@@ -354,7 +373,8 @@ def window_origin_for_frame(
         if candidate.y_window and not candidate.x_window:
             if abs(width - array_size) > 16:
                 return None
-            if pad and height == ny + pad:
+            delivered = soft_sc_delivered_height(candidate, array_size=array_size)
+            if pad and height in (ny + pad, delivered):
                 return candidate.x1, candidate.y1, pad
             if height == ny:
                 return candidate.x1, candidate.y1, 0

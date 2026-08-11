@@ -1673,20 +1673,26 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
-    // Soft SC: Halt (above) can leave the burst data-table stale so the next
-    // trigger ignores Skips1 and clocks from row 0 (bottom of the array).
-    // Re-latch middle/edge StripeReads* before opening or reusing GigE.
+    // Soft SC: Halt can leave the burst data-table stale so the next trigger
+    // ignores Skips1 and clocks from row 0. Re-latch via ReconfigureASIC
+    // (pre-h6900 StripeReads refresh + latch). Do NOT call ypix_burst_stripe
+    // with bSet=true here — bare StripeReads writes desync GigE (~0xFFFF /
+    // 65535 ADU); see f3fb095.
     if (ptUserData->bSoftStripeActive)
     {
-        unsigned int ypix_soft = 0;
-        if (ypix_burst_stripe(ptUserData, &ypix_soft, true))
+        if (ReconfigureASIC(ptUserData) == false)
         {
-            verbose_printf(LOG_INFO, ptUserData,
-                           "%s(): re-latched soft SC stripe → %u rows "
-                           "(soft y=[%u,%u])\n",
-                           __func__, ypix_soft,
-                           ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2);
+            verbose_printf(LOG_ERROR, ptUserData,
+                           "%s(): soft-SC ReconfigureASIC failed before trigger\n",
+                           __func__);
+            return false;
         }
+        unsigned int ypix_soft = 0;
+        ypix_burst_stripe(ptUserData, &ypix_soft, false);
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): soft-SC reconfigured → %u rows (soft y=[%u,%u])\n",
+                       __func__, ypix_soft,
+                       ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2);
     }
 
     // Compute AFTER idle check: EnsureAsicIdle may CloseScienceInterface when the
@@ -2280,14 +2286,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_INFO, ptUserData,
                            "Soft SC serial: trigger ramp %i of %i\n", ii + 1, nramps);
-            // Re-latch burst counters before each re-trigger. Without this,
-            // Skips1 is often ignored after Halt and the stripe becomes the
-            // bottom ny rows (row 0) instead of the centered soft-Y band.
-            if (ptUserData->bSoftStripeActive)
-            {
-                unsigned int ypix_soft = 0;
-                ypix_burst_stripe(ptUserData, &ypix_soft, true);
-            }
+            // AcquireDataGigE re-latches soft SC via ReconfigureASIC (not bare
+            // StripeReads writes, which desync GigE to ~65535 ADU).
             if (AcquireDataGigE(ptUserData, false) == false)
             {
                 verbose_printf(LOG_ERROR, ptUserData,
@@ -5023,24 +5023,45 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
         // ASIC then clocks from row 0 instead of the centered strip.
         //
         // Include the 4 bottom reference rows, then skip to y1 and read the
-        // full science block. Counters must sum to ydet (a short cycle desyncs
+        // science block. Counters must sum to ydet (a short cycle desyncs
         // GigE and often leaves the download buffer at ~0xFFFF / 65k ADU).
-        // Delivered rows = 4 + ny (refs + science); SC 1024 → 1028 rows.
-        yrows = ny + 4;
+        //
+        // MACIE also requires ramp bytes to be a multiple of 1 MiB when nx is a
+        // multiple of 512. Raw delivered height ny+4 (e.g. SC512 → 516) fails
+        // that rule and yields all-0xFFFF frames. Pad Reads2 so delivered rows
+        // are a multiple of 256 (SC512 → 768; safe for 1- and 2-sample ramps).
+        unsigned int yrows_raw = ny + 4;
+        yrows = yrows_raw;
+        const unsigned int y_align = 256;
+        if ((yrows % y_align) != 0)
+            yrows += (y_align - (yrows % y_align));
         if (bSet)
         {
             unsigned int skip_pre = (y1 >= 4) ? (y1 - 4) : y1;
-            unsigned int skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
+            unsigned int reads2 = yrows - 4;
+            if (reads2 < ny)
+                reads2 = ny;
+            unsigned int used = 4 + skip_pre + reads2;
+            unsigned int skip_post = (used < ydet) ? (ydet - used) : 0;
+            if (4 + skip_pre + reads2 + skip_post != ydet)
+            {
+                // Keep the cycle exact if padding would overrun the array.
+                yrows = yrows_raw;
+                reads2 = ny;
+                skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
+            }
             ASIC_Generic(ptUserData, "StripeReads1", true, 4);
             ASIC_Generic(ptUserData, "StripeSkips1", true, skip_pre);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny);
+            ASIC_Generic(ptUserData, "StripeReads2", true, reads2);
             ASIC_Generic(ptUserData, "StripeSkips2", true, skip_post);
             if (RegMap.count("RowReads") > 0)
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
-                           "(soft y1=%u y2=%u ny=%u → %u rows incl. bottom refs)\n",
-                           __func__, skip_pre, ny, skip_post, y1, y2, ny, yrows);
+                           "(soft y1=%u y2=%u ny=%u → %u rows incl. refs"
+                           "%s)\n",
+                           __func__, skip_pre, reads2, skip_post, y1, y2, ny, yrows,
+                           (yrows > yrows_raw) ? ", GigE-padded" : "");
         }
     }
 
