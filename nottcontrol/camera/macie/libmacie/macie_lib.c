@@ -4484,8 +4484,8 @@ extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool
 // If these parameters don't exist, then return detector limits.
 // If not in window mode, then return detector limits.
 
-// Full-frame idle for burst-stripe counters (defined with ypix_burst_stripe).
-static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData);
+// Full-frame idle for burst-stripe counters is intentionally a no-op on this
+// microcode: writing StripeReads* around Set/close poisons GigE downloads.
 
 // Set/get STRIPE mode
 bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
@@ -4505,9 +4505,6 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             verbose_printf(LOG_WARNING, ptUserData, "  Check ASIC Regs file: %s.\n", ptUserData->ASICRegs);
             bVal = false;
         }
-        // Capture before clearing: writing StripeReads* on a pristine full-frame
-        // path (never was in stripe) poisons GigE — Set still works, Acquire fails.
-        const bool was_stripe = ptUserData->bStripeMode;
         ptUserData->bStripeMode = bVal;
 
         // Enable/disable horizontal/vertical windows if enabling STRIPE
@@ -4528,9 +4525,10 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
-            // Restore idle counters only when leaving an active stripe mode.
-            if (was_stripe)
-                burst_stripe_write_ffidle(ptUserData);
+            // Do NOT write StripeReads* here. Touching 4024… on the way back to
+            // full frame poisons GigE the same way a pristine-FF ffidle write
+            // does (Set succeeds; Acquire/download fails). Counters are only
+            // programmed when enabling stripe / in ypix_burst_stripe(bSet).
         }
     }
     else // Or simply get current state
@@ -4820,31 +4818,9 @@ unsigned int ASIC_setY2(MACIE_Settings *ptUserData, unsigned int val)
 }
 
 // Full-frame idle for HxRG burst-stripe counters (MCD data table → 4024…).
-// Never write Reads*=0: that produced 0-byte GigE downloads on this microcode.
-// Only call this while stripe mode is (or was just) active — writing these
-// registers on a pristine full-frame Slow path also broke GigE downloads.
-static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData)
-{
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
-    if (RegMap.count("StripeReads1") == 0)
-        return;
-
-    unsigned int ydet = ptUserData->uiDetectorHeight;
-    ASIC_Generic(ptUserData, "StripeReads1", true, ydet);
-    if (RegMap.count("StripeSkips1") > 0)
-        ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-    if (RegMap.count("StripeReads2") > 0)
-        ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-    if (RegMap.count("StripeSkips2") > 0)
-        ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-    if (RegMap.count("RowReads") > 0)
-        ASIC_Generic(ptUserData, "RowReads", true, ydet);
-}
-
-// Call this after closing the science interface. Do not rewrite stripe counters
-// here: touching 4024… after every GigE close broke full-frame downloads even
-// with Reads1=ydet. Full-frame idle is restored only when ASIC_STRIPEMode
-// turns stripe off (return to Full Frame / XY window).
+// Never write StripeReads* = 0 or =ydet around GigE open/close / FF Set: that
+// produced failed full-frame downloads on this microcode (Set ok, Acquire nok).
+// Stripe counters are programmed only from ypix_burst_stripe when enabling SC.
 void burst_stripe_set_ffidle(MACIE_Settings *ptUserData)
 {
     (void)ptUserData;

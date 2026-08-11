@@ -25,6 +25,20 @@ static std::string format_double(double value)
     return oss.str();
 }
 
+// GUI polls these often (newestfits especially). Keep the ZMQ log for
+// commands that change state or start long work.
+static bool zmq_command_is_quiet(const std::string &command)
+{
+    return command == "newestfits" ||
+           command == "getsavedir" ||
+           command == "getpower" ||
+           command == "getmode" ||
+           command == "readinttime" ||
+           command == "rexptiming" ||
+           command == "rexpsettings" ||
+           command == "rframesettings";
+}
+
 extern "C" int M_initialize(const char* configFile, bool offline_mode)
 {
     string cfgFile = string(configFile);
@@ -345,7 +359,6 @@ int main () {
     while (true) {
         //  Wait for next request from client
         std::string request = s_recv(socket);
-        std::cout << "Received request " << request << std::endl;
 
         //Did the operation succeed?
         bool result;
@@ -353,12 +366,19 @@ int main () {
         std::string answer = "";
         bool send_binary = false;
         std::string binary_payload;
+        std::string command;
+        bool quiet = false;
 
         try{
             auto tokens = split(request, ";");
 
-            std::string command = tokens[0];
-            std::cout << "Received command " << command << std::endl;
+            command = tokens[0];
+            quiet = zmq_command_is_quiet(command);
+            if (!quiet)
+            {
+                std::cout << "Received request " << request << std::endl;
+                std::cout << "Received command " << command << std::endl;
+            }
 
             
 
@@ -394,6 +414,8 @@ int main () {
                     norecon = true;
                 }
                 result = M_acquire(norecon);
+                if (!result)
+                    answer = "acquire failed (check zmq_server log: GigE/download)";
                 if (result && _ptUserData != NULL &&
                     _ptUserData->bDisplayPreviewValid &&
                     _ptUserData->pDisplayPreview != NULL &&
@@ -600,7 +622,9 @@ int main () {
         std::string resultString = result ? "ok" : "nok";
         std::string kReplyString = resultString + ";" + answer;
 
-        std::cout << "Sending answer " << kReplyString << std::endl;
+        // Always log failures; skip success spam for status-poll commands.
+        if (!quiet || !result)
+            std::cout << "Sending answer " << kReplyString << std::endl;
 
         //  Send reply back to client
         zmq::message_t reply (kReplyString.length());
