@@ -4505,6 +4505,9 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             verbose_printf(LOG_WARNING, ptUserData, "  Check ASIC Regs file: %s.\n", ptUserData->ASICRegs);
             bVal = false;
         }
+        // Capture before clearing: writing StripeReads* on a pristine full-frame
+        // path (never was in stripe) poisons GigE — Set still works, Acquire fails.
+        const bool was_stripe = ptUserData->bStripeMode;
         ptUserData->bStripeMode = bVal;
 
         // Enable/disable horizontal/vertical windows if enabling STRIPE
@@ -4525,9 +4528,9 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
-            // Restore full-frame stripe counters before clearing the flag's
-            // effect on later close/idle helpers (write while still allowed).
-            burst_stripe_write_ffidle(ptUserData);
+            // Restore idle counters only when leaving an active stripe mode.
+            if (was_stripe)
+                burst_stripe_write_ffidle(ptUserData);
         }
     }
     else // Or simply get current state
@@ -4872,12 +4875,11 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
         return false;
     }
 
-    // Stripe on but Y covers the full array → idle counters, not a stripe.
+    // Stripe on but Y covers the full array → treat as not a stripe for sizing.
+    // Do NOT write idle counters here: that poisons GigE on a pristine full-frame
+    // path (same class of bug as ASIC_STRIPEMode(false) always calling ffidle).
     if ((y1 < 4) && (y2 > ydet - 5))
     {
-        if (bSet)
-            burst_stripe_write_ffidle(ptUserData);
-
         *ypix = ny;
         return false;
     }
