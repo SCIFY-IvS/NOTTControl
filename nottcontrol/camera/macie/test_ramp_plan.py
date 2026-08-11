@@ -63,42 +63,43 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["ndrops"], 0)
         self.assertEqual(plan["tint_ms"], 200.0)
 
-    def test_ramp_windowed_min_two_reads(self) -> None:
-        # Soft SC: 1-read ignores StripeSkips1 — promote to 2×frame.
+    def test_ramp_windowed_min_two_samples_via_groups(self) -> None:
+        # Soft SC: never a lone read — Jarron 2×1 with no drops (min CDS pair).
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 1)
-        self.assertEqual(plan["nreads"], 2)
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
         self.assertEqual(plan["tint_ms"], 400.0)
 
-    def test_ramp_windowed_long_dit_scales_reads(self) -> None:
-        # 5 s with 374 ms frames → round to 13 reads in one group (no drops).
+    def test_ramp_windowed_long_dit_uses_drops(self) -> None:
+        # 5 s with 374 ms frames → round to 13 frames: 2 groups, 11 drops.
         plan = calc_ramp_plan(5000.0, 374.0, mode="Ramp", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 1)
-        self.assertEqual(plan["nreads"], 13)
-        self.assertEqual(plan["ndrops"], 0)
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 11)
         self.assertAlmostEqual(plan["tint_ms"], 13 * 374.0)
 
-    def test_cds_windowed_long_dit_scales_reads(self) -> None:
-        # Must honor requested DIT (was stuck at 1×2 regardless of tint).
+    def test_cds_windowed_long_dit_uses_drops(self) -> None:
+        # Jarron-style: nreads stays 1; DIT stretched with ndrops.
         plan = calc_ramp_plan(5000.0, 374.0, mode="CDS", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 1)
-        self.assertEqual(plan["nreads"], 14)  # ceil(5000/374)
-        self.assertEqual(plan["ndrops"], 0)
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 12)  # ceil(5000/374)=14 → 14-2
         self.assertAlmostEqual(plan["tint_ms"], 14 * 374.0)
 
-    def test_cds_windowed_short_dit_still_two_reads(self) -> None:
+    def test_cds_windowed_short_dit_still_two_samples(self) -> None:
         # Must not fall through to the full-frame 1-read short-DIT shortcut.
         plan = calc_ramp_plan(50.0, 200.0, mode="CDS", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 1)
-        self.assertEqual(plan["nreads"], 2)
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
         self.assertEqual(plan["tint_ms"], 400.0)
 
-    def test_single_frame_windowed_promoted_to_two_reads(self) -> None:
+    def test_single_frame_windowed_promoted_to_two_group_cds(self) -> None:
         plan = calc_ramp_plan(500.0, 200.0, mode="SingleFrame", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 1)
-        self.assertEqual(plan["nreads"], 2)
+        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["nreads"], 1)
+        self.assertEqual(plan["ndrops"], 0)
 
     def test_fowler_uses_single_group_and_even_reads(self) -> None:
         plan = calc_ramp_plan(180.0, 100.0, mode="Fowler", fowler_pairs=2)

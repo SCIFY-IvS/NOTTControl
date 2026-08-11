@@ -327,20 +327,10 @@ def soft_sc_top_pad(mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE) -> int:
 def soft_sc_delivered_height(
     mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE
 ) -> int:
-    """Rows written to FITS for a soft-SC window (includes GigE pad).
-
-    Middle stripes deliver ny+4 reference-inclusive rows, then pad up to a
-    multiple of 256 so MACIE GigE ramp bytes stay on a 1 MiB boundary.
-    """
+    """Rows written to FITS for a soft-SC window (science + leading refs)."""
     ny = mode.y2 - mode.y1 + 1
     pad = soft_sc_top_pad(mode, array_size=array_size)
-    raw = ny + pad
-    if pad == 0:
-        return ny
-    align = 256
-    if raw % align == 0:
-        return raw
-    return raw + (align - raw % align)
+    return ny + pad
 
 
 def display_window_origin(mode: WindowMode) -> tuple[int, int, int]:
@@ -2653,13 +2643,17 @@ class H2rgMainWindow(QMainWindow):
             elif self._selected_ramp_mode() == "Ramp":
                 label = "Integration time:"
                 tooltip = (
-                    "Target DIT (ms), rounded to N×frame time on Set "
-                    "(minimum one frame). On SC, 1×frame can show the wrong "
-                    "Y band; use ≥2×frame or CDS if the window must stay fixed."
+                    "Target DIT (ms), rounded to N×frame time on Set. "
+                    "Uses two groups × one read; longer DIT adds drop frames "
+                    "(not saved). Soft SC keeps at least two samples."
                 )
             else:
                 label = "Integration time:"
-                tooltip = "Target photon-collection time for CDS ramps (ms)."
+                tooltip = (
+                    "Target photon-collection time for CDS (ms). "
+                    "Two groups × one read; longer DIT adds drop frames "
+                    "between groups (Jarron-style)."
+                )
             self.ui.label_5.setText(label)
             self.ui.lineEdit_integration_time.setToolTip(tooltip)
             self.ui.label_5.setToolTip(tooltip)
@@ -3143,16 +3137,18 @@ class H2rgMainWindow(QMainWindow):
         self.status_updated.emit(status)
         # Frametime changed with the window — apply the same ramp plan Acquire
         # uses so photon/execution match immediately (not only on Acquire).
-        # force=True: soft SC must never keep a leftover 1-read full-frame plan
-        # (1-read ignores StripeSkips1 → bottom of the array).
+        # force=True: soft SC must never keep a leftover 1-sample full-frame plan
+        # (a lone read ignores StripeSkips1 → bottom of the array).
         self._applied_exposure_fingerprint = None
         report = self._apply_exposure_settings(macie, force=True)
         self.display_window_updated.emit(display_window_origin(mode))
         if mode.y_window and not mode.x_window:
             nreads = int(report.get("nreads", 0))
-            if nreads < 2:
+            ngroups = int(report.get("ngroups", 0))
+            if nreads * max(ngroups, 1) < 2:
                 self.status_updated.emit(
-                    f"{status} — WARNING: nreads={nreads} (need ≥2 for centered SC)"
+                    f"{status} — WARNING: only {ngroups}×{nreads} samples "
+                    "(need ≥2 clocked frames for centered SC)"
                 )
 
     def _apply_detector_mode_to_macie(

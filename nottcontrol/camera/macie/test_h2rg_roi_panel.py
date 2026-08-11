@@ -114,14 +114,14 @@ class BrightnessTests(unittest.TestCase):
         )
         self.assertEqual((ox, oy, pad), (0, 768, 4))
 
-    def test_sc512_gige_padded_frame_infers_origin(self) -> None:
+    def test_sc512_delivered_height_is_ny_plus_refs(self) -> None:
         from nottcontrol.camera.macie.h2rg_gui import soft_sc_delivered_height
 
         mode = next(m for m in WINDOW_MODES if m.label == "SC 512")
-        # ny+4=516 → next multiple of 256 is 768 (GigE 1 MiB-safe).
-        self.assertEqual(soft_sc_delivered_height(mode), 768)
+        # Middle stripe: ny+4 leading refs (no GigE height pad).
+        self.assertEqual(soft_sc_delivered_height(mode), 516)
         ox, oy, pad = window_origin_for_frame(
-            (768, 2048), mode, candidates=WINDOW_MODES
+            (516, 2048), mode, candidates=WINDOW_MODES
         )
         self.assertEqual((ox, oy, pad), (0, 768, 4))
 
