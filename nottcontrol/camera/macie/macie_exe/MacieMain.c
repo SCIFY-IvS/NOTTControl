@@ -212,8 +212,9 @@ bool acquire(bool no_recon, MACIE_Settings *ptUserData )
 
     // Soft SC middle-stripe is unstable across multiple ramps in one ASIC
     // trigger (Skips1 intermittently ignored → bottom of array). Keep the true
-    // subframe burst counters latched and fire N× single-ramp triggers instead,
-    // with GigE kept open (no re-init / no ReconfigureASIC between ramps).
+    // subframe burst counters latched (from Set / frameSettings) and fire N×
+    // single-ramp triggers instead, with GigE kept open and no ReconfigureASIC
+    // between ramps.
     const unsigned int nramps_req = ASIC_NRamps(ptUserData, false, 0);
     const bool soft_serial =
         ptUserData->bSoftStripeActive && (nramps_req > 1);

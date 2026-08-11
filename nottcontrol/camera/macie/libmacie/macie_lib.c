@@ -1673,27 +1673,11 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
-    // Soft SC: Halt can leave the burst data-table stale so the next trigger
-    // ignores Skips1 and clocks from row 0. Re-latch via ReconfigureASIC
-    // (pre-h6900 StripeReads refresh + latch). Do NOT call ypix_burst_stripe
-    // with bSet=true here — bare StripeReads writes desync GigE (~0xFFFF /
-    // 65535 ADU); see f3fb095.
-    if (ptUserData->bSoftStripeActive)
-    {
-        if (ReconfigureASIC(ptUserData) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData,
-                           "%s(): soft-SC ReconfigureASIC failed before trigger\n",
-                           __func__);
-            return false;
-        }
-        unsigned int ypix_soft = 0;
-        ypix_burst_stripe(ptUserData, &ypix_soft, false);
-        verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): soft-SC reconfigured → %u rows (soft y=[%u,%u])\n",
-                       __func__, ypix_soft,
-                       ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2);
-    }
+    // Soft SC stripe counters are latched on Set / frameSettings (ReconfigureASIC
+    // with pre-h6900 StripeReads refresh). Do not reconfigure here: it added
+    // multi-second wall time on every acquire, and bare StripeReads writes
+    // around GigE open/trigger desync downloads (~0xFFFF). Serial multi-ramp
+    // keeps GigE open and re-triggers only (see acquire() soft_serial path).
 
     // Compute AFTER idle check: EnsureAsicIdle may CloseScienceInterface when the
     // ASIC was still busy. Using a stale reuse_science flag skipped GigE
@@ -2286,8 +2270,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_INFO, ptUserData,
                            "Soft SC serial: trigger ramp %i of %i\n", ii + 1, nramps);
-            // AcquireDataGigE re-latches soft SC via ReconfigureASIC (not bare
-            // StripeReads writes, which desync GigE to ~65535 ADU).
+            // Re-trigger only — stripe was latched on Set; no ReconfigureASIC
+            // between ramps (keeps GigE phase and avoids multi-second overhead).
             if (AcquireDataGigE(ptUserData, false) == false)
             {
                 verbose_printf(LOG_ERROR, ptUserData,
