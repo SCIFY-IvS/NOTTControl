@@ -1918,7 +1918,6 @@ class H2rgMainWindow(QMainWindow):
     def _background_startup(self) -> None:
         from nottcontrol.camera.macie.zmq_server_manager import (
             MacieZmqServerProcess,
-            macie_zmq_addresses,
             select_macie_zmq_address,
         )
 
@@ -1935,17 +1934,13 @@ class H2rgMainWindow(QMainWindow):
             self._zmq_server.ensure_running()
             self._zmq_address = self._zmq_server.zmq_address
             if self._zmq_server.started_by_gui:
-                self.status_updated.emit("ZMQ server started")
+                self.status_updated.emit(
+                    f"ZMQ server started at {self._zmq_address}"
+                )
             elif self._fits_dir_ok is not False:
-                addresses = macie_zmq_addresses()
-                if addresses and self._zmq_address != addresses[0]:
-                    self.status_updated.emit(
-                        f"Connected to alternate ZMQ server at {self._zmq_address}"
-                    )
-                else:
-                    self.status_updated.emit(
-                        f"Connected to ZMQ server at {self._zmq_address}"
-                    )
+                self.status_updated.emit(
+                    f"Connected to ZMQ server at {self._zmq_address}"
+                )
         except Exception as exc:
             message = str(exc)
             if self._fits_dir_ok is False and sys.platform == "win32":

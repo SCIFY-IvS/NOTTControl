@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import os
-import socket
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
 from urllib.parse import urlparse
+
+import zmq
 
 from nottcontrol import config
 
@@ -33,6 +34,8 @@ DEFAULT_MACIE_LIBRARY_PATH = "/usr/local/lib/macie_lib"
 MACIE_LIBRARY_PATH = config.get(
     H2RG_SECTION, "macie_library_path", fallback=DEFAULT_MACIE_LIBRARY_PATH
 ).strip()
+# Liveness probe: unknown command still gets a ZMQ reply without touching MACIE.
+_ZMQ_PROBE_COMMAND = "__probe__"
 
 
 def macie_zmq_addresses() -> list[str]:
@@ -47,11 +50,10 @@ def macie_zmq_addresses() -> list[str]:
 
 def select_macie_zmq_address(timeout_s: float = 0.5) -> str:
     """Return the first reachable MACIE ZMQ endpoint, else the primary address."""
-    addresses = macie_zmq_addresses()
-    for address in addresses:
+    for address in _candidate_addresses(macie_zmq_addresses()[0]):
         if is_zmq_port_open(address, timeout_s=timeout_s):
             return address
-    return addresses[0]
+    return macie_zmq_addresses()[0]
 
 
 def parse_zmq_endpoint(address: str) -> tuple[str, int]:
@@ -62,13 +64,64 @@ def parse_zmq_endpoint(address: str) -> tuple[str, int]:
     return host, port
 
 
+def _local_bind_address(configured: str) -> str:
+    """Address for a locally spawned zmq_server (binds *:port)."""
+    _host, port = parse_zmq_endpoint(configured)
+    return f"tcp://127.0.0.1:{port}"
+
+
+def _candidate_addresses(primary: str) -> list[str]:
+    """Ordered endpoints to try, including localhost for FQDN hairpin cases."""
+    addresses: list[str] = []
+    for candidate in (
+        primary,
+        *macie_zmq_addresses(),
+        _local_bind_address(primary),
+        "tcp://localhost:65534",
+    ):
+        normalized = candidate.strip()
+        if not normalized:
+            continue
+        # Prefer 127.0.0.1 over localhost duplicate of the same port.
+        host, port = parse_zmq_endpoint(normalized)
+        if host in ("localhost", "::1"):
+            normalized = f"tcp://127.0.0.1:{port}"
+        if normalized not in addresses:
+            addresses.append(normalized)
+    return addresses
+
+
 def is_zmq_port_open(address: str, timeout_s: float = 0.5) -> bool:
-    host, port = parse_zmq_endpoint(address)
+    """True if a MACIE zmq_server answers a short REQ (not a raw TCP connect).
+
+    Raw ``socket.create_connection`` probes poison ZeroMQ REP sockets and can
+    leave a freshly started server unable to serve acquire.
+    """
+    normalized = address if "://" in address else f"tcp://{address}"
+    timeout_ms = max(50, int(timeout_s * 1000))
+    ctx = zmq.Context()
+    sock = None
     try:
-        with socket.create_connection((host, port), timeout=timeout_s):
-            return True
-    except OSError:
+        sock = ctx.socket(zmq.REQ)
+        sock.setsockopt(zmq.LINGER, 0)
+        sock.setsockopt(zmq.RCVTIMEO, timeout_ms)
+        sock.setsockopt(zmq.SNDTIMEO, timeout_ms)
+        sock.connect(normalized)
+        sock.send_string(_ZMQ_PROBE_COMMAND)
+        sock.recv()
+        return True
+    except Exception:
         return False
+    finally:
+        if sock is not None:
+            try:
+                sock.close(linger=0)
+            except Exception:
+                pass
+        try:
+            ctx.term()
+        except Exception:
+            pass
 
 
 def resolve_zmq_server_executable() -> Path | None:
@@ -117,12 +170,6 @@ def _server_environment() -> dict[str, str]:
     return env
 
 
-def _local_bind_address(configured: str) -> str:
-    """Address to probe after spawning a local zmq_server (binds *:port)."""
-    _host, port = parse_zmq_endpoint(configured)
-    return f"tcp://127.0.0.1:{port}"
-
-
 def _read_startup_log(path: Path | None, limit: int = 2000) -> str:
     if path is None or not path.is_file():
         return ""
@@ -152,18 +199,16 @@ class MacieZmqServerProcess:
         return self._process is not None and self._process.poll() is None
 
     def ensure_running(self) -> None:
-        if is_zmq_port_open(self._zmq_address):
-            return
-        for alternate in macie_zmq_addresses():
-            if alternate == self._zmq_address:
-                continue
-            if is_zmq_port_open(alternate):
-                self._zmq_address = alternate
+        # Prefer an already-running server (FQDN, alt, or localhost hairpin).
+        for address in _candidate_addresses(self._zmq_address):
+            if is_zmq_port_open(address):
+                self._zmq_address = address
                 return
+
         if not AUTO_START_ZMQ_SERVER:
             raise RuntimeError(
                 "MACIE ZMQ server is not reachable at "
-                f"{', '.join(macie_zmq_addresses())}. "
+                f"{', '.join(_candidate_addresses(self._zmq_address))}. "
                 "Ensure zmq_server is running on nott-server."
             )
 
@@ -193,6 +238,8 @@ class MacieZmqServerProcess:
 
         local_address = _local_bind_address(self._zmq_address)
         deadline = time.monotonic() + ZMQ_STARTUP_TIMEOUT_S
+        # Give the process a moment to bind before the first ZMQ probe.
+        first_probe_at = time.monotonic() + 0.4
         while time.monotonic() < deadline:
             if self._process.poll() is not None:
                 detail = _read_startup_log(self._startup_log)
@@ -210,18 +257,22 @@ class MacieZmqServerProcess:
                         "(set macie_library_path in config.ini)."
                     )
                 raise RuntimeError(message)
-            # Prefer configured host; also accept localhost after a local spawn
-            # (avoids hairpin/DNS failures when connecting to nott-server's FQDN).
-            if is_zmq_port_open(self._zmq_address):
-                return
-            if is_zmq_port_open(local_address):
-                self._zmq_address = local_address
-                return
-            time.sleep(0.2)
+
+            if time.monotonic() >= first_probe_at:
+                # Only succeed if *our* process is still alive and answers ZMQ.
+                if is_zmq_port_open(local_address, timeout_s=0.4):
+                    if self._process.poll() is None:
+                        self._zmq_address = local_address
+                        return
+                if is_zmq_port_open(self._zmq_address, timeout_s=0.4):
+                    if self._process.poll() is None:
+                        return
+
+            time.sleep(0.25)
 
         self.stop()
         raise TimeoutError(
-            f"zmq_server did not open {self._zmq_address} (or {local_address}) "
+            f"zmq_server did not answer on {local_address} "
             f"within {ZMQ_STARTUP_TIMEOUT_S:g}s"
         )
 
