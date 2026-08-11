@@ -19,7 +19,7 @@ DEFAULT_ZMQ_ADDRESS_ALT = config.get(
     H2RG_SECTION, "zmq_address_alt", fallback="tcp://nott-server.ster.kuleuven.be:5900"
 ).strip()
 AUTO_START_ZMQ_SERVER = config.getboolean(
-    H2RG_SECTION, "auto_start_zmq_server", fallback=False
+    H2RG_SECTION, "auto_start_zmq_server", fallback=True
 )
 ZMQ_SERVER_EXECUTABLE = config.get(
     H2RG_SECTION, "zmq_server_executable", fallback="macie_exe/zmq_server"
