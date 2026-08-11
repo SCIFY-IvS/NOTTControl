@@ -134,11 +134,6 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
 
     ptUserData->bStripeModeAllowed = false;
     ptUserData->bStripeMode = false;
-    ptUserData->bSoftStripeActive = false;
-    ptUserData->uiSoftStripeY1 = 0;
-    ptUserData->uiSoftStripeY2 = 0;
-    ptUserData->bSoftSerialRamps = false;
-    ptUserData->uiSoftSerialNRamps = 0;
 
     ptUserData->pDisplayPreview = NULL;
     ptUserData->displayPreviewNx = 0;
@@ -801,12 +796,11 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
     }
     else // Slow Mode
     {
-        // Soft SC: refresh StripeReads*/Skips* before the h6900 latch so a DIT
-        // reconfigure copies the soft window into the MCD data table (5401–5405).
-        // Do NOT rewrite those counters after reconfigure — that desyncs GigE
-        // (~0xFFFF / 65535 ADU), same class of bug as touching 4024 around open/close.
-        if (ptUserData->bSoftStripeActive &&
-            ASIC_STRIPEMode(ptUserData, false, false))
+        // Burst stripe: refresh StripeReads*/Skips* from ASIC Y before the
+        // h6900 latch so a DIT reconfigure copies the window into the MCD data
+        // table (5401–5405). Do NOT rewrite those counters after reconfigure —
+        // that desyncs GigE (~0xFFFF / 65535 ADU).
+        if (ASIC_STRIPEMode(ptUserData, false, false))
         {
             unsigned int ypix_pre = 0;
             ypix_burst_stripe(ptUserData, &ypix_pre, true);
@@ -919,11 +913,9 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
     }
 
     // Check if STRIPE Mode is enabled.
-    // RowsPerFrame / PixPerRow are ASIC *output* regs (cfg "(Out)"): under soft SC
-    // the ASIC Y window stays full-frame, so those outs often reflect full height and
-    // can change after each acquire. Force the delivered geometry into the outs for
-    // MACIE buffer sizing, but exposure_frametime_ms() uses the same geometry
-    // formula so UI timing stays stable.
+    // RowsPerFrame / PixPerRow are ASIC *output* regs (cfg "(Out)"): force the
+    // delivered stripe geometry into the outs for MACIE buffer sizing.
+    // exposure_frametime_ms() uses the same geometry so UI timing stays stable.
     if (ASIC_STRIPEMode(ptUserData, false, false))
     {
         unsigned int ypix_sub = exposure_ypix(ptUserData);
@@ -1673,15 +1665,13 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
         return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
 
-    // Soft SC stripe counters are latched on Set / frameSettings (ReconfigureASIC
-    // with pre-h6900 StripeReads refresh). Do not reconfigure here: it added
-    // multi-second wall time on every acquire, and bare StripeReads writes
-    // around GigE open/trigger desync downloads (~0xFFFF). Serial multi-ramp
-    // keeps GigE open and re-triggers only (see acquire() soft_serial path).
+    // Stripe counters are latched on Set / frameSettings. Do not reconfigure
+    // here: it adds multi-second wall time and bare StripeReads writes around
+    // GigE open/trigger desync downloads (~0xFFFF).
 
     // Compute AFTER idle check: EnsureAsicIdle may CloseScienceInterface when the
     // ASIC was still busy. Using a stale reuse_science flag skipped GigE
-    // reconfigure and triggered with a closed interface (soft-SC serial ramp 2+ segfault).
+    // reconfigure and triggered with a closed interface.
     const bool reuse_science =
         ptUserData->bKeepScienceInterface &&
         ptUserData->bScienceInterfaceOpen &&
@@ -2143,13 +2133,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     // Number of pixels in frame for download
     const int framesize = xpix * ypix;
 
-    // Number of requested ramps
-    // Soft SC serial mode: ASIC NumRamps stays 1; download this many single-ramp
-    // triggers (re-armed inside the loop) so middle-stripe geometry stays stable.
-    const int nramps = (ptUserData->bSoftSerialRamps && ptUserData->uiSoftSerialNRamps > 0)
-                           ? (int)ptUserData->uiSoftSerialNRamps
-                           : (int)ASIC_NRamps(ptUserData, false, 0);
-    const bool soft_serial = ptUserData->bSoftSerialRamps && (nramps > 1);
+    // Number of requested ramps (one ASIC trigger with NRamps, same as full frame)
+    const int nramps = (int)ASIC_NRamps(ptUserData, false, 0);
     // Number of groups in a ramp
     const int ngroups = (int)ASIC_NGroups(ptUserData, false, 0);
     // Number of frame reads in a group
@@ -2263,24 +2248,6 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         //     verbose_printf(LOG_ERROR, ptUserData, "Halt encountered on ramp %i of %i.\n", ii+1, nramps);
         //     break;
         // }
-
-        // Soft SC serial: first ramp was triggered by acquire(); each further
-        // ramp is a new single-ramp trigger with GigE reused (no reconfigure).
-        if (soft_serial && ii > 0)
-        {
-            verbose_printf(LOG_INFO, ptUserData,
-                           "Soft SC serial: trigger ramp %i of %i\n", ii + 1, nramps);
-            // Re-trigger only — stripe was latched on Set; no ReconfigureASIC
-            // between ramps (keeps GigE phase and avoids multi-second overhead).
-            if (AcquireDataGigE(ptUserData, false) == false)
-            {
-                verbose_printf(LOG_ERROR, ptUserData,
-                               "AcquireDataGigE failed on soft-SC serial ramp %i of %i.\n",
-                               ii + 1, nramps);
-                download_failed = true;
-                break;
-            }
-        }
 
         // If the memory buffer is 90% full, then set buffer overflow flag.
         // But only if the number of requested bytes is greater than max buffer size.
@@ -4355,15 +4322,11 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         x1 = 0;
     }
 
-    // uint ny = y2 - y1 + 1;
-    // uint nx = x2 - x1 + 1;
-
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Vertical-only window = burst stripe when the microcode exposes it.
-    // Soft-track requested Y and keep ASIC Y at full frame (MCD data table
-    // slot 5402→Y2 stays ydet-1). Edge and centered SC both use StripeReads*.
-    // Otherwise fall back to WinMode (single-output, slower, valid pixels).
+    // Vertical-only window = burst stripe (ASIC Y set to the stripe, same as
+    // full-frame multi-ramp path). Fall back to WinMode if microcode has no
+    // StripeReads*.
     bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
@@ -4371,20 +4334,14 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         {
             ASIC_STRIPEMode(ptUserData, true, true);
             use_burst_stripe = true;
-            // Keep ASIC Y at full frame: MCD data table 5402→4023(Y2) must stay
-            // ydet-1 alongside Reads2 handling. Track SC height in soft state.
-            ptUserData->bSoftStripeActive = true;
-            ptUserData->uiSoftStripeY1 = y1;
-            ptUserData->uiSoftStripeY2 = y2;
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): SC via burst stripe (parallel outputs) "
-                           "soft y=[%u,%u]; ASIC Y kept [0,%u].\n",
-                           __func__, y1, y2, ydet - 1);
+                           "ASIC y=[%u,%u].\n",
+                           __func__, y1, y2);
         }
         else
         {
             ptUserData->bStripeMode = false;
-            ptUserData->bSoftStripeActive = false;
             if (RegMap.count("HorzWinMode") > 0)
                 ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
             if (RegMap.count("VertWinMode") > 0)
@@ -4409,7 +4366,6 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
     else
     {
-        ptUserData->bSoftStripeActive = false;
         // Turn vertical window on/off first, then horizontal
         // Order matters, because ASIC_WinHorz will disable stripe
         ASIC_WinVert(ptUserData, true, (uint)bVertWin);
@@ -4431,17 +4387,8 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     ASIC_setX1(ptUserData, x1);
     ASIC_setX2(ptUserData, x2);
-    // Burst stripe: leave ASIC Y at full so data-table Y2 stays ydet-1.
-    if (use_burst_stripe)
-    {
-        ASIC_setY1(ptUserData, 0);
-        ASIC_setY2(ptUserData, ydet - 1);
-    }
-    else
-    {
-        ASIC_setY1(ptUserData, y1);
-        ASIC_setY2(ptUserData, y2);
-    }
+    ASIC_setY1(ptUserData, y1);
+    ASIC_setY2(ptUserData, y2);
 
     // Program skip/read counters before reconfigure. Otherwise stripe mode only
     // shrinks RowsPerFrame and the ASIC clocks ny rows from row 0 (not from y1).
@@ -4449,10 +4396,8 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
     {
         verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): Burst stripe soft y1=%u y2=%u → %u rows.\n",
-                       __func__,
-                       ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2,
-                       ypix_stripe);
+                       "%s(): Burst stripe y1=%u y2=%u → %u rows.\n",
+                       __func__, y1, y2, ypix_stripe);
     }
 
     if (ReconfigureASIC(ptUserData) == false)
@@ -4461,7 +4406,6 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         return false;
     }
 
-    // TODO:
     // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
     // acquisition. Full-frame may use Enhanced; any window / burst-stripe SC
     // must stay Normal (0) or Live oscillates between clean CDS and channel
@@ -4493,16 +4437,7 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     verbose_printf(LOG_INFO, ptUserData, "Horizontal Window: %i\n", ASIC_WinHorz(ptUserData, false, 0));
     verbose_printf(LOG_INFO, ptUserData, "  X1: %i X2: %i, xpix: %i\n", x1, x2, xpix);
     verbose_printf(LOG_INFO, ptUserData, "Vertical Window: %i\n", ASIC_WinVert(ptUserData, false, 0));
-    if (ptUserData->bSoftStripeActive)
-    {
-        verbose_printf(LOG_INFO, ptUserData,
-                       "  ASIC Y1: %i Y2: %i; soft SC Y1: %i Y2: %i, ypix: %i\n",
-                       y1, y2, ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2, ypix);
-    }
-    else
-    {
-        verbose_printf(LOG_INFO, ptUserData, "  Y1: %i Y2: %i, ypix: %i\n", y1, y2, ypix);
-    }
+    verbose_printf(LOG_INFO, ptUserData, "  Y1: %i Y2: %i, ypix: %i\n", y1, y2, ypix);
     verbose_printf(LOG_INFO, ptUserData, "STRIPE Mode: %i\n", (uint)ASIC_STRIPEMode(ptUserData, false, false));
     verbose_printf(LOG_INFO, ptUserData, "Frame time: %.3f ms\n", ptUserData->frametime_ms);
 
@@ -4529,17 +4464,6 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
     uint &x1, uint &x2, uint &y1, uint &y2)
 {
-    if (ptUserData->bSoftStripeActive)
-    {
-        bVertWin = true;
-        bHorzWin = false;
-        x1 = 0;
-        x2 = ptUserData->uiDetectorWidth - 1;
-        y1 = ptUserData->uiSoftStripeY1;
-        y2 = ptUserData->uiSoftStripeY2;
-        return;
-    }
-
     bVertWin = ASIC_WinVert(ptUserData, false, 0);
     bHorzWin = ASIC_WinHorz(ptUserData, false, 0);
 
@@ -4604,7 +4528,6 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Restore full-frame stripe counters before clearing the flag's
             // effect on later close/idle helpers (write while still allowed).
             burst_stripe_write_ffidle(ptUserData);
-            ptUserData->bSoftStripeActive = false;
         }
     }
     else // Or simply get current state
@@ -4930,13 +4853,8 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
     unsigned int ydet = ptUserData->uiDetectorHeight;
-    // Prefer soft SC bounds: ASIC Y stays full-frame for the MCD data table.
-    unsigned int y1 = ptUserData->bSoftStripeActive
-                          ? ptUserData->uiSoftStripeY1
-                          : ASIC_getY1(ptUserData);
-    unsigned int y2 = ptUserData->bSoftStripeActive
-                          ? ptUserData->uiSoftStripeY2
-                          : ASIC_getY2(ptUserData);
+    unsigned int y1 = ASIC_getY1(ptUserData);
+    unsigned int y2 = ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
     // No counter map → nothing to program.
@@ -4955,8 +4873,7 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     }
 
     // Stripe on but Y covers the full array → idle counters, not a stripe.
-    // Skip this when soft SC is active (ASIC Y is intentionally full-frame).
-    if (!ptUserData->bSoftStripeActive && (y1 < 4) && (y2 > ydet - 5))
+    if ((y1 < 4) && (y2 > ydet - 5))
     {
         if (bSet)
             burst_stripe_write_ffidle(ptUserData);
@@ -4968,27 +4885,26 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     unsigned int yrows = 0;
     // HxRG_Teledyne.mcd data table 5401–5405 loads:
     //   4024 StripeReads1, 4023 Y2, 4034 Skips2, 4033 Reads2, 4025 Skips1
-    // Keep ASIC Y2=ydet-1 (soft SC). Bottom: Reads1=ny, Skips1=ydet-ny, Reads2=0.
+    // Jarron formulas: delivered height = ny (ASIC Y is the stripe).
     if (y1 < 4) // Lower reference pixels included in active block
     {
         yrows = ny;
         if (bSet)
         {
-            ASIC_Generic(ptUserData, "StripeReads1", true, yrows);
+            ASIC_Generic(ptUserData, "StripeReads1", true, yrows - 4);
             ASIC_Generic(ptUserData, "StripeSkips1", true, ydet - yrows);
-            ASIC_Generic(ptUserData, "StripeReads2", true, 0);
+            ASIC_Generic(ptUserData, "StripeReads2", true, 4);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
             if (RegMap.count("RowReads") > 0)
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
-                           "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=0 Skips2=0 "
-                           "(soft y1=%u y2=%u ny=%u; ASIC Y2 left at full)\n",
-                           __func__, yrows, ydet - yrows, y1, y2, ny);
+                           "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=4 Skips2=0 "
+                           "(y1=%u y2=%u ny=%u)\n",
+                           __func__, yrows - 4, ydet - yrows, y1, y2, ny);
         }
     }
     else if (y2 > ydet - 5) // Upper reference pixels included in active block
     {
-        // yrows = 4 + (ydet - y1); // Number of requested rows plus bottom plus top
         yrows = ny;
         if (bSet)
         {
@@ -5002,29 +4918,19 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     }
     else // Middle of frame: center block [y1, y2]
     {
-        // Hardware sequence is Read1 → Skip1 → Read2 → Skip2.
-        // Reads1 must be non-zero — a zero-length first read is ignored and the
-        // ASIC then clocks from row 0 instead of the centered strip.
-        //
-        // Include the 4 bottom reference rows, then skip to y1 and read the
-        // science block. Counters must sum to ydet (a short cycle desyncs
-        // GigE and often leaves the download buffer at ~0xFFFF / 65k ADU).
-        // Delivered rows = 4 + ny (refs + science); SC 512 → 516 rows.
-        yrows = ny + 4;
+        yrows = ny;
         if (bSet)
         {
-            unsigned int skip_pre = (y1 >= 4) ? (y1 - 4) : y1;
-            unsigned int skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
             ASIC_Generic(ptUserData, "StripeReads1", true, 4);
-            ASIC_Generic(ptUserData, "StripeSkips1", true, skip_pre);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny);
-            ASIC_Generic(ptUserData, "StripeSkips2", true, skip_post);
+            ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
+            ASIC_Generic(ptUserData, "StripeReads2", true, ny - 8);
+            ASIC_Generic(ptUserData, "StripeSkips2", true, ydet - y2 - 1);
             if (RegMap.count("RowReads") > 0)
                 ASIC_Generic(ptUserData, "RowReads", true, yrows);
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
-                           "(soft y1=%u y2=%u ny=%u → %u rows incl. bottom refs)\n",
-                           __func__, skip_pre, ny, skip_post, y1, y2, ny, yrows);
+                           "(y1=%u y2=%u ny=%u)\n",
+                           __func__, y1, ny - 8, ydet - y2 - 1, y1, y2, ny);
         }
     }
 
@@ -5050,12 +4956,10 @@ unsigned int exposure_frametime_pix(MACIE_Settings *ptUserData)
     if (SettingsCheckNULL(ptUserData) == false)
         return false;
 
-    // Soft / burst stripe: PixPerRow & RowsPerFrame are ASIC output registers and
-    // often track full-frame Y (soft SC keeps ASIC Y full). Derive pixel count from
-    // the delivered geometry so frame/photon times stay stable across acquires.
+    // Burst stripe / offline: PixPerRow & RowsPerFrame may still track full
+    // frame until reconfigure settles. Derive pixel count from delivered geometry.
     unsigned int y_burst = 0;
-    const bool burst = ypix_burst_stripe(ptUserData, &y_burst, false) ||
-                       ptUserData->bSoftStripeActive;
+    const bool burst = ypix_burst_stripe(ptUserData, &y_burst, false);
     if (burst || ptUserData->offline_develop == true)
     {
         unsigned int nout = ASIC_NumOutputs(ptUserData);

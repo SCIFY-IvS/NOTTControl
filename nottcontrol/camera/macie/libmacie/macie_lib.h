@@ -167,15 +167,6 @@ typedef struct MACIE_Settings
   // Is STRIPE mode allowed?
   bool bStripeModeAllowed;
   bool bStripeMode;
-  // Soft SC window: ASIC Y1/Y2 stay full-frame (MCD data table slot 5402→Y2
-  // must remain ydet-1 with Reads2=0). Requested stripe height is tracked here.
-  bool bSoftStripeActive;
-  unsigned int uiSoftStripeY1;
-  unsigned int uiSoftStripeY2;
-  // Soft SC: multi-ramp in one ASIC trigger intermittently ignores StripeSkips1
-  // (center/bottom oscillation). Serialize as N× single-ramp triggers instead.
-  bool bSoftSerialRamps;
-  unsigned int uiSoftSerialNRamps;
 
   // In-memory 2D CDS/single-frame preview for ZMQ acquire multipart reply.
   // Owned by this struct; freed by ClearDisplayPreview / free_resources.

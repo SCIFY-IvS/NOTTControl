@@ -314,23 +314,17 @@ DETECTOR_MODES = ("Slow", "Fast")
 
 
 def soft_sc_top_pad(mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE) -> int:
-    """Leading reference rows in soft-SC FITS (middle stripe only: ny+4)."""
-    if mode.x_window or not mode.y_window:
-        return 0
-    if mode.y1 < 4:
-        return 0
-    if mode.y2 > array_size - 5:
-        return 0
-    return 4
+    """Leading reference-row pad in SC FITS (always 0: ASIC Y = stripe, ny rows)."""
+    _ = (mode, array_size)
+    return 0
 
 
 def soft_sc_delivered_height(
     mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE
 ) -> int:
-    """Rows written to FITS for a soft-SC window (science + leading refs)."""
-    ny = mode.y2 - mode.y1 + 1
-    pad = soft_sc_top_pad(mode, array_size=array_size)
-    return ny + pad
+    """Rows written to FITS for an SC window (science height = ny)."""
+    _ = array_size
+    return mode.y2 - mode.y1 + 1
 
 
 def display_window_origin(mode: WindowMode) -> tuple[int, int, int]:
@@ -1343,7 +1337,7 @@ class H2rgMainWindow(QMainWindow):
         self._roi_plots: H2rgRoiPlots | None = None
         self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
         self._last_roi_plot_refresh = 0.0
-        # Full-frame origin of the displayed subframe + soft-SC top pad.
+        # Full-frame origin of the displayed subframe (+ optional pad_top).
         self._display_origin_x = 0
         self._display_origin_y = 0
         self._display_pad_top = 0
@@ -2483,7 +2477,7 @@ class H2rgMainWindow(QMainWindow):
             self._update_roi_values(self._current_frame, record=False)
 
     def _refine_pad_top_for_frame(self, frame: numpy.ndarray) -> int:
-        """Match soft-SC pad to delivered height (ny+4 vs ny)."""
+        """Match display pad to delivered height (SC is ny rows, pad=0)."""
         _ox, _oy, pad = window_origin_for_frame(
             frame.shape,
             self._selected_window_mode(),
@@ -2645,7 +2639,7 @@ class H2rgMainWindow(QMainWindow):
                 tooltip = (
                     "Target DIT (ms), rounded to N×frame time on Set. "
                     "Uses two groups × one read; longer DIT adds drop frames "
-                    "(not saved). Soft SC keeps at least two samples."
+                    "(not saved)."
                 )
             else:
                 label = "Integration time:"
@@ -2662,13 +2656,17 @@ class H2rgMainWindow(QMainWindow):
         self._sync_ramp_mode_fields()
 
     def _windowed_cds_layout(self) -> bool:
+        """True only for horizontal / XY WinMode (not vertical-only SC stripe).
+
+        SC uses the same Jarron ramp plan as full frame (ASIC Y stripe + NRamps).
+        """
         if self.ui is None:
             return False
         index = self.ui.comboBox_window_mode.currentIndex()
         if not 0 <= index < len(WINDOW_MODES):
             return False
         mode = WINDOW_MODES[index]
-        return mode.x_window or mode.y_window
+        return bool(mode.x_window)
 
     def _on_ramp_mode_changed(self, _index: int) -> None:
         self._sync_ramp_mode_fields()
@@ -3137,8 +3135,6 @@ class H2rgMainWindow(QMainWindow):
         self.status_updated.emit(status)
         # Frametime changed with the window — apply the same ramp plan Acquire
         # uses so photon/execution match immediately (not only on Acquire).
-        # force=True: soft SC must never keep a leftover 1-sample full-frame plan
-        # (a lone read ignores StripeSkips1 → bottom of the array).
         self._applied_exposure_fingerprint = None
         report = self._apply_exposure_settings(macie, force=True)
         self.display_window_updated.emit(display_window_origin(mode))
@@ -3610,7 +3606,7 @@ class H2rgMainWindow(QMainWindow):
             self._save_image_enabled(),
             tint_key,
             window_index,
-            windowed,  # soft SC / any window — ramp plan must stay geometry-stable
+            windowed,  # WinMode (horizontal/XY) — keep a geometry-stable ramp plan
             MACIE_INTEGRATION_NGROUPS_MAX,
         )
 
@@ -3691,11 +3687,11 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=self._save_image_enabled(),
-            # Soft SC / any window: keep a geometry-stable plan (never 1-read).
+            # WinMode only: keep a geometry-stable plan (never 1-read).
             windowed_cds=self._windowed_cds_layout(),
         )
         self._last_tint_ms = float(result["inttime_ms"])
-        # Ramp/CDS on soft SC quantize DIT to N×frametime — mirror in the box.
+        # Ramp/CDS may quantize DIT to N×frametime — mirror in the box.
         rounded = result.get("rounded_tint_ms")
         if ramp_mode in ("Ramp", "CDS") and rounded is not None:
             rounded_f = float(rounded)
@@ -3860,7 +3856,7 @@ class H2rgMainWindow(QMainWindow):
             self._acquire_previewed_names = set()
             self._acquire_preview_reduction = self._selected_ramp_mode()
             self._acquire_preview_fowler = self._fowler_pairs_value()
-            # Poll local FITS while acquire() runs so each soft-SC ramp paints
+            # Poll local FITS while acquire() runs so each multi-ramp FITS paints
             # as it is written (natural cadence), not as a burst after ZMQ returns.
             stop_preview = threading.Event()
             preview_thread = None
@@ -4211,7 +4207,7 @@ class H2rgMainWindow(QMainWindow):
             self._save_dir = mapped
             self._fits_dir_ok = None
         # Never call this from the mid-acquire preview poll: acquire() holds the
-        # MACIE ZMQ lock for the whole soft-SC sequence, so get_save_dir() would
+        # MACIE ZMQ lock for the whole sequence, so get_save_dir() would
         # block until the end and all previews would fire at once.
         if not self._macie_operation_busy:
             self._update_next_frame_number()
@@ -4808,10 +4804,10 @@ class H2rgMainWindow(QMainWindow):
         expected_count: int,
         stop_event: threading.Event,
     ) -> None:
-        """While acquire() runs, show each new local FITS as soft-SC writes it.
+        """While acquire() runs, show each new local FITS as it is written.
 
-        Must not call macie/ZMQ: acquire() holds the client lock until soft-SC
-        finishes, so any get_save_dir() here would stall until the end.
+        Must not call macie/ZMQ: acquire() holds the client lock until the
+        sequence finishes, so any get_save_dir() here would stall until the end.
         """
         while not stop_event.wait(0.15):
             if not self._local_fits_accessible(allow_probe=True):
@@ -5270,8 +5266,8 @@ class H2rgMainWindow(QMainWindow):
 
         Must never block on MACIE ZMQ or SMB rglob: the main GUI timer calls
         this on the Qt GUI thread. During Acquire the ZMQ lock is held for the
-        whole soft-SC sequence, so get_power() would freeze paints until the
-        end (stall then burst).
+        whole sequence, so get_power() would freeze paints until the end
+        (stall then burst).
         """
         utc_day = datetime.now(timezone.utc).strftime("%Y%m%d")
         connected = self._macie is not None

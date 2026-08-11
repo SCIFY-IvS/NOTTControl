@@ -64,7 +64,7 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["tint_ms"], 200.0)
 
     def test_ramp_windowed_min_two_samples_via_groups(self) -> None:
-        # Soft SC: never a lone read — Jarron 2×1 with no drops (min CDS pair).
+        # WinMode: never a lone read — Jarron 2×1 with no drops (min CDS pair).
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp", windowed_cds=True)
         self.assertEqual(plan["ngroups"], 2)
         self.assertEqual(plan["nreads"], 1)

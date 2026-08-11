@@ -45,9 +45,9 @@ def _jarron_two_group_plan(
     """Jarron-style CDS/Ramp: two groups × one read, stretch DIT with drops.
 
     Matches macie_lib calc_ramp_settings for ngmax=2: nreads is always 1;
-    intermediate time is spent in ndrops (not saved). Soft SC still needs at
-    least two clocked samples so StripeSkips1 stays latched — enforce
-    n_frames ≥ 2 → ngroups=2, nreads=1, ndrops=n_frames-2.
+    intermediate time is spent in ndrops (not saved). Callers that need a
+    minimum of two clocked samples pass n_frames ≥ 2 → ngroups=2, nreads=1,
+    ndrops=n_frames-2.
     """
     n_frames = max(2, int(n_frames))
     return {
@@ -73,14 +73,14 @@ def calc_ramp_plan(
     CDS / Ramp follow Jarron Leisenring's calc_ramp_settings: nreads stays 1 and
     longer DIT is obtained with drop frames between two groups (ngmax=2).
 
-    Soft SC / window modes use the same drop-based plan, but never fall below
-    two clocked samples (a lone read ignores StripeSkips1 and clocks from row 0).
+    Soft SC is no longer used. ``windowed_cds`` applies only to true WinMode
+    (horizontal / XY) layouts that still need a minimum of two clocked samples.
 
     Fowler uses one group with an even number of reads (2 × fowler_pairs) and
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
 
-    SingleFrame uses one group × one read on full frame. On soft SC it is
-    promoted to the minimum two-sample Jarron plan (2×1, no drops).
+    SingleFrame uses one group × one read on full frame / SC. On WinMode with
+    ``windowed_cds`` it is promoted to the minimum two-sample Jarron plan.
     """
     if frametime_ms <= 0:
         frametime_ms = 1.0
@@ -95,7 +95,7 @@ def calc_ramp_plan(
 
     if mode == "SingleFrame":
         if windowed_cds:
-            # Soft SC: one read clocks from row 0 — use minimum Jarron CDS pair.
+            # WinMode: one read can mis-clock — use minimum Jarron CDS pair.
             return _jarron_two_group_plan(frametime_ms, n_frames=2)
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
 
@@ -123,7 +123,7 @@ def calc_ramp_plan(
 
     # CDS — Jarron: nreads=1, stretch with ndrops between two groups.
     if windowed_cds:
-        # Soft SC: never a 1-read plan (StripeSkips1 ignored → bottom of array).
+        # WinMode: never a 1-read plan.
         n_frames = max(2, int(math.ceil(tint_ms / frametime_ms)))
         return _jarron_two_group_plan(frametime_ms, n_frames=n_frames)
 

@@ -182,7 +182,7 @@ def compute_roi_brightness(
     """Return per-ROI brightness and cropped regions for configured ROIs.
 
     *rois* are full-frame detector coordinates. When the frame is a subframe,
-    pass the window *origin_* and optional soft-SC *pad_top* so the correct
+    pass the window *origin_* and optional *pad_top* so the correct
     detector pixels are sampled. ROIs outside the science window are omitted.
     """
     height, width = frame.shape[:2]
