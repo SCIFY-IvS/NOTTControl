@@ -24,6 +24,10 @@ ZMQ_ACQUIRE_TIMEOUT_MS = config.getint(
 MACIE_SHUTDOWN_TIMEOUT_MS = config.getint(
     H2RG_SECTION, "shutdown_timeout_ms", fallback=2_000
 )
+# Off by default: GUI polls (newestfits, exposure reads, …) flood the terminal.
+ZMQ_LOG_REPLIES = config.getboolean(
+    H2RG_SECTION, "zmq_log_replies", fallback=False
+)
 
 
 def server_config_path(config_file: str) -> str:
@@ -645,7 +649,8 @@ class MacieInterface():
 
     def _receive_and_parse_reply(self):
         reply = self._socket.recv_string()
-        print (f"Received reply {reply}")
+        if ZMQ_LOG_REPLIES:
+            print(f"Received reply {reply}")
         tokens = reply.split(";")
 
         if tokens[0] == "ok":

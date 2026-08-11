@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+import warnings
 from io import BytesIO
 from pathlib import Path
 from typing import Literal
@@ -11,17 +13,123 @@ import numpy
 RampReduction = Literal["SingleFrame", "Ramp", "CDS", "Fowler"]
 
 
+class TruncatedFitsError(OSError):
+    """Raised when a FITS file is still being written or is incomplete."""
+
+
+def wait_for_file_size_stable(
+    path: Path,
+    *,
+    settle_s: float = 0.45,
+    timeout_s: float = 45.0,
+    poll_s: float = 0.1,
+    min_bytes: int = 2880,
+) -> bool:
+    """Wait until *path* exists and its size is unchanged for *settle_s*.
+
+    SMB copies of MACIE full-frame ramps often appear before the write finishes.
+    Opening early triggers Astropy "File may have been truncated" warnings.
+    """
+    path = Path(path)
+    deadline = time.monotonic() + max(0.1, float(timeout_s))
+    last_size = -1
+    stable_since: float | None = None
+    while time.monotonic() < deadline:
+        try:
+            size = int(path.stat().st_size)
+        except OSError:
+            last_size = -1
+            stable_since = None
+            time.sleep(poll_s)
+            continue
+        if size < int(min_bytes):
+            last_size = size
+            stable_since = None
+            time.sleep(poll_s)
+            continue
+        if size == last_size:
+            if stable_since is None:
+                stable_since = time.monotonic()
+            elif (time.monotonic() - stable_since) >= float(settle_s):
+                return True
+        else:
+            last_size = size
+            stable_since = None
+        time.sleep(poll_s)
+    return False
+
+
+def _fits_data_nbytes_expected(header: dict) -> int | None:
+    try:
+        naxis = int(header.get("NAXIS", 0) or 0)
+        if naxis < 2:
+            return None
+        bitpix = abs(int(header.get("BITPIX", 16) or 16))
+        if bitpix not in (8, 16, 32, 64):
+            return None
+        n = 1
+        for i in range(1, naxis + 1):
+            n *= max(1, int(header.get(f"NAXIS{i}", 1) or 1))
+        return n * (bitpix // 8)
+    except (TypeError, ValueError):
+        return None
+
+
 def load_fits_data(source: Path | bytes) -> tuple[numpy.ndarray, dict]:
+    """Load primary HDU image data and header from a path or bytes.
+
+    Raises TruncatedFitsError if the file is incomplete (common while MACIE is
+    still writing a full-frame ramp over SMB).
+    """
     from astropy.io import fits
 
-    if isinstance(source, bytes):
-        handle = fits.open(BytesIO(source), memmap=False)
-    else:
-        handle = fits.open(source, memmap=False)
+    handle = None
+    caught: list = []
+    header: dict | None = None
+    data: numpy.ndarray | None = None
+    try:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            if isinstance(source, bytes):
+                handle = fits.open(BytesIO(source), memmap=False)
+            else:
+                handle = fits.open(source, memmap=False)
+            hdu = handle[0]
+            if hdu.data is None:
+                raise TruncatedFitsError("FITS primary HDU has no image data")
+            header = dict(hdu.header)
+            data = numpy.asarray(hdu.data)
+    except TruncatedFitsError:
+        raise
+    except OSError:
+        raise
+    except (ValueError, EOFError) as exc:
+        raise TruncatedFitsError(str(exc)) from exc
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "truncat" in msg or "smaller than the expected" in msg:
+            raise TruncatedFitsError(str(exc)) from exc
+        raise
+    finally:
+        if handle is not None:
+            try:
+                handle.close()
+            except Exception:
+                pass
 
-    with handle as hdul:
-        header = dict(hdul[0].header)
-        data = numpy.asarray(hdul[0].data)
+    for warning in caught:
+        text = str(warning.message).lower()
+        if "truncat" in text or "smaller than the expected" in text:
+            raise TruncatedFitsError(str(warning.message))
+
+    if header is None or data is None:
+        raise TruncatedFitsError("FITS primary HDU has no image data")
+
+    expected = _fits_data_nbytes_expected(header)
+    if expected is not None and int(data.nbytes) < int(expected):
+        raise TruncatedFitsError(
+            f"FITS image incomplete: got {data.nbytes} bytes, expected {expected}"
+        )
     return data, header
 
 

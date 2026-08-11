@@ -8,10 +8,11 @@ from datetime import datetime, timezone
 
 import numpy
 import pyqtgraph as pg
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -23,7 +24,7 @@ from PyQt5.QtWidgets import (
 )
 
 from nottcontrol.camera.infratec.utils.utils import BrightnessResults
-from nottcontrol.theme import PANEL_BUTTON_STYLE
+from nottcontrol.theme import PANEL_BUTTON_STYLE, PANEL_FIELD_STYLE
 from nottcontrol.ui_scale import scaled, scaled_font_pt
 
 ROI_COUNT = 10
@@ -42,6 +43,9 @@ ROI_COLORS = (
 
 # Redis TimeSeries base keys — distinct from Infratec roi1…roi10.
 REDIS_KEY_PREFIX = "h2rg_roi"
+
+# Visible window options for ROI brightness-vs-time (minutes).
+ROI_TIME_SPAN_MINUTES = (1, 3, 5, 10, 60)
 
 
 def redis_key_for_roi(index: int) -> str:
@@ -338,6 +342,9 @@ class H2rgRoiRow:
     def add_max_value(self, value: float) -> None:
         self.max_values.append(float(value))
 
+    def set_history_maxlen(self, maxlen: int) -> None:
+        self.max_values = deque(self.max_values, maxlen=max(1, int(maxlen)))
+
     def clear_history(self) -> None:
         self.max_values.clear()
 
@@ -398,11 +405,23 @@ class H2rgRoiPanel(QGroupBox):
 
         self.rows: dict[int, H2rgRoiRow] = {**left_rows, **right_rows}
 
+    def set_history_maxlen(self, maxlen: int) -> None:
+        for row in self.rows.values():
+            row.set_history_maxlen(maxlen)
+
 
 class H2rgRoiPlots(QWidget):
     """Side-by-side ROI brightness-vs-time and 1D profile plots."""
 
-    def __init__(self, parent: QWidget | None = None, *, graph_height: int = 190) -> None:
+    window_seconds_changed = pyqtSignal(float)
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        graph_height: int = 190,
+        window_seconds: float = 60.0,
+    ) -> None:
         super().__init__(parent)
         strip_h = scaled(max(graph_height, 240))
         self.setFixedHeight(strip_h)
@@ -413,6 +432,22 @@ class H2rgRoiPlots(QWidget):
         root.setSpacing(2)
 
         toolbar = QHBoxLayout()
+        toolbar.setSpacing(scaled(6))
+        span_label = QLabel("Time span:", self)
+        span_label.setStyleSheet(_title_style())
+        toolbar.addWidget(span_label)
+        self.combo_time_span = QComboBox(self)
+        self.combo_time_span.setToolTip(
+            "Visible window for ROI brightness vs time"
+        )
+        self.combo_time_span.setStyleSheet(PANEL_FIELD_STYLE)
+        self.combo_time_span.setMinimumHeight(scaled(28))
+        self.combo_time_span.setFixedWidth(scaled(88))
+        for minutes in ROI_TIME_SPAN_MINUTES:
+            label = f"{minutes} min" if minutes != 1 else "1 min"
+            self.combo_time_span.addItem(label, float(minutes * 60.0))
+        self.combo_time_span.currentIndexChanged.connect(self._on_time_span_changed)
+        toolbar.addWidget(self.combo_time_span)
         toolbar.addStretch()
         self.btn_rescale = QPushButton("Rescale Y", self)
         self.btn_rescale.setToolTip("Auto-scale Y on both ROI plots")
@@ -466,11 +501,44 @@ class H2rgRoiPlots(QWidget):
 
         root.addLayout(plots, stretch=1)
         self._timestamps: deque[float] = deque(maxlen=3600)
-        self._window_seconds = 60.0
+        self._window_seconds = float(window_seconds)
+        self._select_time_span(self._window_seconds)
+
+    def _select_time_span(self, window_seconds: float) -> None:
+        """Select the closest span option without emitting a change."""
+        target = float(window_seconds)
+        best_index = 0
+        best_delta = float("inf")
+        for index in range(self.combo_time_span.count()):
+            seconds = float(self.combo_time_span.itemData(index))
+            delta = abs(seconds - target)
+            if delta < best_delta:
+                best_delta = delta
+                best_index = index
+        blocked = self.combo_time_span.blockSignals(True)
+        self.combo_time_span.setCurrentIndex(best_index)
+        self.combo_time_span.blockSignals(blocked)
+        data = self.combo_time_span.currentData()
+        if data is not None:
+            self._window_seconds = float(data)
+
+    def _on_time_span_changed(self, _index: int = 0) -> None:
+        data = self.combo_time_span.currentData()
+        if data is None:
+            return
+        seconds = float(data)
+        if abs(seconds - self._window_seconds) < 1e-6:
+            return
+        self._window_seconds = seconds
+        self.window_seconds_changed.emit(seconds)
 
     def set_history_limits(self, *, maxlen: int, window_seconds: float) -> None:
         self._timestamps = deque(self._timestamps, maxlen=maxlen)
         self._window_seconds = float(window_seconds)
+        self._select_time_span(self._window_seconds)
+
+    def window_seconds(self) -> float:
+        return float(self._window_seconds)
 
     def clear(self) -> None:
         self._timestamps.clear()

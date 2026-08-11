@@ -44,10 +44,12 @@ from nottcontrol.camera.macie.fits_header_meta import (
     header_cards_as_value_dict,
 )
 from nottcontrol.camera.macie.fits_science import (
+    TruncatedFitsError,
     load_fits_data,
     save_science_fits,
     science_fits_path,
     science_image_from_cube,
+    wait_for_file_size_stable,
 )
 from nottcontrol.camera.macie.gui_remote import (
     DEFAULT_TIMEOUT_S as GUI_CONTROL_TIMEOUT_S,
@@ -113,8 +115,10 @@ MACIE_ROI_GRAPH_HEIGHT = config.getint(H2RG_SECTION, "graph_height", fallback=24
 MACIE_ROI_TIME_PLOT_MAX_HZ = config.getfloat(
     H2RG_SECTION, "roi_time_plot_max_framerate", fallback=30.0
 )
+# Buffer enough points for the longest selectable span (60 min).
+MACIE_ROI_TIME_SPAN_MAX_S = 60 * 60.0
 MACIE_ROI_DEQUE_LENGTH = max(
-    60, int(MACIE_ROI_TIME_WINDOW_S * MACIE_ROI_TIME_PLOT_MAX_HZ)
+    60, int(MACIE_ROI_TIME_SPAN_MAX_S * MACIE_ROI_TIME_PLOT_MAX_HZ)
 )
 MACIE_ROI_PLOT_INTERVAL_S = 1.0 / max(MACIE_ROI_PLOT_HZ, 0.1)
 MACIE_SHUTTER_WAIT_TIMEOUT_S = 30.0
@@ -2238,11 +2242,15 @@ class H2rgMainWindow(QMainWindow):
         top.addWidget(right_column, stretch=0)
         root.addLayout(top, stretch=1)
 
-        self._roi_plots = H2rgRoiPlots(graph_height=max(MACIE_ROI_GRAPH_HEIGHT, 240))
+        self._roi_plots = H2rgRoiPlots(
+            graph_height=max(MACIE_ROI_GRAPH_HEIGHT, 240),
+            window_seconds=MACIE_ROI_TIME_WINDOW_S,
+        )
         self._roi_plots.set_history_limits(
             maxlen=MACIE_ROI_DEQUE_LENGTH,
             window_seconds=MACIE_ROI_TIME_WINDOW_S,
         )
+        self._roi_plots.window_seconds_changed.connect(self._on_roi_time_span_changed)
         self._roi_plots.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         root.addWidget(self._roi_plots, stretch=0)
 
@@ -2429,6 +2437,9 @@ class H2rgMainWindow(QMainWindow):
         self._refresh_display()
 
     def _on_roi_plot_toggled(self, _state: int = 0) -> None:
+        self._refresh_roi_plots(force=True)
+
+    def _on_roi_time_span_changed(self, _window_seconds: float) -> None:
         self._refresh_roi_plots(force=True)
 
     def _selected_window_mode(self) -> WindowMode:
@@ -4135,6 +4146,8 @@ class H2rgMainWindow(QMainWindow):
             )
             return None
         try:
+            if not wait_for_file_size_stable(resolved, settle_s=0.4, timeout_s=60.0):
+                raise TruncatedFitsError(f"FITS still growing: {resolved.name}")
             data, header = load_fits_data(resolved)
         except Exception as exc:
             print(f"H2RG failed to load ramp for science save {ramp_path.name}: {exc}")
@@ -4747,6 +4760,12 @@ class H2rgMainWindow(QMainWindow):
             try:
                 if not path.is_file():
                     return None
+                # Full-frame ramps appear on SMB before CFITSIO finishes writing;
+                # wait for a stable size so Astropy does not open a truncated file.
+                if not wait_for_file_size_stable(
+                    path, settle_s=0.35, timeout_s=2.0
+                ):
+                    return None
                 data, header = load_fits_data(path)
                 frame = science_image_from_cube(
                     data,
@@ -4754,6 +4773,9 @@ class H2rgMainWindow(QMainWindow):
                     reduction=self._acquire_preview_reduction,  # type: ignore[arg-type]
                     fowler_pairs=self._acquire_preview_fowler,
                 )
+            except TruncatedFitsError:
+                # Still being written — retry on the next poll, do not mark shown.
+                return None
             except Exception as exc:
                 print(f"H2RG acquire preview skipped {path.name}: {exc}")
                 return None
@@ -4840,7 +4862,6 @@ class H2rgMainWindow(QMainWindow):
         zmq_seen: set[str] = set()
         last_frame: numpy.ndarray | None = None
         server_path_checked_at = 0.0
-        stable_since: float | None = None
 
         def preview_seen() -> None:
             nonlocal last_frame
@@ -4901,17 +4922,22 @@ class H2rgMainWindow(QMainWindow):
                 if len(seen) >= expected_count:
                     break
             if local_ok and len(seen) >= expected_count:
-                stable_since = None
-                break
-            elif local_ok and seen and expected_count <= 1:
-                # Single-frame acquire: stop once the first new file looks stable.
-                if stable_since is None:
-                    stable_since = time.monotonic()
-                elif time.monotonic() - stable_since >= 1.0:
+                # Require byte-size stability (not just file presence) so full-frame
+                # SMB copies are not opened mid-write (~3 MB of an ~8 MB plane).
+                ready = True
+                for path in list(seen.values())[-max(1, expected_count) :]:
+                    if not wait_for_file_size_stable(
+                        path, settle_s=0.35, timeout_s=1.2
+                    ):
+                        ready = False
+                        break
+                if ready:
                     break
-            else:
-                # Still waiting for more of the expected multi-frame set.
-                stable_since = None
+            elif local_ok and seen and expected_count <= 1:
+                # Single-frame acquire: stop once the first new file size settles.
+                path = next(iter(seen.values()))
+                if wait_for_file_size_stable(path, settle_s=0.4, timeout_s=0.9):
+                    break
 
             now = time.monotonic()
             if local_ok:
@@ -5021,6 +5047,8 @@ class H2rgMainWindow(QMainWindow):
         )
 
     def _load_fits_from_path(self, path: Path) -> numpy.ndarray:
+        if not wait_for_file_size_stable(path, settle_s=0.4, timeout_s=60.0):
+            raise TruncatedFitsError(f"FITS still growing: {path.name}")
         data, header = load_fits_data(path)
         self._last_fits_path = path
         self._last_fits_mtime = path.stat().st_mtime
