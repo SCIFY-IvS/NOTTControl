@@ -131,7 +131,7 @@ class DelayLine(Motor):
         # Compensate backlash if direction of motion changed and motion is beyond deadband.
         need_cp = (not curr_dir == self.prev_dir) and np.abs(distance) >= self.deadband 
         if need_cp and cp_backlash:
-            self.move_abs(self.position_microns + curr_dir * self.backlash)
+            self.move_abs(self.position_microns + curr_dir * self.backlash, check_valid)
             sleep(0.2)
             if verbose:
                 print(self.position_microns, self.target_microns)
@@ -140,7 +140,7 @@ class DelayLine(Motor):
             if verbose:
                 print(f"t_est = {t_est}")
             self.await_motor(dt=dt, timeout=t_est+10., verbose=verbose)
-        self.move_abs(target_pos)
+        self.move_abs(target_pos, check_valid)
         sleep(0.2)
         if verbose:
             print(self.position_microns, self.target_microns)
