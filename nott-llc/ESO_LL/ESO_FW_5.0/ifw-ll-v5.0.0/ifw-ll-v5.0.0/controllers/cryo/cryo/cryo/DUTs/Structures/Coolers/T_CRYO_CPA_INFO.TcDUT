@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CPA_INFO" Id="{0056a967-52ba-45c4-952b-0ccbb86ddfd9}">
+    <Declaration><![CDATA[TYPE T_CRYO_CPA_INFO :
+STRUCT
+(*
+	Driver Information
+
+	Change LOG:
+*)
+	sDate:			STRING(16)	:= '2020-07-14';
+	sDescription:	STRING(32) 	:= 'CPA controller';
+	sName:			STRING(16)	:= 'FB_CRYO_CPA';
+	sPlatform:		STRING(16)	:= 'CoDeSys';
+	sSynopsis:		STRING(48)	:= 'EtherCAT PLC CPA controller';
+	nVersionMajor:	DINT		:= 1;
+	nVersionMinor:	DINT		:= 0;
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

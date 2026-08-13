@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_CFG" Id="{32fc4446-4a8f-4d0d-82d6-8ab82b55f48d}">
+    <Declaration><![CDATA[TYPE T_CRYO_CFG :
+STRUCT
+	lrTemp_Precooled:		LREAL := 110.0;	// Precooled temperature limit [K]
+	lrTemp_Cold:			LREAL :=  80.0;	// Cool      temperature limit [K]
+	lrTemp_Warm:			LREAL := 283.15;// Warm      temperature limit [K] = 10 C
+	
+	// Delat-T SetPoint between Detector and Coldbench during WarmUp
+	lrTemp_DeltaDet_Bench_Low:	LREAL	:= 10.0;
+	// Delat-T SetPoint between Detector and Coldbench during WarmUp	
+	lrTemp_DeltaDet_Bench_High:	LREAL	:= 5.0;		
+
+	lrTemp_LN2ValveOpen:	LREAL := 91.27;		// Open  valve if temperature above this value [K]
+	lrTemp_LN2ValveClose:	LREAL := 79.148;	// Close valve if temperature below this value [K]
+
+	lrPress_Atm:			LREAL := 700.0;		// Atmospheric pressure limit   [mbar]
+	lrPress_InVac:			LREAL := 10.0E-1;	// In vacuum limit   [mbar]
+	lrPress_GoodVac:		LREAL := 10.0E-4;	// Good Vacuum limit [mbar]
+	
+	
+	// Time between closing Vac valve and Switching OFF the vac Pump [ms]
+	nTime_DeltaTValve:		UDINT := 2000;	
+	// Vacuum Pump Settling Time [ms]
+	nTime_VacPumpSettling:	UDINT := 1000;	
+	// 10 min (600000ms) run of Turbo Pump to consider vac is good (useful when cryostat is cold)
+	nTime_TurboPump:		UDINT := 600000;	
+	
+	//
+	// Lakeshore 340 configuration
+	//
+	LS_CTRL_MODE:			INT		:= 2;		// Remote without local lock
+	
+	// Warm
+	LS_W_PID_A_P:			UINT	:= 10;		// Warm state P controler value
+	LS_W_PID_A_I:			UINT	:= 50;		// Warm state I controler value
+	LS_W_PID_A_D:			UINT	:= 12;		// Warm state D controler value
+	LS_W_Heater_Range:		UINT	:= 4;		// Warm Resistance power range
+	LS_W_CTRL_RAMP:			LREAL	:= 1.0;		// Warm-up delta-T Kelvin per minutes
+	LS_W_SETPOINT_A:		LREAL	:= 293.15;	// 20 Deg Celcius
+
+	// Cold
+	LS_C_PID_A_P:			UINT	:= 50;		// Cold state P controler value
+	LS_C_PID_A_I:			UINT	:= 71;		// Cold state I controler value
+	LS_C_PID_A_D:			UINT	:= 10;		// Cold state D controler value
+	LS_C_Heater_Range:		UINT	:= 4;		// Cold Resistance power range
+	LS_C_CTRL_RAMP:			LREAL	:= 0.0;		// Cooldown/Cooling delta-T Kelvin per minutes
+	LS_C_SETPOINT_A:		LREAL	:= 40.0;	// -193,15 Deg Celcius
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

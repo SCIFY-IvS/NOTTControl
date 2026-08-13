@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_PIEZO_RPC_ERROR" Id="{ae0abd72-7773-43bc-83e5-11d973ea74e5}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_PIEZO_RPC_ERROR :
+(
+	OK						:= 0,
+	NOT_OP					:= -1,			
+	NOT_NOTOP_READY			:= -2,			
+	NOT_NOTOP_NOTREADY		:= -3,			
+	LOCAL					:= -4,			
+	MOVING_USER				:= -5,	// Out of limits target when moving in UU
+	MOVING_BIT				:= -6	// Out of limits target when moving in bits			
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

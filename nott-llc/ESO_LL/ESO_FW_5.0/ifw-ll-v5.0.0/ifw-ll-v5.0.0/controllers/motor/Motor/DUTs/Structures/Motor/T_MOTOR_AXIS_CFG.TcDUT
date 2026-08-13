@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_AXIS_CFG" Id="{9f72cc11-a8f9-4936-9a4b-7ffa1011d609}">
+    <Declaration><![CDATA[TYPE T_MOTOR_AXIS_CFG :
+STRUCT
+	////////////////////////////////////////////////////////////////////////
+	// The following configuration parameters are read from Axis on INIT. //
+	////////////////////////////////////////////////////////////////////////
+	
+	lrScaleFactor:	LREAL 	:= 1.0;				// Read from Axis on INIT
+	lrModuloFactor: LREAL 	:= 360.0;			// Read from Axis on INIT
+	lrAccel: 		LREAL 	:= 30.0;			// Read from Axis on INIT
+	lrDecel: 		LREAL 	:= 30.0;			// Read from Axis on INIT
+	lrJerk: 		LREAL 	:= 100;				// Read from Axis on INIT
+	lrMaxVelocity:	LREAL 	:= 0.001;			// Read from Axis on INIT
+	lrMaxPosLag:	LREAL 	:= 0.0;				// Read from Axis on INIT
+	sUnits:			STRING(16) 	:= 'UNKNOWN';	// Read from Axis on INIT using ADS
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

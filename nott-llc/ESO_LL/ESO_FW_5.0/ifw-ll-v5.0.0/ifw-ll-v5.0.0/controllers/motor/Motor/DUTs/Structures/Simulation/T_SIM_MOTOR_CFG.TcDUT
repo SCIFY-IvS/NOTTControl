@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_SIM_MOTOR_CFG" Id="{edbef554-0fe8-4611-8104-3e2beb2a8221}">
+    <Declaration><![CDATA[TYPE T_SIM_MOTOR_CFG :
+STRUCT
+	bArrActiveLow:		ARRAY [E_MOTOR_SWITCH_INDEX.LSTOP..E_MOTOR_SWITCH_INDEX.USTOP] OF T_MOTOR_ACTIVE_LOW;
+	bUseBrake:			BOOL	:= FALSE;
+	bActiveLowBrake:	BOOL 	:= FALSE;
+	
+	// Action delays
+	nDelay_SwitchFind:		UDINT := 5000;	// Delay for finding switch [ms]
+	nDelay_SwitchActive:	UDINT := 3000;	// Delay for switch being active (exiting switch) [ms]
+	nDelay_Brake:			UDINT :=  500;	// Delay for brake activation [ms]
+
+	nCouplerState:			UINT := 8;		// HW state
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

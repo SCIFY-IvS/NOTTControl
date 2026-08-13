@@ -1,0 +1,58 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-identity",
+      "displayName": "Identity",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:project#/definitions/PageIdentity",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "Identity",
+      "propertySetterName": "setIdentity",
+      "propertyGetterName": "getIdentity",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-label",
+      "displayName": "Label",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "Label",
+      "propertySetterName": "setLabel",
+      "propertyGetterName": "getLabel",
+      "refTo": ""
+    },
+    {
+      "name": "data-tchmi-icon",
+      "displayName": "Icon",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:framework#/definitions/Path",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "Icon",
+      "propertySetterName": "setIcon",
+      "propertyGetterName": "getIcon",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

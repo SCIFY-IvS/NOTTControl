@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_METIS_CTRL_TEMPERATURE" Id="{4854d037-6920-4e91-a716-a489f8ae3eaa}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_METIS_CTRL_TEMPERATURE EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+    fbInstance : FB_METIS_CTRL_TEMPERATURE;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbHealthStatus(
+    bIsEnabled := fbInstance.cfg.bEnabled,
+    bIsGood := fbInstance.stat.bValid);
+                     
+fbBusyStatus(
+    bIsEnabled := FALSE,
+    bIsBusy := FALSE);
+
+M_UpdateStatusColor();
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_METIS_CTRL_TEMPERATURE">
+      <LineId Id="152" Count="2" />
+      <LineId Id="158" Count="5" />
+      <LineId Id="92" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

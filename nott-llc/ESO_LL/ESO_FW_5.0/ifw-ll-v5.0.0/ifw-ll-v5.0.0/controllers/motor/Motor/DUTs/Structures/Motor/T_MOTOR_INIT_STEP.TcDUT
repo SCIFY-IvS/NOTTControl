@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_INIT_STEP" Id="{38888790-7fe4-4005-9843-c500b03a04a9}">
+    <Declaration><![CDATA[TYPE T_MOTOR_INIT_STEP :
+STRUCT
+	nAction:	DINT; 	(* e.g. FIND_LHW *)
+	lrValue1:	LREAL;	(* Normally velocity *)
+	lrValue2:	LREAL;	(* Normally position *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

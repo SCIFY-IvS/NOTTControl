@@ -1,0 +1,21 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-04/schema",
+    "definitions": {
+        "TcHmi.Controls.cryo_framework.pump": {
+            "type": "object",
+            "frameworkInstanceOf": "TcHmi.Controls.System.TcHmiControl",
+            "frameworkControlType": "pump",
+            "frameworkControlNamespace": "TcHmi.Controls.cryo_framework"
+        },
+        "TcHmi.Controls.cryo_framework.pump.direction": {
+            "default": "Right",
+            "enum": [
+                "Up",
+                "Right",
+                "Left",
+                "Down"
+            ],
+            "type": "string"
+        }
+    }
+}

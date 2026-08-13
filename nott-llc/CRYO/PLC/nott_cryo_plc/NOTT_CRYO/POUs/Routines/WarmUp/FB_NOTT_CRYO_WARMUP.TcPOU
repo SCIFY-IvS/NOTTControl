@@ -1,0 +1,395 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_CRYO_WARMUP" Id="{c841ca50-7c10-48b1-8f8f-07e19ec21aec}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CRYO_WARMUP
+VAR_INPUT
+	in_bEnable:	BOOL := FALSE;	// System active while in_bEnable is TRUE
+END_VAR
+VAR_OUTPUT
+	out_bPermit_Evacuation_Stop:	BOOL := FALSE;
+	out_bPermit_CoolDown:				BOOL := FALSE;
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_temps:						FB_NOTT_TEMPERATURES;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_heaters:					FB_NOTT_HEATERS;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_ctrls:      				FB_NOTT_TCTRLs;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_votes: 					FB_NOTT_VOTERS;
+END_VAR
+VAR
+		
+	{attribute 'TcHmiSymbol.Show'}	
+	cfg:	T_NOTT_CRYO_WARMUP_CFG;
+	{attribute 'TcHmiSymbol.Show'}
+	ctrl:	T_NOTT_CRYO_WARMUP_CTRL;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	stat:	T_NOTT_CRYO_WARMUP_STAT;
+	
+//
+// Internals
+//
+	timer:	TON;
+	trig:	R_TRIG;	// Start trigger
+//
+
+	{attribute 'TcHmiSymbol.Show'}
+	bPermitStart:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	bPermitStop:	BOOL := FALSE;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_Configure();
+M_ExecuteControllers();
+M_StateMachine( 
+	nott_temps  := nott_temps,
+	nott_heaters := nott_heaters,
+	nott_t_ctrls := nott_t_ctrls,
+	nott_t_votes := nott_t_votes
+);
+M_UpdateStatus();
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{4cb12a1b-1086-4703-9cb8-35104e92131e}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	refBOOL:	REFERENCE TO BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// IF stat.bConfigured THEN
+// 
+// ELSE
+// 	RETURN;
+// END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteControllers" Id="{fce83cac-42d0-48db-9fea-e2d8d95178b4}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR
+	ptrSimTemp:	POINTER TO LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+	
+
+
+
+	]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PermitStart_WarmUp" Id="{63bd80d1-0ec9-43dc-84a7-805231f1c818}">
+      <Declaration><![CDATA[METHOD M_PermitStart_WarmUp
+VAR_INPUT
+	in_bPermissionStart: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitStart := in_bPermissionStart;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PermitStop_WarmUp" Id="{18f8ed5b-227c-4c44-965b-6a07ca806d4b}">
+      <Declaration><![CDATA[METHOD M_PermitStop_WarmUp
+VAR_INPUT
+	in_bPermissionStop: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitStop := in_bPermissionStop;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{be2e2661-2a1b-4ffc-b3fc-ed41bcf078a2}">
+      <Declaration><![CDATA[METHOD M_StateMachine : BOOL
+VAR_INPUT
+END_VAR
+VAR_IN_OUT
+    {attribute 'OPC.UA.DA' := '0'}
+    nott_temps   : FB_NOTT_TEMPERATURES;
+    {attribute 'OPC.UA.DA' := '0'}
+    nott_heaters : FB_NOTT_HEATERS;
+    {attribute 'OPC.UA.DA' := '0'}
+    nott_t_ctrls : FB_NOTT_TCTRLs;
+    {attribute 'OPC.UA.DA' := '0'}
+    nott_t_votes : FB_NOTT_VOTERS;
+END_VAR
+VAR
+    lrDetectorTarget : LREAL;
+    bDetectorSafe    : BOOL;
+    bAllWarm         : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_StateMachine := FALSE;
+
+lrDetectorTarget := nott_temps.out_lrLowestTemp + cfg.lrTemp_Det_OffSet;
+
+bDetectorSafe :=
+    nott_temps.out_bLowestTempValid
+    AND nott_t_votes.vote_detector.stat.bValid
+    AND (nott_t_votes.vote_detector.stat.lrTempK >= lrDetectorTarget);
+
+bAllWarm :=
+    nott_t_votes.vote_detector.stat.bValid
+    AND nott_t_votes.vote_base_plate.stat.bValid
+    AND nott_t_votes.vote_shield.stat.bValid
+    AND nott_t_votes.vote_sidecar.stat.bValid
+    AND nott_t_votes.vote_photonic_chip.stat.bValid
+    AND (nott_t_votes.vote_detector.stat.lrTempK      >= cfg.lrTemp_Det)
+    AND (nott_t_votes.vote_base_plate.stat.lrTempK    >= cfg.lrTemp_BasePlate)
+    AND (nott_t_votes.vote_shield.stat.lrTempK        >= cfg.lrTemp_Shield)
+    AND (nott_t_votes.vote_sidecar.stat.lrTempK       >= cfg.lrTemp_Sidecar)
+    AND (nott_t_votes.vote_photonic_chip.stat.lrTempK >= cfg.lrTemp_PhotonicChip); 
+
+
+CASE stat.nState OF
+
+    E_NOTT_CRYO_WARMUP_STATE.NONE:
+        stat.sState  := 'NONE';
+        stat.sStatus := 'Undefined state';
+        stat.nState  := E_NOTT_CRYO_WARMUP_STATE.OFF;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.OFF:
+
+        stat.bActive := FALSE;
+        stat.sState  := 'OFF';
+        stat.sStatus := 'Warm-up OFF';
+
+        out_bPermit_Evacuation_Stop := TRUE;
+        out_bPermit_CoolDown        := TRUE;
+
+        trig(CLK := in_bEnable);
+
+        IF trig.Q THEN
+            stat.bActive := TRUE;
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.START_DETECTOR_PROTECTION;
+
+            out_bPermit_Evacuation_Stop := FALSE;
+            out_bPermit_CoolDown        := FALSE;
+        END_IF;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.START_DETECTOR_PROTECTION:
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_CoolDown        := FALSE;
+
+        nott_heaters.h_detector.M_SetEnable();
+        nott_heaters.h_detector_spare.M_SetEnable();
+
+        nott_t_ctrls.tc_detector.M_SetEnable();
+        nott_t_ctrls.tc_detector_spare.M_SetEnable();
+
+        nott_t_ctrls.tc_detector.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := nott_temps.out_lrLowestTemp,
+            m_lrSetpointOffset := cfg.lrTemp_Det_OffSet,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_detector_spare.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := nott_temps.out_lrLowestTemp,
+            m_lrSetpointOffset := cfg.lrTemp_Det_OffSet,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        stat.sState  := 'Detector protection';
+        stat.sStatus := 'Waiting until detector is safely above lowest cryostat temperature';
+
+        stat.nState := E_NOTT_CRYO_WARMUP_STATE.WAIT_DETECTOR_SAFE;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.WAIT_DETECTOR_SAFE:
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_CoolDown        := FALSE;
+
+        // Keep detector protection active while waiting
+        nott_t_ctrls.tc_detector.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := nott_temps.out_lrLowestTemp,
+            m_lrSetpointOffset := cfg.lrTemp_Det_OffSet,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_detector_spare.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := nott_temps.out_lrLowestTemp,
+            m_lrSetpointOffset := cfg.lrTemp_Det_OffSet,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        IF NOT in_bEnable THEN
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.STOP_WARMUP;
+        ELSIF bDetectorSafe THEN
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.START_WARMUP;
+        ELSE
+            stat.sStatus := 'Detector protection active...';
+        END_IF;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.START_WARMUP:
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_CoolDown        := FALSE;
+
+        // Enable remaining heaters
+        nott_heaters.h_sidecar.M_SetEnable();
+        nott_heaters.h_photonic_chip.M_SetEnable();
+        nott_heaters.h_base_plate.M_SetEnable();
+        nott_heaters.h_shield.M_SetEnable();
+
+        // Enable remaining temperature controls
+        nott_t_ctrls.tc_sidecar.M_SetEnable();
+        nott_t_ctrls.tc_photonic_chip.M_SetEnable();
+        nott_t_ctrls.tc_base_plate.M_SetEnable();
+        nott_t_ctrls.tc_shields.M_SetEnable();
+
+        // Set warm-up setpoints
+        nott_t_ctrls.tc_detector.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_Det,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_detector_spare.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_Det,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_sidecar.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_Sidecar,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_photonic_chip.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_PhotonicChip, 
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_base_plate.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_BasePlate,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_shields.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_Shield,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        stat.sState  := 'WARMING UP';
+        stat.sStatus := 'Warm-up heaters enabled';
+
+        stat.nState := E_NOTT_CRYO_WARMUP_STATE.WARMING_UP;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.WARMING_UP:
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_CoolDown        := FALSE;
+
+        IF NOT in_bEnable THEN
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.STOP_WARMUP;
+
+        ELSIF nott_temps.out_bHighestTempValid
+              AND (nott_temps.out_lrHighestTemp > cfg.lrTemp_HighLimit) THEN
+
+            stat.bError := TRUE;
+            stat.sErrorText := CONCAT('High temperature limit exceeded at ', nott_temps.out_sHighestTempName);
+            stat.sStatus := stat.sErrorText;
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.STOP_WARMUP;
+
+        ELSIF bAllWarm THEN
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.WARM_TEMPERATURE_ACHIEVED;
+            stat.sStatus := 'Warm temperature achieved';
+
+        ELSE
+            stat.sStatus := 'Warming up...';
+        END_IF;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.WARM_TEMPERATURE_ACHIEVED:
+
+        IF in_bEnable THEN
+            stat.sState  := 'WARM';
+            stat.sStatus := 'Warm temperature achieved';
+
+            out_bPermit_Evacuation_Stop := TRUE;
+            out_bPermit_CoolDown        := TRUE;
+
+            // Keep temperature control active at warm targets
+        ELSE
+            stat.nState := E_NOTT_CRYO_WARMUP_STATE.STOP_WARMUP;
+        END_IF;
+
+
+    E_NOTT_CRYO_WARMUP_STATE.STOP_WARMUP:
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_CoolDown        := FALSE;
+
+        nott_heaters.h_detector.M_SetDisable();
+        nott_heaters.h_detector_spare.M_SetDisable();
+        nott_heaters.h_sidecar.M_SetDisable();
+        nott_heaters.h_photonic_chip.M_SetDisable();
+        nott_heaters.h_base_plate.M_SetDisable();
+        nott_heaters.h_shield.M_SetDisable();
+
+        nott_t_ctrls.tc_detector.M_SetDisable();
+        nott_t_ctrls.tc_detector_spare.M_SetDisable();
+        nott_t_ctrls.tc_sidecar.M_SetDisable();
+        nott_t_ctrls.tc_photonic_chip.M_SetDisable();
+        nott_t_ctrls.tc_base_plate.M_SetDisable();
+        nott_t_ctrls.tc_shields.M_SetDisable();
+
+        stat.bActive := FALSE;
+        stat.sState  := 'OFF';
+        stat.sStatus := 'Warm-up stopped';
+
+        stat.nState := E_NOTT_CRYO_WARMUP_STATE.OFF;
+
+
+ELSE
+    stat.bError := TRUE;
+    stat.sErrorText := 'Unknown warm-up state';
+    stat.sStatus := stat.sErrorText;
+    stat.nState := E_NOTT_CRYO_WARMUP_STATE.NONE;
+END_CASE;
+
+M_StateMachine := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{4c3a2c10-0338-4234-982c-50ac83d3b294}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bEnabled		:= in_bEnable;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

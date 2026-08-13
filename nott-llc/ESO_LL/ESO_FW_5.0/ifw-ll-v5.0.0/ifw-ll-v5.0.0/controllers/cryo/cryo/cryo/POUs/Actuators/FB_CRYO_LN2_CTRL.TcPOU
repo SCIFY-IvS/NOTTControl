@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_LN2_CTRL" Id="{66ff87ce-ff5b-4d3a-9b1b-9ce460018a96}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_LN2_CTRL EXTENDS FB_CRYO_BIN_CTRL
+VAR_INPUT
+	in_lrTempK:		LREAL;			// Temperature input value [K]
+	in_bValid:		BOOL := TRUE;	// Temperature Valid flag
+	// Two parameters for decision making
+	in_lrTempValveOpen:		LREAL := 91.27;		// Open  valve if temperature above this value [K]
+	in_lrTempValveClose:	LREAL := 79.148;	// Close valve if temperature below this value [K]
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Check the validity of the temperature reading.
+// Start the check after 200 cycles.
+IF stat.nCycleCounter > 200 THEN
+	IF NOT in_bValid THEN
+		// The temperature is not valid. 
+		// The controller cannot work.
+		stat.bCtrlOK	:= FALSE;
+	ELSIF in_lrTempValveClose >= in_lrTempValveOpen THEN
+		// Wrong configuration.
+		// ValveClose MUST be lower than ValveOpen temperature
+		stat.bCtrlOK	:= FALSE;
+	ELSE
+		// The temperature is valid. 
+		stat.bCtrlOK	:= TRUE;
+	END_IF
+ELSE
+	// The temperature is valid. 
+	stat.bCtrlOK	:= TRUE;
+END_IF
+
+// Execute parent FB.
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_SetStatus" Id="{5a1cfb82-a4d3-4622-9494-80a373e92cbf}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_BIN_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Execute the status of the parent FB
+SUPER^.M_SetStatus(nState);
+
+// Set proper error description, if any.
+IF Actuator.stat.bError THEN
+	stat.sState	:= 'Valve failure';
+ELSIF NOT stat.bCtrlOK THEN
+	stat.sState	:= 'Temperature not valid';
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_User_SetAction" Id="{d02b2084-6399-4480-99c9-a37797d8dc6c}">
+      <Declaration><![CDATA[METHOD M_User_SetAction : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// Overwrite Method FB_CRYO_BIN_CTRL::M_User_SetOutput()
+//
+// This method implements the logic for controlling the LN2 valve.
+// 
+// FB_CRYO_LN2_CTRL input parameters:
+//
+// in_lrTempK          - LN2 temperature
+// in_bValid           - Flag if temperature reading is valid
+// in_lrTempValveOpen  - Temperature upper limit [K]. Valve opens  when:  LN2 > in_lrTempValveOpen
+// in_lrTempValveClose - Temperature lower limit [K]. Valve closes when:  LN2 < in_lrTempValveClose
+//
+// in_lrTempValveOpen > in_lrTempValveClose, e.g. 91.27K > 79.148K.
+//
+	
+IF	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF  OR  
+	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON THEN
+	// Check if input temperature value is valid.
+	// If OK, check temperature against the limits	
+	IF NOT stat.bCtrlOK THEN
+		// Temperature reading is not valid.
+		// Dectivate the actuator, i.e. close the valve
+		M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+		stat.nState	:= E_CRYO_BIN_CTRL_STATE.ERROR;
+	ELSIF in_lrTempK > in_lrTempValveOpen THEN
+		// Activate the actuator, i.e. open the valve
+		M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.ON;
+	ELSIF in_lrTempK < in_lrTempValveClose THEN
+		// Dectivate the actuator, i.e. close the valve
+		M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+	END_IF
+	
+ELSE
+	// Don't do anything
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.NONE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_LN2_CTRL">
+      <LineId Id="21" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="43" Count="3" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="64" Count="2" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="9" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_CTRL.M_SetStatus">
+      <LineId Id="159" Count="0" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="148" Count="4" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_LN2_CTRL.M_User_SetAction">
+      <LineId Id="5" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="115" Count="3" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="83" Count="2" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_SERVICES" Id="{d0e78a0c-6b15-4173-ac07-9bdbb6997828}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_SERVICES EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+    fbInstance : FB_SERVICES;
+END_VAR
+VAR
+    fbTime : FB_HMI_SERVICES_TIME;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTime(fbInstance := fbInstance.fbTime);
+
+fbHealthStatus(
+    bIsEnabled  := fbTime.fbHealthStatus.bEnabled,
+    bIsGood     := fbTime.fbHealthStatus.bGood);
+fbBusyStatus(
+    bIsEnabled  := fbTime.fbBusyStatus.bEnabled,
+    bIsBusy     := fbTime.fbBusyStatus.bBusy);
+
+M_UpdateStatusColor();
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_SERVICES">
+      <LineId Id="71" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="103" Count="1" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="76" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

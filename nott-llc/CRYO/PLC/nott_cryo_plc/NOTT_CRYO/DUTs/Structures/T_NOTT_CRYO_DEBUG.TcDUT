@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_DEBUG" Id="{e6058864-1d35-4b50-a08a-dea6a8f50855}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_DEBUG :
+STRUCT
+	nCycleCounter:	UDINT := 0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

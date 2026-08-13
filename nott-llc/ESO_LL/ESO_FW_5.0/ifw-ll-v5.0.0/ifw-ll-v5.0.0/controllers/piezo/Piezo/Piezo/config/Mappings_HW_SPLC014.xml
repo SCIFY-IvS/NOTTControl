@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^Piezo^Piezo Instance">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 16 (EL3068)">
+			<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nActVal_Int16[0]" VarB="AI Standard Channel 1^Value"/>
+			<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nActVal_Int16[1]" VarB="AI Standard Channel 2^Value"/>
+			<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nActVal_Int16[2]" VarB="AI Standard Channel 3^Value"/>
+			<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nCouplerState" VarB="InfoData^State"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 6 (EL4008)">
+			<Link VarA="PlcTask Outputs^MAIN.Piezo001.q_nCtrl[0]" VarB="AO Outputs Channel 1^Analog output"/>
+			<Link VarA="PlcTask Outputs^MAIN.Piezo001.q_nCtrl[1]" VarB="AO Outputs Channel 2^Analog output"/>
+			<Link VarA="PlcTask Outputs^MAIN.Piezo001.q_nCtrl[2]" VarB="AO Outputs Channel 3^Analog output"/>
+		</OwnerB>
+		<OwnerB Name="TIPC^Piezo^Piezo Instance">
+			<Link VarA="PlcTask Inputs^MAIN.Piezo002.i_nActVal_Int16" VarB="PlcTask Outputs^MAIN.SIM_Piezo002.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.Piezo002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Piezo002.q_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.Piezo002.q_nCtrl" VarB="PlcTask Inputs^MAIN.SIM_Piezo002.i_nSignal"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

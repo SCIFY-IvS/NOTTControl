@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="T_PIEZO_LREAL" Id="{fedd21da-d08d-40c5-9895-07e822df8dc3}">
+    <Declaration><![CDATA[TYPE T_PIEZO_LREAL :
+STRUCT
+	lrValue:	LREAL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

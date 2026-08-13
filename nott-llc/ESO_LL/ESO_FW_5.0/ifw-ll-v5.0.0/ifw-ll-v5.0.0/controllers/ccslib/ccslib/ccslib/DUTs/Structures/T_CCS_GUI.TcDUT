@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_CCS_GUI" Id="{705c807a-c833-41b2-b622-9d1055736495}">
+    <Declaration><![CDATA[TYPE T_CCS_GUI :
+STRUCT
+	alt: LREAL;
+	az: LREAL;
+	pa: LREAL;
+	time_tai: STRING;
+	lst: LREAL;
+	ra: LREAL;
+	dec: LREAL;
+	north_angle: LREAL;
+	pupil_angle: LREAL;
+	ha: LREAL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

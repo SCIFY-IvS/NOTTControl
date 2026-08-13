@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_MA_STAT" Id="{ddb19241-b6e5-49c7-83fa-96642f1539e9}">
+    <Declaration><![CDATA[TYPE T_MA_STAT :
+STRUCT
+	bLocal:			    BOOL	:= FALSE;	    // if TRUE, device operated from PLC GUI 
+	bInitialised:		BOOL    := FALSE;		// Flag if device is initialised
+	bConfigured:		BOOL    := FALSE;		// Flag indicated that pointers to FB_MOTOR are set
+	bTrackingOK:		BOOL	:= FALSE;		// if TRUE, Can switch from PRESETTING to TRACKING.
+	bTrackingBAD:		BOOL	:= FALSE;		// if TRUE, Should switch from TRACKING back to PRESETTING. 
+
+	nMode:		     	INT;
+	sStatus:			STRING 	:= '';			(* Status description *)
+	nStatus:            DINT    := 0;
+	lrPosError:         LREAL;					// Highest difference (actualPos - targetPos)
+
+	nErrorCode: 	    DINT    := E_MOTOR_ERROR.OK;	// Error code 
+	nRpcErrorCode: 	    DINT 	:= E_MOTOR_RPC_ERROR.OK;			(* RPC Error code *)
+	sRpcErrorText: 	    STRING 	:= 'OK'; 			// RPC Error text 
+	
+	sLibVersion:        STRING  := '';          (* Motor.library version *)
+
+	sm:                  T_MA_SM_STAT;           // State machine status
+	nCycleTime:			UDINT	:= 10000;		// Cycle time in [100ns], default 1 ms
+	
+	nSkippedCycles: 	DINT := 20;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

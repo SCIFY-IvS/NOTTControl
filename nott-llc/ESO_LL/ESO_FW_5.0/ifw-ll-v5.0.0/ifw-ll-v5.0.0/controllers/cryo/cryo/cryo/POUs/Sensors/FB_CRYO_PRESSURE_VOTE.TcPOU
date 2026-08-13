@@ -1,0 +1,731 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_PRESSURE_VOTE" Id="{a9baf80f-f196-4114-847c-ebe5cf64e1c7}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// This FB calculates resulting pressure applying the selected voting method.
+// Up to five pressure sensors are used in the calculation.
+// The resulting value is a combination of values from available/valid sensors.
+// For more info, see method M_SetStatus().
+//
+FUNCTION_BLOCK FB_CRYO_PRESSURE_VOTE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bSimulation:	BOOL	:= FALSE;	// If TRUE, the pressure value is simulated.
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nNumSensor:	INT;				// Number of sensors used by voiting method.
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nVoteMethod:	E_CRYO_VOTE	:= E_CRYO_VOTE.V_AVE;	// Active voting method.
+	
+	// Five pointers to instances of FB_CRYO_SENSOR_PRESSURE.
+	// Pointers should only be set to existing pressure sensors.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_pSensor1:		POINTER TO FB_CRYO_SENSOR_PRESSURE	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_pSensor2:		POINTER TO FB_CRYO_SENSOR_PRESSURE	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_pSensor3:		POINTER TO FB_CRYO_SENSOR_PRESSURE	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_pSensor4:		POINTER TO FB_CRYO_SENSOR_PRESSURE	:= 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_pSensor5:		POINTER TO FB_CRYO_SENSOR_PRESSURE	:= 0;
+
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:		T_CRYO_PRESSURE_VOTE_STATUS;	// Complete status
+	
+	pSensor:	ARRAY [1..5] OF POINTER TO FB_CRYO_SENSOR_PRESSURE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// If not configured yet, return.
+IF NOT M_Configure()	THEN
+	RETURN;
+END_IF
+
+// Set warnings for sensors with problems
+M_CheckWarnings();
+
+// Set the calculated vacuum pressure
+M_SetStatus();
+]]></ST>
+    </Implementation>
+    <Method Name="M_CheckWarnings" Id="{97ccceae-71ae-4edf-a5e3-56878805dcf6}">
+      <Declaration><![CDATA[METHOD M_CheckWarnings : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i:=1 TO in_nNumSensor DO
+	IF pSensor[i] <> 0  THEN
+		// The set pointer (<> 0) indicates that the sensor is connected.
+		// Warnings could be set only for connected sensors.
+		IF  pSensor[i]^.stat.bValid	THEN
+			// Clear warning
+			M_SetWarning(i, FALSE);
+		ELSE
+			// Set warning
+			M_SetWarning(i, TRUE);
+		END_IF
+	ELSE
+		// Not connected sensors don't have warnings
+		M_SetWarning(i, FALSE);
+	END_IF
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{899f2132-8105-4993-a4e7-0e233b23a383}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	j:					INT;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	i:	INT := 0;
+	{attribute 'OPC.UA.DA' := '0'}
+	bConfigured:	BOOL := FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// The number of sensors must be between 1 and 5.
+IF in_nNumSensor < 1 OR in_nNumSensor > 5 THEN
+	// Set error string
+	stat.sStatus	:= 'ERROR: Number of sensors (var in_nNumSensor) is not in range [1..5]';
+	RETURN;
+END_IF
+
+// Configure the system in stages after boot-up.
+// WARNING:
+// It seems that setting of pointers takes some time and cannot be done in FB_Init.
+// After 40 cycles, we set pointers to sensors.
+// After 80 cycles, we set general configuration parameters and complete configuration.
+IF NOT bConfigured THEN
+	i	:= i + 1;
+	IF i = 40 THEN
+		// Assign pointers to the sensor device instances
+		pSensor[1] := in_pSensor1;
+		pSensor[2] := in_pSensor2;
+		pSensor[3] := in_pSensor3;
+		pSensor[4] := in_pSensor4;
+		pSensor[5] := in_pSensor5;
+	ELSIF i >= 80 THEN
+		FOR j := 1 TO in_nNumSensor DO
+			IF pSensor[j] <> 0 THEN
+				// Set the status flag that the sensor is connected.
+				M_SetConnected(j, TRUE);
+				// At least one pointer is not zero.
+				// We have finished configuration.
+				bConfigured	:= TRUE;
+			ELSE
+				M_SetConnected(j, FALSE);
+			END_IF
+		END_FOR
+	END_IF
+END_IF
+
+M_Configure	:= bConfigured;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetConnected" Id="{0385cbd9-0a92-4fea-89c9-aad633d40dc0}">
+      <Declaration><![CDATA[METHOD M_SetConnected : BOOL
+VAR_INPUT
+	in_nIndex:		INT;
+	in_bConnected:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE in_nIndex OF
+	1:
+		stat.bConnSens1	:= in_bConnected;
+	2:
+		stat.bConnSens2	:= in_bConnected;
+	3:
+		stat.bConnSens3	:= in_bConnected;
+	4:
+		stat.bConnSens4	:= in_bConnected;
+	5:
+		stat.bConnSens5	:= in_bConnected;
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{50c6dbc8-aee5-4d9b-9594-29f858321371}">
+      <Declaration><![CDATA[// Calculate pressure based on the status of the two sensors
+METHOD M_SetStatus
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var
+	nSample:	INT;
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// If simulated, set the simulated value and return.
+//
+IF in_bSimulation THEN
+	stat.bSimulated	:= TRUE;
+	stat.bValid		:= TRUE;
+	stat.lrPressure	:= stat.lrSimPressure;
+	RETURN;
+ELSE
+	stat.bSimulated	:= FALSE;
+END_IF
+
+
+//
+// Get the pressure depending on the voting method.
+//
+CASE in_nVoteMethod OF
+	E_CRYO_VOTE.V_AVE:
+		M_SetStatus_Average();
+	E_CRYO_VOTE.V_MIN:
+		M_SetStatus_Minimum();
+	E_CRYO_VOTE.V_MAX:
+		M_SetStatus_Maximum();
+	E_CRYO_VOTE.V_1oo2:
+		M_SetStatus_FirstValid();
+	E_CRYO_VOTE.V_2oo3:
+		M_SetStatus_XooY(2,3);
+	E_CRYO_VOTE.V_3oo5:
+		M_SetStatus_XooY(3,5);
+ELSE
+	;
+END_CASE
+
+
+//
+// If the reading is valid, set the simulated value to it.
+// This way, switching from normal to simulation will result in
+// no jump in the value.
+//
+IF stat.bValid  THEN
+	stat.lrSimPressure	:= stat.lrPressure;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_Average" Id="{f663c67c-9fa1-4932-8abb-f049d4f62c65}">
+      <Declaration><![CDATA[// Calculate pressure based on the average of all valid sensor readings
+METHOD M_SetStatus_Average
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var for sum of pressures
+	nSample:	INT;	// Number of valid sensor readings
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[lrTmp	:= 0.0;
+nSample	:= 0;
+FOR i:=1 TO in_nNumSensor DO
+	IF pSensor[i] <> 0  THEN
+		IF  pSensor[i]^.stat.bValid	THEN
+			lrTmp	:= lrTmp + pSensor[i]^.stat.lrPressure;
+			nSample	:= nSample + 1;
+		END_IF
+	END_IF
+END_FOR
+IF nSample > 0	THEN
+	stat.lrPressure	:= lrTmp / nSample;
+	stat.bValid		:= TRUE;
+ELSE
+	stat.lrPressure	:= 9999;
+	stat.bValid		:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_FirstValid" Id="{fc557b5a-1c63-4a2c-bcd9-e603834a10ed}">
+      <Declaration><![CDATA[// Calculate pressure based on the first measured valid value
+METHOD M_SetStatus_FirstValid
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var for sum of pressures
+	nSample:	INT;	// Number of valid sensor readings
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nSample	:= 0;
+FOR i:=1 TO in_nNumSensor DO
+	IF pSensor[i] <> 0  THEN
+		IF  pSensor[i]^.stat.bValid	THEN
+			lrTmp	:= pSensor[i]^.stat.lrPressure;
+			nSample	:= nSample + 1;
+			EXIT;
+		END_IF
+	END_IF
+END_FOR
+IF nSample > 0	THEN
+	stat.lrPressure	:= lrTmp;
+	stat.bValid		:= TRUE;
+ELSE
+	stat.lrPressure	:= 9999;
+	stat.bValid		:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_Maximum" Id="{7eb7fe8f-29c1-4676-8d32-dd71cea6b81a}">
+      <Declaration><![CDATA[// Calculate pressure based on the highest measured valid value
+METHOD M_SetStatus_Maximum
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var for sum of pressures
+	nSample:	INT;	// Number of valid sensor readings
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[lrTmp	:= -100000.0;	// Dummy starting value
+nSample	:= 0;
+FOR i:=1 TO in_nNumSensor DO
+	IF pSensor[i] <> 0  THEN
+		IF  pSensor[i]^.stat.bValid	THEN
+			IF pSensor[i]^.stat.lrPressure > lrTmp THEN
+				lrTmp	:= pSensor[i]^.stat.lrPressure;
+			END_IF
+			nSample	:= nSample + 1;
+		END_IF
+	END_IF
+END_FOR
+IF nSample > 0	THEN
+	stat.lrPressure	:= lrTmp;
+	stat.bValid		:= TRUE;
+ELSE
+	stat.lrPressure	:= 9999;
+	stat.bValid		:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_Minimum" Id="{60bee11a-9d21-4da8-8f27-86d24ca49a88}">
+      <Declaration><![CDATA[// Calculate pressure based on the lowest measured valid value
+METHOD M_SetStatus_Minimum
+VAR_INPUT
+END_VAR
+VAR
+	lrTmp:		LREAL;	// Temporary var for sum of pressures
+	nSample:	INT;	// Number of valid sensor readings
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[lrTmp	:= 100000.0;	// Dummy starting value
+nSample	:= 0;
+FOR i:=1 TO in_nNumSensor DO
+	IF pSensor[i] <> 0  THEN
+		IF  pSensor[i]^.stat.bValid	THEN
+			IF pSensor[i]^.stat.lrPressure < lrTmp THEN
+				lrTmp	:= pSensor[i]^.stat.lrPressure;
+			END_IF
+			nSample	:= nSample + 1;
+		END_IF
+	END_IF
+END_FOR
+IF nSample > 0	THEN
+	stat.lrPressure	:= lrTmp;
+	stat.bValid		:= TRUE;
+ELSE
+	stat.lrPressure	:= 9999;
+	stat.bValid		:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus_XooY" Id="{1582a26d-963f-4ead-8699-e31d58d514a7}">
+      <Declaration><![CDATA[// Calculate pressure based on the status of the two sensors
+METHOD M_SetStatus_XooY
+VAR_INPUT
+	in_nNum:	INT;	// Number of readings to select for voting (X)
+	in_nTotal:	INT;	// Total number of readings to check (Y)
+END_VAR
+VAR
+	idx_i, idx_j:	INT;
+	nTmp:		INT;			// Temporary INT var
+	lrTmp:		LREAL	:= 0.0;	// Temporary var for sum of pressures
+	nValid:		INT		:= 0;	// Total number of valid readings
+	nSample:	INT		:= 0;	// Number of valid sensor readings
+	
+	aDiff:		ARRAY [1..5,1..5] OF LREAL;	// Table of absolute differences
+	aDiffSum:	ARRAY [1..5] OF LREAL;		// Array of sums of absolute differences
+	// Array of indexes of sums of absolute differences
+	aDiffSumIdx:ARRAY [1..5] OF INT := [1,2,3,4,5];		
+	lrAbsDiff:	LREAL;						// Absolute difference between two readings
+	
+	i:			INT;
+	j:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+//	Get the number of valid readings and calculate the average
+//
+FOR i:=1 TO in_nTotal DO
+	IF pSensor[i] <> 0  THEN
+		IF  pSensor[i]^.stat.bValid	THEN
+			lrTmp	:= lrTmp + pSensor[i]^.stat.lrPressure;
+			nValid	:= nValid + 1;
+		END_IF
+	END_IF
+END_FOR
+
+
+//
+// Vote X out of Y
+//
+IF nValid >= in_nNum	THEN
+	//
+	// Calculate relative differences between two readings, 
+	// relative to the bigger ABS value.
+	// Table is symetric. Calculate only the half (triangle) on the right. 
+	// Make a copy to the other half.
+	//
+	FOR i:=1 TO in_nTotal DO
+		FOR j:=i+1 TO in_nTotal DO
+			IF pSensor[i] <> 0  AND  pSensor[j] <> 0	THEN
+				IF pSensor[i]^.stat.bValid  AND  pSensor[j]^.stat.bValid	THEN
+					lrAbsDiff	:= ABS(pSensor[i]^.stat.lrPressure - pSensor[j]^.stat.lrPressure);
+					aDiff[i,j]	:= lrAbsDiff;
+					aDiff[j,i]	:= lrAbsDiff;
+				ELSE
+					aDiff[i,j]	:= 9999.0;
+					aDiff[j,i]	:= 9999.0;
+				END_IF
+			ELSE
+				aDiff[i,j]	:= 9999.0;
+				aDiff[j,i]	:= 9999.0;
+			END_IF
+		END_FOR
+	END_FOR
+
+	//
+	// Get the sum of all differences for each reading.
+	//
+	FOR i:=1 TO in_nTotal DO
+		aDiffSum[i]	:= 0.0;
+		FOR j:=1 TO in_nTotal DO
+			aDiffSum[i]	:= aDiffSum[i] + aDiff[i,j];
+		END_FOR
+	END_FOR
+
+	//
+	// Sort the indexes for differences in accending order (low sum first).
+	//
+	FOR i:=1 TO in_nTotal DO
+		FOR j:=i+1 TO in_nTotal DO
+			idx_i	:= aDiffSumIdx[i];
+			idx_j	:= aDiffSumIdx[j];
+			IF aDiffSum[idx_j] < aDiffSum[idx_i]	THEN
+				// Swap indexes
+				nTmp			:= aDiffSumIdx[j];
+				aDiffSumIdx[j]	:= aDiffSumIdx[i];
+				aDiffSumIdx[i]	:= nTmp;
+			END_IF
+		END_FOR
+	END_FOR
+
+	
+	//					
+	// Get the average of selected in_nNum readings.
+	// Assign the result to the pressure.
+	//
+	lrTmp	:= 0.0;
+	FOR i:=1 TO in_nNum DO
+		idx_i	:= aDiffSumIdx[i];
+		lrTmp	:= lrTmp + pSensor[idx_i]^.stat.lrPressure;
+	END_FOR
+	
+	stat.lrPressure	:= lrTmp / in_nNum;
+	stat.bValid		:= TRUE;
+ELSE
+	stat.lrPressure	:= 9999;
+	stat.bValid		:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetWarning" Id="{349817fc-01ba-4490-a7e4-2e8d5056a0a7}">
+      <Declaration><![CDATA[METHOD M_SetWarning : BOOL
+VAR_INPUT
+	in_nIndex:		INT;
+	in_bWarning:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE in_nIndex OF
+	1:
+		stat.bWarnSens1	:= in_bWarning;
+	2:
+		stat.bWarnSens2	:= in_bWarning;
+	3:
+		stat.bWarnSens3	:= in_bWarning;
+	4:
+		stat.bWarnSens4	:= in_bWarning;
+	5:
+		stat.bWarnSens5	:= in_bWarning;
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE">
+      <LineId Id="323" Count="4" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="222" Count="1" />
+      <LineId Id="163" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_CheckWarnings">
+      <LineId Id="11" Count="1" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_Configure">
+      <LineId Id="190" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="33" Count="2" />
+      <LineId Id="183" Count="2" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="244" Count="1" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="241" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetConnected">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetStatus">
+      <LineId Id="297" Count="2" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="304" Count="0" />
+      <LineId Id="295" Count="1" />
+      <LineId Id="306" Count="1" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="300" Count="1" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="302" Count="1" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="265" Count="5" />
+      <LineId Id="252" Count="3" />
+      <LineId Id="241" Count="1" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="280" Count="1" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="144" Count="1" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetStatus_Average">
+      <LineId Id="243" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="247" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetStatus_FirstValid">
+      <LineId Id="245" Count="0" />
+      <LineId Id="247" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="284" Count="1" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetStatus_Maximum">
+      <LineId Id="243" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="247" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="281" Count="3" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetStatus_Minimum">
+      <LineId Id="243" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="247" Count="1" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="281" Count="3" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetStatus_XooY">
+      <LineId Id="569" Count="0" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="570" Count="0" />
+      <LineId Id="391" Count="7" />
+      <LineId Id="571" Count="4" />
+      <LineId Id="399" Count="0" />
+      <LineId Id="578" Count="0" />
+      <LineId Id="404" Count="0" />
+      <LineId Id="576" Count="0" />
+      <LineId Id="405" Count="0" />
+      <LineId Id="577" Count="0" />
+      <LineId Id="579" Count="0" />
+      <LineId Id="406" Count="4" />
+      <LineId Id="413" Count="0" />
+      <LineId Id="535" Count="0" />
+      <LineId Id="417" Count="1" />
+      <LineId Id="537" Count="0" />
+      <LineId Id="419" Count="2" />
+      <LineId Id="538" Count="0" />
+      <LineId Id="422" Count="2" />
+      <LineId Id="580" Count="0" />
+      <LineId Id="540" Count="0" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="581" Count="0" />
+      <LineId Id="543" Count="0" />
+      <LineId Id="547" Count="0" />
+      <LineId Id="544" Count="0" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="545" Count="1" />
+      <LineId Id="582" Count="0" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="583" Count="0" />
+      <LineId Id="551" Count="0" />
+      <LineId Id="553" Count="0" />
+      <LineId Id="566" Count="1" />
+      <LineId Id="554" Count="0" />
+      <LineId Id="562" Count="0" />
+      <LineId Id="557" Count="0" />
+      <LineId Id="560" Count="1" />
+      <LineId Id="558" Count="0" />
+      <LineId Id="555" Count="1" />
+      <LineId Id="563" Count="0" />
+      <LineId Id="542" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="464" Count="0" />
+      <LineId Id="585" Count="0" />
+      <LineId Id="584" Count="0" />
+      <LineId Id="473" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="568" Count="0" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="452" Count="8" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PRESSURE_VOTE.M_SetWarning">
+      <LineId Id="24" Count="10" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

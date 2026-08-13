@@ -1,0 +1,43 @@
+<div id="METISControlValveFaceplate" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="550" data-tchmi-height="650" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="METISControlValveFaceplate_TcHmiTabNavigation" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTabNavigation" data-tchmi-height="650" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="550" data-tchmi-width-unit="px">
+<script data-tchmi-target-attribute="data-tchmi-tabs" type="application/json">
+[
+  {
+    "displayName": "%l%L_Operate%/l%",
+    "name": "Operate",
+    "targetFile": {
+      "path": "UserControls/Faceplates/METIS/ControlValves/METISControlValveFaceplateOperateTab.usercontrol",
+      "attributes": {
+        "data-tchmi-ctrlvalveobject": "%pp%CtrlValveObject%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  },
+  {
+    "displayName": "%l%L_Messages%/l%",
+    "name": "Messages",
+    "targetFile": {
+      "path": "UserControls/Faceplates/Common/FaceplateMessagesTab.usercontrol",
+      "attributes": {
+        "data-tchmi-eventgrid": "%pp%EventGrid%/pp%",
+        "data-tchmi-eventclassname": "%pp%CtrlValveObject::sEventClassName%/pp%",
+        "data-tchmi-eventpageidentity": "%pp%EventPageIdentity%/pp%",
+        "data-tchmi-instancename": "%pp%CtrlValveObject::sInstanceName%/pp%"
+      }
+    },
+    "targetFileHostKeepAlive": false,
+    "targetFileHostPreAttach": false,
+    "targetFileHostPreload": false
+  }
+]
+</script>
+
+</div>
+
+
+
+
+</div>

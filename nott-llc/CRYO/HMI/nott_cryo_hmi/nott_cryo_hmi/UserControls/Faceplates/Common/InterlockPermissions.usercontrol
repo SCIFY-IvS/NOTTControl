@@ -1,0 +1,442 @@
+<div id="InterlockPermissions" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="225" data-tchmi-height="96" data-tchmi-width-unit="px" data-tchmi-height-unit="px" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="InterlockPermissions_LedBox_InterlockPending" data-tchmi-type="TcHmi.Controls.CryoFramework.LedBox" data-tchmi-datalabel-data-valid="true" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-ledbox-blink="false" data-tchmi-ledbox-state="%pp%InterlockPending%/pp%" data-tchmi-left="5" data-tchmi-left-unit="px" data-tchmi-top="5" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%PermitOn%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "symbolExpression": "%pp%PermitOn%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="InterlockPermissions_TcHmiTextblock_InterlockPendingLabel" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="28" data-tchmi-left-unit="px" data-tchmi-text="%l%L_InterlockPending%/l%" data-tchmi-top="5" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-horizontal-alignment="Left" data-tchmi-text-vertical-alignment="Center">
+</div>
+<div id="InterlockPermissions_LedBox_PermitOn" data-tchmi-type="TcHmi.Controls.CryoFramework.LedBox" data-tchmi-datalabel-data-valid="true" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-ledbox-blink="false" data-tchmi-ledbox-state="%pp%PermitOnOpen%/pp%" data-tchmi-left="5" data-tchmi-left-unit="px" data-tchmi-top="35" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%PermitOn%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "symbolExpression": "%pp%PermitOn%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="InterlockPermissions_TcHmiTextblock_PermitOn" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="28" data-tchmi-left-unit="px" data-tchmi-top="36" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-horizontal-alignment="Left" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="%l%L_PermitOn%/l%">
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%BinaryActuatorType%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%pp%BinaryActuatorType%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:project#/definitions/BinaryActuatorType",
+                  "value": "OnOff"
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitOn%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitOpen%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onAttached",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%pp%BinaryActuatorType%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:project#/definitions/BinaryActuatorType",
+                  "value": "OnOff"
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitOn%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitOpen%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="InterlockPermissions_LedBox_PermitOff" data-tchmi-type="TcHmi.Controls.CryoFramework.LedBox" data-tchmi-datalabel-data-valid="true" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-ledbox-blink="false" data-tchmi-ledbox-state="%pp%PermitOffClose%/pp%" data-tchmi-left="5" data-tchmi-left-unit="px" data-tchmi-top="66" data-tchmi-top-unit="px" data-tchmi-width="20" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%PermitOn%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "symbolExpression": "%pp%PermitOn%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": true
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::State%/ctx%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/Boolean",
+                  "value": false
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="InterlockPermissions_TcHmiTextblock_PermitOff" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="20" data-tchmi-height-unit="px" data-tchmi-left="28" data-tchmi-left-unit="px" data-tchmi-top="66" data-tchmi-top-unit="px" data-tchmi-width="150" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-horizontal-alignment="Left" data-tchmi-text-vertical-alignment="Center" data-tchmi-text="%l%L_PermitOff%/l%">
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%BinaryActuatorType%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:project#/definitions/BinaryActuatorType",
+                  "symbolExpression": "%pp%BinaryActuatorType%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:project#/definitions/BinaryActuatorType",
+                  "value": "OnOff"
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitOff%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitClose%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onAttached",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:project#/definitions/BinaryActuatorType",
+                  "symbolExpression": "%pp%BinaryActuatorType%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:project#/definitions/BinaryActuatorType",
+                  "value": "OnOff"
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitOff%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctx%owner::Text%/ctx%",
+                "value": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%l%L_PermitClose%/l%"
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+
+
+
+
+
+
+</div>

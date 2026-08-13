@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_RS_BASE_CTRL" Id="{5e7f9cfc-8226-406b-8293-f862576af8d9}">
+    <Declaration><![CDATA[TYPE T_RS_BASE_CTRL :
+STRUCT
+	(* CTRL *)
+// DPO	nCommand:	E_RS_COMM_CMD := E_RS_COMM_CMD.NONE;
+	nCommand:	E_RS_COMMAND := E_RS_COMMAND.NONE;
+	bExecute:	BOOL;
+	
+	// User parameters used with E_RS_COMMAND.CTRL_CMD,
+	// when device specific commands have to be defined.
+	// Command can be specified with a combination of parameters.
+	// For example:
+	//    cmd := E_RS_COMMAND.CTRL_CMD & nPar1 := 1  ==> cmd = 'start pulse'
+	//    cmd := E_RS_COMMAND.CTRL_CMD & nPar1 := 2  ==> cmd = 'stop pulse'
+	//    cmd := E_RS_COMMAND.CTRL_CMD & nPar1 := 3  ==> cmd = 'reload'
+	nPar1:		DINT;
+	nPar2:		DINT;
+	nPar3:		DINT;
+	
+	lrPar1:		LREAL;
+	lrPar2:		LREAL;
+	lrPar3:		LREAL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_CCC_READING" Id="{6dec0ee0-6bdf-46ce-b966-ec3ae98cb045}">
+    <Declaration><![CDATA[TYPE T_CCC_READING :
+STRUCT
+	Value:	LREAL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

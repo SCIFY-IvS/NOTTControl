@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="E_MOTOR_INIT_SEQ_STATE" Id="{85d16d95-e9b8-4f83-8a6c-a0b56d121757}">
+    <Declaration><![CDATA[TYPE E_MOTOR_INIT_SEQ_STATE :
+(
+	MOTOR_INIT_SEQ_STATE_START				:= 0,
+	MOTOR_INIT_SEQ_STATE_EXECUTE,
+	MOTOR_INIT_SEQ_STATE_END
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

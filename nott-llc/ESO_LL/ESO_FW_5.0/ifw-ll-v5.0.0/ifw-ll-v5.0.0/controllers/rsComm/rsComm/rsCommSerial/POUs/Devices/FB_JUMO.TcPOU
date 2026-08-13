@@ -1,0 +1,756 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_JUMO" Id="{a1a01a23-e2ec-4255-b90e-f6bb5f4a72dd}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_JUMO EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:	DINT := 10000;	//Interval for periodic reading [ms], default 10000 ms = 10 sec
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_JUMO_CFG;					//  Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_JUMO_CTRL;				//  Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_JUMO_INFO; 				//  Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_JUMO_STAT;				//  Status parameters - ReadOnly
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_MODBUS_COMM_JUMO;		// Instance of generic comm object. OPC UA Disabled!!!
+	
+	(* Pointers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_MODBUS_CFG 	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_MODBUS_CTRL 	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_MODBUS_STAT 	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+
+
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:			TON; (* General Timeout *)
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+cfgRef	REF=cfg;
+ctrlRef	REF=ctrl;
+statRef	REF=stat;
+
+
+(* Execute comm instance *)
+comm(	in_bSimulation	:= in_bSimulation,
+		in_nModel		:= 0,
+		in_cReadFunction:= 3);
+
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{4142332e-90d3-4f23-aca8-50c3bc2dcd9e}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+VAR
+	nInt:	INT;	// Temporary INT for conversion of ENUM types
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set communication parameters and Model configuration
+
+
+		// Set monitoring period (input parameter)
+		cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+		// Auto monitor, i.e. monitor in Standby_Ready as well
+		cfg.bAutoMonitor	:= TRUE;
+
+		(* Set initial state and status *)
+		stat.bInitialised	:= FALSE;
+		stat.nRetries		:= 0;
+
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+		
+		// User configuration of the system
+		M_UserConfigure();
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		nInt	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.nCommand	:= nInt;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.nInputBuffer		:= ptrCommStat^.DeviceReply;	// Save the reply
+
+			bCommProblem	:= FALSE;
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			SetStatus(E_CCC_STATUS.IDLE, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{e38812fe-ddf0-4f21-af80-cd1ea86cebd9}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;					// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nAddressIndex:	INT := E_JUMO_ADDRESS.COMMON;	// Which address space to read
+	{attribute 'OPC.UA.DA' := '0'}
+	nSlaveIndex:	INT := 1;
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;					// Number of retries in case of communication problems
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	nSlaveIndex		:= M_GetFirstSlaveIndex();
+	nAddressIndex	:= E_JUMO_ADDRESS.COMMON;
+	ctrl.nSlaveID	:= cfg.aSlaveID[nSlaveIndex];
+	ctrl.nRegister	:= cfg.nAddrCommon;
+	ctrl.nWords		:= cfg.nWordsCommon;
+	nRetries		:= 0;					
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE	THEN
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= 'IDLE';
+			RETURN;
+		END_IF
+		
+		
+		// Send command
+		ptrCommCtrl^.nCommand		:= E_MODBUS_CMD.SEND;
+		ptrCommCtrl^.nSlaveID		:= ctrl.nSlaveID;
+		ptrCommCtrl^.nRegister		:= ctrl.nRegister;
+		ptrCommCtrl^.nWords			:= ctrl.nWords;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 20;				// Goto WAIT for Reading to complete,
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE THEN
+			fbTimer (IN := FALSE); (* Stop the timer *)
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= 'IDLE';
+			RETURN;
+		END_IF
+	
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_SM_ERROR.OK, 'BUSY');
+			nMethodState 	:= 0;	// Goto next reading
+			RETURN;
+		END_IF
+	
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE  
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.nInputBuffer		:= ptrCommStat^.DeviceReply;	// Save the reply
+			
+			// Extract the readings from the reply.
+			M_ExtractReadings(nSlaveIndex,nAddressIndex);
+
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+			
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE THEN
+				fbTimer (IN := FALSE); (* Stop the timer *)
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= 'IDLE';
+				RETURN;
+			END_IF
+	
+			IF NOT M_SetCommand(nSlaveIndex,nAddressIndex) THEN
+				// We completed a full read cycle.
+				// Wait periodic delay.
+				// Periodic READ is done. Wait tDelay_Periodic before re-starting the READ.
+				SetStatus(E_SM_ERROR.OK, 'IDLE');
+				(* Start the timer by going false/true *)
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+				nMethodState := 10;				// Goto Wait 
+				RETURN;
+			ELSE
+				// Apply a short delay of 30 ms after each command
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#30MS);
+				nMethodState := 10;				// Goto Wait 
+				RETURN;
+			END_IF
+
+		ELSIF INT_TO_DINT(comm.stat.nStatus) = INT_TO_DINT(E_MODBUS_STATUS.ERROR) OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_MODBUS_ERROR.RECEIVE, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 3 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 3 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+			ELSE
+				// Apply a short delay of 1 sec and retry
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#1000MS);
+				nMethodState := 10;				// Goto Wait 
+			END_IF
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapFLOAT" Id="{3d22667f-0dbf-4b1d-b454-4e28352f68ec}">
+      <Declaration><![CDATA[METHOD M_ByteSwapFLOAT : REAL
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	rResult:	REAL;
+	pResult:	POINTER TO BYTE	:= ADR(rResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+pResult[2]	:= pByte[3];
+pResult[3]	:= pByte[2];
+
+M_ByteSwapFLOAT	:= rResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapINT" Id="{850fdfe8-481a-4032-8ab1-c5238eb2240c}">
+      <Declaration><![CDATA[METHOD M_ByteSwapINT : INT
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	nResult:	INT;
+	pResult:	POINTER TO BYTE	:= ADR(nResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+
+M_ByteSwapINT	:= nResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExtractReadings" Id="{7bad5e70-9b78-4fb1-9018-0679f94a61e0}">
+      <Declaration><![CDATA[METHOD M_ExtractReadings : BOOL
+VAR_INPUT
+	nSlaveIndex:	INT;
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+VAR
+	pBuf:	POINTER TO BYTE	:= ADR(stat.nInputBuffer);
+	loop:	INT;
+	par:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// There are 3 bytes before data starts !!!
+IF nAddressIndex = E_JUMO_ADDRESS.COMMON THEN
+	////////////////////////////
+	// Extract Common Parameters
+	////////////////////////////
+
+	// Sampling time
+	// Offset 3 + 0 = 3
+	stat.aSamplingTime[nSlaveIndex]	:= M_ByteSwapFLOAT(ADR(pBuf[3]));
+
+	// Internal PT100 temperature [degC]
+	// Offset 3 + 4 = 7
+	stat.aInternalTemperature[nSlaveIndex]	:= M_ByteSwapFLOAT(ADR(pBuf[7]));
+
+	// - Analog Inputs
+	// Offset 3 + 8 = 11
+	FOR par := 1 TO 8 DO
+		stat.aAnalogInputs[nSlaveIndex,par] := M_ByteSwapFLOAT(ADR(pBuf[11 + 4*(par-1)]));
+	END_FOR
+
+	// - Math
+	// Offset 3 + 8 + 8*4 = 43
+	FOR par := 1 TO 8 DO
+		stat.aMath[nSlaveIndex,par] := M_ByteSwapFLOAT(ADR(pBuf[43 + 4*(par-1)]));
+	END_FOR
+
+	// Control Parameters
+	// Offset 3 + 8 + 8*4 + 8*4 = 75
+	FOR loop := 1 TO 4 DO
+		FOR par := 1 TO 9 DO
+			stat.aCtrlParams[nSlaveIndex,loop,par] := M_ByteSwapFLOAT(ADR(pBuf[75 + 40*(loop-1) + 4*(par-1)]));
+		END_FOR
+	END_FOR
+
+	// - Switch Stats
+	// Offset 3 + 8 + 8*4 + 8*4 + 9*4 = 111
+	FOR loop := 1 TO 4 DO
+		FOR par := 1 TO 2 DO
+			stat.aSwitchStats[nSlaveIndex,loop,par] := M_ByteSwapINT(ADR(pBuf[111 + 40*(loop-1) + 2*(par-1)]));
+		END_FOR
+	END_FOR
+ELSIF nAddressIndex = E_JUMO_ADDRESS.SET_POINTS THEN
+	// Extract Set Points
+	// Offset 3 + 0 = 3
+	FOR loop := 1 TO 4 DO
+		FOR par := 1 TO 4 DO
+			stat.aSetPoints[nSlaveIndex,loop,par] := M_ByteSwapFLOAT(ADR(pBuf[3 + 16*(loop-1) + 4*(par-1)]));
+		END_FOR
+	END_FOR
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetFirstSlaveIndex" Id="{2e88fa78-4080-4b79-b4ea-2dad64545d30}">
+      <Declaration><![CDATA[METHOD M_GetFirstSlaveIndex : INT
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetFirstSlaveIndex	:= i;
+FOR i := 1 TO 8 DO
+	IF cfg.aDevUsed[i] THEN
+		M_GetFirstSlaveIndex	:= i;
+		RETURN;
+	END_IF
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetNextSlaveIndex" Id="{a654ae06-9972-4816-8d73-229b58895420}">
+      <Declaration><![CDATA[METHOD M_GetNextSlaveIndex : INT
+VAR_INPUT
+	nSlaveIndex:	INT;
+END_VAR
+VAR
+	i:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Find the index if the next Used Slave.
+// Wrap it over in case we come to the end of the array.
+FOR i := nSlaveIndex+1 TO 9 DO
+	IF i >= 9 THEN
+		i := 1;
+	END_IF
+	IF cfg.aDevUsed[i] THEN
+		M_GetNextSlaveIndex	:= i;
+		RETURN;
+	END_IF
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCommand" Id="{f0a645d1-02cb-430f-b541-86b04f4349cf}">
+      <Declaration><![CDATA[METHOD M_SetCommand : BOOL
+VAR_IN_OUT
+	nSlaveIndex:	INT;
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+VAR
+	nNextSlaveIndex:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// We always read from JUMO
+ctrl.nCmdType	:= E_MODBUS_CMD_TYPE.READ;
+
+// Go to next register address to read
+nAddressIndex	:= nAddressIndex + 1;
+ctrl.nSlaveID	:= cfg.aSlaveID[nSlaveIndex];
+
+IF nAddressIndex = E_JUMO_ADDRESS.COMMON THEN
+	ctrl.nRegister	:= cfg.nAddrCommon;
+	ctrl.nWords		:= cfg.nWordsCommon;
+	M_SetCommand	:= TRUE;
+ELSIF nAddressIndex = E_JUMO_ADDRESS.SET_POINTS THEN
+	ctrl.nRegister	:= cfg.nAddrSetPoints;
+	ctrl.nWords		:= cfg.nWordsSetPoints;
+	M_SetCommand	:= TRUE;
+ELSIF nAddressIndex = E_JUMO_ADDRESS.END THEN
+	// Start reading from common
+	nAddressIndex 	:= E_JUMO_ADDRESS.COMMON;
+	ctrl.nRegister	:= cfg.nAddrCommon;
+	ctrl.nWords		:= cfg.nWordsCommon;
+	// Go to next slave
+	nNextSlaveIndex	:= M_GetNextSlaveIndex(nSlaveIndex);
+	IF nNextSlaveIndex <= nSlaveIndex THEN
+		// We completed a full read of all slaves. Restart from the first one.
+		M_SetCommand	:= FALSE;
+	ELSE
+		M_SetCommand	:= TRUE;
+	END_IF
+	nSlaveIndex		:= nNextSlaveIndex;
+	ctrl.nSlaveID	:= cfg.aSlaveID[nSlaveIndex];
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UserConfigure" Id="{f2afd0e7-c4f9-4871-9964-d4d95cc58228}">
+      <Declaration><![CDATA[METHOD M_UserConfigure : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// Add here real configuration
+
+// JUMO SlaveIDs are set as 1..8
+// Set them to match real configuration
+//cfg.aSlaveID[1]	:= 1;
+//cfg.aSlaveID[2]	:= 2;
+
+// FB_JUMO can read 8 JUMO devices.
+// By default only the first one is enabled.
+// Here we enable first two (one TeePee unit).
+//cfg.aDevUsed[1]	:= TRUE;
+//cfg.aDevUsed[2]	:= TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_JUMO">
+      <LineId Id="391" Count="7" />
+      <LineId Id="443" Count="1" />
+      <LineId Id="399" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.ActivityInitializing">
+      <LineId Id="6" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="343" Count="1" />
+      <LineId Id="346" Count="2" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="236" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.ActivityMonitoring">
+      <LineId Id="29" Count="0" />
+      <LineId Id="301" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="417" Count="0" />
+      <LineId Id="359" Count="0" />
+      <LineId Id="424" Count="0" />
+      <LineId Id="423" Count="0" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="253" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="257" Count="1" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="256" Count="0" />
+      <LineId Id="361" Count="0" />
+      <LineId Id="141" Count="2" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="379" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="154" Count="3" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="167" Count="2" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="260" Count="1" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="262" Count="2" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="177" Count="3" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="185" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="72" Count="5" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="287" Count="0" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="269" Count="2" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="272" Count="2" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="275" Count="2" />
+      <LineId Id="392" Count="3" />
+      <LineId Id="397" Count="5" />
+      <LineId Id="405" Count="0" />
+      <LineId Id="418" Count="3" />
+      <LineId Id="407" Count="0" />
+      <LineId Id="403" Count="1" />
+      <LineId Id="79" Count="2" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="430" Count="0" />
+      <LineId Id="433" Count="0" />
+      <LineId Id="431" Count="0" />
+      <LineId Id="434" Count="3" />
+      <LineId Id="432" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="90" Count="2" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_ByteSwapFLOAT">
+      <LineId Id="32" Count="3" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_ByteSwapINT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_ExtractReadings">
+      <LineId Id="8" Count="1" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="76" Count="2" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="84" Count="4" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="48" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="53" Count="4" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_GetFirstSlaveIndex">
+      <LineId Id="34" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_GetNextSlaveIndex">
+      <LineId Id="25" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="3" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_SetCommand">
+      <LineId Id="8" Count="1" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_JUMO.M_UserConfigure">
+      <LineId Id="20" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MA_AXES_ID" Id="{38254f12-a290-40cf-8c70-18ce73fdf2bf}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MA_AXES_ID :
+(
+	ALL_AXES := 0,
+	AXIS_1,
+	AXIS_2,
+	AXIS_3,
+	AXIS_4,
+	AXIS_5,
+	AXIS_6
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_CRYO_CRYOTELGT_CTRL" Id="{0fdde65c-b109-4534-9c18-33c5f8f7bb5a}">
+    <Declaration><![CDATA[TYPE T_CRYO_CRYOTELGT_CTRL EXTENDS T_RS_BASE_CTRL:
+STRUCT
+	nDevCmd:	E_CRYO_CRYOTELGT_CMD := E_CRYO_CRYOTELGT_CMD.NONE;
+	bStart:		BOOL;			// Control to Start/Stop the cooler.
+	bPower:		BOOL;			// Update cooler power output.
+	lrPower:	LREAL:= 240.0;	// Output power to set [W]
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

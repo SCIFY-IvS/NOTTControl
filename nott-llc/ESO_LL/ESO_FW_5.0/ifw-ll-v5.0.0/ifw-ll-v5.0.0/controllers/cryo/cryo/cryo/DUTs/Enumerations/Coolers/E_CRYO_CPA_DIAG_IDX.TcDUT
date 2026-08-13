@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_CPA_DIAG_IDX" Id="{745f7abf-cf3c-43ae-a948-93b1e24664cb}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_CPA_DIAG_IDX :
+(
+	WATER_IN	:= 0,
+	WATER_OUT,
+	OIL_TEMP,
+	HELIUM_TEMP,
+	HELIUM_LOW_PRESS_OP,
+	HELIUM_HIGH_PRESS_OP,
+	HELIUM_DELTA_PRESS,
+	HELIUM_STATIC_LOW_PRESS,
+	HELIUM_STATIC_HIGH_PRESS
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

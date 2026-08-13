@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_IODEV_CH_ANLG_OUT" Id="{67f95494-b3e4-4f98-a441-ae06b4bfb7ea}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_ANLG_OUT EXTENDS FB_IODEV_CH_ANALOG
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Physical active output signal.
+	// Read-Only access via OPC UA.
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	q_nValue	AT %Q*:	INT;
+
+	// Output values
+	// Configured for R/W OPC UA Data Access !!!
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	nValue:			INT;	// Computed output value
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	lrValueUser:	LREAL;	// Output value in User Units
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Compute" Id="{993282a3-6fda-4906-af79-abdfd6b3bb4c}">
+      <Declaration><![CDATA[METHOD M_Compute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// For CONVERSION_IODEV_NONE nValue is used for output.
+// In this case nValue is copied into lrValueUser.
+// For others nValue is calculated from the User value.
+//
+CASE nConversion OF
+	CONVERSION_IODEV_NONE:
+		lrValueUser := INT_TO_LREAL(nValue);	// Copy nValue into lrValueUser
+	CONVERSION_IODEV_LINEAR:
+		nValue	:= LREAL_TO_INT(lrPar1 * lrValueUser  +  lrPar2);
+	CONVERSION_IODEV_QUADRATIC:
+		nValue	:= LREAL_TO_INT(lrPar1 * lrValueUser * lrValueUser  +  lrPar2 * lrValueUser  +  lrPar3);
+	CONVERSION_IODEV_EXP:
+		nValue	:= LREAL_TO_INT(EXP (lrPar1 * lrValueUser  +  lrPar2));
+	CONVERSION_IODEV_EXP10:
+		nValue	:= LREAL_TO_INT(EXPT (10.0, (lrPar1 * lrValueUser  +  lrPar2)));
+END_CASE
+
+// Set the output
+q_nValue	:= nValue;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{b81cbc58-5541-48b1-98c2-0e37caff6f05}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR_INPUT
+	in_eConversion:	E_IODEV_CONVERSION;
+	in_lrPar1:		LREAL := 0.0;
+	in_lrPar2:		LREAL := 0.0;
+	in_lrPar3:		LREAL := 0.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion		:= in_eConversion;
+lrPar1			:= in_lrPar1;
+lrPar2			:= in_lrPar2;
+lrPar3			:= in_lrPar3;
+
+// Set output to zero
+q_nValue		:= 0;
+nValue			:= 0;
+lrValueUser		:= 0.0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{fe03e4f6-18aa-4416-8d34-0fbc6e36d5e8}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion	:= CONVERSION_IODEV_NONE;
+lrPar1			:= 0.0;
+lrPar2			:= 0.0;
+lrPar3			:= 0.0;
+
+// Set output to zero
+q_nValue		:= 0;
+nValue			:= 0;
+lrValueUser		:= 0.0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_CH_ANLG_OUT">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_ANLG_OUT.M_Compute">
+      <LineId Id="32" Count="0" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="15" Count="11" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_ANLG_OUT.M_Configure">
+      <LineId Id="12" Count="8" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_ANLG_OUT.M_Reset">
+      <LineId Id="6" Count="8" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

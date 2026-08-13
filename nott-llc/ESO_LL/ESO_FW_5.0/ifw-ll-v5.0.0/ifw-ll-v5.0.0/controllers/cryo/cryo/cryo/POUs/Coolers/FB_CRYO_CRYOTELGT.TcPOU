@@ -1,0 +1,1574 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_CRYOTELGT" Id="{1596e1ec-043f-4500-b76f-8ad1023c347b}" SpecialFunc="None">
+    <Declaration><![CDATA[// Cryotel GT Cooler Control
+FUNCTION_BLOCK FB_CRYO_CRYOTELGT EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bEnable:			BOOL;			// Flag to Start/Stop cooler
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bAutoMonitor:	BOOL := TRUE;	// If true, it starts PERIODIC reads (monitoring) after INIT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:			DINT := 2000;	// Interval for periodic reading [ms], default 2000 ms = 2 sec
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sCmdSuffix:		STRING(16) := '$0D';
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReplySuffix:	STRING(16) := '$0D';
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_RS_COMM_CRYOTELGT;	// FB_RS_COMM_NO_SIM;		// No simulation yet
+	
+	// Pointers to structures inside FB_RS_COMM, e.g. ptrCommCfg.
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_RS_COMM_CFG;	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_RS_COMM_CTRL;	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_RS_COMM_STAT;	(* Pointer to comm.stat instance *)
+	
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	cfg:			T_CRYO_CRYOTELGT_CFG;	
+	{attribute 'OPC.UA.DA' := '0'}
+	ctrl:			T_CRYO_CRYOTELGT_CTRL;	
+	{attribute 'OPC.UA.DA' := '0'}
+	stat:			T_CRYO_CRYOTELGT_STAT;	
+
+	// Pointers to arrays of INIT and READ commands
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrInitCmds:	POINTER TO ARRAY [1..8]  OF T_CRYO_CRYOTELGT_CMD;(* Pointer to INIT commands *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrReadCmds:	POINTER TO ARRAY [1..16] OF T_CRYO_CRYOTELGT_CMD;(* Pointer to READ commands *)
+
+
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:		TON; 	// General Timeout
+	timerState:		TON;	// Timer for state changes
+	
+	// Triggers
+	triggerStart:	R_TRIG;
+	triggerStop:	F_TRIG;
+	
+
+	(* Misc internal vars *)
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdCounter:		INT := 1;	// Position in commands table
+	{attribute 'OPC.UA.DA' := '0'}
+	bResult:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	bStarted:		BOOL := FALSE;
+
+	// TODO: Add Input signals in Fbs that EXTEND this FB.
+
+	// Output signals
+	q_bStart		AT %Q*:	BOOL;	// Start/Stop the cooler. Common to all.
+
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Hard-coded configuration
+M_Configure();
+
+(* Execute comm instance *)
+M_ExecuteComm();
+//comm(in_sCmdSuffix:=in_sCmdSuffix, in_sReplySuffix:=in_sReplySuffix, in_nTimeout:=3000);
+
+// Update cooler status from digital signals.
+M_UpdateStatus();
+
+// Capture Start/Stop commands and execute the State Machine
+M_StateMachine();
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{b51b7ae4-0081-43d9-a0f2-9861fd93dc99}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+VAR
+	bReadOK:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 0;	// Init will start from the first init command after increment
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set initial state and status
+		stat.bInitialised	:= FALSE;
+		stat.sReply			:= '';
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+
+			// Read from the reply.
+			// Argument TRUE means that this is an INIT command.
+			bReadOK	:= M_ReadFromReply(cmdCounter, TRUE);
+			IF NOT bReadOK	THEN
+				cmdCounter		:= 0;	// Reset command counter
+				nMethodState 	:= 10;	// Wait for INIT
+			ELSE
+				cmdCounter		:= cmdCounter + 1;	// Increment init command index
+				fbTimer (IN := FALSE);	// disable timer 
+				fbTimer (IN := TRUE, PT := cfgRef.tDelay_Init); // Wait INIT delay
+				bCommProblem	:= FALSE;
+				nMethodState 	:= 18;	// Execute next device INIT command
+			END_IF
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF ptrInitCmds^ [cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrInitCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= ptrInitCmds^ [cmdCounter].nReplies;
+		ptrCommCtrl^.bHasReply		:= ptrInitCmds^ [cmdCounter].nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitializing_new" Id="{b2943ddf-96f1-4167-b887-9e4ffd07e126}">
+      <Declaration><![CDATA[METHOD ActivityInitializing_new
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	bCommInit:		BOOL;
+END_VAR
+VAR
+	bReadOK:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 0;	// Init will start from the first init command after increment
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set initial state and status
+		stat.bInitialised	:= FALSE;
+		stat.sReply			:= '';
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		bCommInit		:= TRUE;
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// If we have just executed the COMM Reset/INIT command,
+			// Go to first INIT command.
+			IF bCommInit THEN
+				bCommInit		:= FALSE;
+				cmdCounter		:= 1;	// Start from first INIT command
+				fbTimer (IN := FALSE);	// disable timer 
+				fbTimer (IN := TRUE, PT := cfgRef.tDelay_Init); // Wait INIT delay
+				bCommProblem	:= FALSE;
+				nMethodState 	:= 18;	// Execute next device INIT command
+				RETURN;
+			END_IF
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+
+			// Read from the reply.
+			// Argument TRUE means that this is an INIT command.
+			bReadOK	:= M_ReadFromReply(cmdCounter, TRUE);
+			IF NOT bReadOK	THEN
+				cmdCounter		:= 0;	// Reset command counter
+				nMethodState 	:= 10;	// Wait for INIT
+			ELSE
+				cmdCounter		:= cmdCounter + 1;	// Increment init command index
+				fbTimer (IN := FALSE);	// disable timer 
+				fbTimer (IN := TRUE, PT := cfgRef.tDelay_Init); // Wait INIT delay
+				bCommProblem	:= FALSE;
+				nMethodState 	:= 18;	// Execute next device INIT command
+			END_IF
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	16:	// Delay and then goto Wait for IDLE
+		fbTimer (IN := TRUE);
+
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#5S);	// 5sec timeout for reply.	
+			nMethodState 	:= 15;	// Goto Wait for IDLE
+			RETURN;
+		END_IF
+	
+	18:	// Delay and then goto execute next command
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Goto next INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF ptrInitCmds^ [cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrInitCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= ptrInitCmds^ [cmdCounter].nReplies;
+		ptrCommCtrl^.bHasReply		:= ptrInitCmds^ [cmdCounter].nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		// In case this is a command without a reply,
+		// we apply 200ms delay between commmands.
+		IF NOT ptrCommCtrl^.bHasReply THEN
+			// There is no reply, i.e. this is a 'SET' command.
+			// Start the timer by going false/true.
+			// Apply 200ms delay between SET commands.
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#200MS); 
+			cmdCounter		:= cmdCounter + 1;	// Go to next command.
+			nMethodState	:= 18;				// Goto WAIT for delay.
+			RETURN;
+		ELSE			
+			// There is a reply.
+			// Apply a delay of 20ms before checking the status. 
+			// Start the timer by going false/true
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#5MS);	
+			stat.sErrorText	:= 'BUSY';
+			nMethodState := 16;	// Goto WAIT for Reading to complete,
+		END_IF
+		
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{8736a21b-eb9f-446f-b140-89d353383153}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+END_VAR
+
+VAR
+	offset: INT;
+	bReadOK:	BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT cfgRef.bAutoMonitor AND stat.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY THEN
+	SetAction('No Monitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'IDLE');
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	RETURN;
+END_IF
+
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		IF ptrReadCmds^ [cmdCounter].cmd = '' OR cmdCounter > 16 THEN
+
+			// All commands have been executed. 
+			// Wait tDelay_Periodic before re-starting the READ.
+			cmdCounter	:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfgRef.tDelay_Periodic);
+			nMethodState := 10;				// Goto Wait for tDelay_Periodic
+			RETURN;
+			
+		END_IF
+		
+		(* Send command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrReadCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= ptrReadCmds^ [cmdCounter].nReplies;
+		ptrCommCtrl^.bHasReply		:= ptrReadCmds^ [cmdCounter].nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		// In case we are executing 'SET' commands, there are no replies.
+		// However, we need a delay of at least 50ms between commands.
+		// We will apply 150ms.
+		IF NOT ptrCommCtrl^.bHasReply THEN
+			// There is no reply, i.e. this is a 'SET' command.
+			// Start the timer by going false/true.
+			// Apply 200ms delay between SET commands.
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#200MS); 
+			cmdCounter		:= cmdCounter + 1;	// Go to next command.
+			nMethodState	:= 10;				// Goto WAIT for Reading to complete,
+			RETURN;
+		ELSE			
+			// There is a reply, i.e. this is a 'READ' command.
+			// Apply a delay of 10ms before checking the status. 
+			// Start the timer by going false/true
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#10MS);	
+			stat.sErrorText	:= 'BUSY';
+			nMethodState := 15;	// Goto WAIT for Reading to complete,
+		END_IF
+		
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 0;	// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+	
+	15:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			fbTimer (IN := TRUE, PT := T#5S);	// 5 sec timeout for reply
+			stat.sErrorText	:= 'BUSY';
+			nMethodState 	:= 20;	// Goto Wait for IDLE/Reply
+			RETURN;
+		END_IF
+	
+
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			
+			// Copy readings to status variable(s)
+			
+			// Read from the reply.
+			// Argument FALSE means that this is NOT an INIT command.
+			bReadOK	:= M_ReadFromReply(cmdCounter, FALSE);
+			IF NOT bReadOK	THEN
+				// Reply was not OK. Maybe out of sync.
+				// Re-INIT the communication, i.e. clear the buffer.
+				ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+				ptrCommCtrl^.bExecute	:= TRUE;
+		
+				(* Start the timer by going false/true *)
+				fbTimer (IN := FALSE); (* Reset timer *)
+				fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+		
+				SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+				bCommProblem	:= TRUE;
+
+				nMethodState 	:= 10;	// On next cycle wait until the comm port is reset, i.e. idle
+				RETURN;
+			ELSE
+				// All OK. Go to next command.
+				bCommProblem	:= FALSE;
+				nRetries		:= 0;	// Reset number of retries
+		
+				cmdCounter		:= cmdCounter + 1;	// Go to next command.
+				
+				// Apply a 150 ms delay between commands
+				fbTimer (IN := FALSE);	// Reset timer
+				fbTimer (IN := TRUE, PT := cfg.tDelay_Read); 
+				nMethodState := 10;		// Apply delay
+				nEvent := E_SM_EVENT.COMMOK;
+				RETURN;
+			END_IF
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			// No Reply.
+			// Re-INIT the communication, i.e. clear the buffer.
+			ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+			ptrCommCtrl^.bExecute	:= TRUE;
+	
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+	
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+
+			nMethodState 	:= 10;	// On next cycle wait until the comm port is reset, i.e. idle
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_AddCtrlCommands" Id="{b94656c5-ddc3-4f0b-b06b-002bc5664f51}">
+      <Declaration><![CDATA[METHOD M_AddCtrlCommands : BOOL
+VAR_INPUT
+//	in_sCmd:	STRING;
+END_VAR
+VAR
+	i:	INT;
+    fbFormat:	FB_FormatString;
+	nVal:		UDINT;
+	lrVal:		LREAL;
+	sPowerCmd:	STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Find index of first two empty commands.
+// The result must be greater than zero, if everuthing is OK.
+i	:= M_FindReadCommand('');
+
+// Add relevant control commands to the end of the list
+// of Read/status comands.
+IF i > 0	THEN
+	IF ctrl.nDevCmd	= E_CRYO_CRYOTELGT_CMD.ON	THEN
+		// Cooler is always started with 240W output.
+		// Write the output power and then the ON command.
+		ctrl.lrPower	:= 240.0;
+		cfg.cmdList_Read[i].cmd			:= 'PWOUT=240';
+		cfg.cmdList_Read[i+1].cmd		:= 'COOLER=POWER';
+		// Each command has a single reply.
+		cfg.cmdList_Read[i].nReplies	:= 2;
+		cfg.cmdList_Read[i+1].nReplies	:= 2;
+	ELSIF ctrl.nDevCmd	= E_CRYO_CRYOTELGT_CMD.OFF	THEN
+		// Write the power OFF command.
+		cfg.cmdList_Read[i].cmd			:= 'COOLER=OFF';
+		cfg.cmdList_Read[i+1].cmd		:= '';
+		// Each command has a single reply.
+		cfg.cmdList_Read[i].nReplies	:= 2;
+		cfg.cmdList_Read[i+1].nReplies	:= 0;
+	ELSIF ctrl.nDevCmd	= E_CRYO_CRYOTELGT_CMD.SET_POWER	THEN
+		// Updating only the power value.
+		ctrl.bPower	:= TRUE;
+		// Write the output power command.
+		lrVal	:= ctrl.lrPower;
+		fbFormat(	sFormat := 'PWOUT=%.2f', 
+					arg1 := F_LREAL(lrVal), 
+					sOut => sPowerCmd);
+		cfg.cmdList_Read[i].cmd			:= sPowerCmd;
+		cfg.cmdList_Read[i+1].cmd		:= '';
+		// Each command has a single reply.
+		cfg.cmdList_Read[i].nReplies	:= 2;
+		cfg.cmdList_Read[i+1].nReplies	:= 0;
+	END_IF
+	
+	M_AddCtrlCommands	:= TRUE;
+ELSE
+	M_AddCtrlCommands	:= FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ClearCtrlCommands" Id="{c12cf525-c256-4ca5-8128-f29ed39390d4}">
+      <Declaration><![CDATA[METHOD M_ClearCtrlCommands
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Search for commands starting with  'COOLER=' and 'PWOUT='.
+// If found, clear them.
+FOR i := 1 TO 16 DO
+	IF FIND(cfg.cmdList_Read[i].cmd, 'PWOUT=') > 0	THEN
+		cfg.cmdList_Read[i].cmd	:= '';
+	ELSIF FIND(cfg.cmdList_Read[i].cmd, 'COOLER=') > 0	THEN
+		cfg.cmdList_Read[i].cmd	:= '';
+	END_IF
+END_FOR
+
+ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.NONE;
+ctrl.bPower		:= FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{625d9cd2-3708-420b-a7e9-601155a9d2d5}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+		i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bStarted	THEN
+	//
+	// START: Mandatory  !!!
+	//
+	// Set references from FB_RS_BASE
+	cfgRef	REF=cfg;
+	ctrlRef	REF=ctrl;
+	statRef	REF=stat;
+
+	// Ensure that the references are correctly set
+	IF	NOT __ISVALIDREF(cfgRef)	OR  
+		NOT __ISVALIDREF(ctrlRef)	OR  
+		NOT __ISVALIDREF(statRef)		THEN
+		stat.sErrorText	:= 'References not configured';
+		RETURN;
+	END_IF
+	
+	// Copy input parameters to configuration
+	cfg.bAutoMonitor	:= in_bAutoMonitor;
+	cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+	cfg.tDelay_Ctrl		:= T#200MS;
+	
+	
+	// Set pointers to arrays of commands
+	ptrInitCmds	:= ADR(cfg.cmdList_Init);(* Pointer to INIT commands *)
+	ptrReadCmds	:= ADR(cfg.cmdList_Read);(* Pointer to READ commands *)
+	
+	// TODO in FB that extends the functionality
+	// Set pointers to comm, i.e.
+	ptrCommCfg	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	ptrCommCtrl	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	ptrCommStat	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+	
+	// Set comm suffixes for commands and replies
+	ptrCommCfg^.sCmdSuffix		:= in_sCmdSuffix;
+	ptrCommCfg^.sReplySuffix	:= in_sReplySuffix;
+
+	stat.bConfigured	:= TRUE;
+	bStarted			:= TRUE;
+	//
+	// END: Mandatory for ALL cooler !!!
+	//
+
+
+	
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteComm" Id="{e48d5eb2-a6f8-46e0-82df-85f874c2ac96}">
+      <Declaration><![CDATA[METHOD M_ExecuteComm
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[comm(	in_bSimulation	:= in_bSimulation, 
+		in_sCmdSuffix	:= in_sCmdSuffix, 
+		in_sReplySuffix	:= in_sReplySuffix, 
+		in_nTimeout		:= 3000);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_FindReadCommand" Id="{b8ddd106-1cbf-4b92-80c4-55bba5ae3d7b}">
+      <Declaration><![CDATA[// Return the index of the command in cfg.cmdList_Read[].
+// Returns zero if not found.
+METHOD M_FindReadCommand : INT
+VAR_INPUT
+	in_sCmd:	STRING;
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// We need two empty commands: 'COOLER=<>' and 'PWOUT=<VAL>'.
+// Thats's why the highest index is 15 rather than 16.
+FOR i := 1 TO 15 DO
+	IF cfg.cmdList_Read[i].cmd = in_sCmd	THEN
+		M_FindReadCommand	:= i;
+		RETURN;
+	END_IF
+END_FOR
+
+M_FindReadCommand	:= 0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{8135ce5d-1a04-4fe3-a213-fe04f90e2f1d}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF comm.i_nCouplerState = 8  OR  comm.in_bSimulation  THEN
+	M_GetCouplerState	:= TRUE;	
+ELSE
+	M_GetCouplerState	:= FALSE;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{206ee1d6-037e-4ac0-be79-a0dc6263a113}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+// Method to check correctness of the reply and assign the result to a status variable.
+VAR_INPUT
+	idx:		INT;			// Command index in the array.
+	bInitCmd:	BOOL := FALSE;	// If TRUE, this is an INIT command, otherwise it is Read/status
+END_VAR
+VAR
+	pos:	INT;
+	length:	INT;
+	cmd:	STRING;
+	subStr:	STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// During INIT it might happen that the command index is 0.
+// These cases should be discarded.
+IF idx <= 0	THEN
+	M_ReadFromReply	:= TRUE;
+	RETURN;
+END_IF
+
+// Get the command
+IF bInitCmd	THEN
+	cmd		:= cfg.cmdList_Init[idx].cmd;
+ELSE
+	cmd		:= cfg.cmdList_Read[idx].cmd;
+END_IF
+
+// The sent command has to be included in the first line of the reply.
+// If not, we are out of sync and have to reinitialise.
+IF FIND(stat.sReply, cmd) = 0	THEN
+	bCommProblem	:= TRUE;
+	stat.nState		:= E_RS_BASE_STATE.NOTOP;
+	stat.nSubstate	:= E_RS_BASE_SUBSTATE.NOTOP_NOTREADY;
+	RETURN;
+END_IF
+
+// Extract the value from the reply.
+// Example: 
+//    Command: VERSION
+//    Reply:   VERSION$R$Nv1.4.1$R
+//    Value:   v1.4.1
+//
+// Take the string after the '$R$N' and remove the '$R' at the end.
+// Remove the <CR> suffix from the reply.
+
+pos	:= FIND(stat.sReply,'$R$N');
+IF pos = 0	THEN
+	// The string is not found. 
+	M_ReadFromReply	:= FALSE;
+	RETURN;
+END_IF
+
+length	:= LEN(stat.sReply) - pos -2;
+subStr	:= MID(stat.sReply, length, pos+2);
+
+
+IF cmd = 'VERSION'	THEN
+	stat.sVersion	:= subStr;
+ELSIF cmd = 'MODE'	THEN
+	stat.sMode		:= subStr;
+ELSIF cmd = 'SENSOR'	THEN
+	stat.sSensor	:= subStr;
+ELSIF FIND(cmd, 'PWOUT=') = 1	THEN
+	// Get the commanded power from the command.
+	// Get the value after the 'PWOUT=' substring.
+	stat.lrPowerCommanded	:= STRING_TO_LREAL(subStr);
+	// If we are updating only the power value,
+	// this is then the last control command.
+	IF ctrl.bPower	THEN
+		// Clear the control commands from the list.
+		M_ClearCtrlCommands();
+		ctrl.bPower	:= FALSE;
+		// Power output command is not active any more.
+		stat.bPowerCmdActive	:= FALSE;
+	END_IF
+ELSIF FIND(cmd, 'COOLER=') = 1	THEN
+	// Get the control mode 'POWER' or 'OFF'.
+	stat.sCtrlMode	:= subStr;
+	// This is the last control command when switching cool on/off.
+	// Clear the control commands from the list.
+	M_ClearCtrlCommands();
+	// Power output command is not active any more.
+	stat.bPowerCmdActive	:= FALSE;
+ELSIF cmd = 'ERROR'	THEN
+	IF FIND(subStr, '00000001') = 1	THEN
+		stat.sCtrlError	:= 'High Reject Temperature';
+	ELSIF FIND(subStr, '00000010') = 1	THEN
+		stat.sCtrlError	:= 'Low Reject Temperature';
+	ELSIF FIND(subStr, '10000000') = 1	THEN
+		stat.sCtrlError	:= 'Over Current Error';
+	ELSIF FIND(subStr, '11111111') = 1	THEN
+		stat.sCtrlError	:= 'Invalid Configuration';
+	ELSE
+		stat.sCtrlError	:= 'OK';
+	END_IF
+ELSIF cmd = 'COOLER'	THEN
+	stat.sCtrlMode	:= subStr;
+ELSIF cmd = 'P'	THEN
+	stat.lrPowerMeasured	:= STRING_TO_LREAL(subStr);
+ELSIF cmd = 'PWOUT'	THEN
+	stat.lrPowerCommanded	:= STRING_TO_LREAL(subStr);
+ELSIF cmd = 'TC'	THEN
+	stat.lrTempColdHead		:= STRING_TO_LREAL(subStr);
+ELSIF cmd = 'TEMP RJ'	THEN
+	stat.lrTempReject		:= STRING_TO_LREAL(subStr);
+ELSIF cmd = 'TTARGET'	THEN
+	stat.lrTempTarget		:= STRING_TO_LREAL(subStr);
+END_IF
+
+
+M_ReadFromReply	:= TRUE;	// OK]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{89968787-10e7-4c50-b275-e11e4a1053e5}">
+      <Declaration><![CDATA[METHOD M_StateMachine
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//////////////////////
+// Cooler State Machine
+//////////////////////
+CASE stat.nDevState OF
+	E_CRYO_CRYOTELGT_STATE.OFF:
+		// Capture START command when in_bEnable goes TRUE.
+		triggerStart(CLK:=in_bEnable);
+		IF triggerStart.Q	THEN
+			// in_bEnable is TRUE, start the cooler.
+			ctrl.bStart		:= TRUE;	// For digital control. Not used currently.
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.ON;
+			M_AddCtrlCommands();	// Add ON related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.STARTING;
+			stat.sDevState	:= 'Starting...';
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeoutState));
+		END_IF
+	E_CRYO_CRYOTELGT_STATE.STARTING:
+		timerState();	// Timeout for the state transition.
+		triggerStop(CLK:= in_bEnable);	// Check if the cooler should be switched OFF.
+		IF timerState.Q THEN
+			// Timeout, stop the cooler.
+			ctrl.bStart		:= FALSE;
+			timerState(IN:=FALSE);
+			M_ClearCtrlCommands();	// Clear ON related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.ERROR;
+			stat.sDevState	:= 'ERROR - Timeout on START';
+		ELSIF stat.sCtrlMode = 'POWER' THEN
+			// State is 'POWER'.
+			// That means that the cooler is ON in power mode.
+			timerState(IN:=FALSE);
+			M_ClearCtrlCommands();	// Clear ON related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.ON;
+			stat.sDevState	:= 'ON';
+		ELSIF triggerStop.Q THEN
+			// in_bEnable is FALSE, stop the cooler.
+			ctrl.bStart		:= FALSE;
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.OFF;
+			ctrl.lrPower	:= 240.0;
+			M_ClearCtrlCommands();	// Clear ON related commands
+			M_AddCtrlCommands();	// Add OFF related commands
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeoutState));
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.STOPPING;
+			stat.sDevState	:= 'Stopping...';
+		END_IF
+	E_CRYO_CRYOTELGT_STATE.ON:
+		triggerStop(CLK:= in_bEnable);
+		IF triggerStop.Q THEN
+			// in_bEnable is FALSE, stop the cooler.
+			// Restart the timer for state transition.
+			ctrl.bStart		:= FALSE;
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.OFF;
+			M_AddCtrlCommands();	// Add OFF related commands
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeoutState));
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.STOPPING;
+			stat.sDevState	:= 'Stopping...';
+		ELSIF stat.sCtrlMode <> 'POWER' THEN
+			// 'POWER' is the only operational mode.
+			// If it is something else, stop the cooler.
+			ctrl.bStart		:= FALSE;
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.OFF;
+			M_AddCtrlCommands();	// Add OFF related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.ERROR;
+			stat.sDevState	:= 'ERROR - Unexpected OFF';
+		ELSIF stat.lrTempColdHead < 100.0  AND ctrl.lrPower < 250.0	THEN
+			// Switch the power to 250W if the cold head temperature is below 100K.
+			IF NOT stat.bPowerCmdActive	THEN
+				stat.bPowerCmdActive	:= TRUE;
+				ctrl.lrPower			:= 250.0;
+				ctrl.nDevCmd			:= E_CRYO_CRYOTELGT_CMD.SET_POWER;
+				M_AddCtrlCommands();	// Add OFF related commands
+			END_IF
+		ELSIF stat.lrTempColdHead > 101.0  AND ctrl.lrPower > 240.0	THEN
+			// Switch the power to 240W if the cold head temperature is above 101K.
+			IF NOT stat.bPowerCmdActive	THEN
+				stat.bPowerCmdActive	:= TRUE;
+				ctrl.lrPower			:= 240.0;
+				ctrl.nDevCmd			:= E_CRYO_CRYOTELGT_CMD.SET_POWER;
+				M_AddCtrlCommands();	// Add OFF related commands
+			END_IF
+		END_IF
+	E_CRYO_CRYOTELGT_STATE.STOPPING:
+		timerState();
+		// Capture START command
+		triggerStart(CLK:=in_bEnable);
+		IF timerState.Q THEN
+			timerState(IN:=FALSE);
+			M_ClearCtrlCommands();	// Clear OFF related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.ERROR;
+			stat.sDevState	:= 'ERROR - Timeout on STOP';
+		ELSIF stat.sCtrlMode = 'OFF' THEN
+			timerState(IN:=FALSE);
+			M_ClearCtrlCommands();	// Clear OFF related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.OFF;
+			stat.sDevState	:= 'OFF';
+		ELSIF triggerStart.Q THEN
+			// in_bEnable is TRUE, start the cooler.
+			ctrl.bStart		:= TRUE;
+			M_ClearCtrlCommands();	// Clear OFF related commands
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.ON;
+			M_AddCtrlCommands();	// Add ON related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.STARTING;
+			stat.sDevState	:= 'Starting...';
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeoutState));
+		END_IF
+	E_CRYO_CRYOTELGT_STATE.ERROR:
+		// To recover from error, STOP command has to be issued
+		// in order to reset triggerStop.
+		// Capture STOP command
+		triggerStop(CLK:=in_bEnable);
+		IF triggerStop.Q THEN
+			// in_bEnable is FALSE, stop the cooler.
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.OFF;
+			M_AddCtrlCommands();	// Add ON related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.STOPPING;
+			stat.sDevState	:= 'OFF';
+			RETURN;
+		END_IF
+		
+		// Capture START command.
+		triggerStart(CLK:=in_bEnable);
+		IF triggerStart.Q THEN
+			// in_bEnable is TRUE, start the cooler.
+			ctrl.bStart		:= TRUE;
+			ctrl.nDevCmd	:= E_CRYO_CRYOTELGT_CMD.ON;
+			M_AddCtrlCommands();	// Add ON related commands
+			stat.nDevState	:= 	E_CRYO_CRYOTELGT_STATE.STARTING;
+			stat.sDevState	:= 'Starting...';
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeoutState));
+		END_IF
+END_CASE
+
+
+// Update outputs
+q_bStart	:= ctrl.bStart;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{02cef6bb-1cc4-4692-aa01-ed15d8b8f89c}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: For each cooler FB that extends FB_CRYO_PUMP_BASE update inputs in M_UpdateStatus(), e.g.
+
+(*
+// Update inputs
+stat.bReady		:= i_bReady;
+stat.bSpeed100	:= i_bSpeed100;
+stat.bWarning	:= i_bWarning;
+stat.bAlarm		:= i_bAlarm;
+
+CASE stat.nCtrlMode	OF
+	0:	stat.sCtrlMode	:= 'HHR (Hand-Held Remote)';
+	1:	stat.sCtrlMode	:= 'REMOTE';
+	2:	stat.sCtrlMode	:= 'SERIAL LINK';
+	3:	stat.sCtrlMode	:= 'FIELDBUS';
+ELSE
+	stat.sCtrlMode	:= 'UNKNOWN';
+END_CASE
+
+*)
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{d9ccd450-656e-4f66-a00a-055c62a74742}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF	statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING 		OR 
+	statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY			OR
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_ERROR 	AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY) 		OR 
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_ERROR 		AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING)			THEN
+	ActivityMonitoring(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING_USER THEN
+	ActivityMonitoringUser(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING THEN
+	ActivityInitializing(TRUE);
+END_IF
+
+// Set last known good substate. Used for recovery from comm problems.
+M_SetLastGoodSubstate();
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE statRef.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_RS_BASE_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE statRef.nSubstate OF
+	
+	E_RS_BASE_SUBSTATE.NOTOP_NOTREADY:		
+		IF 	nEvent = E_SM_EVENT.INIT OR cfgRef.bAutoMonitor  THEN
+			nEvent := E_SM_EVENT.INIT;
+			ActionInitExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING:			
+		IF nEvent = E_SM_EVENT.INITDONE THEN
+			nReadType := E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			IF cfgRef.bAutoMonitor THEN
+				nEvent := E_SM_EVENT.ENABLE;
+				statRef.bAutoStarted	:= TRUE;
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			ELSE
+				SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_READY);
+			END_IF
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.ERRINIT THEN
+			// INIT failed. Keep re-trying.
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_READY:			
+		IF nEvent = E_SM_EVENT.ENABLE THEN
+			IF cfgRef.bAutoMonitor THEN
+				// Monitoring is already in progress.
+				// It has to complete the read cycle in a clean way.
+				nNextState		:= E_RS_BASE_STATE.OP;					// Next state after STOP	
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.OP_MONITORING;	// Next substate after STOP	
+				nNextDescription:= 'BUSY';
+				nReadType		:= E_RS_BASE_READ_TYPE.PERIODIC;
+				RETURN;
+			ELSE
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+				// This call MUST be after SetState()
+				ActivityMonitoring(FALSE);	// Reset Monitoring method
+			END_IF
+		END_IF
+
+	E_RS_BASE_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF	nEvent = E_SM_EVENT.ERRHW OR
+		nEvent = E_SM_EVENT.ERRCOMM	THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_RS_BASE_STATE.OP:
+
+	(* Transitions from OP subastates *)
+	CASE statRef.nSubstate OF
+	E_RS_BASE_SUBSTATE.OP_ERROR:			
+		IF 	cfgRef.bAutoMonitor  THEN
+			nEvent := E_SM_EVENT.INIT;
+			ActionInitExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+			SetStatus(E_SM_ERROR.OK, 'Recovering from error...');
+			RETURN;
+		END_IF
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.OP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+
+	E_RS_BASE_SUBSTATE.OP_MONITORING:
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+			RETURN;			
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.OP_MONITORING_USER:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.OP_IDLE:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READ THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.SINGLE;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READ_USER THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.SINGLE_USER;
+			ActivityMonitoringUser(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING_USER);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR OR nEvent = E_SM_EVENT.ENABLE THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR_USER THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC_USER;
+			ActivityMonitoringUser(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING_USER);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+	
+	// Transitions from OP state.
+	// Valid for any OP substate.
+	IF nEvent = E_SM_EVENT.ERRHW THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_SM_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_CRYOTELGT">
+      <LineId Id="181" Count="13" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.ActivityInitializing">
+      <LineId Id="6" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="70" Count="2" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="333" Count="0" />
+      <LineId Id="331" Count="1" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="306" Count="5" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="233" Count="4" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="170" Count="8" />
+      <LineId Id="186" Count="2" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="192" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.ActivityInitializing_new">
+      <LineId Id="6" Count="0" />
+      <LineId Id="282" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="70" Count="2" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="75" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="1" />
+      <LineId Id="386" Count="1" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="380" Count="5" />
+      <LineId Id="379" Count="0" />
+      <LineId Id="103" Count="1" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="291" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="333" Count="0" />
+      <LineId Id="331" Count="1" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="306" Count="5" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="143" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="146" Count="3" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="151" Count="2" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="367" Count="2" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="392" Count="1" />
+      <LineId Id="373" Count="3" />
+      <LineId Id="215" Count="1" />
+      <LineId Id="228" Count="2" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="233" Count="4" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="170" Count="8" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="347" Count="19" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.ActivityMonitoring">
+      <LineId Id="492" Count="19" />
+      <LineId Id="645" Count="10" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="544" Count="22" />
+      <LineId Id="688" Count="0" />
+      <LineId Id="567" Count="17" />
+      <LineId Id="675" Count="5" />
+      <LineId Id="686" Count="1" />
+      <LineId Id="681" Count="4" />
+      <LineId Id="585" Count="10" />
+      <LineId Id="768" Count="1" />
+      <LineId Id="767" Count="0" />
+      <LineId Id="689" Count="0" />
+      <LineId Id="704" Count="0" />
+      <LineId Id="706" Count="0" />
+      <LineId Id="708" Count="6" />
+      <LineId Id="729" Count="2" />
+      <LineId Id="715" Count="2" />
+      <LineId Id="732" Count="0" />
+      <LineId Id="718" Count="10" />
+      <LineId Id="705" Count="0" />
+      <LineId Id="615" Count="0" />
+      <LineId Id="736" Count="11" />
+      <LineId Id="750" Count="2" />
+      <LineId Id="748" Count="1" />
+      <LineId Id="631" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_AddCtrlCommands">
+      <LineId Id="116" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="126" Count="12" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="139" Count="14" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_ClearCtrlCommands">
+      <LineId Id="6" Count="4" />
+      <LineId Id="18" Count="1" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="31" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_Configure">
+      <LineId Id="398" Count="7" />
+      <LineId Id="594" Count="0" />
+      <LineId Id="588" Count="0" />
+      <LineId Id="449" Count="0" />
+      <LineId Id="592" Count="1" />
+      <LineId Id="589" Count="0" />
+      <LineId Id="591" Count="0" />
+      <LineId Id="590" Count="0" />
+      <LineId Id="450" Count="0" />
+      <LineId Id="412" Count="0" />
+      <LineId Id="414" Count="1" />
+      <LineId Id="602" Count="0" />
+      <LineId Id="416" Count="22" />
+      <LineId Id="543" Count="0" />
+      <LineId Id="446" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_ExecuteComm">
+      <LineId Id="9" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_FindReadCommand">
+      <LineId Id="19" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_GetCouplerState">
+      <LineId Id="6" Count="1" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_ReadFromReply">
+      <LineId Id="406" Count="5" />
+      <LineId Id="606" Count="0" />
+      <LineId Id="412" Count="2" />
+      <LineId Id="416" Count="1" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="721" Count="0" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="722" Count="1" />
+      <LineId Id="727" Count="0" />
+      <LineId Id="730" Count="0" />
+      <LineId Id="728" Count="1" />
+      <LineId Id="725" Count="1" />
+      <LineId Id="453" Count="0" />
+      <LineId Id="694" Count="5" />
+      <LineId Id="458" Count="0" />
+      <LineId Id="703" Count="0" />
+      <LineId Id="700" Count="0" />
+      <LineId Id="704" Count="0" />
+      <LineId Id="709" Count="0" />
+      <LineId Id="705" Count="3" />
+      <LineId Id="702" Count="0" />
+      <LineId Id="459" Count="9" />
+      <LineId Id="660" Count="0" />
+      <LineId Id="662" Count="0" />
+      <LineId Id="661" Count="0" />
+      <LineId Id="668" Count="0" />
+      <LineId Id="673" Count="0" />
+      <LineId Id="675" Count="0" />
+      <LineId Id="678" Count="4" />
+      <LineId Id="677" Count="0" />
+      <LineId Id="607" Count="0" />
+      <LineId Id="663" Count="1" />
+      <LineId Id="645" Count="2" />
+      <LineId Id="665" Count="1" />
+      <LineId Id="609" Count="1" />
+      <LineId Id="623" Count="0" />
+      <LineId Id="625" Count="7" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="611" Count="11" />
+      <LineId Id="491" Count="2" />
+      <LineId Id="68" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_StateMachine">
+      <LineId Id="326" Count="9" />
+      <LineId Id="431" Count="0" />
+      <LineId Id="336" Count="17" />
+      <LineId Id="448" Count="1" />
+      <LineId Id="354" Count="6" />
+      <LineId Id="433" Count="0" />
+      <LineId Id="478" Count="0" />
+      <LineId Id="434" Count="0" />
+      <LineId Id="361" Count="12" />
+      <LineId Id="432" Count="0" />
+      <LineId Id="435" Count="0" />
+      <LineId Id="374" Count="4" />
+      <LineId Id="450" Count="1" />
+      <LineId Id="379" Count="0" />
+      <LineId Id="452" Count="1" />
+      <LineId Id="380" Count="1" />
+      <LineId Id="455" Count="0" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="459" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="462" Count="2" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="467" Count="7" />
+      <LineId Id="382" Count="6" />
+      <LineId Id="436" Count="0" />
+      <LineId Id="389" Count="3" />
+      <LineId Id="437" Count="0" />
+      <LineId Id="393" Count="4" />
+      <LineId Id="438" Count="2" />
+      <LineId Id="398" Count="12" />
+      <LineId Id="443" Count="1" />
+      <LineId Id="411" Count="1" />
+      <LineId Id="454" Count="0" />
+      <LineId Id="413" Count="6" />
+      <LineId Id="441" Count="1" />
+      <LineId Id="420" Count="10" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.M_UpdateStatus">
+      <LineId Id="261" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="89" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="97" Count="4" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="265" Count="2" />
+      <LineId Id="108" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CRYOTELGT.ProcessEvents">
+      <LineId Id="6" Count="208" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

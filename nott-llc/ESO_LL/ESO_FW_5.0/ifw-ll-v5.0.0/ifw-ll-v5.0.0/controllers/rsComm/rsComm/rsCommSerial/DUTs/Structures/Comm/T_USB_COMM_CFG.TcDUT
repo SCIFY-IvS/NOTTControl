@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_USB_COMM_CFG" Id="{30cc19e1-9f85-4ac2-bfac-73950a6932fe}">
+    <Declaration><![CDATA[TYPE T_USB_COMM_CFG EXTENDS T_RS_COMM_CFG:
+STRUCT
+	ComPort: 		UDINT :=5;         					// Serial port number [1..255]
+    Baudrate: 		UDINT :=57600;						// Baudrate
+    Parity: 		ComParity_t :=ComParity_t.PARITY_NONE;			// PARITY_NONE, _EVEN, _ODD, _MARK or _SPACE
+    DataBits: 		INT :=8;           					// Data Bits [4..8]
+    StopBits: 		ComStopBits_t :=ComStopBits_t.STOPBITS_ONE;		// Stop Bits
+
+    DTR: 			ComDTRCtrl_t :=ComDTRCtrl_t.DTR_CTRL_DISABLE; 	// DTR_CTRL_DISABLE, _ENABLE or _HANDSHAKE
+    RTS: 			ComRTSCtrl_t :=ComRTSCtrl_t.RTS_CTRL_DISABLE; 	// RTS_CTRL_DISABLE, _ENABLE, _HANDSHAKE or _TOGGLE
+    CTS: 			BOOL :=FALSE;      					// 'Clear to Send' signal
+    DSR: 			BOOL :=FALSE;      					// 'Dataset Ready' signal
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

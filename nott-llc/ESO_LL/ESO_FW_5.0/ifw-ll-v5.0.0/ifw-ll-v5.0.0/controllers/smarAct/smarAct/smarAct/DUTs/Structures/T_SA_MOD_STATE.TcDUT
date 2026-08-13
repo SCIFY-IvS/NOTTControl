@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_MOD_STATE" Id="{8bfc5895-8885-48de-9ee3-170a805f8705}">
+    <Declaration><![CDATA[TYPE T_SA_MOD_STATE :
+STRUCT
+	bSM_PRESENT:			BOOL;
+	bBOOSTER_PRESENT:		BOOL;
+	bADJUSTMENT_ACTIVE:		BOOL;
+	bIOM_PRESENT:			BOOL;
+	bINTERNAL_COMM_FAILURE:	BOOL;
+	bFAN_FAILURE:			BOOL;
+	bPOWER_SUPPLY_FAILURE:	BOOL;
+	bPOWER_SUPPLY_OVERLOAD:	BOOL;
+	bOVER_TEMPERATURE:		BOOL;
+	
+	bInitialised:			BOOL;	// If TRUE, the state has been read from the controller.
+	bUsed:					BOOL;
+	bERROR:					BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

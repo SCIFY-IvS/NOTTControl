@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_WARMUP_CTRL" Id="{1bd6dc4c-40ac-401c-bf2b-1f228abdc631}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_WARMUP_CTRL :
+STRUCT
+	
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_ADC_MODE" Id="{5ed2a699-37ef-49ed-9f3b-9eea98dc77ef}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_ADC_MODE :
+(
+	// WARNING: modes shall be a positive number
+	ENG   := 0, 
+	OFF   := 1,
+	AUTO  := 2
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

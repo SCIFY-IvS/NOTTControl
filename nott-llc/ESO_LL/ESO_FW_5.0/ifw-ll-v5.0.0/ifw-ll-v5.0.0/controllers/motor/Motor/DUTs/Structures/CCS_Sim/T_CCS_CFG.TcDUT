@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_CCS_CFG" Id="{560b22ba-8c55-4bb4-98cd-67316ecb02e0}">
+    <Declaration><![CDATA[TYPE T_CCS_CFG:
+STRUCT
+	site:     TrkSiteConstants;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

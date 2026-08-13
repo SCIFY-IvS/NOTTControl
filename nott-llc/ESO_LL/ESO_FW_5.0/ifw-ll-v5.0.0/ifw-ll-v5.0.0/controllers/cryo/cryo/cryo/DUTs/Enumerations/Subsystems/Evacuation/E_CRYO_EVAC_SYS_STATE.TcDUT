@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_EVAC_SYS_STATE" Id="{f52c3122-97a0-48f2-88b7-20cc9f0f8acd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_EVAC_SYS_STATE :
+(
+	NONE := 0,
+	OFF,					// Controller OFF, Valve closed
+//	ACTIVE_STARTING_PUMPS,	// Controller ON,  Starting pumps
+//	ACTIVE_PUMPS_RUNNING,	// Controller ON,  Pumps running
+	ACTIVE_OPENING,			// Controller ON,  Valve opening
+	ACTIVE_OPEN,			// Controller ON,  Valve open
+	ACTIVE_CLOSING,			// Controller ON,  Valve closing
+	ACTIVE_CLOSED,			// Controller ON,  Valve closed
+//	ACTIVE_STOPPING_PUMPS,	// Controller ON,  Stopping pumps
+	EMERGENCY,				// Controller ON,  Closing valve for safety reason
+	ERROR					// Error in the system
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

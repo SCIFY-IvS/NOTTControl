@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_CFG" Id="{7cfadf5b-b3ea-4909-8cac-dbfb101aeeb1}">
+    <Declaration><![CDATA[TYPE T_SA_CFG EXTENDS T_RS_BASE_CFG:
+STRUCT
+	//
+	// INIT commands.
+	// Executed during Initialisation, before going to OPERATIONAL.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdList_Init:	ARRAY [0..7] OF T_SA_COMMAND := [
+							(cmd := '*IDN?', 			nReplies := 1),
+							(cmd := ':DEV:SNUM?', 		nReplies := 1),
+							(cmd := ':DEV:STAT?', 		nReplies := 1),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0)];
+
+	//
+	// List of commands to SET Channel/Positioner Configuration.
+	// Note the # and *** characters !!!
+	// The actual command will be set like this:
+	//    #   will be replaced with channel number
+	//    *** will be replaced with a value
+	// Example:
+	//    ':CHAN#:PCON:OPT ***' => ':CHAN1:PCON:OPT 256'
+	//
+	// Important NOTE:
+	// At this stage RLIM:MIN and RLIM:MAX are disabled, i.e. = 0.
+	// The actual limits will be set at the E_SA_POS_SM_STATE.CALIB_REF stage,
+	// see M_SetCmdList().
+	//
+	// These commands are sent only once, just before the positioner is 
+	// commanded to Reference (INIT).
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdList_CfgSet:	ARRAY [0..15] OF T_SA_COMMAND := [
+							(cmd := ':CHAN#:CAL:OPT ***', 		nReplies := 0),
+							(cmd := ':CHAN#:REF:OPT ***', 		nReplies := 0),
+							(cmd := ':CHAN#:PCON:OPT ***', 		nReplies := 0),
+							(cmd := ':CHAN#:HOLD ***', 			nReplies := 0),
+							(cmd := ':CHAN#:INP:THR ***', 		nReplies := 0),
+							(cmd := ':CHAN#:INP:DEL ***', 		nReplies := 0),
+							(cmd := ':CHAN#:RLIM:MIN 0', 		nReplies := 0),
+							(cmd := ':CHAN#:RLIM:MAX 0', 		nReplies := 0),
+							(cmd := ':CHAN#:VEL ***', 			nReplies := 0),
+							(cmd := ':REF#', 					nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0)];
+							
+
+	//				
+	// List of commands to GET Channel/Positioner Configuration.
+	// These commands are sent from the moment the SW started till the positioner 
+	// has been Calibrated or Referenced (INIT).
+	// Once the Positioer is Ready, these commans are not sent any more.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdList_POST_INIT:	ARRAY [0..15] OF T_SA_COMMAND := [
+							(cmd := ':MOD#:STAT?', 			nReplies := 1),
+							(cmd := ':CHAN#:STAT?', 		nReplies := 1),
+							(cmd := ':CHAN#:CAL:OPT?', 		nReplies := 1),
+							(cmd := ':CHAN#:REF:OPT?', 		nReplies := 1),
+							(cmd := ':CHAN#:PCON:OPT?', 	nReplies := 1),
+							(cmd := ':CHAN#:INP:THR?', 		nReplies := 1),
+							(cmd := ':CHAN#:INP:DEL?', 		nReplies := 1),
+							(cmd := ':CHAN#:RLIM:MIN?', 	nReplies := 1),
+							(cmd := ':CHAN#:RLIM:MAX?', 	nReplies := 1),
+							(cmd := ':CHAN#:POS:TARG?', 	nReplies := 1),
+							(cmd := ':CHAN#:POS:CURR?', 	nReplies := 1),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0)];
+							
+
+	//
+	// List of Monitoring commands in PRE-OPERATION.
+	// Executed before the Positioner has been Referenced/initialised.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdList_NOT_READY:	ARRAY [0..15] OF T_SA_COMMAND := [
+							(cmd := ':MOD#:STAT?', 			nReplies := 1),
+							(cmd := ':CHAN#:STAT?', 		nReplies := 1),
+							(cmd := ':CHAN#:POS:TARG?', 	nReplies := 1),
+							(cmd := ':CHAN#:POS:CURR?', 	nReplies := 1),
+							(cmd := ':CHAN#:PCON:OPT?', 	nReplies := 1),
+							(cmd := ':CHAN#:CLIN?', 		nReplies := 1),
+							(cmd := ':CHAN#:TUN:BASE:UNIT?',nReplies := 1),
+							(cmd := ':CHAN#:TUN:BASE:RES?', nReplies := 1),
+							(cmd := ':CHAN#:TUN:MTYP?', 	nReplies := 1),
+							(cmd := ':CHAN#:TUN:RTYP?', 	nReplies := 1),
+							(cmd := ':CHAN#:INP:THR?', 		nReplies := 1),
+							(cmd := ':CHAN#:INP:DEL?', 		nReplies := 1),
+							(cmd := ':CHAN#:RLIM:MIN?', 	nReplies := 1),
+							(cmd := ':CHAN#:RLIM:MAX?', 	nReplies := 1),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0)];
+			
+
+	//
+	// List of Monitoring commands in OPERATION.
+	// Executed once the Positioner has been Referenced/initialised.
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdList_Mon:	ARRAY [0..15] OF T_SA_COMMAND := [
+							(cmd := ':MOD#:STAT?', 			nReplies := 1),
+							(cmd := ':CHAN#:STAT?', 		nReplies := 1),
+							(cmd := ':CHAN#:POS:TARG?', 	nReplies := 1),
+							(cmd := ':CHAN#:POS:CURR?', 	nReplies := 1),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0),
+							(cmd := '', 		nReplies := 0)];
+			
+
+	//
+	// Array of used channels. Set to TRUE for each used channel.
+	// 18 channels max. 6 modules [0..5], 3 connections each [CH1, CH2, CH3].
+	// channel = (Module x 3) + (CH-1)
+	// For example:
+	//   First connection (CH1) of first module (Module0): channel = 0 x 3 + (1-1) = 0
+	//   Second connection (CH2) of first module (Module0): channel = 0 x 3 + (2-1) = 1
+	//   Third connection (CH3) of third module (Module2): channel = 2 x 3 + (3-1) = 8
+	//  
+	arrUsedCh:	ARRAY [0..17] 	OF BOOL;	
+
+	//
+	// Array of used modules. Set to TRUE for each used module.
+	// Automatically populated in method M_Configure().
+	//
+	arrUsedMod:	ARRAY [0..5] 	OF BOOL;	
+	
+	// Channel configuration structures
+//	arrChCfg:	ARRAY [0..17] OF T_SA_CH_CFG;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

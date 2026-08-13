@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="MAIN" Id="{a54cb7a1-7b45-44b3-b235-145807ae3efc}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbExtTimeSoft : FB_TcExternalTime(ExternalTimeSoft);
+	fbSender: FB_MUDPI_SENDER;
+	payload: T_PAYLOAD;
+	fbTimer: FB_TIME;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTimer();
+fbSender();
+payload.data1 := payload.data1 + 1;
+fbSender.SetTimestamp(fbTimer.GetMudpiTime());
+fbSender.SetMudpiPayload(ADR(payload), SIZEOF(payload));
+fbSender.SendData();
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

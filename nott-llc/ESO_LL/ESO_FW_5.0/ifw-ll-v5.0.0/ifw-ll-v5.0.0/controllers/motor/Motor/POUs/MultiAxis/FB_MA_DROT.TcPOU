@@ -1,0 +1,970 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MA_DROT" Id="{68410664-5d19-42b8-85f8-e90cbf90e5bc}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MA_DROT EXTENDS FB_MA_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	sMotorName:			STRING	:= 'Motor';	(* Default Motor name *)
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrRotation: LREAL := 0; (* Rotation used for Sky mode *)
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrPupil: LREAL := 0; (* Pupil rotation for Elevation mode *)
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrParallactic: LREAL := 0; (* Parallactic angle *)
+	{attribute 'OPC.UA.DA' := '0'}
+	nNOVRAM_DevId:	UDINT	:= 0;		(* NOVRAM device ID - normally 4 *)
+	{attribute 'OPC.UA.DA' := '0'}
+	nNOVRAM_Offset:	UDINT	:= 0;		(* NOVRAM offset where motor configuration is stored *)
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:				T_DROT_CFG;
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:				T_DROT_CTRL;
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:				T_DROT_STAT;
+	
+	{attribute 'OPC.UA.DA':='1'}
+	motor:              FB_MOTOR;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// A MUST !!! Set references to real structures
+RefCfg		REF=cfg;
+RefCtrl		REF=ctrl;
+RefStat		REF=stat;
+
+
+motor(	sName 				:= sMotorName,	
+		in_bSafe			:= in_bSafe,
+		in_bDisableIfUnsafe	:= in_bDisableIfUnsafe,
+		nNOVRAM_DevId 		:= nNOVRAM_DevId, 
+		nNOVRAM_Offset 		:= nNOVRAM_Offset);
+
+SUPER^(nNumAxes:=1, pMotor1:=ADR(motor));]]></ST>
+    </Implementation>
+    <Method Name="M_LogCommand" Id="{a9b0a025-3534-4688-8b81-cd1d0d590ca2}">
+      <Declaration><![CDATA[METHOD M_LogCommand : BOOL
+VAR
+	cmd:	INT;
+	mode:	INT;
+	sLog:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cmd		:= RefCtrl.nCommand;
+mode	:= ctrl.nMode;
+
+// Log DROT command.
+// Set motor logging to FALSE when tracking,
+// in order to reduce flooding of logs.
+IF cmd = E_MA_COMMAND.RESET THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	M_SetStatus('Resetting DROT device...');		
+	M_LogEventGeneral('Resetting DROT device...');
+ELSIF cmd = E_MA_COMMAND.ENABLE THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	M_SetStatus('');		
+	M_LogEventGeneral('Enabling DROT device...');
+ELSIF cmd = E_MA_COMMAND.INIT THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	M_SetStatus('Initialising DROT device...');		
+	M_LogEventGeneral('Initialising DROT device...');
+ELSIF cmd = E_MA_COMMAND.START_TRACK THEN
+	pMotor1^.RPC_SetLog(FALSE);
+	IF mode= E_DROT_MODE.ELEV THEN
+		M_SetStatus('Tracking in ELEV mode');
+		sLog	:= LREAL_TO_STRING(ctrl.lrPosang);
+		sLog	:= CONCAT('Setting DROT to ELEVATION mode. Angle = ', sLog);
+		M_LogEventGeneral(sLog);
+	ELSIF mode= E_DROT_MODE.SKY THEN
+		M_SetStatus('Tracking in SKY mode');
+		sLog	:= LREAL_TO_STRING(ctrl.lrPosang);
+		sLog	:= CONCAT('Setting DROT to SKY mode. Angle = ', sLog);
+		M_LogEventGeneral(sLog);
+	ELSIF mode= E_DROT_MODE.USER THEN
+		M_SetStatus('Tracking in USER mode');
+		sLog	:= LREAL_TO_STRING(ctrl.lrPosang);
+		sLog	:= CONCAT('Setting DROT to USER mode. Angle = ', sLog);
+		M_LogEventGeneral(sLog);
+	END_IF
+ELSIF cmd = E_MA_COMMAND.DISABLE THEN
+	M_SetStatus('');		
+	M_LogEventGeneral('Disabling DROT device...');
+ELSIF cmd = E_MA_COMMAND.STOP THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	M_LogEventGeneral('Stopping DROT device...');
+ELSIF cmd = E_MA_COMMAND.STOP_TRACK THEN
+	pMotor1^.RPC_SetLog(TRUE);
+	IF mode= E_DROT_MODE.ENG THEN
+		M_SetStatus('Moving to Engineering position ...');		
+		sLog	:= LREAL_TO_STRING(stat.lrPos);
+		sLog	:= CONCAT('Setting DROT to ENG mode. Angle = ', sLog);
+		M_LogEventGeneral(sLog);
+	ELSIF mode= E_DROT_MODE.STAT THEN
+		M_SetStatus('Moving to STAT position ...');		
+		sLog	:= LREAL_TO_STRING(stat.lrPos);
+		sLog	:= CONCAT('Setting DROT to STAT mode. Angle = ', sLog);
+		M_LogEventGeneral(sLog);
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{0dd344b4-eb2f-4d01-a6fe-8be3001318e0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// It does all the verifications for the MOTOR device before
+// triggering the Init event.
+
+// RPC calls are not allowed in Local mode.
+IF ptrMotorStat[1]^.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF ptrMotorStat[1]^.nState <> E_MOTOR_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Set disable command
+	RefCtrl.nCommand := E_MA_COMMAND.DISABLE;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{a5bf10fb-e9f3-491d-8e7d-638d469782d0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// It does all the verifications for the MOTOR device before
+// triggering the Enable event.
+
+//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+
+// RPC calls are not allowed in Local mode.
+IF ptrMotorStat[1]^.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+IF	ptrMotorStat[1]^.nSubstate <> E_MOTOR_SUBSTATE.NOTOP_READY		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	// Set enable command
+	RefCtrl.nCommand := E_MA_COMMAND.ENABLE;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{3ac4e33d-9da4-40b0-83ab-456d9d408b62}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_LogEventGeneral('Initialising DROT motor...');
+
+//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_Init	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+RPC_Init	:= SUPER^.RPC_Init();
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveAbs" Id="{387af1f9-ae1a-4cab-8eaf-8262231a217e}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveAbs : INT
+VAR_INPUT
+	in_lrPos:	LREAL;
+	in_lrVel:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF motor.stat.bLocal THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	motor.stat.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be <=0.0.
+ELSIF	in_lrVel <= 0.0	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_NEG);
+	RETURN;
+// Set velocity cannot be greater than MAX Velocity.
+ELSIF	in_lrVel > motor.stat.axis.lrMaxVelocity	THEN
+	RPC_MoveAbs	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+	RETURN;
+END_IF
+
+
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+// Set command
+ctrl.nCommand 		:= E_MA_COMMAND.MA_MOVE;
+ctrl.nMode          := E_DROT_MODE.ENG;
+ctrl.lrTargetPos    := in_lrPos;
+ctrl.lrTargetVel    := in_lrVel;
+ctrl.bExecute 		:= TRUE;
+
+// Call was successful
+RPC_MoveAbs	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveAngle" Id="{40f99339-eef8-471b-8036-7aeacf3b4322}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveAngle : INT
+VAR_INPUT
+	in_lrAngle:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+
+// RPC calls are not allowed in Local mode.
+IF motor.stat.bLocal THEN
+	RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	motor.stat.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+// Set command
+ctrl.lrPosang 	:= in_lrAngle;
+ctrl.nMode		:= E_DROT_MODE.STAT;
+ctrl.nCommand	:= E_MA_COMMAND.STOP_TRACK;
+ctrl.bExecute	:= TRUE;
+
+// Call was successful
+RPC_MoveAngle	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveRel" Id="{08dd4e22-8fff-4daa-9431-77c632bbf568}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveRel : INT
+VAR_INPUT
+	in_lrPos:	LREAL;
+	in_lrVel:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF motor.stat.bLocal THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	motor.stat.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+// Set velocity cannot be <=0.0.
+ELSIF	in_lrVel <= 0.0	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_NEG);
+	RETURN;
+// Set velocity cannot be greater than MAX Velocity.
+ELSIF	in_lrVel > motor.stat.axis.lrMaxVelocity	THEN
+	RPC_MoveRel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+	RETURN;
+END_IF
+
+
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+// Set command
+ctrl.nCommand 		:= E_MA_COMMAND.MA_MOVE;
+ctrl.nMode          := E_DROT_MODE.ENG;
+ctrl.lrTargetPos    := motor.stat.lrPosActual + in_lrPos;
+ctrl.lrTargetVel    := in_lrVel;
+ctrl.bExecute 		:= TRUE;
+
+// Call was successful
+RPC_MoveRel	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveVel" Id="{2214ecf8-00f2-42d3-8634-96a4ebac21c9}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveVel : INT
+VAR_INPUT
+	in_lrVel:	LREAL;
+END_VAR
+VAR
+	dir:	DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_MoveVel	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+IF	stat.sm.nState <> E_MA_STATE.OP	THEN
+	RPC_MoveVel	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF	in_lrVel = 0.0	THEN
+// Set velocity cannot be 0.0.
+	RPC_MoveVel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_ZERO);
+	RETURN;
+END_IF
+
+// Check velocity against Vel_max.
+// Note: Negative velocity is accepted.
+// Check if Velocity is too high.
+IF ABS(in_lrVel) > ptrMotorStat[1]^.axis.lrMaxVelocity THEN
+	RPC_MoveVel	:= M_SetRpcStatus(E_MOTOR_RPC_ERROR.VEL_MAX);
+	RETURN;
+END_IF
+
+
+// Update State and Status
+SetState(E_MA_STATE.OP, E_MA_SUBSTATE.OP_MOVING);
+M_SetStatus('Moving in Velocity mode...');
+ctrl.nMode	:= E_ADC_MODE.ENG;
+
+// Set the direction of movement.
+IF in_lrVel > 0.0	THEN
+	dir	:= MC_Positive_Direction;
+ELSE
+	dir	:= MC_Negative_Direction;
+END_IF
+
+// This will command all the motors and restart the timer.
+ActionMoveVelExecute(vel:=ABS(in_lrVel), dir:=dir);
+
+// Call was successful
+RPC_MoveVel	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{b88d7342-d26a-433e-ab13-0de8a479399c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// RPC calls are not allowed in Local mode.
+IF ptrMotorStat[1]^.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_MA_COMMAND.RESET;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_StartTrack" Id="{c448c3a6-c0e7-43c0-a762-47b14c573e4e}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_StartTrack : INT
+VAR_INPUT
+	in_mode:	 INT := 2;
+	in_angle:    LREAL := 0.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+
+// RPC calls are not allowed in Local mode.
+IF ptrMotorStat[1]^.bLocal THEN
+	RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	ptrMotorStat[1]^.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+// Set command
+ctrl.lrPosang := in_angle;
+ctrl.nMode:= in_mode;
+ctrl.nCommand:=E_MA_COMMAND.START_TRACK;
+ctrl.lrOffset := 0.0;
+stat.lrTotalOffset := 0.0;
+ctrl.bExecute:=(TRUE);
+
+// Call was successful
+RPC_StartTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{e4eaf539-dad7-465d-8018-397da2fc6218}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// RPC calls are not allowed in Local mode.
+IF ptrMotorStat[1]^.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_MA_COMMAND.STOP;
+ctrl.bExecute := TRUE;
+
+RPC_Stop	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_StopTrack" Id="{1827bee6-7067-4b07-a2e9-b0e396c407b2}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_StopTrack : INT
+VAR_INPUT
+END_VAR
+VAR
+	sLog:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (RefStat.nMode >= E_DROT_MODE.SKY) THEN
+	// RPC calls are not allowed in Local mode.
+	IF ptrMotorStat[1]^.bLocal THEN
+		RPC_StopTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+		RETURN;
+	END_IF
+
+	sLog	:= LREAL_TO_STRING(stat.lrPos);
+	sLog	:= CONCAT('Stopping Tracking. Angle = ', sLog);
+	M_LogEventGeneral(sLog);
+
+	RefCtrl.nMode           :=  E_DROT_MODE.STAT;
+	// Set command
+	RefCtrl.nCommand 		:= E_MA_COMMAND.STOP_TRACK;
+	RefCtrl.bExecute 		:= TRUE;
+END_IF
+
+// Call was successful
+RPC_StopTrack	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_TrackOffset" Id="{414ce5d2-d8cf-4efc-94c4-73a3c3e20b97}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_TrackOffset : INT
+VAR_INPUT
+	in_lrOffset:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check if it is safe to operate motors.
+//
+IF NOT in_bSafe	THEN
+	RPC_TrackOffset	:= M_SetRpcStatus(E_MA_RPC_ERROR.UNSAFE);
+	RETURN;
+END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF motor.stat.bLocal THEN
+	RPC_TrackOffset	:= M_SetRpcStatus(E_MA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	motor.stat.nState <> E_MOTOR_STATE.OP	THEN
+	RPC_TrackOffset	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF	(stat.nMode <= E_DROT_MODE.STAT) THEN
+	RPC_TrackOffset	:= M_SetRpcStatus(E_MA_RPC_ERROR.NOT_TRACKING);
+	RETURN;
+END_IF
+
+// Update offset
+ctrl.lrOffset    := in_lrOffset;
+
+// Call was successful
+RPC_TrackOffset	:= M_SetRpcStatus(E_MA_RPC_ERROR.OK);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_ComputeNextPos" Id="{3847ba7b-af2b-4573-aa2c-14b11a07033e}">
+      <Declaration><![CDATA[METHOD User_ComputeNextPos : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	fieldRotation: LREAL;
+	modeAngle:     LREAL;
+	pos:           LREAL := 0.0 ;
+	posang:        LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Handle various derotator modes
+CASE RefCtrl.nMode OF
+			E_DROT_MODE.STAT:
+			    pos := cfg.lrStatRef + cfg.nDirSign * (ctrl.lrPosang)/2.0;
+				stat.lrAngleOnSky := 0.0;
+				stat.lrModeAngle := pos;
+				ptrMotorCtrl[1]^.lrVelocity := ptrMotorCfg[1]^.lrDefaultVelocity;
+			E_DROT_MODE.SKY:
+				stat.lrTotalOffset := stat.lrTotalOffset + ctrl.lrOffset;
+				ctrl.lrOffset := 0.0;
+				fieldRotation := ctrl.lrRotation;
+				pos := cfg.lrSkyRef + (cfg.nDirSign * ((ctrl.lrPosang - fieldRotation)/2)) + stat.lrTotalOffset ;
+				stat.lrAngleOnSky := ctrl.lrPosang;
+				stat.lrModeAngle := stat.lrAngleOnSky;
+				ptrMotorCtrl[1]^.lrVelocity := ptrMotorCfg[1]^.lrDefaultVelocity;
+			E_DROT_MODE.ELEV:
+				stat.lrTotalOffset := stat.lrTotalOffset + ctrl.lrOffset;
+				ctrl.lrOffset := 0.0;
+				pos := cfg.lrElevRef + ((cfg.nFocusSign * cfg.nDirSign * (ctrl.lrPupil)) /2.0) + stat.lrTotalOffset;
+				stat.lrAngleOnSky := ctrl.lrParallactic;
+				stat.lrModeAngle := stat.lrAngleOnSky;
+				ptrMotorCtrl[1]^.lrVelocity := ptrMotorCfg[1]^.lrDefaultVelocity;
+			E_DROT_MODE.USER:
+				//modeAngle := (parUser[1] * ctrl.lrPosang +
+				//	          parUser[2] * i_trk_data.alt_deg +
+				//			  parUser[3] * i_trk_data.pa_deg );
+				//pos := cfg.lrUserRef + cfg.nDirSign * modeAngle;
+				//stat.lrAngleOnSky := 0.0;
+				//stat.lrModeAngle  := modeAngle;
+			E_DROT_MODE.ENG:
+				pos := ctrl.lrTargetPos;
+		        ptrMotorCtrl[1]^.lrVelocity := ctrl.lrTargetVel;		
+		        M_SetStatus('Moving to Engineering position ...');
+END_CASE
+
+// assign new TARGET position
+ptrMotorCtrl[1]^.lrPosition := pos;
+stat.lrPos := pos;	// Used in the DROT GUI as 'Target']]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_Configure" Id="{c7ea9ae8-d7f4-464e-b5b7-40178fde3b54}">
+      <Declaration><![CDATA[// Method for hard-coding of configuration parameters by the User.
+METHOD User_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.User_Configure();	// Mandatory!
+
+//
+// TODOUSER: Configure anything that is different from default configuration.
+//
+// Examples:
+//
+
+//
+// Individual Motor configuration
+ptrMotorCfg[1]^.nAxisType	        := E_MOTOR_AXIS_TYPE.CIRCULAR_OPTIMISED;
+ptrMotorCfg[1]^.lrDefaultVelocity	:= 3.0;	// Set default velocity to 10 deg/sec
+
+
+// Multi-axis system configuration
+ctrl.lrPosang	    :=  0.0;	// Position angle for OFF mode, i.e. HOME position
+ctrl.lrTargetPos	:=  0.0;	
+ctrl.lrTargetVel	:= 3.0;	// Velocity for ENG mode
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_GetParams" Id="{f39f9e86-1218-48fb-abcc-4fc946ebd434}">
+      <Declaration><![CDATA[// User Method executed on each cycle before processing events and states.
+METHOD User_GetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+SUPER^.User_GetParams();
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_SetParams" Id="{f61381ba-aa18-44cb-a273-f899240fbab1}">
+      <Declaration><![CDATA[// User Method executed on each cycle after processing events and states.
+METHOD User_SetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Mandatory
+//
+SUPER^.User_SetParams();
+
+// Set maximum positioning error
+stat.lrPosError		:= M_GetMaxPosError();
+
+// Check if we are tracking or still presetting.
+// Tracking is OK if the positioning error is less than the threshold (bTrackingOK).
+// Once device is tracking, it should go back to presetting if the error is greater
+// than twice the threshold  (bTrackingBAD).
+IF	ctrl.nMode = E_DROT_MODE.ELEV OR  
+	ctrl.nMode = E_DROT_MODE.SKY  OR  
+	ctrl.nMode = E_DROT_MODE.USER	THEN
+	stat.bTrackingOK	:= SEL (stat.lrPosError <= cfg.lrTrkThreshold, FALSE, TRUE);
+	stat.bTrackingBAD	:= SEL (stat.lrPosError > 2.0 * cfg.lrTrkThreshold, FALSE, TRUE);
+	ctrl.lrRotation := in_lrRotation;
+	ctrl.lrPupil := in_lrPupil;
+	stat.lrRotation := in_lrRotation;
+	stat.lrPupil := in_lrPupil;
+	ctrl.lrParallactic := in_lrParallactic;
+ELSE
+	stat.bTrackingOK	:= FALSE;
+	stat.bTrackingBAD	:= FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MA_DROT">
+      <LineId Id="34" Count="0" />
+      <LineId Id="28" Count="3" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="121" Count="1" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.M_LogCommand">
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="97" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="99" Count="2" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="102" Count="2" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="108" Count="2" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_Disable">
+      <LineId Id="35" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="17" Count="12" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="31" Count="2" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="14" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_Enable">
+      <LineId Id="32" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="41" Count="8" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="14" Count="11" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="27" Count="3" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_Init">
+      <LineId Id="91" Count="1" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="102" Count="7" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_MoveAbs">
+      <LineId Id="87" Count="8" />
+      <LineId Id="20" Count="7" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="66" Count="7" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_MoveAngle">
+      <LineId Id="61" Count="8" />
+      <LineId Id="8" Count="8" />
+      <LineId Id="46" Count="2" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_MoveRel">
+      <LineId Id="81" Count="8" />
+      <LineId Id="38" Count="21" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="60" Count="7" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_MoveVel">
+      <LineId Id="128" Count="8" />
+      <LineId Id="63" Count="2" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="68" Count="5" />
+      <LineId Id="83" Count="4" />
+      <LineId Id="89" Count="1" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="113" Count="1" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="16" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_Reset">
+      <LineId Id="7" Count="10" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_StartTrack">
+      <LineId Id="104" Count="8" />
+      <LineId Id="7" Count="2" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="11" Count="4" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="63" Count="1" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_Stop">
+      <LineId Id="7" Count="2" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_StopTrack">
+      <LineId Id="6" Count="0" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="42" Count="4" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.RPC_TrackOffset">
+      <LineId Id="142" Count="8" />
+      <LineId Id="92" Count="10" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="114" Count="1" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="121" Count="3" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.User_ComputeNextPos">
+      <LineId Id="8" Count="5" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="97" Count="1" />
+      <LineId Id="15" Count="3" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="23" Count="6" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="67" Count="1" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="88" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.User_Configure">
+      <LineId Id="15" Count="6" />
+      <LineId Id="28" Count="3" />
+      <LineId Id="34" Count="4" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.User_GetParams">
+      <LineId Id="16" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="18" Count="1" />
+      <LineId Id="17" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MA_DROT.User_SetParams">
+      <LineId Id="23" Count="2" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

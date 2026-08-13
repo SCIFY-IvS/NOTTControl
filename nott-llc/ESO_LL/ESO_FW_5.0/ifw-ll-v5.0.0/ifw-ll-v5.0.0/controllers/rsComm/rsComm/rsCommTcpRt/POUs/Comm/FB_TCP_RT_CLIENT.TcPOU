@@ -1,0 +1,396 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_TCP_RT_CLIENT" Id="{ead07a82-1408-4579-8dce-ebcaeca24a86}" SpecialFunc="None">
+    <Declaration><![CDATA[{attribute 'c++_compatible'}
+FUNCTION_BLOCK FB_TCP_RT_CLIENT IMPLEMENTS ITcIoTcpProtocolRecv
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sDeviceTcpIpAdr:	STRING(16);	// Device IP address, e.g. '192.168.0.80'
+	{attribute 'OPC.UA.DA' := '0'}
+    in_nDeviceTcpPort:  UINT;		// Device Tcp port
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_TCP_RT_CLIENT_CFG;				// Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_TCP_RT_CLIENT_CTRL;				// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_TCP_RT_CLIENT_INFO; 				// Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_TCP_RT_CLIENT_STAT;				// Status parameters - ReadOnly
+
+
+	// The following attribute has to be linked to corresponding Value 
+	// of RT-Ethernet Adapter in Instance/'Symbol Initialization' tab
+	{attribute 'TcInitSymbol'}
+    oid: OTCID;	// Link to Value of RT-Ethernet Adapter in Instance/'Symbol Initialization' tab
+	
+    ipTcp:       ITcIoTcpProtocol;
+	
+	// Local variables
+    ids: 	T_IPv4AddrArr;
+	hrInit:	HRESULT; 
+	
+	// In case of error, try to allocate socket on every 100-th cycle.
+	nSocketCounter:	UINT	:= 0;
+	nSocketCounterLimit:	UINT	:= 100;
+	
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// TODO: Complete configuration
+IF NOT stat.bInitialised THEN
+	// Copy input parameters to config
+	cfg.sTcpServerAdr	:= in_sDeviceTcpIpAdr;
+	cfg.nTcpPort		:= in_nDeviceTcpPort;
+	
+	//generate Server IP adress
+	ids := F_ScanIPv4AddrIds( in_sDeviceTcpIpAdr ); 
+	cfg.tcpServerAdr.ipadr[3] := ids[0]; 
+	cfg.tcpServerAdr.ipadr[2] := ids[1]; 
+	cfg.tcpServerAdr.ipadr[1] := ids[2];
+	cfg.tcpServerAdr.ipadr[0] := ids[3];
+	
+	// Get the version number 
+	stat.sLibVersion	:= Global_Version.stLibVersion_ESO_LDC_Comm_Tcp_RT_Library.sVersion;
+	stat.sRevision		:= MID(stat.sSvnRevision, LEN(stat.sSvnRevision)-2, 2);
+
+	stat.bInitialised	:= TRUE;
+	RETURN;
+END_IF
+
+IF(ipTcp <> 0) THEN 
+	ipTcp.CheckReceived(); 
+	IF (stat.nSocketId = 0) THEN 
+		stat.bConnected	:= FALSE;
+		nSocketCounter	:= nSocketCounter + 1;
+		IF nSocketCounter > nSocketCounterLimit THEN
+			nSocketCounter	:= 0;
+			IF(ipTcp.AllocSocket(THIS^, stat.nSocketId) = 0) THEN //! THIS^ might get invalid due to online change! "Reallocate" by nSocketId <>0
+				stat.nConnections := stat.nConnections+1;
+				IF(ipTcp.Connect(stat.nSocketId, cfg.tcpServerAdr.ipadrInternal, cfg.nTcpPort) <> 0) THEN
+					ipTcp.FreeSocket(stat.nSocketId); 
+					stat.nSocketId := 0; 
+				END_IF
+			END_IF
+		END_IF
+	ELSE
+		IF (ipTcp.IsConnected(stat.nSocketId) = S_OK) THEN 
+			stat.bConnected	:= TRUE;
+			IF ctrl.bExecute THEN
+				ctrl.bExecute := FALSE;
+				stat.hrSend := ipTcp.SendData(stat.nSocketId, INT_TO_UDINT(LEN(ctrl.sCmd)), ADR(ctrl.sCmd), stat.nSentData); 
+			END_IF
+		ELSE
+			IF stat.bConnected THEN
+				// We were connected but not any more.
+				// Free the socket.
+				ipTcp.FreeSocket(stat.nSocketId); 
+				stat.nSocketId := 0; 
+			END_IF
+			stat.bConnected	:= FALSE;
+		END_IF
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="FB_exit" Id="{52d7ab92-29c2-475b-b487-2c215adeb930}">
+      <Declaration><![CDATA[METHOD FB_exit : BOOL
+VAR_INPUT
+	bInCopyCode : BOOL; // if TRUE, the exit method is called for exiting an instance that is copied afterwards (online change).
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInCopyCode THEN // no online change
+	IF ipTcp <> 0 THEN 
+		ipTcp.FreeSocket(stat.nSocketId); // Shutdown
+		FW_SafeRelease(ADR(ipTcp));
+		FB_exit := TRUE; 
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{d1247768-b9a8-4686-b16a-eb59144647c7}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains: 	BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode: 	BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+VAR
+	ipSrv:	ITComObjectServer;
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInCopyCode THEN // no online change
+	IF ipTcp = 0 THEN
+		hrInit := FW_ObjMgr_GetObjectInstance(	oid:=oid, 
+												iid:=TC_GLOBAL_IID_LIST.IID_ITcIoTcpProtocol, 
+												pipUnk:=ADR(ipTcp) );
+		IF SUCCEEDED(hrInit) THEN
+			FB_init := TRUE;
+		ELSE 
+			FW_SafeRelease(ADR(ipTcp));
+		END_IF 
+	END_IF
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_reinit" Id="{fa074e28-226e-44c7-8e5a-23ce418fdf3d}">
+      <Declaration><![CDATA[METHOD FB_reinit : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (ipTcp <> 0 AND stat.nSocketId <> 0) THEN //reregister THIS^ for online changes  
+	ipTcp.AllocSocket(THIS^, stat.nSocketId);
+	FB_reinit := TRUE; 
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReceiveData" Id="{79c6df4e-7dd8-4d84-b99e-e084aba0e636}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'ReceiveData'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'checksuperglobal'}
+METHOD ReceiveData : HRESULT
+VAR_INPUT
+	socketId	: UDINT;
+	nData	: UDINT;
+	pData	: PVOID;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nReceivedPakets	:= stat.nReceivedPakets+1;
+stat.nReplyLength 		:= nData; //nonstripped
+
+MEMCPY( ADR(stat.sReply), pData, MIN(nData, SIZEOF(stat.sReply)-1) );	//stripped to max length of string
+memset(ADR(stat.sReply)+MIN(nData, SIZEOF(stat.sReply)-1)+1, 0, 1);		//add a 00 Byte at end of message]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReceiveEvent" Id="{ae32a160-53cd-472f-8c99-0e7be360beee}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'ReceiveEvent'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'checksuperglobal'}
+METHOD ReceiveEvent : HRESULT
+VAR_INPUT
+	socketId	: UDINT;
+	tcpEvent	: TCPIP_EVENT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.lastTcpEvent := tcpEvent;
+
+CASE tcpEvent OF
+	TCPIP_EVENT.TCPIP_EVENT_ERROR:
+		stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.ERROR;
+		stat.sStatus	:= 'ERROR';
+		ipTcp.FreeSocket(socketId);
+		stat.nSocketId := 0; 
+	TCPIP_EVENT.TCPIP_EVENT_RESET:
+		stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.BUSY;
+		ipTcp.FreeSocket(socketId);
+		stat.nSocketId := 0; 
+	TCPIP_EVENT.TCPIP_EVENT_TIMEOUT:
+		stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.ERROR;
+		stat.sStatus	:= 'TIMEOUT';
+		ipTcp.FreeSocket(socketId);
+		stat.nSocketId := 0; 
+	TCPIP_EVENT.TCPIP_EVENT_CONN_CLOSED:
+		ipTcp.FreeSocket(socketId);
+		stat.nSocketId := 0; 
+	TCPIP_EVENT.TCPIP_EVENT_CONN_INCOMING:
+		stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.BUSY;
+	TCPIP_EVENT.TCPIP_EVENT_KEEP_ALIVE:
+		stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.BUSY;
+	TCPIP_EVENT.TCPIP_EVENT_CONN_IDLE:
+(*
+		// Recovery
+		IF ctrl.bExecute THEN
+			ctrl.bExecute	:= FALSE;
+			THIS^.ReceiveEvent(socketId,TCPIP_EVENT.TCPIP_EVENT_RESET);
+		ELSE
+			stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.IDLE;
+		END_IF
+*)
+	TCPIP_EVENT.TCPIP_EVENT_DATA_SENT:
+		stat.sStatus	:= CONCAT(ctrl.sCmd, ' Sent');
+	TCPIP_EVENT.TCPIP_EVENT_DATA_RECEIVED:
+		stat.nStatus	:= E_TCP_RT_CLIENT_STATUS.IDLE;
+		stat.sStatus	:= 'Data Received';
+	(*
+		IF nCmd = 1 THEN
+			ctrl.sMessage	:= 'PID? 1$N';
+			nCmd	:= 2;
+		ELSIF nCmd = 2 THEN
+			ctrl.sMessage	:= 'PID? 2$N';
+			nCmd	:= 1;
+		END_IF
+		ctrl.bSend	:= TRUE;
+		*)
+//		THIS^.ReceiveEvent(socketId,TCPIP_EVENT.TCPIP_EVENT_CONN_IDLE);
+	TCPIP_EVENT.TCPIP_EVENT_LINKCONNECT:
+	// WARNING: Nothing to do?
+	TCPIP_EVENT.TCPIP_EVENT_LINKDISCONNECT:
+		ipTcp.FreeSocket(socketId);
+		stat.nSocketId := 0; 
+END_CASE; 
+ReceiveEvent := S_OK;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcAddRef" Id="{452bc4ac-0ef7-4a6a-8ac7-28f34cd343dc}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'TcAddRef'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'checksuperglobal'}
+METHOD TcAddRef : UDINT
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcQueryInterface" Id="{89407302-c3d6-4e71-b9aa-e45290551086}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'TcQueryInterface'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'checksuperglobal'}
+METHOD TcQueryInterface : HRESULT
+VAR_INPUT
+	iid	: REFERENCE TO IID;
+	pipItf	: POINTER TO PVOID;
+END_VAR
+VAR
+	ipTcpRecv : ITcIoTcpProtocolRecv;
+	ipUnknown : ITcUnknown;	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF GuidsEqual(ADR(iid), ADR(TC_GLOBAL_IID_LIST.IID_ITcIoTcpProtocolRecv)) THEN
+	ipTcpRecv := THIS^; // cast to interface pointer
+	pipItf^ := ITCUNKNOWN_TO_PVOID(ipTcpRecv);
+	TcAddRef();
+	TcQueryInterface := S_OK;
+ELSIF GuidsEqual(ADR(iid), ADR(TC_GLOBAL_IID_LIST.IID_ITcUnknown)) THEN
+	ipUnknown := THIS^; // cast to interface pointer
+	pipItf^ := ITCUNKNOWN_TO_PVOID(ipUnknown);
+	TcAddRef();
+	TcQueryInterface := S_OK;
+ELSE
+	TcQueryInterface := E_HRESULTAdsErr.NOINTERFACE ; //Call super if this fb extends some other
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcRelease" Id="{7a53cf2b-e36a-483f-aebf-0d2854da64b5}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'TcRelease'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'checksuperglobal'}
+METHOD TcRelease : UDINT
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TCP_RT_CLIENT">
+      <LineId Id="544" Count="52" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.FB_exit">
+      <LineId Id="17" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.FB_init">
+      <LineId Id="32" Count="4" />
+      <LineId Id="55" Count="3" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.FB_reinit">
+      <LineId Id="3" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.ReceiveData">
+      <LineId Id="3" Count="1" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.ReceiveEvent">
+      <LineId Id="3" Count="3" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="12" Count="5" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="2" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="23" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.TcAddRef">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.TcQueryInterface">
+      <LineId Id="15" Count="3" />
+      <LineId Id="37" Count="4" />
+      <LineId Id="19" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_RT_CLIENT.TcRelease">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_ACTUATOR_CMD" Id="{326a0bf9-cbff-40dd-9606-00319021d008}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_ACTUATOR_CMD
+VAR_INPUT
+	in_bEnable:		BOOL;			// External ON/OFF command
+	in_bInterlock:	BOOL := FALSE;	// External Interlock
+END_VAR
+VAR_OUTPUT
+	out_bEnable:	BOOL := FALSE;	// Resulting command
+END_VAR
+VAR
+	bAutoMode:		BOOL := TRUE;	// AUTO=true, MANUAL=false
+	bEngMode:		BOOL := FALSE;	// Commissioning/Engineering mode. Ignores interlocks
+	
+	// Disable/enable manual control buttons
+	bDisableBtnOn:	BOOL := FALSE;
+	bDisableBtnOff:	BOOL := FALSE;
+
+	// ON/OFF command permissions
+	bPermitOn:		BOOL := TRUE;
+	bPermitOff:		BOOL := TRUE;
+	
+	// Handling of Manual commands
+	bManualCmd:		BOOL := FALSE;
+	bManualExecute:	BOOL := FALSE;
+	
+	// Reset interlocks (if possible)
+	bReset:			BOOL := FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bAutoMode THEN
+	// Simplest case, no restrictions.
+	out_bEnable	:= in_bEnable;
+	// Disable Manual control buttons
+	bDisableBtnOn	:= TRUE;
+	bDisableBtnOff	:= TRUE;
+ELSIF bEngMode	THEN
+	// No restrictions, no safety !!!
+	// User responsible for damage caused by wrong/dangerous commands.
+	IF bManualExecute THEN
+		// Assign user command to the output without any checks !!!
+		out_bEnable		:= bManualCmd;
+		// Clear command trigger
+		bManualExecute	:= FALSE;
+	END_IF
+	// Enable Manual control buttons
+	bDisableBtnOn	:= FALSE;
+	bDisableBtnOff	:= FALSE;
+ELSIF NOT bAutoMode	THEN
+	//
+	// Manual mode.
+	//
+	// Only permitted commands can be executed.
+	IF bManualExecute THEN
+		// Execute only permitted commands.
+		IF	(bManualCmd = TRUE   AND  bPermitOn)  OR
+			(bManualCmd = FALSE  AND  bPermitOff) 	THEN
+			// Assign user command to the output.
+			out_bEnable		:= bManualCmd;
+		END_IF
+		// Clear command trigger
+		bManualExecute	:= FALSE;
+	ELSIF in_bInterlock THEN 
+		// Interlock active
+		IF bPermitOn AND bPermitOff THEN
+			// Enable Manual control of both ON&OFF buttons
+			bDisableBtnOn	:= FALSE;
+			bDisableBtnOff	:= FALSE;
+		ELSIF bPermitOn THEN
+			// Manual Mode and only ON is permitted.
+			out_bEnable		:= TRUE;
+			// Enable Manual control ON button
+			bDisableBtnOn	:= FALSE;
+			bDisableBtnOff	:= TRUE;
+		ELSIF bPermitOff THEN
+			// Manual Mode and only OFF is permitted.
+			out_bEnable		:= FALSE;
+			// Enable Manual control OFF button
+			bDisableBtnOn	:= TRUE;
+			bDisableBtnOff	:= FALSE;
+		END_IF
+	ELSIF NOT in_bInterlock THEN
+		// Enable/Disable Manual control buttons
+		bDisableBtnOn	:= NOT bPermitOn;
+		bDisableBtnOff	:= NOT bPermitOFF;
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="M_SetPermissionOff" Id="{95cb9d01-90bc-49f6-97bd-81efed74c5db}">
+      <Declaration><![CDATA[METHOD M_SetPermissionOff
+VAR_INPUT
+	in_bPermit:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOff	:= in_bPermit;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetPermissionOn" Id="{4f1cfac0-cfd1-4004-afff-afd68490620e}">
+      <Declaration><![CDATA[METHOD M_SetPermissionOn
+VAR_INPUT
+	in_bPermit:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOn	:= in_bPermit;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetPermissions" Id="{e10b7116-f914-4e6e-8fa0-4d4de5d1903f}">
+      <Declaration><![CDATA[METHOD M_SetPermissions
+VAR_INPUT
+	in_bPermitOn:	BOOL;
+	in_bPermitOff:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOn	:= in_bPermitOn;
+bPermitOff	:= in_bPermitOff;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_ACTUATOR_CMD">
+      <LineId Id="290" Count="55" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_ACTUATOR_CMD.M_SetPermissionOff">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_ACTUATOR_CMD.M_SetPermissionOn">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_ACTUATOR_CMD.M_SetPermissions">
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,350 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_PUMP_ECODRY" Id="{0115e2c0-2da7-4d81-bba2-c6a70950e014}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_PUMP_ECODRY EXTENDS FB_CRYO_PUMP_MODBUS
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_CRYO_PUMP_MODBUS_CFG;		//  Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_CRYO_PUMP_MODBUS_CTRL;	//  Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_CRYO_PUMP_MODBUS_STAT;	//  Status parameters - ReadOnly
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{aeab42c9-8673-4da4-8a3b-fdf4891d7fa2}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bStarted	THEN
+	//
+	// START: Mandatory for ALL pumps !!!
+	//
+	// Set references from FB_RS_BASE
+	cfgRef	REF=cfg;
+	ctrlRef	REF=ctrl;
+	statRef	REF=stat;
+
+	// Set references from FB_CRYO_PUMP_BASE
+	cfgBaseRef	REF=cfg;
+	ctrlBaseRef	REF=ctrl;
+	statBaseRef	REF=stat;
+
+	// Set references from FB_CRYO_PUMP_MODBUS
+	cfgModbusRef	REF=cfg;
+	ctrlModbusRef	REF=ctrl;
+	statModbusRef	REF=stat;
+
+	// Copy input parameters to configuration
+	cfg.nModel			:= in_nModel;
+	cfg.bAutoMonitor	:= in_bAutoMonitor;
+	cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+	
+	
+	// Set pointers to arrays of commands
+//	ptrInitCmds	:= ADR(cfg.cmdList_Init);(* Pointer to INIT commands *)
+//	ptrReadCmds	:= ADR(cfg.cmdList_Read);(* Pointer to READ commands *)
+	
+	// TODO in FB that extends the functionality
+	// Set pointers to comm, i.e.
+	ptrCommCfg	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	ptrCommCtrl	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	ptrCommStat	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+	
+	// Set comm suffixes for commands and replies
+//	ptrCommCfg^.sCmdSuffix		:= '';
+//	ptrCommCfg^.sReplySuffix	:= '';
+
+	statRef.bConfigured	:= TRUE;
+	bStarted			:= TRUE;
+	//
+	// END: Mandatory for ALL pumps !!!
+	//
+
+
+	// TODO USER
+	// Add here real configuration
+	IF in_sVersion = 'V01'	THEN
+		cfg.nVersion	:= E_ECODRY_VERSION.V01;
+	ELSIF in_sVersion = 'V21'  OR  in_sVersion = 'V22'	THEN
+		cfg.nVersion	:= E_ECODRY_VERSION.V21_22;
+	END_IF
+	
+	// Adjust addresses and number of words
+	CASE cfg.nVersion	OF
+		E_ECODRY_VERSION.V01:
+			// Set register addresses
+			cfg.aAddr [1]	:= 16#0040;
+			cfg.aAddr [2]	:= 16#0067;
+			cfg.aAddr [3]	:= 16#0667;
+			cfg.aAddr [4]	:= 0;	// Unused address must be zero
+			
+			// Set number of words to read
+			cfg.aWords [1]	:= 16;
+			cfg.aWords [2]	:= 2;
+			cfg.aWords [3]	:= 6;
+			cfg.aWords [4]	:= 0;	// Number of words for unused address must be zero
+	END_CASE
+	
+	cfg.nSlaveID	:= in_nSlaveID;
+
+	
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExtractReadings_V01" Id="{14c1bce2-4514-4c1a-a2a4-833eb240c3e6}">
+      <Declaration><![CDATA[METHOD M_ExtractReadings_V01 : BOOL
+VAR_INPUT
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+VAR
+	pBuf:	POINTER TO BYTE	:= ADR(stat.nInputBuffer);
+	loop:	INT;
+	par:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// There are 3 bytes before data starts !!!
+IF nAddressIndex = 1 THEN
+	////////////////////////////
+	// Extract Common Parameters
+	////////////////////////////
+
+	// Reference Frequency 0x40H
+	// Offset 3 + 0 = 3
+	stat.lrFreqRef		:= UINT_TO_LREAL(M_ByteSwapUINT(ADR(pBuf[3]))) / 100.0;
+	stat.lrOutFreq		:= INT_TO_LREAL(M_ByteSwapINT(ADR(pBuf[5]))) / 100.0;
+	stat.nPumpSpeed		:= LREAL_TO_DINT(stat.lrOutFreq * 60.0);	// [Hz] -> [rpm]
+	stat.nMotorCurr		:= UINT_TO_DINT(M_ByteSwapUINT(ADR(pBuf[7]))) * 10;
+	stat.lrOutVoltRef	:= UINT_TO_LREAL(M_ByteSwapUINT(ADR(pBuf[13]))) / 10.0;
+	stat.nMotorVolt		:= UINT_TO_DINT(M_ByteSwapUINT(ADR(pBuf[15])));
+	stat.lrOutPower		:= INT_TO_LREAL(M_ByteSwapINT(ADR(pBuf[17]))) / 10.0;
+	
+	stat.nOpTime	:= M_ByteSwapUINT(ADR(pBuf[27]));
+	stat.nSwFlash	:= M_ByteSwapUINT(ADR(pBuf[29]));
+
+	(*
+	stat.lrTemperature	:= UINT_TO_LREAL(M_ByteSwapUINT(ADR(pBuf[83])));
+
+	stat.nSwRom		:= M_ByteSwapUINT(ADR(pBuf[57]));
+	stat.nNumRunCmd	:= M_ByteSwapUINT(ADR(pBuf[109]));
+	stat.nFanOpTime	:= M_ByteSwapUINT(ADR(pBuf[81]));
+	*)
+
+ELSIF nAddressIndex = 2 THEN
+	stat.nFanOpTime			:= M_ByteSwapUINT(ADR(pBuf[3]));
+	stat.nElecTemp			:= UINT_TO_DINT(M_ByteSwapUINT(ADR(pBuf[5])));
+ELSIF nAddressIndex = 3 THEN
+	stat.nServiceHours		:= M_ByteSwapUINT(ADR(pBuf[3]));
+	stat.nNumPumpDowns		:= M_ByteSwapUINT(ADR(pBuf[7]));
+	stat.nDaysUntilService	:= M_ByteSwapUINT(ADR(pBuf[13]));
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExtractReadings_V21_22" Id="{99aa640b-54f6-46bd-9e02-e1effac7e819}">
+      <Declaration><![CDATA[METHOD M_ExtractReadings_V21_22 : BOOL
+VAR_INPUT
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+VAR
+	pBuf:	POINTER TO BYTE	:= ADR(stat.nInputBuffer);
+	loop:	INT;
+	par:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// There are 3 bytes before data starts !!!
+IF nAddressIndex = 1 THEN
+	////////////////////////////
+	// Extract Common Parameters
+	////////////////////////////
+
+	// Reference Frequency 0x40H
+	// Offset 3 + 0 = 3
+	stat.lrFreqRef		:= UINT_TO_LREAL(M_ByteSwapUINT(ADR(pBuf[3]))) / 100.0;
+	stat.lrOutFreq		:= INT_TO_LREAL(M_ByteSwapINT(ADR(pBuf[5]))) / 100.0;
+	stat.nMotorCurr		:= UINT_TO_DINT(M_ByteSwapUINT(ADR(pBuf[7]))) * 10;
+	stat.lrOutVoltRef	:= UINT_TO_LREAL(M_ByteSwapUINT(ADR(pBuf[13]))) / 10.0;
+	stat.nMotorVolt		:= UINT_TO_DINT(M_ByteSwapUINT(ADR(pBuf[15])));
+	stat.lrOutPower		:= INT_TO_LREAL(M_ByteSwapINT(ADR(pBuf[17]))) / 10.0;
+	
+	stat.nOpTime	:= M_ByteSwapUINT(ADR(pBuf[27]));
+	stat.nSwFlash	:= M_ByteSwapUINT(ADR(pBuf[29]));
+
+	(*
+	stat.lrTemperature	:= UINT_TO_LREAL(M_ByteSwapUINT(ADR(pBuf[83])));
+
+	stat.nSwRom		:= M_ByteSwapUINT(ADR(pBuf[57]));
+	stat.nNumRunCmd	:= M_ByteSwapUINT(ADR(pBuf[109]));
+	stat.nFanOpTime	:= M_ByteSwapUINT(ADR(pBuf[81]));
+	*)
+
+ELSIF nAddressIndex = 2 THEN
+	stat.nFanOpTime			:= M_ByteSwapUINT(ADR(pBuf[3]));
+	stat.nElecTemp			:= UINT_TO_DINT(M_ByteSwapUINT(ADR(pBuf[5])));
+ELSIF nAddressIndex = 3 THEN
+	stat.nServiceHours		:= M_ByteSwapUINT(ADR(pBuf[3]));
+	stat.nNumPumpDowns		:= M_ByteSwapUINT(ADR(pBuf[7]));
+	stat.nDaysUntilService	:= M_ByteSwapUINT(ADR(pBuf[13]));
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsReady" Id="{aead2163-e248-4f3b-9315-0c19fbfe9472}">
+      <Declaration><![CDATA[METHOD M_IsReady : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//	M_UpdateStatus() sets the stat.bReady flag.
+M_IsReady	:= stat.bReady;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsRunning" Id="{99c68669-3350-41f5-b144-f23d9427a726}">
+      <Declaration><![CDATA[METHOD M_IsRunning : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_IsRunning	:= stat.bReady OR stat.nPumpSpeed > 0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{59e10e37-e8b9-4a09-a551-61c44a22669b}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+VAR_INPUT
+	nAddressIndex:	INT;	// Which address space to read
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cfg.nVersion	= E_ECODRY_VERSION.V01	THEN
+	M_ExtractReadings_V01    (nAddressIndex);
+ELSIF cfg.nVersion	= E_ECODRY_VERSION.V21_22	THEN
+	M_ExtractReadings_V21_22 (nAddressIndex);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{f3eb830f-441a-438b-a7e8-95d982d38eba}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update inputs
+stat.bReady		:= NOT i_bRunning;	// Active low
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY">
+      <LineId Id="401" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_Configure">
+      <LineId Id="54" Count="13" />
+      <LineId Id="133" Count="4" />
+      <LineId Id="68" Count="15" />
+      <LineId Id="130" Count="2" />
+      <LineId Id="87" Count="7" />
+      <LineId Id="104" Count="25" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_ExtractReadings_V01">
+      <LineId Id="8" Count="1" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="119" Count="3" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="126" Count="1" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="145" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_ExtractReadings_V21_22">
+      <LineId Id="8" Count="1" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="118" Count="4" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="126" Count="1" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="145" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_IsReady">
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_IsRunning">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_ReadFromReply">
+      <LineId Id="160" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="164" Count="1" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_ECODRY.M_UpdateStatus">
+      <LineId Id="105" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="108" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

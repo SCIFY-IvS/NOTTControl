@@ -1,0 +1,372 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_MUDPI_SENDER" Id="{d4fa8378-d747-4dce-8a97-8096c69a61b2}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+    This function blocks aims to pack the EL6688 diagnostic data in MUDPI frames
+    and transmit them to Time System using Beckhoffs realtime UDP driver (TF6311). 
+    The user of this function blocks needs to do the following in order for the library to work correctly:
+    - Initialize the library with configuration parameters
+        - Destination IP-address (a multicast address)
+        - Destination port
+        - Source port
+*)
+
+{attribute 'c++_compatible'}
+FUNCTION_BLOCK FB_MUDPI_SENDER IMPLEMENTS ITcIoUdpProtocolRecv
+VAR_INPUT
+		ipAddress : Tc2_System.T_IPv4Addr := '0.0.0.0';
+		dest_port : UINT := 10000;
+		local_port : UINT := 20000;
+		instance_name: STRING := 'undefined';
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	(* TF6311 realtime driver parameters *)
+    {attribute 'TcInitSymbol'}
+    oid : OTCID;
+    ipUdp : ITcIoUdpProtocol;
+    nReceivedPackets : UINT;
+    uLastReceivedIP : T_IP_ADDRESS;
+    hrInit : HRESULT;
+    hrSend : HRESULT; 
+    bSuccessfulInitializationOfRealtimeDriver : BOOL := FALSE; // Indication of whether the realtime driver is properly initialized.
+	bEnableSending : BOOL := FALSE; // Indication of whether the sender is active or not.
+	
+	mudpiPacket : ESO_MUDPI.FB_MudpiPacket(topicId := 300, componentId := 5);
+	packet_info : T_PACKET_INFO;
+	
+	  (* Transmission/communication parameters *)
+	_destinationIpAddressString : Tc2_System.T_IPv4Addr;
+    _destinationIpAddress : UDINT; // Destination address for the data
+    _destinationPort : UINT; // Destination port for the data
+    _sourcePort : UINT; // Source port of the data
+	
+	sLibVersion:	   STRING	:= 'UNKNOWN'; // Library version
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+_destinationIpAddressString := ipAddress;
+_destinationPort := dest_port;
+_sourcePort := local_port;
+*)
+
+IF ipUdp <> 0 THEN
+	ipUdp.CheckReceived();
+END_IF
+
+UpdateMudpiPacket();]]></ST>
+    </Implementation>
+    <Method Name="FB_exit" Id="{256139af-eb6a-40e2-add1-4d29b25826b9}">
+      <Declaration><![CDATA[METHOD FB_exit : BOOL
+VAR_INPUT
+    bInCopyCode : BOOL; // if TRUE, the exit method is called for exiting an instance that is copied afterwards (online change).
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInCopyCode THEN // no online change
+    IF ipUdp <> 0 THEN
+        //ipUdp.UnregisterReceiver(nUdpPort); // Shutdown
+        //ipUdp.UnregisterReceiver(nUdpPort); // Shutdown
+        FW_SafeRelease(ADR(ipUdp));
+        FB_exit := TRUE;
+    END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{83d25a01-0129-4bef-97b5-4a44ae0095eb}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+    bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+    bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+sLibVersion := stLibVersion_ESO_ELT_Utility_Library.sVersion;
+_destinationIpAddressString := ipAddress;
+_destinationPort := dest_port;
+_sourcePort := local_port;
+
+IF NOT bInCopyCode THEN // no online change
+	IF ipUdp = 0 AND oid <> 0 THEN
+	    hrInit := FW_ObjMgr_GetObjectInstance(	oid:=oid, 
+											iid:=TC_GLOBAL_IID_LIST.IID_ITcIoUdpProtocol, 
+											pipUnk:=ADR(ipUdp) );
+		
+		IF SUCCEEDED(hrInit) THEN 
+			bSuccessfulInitializationOfRealtimeDriver := TRUE;
+		(*
+			IF  SUCCEEDED(ipUdp.RegisterReceiver(nUdpPort, THIS^)) THEN //open port
+				FB_init := TRUE;
+			ELSE 
+				FB_init := FALSE; 
+				FW_SafeRelease(ADR(ipUdp));
+			END_IF
+			*)
+		END_IF
+		
+	ELSIF oid = 0 THEN 
+		FB_init := FALSE; 
+		hrInit := ERR_INVALID_PARAM; 				
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_reinit" Id="{1fa3c536-8edb-475b-934d-6290c5c77fc1}">
+      <Declaration><![CDATA[METHOD FB_reinit : BOOL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (ipUdp <> 0) THEN
+    //ipUdp.RegisterReceiver(nUdpPort, THIS^);
+    //ipUdp.RegisterReceiver(nUdpPort, THIS^);
+    FB_reinit := TRUE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReceiveData" Id="{39a59a53-7085-4ff7-995a-4940f9c5a1ee}">
+      <Declaration><![CDATA[{attribute 'c++_compatible'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'pack_mode' := '4'}
+METHOD ReceiveData : HRESULT
+VAR_INPUT
+	ipAddr	: UDINT;
+	udpDestPort	: UINT;
+	udpSrcPort	: UINT;
+	nData	: UDINT;
+	pData	: PVOID;
+	pVlan	: POINTER TO ETYPE_VLAN_HEADER := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nReceivedPackets := nReceivedPackets + 1;
+uLastReceivedIP.ipAdrInternal := ipAddr;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SendData" Id="{89a28aaf-565a-42ad-8c47-623bd869c230}">
+      <Declaration><![CDATA[(*
+    This method carry out the sending of the diagnostic data using the Ethernet network driver.
+    The parameters are the array of data to be sent and the timestamp that is required by
+	the MUDPI protocol.
+*)
+
+METHOD SendData : HRESULT
+VAR_INPUT
+END_VAR
+	 
+VAR
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+_DestinationIpAddress := F_IpAddress2Integer(_destinationIpAddressString);
+IF ipUdp <> 0 AND bSuccessfulInitializationOfRealtimeDriver = TRUE AND bEnableSending THEN
+						   
+		// Send Data via UDP
+    hrSend := ipUdp.SendData(ipDestAddr := _DestinationIpAddress,
+                             udpDestPort := _DestinationPort,
+                             udpSrcPort := _SourcePort,
+                             nData := mudpiPacket.Size(),
+                             pData := mudpiPacket.Data(),
+                             bCalcUdpCheckSum := FALSE,
+                             pVlan := 0);
+    IF SUCCEEDED(hrSend) THEN
+        mudpiPacket.IncreaseSampleId();
+	END_IF
+END_IF
+
+
+SendData:= hrSend;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetMudpiPayload" Id="{c7026545-2fea-43a9-9045-5dd6cdcb2d7d}">
+      <Declaration><![CDATA[METHOD PUBLIC SetMudpiPayload : BOOL
+VAR_INPUT
+    payload : POINTER TO BYTE;
+    payloadSize : UINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetMudpiPayload := mudpiPacket.SetPayload(payload, payloadSize);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetPacketInfo" Id="{504b9c4d-df6f-4fef-a0f5-d3628ea4ebed}">
+      <Declaration><![CDATA[METHOD PUBLIC SetPacketInfo
+VAR_INPUT
+    TopicId : UDINT; // MUDPI Topic identity
+    ComponentId : UINT; // MUDPI component identity
+	Timestamp: LREAL := 0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[packet_info.topicId := TopicId;
+packet_info.componentId := ComponentId;
+packet_info.timestamp := Timestamp;
+UpdateMudpiPacket();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetTimestamp" Id="{b7a04a9f-77eb-44e5-947d-afa2e0f3d240}">
+      <Declaration><![CDATA[METHOD PUBLIC SetTimestamp
+VAR_INPUT
+	Timestamp: LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[packet_info.timestamp := Timestamp;
+mudpiPacket.SetTimestamp(packet_info.timestamp);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcAddRef" Id="{35bb0499-a901-46cb-90b9-ee80c5d58f66}">
+      <Declaration><![CDATA[{attribute 'c++_compatible'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'pack_mode' := '4'}
+METHOD TcAddRef : UDINT
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcQueryInterface" Id="{d36fcb78-2ab1-4f3b-8d9e-7deecb5c9b12}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'TcQueryInterface'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+METHOD TcQueryInterface : HRESULT
+VAR_INPUT
+	iid	: REFERENCE TO IID;
+	pipItf	: POINTER TO PVOID;
+END_VAR
+VAR
+	ipUdpRecv : ITcIoUdpProtocolRecv;
+	ipUnknown : ITcUnknown;	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF GuidsEqual(ADR(iid), ADR(TC_GLOBAL_IID_LIST.IID_ITcIoUdpProtocolRecv)) THEN
+	ipUdpRecv := THIS^; // cast to interface pointer
+	pipItf^ := ITCUNKNOWN_TO_PVOID(ipUdpRecv);
+	TcAddRef();
+	TcQueryInterface := S_OK;
+ELSIF GuidsEqual(ADR(iid), ADR(TC_GLOBAL_IID_LIST.IID_ITcUnknown)) THEN
+	ipUnknown := THIS^; // cast to interface pointer
+	pipItf^ := ITCUNKNOWN_TO_PVOID(ipUnknown);
+	TcAddRef();
+	TcQueryInterface := S_OK;
+ELSE
+	TcQueryInterface := E_HRESULTAdsErr.NOINTERFACE ; //Call super if this fb extends some other
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcRelease" Id="{95205f5b-edc6-47e0-aef1-36b47f2eeb1f}">
+      <Declaration><![CDATA[{attribute 'c++_compatible'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'pack_mode' := '4'}
+METHOD TcRelease : UDINT
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateMudpiPacket" Id="{ab579cd6-17d6-48b2-b2c6-bce09a799437}">
+      <Declaration><![CDATA[METHOD PUBLIC UpdateMudpiPacket
+VAR_INPUT
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+mudpiPacket.SetTopicId(packet_info.topicId);
+mudpiPacket.SetComponentId(packet_info.componentId);
+mudpiPacket.SetTimestamp(packet_info.timestamp);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MUDPI_SENDER">
+      <LineId Id="144" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="140" Count="1" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="142" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.FB_exit">
+      <LineId Id="20" Count="2" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.FB_init">
+      <LineId Id="54" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="61" Count="6" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="68" Count="5" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="75" Count="4" />
+      <LineId Id="60" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.FB_reinit">
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.ReceiveData">
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.SendData">
+      <LineId Id="6" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="16" Count="9" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="103" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.SetMudpiPayload">
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.SetPacketInfo">
+      <LineId Id="16" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="33" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.SetTimestamp">
+      <LineId Id="56" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="33" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.TcAddRef">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.TcQueryInterface">
+      <LineId Id="49" Count="11" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.TcRelease">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MUDPI_SENDER.UpdateMudpiPacket">
+      <LineId Id="49" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="33" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_MOTOR_ERROR" Id="{4921bf0b-46a2-4adb-9997-96612de65a31}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+// 'strict' cannot be used since we mix our own codes with TC codes
+//{attribute 'strict'}
+TYPE E_MOTOR_ERROR :
+(
+	OK					:= 0,
+	HW_NOT_OP,			
+	LOCAL,			
+	INIT_ABORTED,		
+	TIMEOUT_INIT,
+	TIMEOUT_MOVE,
+	TIMEOUT_RESET,
+	TIMEOUT_SETPOS,
+	TIMEOUT_USER_PREINIT,
+	TIMEOUT_USER_POSTINIT,
+	TIMEOUT_USER_PREMOVE,
+	TIMEOUT_USER_POSTMOVE,
+	SETPOS,
+	STOP,
+	
+	ABORT,
+	SW_LIMIT_LOWER,
+	SW_LIMIT_UPPER,
+	BRAKE_ACTIVE,
+	BRAKE_ENGAGE,
+	BRAKE_DISENGAGE,
+	SWITCH_NOT_USED,
+	ENABLE,
+	NOVRAM_READ,
+	NOVRAM_WRITE,
+	SWITCH_EXIT,
+	STOP_LIMITS_BOTH,
+	HW_LIMITS_BOTH,
+	IN_POS,
+	LOCKED,
+	SoE_ADS_ERROR,
+	SoE_SERCOS_ERROR,
+	
+	UNSAFE,		// EICSSW-1923
+
+	// Simulator errors
+	SIM_NOT_INITIALISED			:= 90,
+	SIM_NULL_POINTER			:= 100,	
+
+	// TwinCAT errors
+	TC_VEL						:= 16929,	
+	TC_NOT_READY_FOR_START		:= 16933,	
+	TC_DISABLED_MOVE			:= 16992,	
+	TC_BISECTION				:= 17022,	
+	TC_MODULO_POS				:= 17026,	
+	TC_STOP_ACTIVE				:= 17135,	
+	TC_VEL_NEG					:= 17241,	
+	TC_TARGET_LSW				:= 17504,	
+	TC_TARGET_USW				:= 17505,	
+	TC_FOLLOWING_ERROR			:= 17744,	
+	TC_NOT_READY				:= 18000,	
+	TC_IN_POS_6_SEC				:= 19207	
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

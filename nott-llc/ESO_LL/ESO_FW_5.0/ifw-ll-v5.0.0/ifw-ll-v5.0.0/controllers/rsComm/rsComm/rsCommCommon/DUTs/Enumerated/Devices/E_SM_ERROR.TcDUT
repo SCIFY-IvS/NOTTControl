@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_SM_ERROR" Id="{6375cba0-0d70-41e3-b006-e02157de4634}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{attribute 'strict'}
+TYPE E_SM_ERROR :
+(
+	OK					:= 0,
+	HW_NOT_OP,			
+	WRONG_CMD,			
+	INIT_FAILURE,		
+
+	NOT_INITIALISED		:= 90,
+	ZERO_POINTER		:= 100	// Simulator error
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

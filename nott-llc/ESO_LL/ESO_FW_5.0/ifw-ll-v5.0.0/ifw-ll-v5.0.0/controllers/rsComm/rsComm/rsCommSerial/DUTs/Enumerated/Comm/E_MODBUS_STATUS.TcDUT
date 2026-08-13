@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MODBUS_STATUS" Id="{ff784f02-2456-4fc1-b469-42fd3343761c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+////{xxxattribute 'strict'}
+TYPE E_MODBUS_STATUS :
+(
+	NOT_INIT	:= -1,
+	IDLE		:= 0,
+	BUSY		:= 1,
+	ERROR		:= 2
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

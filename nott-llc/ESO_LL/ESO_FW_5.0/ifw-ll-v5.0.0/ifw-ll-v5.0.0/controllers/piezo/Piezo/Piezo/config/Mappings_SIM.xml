@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^Piezo^Piezo Instance">
+		<OwnerB Name="TIPC^Piezo^Piezo Instance">
+			<Link VarA="PlcTask Inputs^MAIN.Piezo001.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Piezo001.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.Piezo002.i_nActVal_Int16" VarB="PlcTask Outputs^MAIN.SIM_Piezo002.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.Piezo002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Piezo002.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Piezo001.i_nSignal" VarB="PlcTask Outputs^MAIN.Piezo001.q_nCtrl"/>
+			<Link VarA="PlcTask Outputs^MAIN.Piezo002.q_nCtrl" VarB="PlcTask Inputs^MAIN.SIM_Piezo002.i_nSignal"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Piezo001.q_nSignal" VarB="PlcTask Inputs^MAIN.Piezo001.i_nActVal_Int16"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>
