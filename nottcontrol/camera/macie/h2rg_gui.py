@@ -306,6 +306,8 @@ def _build_window_modes(array_size: int = H2RG_ARRAY_SIZE) -> tuple[WindowMode, 
         WindowMode("UR 1024x1024", True, True, *_window_region(half, half, 1024)),
         WindowMode("Center 1024x1024", True, True, *_centered_window(1024, array_size)),
         WindowMode("Center 512x512", True, True, *_centered_window(512, array_size)),
+        WindowMode("Center 256x256", True, True, *_centered_window(256, array_size)),
+        WindowMode("Center 128x128", True, True, *_centered_window(128, array_size)),
     )
 
 

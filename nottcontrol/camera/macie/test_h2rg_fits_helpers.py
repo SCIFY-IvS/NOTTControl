@@ -14,6 +14,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     WINDOW_MODES,
     _bottom_vertical_stripe,
     _centered_vertical_stripe,
+    _centered_window,
     _channel_window,
     central_value_median,
     fits_basename,
@@ -72,6 +73,22 @@ class StripeWindowTests(unittest.TestCase):
             self.assertEqual(
                 (mode.x1, mode.x2, mode.y1, mode.y2),
                 _centered_vertical_stripe(height),
+            )
+
+    def test_center_xy_presets(self) -> None:
+        by_label = {mode.label: mode for mode in WINDOW_MODES}
+        for label, size in (
+            ("Center 128x128", 128),
+            ("Center 256x256", 256),
+            ("Center 512x512", 512),
+            ("Center 1024x1024", 1024),
+        ):
+            mode = by_label[label]
+            self.assertTrue(mode.x_window)
+            self.assertTrue(mode.y_window)
+            self.assertEqual(
+                (mode.x1, mode.x2, mode.y1, mode.y2),
+                _centered_window(size),
             )
 
 
