@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_EVAC_VALVES_50000" Id="{0c728178-0732-4eae-808e-c3eddd63c572}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_EVAC_VALVES_50000 :
+(
+	NONE := 0,
+	PVV1,		
+	PVV2,		
+	PVV3,		
+	PVV4,		
+	GBV		
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

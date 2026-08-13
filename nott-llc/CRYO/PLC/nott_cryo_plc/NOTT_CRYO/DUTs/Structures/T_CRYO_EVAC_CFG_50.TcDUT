@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_CRYO_EVAC_CFG_50" Id="{0d2d618c-2494-4803-a57f-2ee048d22910}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVAC_CFG_50 :
+STRUCT
+	// Pressure sensor gauge types
+	nType_VAG1:		E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nType_VAGC:		E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+
+	// Thresholds
+	lrThld_TMP_before_PVV1:	LREAL := 0.01;	// Cryo pressure threshold to start TMP before opening PVV1 [mbar] 
+	lrThld_TMP_after_PVV1:	LREAL := 0.1;	// Cryo pressure threshold to start TMP after opening PVV1 [mbar] 
+	lrThld_Prevacuum:		LREAL := 5.0;	// Prevacuum pressure threshold [mbar]
+	lrThld_Vacuum:			LREAL := 0.0001;// At this Cryo pressure evacuation has started [mbar]
+	
+	tDelayAfterClosingValves:		TIME := T#3S;	// Delay after closing all valves before stopping Pumps
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

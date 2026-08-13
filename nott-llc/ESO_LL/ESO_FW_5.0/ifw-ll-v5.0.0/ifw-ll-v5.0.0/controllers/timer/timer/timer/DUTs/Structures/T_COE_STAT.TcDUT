@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="T_COE_STAT" Id="{17f5a482-b981-442b-833d-6e6259e9ea09}">
+    <Declaration><![CDATA[TYPE T_COE_STAT :
+STRUCT
+	diagnostics: T_COE_PTP_DIAGNOSTICS;
+	config: T_COE_PTP_PARAMETERS;
+	errorFlag: BOOL;
+	errorNumber: UDINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

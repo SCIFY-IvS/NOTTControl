@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_DROT_CTRL" Id="{1426a1e2-ef09-4783-823e-df3698eeb8c6}">
+    <Declaration><![CDATA[TYPE T_DROT_CTRL EXTENDS T_MA_CTRL :
+STRUCT
+	lrTargetPos:    LREAL;
+	lrTargetVel:    LREAL;
+	lrPosang: 		LREAL;
+	lrUserPar1:     LREAL := 0.0;
+	lrUserPar2:     LREAL := 0.0;
+	lrUserPar3:     LREAL := 0.0;
+	lrUserPar4:     LREAL := 0.0;
+	lrRotation:     LREAL := 0.0;
+	lrOffset:       LREAL := 0.0;
+	lrPupil:        LREAL := 0.0;
+	lrParallactic:  LREAL := 0.0;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,4441 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.32">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000041}" TcBaseType="true" HideSubItems="true" CName="AmsNetId">AMSNETID</Name>
+			<BitSize>48</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>6</Elements>
+			</ArrayInfo>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d</Printf>
+				<Parameter>[0]</Parameter>
+				<Parameter>[1]</Parameter>
+				<Parameter>[2]</Parameter>
+				<Parameter>[3]</Parameter>
+				<Parameter>[4]</Parameter>
+				<Parameter>[5]</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000042}" TcBaseType="true" CName="AmsAddr">AMSADDR</Name>
+			<BitSize>64</BitSize>
+			<SubItem>
+				<Name>netId</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000041}">AMSNETID</Type>
+				<BitSize>48</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>port</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000004}">WORD</Type>
+				<BitSize>16</BitSize>
+				<BitOffs>48</BitOffs>
+			</SubItem>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d:%d</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+			<Format Name="Iec">
+				<Printf>(netId:=[%d.%d.%d.%d.%d.%d], port :=%d)</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{376007B7-4B5C-85F3-C195-362E2AFBE3BD}" IecBaseType="true" AutoDeleteType="true">ARRAY [1..125] OF BYTE</Name>
+			<BitSize>1000</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>1</LBound>
+				<Elements>125</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library" AutoDeleteType="true">T_TIME_INFO</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>time_offset</Name>
+				<Type GUID="{18071995-0000-0000-0000-00000000000C}">LINT</Type>
+				<BitSize>64</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>leap_second</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>time_mode</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000009}">DINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+				<Default>
+					<Value>0</Value>
+				</Default>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-002000000006}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..5] OF BIT</Name>
+			<BitSize>6</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>6</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-002000000002}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..1] OF BIT</Name>
+			<BitSize>2</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>2</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-002000000003}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..2] OF BIT</Name>
+			<BitSize>3</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>3</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-002000000004}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..3] OF BIT</Name>
+			<BitSize>4</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>4</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-002000000005}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..4] OF BIT</Name>
+			<BitSize>5</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>5</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-002000000007}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..6] OF BIT</Name>
+			<BitSize>7</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>7</Elements>
+			</ArrayInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010035-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoEthProtocol</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>CheckFrame</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nVLanTag</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nTimeStamp</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>LinkStatusChanged</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>bLinkError</Name>
+					<Type GUID="{9060AE9D-214D-4685-A4C0-CD1082626764}">BOOL32</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" TcBaseType="true">ETYPE_VLAN_HEADER</Name>
+			<BitSize>32</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+		</DataType>
+		<DataType>
+			<Name GUID="{CC07E0A0-FC03-45CD-BFD9-D46B7C731E7C}" TcBaseType="true">ETHERNET_ADDRESS</Name>
+			<BitSize>48</BitSize>
+			<SubItem>
+				<Name>b</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000001}">BYTE</Type>
+				<ArrayInfo>
+					<LBound>0</LBound>
+					<Elements>6</Elements>
+				</ArrayInfo>
+				<BitSize>48</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<Hides>
+				<Hide GUID="{F45D8924-F151-4141-9296-7C8BB697BD07}"/>
+			</Hides>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010096-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoArpPingRecv</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>ArpReply</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>macAddr</Name>
+					<Type GUID="{CC07E0A0-FC03-45CD-BFD9-D46B7C731E7C}">ETHERNET_ADDRESS</Type>
+					<BitSize>48</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>PingReply</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{0301009E-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoArpPing</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>PingRequest</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" Optional="0">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}" Optional="0">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>ArpRequest</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>macAddr</Name>
+					<Type GUID="{CC07E0A0-FC03-45CD-BFD9-D46B7C731E7C}" PointerTo="1" Optional="0">ETHERNET_ADDRESS</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>RegisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010096-0000-0000-E000-000000000064}">ITcIoArpPingRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>UnregisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010096-0000-0000-E000-000000000064}">ITcIoArpPingRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>CheckReceived</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{0301009D-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoIpStackControl</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>DeleteArpCache</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+			<Method>
+				<Name>GetIpData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>pIpAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" PointerTo="1">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pIpSubnetMask</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" PointerTo="1">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pIpGateway</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" PointerTo="1">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010095-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoUdpProtocolRecv</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>ReceiveData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpDestPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpSrcPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010097-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoUdpProtocol</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>SendData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipDestAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpDestPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>udpSrcPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>bCalcUdpCheckSum</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000030}" Optional="0">BOOL</Type>
+					<BitSize>8</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pVlan</Name>
+					<Type GUID="{478C4436-6F33-4F6F-B4A8-88074B54DCD4}" PointerTo="1" Optional="0">ETYPE_VLAN_HEADER</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>CheckReceived</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+			<Method>
+				<Name>RegisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>udpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010095-0000-0000-E000-000000000064}">ITcIoUdpProtocolRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>UnregisterReceiver</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>udpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{7CECC506-F55F-4594-B611-972D650865D2}" TcBaseType="true">TCPIP_EVENT</Name>
+			<BitSize>32</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_NONE]]></Text>
+				<Enum>0</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_ERROR]]></Text>
+				<Enum>1</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_RESET]]></Text>
+				<Enum>2</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_TIMEOUT]]></Text>
+				<Enum>3</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_ESTABLISHED]]></Text>
+				<Enum>4</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_INCOMING]]></Text>
+				<Enum>5</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_CLOSED]]></Text>
+				<Enum>6</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_CONN_IDLE]]></Text>
+				<Enum>7</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_DATA_RECEIVED]]></Text>
+				<Enum>8</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_DATA_SENT]]></Text>
+				<Enum>9</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_KEEP_ALIVE]]></Text>
+				<Enum>10</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_LINKCONNECT]]></Text>
+				<Enum>11</Enum>
+			</EnumInfo>
+			<EnumInfo>
+				<Text><![CDATA[TCPIP_EVENT_LINKDISCONNECT]]></Text>
+				<Enum>12</Enum>
+			</EnumInfo>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010099-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoTcpProtocolRecv</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>ReceiveData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>ReceiveEvent</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>tcpEvent</Name>
+					<Type GUID="{7CECC506-F55F-4594-B611-972D650865D2}">TCPIP_EVENT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{03010098-0000-0000-E000-000000000064}" TcBaseType="true">ITcIoTcpProtocol</Name>
+			<BitSize X64="64">32</BitSize>
+			<BaseType GUID="{00000001-0000-0000-E000-000000000064}">ITcUnknown</BaseType>
+			<Method>
+				<Name>AllocSocket</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>ipRecv</Name>
+					<Type GUID="{03010099-0000-0000-E000-000000000064}">ITcIoTcpProtocolRecv</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>FreeSocket</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Connect</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>ipRemoteAddress</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>tcpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>IsConnected</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Close</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Listen</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>tcpPort</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000005}">UINT</Type>
+					<BitSize>16</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>Accept</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>SendData</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>pData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000018}">PVOID</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nSendData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>CheckReceived</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+			</Method>
+			<Method>
+				<Name>GetRemoteIpAddr</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>remoteIpAddr</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+			<Method>
+				<Name>GetFreeSendDataSize</Name>
+				<ReturnType GUID="{18071995-0000-0000-0000-000000000019}">HRESULT</ReturnType>
+				<ReturnBitSize>32</ReturnBitSize>
+				<Parameter>
+					<Name>socketId</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+					<BitSize>32</BitSize>
+				</Parameter>
+				<Parameter>
+					<Name>nData</Name>
+					<Type GUID="{18071995-0000-0000-0000-000000000008}" ReferenceTo="true">UDINT</Type>
+					<BitSize X64="64">32</BitSize>
+				</Parameter>
+			</Method>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-00000000003E}" TcBaseType="true" HideSubItems="true">IPADDR</Name>
+			<BitSize>32</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>4</Elements>
+			</ArrayInfo>
+			<Format>
+				<Printf>%d.%d.%d.%d</Printf>
+				<Parameter>[3]</Parameter>
+				<Parameter>[2]</Parameter>
+				<Parameter>[1]</Parameter>
+				<Parameter>[0]</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Name>
+			<BitSize>128</BitSize>
+			<SubItem>
+				<Name>nSendCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nSendFailCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>32</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nRecvCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>64</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nRecvFailCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>96</BitOffs>
+			</SubItem>
+		</DataType>
+		<DataType>
+			<Name GUID="{38621CD5-4239-4327-97F7-35F1414B7265}">IpStackDiagnosis</Name>
+			<BitSize>768</BitSize>
+			<SubItem>
+				<Name>ip</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>arpRequest</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>128</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>arpReply</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>256</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pingRequest</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>384</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>pingReply</Name>
+				<Type GUID="{C5CDC22A-4E80-47FE-859B-49877A88E874}">IpStackServiceDiagnosis</Type>
+				<BitSize>128</BitSize>
+				<BitOffs>512</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nLinkStatusChangedCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>640</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nAllocFailCnt</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>672</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nArpTimeoutFrames</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>704</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>nDroppedFrames</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000008}">UDINT</Type>
+				<BitSize>32</BitSize>
+				<BitOffs>736</BitOffs>
+			</SubItem>
+		</DataType>
+	</DataTypes>
+	<ImageDatas>
+		<ImageData Id="1000">424dd6020000000000003600000028000000100000000e0000000100180000000000a0020000c40e0000c40e00000000000000000000ff00ffff00ffff00ff808080808080808080808080808080808080808080808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c000ffffc0c0c000ffff808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0ff0000c0c0c0ff0000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c00000ffc0c0c00000ff808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0008000c0c0c0008000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ff0000c00000c0ffffffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff</ImageData>
+		<ImageData Id="1001">424dd6020000000000003600000028000000100000000e0000000100180000000000a0020000c40e0000c40e00000000000000000000ff00ffff00ffff00ffff00ffff00ffff00ff808080808080808080808080808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ff00bfffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c080808000bfff00bfff00bfff00bfff00bfffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ff00bfffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff</ImageData>
+		<ImageData Id="1002">424dd6020000000000003600000028000000100000000e0000000100180000000000a0020000c40e0000c40e00000000000000000000ff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080808080808080808080808080808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000bfff00bfffc0c0c0808080c0c0c000ffffc0c0c000ffff808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000bfff00bfffc0c0c0808080c0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000bfff00bfffc0c0c0808080c0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0ff0000c0c0c0ff0000808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000bfff00bfffc0c0c0808080c0c0c00000ffc0c0c00000ff808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000bfff00bfffc0c0c0808080c0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000bfff00bfffc0c0c0808080c0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0008000c0c0c0008000808080ff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080c0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff</ImageData>
+		<ImageData Id="1003">424dd6020000000000003600000028000000100000000e0000000100180000000000a0020000120b0000120b00000000000000000000ff00ffff00ffff00ffff00ffff00ffff00ff808080808080808080808080808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c000ffffc0c0c000ffff808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0ff0000c0c0c0ff0000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c00000ffc0c0c00000ff808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c0008000c0c0c0008000808080ff00ffff00ffff00ffff00ffff00ff0000ff0000ff0000ff0000ff0000ff0000ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff</ImageData>
+		<ImageData Id="1004">424dd6020000000000003600000028000000100000000e0000000100180000000000a0020000c40e0000c40e00000000000000000000ff00ff000000000000ff00ffff00ffff00ff808080808080808080808080808080ff00ffff00ffff00ffff00ffff00ff000000ff00ffff00ff000000ff00ffff00ffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ff000000ff00ffff00ffff00ffff00ffff00ffc0c0c000ffffc0c0c000ffff808080ff00ffff00ffff00ffff00ffff00ff000000ff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff000000ff00ffff00ff000000ff00ffff00ffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ffff00ff000000000000ff00ffff00ffff00ffc0c0c0ff0000c0c0c0ff0000808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c00000ffc0c0c00000ff808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0000000c0c0c0000000808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0008000c0c0c0008000808080ff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0c0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ff</ImageData>
+		<ImageData Id="1005">424dd6020000000000003600000028000000100000000e0000000100180000000000a0020000c40e0000c40e00000000000000000000ff00ffff00ffff00ffff00ffff00ffff00ff808080808080808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffff00ffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff007fff007fff007fff007fff007fff007fffc0c0c0c0c0c0808080ff00ffff00ffff00ffff00ffff00ffff00ffff00ff</ImageData>
+		<ImageData Id="1006">424de6000000000000007600000028000000100000000e000000010004000000000070000000000000000000000000000000000000000000000000008000008000000080800080000000800080008080000080808000c0c0c0000000ff0000ff000000ffff00ff000000ff00ff00ffff0000ffffff00ffffffffffffffffff788833338887ffff78883bb38887ffffffff3bb3ffffffffffff8778fffffffffffffffffffffffffffffffff999ffff78f78fffffffffff78f78ffff999ffff78f7888fffffffff78f78f78f999ffff78f78f78ffffffff78f7888ff999ffffffffffffffffff</ImageData>
+	</ImageDatas>
+	<Project ProjectGUID="{ED0D23BB-5443-4F96-8B69-F7E082F279BA}" TargetNetId="198.19.191.40.1.1" ShowHideConfigurations="#x106">
+		<System>
+			<Tasks>
+				<Task Id="3" Priority="20" CycleTime="10000" AmsPort="350" AdtTasks="true">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{31CE5440-B981-4147-8225-D79CA85E7242}" Name="TrsClientTester" PrjFilePath="TrsClientTester\TrsClientTester.plcproj" TmcFilePath="TrsClientTester\TrsClientTester.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{41B92769-DC2F-0337-2C17-DF1BF62D4BA4}">
+					<Name>TrsClientTester Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.fbTimerObj.DcOutputShift</Name>
+							<Comment><![CDATA[ Variables to be linked to I/O ]]></Comment>
+							<Type>DINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_inTime</Name>
+							<Comment><![CDATA[ Input variables from EL6688 ]]></Comment>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_exTime</Name>
+							<Type>ULINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_dc2TcOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_dc2ExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_extDevNotConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_syncMode</Name>
+							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_AdsAddr</Name>
+							<Comment><![CDATA[ ADS address structure]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_exNtpExtTime</Name>
+							<Comment><![CDATA[ Input variables from NTP]]></Comment>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_exNtpSysTime</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_exNtpExtOffset</Name>
+							<Type>LINT</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_exNtpConnected</Name>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.i_exNtpSynchronized</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.fbTimerObj.Output0</Name>
+							<Comment><![CDATA[	Output					AT %Q*:	ARRAY[1..OVSMAX] OF BOOL;]]></Comment>
+							<Type GUID="{376007B7-4B5C-85F3-C195-362E2AFBE3BD}">ARRAY [1..125] OF BYTE</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimerObj.Output1</Name>
+							<Type GUID="{376007B7-4B5C-85F3-C195-362E2AFBE3BD}">ARRAY [1..125] OF BYTE</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimerObj.CyclicCounter</Name>
+							<Type>WORD</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.fbTimeObj.q_timeInfo</Name>
+							<Type GUID="{49C62D3B-62D2-BB13-39D4-5D5BAC722E4D}" Namespace="ESO_LDC_Timer_Library">T_TIME_INFO</Type>
+						</Var>
+					</Vars>
+					<Contexts>
+						<Context>
+							<Id NeedCalleeCall="true">0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010030</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>1000000</CycleTime>
+						</Context>
+					</Contexts>
+					<InitSymbols>
+						<InitSymbol>
+							<Name>MAIN.fbTimeObj.fb_SendDiag.oid</Name>
+							<Type GUID="{18071995-0000-0000-0000-00000000000F}">OTCID</Type>
+							<Comment><![CDATA[ TF6311 realtime driver parameters ]]></Comment>
+							<AreaNo>#x00000003</AreaNo>
+							<Data>10000101</Data>
+						</InitSymbol>
+					</InitSymbols>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io>
+			<Device Id="1" DevType="111" DevFlags="#x0003" AmsPort="28673" AmsNetId="198.19.191.40.2.1" RemoteName="Device 1 (EtherCAT)" InfoImageId="2">
+				<Name>Device 1 (EtherCAT)</Name>
+				<AddressInfo>
+					<Ccat>
+						<Address>-268435456</Address>
+						<Offset>131072</Offset>
+						<Size>8192</Size>
+						<BaseAddr>0</BaseAddr>
+						<BusNo>4</BusNo>
+						<SlotNo>0</SlotNo>
+						<VendorId>5612</VendorId>
+						<DeviceId>20480</DeviceId>
+						<Dma>
+							<Address>0</Address>
+							<Offset>4096</Offset>
+							<Size>256</Size>
+							<BaseAddr>2</BaseAddr>
+							<RxChn>0</RxChn>
+							<TxChn>1</TxChn>
+						</Dma>
+						<Identification>
+							<Value>498694182</Value>
+							<Version>1</Version>
+							<Size>256</Size>
+						</Identification>
+					</Ccat>
+				</AddressInfo>
+				<Image Id="1" AddrType="9" ImageType="3">
+					<Name>Image</Name>
+				</Image>
+				<Box Id="1" BoxType="9099">
+					<Name>Term 1 (EK1200)</Name>
+					<ImageId>1000</ImageId>
+					<EtherCAT PdiType="#x0100" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04b02c52" RevisionNo="#x00001388" InfoDataState="false" PortPhys="49" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EK1200-5000 EtherCAT Power supply (2A E-Bus)" Desc="EK1200" PortABoxInfo="#x00ffffff"/>
+					<Box Id="2" BoxType="9099">
+						<Name>Term 2 (EK1110)</Name>
+						<ImageId>1001</ImageId>
+						<EtherCAT SlaveType="1" PdiType="#x0100" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x04562c52" RevisionNo="#x00110000" PortPhys="19" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EK1110 EtherCAT extension" Desc="EK1110" PortABoxInfo="#x01000001"/>
+					</Box>
+				</Box>
+				<Box Id="3" BoxType="9099">
+					<Name>Term 3 (EK1100)</Name>
+					<ImageId>1002</ImageId>
+					<EtherCAT SlaveType="1" PdiType="#x0d00" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x044c2c52" RevisionNo="#x00120000" PortPhys="305" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EK1100 EtherCAT Coupler (2A E-Bus)" Desc="EK1100" PortABoxInfo="#x01000002"/>
+					<Box Id="4" BoxType="9099">
+						<Name>Term 4 (EL2262)</Name>
+						<ImageId>1003</ImageId>
+						<EtherCAT SlaveType="1" PdiType="#x0506" CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x08d63052" RevisionNo="#x00030000" InfoDataDcTimes="true" PortPhys="51" PdoOvsFactor="125" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL2262 2Ch. Dig. Output 24V, 1µs, DC Oversample" Desc="EL2262" PortABoxInfo="#x01000003">
+							<SyncMan>00107f006400010003000000000000000000001064090000</SyncMan>
+							<SyncMan>001200006400000003000000000000000000001264090000</SyncMan>
+							<SyncMan>980900000000000004000000000000000000980900040000</SyncMan>
+							<Fmmu>0000000000000000001000020100000001000000060000000000000000000000</Fmmu>
+							<Fmmu>0000000000000000001200020000000001000000060000000100000000000000</Fmmu>
+							<Fmmu>0000000000000000000000010000000002000000060000000200000000000000</Fmmu>
+							<SuName></SuName>
+							<SuName></SuName>
+							<DcData>3007000000000000000000000000000018fcffff030000000000000000000000</DcData>
+							<DcMode>446353796e630000000000000000000032204368616e6e656c7320284269747329000000000000000000000000000000000000000000000000000000ffff3007ffff0700000000000000000ae803000000000000000000000000000000000000001700000016000110170000021b0200011701008016010118170100</DcMode>
+							<DcMode>446353796e633200000000000000000032204368616e6e656c7320284279746573290000000000000000000000000000000000000000000000000000ffff3007f8ff0500000000000000000ae8030000000000000000000000000000000000000017000000180001021b02000117010080180101</DcMode>
+							<DcMode>446353796e635f31000000000000000031204368616e6e656c2028426974732900000000000000000000000000000000000000000000000000000000ffff3007ffff0400000000000000000ae803000000000000000000000000000000000000001700000016000110170000021b0200</DcMode>
+							<DcMode>446353796e63325f310000000000000031204368616e6e656c2028427974657329000000000000000000000000000000000000000000000000000000ffff3007f8ff0300000000000000000ae8030000000000000000000000000000000000000017000000180001021b0200</DcMode>
+							<Pdo Name="StartTimeNextOutput" Index="#x1702" Flags="#x0030">
+								<Entry Name="StartTimeNextOutput" Index="#x1d09" Sub="#x98">
+									<Type>UDINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="CycCount0" Index="#x1700" InOut="1" Flags="#x0010" SyncMan="0">
+								<Entry Name="Cycle Counter0" Index="#x7800" Sub="#x01">
+									<Type>UINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 0" Index="#x1600" InOut="1" Flags="#x0011" OverSampleFac="8" OverSampleMin="1" OverSampleMax="128" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7000" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 1" Index="#x1601" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7008" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 2" Index="#x1602" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7010" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 3" Index="#x1603" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7018" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 4" Index="#x1604" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7020" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 5" Index="#x1605" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7028" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 6" Index="#x1606" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7030" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 7" Index="#x1607" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7038" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 8" Index="#x1608" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7040" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 9" Index="#x1609" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7048" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 10" Index="#x160a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7050" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 11" Index="#x160b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7058" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 12" Index="#x160c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7060" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 13" Index="#x160d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7068" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 14" Index="#x160e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7070" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 15" Index="#x160f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7078" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 16" Index="#x1610" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7080" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 17" Index="#x1611" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7088" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 18" Index="#x1612" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7090" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 19" Index="#x1613" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7098" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 20" Index="#x1614" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70a0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 21" Index="#x1615" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70a8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 22" Index="#x1616" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70b0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 23" Index="#x1617" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70b8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 24" Index="#x1618" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70c0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 25" Index="#x1619" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70c8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 26" Index="#x161a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70d0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 27" Index="#x161b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70d8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 28" Index="#x161c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70e0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 29" Index="#x161d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70e8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 30" Index="#x161e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70f0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 31" Index="#x161f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x70f8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 32" Index="#x1620" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7100" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 33" Index="#x1621" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7108" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 34" Index="#x1622" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7110" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 35" Index="#x1623" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7118" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 36" Index="#x1624" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7120" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 37" Index="#x1625" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7128" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 38" Index="#x1626" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7130" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 39" Index="#x1627" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7138" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 40" Index="#x1628" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7140" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 41" Index="#x1629" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7148" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 42" Index="#x162a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7150" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 43" Index="#x162b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7158" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 44" Index="#x162c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7160" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 45" Index="#x162d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7168" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 46" Index="#x162e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7170" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 47" Index="#x162f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7178" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 48" Index="#x1630" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7180" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 49" Index="#x1631" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7188" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 50" Index="#x1632" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7190" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 51" Index="#x1633" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7198" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 52" Index="#x1634" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71a0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 53" Index="#x1635" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71a8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 54" Index="#x1636" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71b0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 55" Index="#x1637" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71b8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 56" Index="#x1638" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71c0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 57" Index="#x1639" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71c8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 58" Index="#x163a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71d0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 59" Index="#x163b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71d8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 60" Index="#x163c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71e0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 61" Index="#x163d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71e8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 62" Index="#x163e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71f0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 63" Index="#x163f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x71f8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 64" Index="#x1640" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7200" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 65" Index="#x1641" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7208" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 66" Index="#x1642" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7210" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 67" Index="#x1643" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7218" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 68" Index="#x1644" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7220" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 69" Index="#x1645" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7228" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 70" Index="#x1646" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7230" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 71" Index="#x1647" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7238" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 72" Index="#x1648" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7240" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 73" Index="#x1649" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7248" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 74" Index="#x164a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7250" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 75" Index="#x164b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7258" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 76" Index="#x164c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7260" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 77" Index="#x164d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7268" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 78" Index="#x164e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7270" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 79" Index="#x164f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7278" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 80" Index="#x1650" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7280" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 81" Index="#x1651" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7288" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 82" Index="#x1652" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7290" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 83" Index="#x1653" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7298" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 84" Index="#x1654" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72a0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 85" Index="#x1655" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72a8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 86" Index="#x1656" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72b0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 87" Index="#x1657" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72b8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 88" Index="#x1658" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72c0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 89" Index="#x1659" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72c8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 90" Index="#x165a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72d0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 91" Index="#x165b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72d8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 92" Index="#x165c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72e0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 93" Index="#x165d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72e8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 94" Index="#x165e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72f0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 95" Index="#x165f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72f8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 96" Index="#x1660" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7300" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 97" Index="#x1661" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7308" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 98" Index="#x1662" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7310" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 99" Index="#x1663" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7318" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 100" Index="#x1664" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7320" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 101" Index="#x1665" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7328" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 102" Index="#x1666" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7330" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 103" Index="#x1667" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7338" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 104" Index="#x1668" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7340" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 105" Index="#x1669" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7348" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 106" Index="#x166a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7350" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 107" Index="#x166b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7358" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 108" Index="#x166c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7360" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 109" Index="#x166d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7368" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 110" Index="#x166e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7370" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 111" Index="#x166f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7378" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 112" Index="#x1670" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7380" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 113" Index="#x1671" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7388" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 114" Index="#x1672" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7390" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 115" Index="#x1673" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7398" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 116" Index="#x1674" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73a0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 117" Index="#x1675" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73a8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 118" Index="#x1676" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73b0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 119" Index="#x1677" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73b8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 120" Index="#x1678" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73c0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 121" Index="#x1679" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73c8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 122" Index="#x167a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73d0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 123" Index="#x167b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73d8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 124" Index="#x167c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73e0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 125" Index="#x167d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73e8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 126" Index="#x167e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73f0" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 127" Index="#x167f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73f8" Sub="#x01">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 0" Index="#x1800" InOut="1" Flags="#x0011" SyncMan="0" OverSampleFac="8" OverSampleMin="1" OverSampleMax="125" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7200" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 1" Index="#x1801" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7208" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 2" Index="#x1802" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7210" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 3" Index="#x1803" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7218" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 4" Index="#x1804" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7220" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 5" Index="#x1805" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7228" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 6" Index="#x1806" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7230" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 7" Index="#x1807" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7238" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 8" Index="#x1808" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7240" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 9" Index="#x1809" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7248" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 10" Index="#x180a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7250" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 11" Index="#x180b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7258" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 12" Index="#x180c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7260" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 13" Index="#x180d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7268" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 14" Index="#x180e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7270" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 15" Index="#x180f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7278" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 16" Index="#x1810" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7280" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 17" Index="#x1811" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7288" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 18" Index="#x1812" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7290" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 19" Index="#x1813" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7298" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 20" Index="#x1814" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72a0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 21" Index="#x1815" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72a8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 22" Index="#x1816" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72b0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 23" Index="#x1817" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72b8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 24" Index="#x1818" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72c0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 25" Index="#x1819" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72c8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 26" Index="#x181a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72d0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 27" Index="#x181b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72d8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 28" Index="#x181c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72e0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 29" Index="#x181d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72e8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 30" Index="#x181e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72f0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 31" Index="#x181f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x72f8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 32" Index="#x1820" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7300" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 33" Index="#x1821" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7308" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 34" Index="#x1822" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7310" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 35" Index="#x1823" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7318" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 36" Index="#x1824" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7320" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 37" Index="#x1825" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7328" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 38" Index="#x1826" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7330" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 39" Index="#x1827" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7338" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 40" Index="#x1828" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7340" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 41" Index="#x1829" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7348" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 42" Index="#x182a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7350" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 43" Index="#x182b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7358" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 44" Index="#x182c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7360" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 45" Index="#x182d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7368" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 46" Index="#x182e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7370" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 47" Index="#x182f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7378" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 48" Index="#x1830" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7380" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 49" Index="#x1831" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7388" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 50" Index="#x1832" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7390" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 51" Index="#x1833" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7398" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 52" Index="#x1834" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73a0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 53" Index="#x1835" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73a8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 54" Index="#x1836" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73b0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 55" Index="#x1837" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73b8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 56" Index="#x1838" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73c0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 57" Index="#x1839" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73c8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 58" Index="#x183a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73d0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 59" Index="#x183b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73d8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 60" Index="#x183c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73e0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 61" Index="#x183d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73e8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 62" Index="#x183e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73f0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 63" Index="#x183f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x73f8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 64" Index="#x1840" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7400" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 65" Index="#x1841" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7408" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 66" Index="#x1842" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7410" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 67" Index="#x1843" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7418" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 68" Index="#x1844" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7420" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 69" Index="#x1845" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7428" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 70" Index="#x1846" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7430" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 71" Index="#x1847" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7438" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 72" Index="#x1848" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7440" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 73" Index="#x1849" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7448" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 74" Index="#x184a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7450" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 75" Index="#x184b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7458" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 76" Index="#x184c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7460" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 77" Index="#x184d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7468" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 78" Index="#x184e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7470" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 79" Index="#x184f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7478" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 80" Index="#x1850" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7480" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 81" Index="#x1851" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7488" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 82" Index="#x1852" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7490" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 83" Index="#x1853" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7498" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 84" Index="#x1854" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74a0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 85" Index="#x1855" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74a8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 86" Index="#x1856" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74b0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 87" Index="#x1857" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74b8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 88" Index="#x1858" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74c0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 89" Index="#x1859" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74c8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 90" Index="#x185a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74d0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 91" Index="#x185b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74d8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 92" Index="#x185c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74e0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 93" Index="#x185d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74e8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 94" Index="#x185e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74f0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 95" Index="#x185f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x74f8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 96" Index="#x1860" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7500" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 97" Index="#x1861" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7508" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 98" Index="#x1862" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7510" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 99" Index="#x1863" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7518" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 100" Index="#x1864" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7520" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 101" Index="#x1865" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7528" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 102" Index="#x1866" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7530" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 103" Index="#x1867" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7538" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 104" Index="#x1868" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7540" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 105" Index="#x1869" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7548" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 106" Index="#x186a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7550" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 107" Index="#x186b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7558" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 108" Index="#x186c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7560" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 109" Index="#x186d" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7568" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 110" Index="#x186e" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7570" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 111" Index="#x186f" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7578" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 112" Index="#x1870" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7580" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 113" Index="#x1871" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7588" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 114" Index="#x1872" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7590" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 115" Index="#x1873" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x7598" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 116" Index="#x1874" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75a0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 117" Index="#x1875" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75a8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 118" Index="#x1876" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75b0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 119" Index="#x1877" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75b8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 120" Index="#x1878" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75c0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 121" Index="#x1879" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75c8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 122" Index="#x187a" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75d0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 123" Index="#x187b" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75d8" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample0 124" Index="#x187c" InOut="1" Flags="#x0014" SyncMan="0" OverSampleInc="8">
+								<Entry Name="Output0" Index="#x75e0" Sub="#x01">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1710" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1711" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000002}">ARRAY [0..1] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1712" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000003}">ARRAY [0..2] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1713" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000004}">ARRAY [0..3] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1714" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000005}">ARRAY [0..4] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1715" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1716" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000007}">ARRAY [0..6] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="CycCount1" Index="#x1701" InOut="1" Flags="#x0010">
+								<Entry Name="Cycle Counter1" Index="#x7800" Sub="#x02">
+									<Type>UINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 0" Index="#x1680" InOut="1" Flags="#x0011" OverSampleFac="8" OverSampleMin="1" OverSampleMax="128" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7000" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 1" Index="#x1681" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7008" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 2" Index="#x1682" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7010" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 3" Index="#x1683" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7018" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 4" Index="#x1684" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7020" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 5" Index="#x1685" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7028" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 6" Index="#x1686" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7030" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 7" Index="#x1687" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7038" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 8" Index="#x1688" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7040" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 9" Index="#x1689" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7048" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 10" Index="#x168a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7050" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 11" Index="#x168b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7058" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 12" Index="#x168c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7060" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 13" Index="#x168d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7068" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 14" Index="#x168e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7070" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 15" Index="#x168f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7078" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 16" Index="#x1690" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7080" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 17" Index="#x1691" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7088" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 18" Index="#x1692" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7090" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 19" Index="#x1693" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7098" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 20" Index="#x1694" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70a0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 21" Index="#x1695" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70a8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 22" Index="#x1696" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70b0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 23" Index="#x1697" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70b8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 24" Index="#x1698" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70c0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 25" Index="#x1699" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70c8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 26" Index="#x169a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70d0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 27" Index="#x169b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70d8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 28" Index="#x169c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70e0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 29" Index="#x169d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70e8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 30" Index="#x169e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70f0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 31" Index="#x169f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x70f8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 32" Index="#x16a0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7100" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 33" Index="#x16a1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7108" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 34" Index="#x16a2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7110" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 35" Index="#x16a3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7118" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 36" Index="#x16a4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7120" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 37" Index="#x16a5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7128" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 38" Index="#x16a6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7130" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 39" Index="#x16a7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7138" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 40" Index="#x16a8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7140" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 41" Index="#x16a9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7148" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 42" Index="#x16aa" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7150" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 43" Index="#x16ab" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7158" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 44" Index="#x16ac" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7160" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 45" Index="#x16ad" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7168" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 46" Index="#x16ae" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7170" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 47" Index="#x16af" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7178" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 48" Index="#x16b0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7180" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 49" Index="#x16b1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7188" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 50" Index="#x16b2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7190" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 51" Index="#x16b3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7198" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 52" Index="#x16b4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71a0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 53" Index="#x16b5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71a8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 54" Index="#x16b6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71b0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 55" Index="#x16b7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71b8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 56" Index="#x16b8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71c0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 57" Index="#x16b9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71c8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 58" Index="#x16ba" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71d0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 59" Index="#x16bb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71d8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 60" Index="#x16bc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71e0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 61" Index="#x16bd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71e8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 62" Index="#x16be" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71f0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 63" Index="#x16bf" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x71f8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 64" Index="#x16c0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7200" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 65" Index="#x16c1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7208" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 66" Index="#x16c2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7210" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 67" Index="#x16c3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7218" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 68" Index="#x16c4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7220" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 69" Index="#x16c5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7228" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 70" Index="#x16c6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7230" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 71" Index="#x16c7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7238" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 72" Index="#x16c8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7240" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 73" Index="#x16c9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7248" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 74" Index="#x16ca" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7250" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 75" Index="#x16cb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7258" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 76" Index="#x16cc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7260" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 77" Index="#x16cd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7268" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 78" Index="#x16ce" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7270" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 79" Index="#x16cf" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7278" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 80" Index="#x16d0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7280" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 81" Index="#x16d1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7288" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 82" Index="#x16d2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7290" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 83" Index="#x16d3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7298" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 84" Index="#x16d4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72a0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 85" Index="#x16d5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72a8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 86" Index="#x16d6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72b0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 87" Index="#x16d7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72b8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 88" Index="#x16d8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72c0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 89" Index="#x16d9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72c8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 90" Index="#x16da" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72d0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 91" Index="#x16db" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72d8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 92" Index="#x16dc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72e0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 93" Index="#x16dd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72e8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 94" Index="#x16de" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72f0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 95" Index="#x16df" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72f8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 96" Index="#x16e0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7300" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 97" Index="#x16e1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7308" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 98" Index="#x16e2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7310" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 99" Index="#x16e3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7318" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 100" Index="#x16e4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7320" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 101" Index="#x16e5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7328" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 102" Index="#x16e6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7330" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 103" Index="#x16e7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7338" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 104" Index="#x16e8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7340" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 105" Index="#x16e9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7348" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 106" Index="#x16ea" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7350" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 107" Index="#x16eb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7358" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 108" Index="#x16ec" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7360" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 109" Index="#x16ed" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7368" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 110" Index="#x16ee" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7370" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 111" Index="#x16ef" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7378" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 112" Index="#x16f0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7380" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 113" Index="#x16f1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7388" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 114" Index="#x16f2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7390" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 115" Index="#x16f3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7398" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 116" Index="#x16f4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73a0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 117" Index="#x16f5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73a8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 118" Index="#x16f6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73b0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 119" Index="#x16f7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73b8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 120" Index="#x16f8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73c0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 121" Index="#x16f9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73c8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 122" Index="#x16fa" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73d0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 123" Index="#x16fb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73d8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 124" Index="#x16fc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73e0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 125" Index="#x16fd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73e8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 126" Index="#x16fe" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73f0" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 127" Index="#x16ff" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73f8" Sub="#x02">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 0" Index="#x1880" InOut="1" Flags="#x0011" OverSampleFac="8" OverSampleMin="1" OverSampleMax="125" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7200" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 1" Index="#x1881" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7208" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 2" Index="#x1882" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7210" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 3" Index="#x1883" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7218" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 4" Index="#x1884" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7220" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 5" Index="#x1885" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7228" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 6" Index="#x1886" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7230" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 7" Index="#x1887" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7238" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 8" Index="#x1888" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7240" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 9" Index="#x1889" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7248" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 10" Index="#x188a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7250" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 11" Index="#x188b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7258" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 12" Index="#x188c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7260" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 13" Index="#x188d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7268" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 14" Index="#x188e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7270" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 15" Index="#x188f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7278" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 16" Index="#x1890" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7280" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 17" Index="#x1891" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7288" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 18" Index="#x1892" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7290" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 19" Index="#x1893" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7298" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 20" Index="#x1894" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72a0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 21" Index="#x1895" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72a8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 22" Index="#x1896" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72b0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 23" Index="#x1897" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72b8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 24" Index="#x1898" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72c0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 25" Index="#x1899" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72c8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 26" Index="#x189a" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72d0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 27" Index="#x189b" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72d8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 28" Index="#x189c" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72e0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 29" Index="#x189d" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72e8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 30" Index="#x189e" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72f0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 31" Index="#x189f" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x72f8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 32" Index="#x18a0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7300" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 33" Index="#x18a1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7308" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 34" Index="#x18a2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7310" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 35" Index="#x18a3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7318" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 36" Index="#x18a4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7320" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 37" Index="#x18a5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7328" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 38" Index="#x18a6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7330" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 39" Index="#x18a7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7338" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 40" Index="#x18a8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7340" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 41" Index="#x18a9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7348" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 42" Index="#x18aa" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7350" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 43" Index="#x18ab" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7358" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 44" Index="#x18ac" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7360" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 45" Index="#x18ad" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7368" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 46" Index="#x18ae" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7370" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 47" Index="#x18af" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7378" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 48" Index="#x18b0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7380" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 49" Index="#x18b1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7388" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 50" Index="#x18b2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7390" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 51" Index="#x18b3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7398" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 52" Index="#x18b4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73a0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 53" Index="#x18b5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73a8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 54" Index="#x18b6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73b0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 55" Index="#x18b7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73b8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 56" Index="#x18b8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73c0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 57" Index="#x18b9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73c8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 58" Index="#x18ba" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73d0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 59" Index="#x18bb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73d8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 60" Index="#x18bc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73e0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 61" Index="#x18bd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73e8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 62" Index="#x18be" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73f0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 63" Index="#x18bf" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x73f8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 64" Index="#x18c0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7400" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 65" Index="#x18c1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7408" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 66" Index="#x18c2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7410" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 67" Index="#x18c3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7418" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 68" Index="#x18c4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7420" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 69" Index="#x18c5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7428" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 70" Index="#x18c6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7430" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 71" Index="#x18c7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7438" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 72" Index="#x18c8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7440" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 73" Index="#x18c9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7448" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 74" Index="#x18ca" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7450" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 75" Index="#x18cb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7458" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 76" Index="#x18cc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7460" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 77" Index="#x18cd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7468" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 78" Index="#x18ce" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7470" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 79" Index="#x18cf" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7478" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 80" Index="#x18d0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7480" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 81" Index="#x18d1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7488" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 82" Index="#x18d2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7490" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 83" Index="#x18d3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7498" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 84" Index="#x18d4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74a0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 85" Index="#x18d5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74a8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 86" Index="#x18d6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74b0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 87" Index="#x18d7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74b8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 88" Index="#x18d8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74c0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 89" Index="#x18d9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74c8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 90" Index="#x18da" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74d0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 91" Index="#x18db" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74d8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 92" Index="#x18dc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74e0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 93" Index="#x18dd" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74e8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 94" Index="#x18de" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74f0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 95" Index="#x18df" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x74f8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 96" Index="#x18e0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7500" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 97" Index="#x18e1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7508" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 98" Index="#x18e2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7510" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 99" Index="#x18e3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7518" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 100" Index="#x18e4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7520" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 101" Index="#x18e5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7528" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 102" Index="#x18e6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7530" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 103" Index="#x18e7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7538" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 104" Index="#x18e8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7540" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 105" Index="#x18e9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7548" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 106" Index="#x18ea" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7550" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 107" Index="#x18eb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7558" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 108" Index="#x18ec" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7560" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 109" Index="#x18ed" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7568" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 110" Index="#x18ee" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7570" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 111" Index="#x18ef" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7578" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 112" Index="#x18f0" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7580" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 113" Index="#x18f1" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7588" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 114" Index="#x18f2" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7590" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 115" Index="#x18f3" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x7598" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 116" Index="#x18f4" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75a0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 117" Index="#x18f5" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75a8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 118" Index="#x18f6" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75b0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 119" Index="#x18f7" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75b8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 120" Index="#x18f8" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75c0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 121" Index="#x18f9" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75c8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 122" Index="#x18fa" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75d0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 123" Index="#x18fb" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75d8" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Sample1 124" Index="#x18fc" InOut="1" Flags="#x0014" OverSampleInc="8">
+								<Entry Name="Output1" Index="#x75e0" Sub="#x02">
+									<Type>BYTE</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1718" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x1719" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000002}">ARRAY [0..1] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x171a" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000003}">ARRAY [0..2] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x171b" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000004}">ARRAY [0..3] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x171c" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000005}">ARRAY [0..4] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x171d" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Gap" Index="#x171e" InOut="1" Flags="#x0010">
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000007}">ARRAY [0..6] OF BIT</Type>
+								</Entry>
+							</Pdo>
+						</EtherCAT>
+					</Box>
+					<Box Id="5" BoxType="9099" BoxFlags="#x00000020">
+						<Name>Term 5 (EL6688)</Name>
+						<ImageId>1004</ImageId>
+						<EtherCAT SlaveType="2" PdiType="#x0c08" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x1a203052" RevisionNo="#x00160000" InfoDataAddr="true" InfoDataDcTimes="true" RepeatSupport="true" TimeoutMailbox2="2000" ExternalDcRefClock="true" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL6688 - External Synchronisation Interface (IEEE1588)" Desc="EL6688" PortABoxInfo="#x01000004">
+							<SyncMan>001000042600010001000000400000040004001026010000</SyncMan>
+							<SyncMan>001400042200010002000000400000040004001422010000</SyncMan>
+							<SyncMan>001800000400000003000000000000000000001804000000</SyncMan>
+							<SyncMan>002416002000010004000000000000001600002420010000</SyncMan>
+							<Fmmu>0000000000000000002400010100000002000000000000000000000000000000</Fmmu>
+							<Fmmu>00000000000000000d0800010100000003000000000000000000000000000000</Fmmu>
+							<BootStrapData>0010140200181402</BootStrapData>
+							<DcData>3000000000000000000000000000000000000000000000000000000000000000</DcData>
+							<DcMode>44434c415443480000000000000000004443204c61746368204163746976650000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000</DcMode>
+							<DcMode>4672656552756e0000000000000000004672656552756e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</DcMode>
+							<Pdo Name="  External Sync" Index="#x1a00" Flags="#x0010" SyncMan="3">
+								<ExcludePdo>#x1a01</ExcludePdo>
+								<ExcludePdo>#x1a02</ExcludePdo>
+								<Entry Name="Sync Mode" Index="#x10f4" Sub="#x01">
+									<Type>BIT2</Type>
+								</Entry>
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000005}">ARRAY [0..4] OF BIT</Type>
+								</Entry>
+								<Entry Name="Control value update toggle" Index="#x10f4" Sub="#x0e">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Time stamp update toggle" Index="#x10f4" Sub="#x0f">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="External device not connected" Index="#x10f4" Sub="#x10">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Internal time stamp" Index="#x10f4" Sub="#x11">
+									<Type>ULINT</Type>
+								</Entry>
+								<Entry Name="External time stamp" Index="#x10f4" Sub="#x12">
+									<Type>ULINT</Type>
+								</Entry>
+								<Entry Name="Control Value for DC Master Clock" Index="#x10f4" Sub="#x13">
+									<Type>DINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="  External Sync (32 Bit)" Index="#x1a01" Flags="#x0010">
+								<ExcludePdo>#x1a00</ExcludePdo>
+								<ExcludePdo>#x1a02</ExcludePdo>
+								<Entry Name="Sync Mode" Index="#x10f4" Sub="#x01">
+									<Type>BIT2</Type>
+								</Entry>
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000005}">ARRAY [0..4] OF BIT</Type>
+								</Entry>
+								<Entry Name="Control value update toggle" Index="#x10f4" Sub="#x0e">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Time stamp update toggle" Index="#x10f4" Sub="#x0f">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="External device not connected" Index="#x10f4" Sub="#x10">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Internal time stamp" Index="#x10f4" Sub="#x11">
+									<Type>UDINT</Type>
+								</Entry>
+								<Entry Name="External time stamp" Index="#x10f4" Sub="#x12">
+									<Type>UDINT</Type>
+								</Entry>
+								<Entry Name="Control Value for DC Master Clock" Index="#x10f4" Sub="#x13">
+									<Type>DINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="  External Sync Compact" Index="#x1a02" Flags="#x0010">
+								<ExcludePdo>#x1a00</ExcludePdo>
+								<ExcludePdo>#x1a01</ExcludePdo>
+								<Entry Name="Sync Mode" Index="#x10f4" Sub="#x01">
+									<Type>BIT2</Type>
+								</Entry>
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000006}">ARRAY [0..5] OF BIT</Type>
+								</Entry>
+								<Entry>
+									<Type GUID="{18071995-0000-0000-0000-002000000005}">ARRAY [0..4] OF BIT</Type>
+								</Entry>
+								<Entry Name="Control value update toggle" Index="#x10f4" Sub="#x0e">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="Time stamp update toggle" Index="#x10f4" Sub="#x0f">
+									<Type>BIT</Type>
+								</Entry>
+								<Entry Name="External device not connected" Index="#x10f4" Sub="#x10">
+									<Type>BIT</Type>
+								</Entry>
+							</Pdo>
+							<CoeProfile ProfileNo="5001"/>
+						</EtherCAT>
+					</Box>
+					<Box Id="6" BoxType="9099">
+						<Name>Term 6 (EL9011)</Name>
+						<ImageId>1005</ImageId>
+						<EtherCAT CycleMBoxPollingTime="0" VendorId="#x00000002" ProductCode="#x23333050" InfoDataState="false" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL9011 End Terminal" Desc="EL9011" PortABoxInfo="#x01000005"/>
+					</Box>
+				</Box>
+				<EtherCAT DcSyncMode="4" InfoDataDcTimeOffsets="true"/>
+			</Device>
+			<Device Id="5" DevType="121">
+				<Name>Device 5 (NOV-DP-RAM)</Name>
+				<AddressInfo>
+					<Pci>
+						<Address>-267386880</Address>
+						<Size>131072</Size>
+						<BusNo>4</BusNo>
+						<SlotNo>0</SlotNo>
+						<VendorId>5612</VendorId>
+						<DeviceId>20480</DeviceId>
+						<BaseAreaOffset>1048576</BaseAreaOffset>
+					</Pci>
+				</AddressInfo>
+				<Vars VarGrpType="1" InsertType="1">
+					<Name>Inputs</Name>
+				</Vars>
+				<Vars VarGrpType="2" InsertType="1">
+					<Name>Outputs</Name>
+				</Vars>
+				<Image Id="6" AddrType="5" ImageType="2">
+					<Name>Image</Name>
+				</Image>
+				<DpRam/>
+			</Device>
+			<Device Id="2" DevType="109" DevFlags="#x0004">
+				<Name>Device 2 (RT-Ethernet Adapter)</Name>
+				<AddressInfo>
+					<Pnp>
+						<DeviceDesc>Local Area Connection (TwinCAT-Intel PCI Ethernet A</DeviceDesc>
+						<DeviceName>\DEVICE\{6CE7DB98-6BFA-45DF-AD47-0046EA1B124A}</DeviceName>
+						<DeviceData>000105351fe6</DeviceData>
+					</Pnp>
+				</AddressInfo>
+				<Module Id="#x01010010" KeepUnrestoredLinks="2">
+					<Name>Device 2 (RT-Ethernet Adapter)_Obj1 (TCP/UDP RT)</Name>
+					<ImageId>1006</ImageId>
+					<TmcDesc GUID="{080D0399-6A65-408D-80E1-18D8F699496A}">
+						<Name>TCP/UDP RT</Name>
+						<CLSID ClassFactory="TCIOETH">{03010070-0000-0000-F000-000000000064}</CLSID>
+						<Licenses>
+							<License>
+								<LicenseId>{081AC839-28D0-49CA-9792-72680E1F3249}</LicenseId>
+							</License>
+						</Licenses>
+						<InitSequence>PSO</InitSequence>
+						<Contexts>
+							<Context>
+								<Id>1</Id>
+							</Context>
+						</Contexts>
+						<Interfaces>
+							<Interface>
+								<Type GUID="{00000012-0000-0000-E000-000000000064}">ITComObject</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03010035-0000-0000-E000-000000000064}">ITcIoEthProtocol</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{0301009E-0000-0000-E000-000000000064}">ITcIoArpPing</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{0301009D-0000-0000-E000-000000000064}">ITcIoIpStackControl</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03010097-0000-0000-E000-000000000064}">ITcIoUdpProtocol</Type>
+							</Interface>
+							<Interface>
+								<Type GUID="{03010098-0000-0000-E000-000000000064}">ITcIoTcpProtocol</Type>
+							</Interface>
+						</Interfaces>
+						<Parameters>
+							<Parameter>
+								<Name>TcIoIpSettings</Name>
+								<BitSize>128</BitSize>
+								<SubItem>
+									<Name>IpAddress</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>0</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>SubnetMask</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>32</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>Gateway</Name>
+									<Type GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</Type>
+									<BitSize>32</BitSize>
+									<BitOffs>64</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>DhcpEnable</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+									<BitSize>8</BitSize>
+									<BitOffs>96</BitOffs>
+								</SubItem>
+								<SubItem>
+									<Name>ManualSettings</Name>
+									<Type GUID="{18071995-0000-0000-0000-000000000030}">BOOL</Type>
+									<BitSize>8</BitSize>
+									<BitOffs>104</BitOffs>
+								</SubItem>
+								<PTCID>#x03002050</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMaxReceivers</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>4</Value>
+								</Default>
+								<PTCID>#x03011101</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMaxPendingOnArp</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>40</Value>
+								</Default>
+								<PTCID>#x03011103</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMacCacheSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>64</Value>
+								</Default>
+								<PTCID>#x03011104</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpMTU</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1514</Value>
+								</Default>
+								<PTCID>#x03011105</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>IpRecvFrameQueueSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>255</Value>
+								</Default>
+								<PTCID>#x03011115</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>UdpMaxReceivers</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>4</Value>
+								</Default>
+								<PTCID>#x03011111</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>UdpMTU</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1514</Value>
+								</Default>
+								<PTCID>#x03011112</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>UdpCheckCrc</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+								<Default>
+									<EnumText>TRUE</EnumText>
+								</Default>
+								<PTCID>#x03011113</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TTL</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+								<Default>
+									<Value>128</Value>
+								</Default>
+								<PTCID>#x03011106</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>MulticastTTL</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+								<Default>
+									<Value>1</Value>
+								</Default>
+								<PTCID>#x0301110a</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>PassiveMode</Name>
+								<Comment><![CDATA[Ethernet adapter frame processing triggered by other protocol]]></Comment>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+								<PTCID>#x03011133</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>MulticastIpList</Name>
+								<BitSize>0</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-00000000003E}">IPADDR</BaseType>
+								<ArrayInfo>
+									<LBound>0</LBound>
+									<Elements Min="0" Max="8">0</Elements>
+								</ArrayInfo>
+								<PTCID>#x0301110d</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpMTU</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1514</Value>
+								</Default>
+								<PTCID>#x03011122</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpCheckCrc</Name>
+								<BitSize>8</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000030}">BOOL</BaseType>
+								<Default>
+									<EnumText>TRUE</EnumText>
+								</Default>
+								<PTCID>#x03011123</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpMaxSocketCount</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>32</Value>
+								</Default>
+								<PTCID>#x03011124</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpReceiveBufferSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>16192</Value>
+								</Default>
+								<PTCID>#x03011125</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTransmitBufferSize</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>16192</Value>
+								</Default>
+								<PTCID>#x03011126</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpMaxRetry</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>5</Value>
+								</Default>
+								<PTCID>#x03011127</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTimeoutWait</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>60000</Value>
+								</Default>
+								<PTCID>#x03011128</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTimeoutCon</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>5000</Value>
+								</Default>
+								<PTCID>#x03011129</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpTimeoutIdle</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>1000</Value>
+								</Default>
+								<PTCID>#x03011130</PTCID>
+							</Parameter>
+							<Parameter>
+								<Name>TcpRoundTripTime</Name>
+								<BitSize>32</BitSize>
+								<BaseType GUID="{18071995-0000-0000-0000-000000000008}">UDINT</BaseType>
+								<Default>
+									<Value>3000</Value>
+								</Default>
+								<PTCID>#x03011131</PTCID>
+							</Parameter>
+							<Parameter OnlineParameter="true" ShowSubItems="true">
+								<Name>IpStackDiagnosis</Name>
+								<BitSize>768</BitSize>
+								<BaseType GUID="{38621CD5-4239-4327-97F7-35F1414B7265}">IpStackDiagnosis</BaseType>
+								<PTCID>#x03011108</PTCID>
+							</Parameter>
+						</Parameters>
+						<InterfacePointers>
+							<InterfacePointer>
+								<PTCID>#x03002040</PTCID>
+								<Name>ITcIoEthAdapter</Name>
+								<Type GUID="{03010034-0000-0000-E000-000000000064}"></Type>
+							</InterfacePointer>
+						</InterfacePointers>
+						<Properties>
+							<Property>
+								<Name>Category</Name>
+								<Value>NeedEthernetAdapterPort</Value>
+							</Property>
+							<Property>
+								<Name>Category</Name>
+								<Value>NeedIoIdleTask</Value>
+							</Property>
+							<Property>
+								<Name>ChildCategory</Name>
+								<Value>IpProtocol</Value>
+							</Property>
+						</Properties>
+						<ParentOTCID>#x03010020</ParentOTCID>
+						<ParameterValues>
+							<Value>
+								<Name>TcIoIpSettings.IpAddress</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.SubnetMask</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.Gateway</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.DhcpEnable</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>TcIoIpSettings.ManualSettings</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>IpMaxReceivers</Name>
+								<Value>4</Value>
+							</Value>
+							<Value>
+								<Name>IpMaxPendingOnArp</Name>
+								<Value>40</Value>
+							</Value>
+							<Value>
+								<Name>IpMacCacheSize</Name>
+								<Value>64</Value>
+							</Value>
+							<Value>
+								<Name>IpMTU</Name>
+								<Value>1514</Value>
+							</Value>
+							<Value>
+								<Name>IpRecvFrameQueueSize</Name>
+								<Value>255</Value>
+							</Value>
+							<Value>
+								<Name>UdpMaxReceivers</Name>
+								<Value>4</Value>
+							</Value>
+							<Value>
+								<Name>UdpMTU</Name>
+								<Value>1514</Value>
+							</Value>
+							<Value>
+								<Name>UdpCheckCrc</Name>
+								<EnumText>TRUE</EnumText>
+							</Value>
+							<Value>
+								<Name>TTL</Name>
+								<Value>128</Value>
+							</Value>
+							<Value>
+								<Name>MulticastTTL</Name>
+								<Value>1</Value>
+							</Value>
+							<Value>
+								<Name>PassiveMode</Name>
+								<EnumText>FALSE</EnumText>
+							</Value>
+							<Value>
+								<Name>TcpMTU</Name>
+								<Value>1514</Value>
+							</Value>
+							<Value>
+								<Name>TcpCheckCrc</Name>
+								<EnumText>TRUE</EnumText>
+							</Value>
+							<Value>
+								<Name>TcpMaxSocketCount</Name>
+								<Value>32</Value>
+							</Value>
+							<Value>
+								<Name>TcpReceiveBufferSize</Name>
+								<Value>16192</Value>
+							</Value>
+							<Value>
+								<Name>TcpTransmitBufferSize</Name>
+								<Value>16192</Value>
+							</Value>
+							<Value>
+								<Name>TcpMaxRetry</Name>
+								<Value>5</Value>
+							</Value>
+							<Value>
+								<Name>TcpTimeoutWait</Name>
+								<Value>60000</Value>
+							</Value>
+							<Value>
+								<Name>TcpTimeoutCon</Name>
+								<Value>5000</Value>
+							</Value>
+							<Value>
+								<Name>TcpTimeoutIdle</Name>
+								<Value>1000</Value>
+							</Value>
+							<Value>
+								<Name>TcpRoundTripTime</Name>
+								<Value>3000</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.ip.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpRequest.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.arpReply.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingRequest.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nSendCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nSendFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nRecvCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.pingReply.nRecvFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nLinkStatusChangedCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nAllocFailCnt</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nArpTimeoutFrames</Name>
+								<Value>0</Value>
+							</Value>
+							<Value>
+								<Name>IpStackDiagnosis.nDroppedFrames</Name>
+								<Value>0</Value>
+							</Value>
+						</ParameterValues>
+						<InterfacePointerValues>
+							<Value>
+								<Name>ITcIoEthAdapter</Name>
+								<OTCID>#x00000000</OTCID>
+							</Value>
+						</InterfacePointerValues>
+					</TmcDesc>
+				</Module>
+				<Ethernet DeviceDesc="Local Area Connection (TwinCAT-Intel PCI Ethernet Adapter (Gigabit) #3)" Ports="1" VLanIds="0a0014001e00280032003c00460050005a0064006e00780082008c009600a000aa00b400be00c800d200dc00e600f000fa0004010e01180122012c01360140014a0154015e01680172017c01860190019a01a401ae01b801c201cc01d601e001ea01f401fe01080212021c02260230023a0244024e02580262026c0276028002">
+					<Esl SyncSlaveProtocolPort="-1"/>
+				</Ethernet>
+			</Device>
+		</Io>
+	</Project>
+	<Mappings>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500821000403}" Id="#x02030020"/>
+		<OwnerA Name="TIPC^TrsClientTester^TrsClientTester Instance">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)">
+				<Link VarA="PlcTask Inputs^MAIN.fbTimeObj.i_dc2ExtOffset" VarB="InfoData^DcToExtTimeOffset"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimeObj.i_dc2TcOffset" VarB="InfoData^DcToTcTimeOffset"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 3 (EK1100)^Term 4 (EL2262)">
+				<Link VarA="PlcTask Inputs^MAIN.fbTimerObj.DcOutputShift" VarB="InfoData^DcOutputShift"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.CyclicCounter" VarB="CycCount0^Cycle Counter0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[100]" VarB="Sample0 99^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[101]" VarB="Sample0 100^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[102]" VarB="Sample0 101^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[103]" VarB="Sample0 102^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[104]" VarB="Sample0 103^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[105]" VarB="Sample0 104^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[106]" VarB="Sample0 105^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[107]" VarB="Sample0 106^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[108]" VarB="Sample0 107^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[109]" VarB="Sample0 108^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[10]" VarB="Sample0 9^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[110]" VarB="Sample0 109^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[111]" VarB="Sample0 110^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[112]" VarB="Sample0 111^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[113]" VarB="Sample0 112^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[114]" VarB="Sample0 113^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[115]" VarB="Sample0 114^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[116]" VarB="Sample0 115^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[117]" VarB="Sample0 116^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[118]" VarB="Sample0 117^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[119]" VarB="Sample0 118^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[11]" VarB="Sample0 10^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[120]" VarB="Sample0 119^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[121]" VarB="Sample0 120^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[122]" VarB="Sample0 121^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[123]" VarB="Sample0 122^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[124]" VarB="Sample0 123^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[125]" VarB="Sample0 124^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[12]" VarB="Sample0 11^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[13]" VarB="Sample0 12^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[14]" VarB="Sample0 13^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[15]" VarB="Sample0 14^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[16]" VarB="Sample0 15^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[17]" VarB="Sample0 16^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[18]" VarB="Sample0 17^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[19]" VarB="Sample0 18^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[1]" VarB="Sample0 0^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[20]" VarB="Sample0 19^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[21]" VarB="Sample0 20^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[22]" VarB="Sample0 21^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[23]" VarB="Sample0 22^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[24]" VarB="Sample0 23^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[25]" VarB="Sample0 24^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[26]" VarB="Sample0 25^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[27]" VarB="Sample0 26^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[28]" VarB="Sample0 27^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[29]" VarB="Sample0 28^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[2]" VarB="Sample0 1^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[30]" VarB="Sample0 29^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[31]" VarB="Sample0 30^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[32]" VarB="Sample0 31^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[33]" VarB="Sample0 32^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[34]" VarB="Sample0 33^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[35]" VarB="Sample0 34^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[36]" VarB="Sample0 35^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[37]" VarB="Sample0 36^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[38]" VarB="Sample0 37^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[39]" VarB="Sample0 38^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[3]" VarB="Sample0 2^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[40]" VarB="Sample0 39^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[41]" VarB="Sample0 40^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[42]" VarB="Sample0 41^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[43]" VarB="Sample0 42^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[44]" VarB="Sample0 43^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[45]" VarB="Sample0 44^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[46]" VarB="Sample0 45^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[47]" VarB="Sample0 46^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[48]" VarB="Sample0 47^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[49]" VarB="Sample0 48^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[4]" VarB="Sample0 3^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[50]" VarB="Sample0 49^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[51]" VarB="Sample0 50^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[52]" VarB="Sample0 51^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[53]" VarB="Sample0 52^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[54]" VarB="Sample0 53^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[55]" VarB="Sample0 54^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[56]" VarB="Sample0 55^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[57]" VarB="Sample0 56^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[58]" VarB="Sample0 57^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[59]" VarB="Sample0 58^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[5]" VarB="Sample0 4^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[60]" VarB="Sample0 59^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[61]" VarB="Sample0 60^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[62]" VarB="Sample0 61^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[63]" VarB="Sample0 62^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[64]" VarB="Sample0 63^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[65]" VarB="Sample0 64^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[66]" VarB="Sample0 65^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[67]" VarB="Sample0 66^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[68]" VarB="Sample0 67^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[69]" VarB="Sample0 68^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[6]" VarB="Sample0 5^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[70]" VarB="Sample0 69^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[71]" VarB="Sample0 70^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[72]" VarB="Sample0 71^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[73]" VarB="Sample0 72^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[74]" VarB="Sample0 73^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[75]" VarB="Sample0 74^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[76]" VarB="Sample0 75^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[77]" VarB="Sample0 76^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[78]" VarB="Sample0 77^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[79]" VarB="Sample0 78^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[7]" VarB="Sample0 6^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[80]" VarB="Sample0 79^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[81]" VarB="Sample0 80^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[82]" VarB="Sample0 81^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[83]" VarB="Sample0 82^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[84]" VarB="Sample0 83^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[85]" VarB="Sample0 84^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[86]" VarB="Sample0 85^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[87]" VarB="Sample0 86^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[88]" VarB="Sample0 87^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[89]" VarB="Sample0 88^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[8]" VarB="Sample0 7^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[90]" VarB="Sample0 89^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[91]" VarB="Sample0 90^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[92]" VarB="Sample0 91^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[93]" VarB="Sample0 92^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[94]" VarB="Sample0 93^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[95]" VarB="Sample0 94^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[96]" VarB="Sample0 95^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[97]" VarB="Sample0 96^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[98]" VarB="Sample0 97^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[99]" VarB="Sample0 98^Output0"/>
+				<Link VarA="PlcTask Outputs^MAIN.fbTimerObj.Output0[9]" VarB="Sample0 8^Output0"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 3 (EK1100)^Term 5 (EL6688)">
+				<Link VarA="PlcTask Inputs^MAIN.fbTimeObj.i_AdsAddr" VarB="InfoData^AdsAddr"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimeObj.i_exTime" VarB="  External Sync^External time stamp"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimeObj.i_extDevNotConnected" VarB="  External Sync^External device not connected"/>
+				<Link VarA="PlcTask Inputs^MAIN.fbTimeObj.i_inTime" VarB="  External Sync^Internal time stamp"/>
+			</OwnerB>
+		</OwnerA>
+	</Mappings>
+</TcSmProject>

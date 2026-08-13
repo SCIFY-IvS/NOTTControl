@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <DUT Name="E_HMI_TIP_TILT_TABS" Id="{f5f104c4-76d5-4352-802e-f58bb69541e3}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_HMI_TIP_TILT_TABS :
+(
+	TIP_A,
+    TIP_B,
+	TILT_A,
+    TILT_B
+
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

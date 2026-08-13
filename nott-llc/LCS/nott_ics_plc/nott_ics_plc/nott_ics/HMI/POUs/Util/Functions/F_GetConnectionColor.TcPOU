@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="F_GetConnectionColor" Id="{dd8e510c-e6ff-4a9d-9149-cc30bf7be75c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_GetConnectionColor : E_HMI_COLORS
+VAR_INPUT
+    bConnected : BOOL;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bConnected THEN
+    F_GetConnectionColor := E_HMI_COLORS.GREEN;
+ELSE
+    F_GetConnectionColor := E_HMI_COLORS.RED;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="F_GetConnectionColor">
+      <LineId Id="8" Count="3" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

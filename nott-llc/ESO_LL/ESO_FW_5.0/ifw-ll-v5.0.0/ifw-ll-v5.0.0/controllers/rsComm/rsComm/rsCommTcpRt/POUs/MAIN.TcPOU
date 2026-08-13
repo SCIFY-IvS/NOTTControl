@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="MAIN" Id="{4cb59fba-07cc-4017-b1f3-d17678eefef2}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	// Lakeshore 224 (Ethernet TCP Realtime interface)
+	{attribute 'OPC.UA.DA' := '1'}
+	LS224_TCP_RT:	FB_LAKESHORE_TCP_RT;	// LakeShore based on FB_TCP_RT_CLIENT
+
+	// Lakeshore 336 (Ethernet TCP Realtime interface)
+	{attribute 'OPC.UA.DA' := '1'}
+	LS336_TCP_RT:	FB_LAKESHORE_TCP_RT;	// LakeShore based on FB_TCP_RT_CLIENT
+	
+	bDymmy	AT %I*:	BOOL;
+
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[		
+LS224_TCP_RT(	in_sName			:= 'LS224_TCP_RT',
+				in_nModel			:= 224,
+				in_sCmdSuffix		:= '$0D$0A',
+				in_sDeviceTcpIpAdr	:= '192.168.0.12',
+				in_nDeviceTcpPort	:= 7777,
+				in_nPeriod			:= 1200); 
+		
+LS336_TCP_RT(	in_sName			:= 'LS336_TCP_RT',
+				in_nModel			:= 336,
+				in_sCmdSuffix		:= '$0A',
+				in_sDeviceTcpIpAdr	:= '192.168.0.80',
+				in_nDeviceTcpPort	:= 7777,
+				in_nPeriod			:= 1000); 
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="593" Count="1" />
+      <LineId Id="614" Count="0" />
+      <LineId Id="598" Count="0" />
+      <LineId Id="595" Count="2" />
+      <LineId Id="370" Count="1" />
+      <LineId Id="615" Count="0" />
+      <LineId Id="599" Count="0" />
+      <LineId Id="578" Count="2" />
+      <LineId Id="424" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="471" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

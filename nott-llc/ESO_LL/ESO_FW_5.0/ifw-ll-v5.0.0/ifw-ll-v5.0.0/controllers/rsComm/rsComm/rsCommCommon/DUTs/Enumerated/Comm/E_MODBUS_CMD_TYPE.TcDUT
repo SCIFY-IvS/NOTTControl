@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_MODBUS_CMD_TYPE" Id="{6f12f343-f565-42b4-bed6-b93136a4e089}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MODBUS_CMD_TYPE :
+(
+	READ	:=	0,
+	WRITE	:=	1
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

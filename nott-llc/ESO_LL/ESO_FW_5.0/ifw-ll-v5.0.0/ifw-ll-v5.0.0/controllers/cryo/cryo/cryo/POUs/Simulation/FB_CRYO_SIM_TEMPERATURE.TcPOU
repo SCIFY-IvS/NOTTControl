@@ -1,0 +1,283 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_CRYO_SIM_TEMPERATURE" Id="{34225994-b5dc-40fc-a623-307cb972db18}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// This FB simulates temperature in degK.
+//
+FUNCTION_BLOCK FB_CRYO_SIM_TEMPERATURE
+VAR_INPUT
+	in_lrScale:		LREAL 	:= 0.1;		// Scale factor, T = raw * scale. Default 0.1
+	in_lrTempK:		LREAL	:= 283.15;	// Start Temperature [K]
+	in_lrTempDelta:	LREAL	:= 11.25;	// Delta Temperature +- for SINE wave [K]
+	in_nPeriod:		UDINT	:= 10000;	// RAMP/SINE Command period, default 10000ms = 10s
+	in_bAutoSine:	BOOL	:= FALSE;	// Flag if SINE wave should start immediately
+	
+END_VAR
+VAR
+	q_nStatus	AT%Q*:	UINT	:= 0;	// Simulated status
+	q_nValue	AT%Q*:	INT		:= 100;	// Simulated value [bit]
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	bStarted:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	toggleTimer:	TON;		// Timer for PDO (alive) toggle
+	{attribute 'OPC.UA.DA' := '0'}
+	rampTimer:		TON;		// Timer for temperature ramp
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nToggleMask:	UINT := 2#1000_0000_0000_0000;
+
+	lrTempK:		LREAL	:= 283.15;	// Simulated temperature [K]
+	{attribute 'OPC.UA.DA' := '0'}
+	lrTempStart:	LREAL	:= 283.15;	// Simulated temperature start [K]
+	{attribute 'OPC.UA.DA' := '0'}
+	lrTempEnd:		LREAL	:= 0.0;		// Simulated temperature end   [K]
+	{attribute 'OPC.UA.DA' := '0'}
+	lrTempDelta:	LREAL	:= 11.25;	// Delta Temperature +- for SINE wave [K]
+	{attribute 'OPC.UA.DA' := '0'}
+	nValue:			INT		:= 100;		// Simulated value [bit]
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nPeriod:		UDINT	:= 10000;	// RAMP/SINE Command period, default 10000ms = 10s
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nState:		INT	:= SIM_TEMP_STATE_FIXED;
+	
+END_VAR
+VAR CONSTANT 
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_TEMP_STATE_NONE:	INT :=  0;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_TEMP_STATE_FIXED:	INT := 10;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_TEMP_STATE_RAMP:	INT := 20;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_TEMP_STATE_SINE:	INT := 30;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_TEMP_RAMP_UP:		INT := 0;
+	{attribute 'OPC.UA.DA' := '0'}
+    SIM_TEMP_RAMP_DOWN:		INT := 1;
+	
+END_VAR 
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Simulate terminal alive toggle every 160ms.
+//
+IF NOT bStarted THEN
+	bStarted	:= TRUE;
+	lrTempK		:= in_lrTempK;	// Assign starting value
+	lrTempDelta	:= in_lrTempDelta;
+	nPeriod		:= in_nPeriod;
+	IF in_bAutoSine THEN
+		M_StartSine(in_lrValueStart:=lrTempK,
+					in_lrValueDelta:=lrTempDelta,
+					in_nPeriod:=nPeriod);
+	END_IF
+	toggleTimer(IN:=FALSE);
+END_IF
+toggleTimer(IN:=TRUE,PT:=T#160MS);
+
+IF toggleTimer.Q THEN
+	q_nStatus	:= q_nStatus XOR nToggleMask;
+	// Restart the timer
+	toggleTimer(IN:=FALSE);
+END_IF
+
+
+//
+// Handle states 
+//
+IF nState = SIM_TEMP_STATE_RAMP THEN
+	rampTimer(IN:=TRUE);
+	lrTempK	:=	lrTempStart + 
+				(lrTempEnd - lrTempStart)* TIME_TO_LREAL(rampTimer.ET)/TIME_TO_LREAL(rampTimer.PT);
+	IF rampTimer.Q THEN
+		rampTimer(IN:=FALSE);
+		nState	:= SIM_TEMP_STATE_FIXED;
+	END_IF
+ELSIF nState = SIM_TEMP_STATE_SINE THEN
+	rampTimer(IN:=TRUE);
+	lrTempK	:=	lrTempStart + 
+				lrTempDelta * SIN(2 * PI * TIME_TO_LREAL(rampTimer.ET)/TIME_TO_LREAL(rampTimer.PT));
+	IF rampTimer.Q THEN
+		rampTimer(IN:=FALSE);
+		// Continue with the sine wave.
+		rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(nPeriod));
+	END_IF
+END_IF
+
+
+
+//
+// Set the raw reading, i.e. K -> bit.
+//
+q_nValue	:= M_degK2bit(lrTempK);
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_bit2degK" Id="{22dd9fae-75d2-4e06-942a-0e10bd165915}">
+      <Declaration><![CDATA[METHOD M_bit2degK : LREAL
+VAR_INPUT
+	in_nValue:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Set the raw reading, i.e. K -> bit.
+// Conversion is K -> C -> bit.
+//
+M_bit2degK	:= in_nValue * in_lrScale + 273.15;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_degK2bit" Id="{b1c153c5-334d-4eb4-b991-5a66d8f789f4}">
+      <Declaration><![CDATA[METHOD M_degK2bit : INT
+VAR_INPUT
+	in_lrValue:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Set the raw reading, i.e. K -> bit.
+// Conversion is K -> C -> bit.
+//
+M_degK2bit	:= LREAL_TO_INT((in_lrValue - 273.15) / in_lrScale);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RampTo" Id="{b5276bfe-ea72-40b0-9770-785e34fef9e2}">
+      <Declaration><![CDATA[METHOD M_RampTo
+VAR_INPUT
+	in_lrValueEnd:		LREAL;
+	in_nPeriod:			UDINT	:= 10000;	// RAMP/SINE Command period, default 10000ms = 10s
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(in_nPeriod));
+lrTempStart	:= lrTempK;
+lrTempEnd	:= in_lrValueEnd;
+nPeriod		:= in_nPeriod;
+nState		:= SIM_TEMP_STATE_RAMP;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetValue" Id="{0e927021-ced6-4b79-9c4c-02a552850e98}">
+      <Declaration><![CDATA[METHOD M_SetValue
+VAR_INPUT
+	in_lrValue:	LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+lrTempK	:= in_lrValue;
+nState	:= SIM_TEMP_STATE_FIXED;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartRamp" Id="{93c323b5-8ad4-4542-86e3-fe430cc34046}">
+      <Declaration><![CDATA[METHOD M_StartRamp
+VAR_INPUT
+	in_lrValueStart:	LREAL;
+	in_lrValueEnd:		LREAL;
+	in_nPeriod:			UDINT	:= 10000;	// RAMP/SINE Command period, default 10000ms = 10s
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(in_nPeriod));
+lrTempStart	:= in_lrValueStart;
+lrTempEnd	:= in_lrValueEnd;
+nPeriod		:= in_nPeriod;
+nState		:= SIM_TEMP_STATE_RAMP;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StartSine" Id="{19a2bab1-009f-4d1f-85d1-064c7c14fca3}">
+      <Declaration><![CDATA[METHOD M_StartSine
+VAR_INPUT
+	in_lrValueStart:	LREAL;
+	in_lrValueDelta:	LREAL;
+	in_nPeriod:			UDINT	:= 10000;	// RAMP/SINE Command period, default 10000ms = 10s
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rampTimer(IN:=FALSE);
+rampTimer(IN:=TRUE,PT:=UDINT_TO_TIME(in_nPeriod));
+lrTempStart	:= in_lrValueStart;
+lrTempDelta	:= in_lrValueDelta;
+nPeriod		:= in_nPeriod;
+nState		:= SIM_TEMP_STATE_SINE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Stop" Id="{64a532be-f463-4c8b-8902-0e2d3109a1d0}">
+      <Declaration><![CDATA[METHOD M_Stop
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Stop ramping.
+// Keep value as it is.
+rampTimer(IN:=FALSE);
+nState	:= SIM_TEMP_STATE_FIXED;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE">
+      <LineId Id="930" Count="26" />
+      <LineId Id="958" Count="0" />
+      <LineId Id="1055" Count="0" />
+      <LineId Id="959" Count="6" />
+      <LineId Id="1056" Count="0" />
+      <LineId Id="966" Count="3" />
+      <LineId Id="972" Count="1" />
+      <LineId Id="979" Count="1" />
+      <LineId Id="1054" Count="0" />
+      <LineId Id="981" Count="6" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_bit2degK">
+      <LineId Id="19" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_degK2bit">
+      <LineId Id="19" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_RampTo">
+      <LineId Id="6" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_SetValue">
+      <LineId Id="23" Count="0" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_StartRamp">
+      <LineId Id="6" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_StartSine">
+      <LineId Id="6" Count="3" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_SIM_TEMPERATURE.M_Stop">
+      <LineId Id="28" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_VOTE" Id="{9f92c504-3124-459d-8d7e-c01e7aedc4f6}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_VOTE :
+(
+	V_AVE	:= 0,
+	V_MIN,
+	V_MAX,
+	V_1oo2,
+	V_2oo3,
+	V_3oo5
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

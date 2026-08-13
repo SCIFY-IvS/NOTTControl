@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="F_HMI_BUSY_TO_COLOR" Id="{a66562d8-d268-4b3f-a05d-c93ec2e0b4c2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_HMI_BUSY_TO_COLOR : T_HMI_COLORS
+VAR_IN_OUT
+    fbBusyStatus : FB_HMI_BUSY_STATUS;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF fbBusyStatus.bIdle THEN
+    F_HMI_BUSY_TO_COLOR.fg := E_HMI_COLORS.BLACK;
+    F_HMI_BUSY_TO_COLOR.bg := E_HMI_COLORS.GREEN;
+ELSIF fbBusyStatus.bBusy THEN
+	F_HMI_BUSY_TO_COLOR.fg := E_HMI_COLORS.WHITE;
+	F_HMI_BUSY_TO_COLOR.bg := E_HMI_COLORS.BLUE;
+ELSE
+	F_HMI_BUSY_TO_COLOR.fg := E_HMI_COLORS.BLACK;
+	F_HMI_BUSY_TO_COLOR.bg := E_HMI_COLORS.GRAY;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="F_HMI_BUSY_TO_COLOR">
+      <LineId Id="75" Count="8" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

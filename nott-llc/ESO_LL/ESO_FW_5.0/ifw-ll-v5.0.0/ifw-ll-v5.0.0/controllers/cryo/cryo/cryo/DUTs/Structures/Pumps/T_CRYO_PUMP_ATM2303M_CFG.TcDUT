@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_ATM2303M_CFG" Id="{241d70d8-cd52-4c13-a7a1-7687864a64ab}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_ATM2303M_CFG EXTENDS T_CRYO_PUMP_SERIAL_CFG:
+STRUCT
+// TODO: Add specific configuration here
+
+	// Definition of commands
+	C_CMD_NONE:		STRING(16) := '';
+	C_CMD_IDN:		STRING(16) := '#000IDN';
+	C_CMD_RDI:		STRING(16) := '#000RDI';
+	C_CMD_VER:		STRING(16) := '#000VER';
+	C_CMD_DEF:		STRING(16) := '#000DEF';
+	C_CMD_SEL:		STRING(16) := '#000SEL10';
+	C_CMD_TIM:		STRING(16) := '#000TIM';
+	C_CMD_STA:		STRING(16) := '#000STA';
+	C_CMD_LEV:		STRING(16) := '#000LEV10';
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

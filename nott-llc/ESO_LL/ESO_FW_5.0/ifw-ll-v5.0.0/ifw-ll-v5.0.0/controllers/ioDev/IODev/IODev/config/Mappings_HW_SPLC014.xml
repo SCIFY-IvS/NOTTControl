@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^IODev^IODev Instance">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)">
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.i_nCouplerState" VarB="InfoData^State"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev002.i_nCouplerState" VarB="InfoData^State"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.i_nCouplerState" VarB="InfoData^State"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev004.i_nCouplerState" VarB="InfoData^State"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 21 (EL3068)">
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[0].i_nValue" VarB="AI Standard Channel 1^Value"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[1].i_nValue" VarB="AI Standard Channel 2^Value"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[2].i_nValue" VarB="AI Standard Channel 3^Value"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrAI[3].i_nValue" VarB="AI Standard Channel 4^Value"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 6 (EL4008)">
+			<Link VarA="PlcTask Outputs^MAIN.IODev001.ctrl.arrAO[0].q_nValue" VarB="AO Outputs Channel 1^Analog output"/>
+			<Link VarA="PlcTask Outputs^MAIN.IODev001.ctrl.arrAO[1].q_nValue" VarB="AO Outputs Channel 2^Analog output"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 7 (EL2008)">
+			<Link VarA="PlcTask Outputs^MAIN.IODev001.ctrl.arrDO[0].q_bValue" VarB="Channel 1^Output"/>
+			<Link VarA="PlcTask Outputs^MAIN.IODev001.ctrl.arrDO[1].q_bValue" VarB="Channel 2^Output"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 8 (EL1008)">
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrDI[0].i_bValue" VarB="Channel 1^Input"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev001.stat.arrDI[1].i_bValue" VarB="Channel 2^Input"/>
+		</OwnerB>
+		<OwnerB Name="TIPC^IODev^IODev Instance">
+			<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[0].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[1].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev002.stat.arrDI[6].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[0].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[1].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[2].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg3.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrAI[3].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg4.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrDI[6].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev003.stat.arrDI[7].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrAI[2].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg3.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrAI[3].i_nValue" VarB="PlcTask Outputs^MAIN.SIM_nAnlg4.q_nSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrDI[0].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrDI[1].i_bValue" VarB="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal"/>
+			<Link VarA="PlcTask Inputs^MAIN.IODev004.stat.arrRI[0].i_rValue" VarB="PlcTask Outputs^MAIN.SIM_rAnlg1.q_rSignal"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_bDig1.q_bSignal" VarB="PlcTask Inputs^MAIN.IODev003.stat.arrDI[0].i_bValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal" VarB="PlcTask Inputs^MAIN.IODev002.stat.arrDI[7].i_bValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_bDig2.q_bSignal" VarB="PlcTask Inputs^MAIN.IODev003.stat.arrDI[1].i_bValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal" VarB="PlcTask Inputs^MAIN.IODev002.stat.arrAI[0].i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_nAnlg1.q_nSignal" VarB="PlcTask Inputs^MAIN.IODev004.stat.arrAI[0].i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal" VarB="PlcTask Inputs^MAIN.IODev002.stat.arrAI[1].i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_nAnlg2.q_nSignal" VarB="PlcTask Inputs^MAIN.IODev004.stat.arrAI[1].i_nValue"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_rAnlg2.q_rSignal" VarB="PlcTask Inputs^MAIN.IODev004.stat.arrRI[1].i_rValue"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

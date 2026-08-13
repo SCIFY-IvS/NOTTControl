@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_EVAC_CFG" Id="{78cebca0-92f2-4164-a2e1-c9439f97ef82}">
+    <Declaration><![CDATA[TYPE T_CRYO_EVAC_CFG :
+STRUCT
+	nPressGaugeType1:	E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+	nPressGaugeType2:	E_CRYO_SENSOR_TYPE_PRESS := E_CRYO_SENSOR_TYPE_PRESS.PKR_360;
+
+	bPressSimulation:	BOOL := FALSE;	// Flag is pre-vacuum pressure is simulated.
+
+	lrThld_Prevac:					LREAL := 0.005;	// Prevacuum pressure threshold
+	lrThld_PrevacHigh:				LREAL := 5.0;	// Prevacuum pressure too high threshold
+	// Cryo pressure threshold for safe Turbo Pump start
+	lrThld_TP_SafeStartPressure:	LREAL := 0.01;	
+	// Cryo pressure threshold for safe Valve opening
+	lrThld_Valve_SafeOpenPressure:	LREAL := 0.1;	
+	
+	tDelay:		TIME := T#3S;	// Time delay before stopping Turbo Pump
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

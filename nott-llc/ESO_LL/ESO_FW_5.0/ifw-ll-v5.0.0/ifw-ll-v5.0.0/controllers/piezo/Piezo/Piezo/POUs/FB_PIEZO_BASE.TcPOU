@@ -1,0 +1,2394 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_PIEZO_BASE" Id="{9b20579e-46f1-487a-b0e9-71610139463f}" SpecialFunc="None">
+    <Declaration><![CDATA[// Function Block for control of up to three analog outputs.
+// The FB is intended for use with Piezo controllers.
+FUNCTION_BLOCK FB_PIEZO_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sName:		STRING;			// Instance name. Default 'Piezo'.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nNumAxes:	INT;			// Max 3 axes
+
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nMaxOn:		DINT	:= 0;	// Maximum time for Piezo to be active [sec].
+									// Outputs go to zero after this time.
+									// If equal zero, check is not done.
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR RETAIN
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	RefCfg:		REFERENCE TO T_PIEZO_CFG;	
+	{attribute 'OPC.UA.DA' := '0'}
+	RefCtrl:	REFERENCE TO T_PIEZO_CTRL;	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_PIEZO_INFO;	(* ReadOnly *)
+	{attribute 'OPC.UA.DA' := '0'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	RefStat:	REFERENCE TO T_PIEZO_STAT;	(* ReadOnly *)
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_PIEZO_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_PIEZO_EVENT.NONE;
+	
+	// Operational Events
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventStart:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventEnd:		FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventError:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventDebug:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventGeneral:	FB_TcMessage;
+	
+	(***** Physical signals - to be mapped!!! *****)
+
+	// Analog input channels as Int16 (might not exist)
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nActVal_Int16	AT %I*: ARRAY [0..2] OF	INT;	// Control feedback, actual value
+
+	// Analog input channels as Int32 (might not exist)
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nActVal_Int32	AT %I*: ARRAY [0..2] OF	DINT;	// Control feedback, actual value
+
+	(* Outputs *)
+	{attribute 'OPC.UA.DA' := '0'}
+	q_nCtrl 		AT %Q*: 	ARRAY [0..(GVL.C_nNumAxes-1)] OF	INT;	// Control analog output [bit]
+
+	(* Inputs *)	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nCouplerState	AT %I*: 		UINT;	(* Link it to Coupler->InfoData->State *)
+
+	// Flag if the device is ready to receive commands.
+	// It takes a couple of cycles for the system to read inputs after reboot.
+	{attribute 'OPC.UA.DA' := '0'}
+	bDeviceReady:		BOOL 	:= FALSE;
+
+	{attribute 'OPC.UA.DA' := '0'}
+	toutMaxOn:	TON;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// On first cycle configure from input params and internally execute M_UserConfigure(), if exists.
+IF NOT bDeviceReady THEN
+	// Set device Configuration
+	M_Configure();
+	RETURN;
+END_IF
+
+// Increment counter.
+// This will be seen as 'alive' flag.
+RefStat.nCycleCounter	:= RefStat.nCycleCounter + 1;
+
+// EICSSW-634:
+M_UpdateMonitor();
+
+(* === Check for commands and internal events to be processed === *)
+CheckForEvents();
+
+(* === Process events according to the State Machine === *)
+ProcessEvents();
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionAutoExecute" Id="{7440fc23-3594-4859-bb19-bfa09ef5d487}">
+      <Declaration><![CDATA[METHOD ActionAutoExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionAutoExecute');
+
+// Log event
+M_LogEventGeneral('AUTO mode activated');
+
+// Restart safety timer
+M_RestartMaxOnTimer();
+
+(* Clear the error *)
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+SetHwStatus(E_PIEZO_HW_STATUS.AUTO);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionDisableExecute" Id="{1a0f3cb2-0f46-4875-b21e-2ce63437dddf}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionDisableExecute');
+
+// Log event
+M_LogEventGeneral('Device disabled');
+
+// Zero the outputs
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	q_nCtrl[i]					:=	0;	// bit
+	RefStat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+	IF RefCfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+		RefStat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - RefCfg.nUserOffsetBit_Set[i].nValue) / 
+										RefCfg.lrUser2Bit_Set[i].lrValue;	// UU
+	END_IF
+END_FOR
+
+SetHwStatus(E_PIEZO_HW_STATUS.ZERO);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableExecute" Id="{1290ec18-c358-4e1a-9cc8-573d638e60f6}">
+      <Declaration><![CDATA[METHOD ActionEnableExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionEnableExecute');
+
+// Log event
+M_LogEventGeneral('Device enabled');
+
+// Home the outputs
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	q_nCtrl[i]			:= RefCfg.nHome[i].nValue;	// bit
+	RefStat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+	IF RefCfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+		RefStat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - RefCfg.nUserOffsetBit_Set[i].nValue) / 
+										RefCfg.lrUser2Bit_Set[i].lrValue;	// UU
+	END_IF
+END_FOR
+
+SetHwStatus(E_PIEZO_HW_STATUS.HOME);
+
+(* Clear the error *)
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{0538174f-0d99-4308-8cd0-823031a574c6}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionErrExecute');
+
+IF nEvent = E_PIEZO_EVENT.ERRFAULT THEN
+	RefStat.nErrorCode		:= E_PIEZO_ERROR.ON_FAILURE;
+	RefStat.sErrorText		:= 'ERROR: Piezo HW failure';	
+ELSIF nEvent = E_PIEZO_EVENT.ERRRANGE THEN
+	RefStat.nErrorCode		:= E_PIEZO_ERROR.OUT_OF_RANGE;
+	RefStat.sErrorText		:= 'ERROR: Piezo set position out of range';	
+END_IF
+		
+RefStat.nStatus			:= E_PIEZO_STATUS.ERROR;
+RefStat.sStatus			:= 'ERROR';
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionHomeExecute" Id="{c64bfe32-47c0-47cc-9213-925deb5d088c}">
+      <Declaration><![CDATA[METHOD ActionHomeExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionHomeExecute');
+
+// Log event
+M_LogEventGeneral('Actuators homed');
+
+// Home the outputs
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	q_nCtrl[i]					:=	RefCfg.nHome[i].nValue;	// bit
+	RefStat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+	IF RefCfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+		RefStat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - RefCfg.nUserOffsetBit_Set[i].nValue) / 
+										RefCfg.lrUser2Bit_Set[i].lrValue;	// UU
+	END_IF
+END_FOR
+
+// Restart safety timer
+M_RestartMaxOnTimer();
+
+SetHwStatus(E_PIEZO_HW_STATUS.HOME);
+
+(* Clear the error *)
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{97b3cbdb-2a31-4af5-89ec-31cfa4270810}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+// Log event
+M_LogEventGeneral('Device initialised');
+
+// Zero the outputs
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	// Prevent division by zero due to wrong configuration
+	IF RefCfg.lrUser2Bit_Set[i].lrValue = 0.0 THEN
+		nEvent	:= E_PIEZO_EVENT.USER2BIT_ZERO;
+		SetStatus(E_PIEZO_ERROR.USER2BIT_ZERO,'ERROR: cfg.lrUser2Bit has zero value.');
+		RETURN;
+	END_IF
+	q_nCtrl[i]					:=	0;
+	RefStat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+	IF RefCfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+		RefStat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - RefCfg.nUserOffsetBit_Set[i].nValue) / 
+										RefCfg.lrUser2Bit_Set[i].lrValue;	// UU
+	END_IF
+END_FOR
+
+SetHwStatus(E_PIEZO_HW_STATUS.ZERO);
+
+// Status OK 
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMaxOnFailure" Id="{814947c3-aee3-4617-8bab-d2d87bccc85d}">
+      <Declaration><![CDATA[METHOD ActionMaxOnFailure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the switching OFF of the lamp *)
+SetAction('ActionMaxOnFailure');
+
+// Log event
+M_LogEventError('Max ON time exceeded. Actuators zeroed.');
+
+(* Set the error *)
+SetStatus(E_PIEZO_ERROR.MAXON,'ERROR: Maximum ON time exceeded.');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMoveBitExecute" Id="{bfd2d52b-84e3-47a3-93bc-35d5131a52b8}">
+      <Declaration><![CDATA[METHOD ActionMoveBitExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionMoveBitExecute');
+
+// Log event
+M_LogEventGeneral('Actuators moved in [bit] units');
+
+// Check if the positions are inside the allowed range
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	IF NOT M_CheckRangeBit(nIndex:= i, nVal:= RefCtrl.nPosBit[i].nValue) THEN
+		M_LogEventError('Set bit value out of range');
+		nInternalEvent	:= E_PIEZO_EVENT.ERRRANGE;
+//		SetEvent(E_PIEZO_EVENT.ERRRANGE);
+		RETURN;
+	END_IF
+END_FOR
+
+
+// Activate outputs
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	q_nCtrl[i]			:= RefCtrl.nPosBit[i].nValue;
+	RefStat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+	IF RefCfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+		RefStat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - RefCfg.nUserOffsetBit_Set[i].nValue) / 
+										RefCfg.lrUser2Bit_Set[i].lrValue;
+	END_IF
+END_FOR
+
+// Restart safety timer
+M_RestartMaxOnTimer();
+
+SetHwStatus(E_PIEZO_HW_STATUS.POS);
+
+// Status OK 
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMoveUserExecute" Id="{b29f1a7e-b799-496f-a70e-89a67d1f3416}">
+      <Declaration><![CDATA[// Action to move piezos to specified User Position.
+METHOD ActionMoveUserExecute
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionMoveUserExecute');
+
+// Log event
+M_LogEventGeneral('Actuators moved in [UU] (user)  units');
+
+// Check if the positions are inside the allowed range.
+// If any position is out of range, don't set outputs.
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	IF NOT M_CheckRangeUser(nIndex:= i, lrVal:= RefCtrl.lrPosUser[i].lrValue) THEN
+		M_LogEventError('Set User value out of range');
+		nInternalEvent	:= E_PIEZO_EVENT.ERRRANGE;
+		RETURN;
+	END_IF
+END_FOR
+
+// Set the outputs
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	// Calculate the output [bit] including the offset
+	q_nCtrl[i]	:= RefCfg.nUserOffsetBit_Set[i].nValue  +  LREAL_TO_INT(RefCtrl.lrPosUser[i].lrValue * RefCfg.lrUser2Bit_Set[i].lrValue);
+	
+	// Update the status in both [bit] and [UU]
+	RefStat.nSetPosBit[i].nValue		:= q_nCtrl[i];
+	RefStat.lrSetPosUsr[i].lrValue	:= RefCtrl.lrPosUser[i].lrValue;
+END_FOR
+
+// Restart safety timer
+M_RestartMaxOnTimer();
+
+SetHwStatus(E_PIEZO_HW_STATUS.POS);
+
+// Status OK 
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionPosExecute" Id="{c0bde88b-5dba-446b-a0ae-9804b1edf230}">
+      <Declaration><![CDATA[METHOD ActionPosExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionPosExecute');
+
+// Log event
+M_LogEventGeneral('Actuators stopped at current position');
+
+// Restart safety timer
+M_RestartMaxOnTimer();
+
+// This action is normally called when exiting, i.e. stopping, AUTO mode.
+// There is nothing to be done. Just keep current position.
+SetHwStatus(E_PIEZO_HW_STATUS.POS);
+
+
+(* Clear the error *)
+SetStatus(E_PIEZO_ERROR.OK,'OK');
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{c1b4383d-ea91-4237-9ab6-5bd638c3c0d1}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionResetExecute');
+
+// Log event
+M_LogEventGeneral('Device reset');
+
+M_ResetOutputs(TRUE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{8f3a797c-2341-4358-987f-4ef42fb67d18}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionStopExecute');
+
+M_ResetOutputs(TRUE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityAuto" Id="{6024356f-2b10-4f50-b01c-dae3ca84fa06}">
+      <Declaration><![CDATA[METHOD ActivityAuto
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityPos" Id="{cb89e214-e5e5-4d52-9f07-16bdb7555ae9}">
+      <Declaration><![CDATA[METHOD ActivityPos
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{1bcb3be0-13a0-4554-b509-be6652ab20ef}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+nEvent := E_PIEZO_EVENT.HWOK;
+
+
+// Check if the piezo should be switched off for protection of HW.
+M_CheckMaxOn();
+
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals:  such as Lamp is ON/OFF.
+*)
+
+IF i_nCouplerState <> 8 THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_PIEZO_EVENT.ERRHW);
+	SetStatus(E_PIEZO_ERROR.HW_NOT_OP, 'ERROR: HW not in OPERATIONAL state');
+
+ELSIF nInternalEvent <> E_PIEZO_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_PIEZO_EVENT.NONE;
+ELSIF RefCtrl.bExecute  THEN
+	(* Handle commands *)
+	RefCtrl.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	SetLastCommand(RefCtrl.nCommand);			(* Save the last command *)
+	SetEvent(RefCtrl.nCommand);
+	RefCtrl.nCommand 		:= E_PIEZO_COMMAND.NONE;	(* Clear the Command *)
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckMaxOn" Id="{a1bfbe6c-de52-4ebc-ba3e-09e83d558417}">
+      <Declaration><![CDATA[METHOD M_CheckMaxOn
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+	active:	BOOL	:= FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Check if control is active, i.e. if there is any voltage applied.
+// This means that one or more outputs are not zero [bit].
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	IF q_nCtrl[i] <> 0 THEN
+		active	:= TRUE;
+	END_IF
+END_FOR
+
+// Do the check only if configured to do so.
+IF RefCfg.nMaxOn <> 0 THEN
+	toutMaxOn();	// Execute the timer with last settings
+	IF active THEN
+		// Restart the timer, if not running yet.
+		IF TIME_TO_UDINT(toutMaxOn.ET) = 0 THEN
+			// The timer is not running.
+			// Restart the command timer
+			toutMaxOn(IN:=FALSE);
+			toutMaxOn(IN:=TRUE,PT:=DINT_TO_TIME(RefCfg.nMaxOn * 1000));
+		END_IF
+		toutMaxOn(IN:=TRUE,PT:=DINT_TO_TIME(RefCfg.nMaxOn * 1000));
+		RefStat.nTimeOn	:= TIME_TO_UDINT(toutMaxOn.ET) / 1000;	// ms -> sec
+	ELSE
+		toutMaxOn(IN:=FALSE);	// Stop the timer
+		RefStat.nTimeOn	:= 0;
+	END_IF
+	
+	// Check if the timer expired, i.e. the output should be set to zero.
+	IF toutMaxOn.Q THEN
+		toutMaxOn(IN:=FALSE);	// Stop the timer
+		M_ResetOutputs(FALSE);	// Reset (zero) all outputs, keep error.
+		// This error set is needed in order to stop ActivityAuto updating positions.
+		SetStatus(E_PIEZO_ERROR.MAXON,'ERROR: Maximum ON time exceeded.');
+		nInternalEvent := E_PIEZO_EVENT.ERRMAXON;
+	END_IF
+ELSE
+	// Check for MaxOn is not done.
+	toutMaxOn(IN:=FALSE);	// Stop the timer
+	RefStat.nTimeOn	:= 0;
+	RETURN;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckRangeBit" Id="{036d4c5e-404b-42ed-9070-c81364b4163d}">
+      <Declaration><![CDATA[// Check if the value is inside lower and upper limits.
+// Return TRUE if OK, otherwise FALSE.
+METHOD M_CheckRangeBit : BOOL
+VAR_INPUT
+	nIndex:	INT;
+	nVal:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nVal > RefCfg.nLimitHigh[nIndex].nValue THEN
+	M_CheckRangeBit	:= FALSE;
+ELSIF nVal < RefCfg.nLimitLow[nIndex].nValue THEN
+	M_CheckRangeBit	:= FALSE;
+ELSE
+	M_CheckRangeBit	:= TRUE;	// OK
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckRangeUser" Id="{4828d4dd-2ac6-4b8d-8b0f-79f6ce63688c}">
+      <Declaration><![CDATA[METHOD M_CheckRangeUser : BOOL
+VAR_INPUT
+	nIndex:	INT;
+	lrVal:	LREAL;
+END_VAR
+VAR
+	nTmpVal:	DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get the value as DINT and check if AD converter limits are exceeded.
+nTmpVal	:=	INT_TO_DINT(RefCfg.nUserOffsetBit_Set[nIndex].nValue)  +  
+			LREAL_TO_DINT(lrVal * RefCfg.lrUser2Bit_Set[nIndex].lrValue);
+
+
+IF nTmpVal > INT_TO_DINT(RefCfg.nLimitHigh[nIndex].nValue) THEN
+	M_CheckRangeUser	:= FALSE;
+ELSIF nTmpVal < INT_TO_DINT(RefCfg.nLimitLow[nIndex].nValue) THEN
+	M_CheckRangeUser	:= FALSE;
+ELSE
+	M_CheckRangeUser	:= TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{bd336feb-f03a-429f-92a9-35a747dfe0f6}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+	fbGetCurTaskIdx:	GETCURTASKINDEX;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If device is ready, there is nothing to configure.
+IF bDeviceReady THEN
+	RETURN;
+END_IF
+
+// TODO USER
+// Customise the configuration starting from the COMPLETE FB_PIEZO_BASE::M_Configure().
+// Modify the code between USER_START and USER_END
+
+//
+// USER_START
+//
+
+// If first cycle, copy configuration AND RETURN in order for the system 
+// to read all inputs before doing any work.
+IF RefStat.nCycleCounter = 0 THEN
+	// Up to C_nNumAxes axes are supported
+	IF in_nNumAxes > GVL.C_nNumAxes THEN
+		RefCfg.nNumAxes	:=	GVL.C_nNumAxes;
+	ELSE
+		RefCfg.nNumAxes	:=	in_nNumAxes;
+	END_IF
+	
+	// Get cycle time in microsec.
+	// CycleTime in _TaskInfo is given in 100 ns. 1 us = 1000 ns
+	fbGetCurTaskIdx();	// Get the task index.
+	RefStat.nCycleTime	:= TwinCAT_SystemInfoVarList._TaskInfo[fbGetCurTaskIdx.index].CycleTime/10;
+	// Monitored attributes will change on every cycle, e.g. at 1 kHz.
+	// In order to reduce load of OPC UA Server, update these attributes every 100 ms (100,000 us)
+	RefStat.nMonSkipCycles	:= 100000 / UDINT_TO_DINT(RefStat.nCycleTime);
+	
+	// Hard code EXAMPLE configuration.
+	// Note: Apart from the setting of cfg.nNumAxes, 
+	//       the rest could be configured from the WS.
+	// Note: The configuration can still be overwritten on INIT !!!
+
+	// Assign input parameters to the configuration.
+	RefCfg.sName		:=	in_sName;
+	RefCfg.nMaxOn		:=	in_nMaxOn;	
+
+	// Populate arrays in the configuration
+	FOR i:= 0 TO (RefCfg.nNumAxes-1) DO
+		RefCfg.nFullRange[i].nValue	:=	 32767;
+		RefCfg.nHome[i].nValue			:=	0;
+		RefCfg.nLimitLow[i].nValue		:=	-32767;
+		RefCfg.nLimitHigh[i].nValue	:=	 32767;
+		//
+		// Conversion from User units (UU) to [bit], e.g. [V] to [bit] for OUTPUTS
+		// stat.nPosBit[i] := cfg.nUserOffset[i]  +  stat.lrPosUsr[i] * cfg.lrUser2Bit[i]   (units [bit])
+		//
+		RefCfg.lrUser2Bit_Set[i].lrValue		:=	3276.7;	// 1V = 3276.7 bits
+		RefCfg.nUserOffsetBit_Set[i].nValue	:=	0;
+
+		//
+		// Conversion from User units (UU) to [bit], e.g. [V] to [bit] for INPUTS, i.e. feedback
+		// stat.nPosBit[i] := cfg.nUserOffset[i]  +  stat.lrPosUsr[i] * cfg.lrUser2Bit[i]   (units [bit])
+		//
+		RefCfg.lrUser2Bit_Get[i].lrValue		:=	3276.7;	// 1V = 3276.7 bits
+		RefCfg.nUserOffsetBit_Get[i].nValue	:=	0;
+	END_FOR
+
+
+	// Get the version number 
+	RefStat.sLibVersion	:= stLibVersion_ESO_LDC_Piezo_Library.sVersion;
+
+	// Increment counter.
+	RefStat.nCycleCounter	:= RefStat.nCycleCounter + 1;
+	RETURN;
+ELSIF (RefStat.nCycleCounter * RefStat.nCycleTime) < 5000000 THEN
+	// EtherCAT is normally ready after 3.5 sec.
+	// We give it 5 sec to consider it to be ready.
+	// Increment counter.
+	RefStat.nCycleCounter	:= RefStat.nCycleCounter + 1;
+	RETURN;
+END_IF
+
+//
+// USER_END
+//
+
+// Don't touch the code below !!!
+
+// After 5 sec the system is ready, e.g. coupler state is 8.
+
+// Create Event instances
+fbEventStart.CreateEx	(TC_EVENTS.PiezoOpsEventClass.ActionStart,0);
+fbEventEnd.CreateEx		(TC_EVENTS.PiezoOpsEventClass.ActionEnd,0);
+fbEventError.CreateEx	(TC_EVENTS.PiezoOpsEventClass.Error,0);
+fbEventDebug.CreateEx	(TC_EVENTS.PiezoOpsEventClass.Debug,0);
+fbEventGeneral.CreateEx	(TC_EVENTS.PiezoOpsEventClass.General,0);
+
+// The device is ready now.
+bDeviceReady := TRUE;
+
+
+// Clear errors
+RefStat.nErrorCode		:= E_PIEZO_ERROR.OK;
+RefStat.sErrorText		:= 'OK';	
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetLogicalState" Id="{df5c73be-ae25-482d-8a2e-272fc49ae74e}">
+      <Declaration><![CDATA[METHOD M_GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	M_GetLogicalState := NOT state;
+ELSE
+	M_GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{a6395d91-813f-4cab-a494-3e3d4e48bd2a}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_PIEZO_RPC_ERROR.OK:						str	:= 'OK';
+	E_PIEZO_RPC_ERROR.NOT_OP:					str	:= 'Cannot control device. Not in OP state.';
+	E_PIEZO_RPC_ERROR.NOT_NOTOP_READY:			str	:= 'Call failed. Not in NOTOP_READY.';
+	E_PIEZO_RPC_ERROR.NOT_NOTOP_NOTREADY:		str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_PIEZO_RPC_ERROR.LOCAL:					str	:= 'RPC calls not allowed in Local mode.';
+	E_PIEZO_RPC_ERROR.MOVING_USER:				str	:= 'Set user value out of range.';
+	E_PIEZO_RPC_ERROR.MOVING_BIT:				str	:= 'Set bit value out of range.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetTimeInSec" Id="{219ea1c1-a19c-44ee-82cd-a328a9adbbee}">
+      <Declaration><![CDATA[(*
+	This method returns absolute time rounded to seconds.
+*)
+METHOD M_GetTimeInSec : UDINT
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// System time is given in 100ns. Divide by 10000000 to get in seconds. 
+M_GetTimeInSec	:= ULINT_TO_UDINT(Tc2_System.F_GetSystemTime() / 10000000);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventDebug" Id="{76ff400f-eecc-453d-bdbd-16ea83a14a8b}">
+      <Declaration><![CDATA[METHOD M_LogEventDebug
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log Debug events only if both logging and debugging is enabled
+IF  RefCfg.bLog AND RefCfg.bDebug THEN
+	fbEventDebug.ipArguments.Clear().AddString(sText);
+	fbEventDebug.Send(0);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventEnd" Id="{924a63d8-c4db-4990-833d-29094815b171}">
+      <Declaration><![CDATA[METHOD M_LogEventEnd
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT RefCfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventEnd.ipArguments.Clear().AddString(sText);
+fbEventEnd.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventError" Id="{09811c01-7dc5-4d6f-9199-d2731ce1b7ee}">
+      <Declaration><![CDATA[METHOD M_LogEventError
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT RefCfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventError.ipArguments.Clear().AddString(sText);
+fbEventError.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventGeneral" Id="{a9dfeb89-9fc4-4c54-af42-3043d81bb670}">
+      <Declaration><![CDATA[METHOD M_LogEventGeneral
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT RefCfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventGeneral.ipArguments.Clear().AddString(sText);
+fbEventGeneral.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventStart" Id="{3bae18c2-756c-4d13-9096-9ce29d4d65af}">
+      <Declaration><![CDATA[METHOD M_LogEventStart
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT RefCfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventStart.ipArguments.Clear().AddString(sText);
+fbEventStart.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ResetOutputs" Id="{b613bcdf-0959-4c9e-a4f8-ac4c910893ba}">
+      <Declaration><![CDATA[METHOD M_ResetOutputs
+VAR_INPUT
+	in_bClearError:	BOOL := TRUE;
+END_VAR
+VAR
+	i:	int;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Set piezo outputs to zero bits *)
+FOR i:= 0 TO RefCfg.nNumAxes-1 DO
+	q_nCtrl[i] := 0;
+	RefStat.nSetPosBit[i].nValue		:=	q_nCtrl[i];
+		IF RefCfg.lrUser2Bit_Set[i].lrValue <> 0.0 THEN
+			RefStat.lrSetPosUsr[i].lrValue	:=	INT_TO_LREAL(q_nCtrl[i] - RefCfg.nUserOffsetBit_Set[i].nValue) / 
+											RefCfg.lrUser2Bit_Set[i].lrValue;
+		END_IF
+END_FOR
+
+IF in_bClearError THEN
+	// Status OK 
+	SetStatus(E_PIEZO_ERROR.OK, 'OK');
+END_IF
+
+SetHwStatus(E_PIEZO_HW_STATUS.ZERO);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RestartMaxOnTimer" Id="{bd015d2a-52a8-4eb5-91f9-d8845f372efb}">
+      <Declaration><![CDATA[METHOD M_RestartMaxOnTimer
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+	active:	BOOL	:= FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Check if control is active, i.e. if there is any voltage applied.
+// This means that one or more outputs are not zero [bit].
+FOR i:=0 TO RefCfg.nNumAxes-1 DO
+	IF q_nCtrl[i] <> 0 THEN
+		active	:= TRUE;
+	END_IF
+END_FOR
+
+// Do the check only if configured to do so,
+// i.e. nMaxOn <> 0.
+IF RefCfg.nMaxOn <> 0 THEN
+	toutMaxOn();	// Execute the timer with last settings
+	IF active THEN
+		toutMaxOn(IN:=FALSE);
+		toutMaxOn(IN:=TRUE,PT:=DINT_TO_TIME(RefCfg.nMaxOn * 1000));
+		RefStat.nTimeOn	:= 0;
+	ELSE
+		toutMaxOn(IN:=FALSE);	// Stop the timer
+		RefStat.nTimeOn	:= 0;
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{8fc853df-88b2-40ab-99ba-2b788cf16ba9}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	E_PIEZO_RPC_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nRpcErrorCode	:= nErrorCode;
+RefStat.sRpcErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateMonitor" Id="{e6cf8240-661b-4c51-949e-711c9a3ef801}">
+      <Declaration><![CDATA[METHOD M_UpdateMonitor
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update monitored attributes every RefStat.nMonSkipCycles
+IF UDINT_TO_DINT(RefStat.nCycleCounter) MOD RefStat.nMonSkipCycles = 0 THEN
+	RefStat.monSetPosBit_0	:= RefStat.nSetPosBit[0].nValue;
+	RefStat.monSetPosBit_1	:= RefStat.nSetPosBit[1].nValue;
+	RefStat.monSetPosBit_2	:= RefStat.nSetPosBit[2].nValue;
+	
+	RefStat.monActPosBit_0	:= RefStat.nActPosBit[0].nValue;
+	RefStat.monActPosBit_1	:= RefStat.nActPosBit[1].nValue;
+	RefStat.monActPosBit_2	:= RefStat.nActPosBit[2].nValue;
+	
+	RefStat.monSetPosUsr_0	:= RefStat.lrSetPosUsr[0].lrValue;
+	RefStat.monSetPosUsr_1	:= RefStat.lrSetPosUsr[1].lrValue;
+	RefStat.monSetPosUsr_2	:= RefStat.lrSetPosUsr[2].lrValue;
+	
+	RefStat.monActPosUsr_0	:= RefStat.lrActPosUsr[0].lrValue;
+	RefStat.monActPosUsr_1	:= RefStat.lrActPosUsr[1].lrValue;
+	RefStat.monActPosUsr_2	:= RefStat.lrActPosUsr[2].lrValue;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{6e9c6b9a-4c2b-4268-a28e-d15cd6e7df03}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+
+VAR
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+
+IF RefStat.nSubstate = E_PIEZO_SUBSTATE.OP_AUTO THEN
+	ActivityAuto();	// Just update times
+END_IF
+
+IF RefStat.nSubstate = E_PIEZO_SUBSTATE.OP_POS THEN
+	ActivityPos();	// Just update times
+END_IF
+
+
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE RefStat.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_PIEZO_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE RefStat.nSubstate OF
+	
+	E_PIEZO_SUBSTATE.NOTOP_NOTREADY:		
+		IF nEvent = E_PIEZO_EVENT.RESET THEN
+			ActionResetExecute();
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.INIT THEN
+			ActionInitExecute();
+			// ActionInitExecute() might set nEvent to E_PIEZO_EVENT.USER2BIT_ZERO
+			// in case of wrong configuration.
+			// If nEvent has changed, something is wrong.
+			IF nEvent = E_PIEZO_EVENT.INIT THEN
+				// Nothing has changed, all OK.
+				SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_READY);
+			ELSE
+				SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_ERROR);
+			END_IF
+			RETURN;
+		END_IF
+		
+	E_PIEZO_SUBSTATE.NOTOP_READY:			
+		IF nEvent = E_PIEZO_EVENT.RESET THEN
+			ActionResetExecute();
+			SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.ERRFAULT THEN
+			SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_NOTREADY);			
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.ERRMAXON THEN
+			ActionMaxOnFailure();
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.ENABLE THEN
+			ActionEnableExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.STOP THEN
+			ActionStopExecute();
+			RETURN;
+		END_IF
+
+	E_PIEZO_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_PIEZO_EVENT.HWOK THEN
+			SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF nEvent = E_PIEZO_EVENT.ERRHW THEN
+		SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_PIEZO_STATE.OP:
+
+	(* Transitions from OP substates *)
+	CASE RefStat.nSubstate OF
+	E_PIEZO_SUBSTATE.OP_POS:			
+		IF nEvent = E_PIEZO_EVENT.POS THEN
+			ActionPosExecute();
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.HOME THEN
+			ActionHomeExecute();
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.AUTO THEN
+			ActionAutoExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_AUTO);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_READY);
+			RETURN;		
+		ELSIF nEvent = E_PIEZO_EVENT.MOVE_BIT THEN
+			ActionMoveBitExecute();
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.MOVE_USER THEN
+			ActionMoveUserExecute();
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.ERRFAULT THEN
+			ActionErrExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.ERRRANGE THEN
+			ActionErrExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.ERRMAXON THEN
+			ActionMaxOnFailure();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.STOP THEN
+			ActionStopExecute();
+			RETURN;
+		END_IF
+
+	E_PIEZO_SUBSTATE.OP_AUTO:			
+		IF nEvent = E_PIEZO_EVENT.POS THEN
+			ActionPosExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.HOME THEN
+			ActionHomeExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.AUTO THEN
+			ActionAutoExecute();
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_READY);
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.MOVE_BIT THEN
+			ActionMoveBitExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.MOVE_USER THEN
+			ActionMoveUserExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.ERRFAULT THEN
+			ActionErrExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.ERRRANGE THEN
+			ActionErrExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.ERRMAXON THEN
+			ActionMaxOnFailure();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+			RETURN;				
+		ELSIF nEvent = E_PIEZO_EVENT.STOP THEN
+			ActionStopExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		END_IF
+		
+	E_PIEZO_SUBSTATE.OP_ERROR:			
+		IF nEvent = E_PIEZO_EVENT.POS THEN
+			ActionPosExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.HOME THEN
+			ActionHomeExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.AUTO THEN
+			ActionAutoExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_AUTO);
+			RETURN;			
+		ELSIF nEvent = E_PIEZO_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_READY);
+			RETURN;			
+		ELSIF nEvent = E_PIEZO_EVENT.MOVE_BIT THEN
+			ActionMoveBitExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.MOVE_USER THEN
+			ActionMoveUserExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;	
+		ELSIF nEvent = E_PIEZO_EVENT.HWOK AND 
+			  RefStat.nErrorCode = E_PIEZO_ERROR.HW_NOT_OP THEN
+			ActionStopExecute();
+			SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_POS);
+			RETURN;
+		ELSIF nEvent = E_PIEZO_EVENT.STOP THEN
+			ActionStopExecute();
+			RETURN;
+		END_IF
+
+		
+	END_CASE
+	
+	(* Transitions from OP state *)
+	IF nEvent = E_PIEZO_EVENT.ERRHW THEN
+		SetState(E_PIEZO_STATE.OP, E_PIEZO_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_PIEZO_EVENT.RESET THEN
+		ActionResetExecute();
+		SetState(E_PIEZO_STATE.NOTOP, E_PIEZO_SUBSTATE.NOTOP_NOTREADY);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_PIEZO_EVENT.STOP THEN
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Auto" Id="{e12adfdb-fdab-41b1-b2c9-f1cd1467e8a1}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Auto : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Auto	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// AUTO command is accepted only if device is in OP state.
+IF RefStat.nState <> E_PIEZO_STATE.OP THEN
+	RPC_Auto	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	RefCtrl.nCommand := E_PIEZO_COMMAND.AUTO;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Auto	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{60466611-4f84-4632-bec6-707cbadd749d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF RefStat.nState <> E_PIEZO_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Set disable command
+	RefCtrl.nCommand := E_PIEZO_COMMAND.DISABLE;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{4d9488e9-b083-4821-aa71-d9c5fd8da4b8}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+IF RefStat.nSubstate <> E_PIEZO_SUBSTATE.NOTOP_READY	THEN
+	RPC_Enable	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	// Set enable command
+	RefCtrl.nCommand := E_PIEZO_COMMAND.ENABLE;
+	RefCtrl.bExecute := TRUE;
+
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Home" Id="{a556807f-f207-420f-b7a5-0f39e656993f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Home : int
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Home	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// HOME command is accepted only if device is in OP state.
+IF RefStat.nState <> E_PIEZO_STATE.OP THEN
+	RPC_Home	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	RefCtrl.nCommand := E_PIEZO_COMMAND.HOME;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Home	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{aae974ee-71ef-440d-920b-33456756aa63}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Init command is accepted only if device is in NOTOP_NOTREADY or ERROR.
+IF	RefStat.nSubstate <> E_PIEZO_SUBSTATE.NOTOP_NOTREADY	AND  
+	RefStat.nSubstate <> E_PIEZO_SUBSTATE.NOTOP_ERROR		THEN
+	RPC_Init	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_NOTOP_NOTREADY);
+	RETURN;
+ELSE
+	// Set INIT command
+	RefCtrl.nCommand := E_PIEZO_COMMAND.INIT;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveBit" Id="{13f92485-1081-4d9d-a2b7-4a4a1816aa27}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveBit : INT
+VAR_INPUT
+	in_nPos1:	INT	:= 0;
+	in_nPos2:	INT	:= 0;
+	in_nPos3:	INT	:= 0;
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_MoveBit	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// MOVE_BIT command is accepted only if device is in OP state.
+IF RefStat.nState <> E_PIEZO_STATE.OP THEN
+	RPC_MoveBit	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Copy set positions into ctrl structure
+	RefCtrl.nPosBit[0].nValue	:= in_nPos1;
+	RefCtrl.nPosBit[1].nValue	:= in_nPos2;
+	RefCtrl.nPosBit[2].nValue	:= in_nPos3;
+
+	// Check if the set positions are inside the allowed range
+	FOR i:=0 TO RefCfg.nNumAxes-1 DO
+		IF NOT M_CheckRangeBit(nIndex:= i, nVal:= RefCtrl.nPosBit[i].nValue) THEN
+			M_LogEventError('Set bit value out of range');
+			RPC_MoveBit	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.MOVING_BIT);
+			RETURN;
+		END_IF
+	END_FOR
+
+	// Set MOVE_BIT command
+	RefCtrl.nCommand := E_PIEZO_COMMAND.MOVE_BIT;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_MoveBit	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveUser" Id="{da5b0463-740c-41d6-9d01-75d9988910ae}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_MoveUser : INT
+VAR_INPUT
+	in_lrPos1:	LREAL	:= 0;
+	in_lrPos2:	LREAL	:= 0;
+	in_lrPos3:	LREAL	:= 0;
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_MoveUser	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// MOVE_USER command is accepted only if device is in OP state.
+IF RefStat.nState <> E_PIEZO_STATE.OP THEN
+	RPC_MoveUser	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Copy set positions into ctrl structure
+	RefCtrl.lrPosUser[0].lrValue	:= in_lrPos1;
+	RefCtrl.lrPosUser[1].lrValue	:= in_lrPos2;
+	RefCtrl.lrPosUser[2].lrValue	:= in_lrPos3;
+
+	// Check if the set positions are inside the allowed range.
+	FOR i:=0 TO RefCfg.nNumAxes-1 DO
+		IF NOT M_CheckRangeUser(nIndex:= i, lrVal:= RefCtrl.lrPosUser[i].lrValue) THEN
+			M_LogEventError('Set User value out of range');
+			RPC_MoveUser	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.MOVING_USER);
+			RETURN;
+		END_IF
+	END_FOR
+
+
+	// Set MOVE_USER command
+	RefCtrl.nCommand := E_PIEZO_COMMAND.MOVE_USER;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_MoveUser	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Pos" Id="{aba17171-3ae5-45f9-bc45-4035bb8f1d6b}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Pos : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Pos	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// POS command is accepted only if device is in OP state.
+IF RefStat.nState <> E_PIEZO_STATE.OP THEN
+	RPC_Pos	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	RefCtrl.nCommand := E_PIEZO_COMMAND.POS;
+	RefCtrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Pos	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{009bb7f2-47b9-4dea-b080-934391fea01c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+RefCtrl.nCommand := E_PIEZO_COMMAND.RESET;
+RefCtrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDebug" Id="{6040db75-ab4c-46c7-98e4-7457ef13f944}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDebug : INT
+VAR_INPUT
+	in_bDebug:	BOOL 	:= FALSE;		// If TRUE, activate event logging of Debug type
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Debugging
+RefCfg.bDebug	:= in_bDebug;
+
+// Call was successful
+RPC_SetDebug	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetLog" Id="{43bfa140-8be5-4a9c-bdd7-b6149496dbd5}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetLog : INT
+VAR_INPUT
+	in_bLog:	BOOL 	:= FALSE;		// If TRUE, activate event logging
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Logging
+RefCfg.bLog	:= in_bLog;
+
+// Call was successful
+RPC_SetLog	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{b2dd7536-18fe-40cb-90c1-82c88b5daf9d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF RefStat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+RefCtrl.nCommand := E_PIEZO_COMMAND.STOP;
+RefCtrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_PIEZO_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{2acba3b2-45b6-4a2a-b462-51ba88d57ca8}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+RefStat.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{6b68da34-70da-405a-b0a8-7235e5482c8e}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_PIEZO_EVENT.NONE:
+		RefStat.sEventDesc := '';
+		RETURN;
+		
+	E_PIEZO_EVENT.RESET:
+		RefStat.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_PIEZO_EVENT.INIT:
+		RefStat.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_PIEZO_EVENT.STOP:
+		RefStat.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_PIEZO_EVENT.ENABLE:
+		RefStat.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_PIEZO_EVENT.DISABLE:
+		RefStat.sEventDesc := 'CMD DISABLE';
+		RETURN;
+
+	E_PIEZO_EVENT.AUTO:
+		RefStat.sEventDesc := 'CMD AUTO';
+		RETURN;
+
+	E_PIEZO_EVENT.POS:
+		RefStat.sEventDesc := 'CMD POS';
+		RETURN;
+	
+	E_PIEZO_EVENT.HOME:
+		RefStat.sEventDesc := 'CMD HOME';
+		RETURN;
+	
+	E_PIEZO_EVENT.MOVE_BIT:
+		RefStat.sEventDesc := 'CMD MOVE BIT';
+		RETURN;
+	
+	E_PIEZO_EVENT.MOVE_USER:
+		RefStat.sEventDesc := 'CMD MOVE USER';
+		RETURN;
+	
+	(* events corresponding to internal events *)
+	E_PIEZO_EVENT.HWOK:
+		RefStat.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_PIEZO_EVENT.ERRHW:
+		RefStat.sEventDesc := 'INT ERRHW';
+		RETURN;
+
+	E_PIEZO_EVENT.ERRRANGE:
+		RefStat.sEventDesc := 'INT ERRRANGE';
+		RETURN;
+
+	E_PIEZO_EVENT.ERRMAXON:
+		RefStat.sEventDesc := 'INT ERRMAXON';
+		RETURN;
+
+	E_PIEZO_EVENT.ERRFAULT:	
+		RefStat.sEventDesc := 'INT ERRFAULT';
+		RETURN;
+
+	E_PIEZO_EVENT.ERRINIT:
+		RefStat.sEventDesc := 'INT ERRINIT';
+		RETURN;
+
+	E_PIEZO_EVENT.ERRDISABLE:
+		RefStat.sEventDesc := 'INT ERRDISABLE';
+		RETURN;
+ELSE
+	(* INTERNAL ERROR *)
+	RefStat.sEventDesc := 'UNKNOWN EVENT';
+	RETURN;
+END_CASE 
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetHwStatus" Id="{d97e3ad9-7d6c-4cb5-8414-579b580710ee}">
+      <Declaration><![CDATA[METHOD SetHwStatus
+VAR_INPUT
+	hwStatus:	E_PIEZO_HW_STATUS;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nHwStatus	:= hwStatus;
+
+CASE hwStatus OF
+	E_PIEZO_HW_STATUS.UNKNOWN:
+		RefStat.sHwStatus	:= 'UNKNOWN';
+	E_PIEZO_HW_STATUS.ERROR:
+		RefStat.sHwStatus	:= 'ERROR';
+	E_PIEZO_HW_STATUS.ZERO:
+		RefStat.sHwStatus	:= 'ZERO';
+	E_PIEZO_HW_STATUS.HOME:
+		RefStat.sHwStatus	:= 'HOME';
+	E_PIEZO_HW_STATUS.POS:
+		RefStat.sHwStatus	:= 'POS';
+	E_PIEZO_HW_STATUS.AUTO:
+		RefStat.sHwStatus	:= 'AUTO';
+
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetLastCommand" Id="{084e1f0c-4562-4076-94b3-076fbbb0aeca}">
+      <Declaration><![CDATA[METHOD SetLastCommand
+VAR_INPUT
+	cmd:	E_PIEZO_COMMAND;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nLastCommand	:= cmd;
+
+CASE cmd OF
+	E_PIEZO_COMMAND.RESET:
+		RefStat.sLastCommand	:= 'RESET';
+	E_PIEZO_COMMAND.INIT:
+		RefStat.sLastCommand	:= 'INIT';
+	E_PIEZO_COMMAND.STOP:
+		RefStat.sLastCommand	:= 'STOP';
+	E_PIEZO_COMMAND.ENABLE:
+		RefStat.sLastCommand	:= 'ENABLE';
+	E_PIEZO_COMMAND.DISABLE:
+		RefStat.sLastCommand	:= 'DISABLE';
+	E_PIEZO_COMMAND.AUTO:
+		RefStat.sLastCommand	:= 'AUTO';
+	E_PIEZO_COMMAND.POS:
+		RefStat.sLastCommand	:= 'POS';
+	E_PIEZO_COMMAND.HOME:
+		RefStat.sLastCommand	:= 'HOME';
+ELSE
+		RefStat.sLastCommand	:= 'NONE';
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{725c2510-95cb-4885-9251-304ab558f2e2}">
+      <Declaration><![CDATA[METHOD SetState
+VAR_INPUT
+	nState:			E_PIEZO_STATE;
+	nSubstate:		E_PIEZO_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Update State Machine active state configuration.
+
+	ToDo: support initial pseudo state/substate.
+*)
+
+IF nState <> E_PIEZO_STATE.NONE THEN
+	RefStat.nState	:= nState;
+END_IF
+IF nSubstate <> E_PIEZO_SUBSTATE.NONE THEN
+	RefStat.nSubstate	:= nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF nState = E_PIEZO_STATE.NOTOP THEN
+	RefStat.sState	:= 'NOT OP';
+ELSIF nState = E_PIEZO_STATE.OP THEN
+	RefStat.sState	:= 'OPERATIONAL';
+END_IF
+
+IF nSubstate = E_PIEZO_SUBSTATE.NOTOP_NOTREADY THEN
+	RefStat.sSubstate	:= 'NOT READY';
+ELSIF nSubstate = E_PIEZO_SUBSTATE.NOTOP_READY THEN
+	RefStat.sSubstate	:= 'READY';
+ELSIF nSubstate = E_PIEZO_SUBSTATE.NOTOP_ERROR THEN
+	RefStat.sSubstate	:= 'ERROR';
+ELSIF nSubstate = E_PIEZO_SUBSTATE.OP_POS THEN
+	RefStat.sSubstate	:= 'POS';
+ELSIF nSubstate = E_PIEZO_SUBSTATE.OP_AUTO THEN
+	RefStat.sSubstate	:= 'AUTO';
+ELSIF nSubstate = E_PIEZO_SUBSTATE.OP_ERROR THEN
+	RefStat.sSubstate	:= 'ERROR';
+ELSE
+	RefStat.sSubstate	:= '';
+END_IF
+
+
+//SetState	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetStatus" Id="{5b3227cf-119a-4e13-9ac9-4e4585108264}">
+      <Declaration><![CDATA[METHOD SetStatus
+VAR_INPUT
+	nErrorCode:	E_PIEZO_ERROR;
+	sErrorText:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RefStat.nErrorCode 	:= nErrorCode;
+RefStat.sErrorText 	:= sErrorText;
+
+IF nErrorCode <> E_PIEZO_ERROR.OK THEN
+	RefStat.sStatus	:= 'ERROR';
+	RefStat.nStatus	:= E_PIEZO_STATUS.ERROR;
+ELSE
+	RefStat.sStatus	:= 'OK';
+	RefStat.nStatus	:= E_PIEZO_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_PIEZO_BASE">
+      <LineId Id="292" Count="9" />
+      <LineId Id="384" Count="0" />
+      <LineId Id="383" Count="0" />
+      <LineId Id="302" Count="8" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionAutoExecute">
+      <LineId Id="5" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="6" Count="3" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionDisableExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionEnableExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="20" Count="3" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="25" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionErrExecute">
+      <LineId Id="3" Count="4" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionHomeExecute">
+      <LineId Id="4" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="57" Count="2" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="49" Count="2" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionInitExecute">
+      <LineId Id="3" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="51" Count="2" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionMaxOnFailure">
+      <LineId Id="3" Count="2" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="6" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionMoveBitExecute">
+      <LineId Id="6" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="61" Count="2" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="72" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="19" Count="4" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="53" Count="2" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionMoveUserExecute">
+      <LineId Id="6" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="78" Count="2" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="37" Count="1" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="39" Count="4" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="59" Count="2" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionPosExecute">
+      <LineId Id="4" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="59" Count="2" />
+      <LineId Id="53" Count="2" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionResetExecute">
+      <LineId Id="3" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="48" Count="2" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActionStopExecute">
+      <LineId Id="6" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActivityAuto">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ActivityPos">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.CheckForEvents">
+      <LineId Id="3" Count="8" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="43" Count="29" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_CheckMaxOn">
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="47" Count="2" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_CheckRangeBit">
+      <LineId Id="35" Count="2" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_CheckRangeUser">
+      <LineId Id="45" Count="1" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="41" Count="1" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_Configure">
+      <LineId Id="395" Count="4" />
+      <LineId Id="335" Count="7" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="277" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="373" Count="0" />
+      <LineId Id="391" Count="1" />
+      <LineId Id="375" Count="0" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="394" Count="0" />
+      <LineId Id="393" Count="0" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="318" Count="1" />
+      <LineId Id="352" Count="1" />
+      <LineId Id="320" Count="0" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="262" Count="0" />
+      <LineId Id="334" Count="0" />
+      <LineId Id="322" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="333" Count="0" />
+      <LineId Id="324" Count="2" />
+      <LineId Id="329" Count="3" />
+      <LineId Id="327" Count="1" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="359" Count="5" />
+      <LineId Id="323" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="247" Count="2" />
+      <LineId Id="182" Count="2" />
+      <LineId Id="386" Count="3" />
+      <LineId Id="188" Count="2" />
+      <LineId Id="343" Count="6" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="285" Count="7" />
+      <LineId Id="193" Count="7" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_GetLogicalState">
+      <LineId Id="49" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="82" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_GetTimeInSec">
+      <LineId Id="35" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_LogEventDebug">
+      <LineId Id="17" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_LogEventEnd">
+      <LineId Id="12" Count="2" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_LogEventError">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_LogEventGeneral">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_LogEventStart">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_ResetOutputs">
+      <LineId Id="6" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_RestartMaxOnTimer">
+      <LineId Id="22" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.M_UpdateMonitor">
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="3" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.ProcessEvents">
+      <LineId Id="3" Count="7" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="42" Count="18" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="453" Count="3" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="459" Count="0" />
+      <LineId Id="457" Count="0" />
+      <LineId Id="460" Count="0" />
+      <LineId Id="458" Count="0" />
+      <LineId Id="67" Count="2" />
+      <LineId Id="93" Count="7" />
+      <LineId Id="439" Count="1" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="343" Count="1" />
+      <LineId Id="346" Count="0" />
+      <LineId Id="110" Count="1" />
+      <LineId Id="130" Count="21" />
+      <LineId Id="402" Count="1" />
+      <LineId Id="422" Count="3" />
+      <LineId Id="152" Count="3" />
+      <LineId Id="160" Count="3" />
+      <LineId Id="377" Count="5" />
+      <LineId Id="164" Count="3" />
+      <LineId Id="362" Count="3" />
+      <LineId Id="435" Count="3" />
+      <LineId Id="347" Count="2" />
+      <LineId Id="168" Count="1" />
+      <LineId Id="215" Count="4" />
+      <LineId Id="426" Count="1" />
+      <LineId Id="429" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="447" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="228" Count="3" />
+      <LineId Id="370" Count="1" />
+      <LineId Id="391" Count="0" />
+      <LineId Id="373" Count="2" />
+      <LineId Id="392" Count="0" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="232" Count="3" />
+      <LineId Id="366" Count="3" />
+      <LineId Id="236" Count="3" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="413" Count="1" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="240" Count="1" />
+      <LineId Id="279" Count="4" />
+      <LineId Id="443" Count="3" />
+      <LineId Id="284" Count="3" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="295" Count="1" />
+      <LineId Id="383" Count="1" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="385" Count="2" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="388" Count="0" />
+      <LineId Id="467" Count="0" />
+      <LineId Id="476" Count="0" />
+      <LineId Id="468" Count="2" />
+      <LineId Id="353" Count="2" />
+      <LineId Id="297" Count="1" />
+      <LineId Id="312" Count="24" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Auto">
+      <LineId Id="49" Count="5" />
+      <LineId Id="19" Count="1" />
+      <LineId Id="22" Count="2" />
+      <LineId Id="40" Count="4" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Disable">
+      <LineId Id="31" Count="5" />
+      <LineId Id="10" Count="1" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="19" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Enable">
+      <LineId Id="35" Count="5" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Home">
+      <LineId Id="44" Count="5" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="34" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Init">
+      <LineId Id="31" Count="5" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="20" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_MoveBit">
+      <LineId Id="62" Count="5" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="93" Count="3" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="79" Count="3" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="86" Count="2" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="37" Count="5" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_MoveUser">
+      <LineId Id="62" Count="5" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="97" Count="2" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="89" Count="2" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="93" Count="3" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="37" Count="5" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Pos">
+      <LineId Id="36" Count="5" />
+      <LineId Id="17" Count="1" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="26" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Reset">
+      <LineId Id="22" Count="5" />
+      <LineId Id="13" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_SetDebug">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_SetLog">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.RPC_Stop">
+      <LineId Id="22" Count="5" />
+      <LineId Id="13" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.SetAction">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.SetEvent">
+      <LineId Id="3" Count="35" />
+      <LineId Id="118" Count="3" />
+      <LineId Id="102" Count="7" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="73" Count="7" />
+      <LineId Id="110" Count="3" />
+      <LineId Id="126" Count="3" />
+      <LineId Id="81" Count="11" />
+      <LineId Id="135" Count="1" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="93" Count="1" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.SetHwStatus">
+      <LineId Id="15" Count="1" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.SetLastCommand">
+      <LineId Id="3" Count="16" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.SetState">
+      <LineId Id="3" Count="22" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="34" Count="5" />
+      <LineId Id="50" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_PIEZO_BASE.SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

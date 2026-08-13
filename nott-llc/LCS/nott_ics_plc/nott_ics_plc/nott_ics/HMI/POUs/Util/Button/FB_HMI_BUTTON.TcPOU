@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_BUTTON" Id="{8312f969-1e2d-4234-8fb1-a5ec8ac8ee74}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_BUTTON
+VAR_INPUT
+    stColor : T_HMI_COLORS;
+END_VAR
+VAR_IN_OUT
+    nActiveTab : INT;
+    sActiveName : STRING;
+END_VAR
+VAR_OUTPUT
+    sName : STRING;
+    sIconName : STRING;
+    nThisTab : INT;
+    bActivated : BOOL;
+    bNotActivated : BOOL;
+    
+    bIsNotGreen : BOOL;
+    bIsNotRed : BOOL;
+    bIsNotBlue : BOOL;
+    bIsNotOrange : BOOL;
+    bIsNotGray : BOOL;
+END_VAR
+VAR
+    bDoActivate : BOOL;
+    bPreviouslyActive : BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bDoActivate THEN
+    nActiveTab := nThisTab;
+    bDoActivate := FALSE;
+END_IF
+
+bActivated := nActiveTab = nThisTab;
+bNotActivated := NOT bActivated;
+
+IF bActivated AND NOT bPreviouslyActive THEN
+    sActiveName := sName;
+    bPreviouslyActive := TRUE;
+END_IF
+
+IF bNotActivated THEN
+    bPreviouslyActive := FALSE;
+END_IF
+
+bIsNotRed    := stColor.bg <> E_HMI_Colors.RED;
+bIsNotBlue   := stColor.bg <> E_HMI_Colors.BLUE;
+bIsNotOrange := stColor.bg <> E_HMI_Colors.ORANGE;
+bIsNotGray   := stColor.bg <> E_HMI_Colors.GRAY;
+bIsNotGreen  := stColor.bg <> E_HMI_Colors.GREEN;
+]]></ST>
+    </Implementation>
+    <Method Name="FB_init" Id="{09c2525c-94e5-4dbc-b816-3992467ecbb0}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+    sName : STRING;
+    sIconName : STRING;
+    nThisTab : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[THIS^.sName := sName;
+THIS^.sIconName := sIconName;
+THIS^.nThisTab := nThisTab;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetIconName" Id="{045acce2-8b00-4ad1-a4e3-fbea920cbd17}">
+      <Declaration><![CDATA[METHOD M_SetIconName
+VAR_INPUT
+    sIconName : STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[THIS^.sIconName := sIconName;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_HMI_BUTTON">
+      <LineId Id="72" Count="6" />
+      <LineId Id="109" Count="2" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="120" Count="1" />
+      <LineId Id="79" Count="5" />
+      <LineId Id="69" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_HMI_BUTTON.FB_init">
+      <LineId Id="3" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_HMI_BUTTON.M_SetIconName">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_RS_COMMAND" Id="{9f1b0375-7f99-4abd-93ac-793147a81243}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_RS_COMMAND :
+(
+	NONE	:= 0,
+	
+	RESET,
+	INIT,
+	STOP,
+	ENABLE,
+	DISABLE,
+	
+	READ,
+	READ_USER,
+	MONITOR,
+	MONITOR_USER,
+	STOPMON,
+	
+	CTRL_CMD
+	
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

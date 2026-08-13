@@ -1,0 +1,361 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_SendEL6688Diag" Id="{70f87653-d3ad-4d6a-99ba-bddf6b879c1f}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+    This function blocks aims to pack the EL6688 diagnostic data in MUDPI frames
+    and transmit them to Time System using Beckhoffs realtime UDP driver (TF6311). 
+    The user of this function blocks needs to do the following in order for the library to work correctly:
+    - Initialize the library with configuration parameters
+        - Destination IP-address (a multicast address)
+        - Destination port
+        - Source port
+        - Topic identity (see MUDPI-specification)
+        - Component identity (see MUDPI-specification)
+*)
+
+{attribute 'c++_compatible'}
+FUNCTION_BLOCK FB_SendEL6688Diag IMPLEMENTS ITcIoUdpProtocolRecv
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	(* TF6311 realtime driver parameters *)
+    {attribute 'TcInitSymbol'}
+    oid : OTCID;
+    ipUdp : ITcIoUdpProtocol;
+	nUdpPort : UINT := 10000;
+    nReceivedPackets : UINT;
+    uLastReceivedIP : T_IP_ADDRESS;
+    hrInit : HRESULT;
+    hrSend : HRESULT; 
+    bSuccessfulInitializationOfRealtimeDriver : BOOL := FALSE; // Indication of whether the realtime driver is properly initialized.
+
+	(* Data/contents parameters *)
+    mudpiPacket : ESO_MUDPI.FB_MudpiPacket(topicId := 500, componentId := 10);
+    dataToBeSent : ARRAY[0..23] OF BYTE; // 6 parameters, each 4 bytes = 24 bytes
+	
+	  (* Transmission/communication parameters *)
+    _destinationIpAddress : UDINT; // Destination address for the data
+    _destinationPort : UINT; // Destination port for the data
+    _sourcePort : UINT; // Source port of the data
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+]]></ST>
+    </Implementation>
+    <Method Name="FB_exit" Id="{379d002f-fa8b-40c9-a14c-6ade651e8020}">
+      <Declaration><![CDATA[METHOD FB_exit : BOOL
+VAR_INPUT
+    bInCopyCode : BOOL; // if TRUE, the exit method is called for exiting an instance that is copied afterwards (online change).
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInCopyCode THEN // no online change
+    IF ipUdp <> 0 THEN
+        //ipUdp.UnregisterReceiver(nUdpPort); // Shutdown
+        ipUdp.UnregisterReceiver(nUdpPort); // Shutdown
+        FW_SafeRelease(ADR(ipUdp));
+        FB_exit := TRUE;
+    END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{fac64dcf-62b9-4e52-a9cd-74b9418f74cb}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+    bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+    bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[MudpiPacket.SetNumFrames(NumFrames := 1);
+MudpiPacket.SetFrameId(FrameId := 1);
+
+(*
+IF NOT bInCopyCode THEN // no online change
+	IF ipUdp = 0 AND oid <> 0 THEN
+	    hrInit := FW_ObjMgr_GetObjectInstance(	oid:=oid, 
+											iid:=TC_GLOBAL_IID_LIST.IID_ITcIoUdpProtocol, 
+											pipUnk:=ADR(ipUdp) );
+		IF SUCCEEDED(hrInit) THEN 
+			IF  SUCCEEDED(ipUdp.RegisterReceiver(nUdpPort, THIS^)) THEN //open port
+				FB_init := TRUE;
+			ELSE 
+				FB_init := FALSE; 
+				FW_SafeRelease(ADR(ipUdp));
+			END_IF
+		END_IF
+	ELSIF oid = 0 THEN 
+		FB_init := FALSE; 
+		hrInit := ERR_INVALID_PARAM; 				
+	END_IF
+END_IF
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_reinit" Id="{d2f5a625-473c-4a83-bbcb-cb9314ce27f6}">
+      <Declaration><![CDATA[METHOD FB_reinit : BOOL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (ipUdp <> 0) THEN
+    //ipUdp.RegisterReceiver(nUdpPort, THIS^);
+    ipUdp.RegisterReceiver(nUdpPort, THIS^);
+    FB_reinit := TRUE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="IpAddressStringToInteger" Id="{9ae3f7b7-88fd-4fe1-8879-cd1a7432b376}">
+      <Declaration><![CDATA[METHOD PRIVATE IpAddressStringToInteger : UDINT
+VAR_INPUT
+    IpAddress : Tc2_System.T_IPv4Addr;
+END_VAR
+VAR
+    IpAddressArray : Tc2_System.T_IPv4AddrArr;
+    IpAddressInteger : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IpAddressArray := Tc2_System.F_ScanIPv4AddrIds(sIPv4 := IpAddress);
+IpAddressInteger := LREAL_TO_UDINT(IpAddressArray[0] * EXPT(256, 3) +
+                                   IpAddressArray[1] * EXPT(256, 2) +
+                                   IpAddressArray[2] * EXPT(256, 1) +
+                                   IpAddressArray[3]);
+
+IpAddressStringToInteger := IpAddressInteger;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReceiveData" Id="{e08e01b2-e10e-41e2-8e2a-919ac83a7780}">
+      <Declaration><![CDATA[{attribute 'c++_compatible'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'pack_mode' := '4'}
+METHOD ReceiveData : HRESULT
+VAR_INPUT
+	ipAddr	: UDINT;
+	udpDestPort	: UINT;
+	udpSrcPort	: UINT;
+	nData	: UDINT;
+	pData	: PVOID;
+	pVlan	: POINTER TO ETYPE_VLAN_HEADER := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nReceivedPackets := nReceivedPackets + 1;
+uLastReceivedIP.ipAdrInternal := ipAddr;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SendDiagnosticData" Id="{89a28aaf-565a-42ad-8c47-623bd869c230}">
+      <Declaration><![CDATA[(*
+    This method carry out the sending of the diagnostic data using the Ethernet network driver.
+    The parameters are the array of data to be sent and the timestamp that is required by
+	the MUDPI protocol.
+*)
+
+METHOD SendDiagnosticData : HRESULT
+VAR_INPUT
+	payload : POINTER TO T_PAYLOAD; 
+	timeStamp : LREAL;
+END_VAR
+	
+VAR
+	dataToBeSent : ARRAY[0..127] OF BYTE; 
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+IF ipUdp <> 0 AND bSuccessfulInitializationOfRealtimeDriver = TRUE THEN
+	
+    // Fill up vector with structure
+	memcpy(ADR(dataToBeSent[0]),  ADR(payload^.version), SIZEOF(payload^.version));
+	memcpy(ADR(dataToBeSent[2]),  ADR(payload^.devtype), SIZEOF(payload^.devtype));
+	memcpy(ADR(dataToBeSent[4]),  ADR(payload^.hostname), SIZEOF(payload^.hostname));
+	memcpy(ADR(dataToBeSent[24]), ADR(payload^.port_state1), SIZEOF(payload^.port_state1));
+	memcpy(ADR(dataToBeSent[26]), ADR(payload^.port_state2), SIZEOF(payload^.port_state2));
+	memcpy(ADR(dataToBeSent[28]), ADR(payload^.offset_from_master), SIZEOF(payload^.offset_from_master));
+	memcpy(ADR(dataToBeSent[36]), ADR(payload^.mean_path_delay), SIZEOF(payload^.mean_path_delay));
+	memcpy(ADR(dataToBeSent[44]), ADR(payload^.announce_path_delay), SIZEOF(payload^.announce_path_delay));
+	memcpy(ADR(dataToBeSent[48]), ADR(payload^.sync_msg_count), SIZEOF(payload^.sync_msg_count));
+	memcpy(ADR(dataToBeSent[52]), ADR(payload^.delay_resp_count), SIZEOF(payload^.delay_resp_count));
+	memcpy(ADR(dataToBeSent[56]), ADR(payload^.clock_identity), SIZEOF(payload^.clock_identity));
+	memcpy(ADR(dataToBeSent[64]), ADR(payload^.gm_identity), SIZEOF(payload^.gm_identity));
+	memcpy(ADR(dataToBeSent[72]), ADR(payload^.parent_port_identity), SIZEOF(payload^.parent_port_identity));
+	memcpy(ADR(dataToBeSent[82]), ADR(payload^.current_utc_offset), SIZEOF(payload^.current_utc_offset));
+	memcpy(ADR(dataToBeSent[84]), ADR(payload^.steps_removed), SIZEOF(payload^.steps_removed));
+	memcpy(ADR(dataToBeSent[86]), ADR(payload^.error_status), SIZEOF(payload^.error_status));
+	memcpy(ADR(dataToBeSent[88]), ADR(payload^.app_specific1), SIZEOF(payload^.app_specific1));
+	memcpy(ADR(dataToBeSent[96]), ADR(payload^.app_specific2), SIZEOF(payload^.app_specific2));
+	memcpy(ADR(dataToBeSent[104]), ADR(payload^.app_specific3), SIZEOF(payload^.app_specific3));
+	memcpy(ADR(dataToBeSent[112]), ADR(payload^.app_specific4), SIZEOF(payload^.app_specific4));
+	memcpy(ADR(dataToBeSent[120]), ADR(payload^.reserved1), SIZEOF(payload^.reserved1));
+	memcpy(ADR(dataToBeSent[124]), ADR(payload^.reserved2), SIZEOF(payload^.reserved2));
+	
+    // Build MUDPI packet
+	mudpiPacket.SetTimeStamp(Timestamp := timeStamp);
+    mudpiPacket.SetPayload(payload := ADR(dataToBeSent),
+                           payloadSize := SIZEOF(dataToBeSent));
+						   
+	// Send Data via UDP
+    hrSend := ipUdp.SendData(ipDestAddr := _DestinationIpAddress,
+                             udpDestPort := _DestinationPort,
+                             udpSrcPort := _SourcePort,
+                             nData := mudpiPacket.Size(),
+                             pData := mudpiPacket.Data(),
+                             bCalcUdpCheckSum := FALSE,
+                             pVlan := 0);
+    IF SUCCEEDED(hrSend) THEN
+        mudpiPacket.IncreaseSampleId();
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetConfigurationParameters" Id="{094f3d57-548a-49e8-98e7-c13b93698a69}">
+      <Declaration><![CDATA[METHOD PUBLIC SetConfigurationParameters
+VAR_INPUT
+    DestinationIpAddress : Tc2_System.T_IPv4Addr; // Destination IP address for the data
+    DestinationPort : UINT; // Destination port for the data
+    SourcePort : UINT; // Source port of the data
+    TopicId : UDINT; // MUDPI Topic identity
+    ComponentId : UINT; // MUDPI component identity
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[mudpiPacket.SetTopicId(TopicId := TopicId);
+mudpiPacket.SetComponentId(ComponentId := ComponentId);
+
+_DestinationIpAddress := IpAddressStringToInteger(IpAddress := DestinationIpAddress);
+_DestinationPort := DestinationPort;
+_SourcePort := SourcePort;
+
+IF ipUdp = 0 AND NOT bSuccessfulInitializationOfRealtimeDriver THEN
+    hrInit := FW_ObjMgr_GetObjectInstance(oid := oid, 
+                                          iid := TC_GLOBAL_IID_LIST.IID_ITcIoUdpProtocol,
+                                          pipUnk := ADR(ipUdp));
+    IF SUCCEEDED(hrInit) THEN
+        IF SUCCEEDED(ipUdp.RegisterReceiver(_SourcePort, THIS^)) THEN //open port
+            bSuccessfulInitializationOfRealtimeDriver := TRUE;
+        ELSE
+            FW_SafeRelease(ADR(ipUdp));
+        END_IF
+    END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcAddRef" Id="{2db89ae5-d4a8-4cae-b55d-205f20cb6602}">
+      <Declaration><![CDATA[{attribute 'c++_compatible'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'pack_mode' := '4'}
+METHOD TcAddRef : UDINT
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcQueryInterface" Id="{3187786a-2a99-46b6-9adf-4823981af4c4}">
+      <Declaration><![CDATA[{attribute 'object_name' := 'TcQueryInterface'}
+{attribute 'c++_compatible'}
+{attribute 'signature_flag' := '33554688'}
+{attribute 'pack_mode' := '4'}
+{attribute 'show'}
+{attribute 'minimal_input_size' := '4'}
+METHOD TcQueryInterface : HRESULT
+VAR_INPUT
+	iid	: REFERENCE TO IID;
+	pipItf	: POINTER TO PVOID;
+END_VAR
+VAR
+	ipUdpRecv : ITcIoUdpProtocolRecv;
+	ipUnknown : ITcUnknown;	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF GuidsEqual(ADR(iid), ADR(TC_GLOBAL_IID_LIST.IID_ITcIoUdpProtocolRecv)) THEN
+	ipUdpRecv := THIS^; // cast to interface pointer
+	pipItf^ := ITCUNKNOWN_TO_PVOID(ipUdpRecv);
+	TcAddRef();
+	TcQueryInterface := S_OK;
+ELSIF GuidsEqual(ADR(iid), ADR(TC_GLOBAL_IID_LIST.IID_ITcUnknown)) THEN
+	ipUnknown := THIS^; // cast to interface pointer
+	pipItf^ := ITCUNKNOWN_TO_PVOID(ipUnknown);
+	TcAddRef();
+	TcQueryInterface := S_OK;
+ELSE
+	TcQueryInterface := E_HRESULTAdsErr.NOINTERFACE ; //Call super if this fb extends some other
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TcRelease" Id="{052c490b-48da-43aa-9196-81673b6faf5e}">
+      <Declaration><![CDATA[{attribute 'c++_compatible'}
+{attribute 'minimal_input_size' := '4'}
+{attribute 'pack_mode' := '4'}
+METHOD TcRelease : UDINT
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SendEL6688Diag">
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.FB_exit">
+      <LineId Id="20" Count="2" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.FB_init">
+      <LineId Id="55" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="61" Count="18" />
+      <LineId Id="60" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.FB_reinit">
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.IpAddressStringToInteger">
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.ReceiveData">
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.SendDiagnosticData">
+      <LineId Id="6" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="50" Count="5" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="56" Count="9" />
+      <LineId Id="87" Count="4" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="16" Count="9" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.SetConfigurationParameters">
+      <LineId Id="12" Count="1" />
+      <LineId Id="16" Count="4" />
+      <LineId Id="22" Count="5" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="29" Count="4" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.TcAddRef">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.TcQueryInterface">
+      <LineId Id="49" Count="11" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SendEL6688Diag.TcRelease">
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

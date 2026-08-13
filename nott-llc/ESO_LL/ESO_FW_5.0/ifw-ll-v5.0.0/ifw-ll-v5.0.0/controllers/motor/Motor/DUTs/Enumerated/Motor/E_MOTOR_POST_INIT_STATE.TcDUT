@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="E_MOTOR_POST_INIT_STATE" Id="{02b0aada-cbf0-49f3-8e19-5c683a180fa3}">
+    <Declaration><![CDATA[TYPE E_MOTOR_POST_INIT_STATE :
+(
+	MOTOR_POST_INIT_STATE_START	:= 0,
+	MOTOR_POST_INIT_STATE_WRITE,
+	MOTOR_POST_INIT_STATE_END
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

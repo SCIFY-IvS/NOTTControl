@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_PUMP_MVP030" Id="{5deeeeb2-4a59-42fe-926f-09d18a73ae72}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_PUMP_MVP030 EXTENDS FB_CRYO_PUMP_SERIAL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_CRYO_PUMP_MVP030_CFG;	
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_CRYO_PUMP_BASE_CTRL;	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_CRYO_PUMP_MVP030_STAT;	
+
+
+	// Input signals
+	i_bReady		AT %I*:	BOOL;	// Turbo Pump Ready (signal DO1)
+	i_bError		AT %I*:	BOOL;	// If FALSE, Error present - active low (signal DO2)
+
+	// Output signals q_bStart already defined in FB_CRYO_TMP_BASE.
+	// q_bStart should activate a relay that 
+	// connects Pin 7 with Pin 5 - DI Pumping station
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// Execute the base class object FB_CRYO_PUMP_SERIAL
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{c1d412ed-aaa4-4467-8b1d-df027adbac0d}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	//
+	// List of INIT commands.
+	//
+	cmdList_Init_MVP030:	ARRAY [1..8] OF T_CRYO_PUMP_CMD := [
+		(cmd := cfg.C_CMD_sCtrlViaInt, 		length := 17),	// Reply of 17 chars with the terminator!	
+		(cmd := cfg.C_CMD_sFwVersion, 		length := 20),	
+		(cmd := cfg.C_CMD_sHwVersion, 		length := 20),
+		(cmd := cfg.C_CMD_nNominalSpeed,	length := 20),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0)];
+
+	//
+	//	List of READ (and WRITE) commands.
+	// NOTE: Monitoring loop stops on first cmd = ''.
+	//
+	cmdList_Read_MVP030:	ARRAY [1..16] OF T_CRYO_PUMP_CMD := [
+		(cmd := cfg.C_CMD_bON, 				length := 20),	// Reply of 20 chars with the terminator!	
+		(cmd := cfg.C_CMD_nCtrlMode, 		length := 17),	
+		(cmd := cfg.C_CMD_sErrorCode, 		length := 20),
+		(cmd := cfg.C_CMD_nMotorCurr, 		length := 20),
+		(cmd := cfg.C_CMD_nPumpHours, 		length := 20),
+		(cmd := cfg.C_CMD_nMotorVolt, 		length := 20),
+		(cmd := cfg.C_CMD_nElecPower, 		length := 20),
+		(cmd := cfg.C_CMD_nPumpTemp, 		length := 20),
+		(cmd := cfg.C_CMD_nPumpSpeed, 		length := 20),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0),
+		(cmd := '', 						length := 0)];
+	
+		i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bStarted	THEN
+	//
+	// START: Mandatory for ALL pumps !!!
+	//
+	// Set references from FB_RS_BASE
+	cfgRef	REF=cfg;
+	ctrlRef	REF=ctrl;
+	statRef	REF=stat;
+
+	// Set references from FB_CRYO_TMP_BASE
+	cfgBaseRef	REF=cfg;
+	ctrlBaseRef	REF=ctrl;
+	statBaseRef	REF=stat;
+	
+	// Copy input parameters to configuration
+	cfg.nModel			:= in_nModel;
+	cfg.bAutoMonitor	:= in_bAutoMonitor;
+	cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+	
+	
+	// Set pointers to arrays of commands
+	ptrInitCmds	:= ADR(cfg.cmdList_Init);(* Pointer to INIT commands *)
+	ptrReadCmds	:= ADR(cfg.cmdList_Read);(* Pointer to READ commands *)
+	
+	// TODO in FB that extends the functionality
+	// Set pointers to comm, i.e.
+	ptrCommCfg	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	ptrCommCtrl	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	ptrCommStat	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+	
+	// Set comm suffixes for commands and replies
+	ptrCommCfg^.sCmdSuffix		:= in_sCmdSuffix;
+	ptrCommCfg^.sReplySuffix	:= in_sReplySuffix;
+
+	statRef.bConfigured	:= TRUE;
+	bStarted			:= TRUE;
+	//
+	// END: Mandatory for ALL pumps !!!
+	//
+
+
+	//
+	// ATH specific configuration
+	//
+	
+	// Assign INIT and READ commands.
+	cfg.cmdList_Init	:= cmdList_Init_MVP030;
+	cfg.cmdList_Read	:= cmdList_Read_MVP030;
+	
+	// Add checksum to all INIT and READ commands
+	FOR i:=1 TO 8 DO
+		IF cfg.cmdList_Init[i].cmd <> '' THEN
+			cfg.cmdList_Init[i].cmd	:= M_PVP_Checksum(cfg.cmdList_Init[i].cmd);
+		ELSE
+			EXIT;
+		END_IF
+	END_FOR
+	
+	FOR i:=1 TO 16 DO
+		IF cfg.cmdList_Read[i].cmd <> '' THEN
+			cfg.cmdList_Read[i].cmd	:= M_PVP_Checksum(cfg.cmdList_Read[i].cmd);
+		ELSE
+			EXIT;
+		END_IF
+	END_FOR
+	
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSpeed" Id="{c2a72248-c5f6-4bbd-b0a4-142ccd0bdce6}">
+      <Declaration><![CDATA[METHOD M_GetSpeed : DINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetSpeed	:= stat.nPumpSpeed;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsReady" Id="{4079bc5c-e0b0-4264-bd4e-97041dcb8fab}">
+      <Declaration><![CDATA[METHOD M_IsReady : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_IsReady	:= stat.bReady;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsRunning" Id="{11ea37f1-80bd-4e5b-85fb-7f0de24bfac6}">
+      <Declaration><![CDATA[METHOD M_IsRunning : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_IsRunning	:= stat.bMoving;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadFromReply" Id="{a006417d-6d08-4f9a-8fe3-20d39e82e79f}">
+      <Declaration><![CDATA[METHOD M_ReadFromReply : BOOL
+// Method to check correctness of the reply and assign the result to a status variable.
+VAR_INPUT
+	idx:		INT;		(* arr [idx] will hold the first extracted value, arr [idx+1] the second one, etc. *)
+	bInitCmd:	BOOL := FALSE;
+END_VAR
+VAR
+	pos:	INT;
+	cmd:	STRING;
+	length:	DINT;
+	subStr:	STRING;
+	valLen:	INT;		// Number of character for the value
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// During INIT it might happen that the command index is 0.
+// These cases should be discarded.
+IF idx <= 0	THEN
+	M_ReadFromReply	:= TRUE;
+	RETURN;
+END_IF
+
+IF bInitCmd	THEN
+	cmd		:= cfg.cmdList_Init[idx].cmd;
+	length	:= cfg.cmdList_Init[idx].length;
+ELSE
+	cmd		:= cfg.cmdList_Read[idx].cmd;
+	length	:= cfg.cmdList_Read[idx].length;
+END_IF
+
+IF length <> 0  AND  LEN(stat.sReply) <> length THEN
+	stat.sErrorText	:= 'Wrong reply length';
+	M_ReadFromReply	:= FALSE;
+	RETURN;
+END_IF
+
+// Check if sent command was correct.
+IF	FIND(stat.sReply,'NO_DEF') > 0	OR 
+	FIND(stat.sReply,'_RANGE') > 0	OR 
+	FIND(stat.sReply,'_LOGIC') > 0		THEN
+	// Wrong command sent. This is an error.
+	stat.sErrorText	:= 'Incorrect command';
+	M_ReadFromReply	:= FALSE;
+	RETURN;
+END_IF
+
+// Check the structure of the reply.
+// Example 1 - Data query with 6 characters for the value:
+//    CMD:   1 2 3 0 0 3 0 9 0 2 = ? 1 1 2 cR
+//    Reply: 1 2 3 1 0 3 0 9 0 6 0 0 0 6 3 3 0 3 7 cR
+//    valLen = 6 (from '06' in reply)
+//    value = 633
+// Example 2 - Data query with 3 characters for the value:
+//    CMD:   1 2 3 0 0 0 6 0 0 2 = ? x x x cR
+//    Reply: 1 2 3 1 0 0 6 0 0 3 0 0 2 y y y cR
+//    valLen = 3 (from '03' in reply)
+//    value = 002 = 2
+// Example 3 - Command (reply is identical to command):
+//    CMD:   0 4 2 1 0 0 1 0 0 6 1 1 1 1 1 1 0 2 0 cR
+//    Reply: 0 4 2 1 0 0 1 0 0 6 1 1 1 1 1 1 0 2 0 cR
+//    valLen = 6 (from '06' in reply)
+//
+// Compared to the first 10 chars of the command, 
+// the reply should modify characters 3 and 9 (index starts from 0)
+// reply[3] = 1
+// reply[9] = length - 14
+//
+// So, we want to convert: 1 2 3 0 0 3 0 9 0 2
+//                     to: 1 2 3 1 0 3 0 9 0 6
+// Extract first 10 characters from the command
+subStr	:= MID(cmd,10,1);
+// Replace character [3] with '1', i.e. with ASCII 49.
+subStr[3]	:= 49;
+// Replace character [9] with expected number of characters in the value.
+valLen	:= DINT_TO_INT(length - 14);
+// Convert integer to character.
+subStr[9]	:= INT_TO_BYTE(valLen + 48);
+IF	FIND(stat.sReply,subStr) <> 1	THEN
+	// Wrong reply received. This is an error.
+	stat.sErrorText	:= 'Wrong reply received';
+	M_ReadFromReply	:= FALSE;
+	RETURN;
+END_IF
+
+
+//
+// All fine so far. Let's extract the reading.
+//
+// The actual reply is contained in the 'valLen' (3 or 6) characters starting 
+// from char [10] (11-the character for MID() function).
+subStr	:= MID(stat.sReply, valLen, 11);
+
+// Remove the 3-character checksum from the command.
+cmd	:= MID(cmd, LEN(cmd)-3,1);
+
+IF cmd = cfg.C_CMD_sFwVersion	THEN
+	stat.sFwVersion		:= MID(subStr, 6, 1);
+ELSIF cmd = cfg.C_CMD_sHwVersion	THEN
+	stat.sHwVersion		:= MID(subStr, 6, 1);
+ELSIF cmd = cfg.C_CMD_nNominalSpeed	THEN
+	stat.nNominalSpeed	:= LREAL_TO_DINT(STRING_TO_LREAL(subStr));		// [rpm]
+ELSIF cmd = cfg.C_CMD_bON	THEN
+	stat.bON	:= STRING_TO_BOOL(subStr) <> FALSE;
+ELSIF cmd = cfg.C_CMD_nCtrlMode	THEN
+	stat.nCtrlMode	:= STRING_TO_DINT(subStr);
+ELSIF cmd = cfg.C_CMD_sErrorCode	THEN
+	IF	FIND(subStr,'Err') > 0	OR 
+		FIND(subStr,'Wrn') > 0		THEN
+		// There is an Error or Warning.
+		stat.sFailureCode	:= MID(subStr, 6, 1);
+		stat.bFailure		:= TRUE;
+	ELSE
+		stat.sFailureCode	:= 'OK';
+		stat.bFailure		:= FALSE;
+	END_IF
+ELSIF cmd = cfg.C_CMD_nMotorCurr	THEN
+	stat.nMotorCurr	:= STRING_TO_DINT(subStr) * 10;		// [mA]
+ELSIF cmd = cfg.C_CMD_nPumpHours	THEN
+	stat.nPumpHours	:= STRING_TO_DINT(subStr);
+ELSIF cmd = cfg.C_CMD_nMotorVolt	THEN
+	stat.nMotorVolt	:= STRING_TO_DINT(subStr) / 100;	// [V]
+	stat.lrMotorVolt:= STRING_TO_LREAL(subStr) / 100.0;	// [V]
+ELSIF cmd = cfg.C_CMD_nElecPower	THEN
+	stat.nElecPower	:= STRING_TO_DINT(subStr);			// [W]
+ELSIF cmd = cfg.C_CMD_nPumpTemp	THEN
+	stat.nPumpTemp	:= STRING_TO_DINT(subStr);			// [°C]
+ELSIF cmd = cfg.C_CMD_nPumpSpeed	THEN
+	stat.nPumpSpeed	:= LREAL_TO_DINT(STRING_TO_LREAL(subStr));			// [rpm]
+END_IF
+
+
+M_ReadFromReply	:= TRUE;	// OK]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{a733af65-32be-4df2-9ad9-d468f8574b41}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Update Status from digital inputs readings
+stat.bReady		:= i_bReady;
+stat.bFailure	:= NOT i_bError;	// Active low
+
+stat.bMoving	:= stat.bReady OR stat.nPumpSpeed > 0;
+
+// Set Control Mode Label
+(*
+	1 = remote
+	2 = RS-485
+	4 = PV.can
+	32 = Keys on the front panel
+*)
+CASE stat.nCtrlMode	OF
+	1:		stat.sCtrlMode	:= 'REMOTE';
+	2:		stat.sCtrlMode	:= 'RS-485';
+	4:		stat.sCtrlMode	:= 'PV.can';
+	32:		stat.sCtrlMode	:= 'Keys on Front Panel';
+ELSE
+	stat.sCtrlMode	:= 'UNKNOWN';
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PUMP_MVP030">
+      <LineId Id="78" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MVP030.M_Configure">
+      <LineId Id="398" Count="7" />
+      <LineId Id="449" Count="0" />
+      <LineId Id="407" Count="3" />
+      <LineId Id="450" Count="0" />
+      <LineId Id="412" Count="33" />
+      <LineId Id="530" Count="3" />
+      <LineId Id="535" Count="0" />
+      <LineId Id="544" Count="1" />
+      <LineId Id="536" Count="0" />
+      <LineId Id="534" Count="0" />
+      <LineId Id="537" Count="3" />
+      <LineId Id="546" Count="1" />
+      <LineId Id="541" Count="2" />
+      <LineId Id="446" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MVP030.M_GetSpeed">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MVP030.M_IsReady">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MVP030.M_IsRunning">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MVP030.M_ReadFromReply">
+      <LineId Id="406" Count="31" />
+      <LineId Id="542" Count="2" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="556" Count="0" />
+      <LineId Id="552" Count="3" />
+      <LineId Id="557" Count="0" />
+      <LineId Id="545" Count="2" />
+      <LineId Id="551" Count="0" />
+      <LineId Id="438" Count="0" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="439" Count="0" />
+      <LineId Id="540" Count="1" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="561" Count="1" />
+      <LineId Id="441" Count="3" />
+      <LineId Id="558" Count="2" />
+      <LineId Id="445" Count="8" />
+      <LineId Id="577" Count="5" />
+      <LineId Id="575" Count="0" />
+      <LineId Id="460" Count="0" />
+      <LineId Id="576" Count="0" />
+      <LineId Id="461" Count="1" />
+      <LineId Id="608" Count="0" />
+      <LineId Id="464" Count="0" />
+      <LineId Id="609" Count="0" />
+      <LineId Id="466" Count="6" />
+      <LineId Id="505" Count="1" />
+      <LineId Id="508" Count="0" />
+      <LineId Id="528" Count="0" />
+      <LineId Id="509" Count="0" />
+      <LineId Id="514" Count="0" />
+      <LineId Id="516" Count="0" />
+      <LineId Id="515" Count="0" />
+      <LineId Id="512" Count="0" />
+      <LineId Id="477" Count="5" />
+      <LineId Id="595" Count="0" />
+      <LineId Id="483" Count="1" />
+      <LineId Id="487" Count="6" />
+      <LineId Id="68" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_MVP030.M_UpdateStatus">
+      <LineId Id="144" Count="7" />
+      <LineId Id="172" Count="3" />
+      <LineId Id="158" Count="5" />
+      <LineId Id="165" Count="3" />
+      <LineId Id="108" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

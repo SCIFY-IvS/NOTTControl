@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="E_COE_PTP_DELAY_MECHANISM" Id="{71604e4d-870d-4818-918e-221565670d04}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_COE_PTP_DELAY_MECHANISM :
+(
+	UNKNOWN := -1,
+	DISABLED := 0,
+	E2E := 1,
+	P2P := 2
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <GVL Name="GCL" Id="{e4dd9574-00d0-42ee-9983-8e12d6e8ee11}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+    C_PI:				LREAL := 3.1415926535897932384626433832795028841971693993751;
+    C_PI2: 				LREAL := C_PI / 2.0;
+	C_2PI: 				LREAL := 2.0 * C_PI;
+	C_RAD2DEG:  		LREAL := (180.0 / C_PI);
+	C_DEG2RAD:  		LREAL := (C_PI / 180.0);
+	// pi/(12*3600):  seconds OF TIME TO radians */
+	C_S2R:				LREAL := 7.2722052166430399038487115353692196393452995355905E-5;
+
+	C_DIAG_COE_IDX: 	WORD  := 16#FA80; 	// EL_6688 CoE address for diagnostic data
+	C_UTC_OFFSET_SIDX: 	BYTE  := 11;		// EL_6688 CoE subindex for UTC offset - Leap second
+	C_PTP_OFFSET_SIDX: 	BYTE  := 6;			// EL_6688 Coe subindex for PTP offset from master
+
+	C_KELVIN:			LREAL := 273.15;	// Zero deg C expressed in [deg K]
+	C_MAX_P:    		LREAL := 900.0;		// Maximum pressure [mbar]
+	C_MIN_P:    		LREAL := 600.0;		// Minimum pressure [mbar]
+	C_MAX_T:    		LREAL := 50.0;		// Maximum temperature [deg C]
+	C_MIN_T:			LREAL := -20.0;		// Minimum temperature [deg C]
+	
+	C_LATITUDE_ELT:		LREAL := -0.429165991;	// ELT Latitude  [rad]
+	C_LATITUDE_VLT_UT1:	LREAL := -0.429833092;	// VLT_UT1 Latitude [rad] -24 deg 37 min 39.44 sec
+	C_LATITUDE_VLT_UT2:	LREAL := -0.429825122;	// VLT_UT2 Latitude [rad] -24 deg 37 min 37.80 sec
+	C_LATITUDE_VLT_UT3:	LREAL := -0.429819523;	// VLT_UT3 Latitude [rad] -24 deg 37 min 36.64 sec
+	C_LATITUDE_VLT_UT4:	LREAL := -0.429823005;	// VLT_UT4 Latitude [rad] -24 deg 37 min 37.36 sec
+	C_LATITUDE_NTT:		LREAL := -0.5106547351;	// NTT Latitude  [rad]
+	C_LATITUDE_VISTA:	LREAL := -0.4296250041;	// VISTA Latitude  [rad] -24 36 56.518226
+	C_LATITUDE_VST:		LREAL := -0.429788783;	// VST Latitude  [rad] -24 deg 37 min 30.300 sec
+	C_LATITUDE_VLT_CM:	LREAL := -0.429833092;	// VLT_CM Latitude  [rad]
+
+	C_LONGITUDE_ELT:	LREAL :=  1.225074527;	// ELT Longitude [rad]
+	C_LONGITUDE_VLT_UT1:LREAL :=  1.228800386;	// VLT_UT1 Longitude [rad] 70 deg 24 min 18.27 sec
+	C_LONGITUDE_VLT_UT2:LREAL :=  1.228796107;	// VLT_UT2 Longitude [rad] 70 deg 24 min 17.39 sec
+	C_LONGITUDE_VLT_UT3:LREAL :=  1.228790929;	// VLT_UT3 Longitude [rad] 70 deg 24 min 16.32 sec
+	C_LONGITUDE_VLT_UT4:LREAL :=  1.228780856;	// VLT_UT4 Longitude [rad] 70 deg 24 min 14.25 sec
+	C_LONGITUDE_NTT:	LREAL :=  1.2345499197;	// NTT Longitude [rad]
+	C_LONGITUDE_VISTA:	LREAL :=  1.2286692091;	// VISTA Longitude [rad] 70 23 51.216354
+	C_LONGITUDE_VST:	LREAL :=  1.228759771;	// VST Longitude [rad] 70 deg 24 min 09.896 sec
+	C_LONGITUDE_VLT_CM:	LREAL :=  1.228800386;	// VLT_CM Longitude [rad]
+
+	
+	C_LEAP_SECOND:		DINT  := 37;		// Last known Leap Second
+	
+	C_OFFSET_UNIX:		DINT  :=  946684800;  // seconds between years 1970 and 2000 
+
+
+	C_CONST1:		LREAL :=  1721013.5;      // CONSTANT used in formula
+	C_CONST2:		LREAL :=  190002.5;       // CONSTANT used in formula
+	C_CONST3:		LREAL :=  2400000.5;      // CONSTANT used in formula
+	C_CONST4:		LREAL :=  2440587.5;      // JD FOR 1970-01-01 00:00:00.000000
+
+
+//#define vltMOD(A,B) ((B)!=0.0?((A)*(B)>0.0?(A)-(B)*floor_((A)/(B)):(A)+(B)*floor_(-(A)/(B))):(A))
+
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

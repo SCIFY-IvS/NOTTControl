@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_MA_CTRL" Id="{32ff0de1-5f02-4f41-b716-50bc2803ba72}">
+    <Declaration><![CDATA[TYPE T_MA_CTRL :
+STRUCT
+	nCommand:		E_MA_COMMAND	:= E_MA_COMMAND.NONE; 
+	bExecute:		BOOL;
+	nMode:          INT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

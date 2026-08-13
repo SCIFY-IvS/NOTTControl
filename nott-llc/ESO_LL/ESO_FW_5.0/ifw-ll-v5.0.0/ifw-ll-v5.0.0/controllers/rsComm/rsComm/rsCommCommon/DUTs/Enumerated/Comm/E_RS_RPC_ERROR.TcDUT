@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_RS_RPC_ERROR" Id="{5aeb502d-6dfd-4d76-ba58-8b685e08fffd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+//{attribute 'strict'}
+TYPE E_RS_RPC_ERROR :
+(
+	OK					:= 0,
+	NOT_OP				:= -1,			
+	NOT_NOTOP_READY		:= -2,			
+	NOT_NOTOP_NOTREADY	:= -3,			
+	LOCAL				:= -4			
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_EVAC_SYS_INPUT" Id="{3e49381a-e66a-4150-8e1a-9e258eb1043b}">
+    <Declaration><![CDATA[// NOTE: Not used yet !!!
+// Should replace input parameters of FB_CRYO_EVACUATION_SYSTEM.
+// Should be set with NEW method FB_CRYO_CTRL::M_SetEvacSystemInputData().
+TYPE T_CRYO_EVAC_SYS_INPUT :
+STRUCT
+	//
+	// System configuration
+	//
+	// Time between closing Vac valve and Switching OFF the vac Pump [ms]
+	nTime_DeltaTValve:		UDINT;	
+	// Time [ms] to run Turbo Pump to consider vacuum is good (useful when cryostat is cold)
+	nTime_TurboPump:		UDINT;	
+
+	lrPress_Atm:			LREAL;	// Atmospheric pressure limit   [mbar]
+
+	lrTemp_Precooled:		LREAL;	// Precooled temperature limit [K]
+	lrTemp_Warm:			LREAL;	// Warm      temperature limit [K]
+
+	//
+	// System configuration
+	//
+	lrTemp_Cryo:			T_CRYO_TEMPERATURE_STATUS;	// Cold Bench temperature	
+	lrPressure_Cryo:		T_CRYO_PRESSURE_STATUS;		// Cryostat Pressure
+	lrPressure_Evac:		T_CRYO_PRESSURE_STATUS;		// Evacuation Pressure
+	bRepressValveOpen:		BOOL;	// Repressure Valve Open flag
+	bRepressValveOK:		BOOL;	// Repressure Valve OK flag
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

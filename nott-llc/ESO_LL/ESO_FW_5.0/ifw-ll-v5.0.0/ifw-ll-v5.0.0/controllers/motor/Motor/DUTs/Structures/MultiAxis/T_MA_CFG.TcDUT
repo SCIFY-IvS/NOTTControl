@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_MA_CFG" Id="{d500ced5-8fa7-44ca-b6f1-539259223b93}">
+    <Declaration><![CDATA[TYPE T_MA_CFG :
+STRUCT
+	nMinSkipCycles: DINT := GPL.C_CYCLE_IDLE;
+	timeout:           T_MA_TOUT_CFG;
+	lrTrkThreshold:	LREAL	:= 1.0;	// If maximum error is < this, bTrackingOK = TRUE
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

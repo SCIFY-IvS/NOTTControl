@@ -1,5 +1,6 @@
 import numpy as np
 from nottcontrol.components.motor import Motor
+from time import time, sleep
 
 class Shutter_Old():
     def __init__(self, opcua_conn, opcua_prefix: str, name: str):
@@ -52,12 +53,37 @@ class Shutter(Motor):
     @property
     def is_open(self):
         pos = self.getPositionAndSpeed()[0]
-        return np.isclose(pos,self._open_pos,self.rtol) 
-    
+        return np.isclose(pos, self._open_pos, self.rtol)
+
     @property
     def is_closed(self):
         pos = self.getPositionAndSpeed()[0]
-        return np.isclose(pos,self._close_pos,self.rtol)
-        
-        
-        
+        return np.isclose(pos, self._close_pos, self.rtol)
+
+    def get_hardware_state(self):
+        """Return Open/Closed/Unknown from a single position read."""
+        pos = self.getPositionAndSpeed()[0]
+        return self.hardware_state_from_position(pos)
+
+    def hardware_state_from_position(self, pos):
+        if np.isclose(pos, self._open_pos, self.rtol):
+            return "Open"
+        if np.isclose(pos, self._close_pos, self.rtol):
+            return "Closed"
+        return "Unknown"
+
+    def await_motor(self, dt=0.1, timeout=10.,
+                    initial=None, verbose=True):
+        if self.is_standing :
+            return
+        wait_start = time()
+        while time() < wait_start + timeout:
+            if self.is_standing :
+                return
+            else:
+                if verbose:
+                    message = f"Waiting for {self.name} : {time() - wait_start :.1f}: "
+                    print("                                         ", end="\r")
+                    print(message, end="\r", flush=True)
+                sleep(dt)
+

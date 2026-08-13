@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_ADC_INFO" Id="{ac7d8cd0-e6e0-4bbc-bff5-bc5377a8c33f}">
+    <Declaration><![CDATA[TYPE T_ADC_INFO :
+STRUCT
+	(* Driver Information *)
+	sDate:			STRING(32)	:= '2017-07-19';
+	sDescription:	STRING(80) 	:= 'ADC control';
+	sName:			STRING(64)	:= 'FB_ADC';
+	sPlatform:		STRING(32)	:= '';
+	sSynopsis:		STRING(64)	:= '';
+	nVersionMajor:	DINT		:= 0;
+	nVersionMinor:	DINT		:= 1;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

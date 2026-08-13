@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_TCP_RT_CLIENT_STAT" Id="{d001cc50-88a7-49e4-9654-5f02a835c71f}">
+    <Declaration><![CDATA[TYPE T_TCP_RT_CLIENT_STAT :
+STRUCT
+	bInitialised:		BOOL	:= FALSE;		(* Flag if device is initialised *)
+
+
+	nLastCommand:		DINT 	:= 0;
+	nErrorCode:			DINT 	:= 0;
+	nStatus: 			DINT	:= E_TCP_RT_CLIENT_STATUS.NOT_INIT;	// IDLE, BUSY, ERROR
+	nCounter:			UDINT	:= 0;	// Alive counter
+
+	sErrorText: 		STRING 	:= 'OK';
+	sStatus:			STRING	:= '';	// Status description
+
+	sLibVersion:		STRING	:= 'UNKNOWN';					(* Library version, e.g. '1.2.0.0' *)
+	sSvnRevision:		STRING	:= '$$Revision: 311362 $$';		(* SVN Revision *)
+	sRevision:			STRING	:= '';							(* SVN Revision without $ signs *)
+
+	//Sample information about communication
+    nReceivedPakets:	UINT;
+
+	nSocketId:			UDINT; 
+	nSentData:			UDINT; 
+
+	bConnected:			BOOL	:= FALSE;
+	nConnections: 		UDINT; 
+	lastTcpEvent: 		TCPIP_EVENT;
+	nReplyLength: 		UDINT; 
+	sReply: 			STRING(255); 
+	hrSend: 			HRESULT; //last SendData result
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

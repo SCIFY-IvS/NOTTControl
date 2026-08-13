@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_MOTION" Id="{06bb5848-62d4-4656-b1de-5e7d62d966bb}">
+    <Declaration><![CDATA[TYPE T_MOTOR_MOTION :
+STRUCT
+	motionType:	E_MOTOR_MODE;
+	position:	T_POSITION;
+	speed:		T_MOTOR_SPEED;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

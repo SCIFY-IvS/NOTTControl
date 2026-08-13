@@ -182,6 +182,8 @@ bool halt_acquisition(MACIE_Settings *ptUserData)
     bool ret = true;
     verbose_printf(LOG_INFO, ptUserData, "Halting Data Acquisition...\n");
 
+    ptUserData->bKeepScienceInterface = false;
+
     // What is the proper order?
     if(!HaltCameraAcq(ptUserData))
     {
@@ -189,9 +191,9 @@ bool halt_acquisition(MACIE_Settings *ptUserData)
         ret = false;
     }
     delay(300);
-    if (!CloseGigEScienceInterface(ptUserData))
+    if (!CloseScienceInterface(ptUserData))
     {
-        verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface during halt acquisition\n");
+        verbose_printf(LOG_ERROR, ptUserData, "CloseScienceInterface during halt acquisition\n");
         ret = false;
     }
 
@@ -207,6 +209,28 @@ bool acquire(bool no_recon, MACIE_Settings *ptUserData )
     // Then download and save data
     bool bOutput = true;
     bool ret = true;
+
+    // Soft SC middle-stripe is unstable across multiple ramps in one ASIC
+    // trigger (Skips1 intermittently ignored → bottom of array). Keep the true
+    // subframe burst counters latched and fire N× single-ramp triggers instead,
+    // with GigE kept open (no re-init / no ReconfigureASIC between ramps).
+    const unsigned int nramps_req = ASIC_NRamps(ptUserData, false, 0);
+    const bool soft_serial =
+        ptUserData->bSoftStripeActive && (nramps_req > 1);
+    const bool prev_keep = ptUserData->bKeepScienceInterface;
+
+    if (soft_serial)
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "Soft SC: serializing %u single-ramp triggers "
+                       "(multi-ramp middle-stripe is unstable).\n",
+                       nramps_req);
+        ptUserData->bSoftSerialRamps = true;
+        ptUserData->uiSoftSerialNRamps = nramps_req;
+        ptUserData->bKeepScienceInterface = true;
+        ASIC_NRamps(ptUserData, true, 1);
+    }
+
     if (!no_recon)
     {
         timestamp_t t0 = get_timestamp();
@@ -233,6 +257,19 @@ bool acquire(bool no_recon, MACIE_Settings *ptUserData )
         timestamp_t t1 = get_timestamp();
         double time_taken = (t1 - t0) / 1000000.0L;
         printf("\nDownloadAndSaveAllUSB() took %f seconds to execute.\n", time_taken);
+    }
+
+    if (soft_serial)
+    {
+        ptUserData->bSoftSerialRamps = false;
+        ptUserData->uiSoftSerialNRamps = 0;
+        ASIC_NRamps(ptUserData, true, nramps_req);
+        ptUserData->bKeepScienceInterface = prev_keep;
+        if (!prev_keep)
+        {
+            // Download kept GigE open for the serial loop; close now.
+            CloseScienceInterface(ptUserData);
+        }
     }
 
     // Check for errors
@@ -688,10 +725,7 @@ int main2(int argc, char *argv[])
         // Halt a failed acquisition
         if (input2.cmdOptionExists("haltAcq"))
         {
-            // What is the proper order?
-            HaltCameraAcq(ptUserData);
-            delay(300);
-            CloseUSBScienceInterface(ptUserData);
+            halt_acquisition(ptUserData);
         }
 
         ////////////////////////////////////////////////////////////////////////////////
@@ -1200,15 +1234,14 @@ bool InitCamera(string configFile, MACIE_Connection connection, MACIE_Settings *
     struct tm *now = gmtime(&t1); // in GMT
 
     // Save directory
-    // If save directory is not set (equals "") then set to default ~/data/$DATE/
+    // If save directory is not set (equals "") then set to default /data/nott/$DATE/
     char buffer[80];
     std::stringstream ss;
-    string homedir = getenv("HOME");
     if (ptUserData->saveDir.compare("") == 0)
     {
-        strftime(buffer, 80, "/data/%Y%m%d/", now);
+        strftime(buffer, 80, "/data/nott/%Y%m%d/", now);
         ss << buffer;
-        ptUserData->saveDir = homedir + ss.str();
+        ptUserData->saveDir = ss.str();
     }
     else
     {
@@ -1227,12 +1260,12 @@ bool InitCamera(string configFile, MACIE_Connection connection, MACIE_Settings *
     printf("saveDir: %s\n", ptUserData->saveDir.c_str());
     printf("prefix: %s\n", ptUserData->filePrefix.c_str());
 
-    // Create save directory
-    struct stat st = {0};
-    if (stat(ptUserData->saveDir.c_str(), &st) == -1)
+    // Create save directory (and parents — date suffix often needs mkdir -p)
+    if (EnsureDirectoryExists(ptUserData->saveDir) == false)
     {
-        verbose_printf(LOG_INFO, ptUserData, "Creating directory: %s\n", ptUserData->saveDir.c_str());
-        mkdir(ptUserData->saveDir.c_str(), 0700);
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Failed to create saveDir '%s'\n", ptUserData->saveDir.c_str());
+        return false;
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -1296,6 +1329,8 @@ bool free_resources(MACIE_Settings *ptUserData)
 {
     if (SettingsCheckNULL(ptUserData) == false)
         return false;
+
+    ClearDisplayPreview(ptUserData);
 
     if (MACIE_Free() != MACIE_OK)
     {
@@ -1398,19 +1433,28 @@ bool ParseConfig(string configFile, MACIE_Settings *ptUserData, bool update_regs
                 // verbose_printf(LOG_INFO, ptUserData, "  str1: %s, str2: %s\n", str1.c_str(), str2.c_str());
 
                 if (str1.compare("MACIEFile") == 0)
-                    strncpy(ptUserData->MACIEFile, str2.c_str(), str2.size());
-                if (str1.compare("MACIEslot") == 0)
+                    snprintf(ptUserData->MACIEFile, sizeof(ptUserData->MACIEFile), "%s", str2.c_str());
+                else if (str1.compare("MACIEslot") == 0)
                     ptUserData->bMACIEslot1 = (str2uint(str2) == 1) ? true : false;
                 else if (str1.compare("ASICFile") == 0)
-                    strncpy(ptUserData->ASICFile, str2.c_str(), str2.size());
+                    snprintf(ptUserData->ASICFile, sizeof(ptUserData->ASICFile), "%s", str2.c_str());
                 else if (str1.compare("ASICRegs") == 0)
-                    strncpy(ptUserData->ASICRegs, str2.c_str(), str2.size());
+                    snprintf(ptUserData->ASICRegs, sizeof(ptUserData->ASICRegs), "%s", str2.c_str());
 
                 else if (str1.compare("saveDir") == 0)
                 {
                     // Expand home directory?
                     if (str2.compare(0, 1, "~") == 0)
-                        ptUserData->saveDir = getenv("HOME") + str2.substr(1);
+                    {
+                        const char *home = getenv("HOME");
+                        if (home == NULL)
+                        {
+                            verbose_printf(LOG_ERROR, ptUserData,
+                                           "saveDir uses '~' but HOME is not set\n");
+                            return false;
+                        }
+                        ptUserData->saveDir = string(home) + str2.substr(1);
+                    }
                     else
                         ptUserData->saveDir = str2;
 
@@ -1422,12 +1466,18 @@ bool ParseConfig(string configFile, MACIE_Settings *ptUserData, bool update_regs
                     if (LastStr.compare("/") != 0)
                         ptUserData->saveDir = ptUserData->saveDir + string("/");
 
-                    // Create save directory
+                    // Create save directory (and parents)
                     struct stat st = {0};
                     if (stat(ptUserData->saveDir.c_str(), &st) == -1)
                     {
                         verbose_printf(LOG_INFO, ptUserData, "Creating directory: %s\n", ptUserData->saveDir.c_str());
-                        mkdir(ptUserData->saveDir.c_str(), 0700);
+                        if (EnsureDirectoryExists(ptUserData->saveDir) == false)
+                        {
+                            verbose_printf(LOG_ERROR, ptUserData,
+                                           "Failed to create saveDir '%s'\n",
+                                           ptUserData->saveDir.c_str());
+                            return false;
+                        }
                     }
                 }
                 else if (str1.compare("filePrefix") == 0)

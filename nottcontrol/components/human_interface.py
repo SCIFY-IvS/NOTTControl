@@ -27,6 +27,8 @@ from nottcontrol.script.lib.nott_database import get_field
 from configparser import ConfigParser
 from nottcontrol import config 
 
+INFRATEC_SECTION = "INFRATEC CAMERA"
+
 opcuad = config["DEFAULT"]["opcuaaddress"]
 
 # Time stamping functions
@@ -276,8 +278,8 @@ class HumInt(object):
         self.frame_VIS_im = None
 
         # Getting link between outputs and ROI indices from config
-        channel_labels = config.getarray('CAMERA', 'channel_labels', str)
-        roi_indices = config.getarray('CAMERA', 'roi_indices', np.int32)
+        channel_labels = config.getarray(INFRATEC_SECTION, 'channel_labels', str)
+        roi_indices = config.getarray(INFRATEC_SECTION, 'roi_indices', np.int32)
         self.channel_roi_link = dict(zip(channel_labels,roi_indices))
         
         self.move(np.array([0., 0., 0., 0.]))
@@ -507,7 +509,7 @@ class HumInt(object):
                 raise self.DelayLineError(f"Delay line {dl.name} is not in OPERATIONAL state.")
             if not dl.is_standing:
                 raise self.DelayLineError(f"Delay line {dl.name} is not in STANDING status.")
-            positions[i] = dl.position
+            positions[i] = dl.position_microns
 
         return positions
 
@@ -544,7 +546,7 @@ class HumInt(object):
             if not dl.is_standing:
                 raise self.DelayLineError(f"pre-move: {dl.name} is not in STANDING status.")
             # Delay line specific timeout
-            distance = abs(target_pos[i] - dl.position)
+            distance = abs(target_pos[i] - dl.position_microns)
             speed = dl._speed # um/s
             dt_expected = np.abs(distance / speed)
             # Taking floor timeout of 10s for small motions
@@ -600,7 +602,7 @@ class HumInt(object):
                 errors.append(f"post-move: {dl.name} is not OPERATIONAL after move.")
             elif verbose:
                 sleep(2) # to ensure correct position readout
-                curr_pos = dl.position
+                curr_pos = dl.position_microns
                 print(f"Delay line {dl.name} settled at position {curr_pos} um,"
                       f"{curr_pos - target_pos[i]} um away from target {target_pos[i]} um.")
                 
@@ -623,7 +625,7 @@ class HumInt(object):
         target_pos = np.nan * np.zeros(len(self.delay_lines))
         for i, dl in enumerate(self.delay_lines):
             if not np.isnan(delta_pos[i]) and not delta_pos[i] == 0.0:
-                target_pos[i] = dl.position + delta_pos[i]
+                target_pos[i] = dl.position_microns + delta_pos[i]
 
         self.dl_set_abs(target_pos, verbose=verbose)
 
@@ -635,7 +637,7 @@ class HumInt(object):
         """
         target_pos = np.nan * np.zeros(len(self.delay_lines))
         if relative:
-            target_pos[index] = self.delay_lines[index].position + pos
+            target_pos[index] = self.delay_lines[index].position_microns + pos
         else:
             target_pos[index] = pos
         self.dl_set_abs(target_pos, verbose=verbose)
@@ -1238,7 +1240,7 @@ class HumInt(object):
                 if kappa_new[k] <= kappa_threshold:
                     kappa_new[k] = 0.
             kappa_old = np.copy(kappa)
-            kappa = np.copy(kappa_new)
+            kappa_reduced = np.copy(kappa_new)
         else: # kappa is provided
             inherit_kappa = True
             if verbose: print("Reusing kappa")
@@ -1288,8 +1290,10 @@ class HumInt(object):
                 hdulist.append(fits.hdu.ImageHDU(data=kappa, name="KAPPA", header=None))
                 hdulist.append(fits.hdu.ImageHDU(data=kappa_std, name="KAPPAE", header=None))
             else:
-                hdulist.append(fits.hdu.ImageHDU(data=kappa.T, name="KAPPA", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_reduced.T, name="KAPPA", header=None))
                 hdulist.append(fits.hdu.ImageHDU(data=std_kappa.T[1:,:,:-2], name="KAPPAE", header=None))
+                hdulist.append(fits.hdu.ImageHDU(data=kappa[:,:,:,:-2], name="RAW_KAP"), header=None)
+                hdulist.append(fits.hdu.ImageHDU(data=kappa_std[:,:,:,:-2], name="RAW_KAPE"), header=None)
             # hdulist.append(fits.hdu.ImageHDU(data=A, name="A", header=None))
             hdulist.append(fits.hdu.ImageHDU(data=mode_series, name="MODE-SER", header=None,))
             hdulist.append(fits.hdu.ImageHDU(data=all_fringes[:,:,:,:-2], name="FRINGES", header=None))

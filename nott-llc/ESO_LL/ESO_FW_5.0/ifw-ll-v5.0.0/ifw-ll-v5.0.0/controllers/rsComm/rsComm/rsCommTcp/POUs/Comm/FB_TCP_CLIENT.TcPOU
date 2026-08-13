@@ -1,0 +1,523 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_TCP_CLIENT" Id="{5fc52224-2b30-4966-9d3e-38c665200a93}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TCP_CLIENT
+VAR_INPUT
+	in_bSimulation:		BOOL := FALSE;			// Simulation flag (NOTE: Simulator needed as well)
+	in_sDeviceTcpIpAdr: STRING(16);				// Device IP address, e.g. '192.168.0.80' 
+	in_nDeviceTcpPort:	UINT;					// Device Tcp port 
+	in_sCmdSuffix:		STRING(16) := '$0A';	// Terminator for command, e.g. '$0A' for Lakeshore 336 (LF)
+	in_sReplySuffix:	STRING(16) := '$0D$0A';	// Terminator for reply, e.g. '$0D$0A' for Lakeshore 336 (CR/LF) 
+	in_nPollingDelay:	DINT := 10;				// Delay after SEND [ms] 
+	in_nTimeout:		DINT := 3000;			// Timeout on command reply [ms] 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_RS_COMM_CFG;				// Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_RS_COMM_CTRL;				// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_RS_COMM_STAT;				// Status parameters - ReadOnly
+
+	// Coupler state to be mapped
+	i_nCouplerState	AT %I*	: UINT;			(* Link it to Coupler->InfoData->State *)
+
+	fbConnect:		FB_SocketConnect;
+	fbSend:			FB_SocketSend;
+	fbReceive:		FB_SocketReceive;
+	fbClose:		FB_SocketClose;
+	
+	fbTimer:		TON; // General purpose timer
+	fbTimerPoll:	TON; // Receive polling timer
+
+	rxBuffer:		ARRAY[0..1000] OF BYTE;
+	sTxFrame:		T_MaxString;
+
+
+	cmd:			STRING;
+	DeviceReply: 	STRING(255);
+
+	State:			INT := E_RS_COMM_STATE.NOT_INIT;
+	StateNext:		INT := E_RS_COMM_STATE.IDLE;
+	StateNext2:		INT := E_RS_COMM_STATE.IDLE;
+	pos:			INT;
+
+	nNumReplies:	DINT := 0;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set simulation flag in the status structure
+stat.bSimulation	:= in_bSimulation;
+
+
+(* ============================================
+	Check if the HW is OK. 
+	The coupler state must be 8, i.e. OPERATIONAL.
+============================================== *)
+IF i_nCouplerState <> 8  AND  NOT in_bSimulation	THEN	(* If the hardware status is NOT OK, we cannot trust the readings. *)
+	stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_IN_OP_STATE;
+	stat.sErrorText	:= 'Not in OP state. Is i_nCouplerState linked?';
+	stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+END_IF
+
+(* ============================================
+	Check if Server IP address is given. 
+============================================== *)
+IF LEN(in_sDeviceTcpIpAdr) = 0 THEN	(* Server IP not set *)
+	stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_IN_OP_STATE;
+	stat.sErrorText	:= 'Server IP ( var sTcpServerAdr) not set.';
+	stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+END_IF
+
+
+
+(*====================================================
+	Handling of commands sent through OPC UA interface.
+	Executed only when flag bExecute goes from LOW to HIGH.
+	bExecute is reset by the PLC application.
+=====================================================*)
+
+IF ctrl.bExecute THEN
+	ctrl.bExecute	:= FALSE;
+	(* Save last command and reset the command *)
+	stat.nLastCommand 	:= ctrl.nCommand;
+	ctrl.nCommand		:= E_RS_COMM_CMD.NONE;
+
+	(* Device has to be initialised before being used *)
+	IF stat.nLastCommand <> E_RS_COMM_CMD.INIT  AND  NOT stat.bInitialised	THEN
+		State 			:= E_RS_COMM_STATE.ERROR;
+		stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+		stat.sStatus	:= 'ERROR';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_INIT;
+		stat.sErrorText	:= 'Device not initialised.';
+		RETURN;
+	END_IF
+
+	(* Commands can only be sent when device is IDLE *)
+	IF stat.nLastCommand <> E_RS_COMM_CMD.INIT  AND  State <> E_RS_COMM_STATE.IDLE THEN
+		State 			:= E_RS_COMM_STATE.ERROR;
+		stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+		stat.sStatus	:= 'ERROR';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.NOT_IDLE;
+		stat.sErrorText	:= 'Device busy. Should be in IDLE to receive commands.';
+		RETURN;
+	END_IF
+
+
+
+
+	CASE stat.nLastCommand OF
+	E_RS_COMM_CMD.INIT:
+		stat.bInitialised	:= FALSE;
+		stat.sStatus		:= 'INITIALISING';
+		stat.nStatus		:= E_RS_COMM_STATUS.BUSY;
+		stat.sReply 		:= ''; (* No reply yet *)
+		stat.nErrorCode		:= E_RS_COMM_ERROR.OK;
+		stat.sErrorText		:= 'OK';
+		// Copy input parameters to cfg
+		cfg.sCmdSuffix		:= in_sCmdSuffix;
+		cfg.sReplySuffix	:= in_sReplySuffix;
+		cfg.nTimeout		:= in_nTimeout;
+
+		// Set next state
+		State 				:= E_RS_COMM_STATE.RESET;
+
+	E_RS_COMM_CMD.SEND:
+		stat.nErrorCode	:= E_RS_COMM_ERROR.OK;
+		stat.nStatus	:= E_RS_COMM_STATUS.BUSY;
+		stat.sErrorText	:= 'OK';
+		stat.sStatus	:= 'BUSY';
+		State 			:= E_RS_COMM_STATE.PREPARE_SEND;
+
+	E_RS_COMM_CMD.DISCONNECT:
+		stat.nErrorCode		:= E_RS_COMM_ERROR.OK;
+		stat.sErrorText		:= 'OK';
+		stat.sReply			:= '';
+		stat.bInitialised	:= FALSE;
+
+		IF fbConnect.hSocket.handle <> 0  AND  stat.bConnected	THEN
+			stat.nStatus	:= E_RS_COMM_STATUS.BUSY;
+			stat.sStatus	:= 'DISCONNECTING...';
+			fbClose( bExecute:= FALSE );
+			fbClose( sSrvNetId := '', hSocket := fbConnect.hSocket, bExecute:= TRUE );
+			State	:= E_RS_COMM_STATE.DISCONNECT;
+		ELSE
+			stat.nStatus	:= E_RS_COMM_STATUS.IDLE;
+			stat.sStatus	:= 'IDLE';
+			stat.bConnected	:= FALSE;
+			State 	:= E_RS_COMM_STATE.NOT_INIT;
+		END_IF
+
+	END_CASE
+
+END_IF
+
+
+
+
+
+
+(*======================
+=======================
+ 	State machine 
+=======================
+=======================*)
+
+CASE State OF
+
+E_RS_COMM_STATE.ERROR:
+	// Clear buffers
+	MEMSET( ADR( sTxFrame ), 0, SIZEOF( sTxFrame ) );
+	stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+	stat.sStatus	:= 'ERROR';
+//	State 			:= E_RS_COMM_STATE.IDLE;
+	RETURN;
+
+
+E_RS_COMM_STATE.NOT_INIT:
+	// Clear buffers
+	MEMSET( ADR( sTxFrame ), 0, SIZEOF( sTxFrame ) );
+	stat.bInitialised	:= FALSE;
+	stat.nErrorCode		:= E_RS_COMM_ERROR.OK;
+	stat.sErrorText		:= 'OK';
+	stat.nStatus		:= E_RS_COMM_STATUS.NOT_INIT;
+	stat.sStatus		:= 'NOT INIT';
+
+
+E_RS_COMM_STATE.IDLE:
+	(* Nothing to do in IDLE *)
+	RETURN;
+
+
+E_RS_COMM_STATE.RESET:
+	// Clear buffers
+	MEMSET( ADR( sTxFrame ), 0, SIZEOF( sTxFrame ) );
+	MEMSET( ADR( rxBuffer ), 0, SIZEOF( rxBuffer ) );
+	IF stat.bConnected THEN
+		fbClose( bExecute:= FALSE );
+		fbClose( sSrvNetId := '', hSocket := fbConnect.hSocket, bExecute:= TRUE );
+		StateNext2 	:= E_RS_COMM_STATE.CONNECT;
+		State		:= E_RS_COMM_STATE.DISCONNECT;
+	ELSE
+		fbConnect(	bExecute 	:= FALSE );
+		fbConnect(	sSrvNetId 	:= '', 				// Local TCP server
+					sRemoteHost := in_sDeviceTcpIpAdr, 
+					nRemotePort := in_nDeviceTcpPort,
+					tTimeout	:= T#10S, 
+					bExecute 	:= TRUE);
+		State 	:= E_RS_COMM_STATE.CONNECT;
+	END_IF
+	
+	
+E_RS_COMM_STATE.CONNECT:
+	fbConnect(	bExecute := FALSE );
+	IF fbConnect.bBusy THEN
+		RETURN;
+	ELSIF fbConnect.bError THEN
+		stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+		stat.sStatus	:= 'ERROR';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.CONNECT;
+		stat.sErrorText	:= 'ERROR. Failed to connect';
+		State 			:= E_RS_COMM_STATE.ERROR;
+		RETURN;
+	ELSE
+		stat.nStatus		:= E_RS_COMM_STATUS.IDLE;
+		stat.nErrorCode		:= E_RS_COMM_ERROR.OK;
+		stat.sErrorText		:= 'OK';
+		stat.sStatus		:= 'OK';
+		stat.bConnected 	:= TRUE;
+		stat.bInitialised	:= TRUE;
+		State 				:= E_RS_COMM_STATE.IDLE;
+		RETURN;
+	END_IF
+
+	
+
+E_RS_COMM_STATE.PREPARE_SEND:
+	(*******************************************************************************************
+	Here we set the command string, i.e. add suffix if not included in the command.
+	Then, the state is changed to  E_RS_COMM_STATE.SEND.
+	********************************************************************************************)
+
+	(* Clear the receive buffer *)
+	MEMSET( ADR( rxBuffer ), 0, SIZEOF( rxBuffer ) );
+
+	(* Clear reply string *)
+	DeviceReply	:= '';
+
+	cmd				:= ctrl.sCmd;
+
+	stat.nStatus	:= E_RS_COMM_STATUS.BUSY;
+	stat.sStatus	:= 'BUSY';
+
+	(* Add suffix CR/LF to the user command if missing *)
+	pos := FIND(cmd,cfg.sCmdSuffix);
+	IF pos = 0 THEN
+		cmd := CONCAT(cmd, cfg.sCmdSuffix);
+	END_IF
+
+	MEMSET( ADR( sTxFrame ), 0, SIZEOF( sTxFrame ) );
+	MEMCPY( ADR( sTxFrame ), ADR( cmd ), INT_TO_UDINT(LEN(cmd)));(* Copy command to send buffer (including the end delimiter) *)
+
+	fbSend( bExecute := FALSE );
+	fbSend(	sSrvNetId := '', 
+			hSocket	:= fbConnect.hSocket,
+			pSrc	:= ADR( sTxFrame ),
+			cbLen	:= INT_TO_UDINT(LEN( sTxFrame )),(* String length inclusive the delimiter *)
+			tTimeout:= T#2S,
+			bExecute:= TRUE );
+	
+	
+	stat.nStatus	:= E_RS_COMM_STATUS.BUSY;
+	stat.sStatus	:= 'BUSY';
+	nNumReplies		:= 0;		(* Have not received any reply yet. Used for handling multiple replies. *)
+	State 			:= E_RS_COMM_STATE.SEND;
+
+	RETURN;
+
+
+E_RS_COMM_STATE.SEND:
+	fbSend( bExecute := FALSE );
+	IF fbSend.bBusy THEN
+		RETURN;
+	ELSIF fbSend.bError  THEN
+		// Restart the timer
+		fbTimer (IN := FALSE);	// reset timer
+		fbTimer (IN := TRUE, PT := DINT_TO_TIME(in_nTimeout));
+
+		stat.nErrorCode	:= E_RS_COMM_ERROR.SEND;
+		stat.sErrorText	:= 'Send Failed - Reconnecting...';
+		
+		stat.bInitialised	:= FALSE;
+		stat.nStatus		:= E_RS_COMM_STATUS.ERROR;
+		stat.sStatus		:= 'ERROR';
+
+		// Restart socket close
+		fbClose( bExecute:= FALSE );
+		fbClose( sSrvNetId := '', hSocket := fbConnect.hSocket, bExecute:= TRUE );
+
+		StateNext2 		:= E_RS_COMM_STATE.RESET;
+		State 			:= E_RS_COMM_STATE.DISCONNECT;
+		
+	ELSE
+		MEMSET( ADR( rxBuffer ), 0, SIZEOF( rxBuffer ) );	// Clear receive buffer
+		stat.sReply := ''; 	// No reply yet 
+		(* 	The command has been sent.
+			If there is no reply, goto IDLE state.
+			Otherwise, goto WAIT_AFTER_SEND state. *)
+		fbTimer 	(IN := FALSE);		// reset timer
+		fbTimerPoll (IN := FALSE);	// reset timer
+		fbTimer		(IN := TRUE, PT := DINT_TO_TIME(in_nTimeout));
+		fbTimerPoll	(IN := TRUE, PT := DINT_TO_TIME(in_nPollingDelay));
+		State := E_RS_COMM_STATE.WAIT_AFTER_SEND; 	(* Next state is WAIT_AFTER_SEND *)
+		RETURN;
+	END_IF
+
+
+E_RS_COMM_STATE.WAIT_AFTER_SEND:
+	fbTimerPoll (IN := TRUE);
+	IF fbTimerPoll.Q THEN
+		fbTimerPoll (IN := FALSE); (* reset timer *)
+		IF ctrl.nNumReplies > 0 THEN
+			// Start Receive for commands with reply
+			fbTimerPoll (IN := TRUE, PT := DINT_TO_TIME(in_nPollingDelay));
+			fbReceive(	bExecute := FALSE );
+			fbReceive( 	sSrvNetId := '', 
+						hSocket	:= fbConnect.hSocket,
+						pDest	:= ADR( rxBuffer ),
+						cbLen	:= SIZEOF( rxBuffer ),
+						bExecute:= TRUE );
+	
+			State 			:= E_RS_COMM_STATE.RECEIVE;
+		ELSE
+			(* Prepare next state *)
+			State 			:= E_RS_COMM_STATE.IDLE;	 	(* Next state is IDLE *)
+			stat.nStatus	:= E_RS_COMM_STATUS.IDLE;
+			stat.sStatus	:= 'IDLE';
+		END_IF
+		RETURN;
+	END_IF
+	RETURN;
+
+	
+E_RS_COMM_STATE.RECEIVE:
+	fbReceive( bExecute := FALSE );
+
+	(* Start the timeout timer for receive *)
+	fbTimer (IN := TRUE);
+
+	(* Check for timeout. Goto ERROR if timeout expired. *)
+	IF fbTimer.Q THEN
+		fbTimer (IN := FALSE); (* reset timer *)
+
+		// Restart the timer
+		fbTimer (IN := FALSE);	// reset timer
+		fbTimer (IN := TRUE, PT := DINT_TO_TIME(in_nTimeout));
+		stat.nErrorCode		:= E_RS_COMM_ERROR.TIMEOUT;
+		stat.nStatus		:= E_RS_COMM_STATUS.ERROR;
+		stat.sErrorText		:= 'Timeout on Receive. Reconnecting...';
+		stat.sStatus		:= 'ERROR';
+		stat.bInitialised	:= FALSE;
+
+		// Restart socket close. Needed by DISCONNECT
+		fbClose( bExecute:= FALSE );
+		fbClose( sSrvNetId := '', hSocket := fbConnect.hSocket, bExecute:= TRUE );
+
+		State 			:= E_RS_COMM_STATE.WAIT;			// Wait some time before DISCONNECT
+		StateNext		:= E_RS_COMM_STATE.DISCONNECT;	// State after WAIT
+		StateNext2		:= E_RS_COMM_STATE.RESET;			// State after DISCONNECT
+		RETURN;
+	END_IF
+
+	IF fbReceive.bBusy THEN
+		RETURN;
+	ELSIF fbReceive.bError THEN
+		fbTimer (IN := FALSE);	(* reset timer *)
+
+		State 			:= E_RS_COMM_STATE.ERROR;
+		stat.nErrorCode	:= E_RS_COMM_ERROR.RECEIVE;
+		stat.sErrorText	:= 'Receive Failed';
+		RETURN;
+	ELSIF fbReceive.nRecBytes > 0 THEN
+		(* We have received a reply. Reset timers and triggers. *)
+		fbTimer (IN := FALSE); 	(* reset timer *)
+
+		MEMSET( ADR( DeviceReply ), 0, SIZEOF( DeviceReply ) );
+		MEMCPY( ADR( DeviceReply ), ADR( rxBuffer ), fbReceive.nRecBytes);(* Copy the received string to the output variable (inclusive the end delimiter) *)
+
+		stat.sReply := DeviceReply;	(* CONCAT the reply *)
+		(* Clear the receive buffer ONLY when all replies have been received! *)
+		MEMSET( ADR( rxBuffer ), 0, SIZEOF( rxBuffer ) );
+		State 			:= E_RS_COMM_STATE.IDLE;
+		stat.nStatus	:= E_RS_COMM_STATUS.IDLE;
+		stat.sStatus	:= 'IDLE';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.OK;
+		stat.sErrorText	:= 'OK';
+		RETURN;
+	ELSE
+		// Receive is complete but nothing arrived.
+		// Restart Receive.
+		fbTimerPoll (IN := FALSE);	// reset timer
+		State := E_RS_COMM_STATE.WAIT_AFTER_SEND; 	(* Next state is WAIT_AFTER_SEND *)
+		RETURN;
+	END_IF
+
+
+
+E_RS_COMM_STATE.WAIT:
+	// General WAIT state
+	// Once the timer expires, go to nextState
+	fbTimer (IN := TRUE);
+	IF fbTimer.Q THEN
+		(* reset timer *)
+		fbTimer (IN := FALSE);
+		State	:= StateNext;
+	END_IF
+
+	
+E_RS_COMM_STATE.DISCONNECT:
+	fbClose( bExecute:= FALSE );
+	// Close any created/opened sockets/connections
+	IF fbClose.bBusy THEN
+		RETURN;
+	ELSIF fbClose.bError THEN
+		stat.nStatus	:= E_RS_COMM_STATUS.ERROR;
+		stat.sStatus	:= 'ERROR';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.DISCONNECT;
+		stat.sErrorText	:= 'ERROR. Failed to close connection';
+		stat.bConnected	:= FALSE;
+		State 			:= E_RS_COMM_STATE.ERROR;
+	ELSE
+		stat.nStatus	:= E_RS_COMM_STATUS.IDLE;
+		stat.sStatus	:= 'IDLE';
+		stat.nErrorCode	:= E_RS_COMM_ERROR.OK;
+		stat.sErrorText	:= 'OK';
+		stat.bConnected	:= FALSE;
+		
+		IF StateNext2 = E_RS_COMM_STATE.CONNECT	THEN
+			// Trigger new connection
+			fbConnect(	bExecute 	:= FALSE );
+			fbConnect(	sSrvNetId 	:= '', 				// Local TCP server
+						sRemoteHost := in_sDeviceTcpIpAdr, 
+						nRemotePort := in_nDeviceTcpPort,
+						tTimeout	:= T#10S, 
+						bExecute 	:= TRUE);
+		END_IF
+		State 			:= StateNext2;
+	END_IF
+
+	
+
+ELSE
+(* Unsuported state *)
+	State 			:= E_RS_COMM_STATE.ERROR;
+	stat.nErrorCode	:= E_RS_COMM_ERROR.WRONG_STATE;
+	stat.sErrorText	:= 'Unknown State';
+END_CASE
+
+
+
+/////////////////////////////////////////////////////////
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetInitialised" Id="{283b6f15-3062-40fc-b31c-5e086d66c19d}">
+      <Declaration><![CDATA[METHOD M_GetInitialised : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetInitialised	:= stat.bInitialised;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetStatus" Id="{c19a6ef6-ece8-4482-8562-29405a190bd3}">
+      <Declaration><![CDATA[METHOD M_GetStatus : E_RS_COMM_STATUS
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetStatus	:= stat.nStatus;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TCP_CLIENT">
+      <LineId Id="6204" Count="1" />
+      <LineId Id="6202" Count="1" />
+      <LineId Id="5676" Count="197" />
+      <LineId Id="5875" Count="19" />
+      <LineId Id="6151" Count="0" />
+      <LineId Id="5895" Count="34" />
+      <LineId Id="6100" Count="0" />
+      <LineId Id="5930" Count="3" />
+      <LineId Id="6094" Count="1" />
+      <LineId Id="6093" Count="0" />
+      <LineId Id="5934" Count="9" />
+      <LineId Id="5945" Count="0" />
+      <LineId Id="6097" Count="0" />
+      <LineId Id="5946" Count="29" />
+      <LineId Id="5987" Count="16" />
+      <LineId Id="6005" Count="27" />
+      <LineId Id="6098" Count="1" />
+      <LineId Id="6102" Count="0" />
+      <LineId Id="6101" Count="0" />
+      <LineId Id="6033" Count="58" />
+      <LineId Id="521" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_CLIENT.M_GetInitialised">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_TCP_CLIENT.M_GetStatus">
+      <LineId Id="5" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

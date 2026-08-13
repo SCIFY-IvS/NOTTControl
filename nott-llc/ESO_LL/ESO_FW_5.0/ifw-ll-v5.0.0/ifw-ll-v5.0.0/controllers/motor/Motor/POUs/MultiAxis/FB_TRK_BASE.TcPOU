@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_TRK_BASE" Id="{d871ca53-874f-42bb-88fc-5db6d0c7481a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TRK_BASE EXTENDS FB_MA_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	TrkCfg:		        REFERENCE TO T_TRK_CFG;	    // Reference to Config parameters
+	{attribute 'OPC.UA.DA' := '0'}
+	TrkCtrl:		    REFERENCE TO T_TRK_CTRL;	// Reference to Control parameters
+	{attribute 'OPC.UA.DA' := '0'}
+	TrkStat:		    REFERENCE TO T_TRK_STAT;	// Reference to Status parameters
+	
+    // Tracking data structure (TrackingData) is defined in C++ module
+	{attribute 'OPC.UA.DA' := '0'}
+	i_trk_data          AT %I*: PointingKernelPositions;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_ccs_data          AT %I*: CcsData;
+	
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+SUPER^();]]></ST>
+    </Implementation>
+    <Method Name="User_Configure" Id="{9b18327f-ebf5-4feb-8255-0ce66dcb8b1c}">
+      <Declaration><![CDATA[// Method for hard-coding of configuration parameters by the User.
+METHOD User_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.User_Configure();	// Mandatory!
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_GetParams" Id="{63c9401f-847d-4168-b01e-0e9a29ae6907}">
+      <Declaration><![CDATA[// User Method executed on each cycle before processing events and states.
+METHOD User_GetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:	INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Assign output variables according input configuration and control.
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="User_SetParams" Id="{4e55ee67-727b-4702-b0e3-c4bec93cdfee}">
+      <Declaration><![CDATA[// User Method executed on each cycle after processing events and states.
+METHOD User_SetParams : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i:		INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+memcpy(ADR(TrkCfg.site), ADR(i_ccs_data.site), SIZEOF(TrkCfg.site));
+memcpy(ADR(TrkCtrl.environment), ADR(i_ccs_data.environment), SIZEOF(TrkCtrl.environment));
+memcpy(ADR(TrkStat.data), ADR(i_trk_data), SIZEOF(TrkStat.data));
+memcpy(ADR(TrkStat.data_deg), ADR(i_trk_data), SIZEOF(TrkStat.data_deg));
+TrkStat.data_deg.target_observed_altaz[0] := RAD_TO_DEG(TrkStat.data.target_observed_altaz[0]);
+TrkStat.data_deg.target_observed_altaz[1] := RAD_TO_DEG(TrkStat.data.target_observed_altaz[1]);
+TrkStat.data_deg.parallactic_angle := RAD_TO_DEG(TrkStat.data.parallactic_angle);
+TrkStat.data_deg.north_angle := RAD_TO_DEG(TrkStat.data.north_angle);
+TrkStat.data_deg.pupil_angle := RAD_TO_DEG(TrkStat.data.pupil_angle);
+TrkStat.apparent.alpha := F_astroRad2Hms(i_trk_data.radec_at_altaz_at_requested_xy[0]);
+TrkStat.apparent.delta := F_astroRad2Dms(i_trk_data.radec_at_altaz_at_requested_xy[1]);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TRK_BASE">
+      <LineId Id="11" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TRK_BASE.User_Configure">
+      <LineId Id="8" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TRK_BASE.User_GetParams">
+      <LineId Id="19" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="17" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_TRK_BASE.User_SetParams">
+      <LineId Id="35" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="42" Count="3" />
+      <LineId Id="48" Count="1" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="20" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

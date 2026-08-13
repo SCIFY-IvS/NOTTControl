@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_JUMO_STAT" Id="{b1d3fe54-f7d6-48b2-87f4-872a7548ec17}">
+    <Declaration><![CDATA[TYPE T_JUMO_STAT EXTENDS T_RS_BASE_STAT:
+STRUCT
+
+	nRetries:				INT := 0;	// Total number of retries in case of communication problems
+	
+	nInputBuffer: 			ARRAY [0..300] OF BYTE;	// Binary data read from JUMO
+
+	// Data for up to 8 JUMO devices (4 TeePee units) daisy chained
+	// Data for the first 4 control loops [1-4]
+	// ARRAY[<device>,<control loop>, <value>]
+	aSetPoints:				ARRAY [1..8,1..4,1..4] OF REAL;
+	aCtrlParams:			ARRAY [1..8,1..4,1..9] OF REAL;
+	aSwitchStats:			ARRAY [1..8,1..4,1..2] OF INT;
+
+	// 8 analog inputs per JUMO
+	aAnalogInputs:			ARRAY [1..8,1..8] OF REAL;
+	aMath:					ARRAY [1..8,1..8] OF REAL;
+
+	aSamplingTime:			ARRAY [1..8] OF REAL;
+	aInternalTemperature:	ARRAY [1..8] OF REAL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

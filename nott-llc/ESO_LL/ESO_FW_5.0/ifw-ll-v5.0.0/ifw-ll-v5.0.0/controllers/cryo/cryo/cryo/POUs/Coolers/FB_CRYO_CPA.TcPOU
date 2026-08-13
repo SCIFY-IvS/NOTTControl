@@ -1,0 +1,1237 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_CPA" Id="{a1a01a23-e2ec-4255-b90e-f6bb5f4a72dd}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_CPA EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sSN_Compressor:	STRING;	// e.g. 'CPA289C-W2EHCE-180201A'
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sSN_PulseTube:	STRING;	// e.g. 'CH40810-180208A'
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nYear_Compressor:	INT;	// e.g. 2018
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nYear_PulseTube:		INT;	// e.g. 2018
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrNextService_Compressor:	LREAL;	// Next service in absolute hours
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrNextService_PulseTube:		LREAL;	// Next service in absolute hours
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nSlaveID:	BYTE := 1;		// Modbus Slave ID
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:		DINT := 5000;	//Interval for periodic reading [ms], default 5000 ms = 5 sec
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_CRYO_CPA_CFG;					//  Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_CRYO_CPA_CTRL;				//  Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_CRYO_CPA_INFO; 				//  Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_CRYO_CPA_STAT;				//  Status parameters - ReadOnly
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_MODBUS_COMM_CPA;				// Instance of generic comm object. OPC UA Disabled!!!
+	
+	(* Pointers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_MODBUS_CTRL 	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+
+	// I/O
+	q_bCtrlStart	AT %Q*:	BOOL;	// Start control signal
+	
+	
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:			TON; (* General Timeout *)
+	
+	// Dummy variables for testing
+	nDummyWarnings:	DINT := 0;
+	nDummyErrors:	DINT := 0;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+cfgRef	REF=cfg;
+ctrlRef	REF=ctrl;
+statRef	REF=stat;
+
+
+// 
+// Execute comm instance.
+// Function 4 is used for READ.
+//
+comm(	in_bSimulation		:= in_bSimulation,
+		in_cReadFunction	:= 4);
+
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{4142332e-90d3-4f23-aca8-50c3bc2dcd9e}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+VAR
+	nInt:	INT;	// Temporary INT for conversion of ENUM types
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set monitoring period (from input parameter)
+		cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+		// Auto monitor, i.e. monitor in Standby_Ready as well
+		cfg.bAutoMonitor	:= TRUE;
+
+		(* Set initial state and status *)
+		stat.bInitialised	:= FALSE;
+		stat.nRetries		:= 0;
+
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+		
+		// User configuration of the system
+		M_UserConfigure();
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port, i.e. Reset the serial port.
+		nInt	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.nCommand	:= nInt;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 15;	// On next cycle wait until comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE or ERROR
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.nInputBuffer		:= comm.stat.DeviceReply;	// Save the reply
+
+			bCommProblem	:= FALSE;
+			// Device INIT is done.
+			// INITDONE will bring it to OPERATIONAL
+			stat.bInitialised 	:= TRUE;
+			SetStatus(E_CCC_STATUS.IDLE, 'IDLE');
+			nEvent 	:= E_SM_EVENT.INITDONE;
+			RETURN;
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			// There is an error.
+			// Re-initialise the comm port.
+			// This is the only thing we can do.
+			SetStatus(E_CCC_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nMethodState	:= 10;		// Retry to INIT_COMM
+			RETURN;
+		END_IF
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{e38812fe-ddf0-4f21-af80-cd1ea86cebd9}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;					// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nSlaveIndex:	INT := 1;
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;					// Number of retries in case of communication problems
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	ctrl.nSlaveID	:= cfg.nSlaveID;
+	ctrl.nRegister	:= cfg.nAddrCommon;
+	ctrl.nWords		:= cfg.nWordsCommon;
+	nRetries		:= 0;					
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		// Check if we have to exit Monitoring
+		
+		// Send command
+		ptrCommCtrl^.nCommand	:= E_MODBUS_CMD.SEND;
+		ptrCommCtrl^.nSlaveID	:= ctrl.nSlaveID;
+		ptrCommCtrl^.nRegister	:= ctrl.nRegister;
+		ptrCommCtrl^.nWords		:= ctrl.nWords;
+		ptrCommCtrl^.bExecute	:= TRUE;
+		
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 20;				// Goto WAIT for Reading to complete,
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_SM_ERROR.OK, 'BUSY');
+			nMethodState 	:= 0;	// Goto next reading
+			RETURN;
+		END_IF
+	
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			//
+			// Communication is IDLE. Everything is fine. 
+			//
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.nInputBuffer	:= comm.stat.DeviceReply;	// Save the reply
+			
+			//
+			// Extract the readings from the reply.
+			//
+			M_ExtractReadings();
+			
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+			
+			// Wait tDelay_Periodic before re-starting the READ.
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+
+		ELSIF INT_TO_DINT(comm.stat.nStatus) = INT_TO_DINT(E_MODBUS_STATUS.ERROR) OR fbTimer.Q THEN
+			//
+			// There is a communication problem. 
+			// Re-initialise comm port.
+			//
+			fbTimer (IN := FALSE);
+			SetStatus(E_MODBUS_ERROR.RECEIVE, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			
+			// Keep track of how many times we re-tried
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+
+			// Re-initialise the comm port
+			ptrCommCtrl^.nCommand	:= E_MODBUS_CMD.INIT;
+			ptrCommCtrl^.bExecute	:= TRUE;
+			// Apply a delay of 3 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#3000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		END_IF
+
+	
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{c6c4f2b4-0b38-4101-b0d0-dd66745feffb}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+VAR
+//	nInt2:	INT;	// Temporary INT for conversion of ENUM types
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals: if any.
+*)
+
+IF NOT M_GetCouplerState() THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_SM_EVENT.ERRHW);
+	SetStatus(E_SM_ERROR.HW_NOT_OP, 'ERROR: HW not in OPERATIONAL state');
+
+ELSIF ctrlRef.bExecute  THEN
+	// Check for CPA specific commands.
+	// TODO SetLastCommand() and SetEvent() don't work here. Check it!!!
+	ctrlRef.bExecute	:= FALSE;			(* Clear the Execute bit *)
+	SetLastCommand(E_RS_COMMAND.CTRL_CMD);	// Save the last command
+	SetEvent(E_RS_COMMAND.CTRL_CMD);
+	IF	ctrl.nDevCommand = E_CRYO_CPA_CMDS.START	THEN
+		// Set control signal to TRUE.
+		// This will start the compressor.
+		q_bCtrlStart	:= TRUE;
+	ELSIF	ctrl.nDevCommand = E_CRYO_CPA_CMDS.STOP	THEN
+		// Set control signal to FALSE.
+		// This will stop the compressor.
+		q_bCtrlStart	:= FALSE;
+	ELSE
+		(* Handle standard RS commands *)
+		SetLastCommand(ctrlRef.nCommand);			(* Save the last command *)
+		SetEvent(ctrlRef.nCommand);
+	END_IF
+	ctrlRef.bExecute	:= FALSE;			(* Clear the Execute bit *)
+	ctrlRef.nCommand 	:= E_RS_COMMAND.NONE;	(* Clear the Command *)
+ELSIF nInternalEvent <> E_SM_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_SM_EVENT.NONE;
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapFLOAT" Id="{3d22667f-0dbf-4b1d-b454-4e28352f68ec}">
+      <Declaration><![CDATA[METHOD M_ByteSwapFLOAT : LREAL
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	rResult:	REAL;
+	pResult:	POINTER TO BYTE	:= ADR(rResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+pResult[2]	:= pByte[3];
+pResult[3]	:= pByte[2];
+
+M_ByteSwapFLOAT	:= REAL_TO_LREAL(rResult);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ByteSwapINT" Id="{850fdfe8-481a-4032-8ab1-c5238eb2240c}">
+      <Declaration><![CDATA[METHOD M_ByteSwapINT : INT
+VAR_INPUT
+	pByte:		POINTER TO BYTE;	// Pointer to array of bytes read from JUMO
+END_VAR
+VAR
+	nResult:	INT;
+	pResult:	POINTER TO BYTE	:= ADR(nResult);	// Pointer to the result
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[pResult[0]	:= pByte[1];
+pResult[1]	:= pByte[0];
+
+M_ByteSwapINT	:= nResult;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckDiagnostics" Id="{41a89c4a-670a-45fd-ae26-4d400827368b}">
+      <Declaration><![CDATA[METHOD M_CheckDiagnostics
+VAR_INPUT
+END_VAR
+VAR
+	nTmp:		DINT;
+	i:			INT;
+	sTmp:		STRING(56) := '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Process warnings/alarms
+//M_CheckWarnings(stat.lrWarningState);
+M_CheckWarnings(nDummyWarnings);
+
+// Process errors
+//M_CheckErrors(stat.lrWarningState);
+M_CheckErrors(nDummyErrors);
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckErrors" Id="{04ebe4ae-1728-4e21-9713-ce0c33c73367}">
+      <Declaration><![CDATA[METHOD M_CheckErrors
+VAR_INPUT
+	nErrors:	DINT;
+END_VAR
+VAR
+	nTmp:		UDINT;
+	nRef:		UDINT	:= 16#00000001;
+	bProblem:	BOOL	:= FALSE;
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nTmp	:= DINT_TO_UDINT(-nErrors);
+
+
+FOR i := 0 TO 6 DO
+	// Check for 'too low' errors
+	IF		(stat.aReadings[i] < cfg.aLimits[i].rErrorLow) OR
+			((nTmp AND SHL(nRef,cfg.aDiag[i].nBitLow)) <> 0)	THEN
+		bProblem	:= TRUE;
+		stat.arrErrors[i]		:= E_CRYO_CPA_ALARM.LOW;
+		M_SetAlarmText(i);	// Error string for going low
+	// Check for 'too high' errors
+	ELSIF	(stat.aReadings[i] > cfg.aLimits[i].rErrorHigh) OR
+			((nTmp AND SHL(nRef,cfg.aDiag[i].nBitHigh)) <> 0)	THEN
+		bProblem	:= TRUE;
+		stat.arrErrors[i]		:= E_CRYO_CPA_ALARM.HIGH;
+		M_SetAlarmText(i);	// Error string for going high
+	ELSE
+		stat.arrErrors[i]	:= E_CRYO_CPA_ALARM.NONE;
+	END_IF
+END_FOR
+
+// Check if there are any errors.
+IF NOT bProblem THEN
+	// No error. Clear all and write OK in warning text.
+	FOR i := 0 TO 6 DO
+		stat.arrErrors[i]	:= E_CRYO_CPA_ALARM.NONE;
+	END_FOR
+	stat.sError := '';
+//  We don't touch stat.nStatusCode! It might have been set with alarm.
+	RETURN;
+ELSE
+	stat.nStatusCode	:= 2;	// Error
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckService" Id="{bef7c44e-ce4c-4a45-88b2-0c6994eb4fdd}">
+      <Declaration><![CDATA[METHOD M_CheckService
+VAR_INPUT
+END_VAR
+VAR
+    fbFormat: FB_FormatString;
+	lrHoursLeft:	LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Check compressor hours
+//
+lrHoursLeft	:= in_lrNextService_Compressor - stat.lrHoursOfOperation;
+IF lrHoursLeft < cfg.lrServiceDue_Compressor THEN
+	stat.bServiceDue_Compressor	:= TRUE;
+	stat.wColour_Compressor		:= 16#FFFF0000;
+	IF lrHoursLeft >= 0.0 THEN
+		fbFormat( 	sFormat := 'Service due in %.0f hours', 
+					arg1 := F_LREAL( lrHoursLeft ), 
+					sOut => stat.sServiceDue_Compressor);
+	ELSE
+		lrHoursLeft	:= -1 * lrHoursLeft;
+		fbFormat( 	sFormat := 'Service overdue by %.0f hours', 
+					arg1 := F_LREAL( lrHoursLeft ), 
+					sOut => stat.sServiceDue_Compressor);
+	END_IF
+ELSE
+	stat.wColour_Compressor		:= 16#FF0000FF;
+	stat.bServiceDue_Compressor	:= FALSE;
+	stat.sServiceDue_Compressor	:= 'OK';
+END_IF
+
+//
+// Check pulse tube hours
+//
+lrHoursLeft	:= in_lrNextService_PulseTube - stat.lrHoursOfOperation;
+IF lrHoursLeft < cfg.lrServiceDue_PulseTube THEN
+	stat.bServiceDue_PulseTube	:= TRUE;
+	stat.wColour_PulseTube		:= 16#FFFF0000;
+	IF lrHoursLeft >= 0.0 THEN
+		fbFormat( 	sFormat := 'Service due in %.0f hours', 
+					arg1 := F_LREAL( lrHoursLeft ), 
+					sOut => stat.sServiceDue_PulseTube);
+	ELSE
+		lrHoursLeft	:= -1 * lrHoursLeft;
+		fbFormat( 	sFormat := 'Service overdue by %.0f hours', 
+					arg1 := F_LREAL( lrHoursLeft ), 
+					sOut => stat.sServiceDue_PulseTube);
+	END_IF
+ELSE
+	stat.wColour_PulseTube		:= 16#FF0000FF;
+	stat.bServiceDue_PulseTube	:= FALSE;
+	stat.sServiceDue_PulseTube	:= 'OK';
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckWarnings" Id="{6c8123e4-92bf-48bb-a773-98defa20de7b}">
+      <Declaration><![CDATA[METHOD M_CheckWarnings
+VAR_INPUT
+	nWarnings:	DINT;
+END_VAR
+VAR
+	nTmp:		UDINT;
+	nRef:		UDINT	:= 16#00000001;
+	bProblem:	BOOL	:= FALSE;
+	i:			INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Warning are given as negative numbers.
+// Change the sign and then do checks with bit shifts to the left.
+nTmp	:= DINT_TO_UDINT(-nWarnings);
+
+// Check warnings one by one
+FOR i := 0 TO 6 DO
+	// Check for 'running low' warnings/alarms
+	IF		(stat.aReadings[i] < cfg.aLimits[i].rAlarmLow) OR
+			((nTmp AND SHL(nRef,cfg.aDiag[i].nBitLow)) <> 0)	THEN
+		bProblem	:= TRUE;
+		stat.arrAlarms[i]		:= E_CRYO_CPA_ALARM.LOW;
+		M_SetAlarmText(i);	// Alarm string for going low (FALSE)
+	// Check for 'running high' warnings/alarms
+	ELSIF	(stat.aReadings[i] > cfg.aLimits[i].rAlarmHigh) OR
+			((nTmp AND SHL(nRef,cfg.aDiag[i].nBitHigh)) <> 0)		THEN
+		bProblem	:= TRUE;
+		stat.arrAlarms[i]		:= E_CRYO_CPA_ALARM.HIGH;
+		M_SetAlarmText(i);	// Alarm string for going high (TRUE)
+	ELSE
+		stat.arrAlarms[i]	:= E_CRYO_CPA_ALARM.NONE;
+	END_IF
+END_FOR
+
+// Check if there are any alarms.
+IF NOT bProblem THEN
+	// No alarms. Clear all and write OK in warning text.
+	FOR i := 0 TO 6 DO
+		stat.arrAlarms[i]	:= E_CRYO_CPA_ALARM.NONE;
+	END_FOR
+	stat.sAlarm := '';
+	stat.nStatusCode	:= 0;	// OK
+ELSE
+	stat.nStatusCode	:= 1;	// Alarm
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExtractReadings" Id="{7bad5e70-9b78-4fb1-9018-0679f94a61e0}">
+      <Declaration><![CDATA[METHOD M_ExtractReadings : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	pBuf:	POINTER TO BYTE	:= ADR(stat.nInputBuffer);
+	nPos:	INT	:= 0;	// byte position in the buffer
+	pPtr:	POINTER TO UINT;	// Pointer to the result
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// There are 3 bytes before data starts !!!
+////////////////////////////
+// Extract Common Parameters
+// Buffer starts from 30,001
+// 3 bytes before real data
+////////////////////////////
+
+// nOperatingState
+// 30,001 - Operating State
+// Offset 3 + 0x2 = 3
+nPos	:= cfg.nPosOffset + 3;
+stat.nOperatingState := M_ByteSwapINT(ADR(pBuf[nPos]));
+
+// nCompressorRunning
+// 30,002 - Compressor Running
+// Offset 3 + 1x2 = 5
+nPos	:= nPos + 2;
+stat.nCompressorRunning := M_ByteSwapINT(ADR(pBuf[nPos]));
+
+// 
+// 
+// Offset 3 + x2 = 
+nPos	:= nPos + 2;
+stat.lrWarningState := M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+// 
+// 
+// Offset 3 + x2 = 
+nPos	:= nPos + 4;
+stat.lrAlarmState := M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+// lrCoolantInTemp
+// 30,007 - Coolant In Temp
+// Offset 3 + 6x2 = 15
+nPos	:= nPos + 4;
+stat.lrCoolantInTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+// lrCoolantOutTemp
+// 30,009 - Coolant Out Temp
+// Offset 3 + 8x2 = 19
+nPos	:= nPos + 4;
+stat.lrCoolantOutTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+// lrOilTemp
+// 30,011 - Oil Temp
+// Offset 3 + 10x2 = 23
+nPos	:= nPos + 4;
+stat.lrOilTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrHeliumTemp	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrLowPressure	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrLowPressureAverage	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrHighPressure	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrHighPressureAverage	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrDeltaPressureAverage	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrMotorCurrent	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.lrHoursOfOperation	:= M_ByteSwapFLOAT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 4;
+stat.nPressureScale	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 2;
+stat.nTempScale	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 2;
+pPtr	:= ADR(pBuf[nPos]);
+stat.nPanelSerialNumber	:= pPtr^;
+//stat.nPanelSerialNumber	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+
+nPos	:= nPos + 2;
+stat.nModelMajorMinor	:= M_ByteSwapINT(ADR(pBuf[nPos]));
+
+//////////////////////////
+// Assign values to arrays
+//////////////////////////
+
+stat.aReadings[E_CRYO_CPA_DIAG_IDX.WATER_IN]	:= stat.lrCoolantInTemp;
+stat.aReadings[E_CRYO_CPA_DIAG_IDX.WATER_OUT]	:= stat.lrCoolantOutTemp;
+stat.aReadings[E_CRYO_CPA_DIAG_IDX.OIL_TEMP]	:= stat.lrOilTemp;
+stat.aReadings[E_CRYO_CPA_DIAG_IDX.HELIUM_TEMP]	:= stat.lrHeliumTemp;
+stat.aReadings[E_CRYO_CPA_DIAG_IDX.HELIUM_LOW_PRESS_OP]		:= stat.lrLowPressure;
+stat.aReadings[E_CRYO_CPA_DIAG_IDX.HELIUM_HIGH_PRESS_OP]	:= stat.lrHighPressure;
+
+IF stat.nCompressorRunning <> 0 THEN
+	stat.bSystemOn	:= TRUE;
+	cfg.aLimits	:= cfg.aLimits_OP;
+	
+	// System is ON. Set 'operational' values to the actual reading.
+	stat.aReadings[E_CRYO_CPA_DIAG_IDX.HELIUM_DELTA_PRESS]		:= stat.lrDeltaPressureAverage;
+ELSE
+	stat.bSystemOn	:= FALSE;
+	cfg.aLimits	:= cfg.aLimits_ST;
+	
+	// System is OFF. 
+	// Set 'static' values to the middle of the valid range to avoid warnings and errors.
+	stat.aReadings[E_CRYO_CPA_DIAG_IDX.HELIUM_DELTA_PRESS]		:= 12.0;	// dummy
+END_IF
+
+//
+// Check for Alarms and Errors
+//
+M_CheckDiagnostics();
+
+//
+// Get Model Number
+//
+M_GetModelNumber();
+
+//
+// Get Operational State
+//
+M_GetOperatingState();
+
+//
+// Check due service
+//
+M_CheckService();
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetModelNumber" Id="{33baaae5-e499-4678-b6d9-c69411bfbf6b}">
+      <Declaration><![CDATA[METHOD M_GetModelNumber
+VAR_INPUT
+END_VAR
+VAR
+	nModelMajor:	SINT;
+	nModelMinor:	SINT;
+	nVersionMajor:	SINT;
+	nVersionMinor:	SINT;
+	pPtr:			POINTER TO BYTE;;	// Pointer to the result
+	sModelMajor, sModelMinor:	STRING(16);
+	sVersionMajor, sVersionMinor:	STRING(16);
+	sTmp:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get major and minor version of the model
+pPtr	:= ADR(stat.nModelMajorMinor);
+nModelMinor	:= BYTE_TO_SINT(pPtr^);
+
+pPtr	:= ADR(stat.nModelMajorMinor) + 1;
+nModelMajor	:= BYTE_TO_SINT(pPtr^);
+
+CASE nModelMajor OF
+	1:	sModelMajor	:= '8';
+	2:	sModelMajor	:= '9';
+	3:	sModelMajor	:= '10';
+	4:	sModelMajor	:= '11';
+	5:	sModelMajor	:= '28';
+END_CASE
+
+CASE nModelMinor OF
+	1:	sModelMinor	:= 'A1';
+	2:	sModelMinor	:= '01';
+	3:	sModelMinor	:= '02';
+	4:	sModelMinor	:= '03';
+	5:	sModelMinor	:= 'H3';
+	6:	sModelMinor	:= 'I3';
+	7:	sModelMinor	:= '04';
+	8:	sModelMinor	:= 'H4';
+	9:	sModelMinor	:= '05';
+	10:	sModelMinor	:= 'H5';
+	11:	sModelMinor	:= 'I6';
+	12:	sModelMinor	:= '06';
+	13:	sModelMinor	:= '07';
+	14:	sModelMinor	:= 'H7';
+	15:	sModelMinor	:= 'I7';
+	16:	sModelMinor	:= '08';
+	17:	sModelMinor	:= '09';
+	18:	sModelMinor	:= '9C';
+	19:	sModelMinor	:= '10';
+	20:	sModelMinor	:= '1I';
+	21:	sModelMinor	:= '11';
+	22:	sModelMinor	:= '12';
+	23:	sModelMinor	:= '13';
+	24:	sModelMinor	:= '14';
+END_CASE
+
+// Get major and minor version of the panel
+pPtr	:= ADR(stat.nPanelSerialNumber);
+nVersionMinor	:= BYTE_TO_SINT(pPtr^);
+
+pPtr	:= ADR(stat.nPanelSerialNumber) + 1;
+nVersionMajor	:= BYTE_TO_SINT(pPtr^);
+
+
+sTmp	:= 'CRYOMECH CPA';
+sTmp	:= concat(concat(sTmp,sModelMajor),sModelMinor);
+sTmp	:= concat(concat(sTmp,'   ID: '),in_sName);
+//sTmp	:= concat(concat(sTmp,'.'),SINT_TO_STRING(nVersionMinor));
+
+stat.sModelNumber	:= sTmp;
+
+
+
+(*
+Major Model Numbers consist of
+1: 800 Series
+2: 900 Series
+3: 1000 Series
+4: 1100 Series
+5: 2800 Series
+Minor Model Numbers consist of:
+1: A1 13: 07
+2: 01 14: H7
+3: 02 15: I7
+4: 03 16: 08
+5: H3 17: 09
+6: I3 18: 9C
+7: 04 19: 10
+8: H4 20: 1I
+9: 05 21: 11
+10: H5 22: 12
+11: I6 23: 13
+12: 06 24: 14
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetOperatingState" Id="{3b45b237-461c-4be4-8c70-a46042b5954b}">
+      <Declaration><![CDATA[METHOD M_GetOperatingState
+VAR_INPUT
+END_VAR
+
+VAR
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nOperatingState OF
+	0: stat.sOperatingState := 'Idling - ready to start';
+	2: stat.sOperatingState := 'Starting';
+	3: stat.sOperatingState := 'Running';
+	5: stat.sOperatingState := 'Stopping';
+	6: stat.sOperatingState := 'Error Lockout';
+	7: stat.sOperatingState := 'Error';
+	8: stat.sOperatingState := 'Helium Cool Down';
+	9: stat.sOperatingState := 'Error-Power Related';
+	16: stat.sOperatingState := 'Error Recovery';
+END_CASE
+
+
+
+
+(*
+Input Register 30001: (operating state)
+0: Idling - ready to start
+2: Starting
+3: Running
+5: Stopping
+6: Error Lockout
+7: Error
+8: Helium Cool Down
+9: Error-Power Related
+16: Error Recovery
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetAlarmText" Id="{a6fbc59f-8cdf-4441-850b-1ee9c76dc952}">
+      <Declaration><![CDATA[METHOD M_SetAlarmText
+VAR_INPUT
+	nIndex:	INT;	// alarm index
+END_VAR
+VAR
+	sTmp1:	STRING(128);
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Handle alarms
+//
+IF stat.arrAlarms[nIndex] = E_CRYO_CPA_ALARM.NONE THEN
+	// No alarm 
+	stat.sAlarm	:= '';
+ELSIF stat.arrAlarms[nIndex] = E_CRYO_CPA_ALARM.LOW THEN
+	// Alarm text, e.g. 
+	// ‘Alarm: High pressure running low, compressor will shut off at 27.6 bar’
+	sTmp1	:= concat('Alarm: ', cfg.aDiag[nIndex].sLabel);
+	sTmp1	:= concat(sTmp1, ' running low. It will shut down at ');
+	sTmp1	:= concat(sTmp1, LREAL_TO_STRING(cfg.aDiag[nIndex].rErrorLow));
+	sTmp1	:= concat(sTmp1, concat(' ', cfg.aDiag[nIndex].sUnits));
+	stat.sAlarm	:= sTmp1;
+ELSIF stat.arrAlarms[nIndex] = E_CRYO_CPA_ALARM.HIGH THEN
+	// Alarm text, e.g. 
+	// ‘Alarm: High pressure running high, compressor will shut off at 27.6 bar’
+	sTmp1	:= concat('Alarm: ', cfg.aDiag[nIndex].sLabel);
+	sTmp1	:= concat(sTmp1, ' running high. It will shut down at ');
+	sTmp1	:= concat(sTmp1, LREAL_TO_STRING(cfg.aDiag[nIndex].rErrorHigh));
+	sTmp1	:= concat(sTmp1, concat(' ', cfg.aDiag[nIndex].sUnits));
+	stat.sAlarm	:= sTmp1;
+END_IF
+
+//
+// Handle errors
+//
+IF stat.arrErrors[nIndex] = E_CRYO_CPA_ALARM.NONE THEN
+	// No error 
+	stat.sError	:= '';
+ELSIF stat.arrErrors[nIndex] = E_CRYO_CPA_ALARM.LOW THEN
+	// Error text, e.g. 
+	// ‘Error: High pressure was too low, compressor shut down at 27.6 bar’
+	sTmp1	:= concat('Error: ', cfg.aDiag[nIndex].sLabel);
+	sTmp1	:= concat(sTmp1, ' was too low. Shutdown was at ');
+	sTmp1	:= concat(sTmp1, LREAL_TO_STRING(cfg.aDiag[nIndex].rErrorLow));
+	sTmp1	:= concat(sTmp1, concat(' ', cfg.aDiag[nIndex].sUnits));
+	stat.sError	:= sTmp1;
+ELSIF stat.arrErrors[nIndex] = E_CRYO_CPA_ALARM.HIGH THEN
+	// Error text, e.g. 
+	// ‘Error: High pressure was too high, compressor shut down at 27.6 bar’
+	sTmp1	:= concat('Error: ', cfg.aDiag[nIndex].sLabel);
+	sTmp1	:= concat(sTmp1, ' was too high. Shutdown was at ');
+	sTmp1	:= concat(sTmp1, LREAL_TO_STRING(cfg.aDiag[nIndex].rErrorHigh));
+	sTmp1	:= concat(sTmp1, concat(' ', cfg.aDiag[nIndex].sUnits));
+	stat.sError	:= sTmp1;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UserConfigure" Id="{f2afd0e7-c4f9-4871-9964-d4d95cc58228}">
+      <Declaration><![CDATA[METHOD M_UserConfigure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i, j:	int;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+// Add here real configuration
+
+// SlaveID
+cfg.nSlaveID	:= in_nSlaveID;
+
+// We always read from CPA
+ctrl.nCmdType	:= E_MODBUS_CMD_TYPE.READ;
+
+ctrl.nRegister	:= cfg.nAddrCommon;
+ctrl.nWords		:= cfg.nWordsCommon;
+
+//
+// Configure OP and STATIC limits
+FOR i := 0 TO 6 DO
+	cfg.aLimits_OP[i].rAlarmLow	:= MAX(cfg.aDiag[i].rAlarmLow_CPA,  cfg.aDiag[i].rAlarmLow_ESO);
+	cfg.aLimits_OP[i].rAlarmHigh	:= MIN(cfg.aDiag[i].rAlarmHigh_CPA, cfg.aDiag[i].rAlarmHigh_ESO);
+	cfg.aLimits_OP[i].rErrorLow	:= cfg.aDiag[i].rErrorLow;
+	cfg.aLimits_OP[i].rErrorHigh	:= cfg.aDiag[i].rErrorHigh;
+
+	j	:= i;
+	IF	i = E_CRYO_CPA_DIAG_IDX.HELIUM_LOW_PRESS_OP OR 
+		i = E_CRYO_CPA_DIAG_IDX.HELIUM_HIGH_PRESS_OP THEN
+		j	:= i+3;	// Use STATIC limits
+	END_IF
+	cfg.aLimits_ST[i].rAlarmLow	:= MAX(cfg.aDiag[j].rAlarmLow_CPA,  cfg.aDiag[j].rAlarmLow_ESO);
+	cfg.aLimits_ST[i].rAlarmHigh	:= MIN(cfg.aDiag[j].rAlarmHigh_CPA, cfg.aDiag[j].rAlarmHigh_ESO);
+	cfg.aLimits_ST[i].rErrorLow	:= cfg.aDiag[j].rErrorLow;
+	cfg.aLimits_ST[i].rErrorHigh	:= cfg.aDiag[j].rErrorHigh;
+END_FOR
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_CPA">
+      <LineId Id="391" Count="6" />
+      <LineId Id="521" Count="0" />
+      <LineId Id="580" Count="0" />
+      <LineId Id="522" Count="0" />
+      <LineId Id="398" Count="0" />
+      <LineId Id="638" Count="0" />
+      <LineId Id="516" Count="0" />
+      <LineId Id="400" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.ActivityInitializing">
+      <LineId Id="6" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="284" Count="0" />
+      <LineId Id="273" Count="1" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="265" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="340" Count="2" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="204" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="380" Count="0" />
+      <LineId Id="344" Count="0" />
+      <LineId Id="346" Count="2" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="382" Count="2" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="381" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.ActivityMonitoring">
+      <LineId Id="29" Count="0" />
+      <LineId Id="301" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="424" Count="0" />
+      <LineId Id="423" Count="0" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="141" Count="2" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="379" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="154" Count="3" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="167" Count="2" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="178" Count="2" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="185" Count="3" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="72" Count="2" />
+      <LineId Id="489" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="490" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="457" Count="0" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="458" Count="0" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="508" Count="0" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="288" Count="0" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="395" Count="0" />
+      <LineId Id="397" Count="5" />
+      <LineId Id="404" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="491" Count="1" />
+      <LineId Id="494" Count="0" />
+      <LineId Id="493" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="495" Count="0" />
+      <LineId Id="442" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="441" Count="0" />
+      <LineId Id="479" Count="0" />
+      <LineId Id="473" Count="0" />
+      <LineId Id="481" Count="1" />
+      <LineId Id="484" Count="3" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="90" Count="2" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.CheckForEvents">
+      <LineId Id="22" Count="21" />
+      <LineId Id="106" Count="1" />
+      <LineId Id="145" Count="2" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="148" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="150" Count="2" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="50" Count="7" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_ByteSwapFLOAT">
+      <LineId Id="32" Count="3" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_ByteSwapINT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_CheckDiagnostics">
+      <LineId Id="56" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="69" Count="3" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="21" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_CheckErrors">
+      <LineId Id="35" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="89" Count="7" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="98" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_CheckService">
+      <LineId Id="34" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="27" Count="2" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="38" Count="21" />
+      <LineId Id="37" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_CheckWarnings">
+      <LineId Id="128" Count="1" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="37" Count="2" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="54" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="114" Count="6" />
+      <LineId Id="125" Count="2" />
+      <LineId Id="122" Count="2" />
+      <LineId Id="72" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_ExtractReadings">
+      <LineId Id="453" Count="79" />
+      <LineId Id="591" Count="0" />
+      <LineId Id="533" Count="0" />
+      <LineId Id="592" Count="0" />
+      <LineId Id="534" Count="20" />
+      <LineId Id="558" Count="4" />
+      <LineId Id="600" Count="0" />
+      <LineId Id="563" Count="0" />
+      <LineId Id="567" Count="15" />
+      <LineId Id="602" Count="0" />
+      <LineId Id="604" Count="2" />
+      <LineId Id="601" Count="0" />
+      <LineId Id="603" Count="0" />
+      <LineId Id="256" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_GetModelNumber">
+      <LineId Id="88" Count="40" />
+      <LineId Id="173" Count="6" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="185" Count="2" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="129" Count="20" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_GetOperatingState">
+      <LineId Id="6" Count="0" />
+      <LineId Id="27" Count="8" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="7" Count="3" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="8" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_SetAlarmText">
+      <LineId Id="33" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="17" Count="2" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="37" Count="9" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="47" Count="6" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="54" Count="3" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="58" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CPA.M_UserConfigure">
+      <LineId Id="81" Count="30" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

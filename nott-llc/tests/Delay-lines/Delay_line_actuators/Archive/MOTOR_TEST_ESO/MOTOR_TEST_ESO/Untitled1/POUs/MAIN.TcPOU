@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="MAIN" Id="{c86d7266-558e-497e-b5a4-92b527d7e5a5}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+
+// Motors
+DL_Motor_01 : FB_MOTOR;
+
+// Shutters
+
+Shutter_1 : FB_SHUTTER;
+
+Shutter_1_Status AT %I*	 : BOOL;
+
+bIsInitialized			: BOOL	:= FALSE;
+	bShutterIsOpen			: BOOL	:= FALSE;
+	bShutterButton			: BOOL	:= FALSE;
+	iShutterPWM		AT %Q*	: INT	:= 0;
+	rShutterVoltage			: REAL;
+	sShutterState			: STRING := 'CLOSED';
+
+// Temperature Sensors
+
+i_TempSensor_1 AT %I* : INT;
+i_TempSensor_2 AT %I* : INT;
+i_TempSensor_3 AT %I* : INT;
+i_TempSensor_4 AT %I* : INT;
+
+
+
+// Heaters
+
+q_Heater_1 AT %Q* : UINT;
+q_Heater_2 AT %Q* : UINT;
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+DL_Motor_01(sName:='DL_Motor_01', nNOVRAM_DevId:=5, nNOVRAM_Offset:= 1000);
+
+// Shutters
+
+Shutter_1(in_sName:= 'Shutter_1', in_bActiveLowClosed:= TRUE);
+
+
+IF NOT bIsInitialized THEN
+
+	bIsInitialized := TRUE;
+END_IF
+
+
+IF bShutterButton THEN
+	IF NOT bShutterIsOpen THEN
+		rShutterVoltage := 24;
+	ELSE
+		rShutterVoltage := 10;
+	END_IF
+ELSE
+	rShutterVoltage := 0;
+END_IF
+
+IF rShutterVoltage > 5 THEN
+	bShutterIsOpen := TRUE;
+ELSE
+	bShutterIsOpen := FALSE;
+END_IF
+
+IF bShutterIsOpen THEN
+	sShutterState := 'OPEN';
+ELSE
+	sShutterState := 'CLOSED';
+END_IF
+
+iShutterPWM := REAL_TO_INT(32767.0 * rShutterVoltage / 24.0);
+
+
+// Temperatures
+SCIFY_HMI_Variables.fTemp_1 := INT_TO_FLOAT(i_TempSensor_1) /10;
+SCIFY_HMI_Variables.fTemp_2 := INT_TO_FLOAT(i_TempSensor_2) /10;
+SCIFY_HMI_Variables.fTemp_3 := INT_TO_FLOAT(i_TempSensor_3) /10;
+SCIFY_HMI_Variables.fTemp_4 := INT_TO_FLOAT(i_TempSensor_4) /10;
+
+// Heaters
+q_Heater_1 := SCIFY_HMI_Variables.uiHeater_1;
+q_Heater_2 := SCIFY_HMI_Variables.uiHeater_2;
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="32" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="174" Count="29" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="241" Count="1" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="106" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

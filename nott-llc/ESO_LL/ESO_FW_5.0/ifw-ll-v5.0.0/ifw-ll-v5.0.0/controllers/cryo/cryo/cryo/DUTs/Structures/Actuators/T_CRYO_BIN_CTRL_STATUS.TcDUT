@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_BIN_CTRL_STATUS" Id="{afe69bd5-0620-4802-b513-bff76ba9b917}">
+    <Declaration><![CDATA[TYPE T_CRYO_BIN_CTRL_STATUS :
+STRUCT
+	bDone:		BOOL;			// Flag if controller is OK
+	bBusy:		BOOL;			// Flag if controller is BUSY
+	bError:		BOOL;			// Flag if controller is OK
+	bActive:	BOOL;			// Flag if controller is ACTIVE
+	bActON:		BOOL;			// Flag if actuator is ON
+	bActOFF:	BOOL;			// Flag if actuator is OFF
+
+	// Generic controller OK flag.
+	// Used for problems other than from the actuator.
+	// This flag is used for problems coming from controllers
+	// that extend the functionality of FB_CRYO_BIN_CTRL.
+	bCtrlOK:	BOOL := TRUE;		
+
+	nCycleCounter:	UDINT := 0;
+	nState:			E_CRYO_BIN_CTRL_STATE	:= E_CRYO_BIN_CTRL_STATE.NONE;
+
+	sState:		STRING(64);		// State as text
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

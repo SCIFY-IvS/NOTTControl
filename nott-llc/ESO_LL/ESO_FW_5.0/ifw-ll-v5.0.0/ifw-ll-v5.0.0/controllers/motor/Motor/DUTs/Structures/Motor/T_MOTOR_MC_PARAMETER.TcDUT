@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_MC_PARAMETER" Id="{c2f4a738-3b03-4ad2-ae32-fbd6f837d7ea}">
+    <Declaration><![CDATA[TYPE T_MOTOR_MC_PARAMETER :
+STRUCT
+	nNumber:	MC_AxisParameter;
+	lrValue:	LREAL;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

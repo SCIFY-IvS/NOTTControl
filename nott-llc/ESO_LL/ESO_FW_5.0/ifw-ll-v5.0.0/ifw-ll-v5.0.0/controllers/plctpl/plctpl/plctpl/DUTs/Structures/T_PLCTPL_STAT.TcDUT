@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="T_PLCTPL_STAT" Id="{b8d52083-9990-40a7-82e3-575bf4048bc9}">
+    <Declaration><![CDATA[TYPE T_PLCTPL_STAT :
+STRUCT
+	//
+	// Common variables START
+	//
+	bLocal:			BOOL	:= FALSE;						(* Device operated from PLC GUI *)
+
+	nState:			E_PLCTPL_STATE		:= E_PLCTPL_STATE.NOTOP;			(* State, see E_PLCTPL_STATE *)
+	nSubstate:		E_PLCTPL_SUBSTATE	:= E_PLCTPL_SUBSTATE.NOTOP_NOTREADY;(* Substate, see E_PLCTPL_SUBSTATE *)
+
+	nErrorCode: 	E_PLCTPL_ERROR 	:= E_PLCTPL_ERROR.OK;				(* Error code *)
+	nLastCommand:	E_PLCTPL_COMMAND	:= E_PLCTPL_COMMAND.NONE;			(* Last command sent to the device *)
+	nStatus: 		E_PLCTPL_STATUS	:= E_PLCTPL_STATUS.OK; 			(* Device status *)
+	nHwStatus: 		E_PLCTPL_HW_STATUS	:= E_PLCTPL_HW_STATUS.UNKNOWN; 	(* Unknown, error, open, closed. See E_PLCTPL_HW_STATUS *)
+	nRpcErrorCode: 	E_PLCTPL_RPC_ERROR := E_PLCTPL_RPC_ERROR.OK;			(* RPC Error code *)
+
+	sState:			STRING	:= 'NOT OP';					(* State textual description *)
+	sSubstate:		STRING	:= 'NOT READY';					(* Substate textual description *)
+	sErrorText: 	STRING 	:= 'OK'; 						(* Error text *)
+	sRPCErrorText: 	STRING 	:= 'OK'; 						(* RPC Error text *)
+	sStatus: 		STRING 	:= 'OK'; 						(* Status in textual form, e.g. 'OFF' *)
+	sHwStatus: 		STRING 	:= 'UNKNOWN'; 					(* HW Status in textual form: 'UNKNOWN', 'ERROR', 'OPEN' or 'CLOSED' *)
+	sLastCommand:	STRING	:= 'NONE';						(* Last command, as string, sent to the device *)
+	sLibVersion:	STRING	:= 'UNKNOWN';					(* Library version as string, e.g. '1.2.0.0' *)
+	
+	sActionDesc:	STRING	:= '';
+	sEventDesc:		STRING	:= '';
+
+	nCycleCounter:	UDINT	:= 0;							// Alive flag
+	nCycleTime:		UDINT	:= 0;							// Cycle time in us (microsec)
+	//
+	// Common variables END
+	//
+
+	//
+	// Device specific variables
+	//
+	nLastTimeToOpen:	DINT	:= -1;	// Time taken for last OPEN command [msec] (-1 = failure)
+	nLastTimeToClose:	DINT	:= -1;	// Time taken for last CLOSE command [msec] (-1 = failure)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

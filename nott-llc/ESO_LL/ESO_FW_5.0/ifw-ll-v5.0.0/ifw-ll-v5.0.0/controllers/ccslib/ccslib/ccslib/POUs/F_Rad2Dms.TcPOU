@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="F_Rad2Dms" Id="{7c76b9a5-f6a3-40f7-8bab-0a23cf28a620}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_Rad2Dms : LREAL
+VAR_INPUT
+	dd:	LREAL;	// angle in radians
+END_VAR
+VAR
+	value:		LREAL;
+	degrees:	LINT;
+	minutes:	LINT;
+	seconds:	LREAL;
+	dms: LREAL;
+	
+	sign:	int := 1;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF dd < 0.0 THEN
+	sign	:= -1;
+	dd		:= -dd;
+END_IF
+
+value := dd / GCL.C_2PI * 360.0; 	// rad to degrees
+
+
+degrees	:= TRUNC_INT(value);
+minutes := TRUNC_INT((value - degrees)*60.0);
+seconds := (value - degrees - minutes/60.0)*3600.0;
+
+degrees	:= degrees * sign;	// put back the sign
+dms := degrees * 10000.0 ;
+dms := dms + (LINT_TO_LREAL(minutes) * 100.0 * sign);
+dms := dms +  seconds * sign;
+					
+F_Rad2Dms	:= dms;
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_Rad2Dms">
+      <LineId Id="136" Count="13" />
+      <LineId Id="153" Count="1" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="29" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

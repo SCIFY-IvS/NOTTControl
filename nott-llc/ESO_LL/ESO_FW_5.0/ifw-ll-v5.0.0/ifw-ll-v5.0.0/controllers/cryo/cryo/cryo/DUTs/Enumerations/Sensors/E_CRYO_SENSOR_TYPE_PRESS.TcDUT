@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_SENSOR_TYPE_PRESS" Id="{c15aecc0-8d0c-4326-84ab-4e868bd5b6ad}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_SENSOR_TYPE_PRESS :
+(
+	NONE 		:= 0,
+	PKR_250		:= 1,	// Pfeiffer PKR250 & PKR251 have the same formula
+	CMR_361		:= 2,	// Pfeiffer CMR361
+	WRG_D_NW25	:= 3,	// Edwards WRG-D-NW25
+	PKR_360		:= 4	// Pfeiffer PKR360
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

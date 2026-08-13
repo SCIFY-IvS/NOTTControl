@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_TCP_SERVER_STATE" Id="{eb2d2aa1-5e18-4830-a9bd-57ee482178bb}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TCP_SERVER_STATE :
+(
+	NOT_ACCEPTED,
+	LISTEN,
+	ACCEPT_WAIT,
+	RECEIVE_START,
+	RECEIVE_WAIT,
+	SEND_START,
+	SEND_WAIT,
+	CLOSE_START,
+	CLOSE_WAIT,
+	WAIT,
+	ERROR
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

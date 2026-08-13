@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^cryo^cryo Instance">
+		<OwnerB Name="TIPC^cryo^cryo Instance">
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.GBV.Actuator.i_bOFF" VarB="PlcTask Outputs^MAIN.mic_valves.q_bOFF_GBV"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.GBV.Actuator.i_bON" VarB="PlcTask Outputs^MAIN.mic_valves.q_bON_GBV"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.GBV.Actuator.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV1.Actuator.i_bOFF" VarB="PlcTask Outputs^MAIN.mic_valves.q_bOFF_PVV1"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV1.Actuator.i_bON" VarB="PlcTask Outputs^MAIN.mic_valves.q_bON_PVV1"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV1.Actuator.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV2.Actuator.i_bOFF" VarB="PlcTask Outputs^MAIN.mic_valves.q_bOFF_PVV2"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV2.Actuator.i_bON" VarB="PlcTask Outputs^MAIN.mic_valves.q_bON_PVV2"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV2.Actuator.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV3.Actuator.i_bOFF" VarB="PlcTask Outputs^MAIN.mic_valves.q_bOFF_PVV3"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV3.Actuator.i_bON" VarB="PlcTask Outputs^MAIN.mic_valves.q_bON_PVV3"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV3.Actuator.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV4.Actuator.i_bOFF" VarB="PlcTask Outputs^MAIN.mic_valves.q_bOFF_PVV4"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV4.Actuator.i_bON" VarB="PlcTask Outputs^MAIN.mic_valves.q_bON_PVV4"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.PVV4.Actuator.i_nCouplerState" VarB="PlcTask Outputs^MAIN.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.rp.i_bRunning" VarB="PlcTask Outputs^MAIN.mic_pumps.q_PVP_Running"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.sensor_VAG1.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.sensor_VAG1.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAG1"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.sensor_VAG2.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.sensor_VAG2.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAG2"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.sensor_VAG3.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.sensor_VAG3.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAG3"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.tp.i_bReady" VarB="PlcTask Outputs^MAIN.mic_pumps.q_TMP_Ready"/>
+			<Link VarA="PlcTask Inputs^MAIN.evac_micado.tp.i_bSpeed100" VarB="PlcTask Outputs^MAIN.mic_pumps.q_TMP_Speed100"/>
+			<Link VarA="PlcTask Inputs^MAIN.mic_valves.i_bON_GBV" VarB="PlcTask Outputs^MAIN.evac_micado.GBV.Actuator.q_bCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.mic_valves.i_bON_PVV1" VarB="PlcTask Outputs^MAIN.evac_micado.PVV1.Actuator.q_bCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.mic_valves.i_bON_PVV2" VarB="PlcTask Outputs^MAIN.evac_micado.PVV2.Actuator.q_bCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.mic_valves.i_bON_PVV3" VarB="PlcTask Outputs^MAIN.evac_micado.PVV3.Actuator.q_bCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.mic_valves.i_bON_PVV4" VarB="PlcTask Outputs^MAIN.evac_micado.PVV4.Actuator.q_bCtrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGF1.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGF1.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAGF1"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGF2.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGF2.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAGF2"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGG1.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGG1.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAGG1"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGG2.i_nStatus" VarB="PlcTask Outputs^MAIN.pSim.q_nStatus"/>
+			<Link VarA="PlcTask Inputs^MAIN.sensor_VAGG2.i_nValue" VarB="PlcTask Outputs^MAIN.q_nVAGG2"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

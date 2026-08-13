@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_IODEV_CH_DIG_OUT" Id="{2a8b35bb-758b-415b-8c12-01ef230835b1}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_DIG_OUT EXTENDS FB_IODEV_CH_DIGITAL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Physical active output signal.
+	// Read-Only access via OPC UA.
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	q_bValue	AT %Q*:	BOOL;
+
+	// Set values 
+	// Configured for R/W OPC UA Data Access !!!
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	bValue:		BOOL;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	sValueUser:	STRING(16);
+	
+	// Configuration parameters
+	// Configured for R/W OPC UA Data Access !!!
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '3'}
+	nConversion:	E_IODEV_CONVERSION	:= CONVERSION_IODEV_NONE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="M_Compute" Id="{8c77a573-dcab-4db3-b31d-c9208b3657b4}">
+      <Declaration><![CDATA[METHOD M_Compute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Check if the digital output should be calculated from User labels.
+// If yes, convert user label to digital output value.
+// Otherwise, just take the value from bValue and set the labels.
+IF nConversion = CONVERSION_IODEV_DIGITAL THEN
+	IF sValueUser = sLabel_0 THEN
+		bValue	:= FALSE;
+	ELSIF sValueUser = sLabel_1 THEN
+		bValue	:= TRUE;
+	END_IF
+ELSE
+	IF bValue THEN
+		sValueUser	:= sLabel_1;
+	ELSE
+		sValueUser	:= sLabel_0;
+	END_IF
+END_IF
+
+// Set output
+q_bValue	:= bValue;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{fb6811ef-9e81-4d6a-99d3-56936a031f0e}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+	in_nConversion:	INT			:= CONVERSION_IODEV_NONE;	// CONVERSION_IODEV_NONE or CONVERSION_IODEV_DIGITAL
+	in_sLabel_0:	STRING(16)	:= '0';
+	in_sLabel_1:	STRING(16)	:= '1';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Set conversion type
+nConversion	:= in_nConversion;
+
+// Set labels
+sLabel_0	:= in_sLabel_0;
+sLabel_1	:= in_sLabel_1;
+
+// Set output to zero
+q_bValue	:= FALSE;
+bValue		:= FALSE;
+sValueUser	:= sLabel_0;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{58226345-a012-4b10-b36c-b34f78a00873}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nConversion	:= CONVERSION_IODEV_NONE;
+sLabel_0	:= '0';
+sLabel_1	:= '1';
+
+// Set output to zero
+q_bValue	:= FALSE;
+bValue		:= FALSE;
+sValueUser	:= sLabel_0;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_CH_DIG_OUT">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_DIG_OUT.M_Compute">
+      <LineId Id="6" Count="7" />
+      <LineId Id="18" Count="6" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_DIG_OUT.M_Configure">
+      <LineId Id="28" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="17" Count="4" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_DIG_OUT.M_Reset">
+      <LineId Id="6" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

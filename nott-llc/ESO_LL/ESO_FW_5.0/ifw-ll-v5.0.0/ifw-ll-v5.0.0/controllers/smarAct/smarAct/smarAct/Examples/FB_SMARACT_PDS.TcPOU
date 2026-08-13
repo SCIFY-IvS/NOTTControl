@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SMARACT_PDS" Id="{3bb9b65e-611b-43f7-8b70-af4a1a391479}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SMARACT_PDS EXTENDS FB_SMAR_ACT_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// TODO USER: Add existing SmarAct Positioners.
+	//
+	// We use prefix 'x_' just for the convenience that
+	// all positioners appear together in the OPC UA Namespace.
+	//
+	x_fw:		FB_SA_CHANNEL_BASE;	// CH 0
+	x_iris:		FB_SA_CH_PDS_IRIS;	// CH 1 non-linear scaling for % of opening
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// Execute the base class object FB_SMAR_ACT_BASE.
+//
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ConfigureUser" Id="{94ba17dd-3c23-415d-b1e7-29a284b41e06}">
+      <Declaration><![CDATA[METHOD M_ConfigureUser
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// This method defines specific configurations for 
+// each positioner/channel in PDS.
+//
+
+
+// 
+// In this example, two positioners are defined in FB_SMARACT_PDS.
+//
+//	fw:		FB_SA_CHANNEL_BASE;	// CH 0
+//	iris:	FB_SA_CHANNEL_BASE;	// CH 1
+//
+
+//
+// Configure used channels [0..17].
+// There are two used channels: 0 and 1.
+//
+cfg.arrUsedCh[0]	:= TRUE;
+cfg.arrUsedCh[1]	:= TRUE;
+
+
+//
+// Set pointers to instances of used channels
+//
+ptrCH[0]	:= ADR(x_fw);
+ptrCH[1]	:= ADR(x_iris);
+
+
+//
+// Initial configuration of each exiting positioner.
+//
+
+//
+// SFW-6-25.4 - Filter Wheel
+//
+x_fw.M_Configure(
+	in_sName			:= 'PYR Filter Wheel',
+	in_sUnits			:= 'deg',
+	in_lrScale			:= 1.0, 
+	in_lrREF_POS		:= 0.0,		// REF mark pos
+	in_lrREF_VEL		:= 20.0,	// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.001,	// in-pos threshold = 0.001 deg
+	in_nINP_DEL			:= 500,		// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 30,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 0.0,		// Min=Max ==> No limits
+	in_lrRangeLimitMax	:= 0.0,		// Min=Max ==> No limits 
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+
+//
+// SID-50 - Iris Diaphragm
+//
+// Note: Because the scale is negative, MIN and MAX values are swapped.
+//       In Device Units, the diaphragm will move between -5..-50 (/scale) mm.
+//       In User   Units, the diaphragm will move between 1..100 %.
+//
+// The position of the diaphragm is the percentage of the opening.
+//
+
+x_iris.M_Configure(
+	in_sName			:= 'SHAPS Diaphragm',
+	in_sUnits			:= '%',
+	in_lrScale			:= -0.001763245, 
+	in_lrREF_POS		:= 34.33,	// REF mark pos in %. (Diam = 29.29832067 mm)
+	in_lrREF_VEL		:= 5.0,		// Velocity for referencing [UU/s]
+	in_nHOLD			:= -1,		// Hold infinitely
+	in_lrINP_THR		:= 0.0005,	// in-pos threshold = 0.0005 %
+	in_nINP_DEL			:= 500,		// in-pos delay 500 ms
+	in_lrMaxVelocity	:= 15,		// Maximum permitted Velocity
+	in_lrRangeLimitMin	:= 100.001,	// Min limit (positive because in_lrScale < 0) !!!
+	in_lrRangeLimitMax	:= 0.999,	// Max limit (negative because in_lrScale < 0) !!!
+	in_nREF_OPT			:= 0,		// Referencing in positive direction
+	in_nCAL_OPT			:= 0,		// Calibrating in positive direction
+	in_nPCON_OPT		:= 256);	// 'in-pos' flag set
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SMARACT_PDS">
+      <LineId Id="10" Count="4" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SMARACT_PDS.M_ConfigureUser">
+      <LineId Id="603" Count="1" />
+      <LineId Id="607" Count="0" />
+      <LineId Id="605" Count="1" />
+      <LineId Id="608" Count="0" />
+      <LineId Id="634" Count="2" />
+      <LineId Id="642" Count="1" />
+      <LineId Id="640" Count="1" />
+      <LineId Id="502" Count="2" />
+      <LineId Id="609" Count="0" />
+      <LineId Id="505" Count="1" />
+      <LineId Id="624" Count="1" />
+      <LineId Id="507" Count="0" />
+      <LineId Id="626" Count="4" />
+      <LineId Id="538" Count="2" />
+      <LineId Id="610" Count="1" />
+      <LineId Id="541" Count="3" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="645" Count="0" />
+      <LineId Id="545" Count="1" />
+      <LineId Id="589" Count="0" />
+      <LineId Id="547" Count="2" />
+      <LineId Id="598" Count="0" />
+      <LineId Id="550" Count="7" />
+      <LineId Id="615" Count="5" />
+      <LineId Id="558" Count="0" />
+      <LineId Id="662" Count="0" />
+      <LineId Id="646" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

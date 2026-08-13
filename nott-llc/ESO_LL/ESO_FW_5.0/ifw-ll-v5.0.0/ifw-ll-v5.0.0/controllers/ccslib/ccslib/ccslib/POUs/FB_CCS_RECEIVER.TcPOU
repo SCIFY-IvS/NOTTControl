@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CCS_RECEIVER" Id="{9dd5b39c-af33-4f30-9c96-4ec3ce6ec000}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CCS_RECEIVER
+VAR_INPUT
+	refTimeObj  : REFERENCE TO FB_TIME; 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	fbMudpiReceiver: FB_MUDPI_RECEIVER;
+	tracking_raw : T_ASTRO_POINTING_KERNEL_POSITIONS;
+	tracking_ccs : T_CCS_GUI;
+	north_sample: T_DATA_SAMPLE;
+	pupil_sample: T_DATA_SAMPLE;
+	pa_sample: T_DATA_SAMPLE;
+	north_angle_interpolator: FB_LINEAR_INTERPOLATION;
+	pupil_angle_interpolator: FB_LINEAR_INTERPOLATION;
+	pa_angle_interpolator: FB_LINEAR_INTERPOLATION;
+	previous_sample_id: UDINT := 0;
+	
+	
+  
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Listen for MUDPI packages
+// It assumes data will contain the structure of the CCS ICD
+fbMudpiReceiver();
+
+// Get parameters
+GetParams();
+
+// Set parameters
+SetParams();]]></ST>
+    </Implementation>
+    <Method Name="FB_init" Id="{25f8b806-08bd-4795-9702-e37f5c744a1d}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[previous_sample_id := 0;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetParams" Id="{d9e0cfc5-d2af-4af8-aeb7-431bdf29e07c}">
+      <Declaration><![CDATA[METHOD GetParams
+VAR_INPUT
+END_VAR
+VAR
+	north_angle_result : LREAL;
+	pupil_angle_result : LREAL;
+	pa_angle_result : LREAL;
+	diff_time : LREAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Check if a new sample has been received.
+// In this case, values from CCS interface shall be copied 
+// to the internal structure (structure_raw).
+
+IF (fbMudpiReceiver.packet_info.sampleId <> previous_sample_id) THEN
+	memcpy(ADR(tracking_raw), fbMudpiReceiver.GetMudpiPayload(), fbMudpiReceiver.GetMudpiPayloadSize());
+	north_sample.value := tracking_raw.north_angle;
+	north_sample.timestamp := tracking_raw.time_tai;
+	north_angle_interpolator.AddSample(north_sample);
+
+	pupil_sample.value := tracking_raw.pupil_angle;
+	pupil_sample.timestamp := tracking_raw.time_tai;
+	pupil_angle_interpolator.AddSample(pupil_sample);
+	pa_sample.value := tracking_raw.parallactic_angle;
+	pa_sample.timestamp := tracking_raw.time_tai;
+	pa_angle_interpolator.AddSample(pa_sample);
+	
+	north_angle_interpolator.Extrapolate(lrTimestamp:=refTimeObj.stat.lrTaiUnixTimeinSecs, lrValue=>north_angle_result);
+	pupil_angle_interpolator.Extrapolate(lrTimestamp:=refTimeObj.stat.lrTaiUnixTimeinSecs, lrValue=>pupil_angle_result);
+	pa_angle_interpolator.Extrapolate(lrTimestamp:=refTimeObj.stat.lrTaiUnixTimeinSecs, lrValue=>pa_angle_result);
+	
+	// Interpolating only PA, NORTH and PUPIL angles for the time being. 
+	// All the other tracking data are exactly as received.
+	tracking_ccs.alt := RAD_TO_DEG(tracking_raw.target_observed_altaz[0]);
+	tracking_ccs.az := RAD_TO_DEG(tracking_raw.target_observed_altaz[1]);
+	tracking_ccs.pa := RAD_TO_DEG(pa_angle_result);
+	tracking_ccs.ra:= F_Rad2Hms(tracking_raw.radec_at_altaz_at_requested_xy[0]);
+	tracking_ccs.dec := F_Rad2Dms(tracking_raw.radec_at_altaz_at_requested_xy[1]);
+	tracking_ccs.north_angle := RAD_TO_DEG(north_angle_result);
+	tracking_ccs.pupil_angle := RAD_TO_DEG(pupil_angle_result);	
+	tracking_ccs.time_tai := DCTIME64_TO_STRING(refTimeObj.MudpiTimeToDc(tracking_raw.time_tai));
+	tracking_ccs.ha := tracking_raw.time_lst - tracking_raw.radec_at_altaz_at_requested_xy[0];
+	previous_sample_id := fbMudpiReceiver.packet_info.sampleId;
+	diff_time := tracking_raw.time_tai - refTimeObj.stat.lrTaiUnixTimeinSecs;
+ELSE
+	north_angle_interpolator.Extrapolate(lrTimestamp:=refTimeObj.stat.lrTaiUnixTimeinSecs, lrValue=>north_angle_result);
+	pupil_angle_interpolator.Extrapolate(lrTimestamp:=refTimeObj.stat.lrTaiUnixTimeinSecs, lrValue=>pupil_angle_result);
+	pa_angle_interpolator.Extrapolate(lrTimestamp:=refTimeObj.stat.lrTaiUnixTimeinSecs, lrValue=>pa_angle_result);
+	
+	north_sample.value := north_angle_result;
+	north_sample.timestamp := refTimeObj.stat.lrTaiUnixTimeinSecs;
+	north_angle_interpolator.AddSample(north_sample);
+
+	pupil_sample.value := pupil_angle_result;
+	pupil_sample.timestamp := refTimeObj.stat.lrTaiUnixTimeinSecs;
+	pupil_angle_interpolator.AddSample(pupil_sample);
+	
+	pa_sample.value := pa_angle_result;
+	pa_sample.timestamp := refTimeObj.stat.lrTaiUnixTimeinSecs;
+	pa_angle_interpolator.AddSample(pa_sample);
+	
+	tracking_ccs.pa := RAD_TO_DEG(pa_angle_result);
+	tracking_ccs.north_angle := RAD_TO_DEG(north_angle_result);
+	tracking_ccs.pupil_angle := RAD_TO_DEG(pupil_angle_result);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetParams" Id="{7b9bdd87-06d7-47d1-b67b-dc712daeb0bc}">
+      <Declaration><![CDATA[METHOD SetParams
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CCS_RECEIVER">
+      <LineId Id="134" Count="1" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="47" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_RECEIVER.FB_init">
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_RECEIVER.GetParams">
+      <LineId Id="119" Count="3" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="103" Count="2" />
+      <LineId Id="31" Count="2" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="88" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="90" Count="1" />
+      <LineId Id="44" Count="4" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="63" Count="2" />
+      <LineId Id="108" Count="2" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="66" Count="2" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_RECEIVER.SetParams">
+      <LineId Id="6" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,726 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4f1f5ae8-7265-4417-a46b-f9a8dda5914c}</ProjectGuid>
+    <SubObjectsSortedByName>True</SubObjectsSortedByName>
+    <DownloadApplicationInfo>true</DownloadApplicationInfo>
+    <WriteProductVersion>true</WriteProductVersion>
+    <GenerateTpy>false</GenerateTpy>
+    <Name>nott_ics</Name>
+    <ProgramVersion>3.1.4024.0</ProgramVersion>
+    <Application>{a3fedd37-4a62-4fd9-918d-ce5bf764c441}</Application>
+    <TypeSystem>{49ca0095-719d-4404-a729-a9630074072a}</TypeSystem>
+    <Implicit_Task_Info>{9f487a28-ccdd-4961-b200-88b06ff88e9a}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{e5488f07-e025-42a5-aa79-63f588464d67}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{c9648adc-d1ab-46e6-ace6-2b4a9164d8ba}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{e9c50762-c761-4d30-8045-0f283bb1c7e2}</LibraryReferences>
+    <Released>false</Released>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="CameraTrigs.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Structures\T_NOTT_STAT.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\T_NOTT_IR_CAMERA_DL_SYNC.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\T_NOTT_CAMERA_TIMESTAMPS_N_DL_POS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GlobalTextList.TcGTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GVLs\NOTT_GVL.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
+    <Compile Include="HMI\DUTs\Subsystems\Tip_Tilt\E_HMI_TIP_TILT_TABS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\DUTs\System\E_HMI_TABS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\DUTs\Util\E_HMI_COLORS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\DUTs\Util\E_HMI_VOTER_TABS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\DUTs\Util\T_ECAT_MODULE.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\DUTs\Util\T_HMI_COLORS.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Cabinets\FB_HMI_CABINETS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Control_Loops\FB_HMI_CONTROL_LOOPS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Control_Loops\FB_HMI_METIS_CTRL_TEMPERATURE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Control_Units\FB_HMI_CONTROL_UNITS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Coolers\FB_HMI_COOLERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Detectors\FB_HMI_DETECTORS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Heaters\FB_HMI_HEATERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Heaters\FB_HMI_METIS_HEATER.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Lakeshores\FB_HMI_LAKESHORE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Pressures\FB_HMI_PRESSURES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Pumps\FB_HMI_PUMPS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Pumps\FB_HMI_RP_BRANCH_A.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Pumps\FB_HMI_RP_BRANCH_B.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Pumps\FB_HMI_TP_BRANCH_A.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Pumps\FB_HMI_TP_BRANCH_B.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\RH\FB_HMI_METIS_RH_SENSOR.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Temperatures\Components\FB_HMI_TEMP_VOTERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Temperatures\FB_HMI_TEMPERATURES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Valves\FB_HMI_VALVES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Devices\Voters\FB_HMI_VOTER.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Events\FB_HMI_EVENTS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\CRYO_Interlocks\FB_HMI_CRYO_INTERLOCKS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\FB_HMI_SERVICES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\FB_HMI_SERVICES_TIME.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\Status\FB_HMI_BUSY_STATUS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\Status\FB_HMI_HEALTH_STATUS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\Status\FB_HMI_STATUS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\Status\F_HMI_BUSY_TO_COLOR.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\Status\F_HMI_HEALTH_BUSY_TO_COLOR.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Services\Status\F_HMI_HEALTH_TO_COLOR.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\Beam_Splitter\FB_HMI_CALIBRATION_BEAM_SPLITTER.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\Birefringence\FB_HMI_BIREFRINGENCE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\CO2_Pressure\FB_HMI_CO2_PRESSURE_CONTROL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\CO2_Translation_Stages\FB_HMI_CO2_TRANS_STAGES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\DelayLines\FB_HMI_DELAY_LINES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\Shutters\FB_HMI_SHUTTERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\TipTilt\Components\FB_HMI_TILT_A.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\TipTilt\Components\FB_HMI_TILT_B.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\TipTilt\Components\FB_HMI_TIP_A.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\TipTilt\Components\FB_HMI_TIP_B.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\TipTilt\FB_HMI_TIP_TILT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Subsystems\ZnSe_Actuators\FB_HMI_ZNSE_ACTUATORS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Util\Button\FB_HMI_BUTTON.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Util\Component\FB_HMI_COMPONENT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Util\Functions\F_GetConnectionColor.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\POUs\Util\Functions\F_GetConnectionString.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\PRG_HMI.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\VISUs\Events\VISU_HMI_EVENTS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Home\VISU_HMI_HOME.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\ICS_Interlocks\VISU_HMI_CRYO_INTERLOCKS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Services\VISU_HMI_SERVICES.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Services\VISU_HMI_SERVICES_TIME.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\Beam_Splitter\VISU_HMI_BEAM_SPLITTER.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\Birefringence\VISU_HMI_BIREFRINGENCE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\CO2_Pressure\VISU_HMI_CO2_PRESSURE.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\CO2_Translation_Stages\VISU_HMI_CO2_TRANS_STAGES.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\DelayLines\VISU_HMI_DELAY_LINES.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\Shutters\VISU_HMI_SHUTTERS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\TipTilt\Components\VISU_HMI_TILT_A.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\TipTilt\Components\VISU_HMI_TILT_B.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\TipTilt\Components\VISU_HMI_TIP_A.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\TipTilt\Components\VISU_HMI_TIP_B.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\TipTilt\VISU_HMI_TIP_TILT.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Subsystems\ZnSe_Actuators\VISU_HMI_ZNSE_ACTUATORS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\CO2_Valve\GUI_TEMPLATE_ACTUATOR_ENG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Motors\GUI_TEMPLATE_MOTOR.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Motors\GUI_TEMPLATE_NOTT_MOTOR_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Motors\GUI_TEMPLATE_NOTT_MOTOR_CONTROL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\NOTT_Images.TcIPO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Shutters\GUI_TEMPLATE_NOTT_SHUTTER.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Templates\Shutters\GUI_TEMPLATE_SHUTTER_CONTROL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Util\Button\VISU_HMI_BUTTON_IMAGES.TcIPO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\VISUs\Util\Button\VISU_HMI_ROUTINES_BUTTON.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Util\Button\VISU_HMI_SUBSUBSYSTEM_BUTTON.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Util\Button\VISU_HMI_SUBSYSTEM_BUTTON.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Util\Button\VISU_HMI_SYSTEM_BUTTON.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="HMI\VISUs\Util\ICONS_IMAGE_POOL.TcIPO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="HMI\VISU_HMI.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="PlcTask.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Camera_Triggers\INFRATEC_TRIGERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Cryo_Interlocks\FB_NOTT_CRYO_INTERLOCKS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Devices\NOTT_Motor\FB_NOTT_MOTOR.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\EVENTS\FB_NOTT_EVENTS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Functions\F_SysTimeToString.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\MAIN.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Services\FB_SERVICES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_CO2_PRESSURE_CONTROL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_CALIBRATION_BEAM_SPLITTER.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_ZNSE_ACTUATORS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_DELAY_LINES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_SHUTTERS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_CO2_TRANS_STAGES.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_TIP_TILT.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Subsystems\FB_NOTT_BIREFRINGENCE.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\System\FB_NOTT_CRYO_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\System\FB_NOTT_ICS.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Valve\FB_CRYO_BIN_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Valve\FB_CRYO_VALVE_CTRL.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Visualization Manager.TcVMO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Cryo\GUI_CRYO_TEMPS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\NBS\GUI_NOTT_NBS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Shutters\GUI_TEST_STEPPER_SHUTTER.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Templates\TEMPLATE_NOTT_CRYO_TEMPS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Delay_Lines\GUI_NOTT_DL_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Delay_Lines\GUI_NOTT_DL_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\GUI_NOTT_DL_1.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Shutters\GUI_NOTT_SHUTTERS.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\Time\GUI_NOTT_TIME.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_A_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_B_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_B_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_A_CONFIG.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_A_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TIP_B_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_A_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\GUIs\TipTilt\GUI_NOTT_TILT_B_CTRL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs\Templates\MOTOR_CONTROL.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISU_TASK.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="DUTs" />
+    <Folder Include="DUTs\Structures" />
+    <Folder Include="GVLs" />
+    <Folder Include="HMI" />
+    <Folder Include="HMI\DUTs" />
+    <Folder Include="HMI\DUTs\Subsystems" />
+    <Folder Include="HMI\DUTs\Subsystems\Tip_Tilt" />
+    <Folder Include="HMI\DUTs\System" />
+    <Folder Include="HMI\DUTs\Util" />
+    <Folder Include="HMI\POUs" />
+    <Folder Include="HMI\POUs\Devices" />
+    <Folder Include="HMI\POUs\Devices\Cabinets" />
+    <Folder Include="HMI\POUs\Devices\Control_Loops" />
+    <Folder Include="HMI\POUs\Devices\Control_Units" />
+    <Folder Include="HMI\POUs\Devices\Coolers" />
+    <Folder Include="HMI\POUs\Devices\Detectors" />
+    <Folder Include="HMI\POUs\Devices\Heaters" />
+    <Folder Include="HMI\POUs\Devices\Lakeshores" />
+    <Folder Include="HMI\POUs\Devices\Pressures" />
+    <Folder Include="HMI\POUs\Devices\Pumps" />
+    <Folder Include="HMI\POUs\Devices\RH" />
+    <Folder Include="HMI\POUs\Devices\Temperatures" />
+    <Folder Include="HMI\POUs\Devices\Temperatures\Components" />
+    <Folder Include="HMI\POUs\Devices\Valves" />
+    <Folder Include="HMI\POUs\Devices\Voters" />
+    <Folder Include="HMI\POUs\Events" />
+    <Folder Include="HMI\POUs\CRYO_Interlocks" />
+    <Folder Include="HMI\POUs\Services" />
+    <Folder Include="HMI\POUs\Services\Status" />
+    <Folder Include="HMI\POUs\Subsystems" />
+    <Folder Include="HMI\POUs\Subsystems\Beam_Splitter" />
+    <Folder Include="HMI\POUs\Subsystems\Birefringence" />
+    <Folder Include="HMI\POUs\Subsystems\CO2_Pressure" />
+    <Folder Include="HMI\POUs\Subsystems\CO2_Translation_Stages" />
+    <Folder Include="HMI\POUs\Subsystems\DelayLines" />
+    <Folder Include="HMI\POUs\Subsystems\Shutters" />
+    <Folder Include="HMI\POUs\Subsystems\TipTilt" />
+    <Folder Include="HMI\POUs\Subsystems\TipTilt\Components" />
+    <Folder Include="HMI\POUs\Subsystems\ZnSe_Actuators" />
+    <Folder Include="HMI\POUs\Util" />
+    <Folder Include="HMI\POUs\Util\Button" />
+    <Folder Include="HMI\POUs\Util\Component" />
+    <Folder Include="HMI\POUs\Util\Functions" />
+    <Folder Include="HMI\VISUs" />
+    <Folder Include="HMI\VISUs\Events" />
+    <Folder Include="HMI\VISUs\Home" />
+    <Folder Include="HMI\VISUs\ICS_Interlocks" />
+    <Folder Include="HMI\VISUs\Subsystems\TipTilt\Components" />
+    <Folder Include="HMI\VISUs\Templates" />
+    <Folder Include="HMI\VISUs\Services" />
+    <Folder Include="HMI\VISUs\Subsystems" />
+    <Folder Include="HMI\VISUs\Subsystems\DelayLines" />
+    <Folder Include="HMI\VISUs\Subsystems\CO2_Translation_Stages" />
+    <Folder Include="HMI\VISUs\Subsystems\Birefringence" />
+    <Folder Include="HMI\VISUs\Subsystems\Beam_Splitter" />
+    <Folder Include="HMI\VISUs\Subsystems\CO2_Pressure" />
+    <Folder Include="HMI\VISUs\Subsystems\ZnSe_Actuators" />
+    <Folder Include="HMI\VISUs\Subsystems\TipTilt" />
+    <Folder Include="HMI\VISUs\Subsystems\Shutters" />
+    <Folder Include="HMI\VISUs\Templates\Motors" />
+    <Folder Include="HMI\VISUs\Templates\CO2_Valve" />
+    <Folder Include="HMI\VISUs\Templates\Shutters" />
+    <Folder Include="HMI\VISUs\Util" />
+    <Folder Include="HMI\VISUs\Util\Button" />
+    <Folder Include="POUs\Devices\Stepper_Shutter" />
+    <Folder Include="POUs\Devices\NOTT_Motor" />
+    <Folder Include="POUs\Functions" />
+    <Folder Include="POUs\Devices" />
+    <Folder Include="POUs\Cryo_Interlocks" />
+    <Folder Include="POUs\Camera_Triggers" />
+    <Folder Include="POUs\EVENTS" />
+    <Folder Include="POUs\Valve" />
+    <Folder Include="POUs\Services" />
+    <Folder Include="POUs\Simulation" />
+    <Folder Include="POUs\Subsystems" />
+    <Folder Include="POUs\System" />
+    <Folder Include="VISUs" />
+    <Folder Include="POUs" />
+    <Folder Include="VISUs\GUIs" />
+    <Folder Include="VISUs\GUIs\Delay_Lines" />
+    <Folder Include="VISUs\GUIs\Cryo" />
+    <Folder Include="VISUs\GUIs\NBS" />
+    <Folder Include="VISUs\GUIs\Templates" />
+    <Folder Include="VISUs\GUIs\TipTilt" />
+    <Folder Include="VISUs\GUIs\Time" />
+    <Folder Include="VISUs\GUIs\Shutters" />
+    <Folder Include="VISUs\Templates" />
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="CmpBitmapPool">
+      <DefaultResolution>CmpBitmapPool, * (System)</DefaultResolution>
+      <Namespace>CmpBitmapPool</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Comm Common Library">
+      <DefaultResolution>ESO LDC Comm Common Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Comm_Common_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Comm Tcp Library">
+      <DefaultResolution>ESO LDC Comm Tcp Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Comm_Tcp_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Common Library">
+      <DefaultResolution>ESO LDC Common Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Common_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Cryo Library">
+      <DefaultResolution>ESO LDC Cryo Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Cryo_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Motor Library">
+      <DefaultResolution>ESO LDC Motor Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Motor_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Shutter Library">
+      <DefaultResolution>ESO LDC Shutter Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Shutter_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="ESO LDC Timer Library">
+      <DefaultResolution>ESO LDC Timer Library, * (ESO)</DefaultResolution>
+      <Namespace>ESO_LDC_Timer_Library</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemMeter">
+      <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemMeter</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElems">
+      <DefaultResolution>VisuElems, 3.5.13.40 (System)</DefaultResolution>
+      <Namespace>VisuElems</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsSpecialControls">
+      <DefaultResolution>VisuElemsSpecialControls, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemsSpecialControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsWinControls">
+      <DefaultResolution>VisuElemsWinControls, 3.5.13.20 (System)</DefaultResolution>
+      <Namespace>VisuElemsWinControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemTextEditor">
+      <DefaultResolution>VisuElemTextEditor, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemTextEditor</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="system_visuinputs">
+      <DefaultResolution>visuinputs, 3.5.13.0 (system)</DefaultResolution>
+      <Namespace>visuinputs</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuNativeControl">
+      <DefaultResolution>VisuNativeControl, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuNativeControl</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_EtherCAT">
+      <DefaultResolution>Tc2_EtherCAT, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_EtherCAT</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_MC2">
+      <DefaultResolution>Tc2_MC2, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_MC2</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_Standard">
+      <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Standard</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_System">
+      <DefaultResolution>Tc2_System, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_System</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_Utilities">
+      <DefaultResolution>Tc2_Utilities, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Utilities</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_Module">
+      <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_Module</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="VisuDialogs">
+      <DefaultResolution>VisuDialogs, * (System)</DefaultResolution>
+      <Namespace>VisuDialogs</Namespace>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="nott_ics.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderResolution Include="ESO LDC Comm Common Library">
+      <Resolution>ESO LDC Comm Common Library, 0.2.0.2 (ESO)</Resolution>
+    </PlaceholderResolution>
+  </ItemGroup>
+  <ProjectExtensions>
+    <PlcProjectOptions>
+      <XmlArchive>
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
+      <v n="Name">"&lt;ProjectRoot&gt;"</v>
+      <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="Boolean">
+            <v>UnicodeStrings</v>
+            <v>False</v>
+          </d>
+        </o>
+        <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
+        <o>
+          <v n="Name">"{40450F57-0AA3-4216-96F3-5444ECB29763}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="String">
+            <v>ActiveVisuProfile</v>
+            <v>IR0whWr8bwfwBwAAiD2qpQAAAABVAgAA37x72QAAAAABAAAAAAAAAAEaUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwACTHsAZgA5ADUAYgBiADQAMgA2AC0ANQA1ADIANAAtADQAYgA0ADUALQA5ADQAMAAwAC0AZgBiADAAZgAyAGUANwA3AGUANQAxAGIAfQADCE4AYQBtAGUABDBUAHcAaQBuAEMAQQBUACAAMwAuADEAIABCAHUAaQBsAGQAIAA0ADAAMgA0AC4ANwAFFlAAcgBvAGYAaQBsAGUARABhAHQAYQAGTHsAMQA2AGUANQA1AGIANgAwAC0ANwAwADQAMwAtADQAYQA2ADMALQBiADYANQBiAC0ANgAxADQANwAxADMAOAA3ADgAZAA0ADIAfQAHEkwAaQBiAHIAYQByAGkAZQBzAAhMewAzAGIAZgBkADUANAA1ADkALQBiADAANwBmAC0ANABkADYAZQAtAGEAZQAxAGEALQBhADgAMwAzADUANgBhADUANQAxADQAMgB9AAlMewA5AGMAOQA1ADgAOQA2ADgALQAyAGMAOAA1AC0ANAAxAGIAYgAtADgAOAA3ADEALQA4ADkANQBmAGYAMQBmAGUAZABlADEAYQB9AAoOVgBlAHIAcwBpAG8AbgALBmkAbgB0AAwKVQBzAGEAZwBlAA0KVABpAHQAbABlAA4aVgBpAHMAdQBFAGwAZQBtAE0AZQB0AGUAcgAPDkMAbwBtAHAAYQBuAHkAEAxTAHkAcwB0AGUAbQARElYAaQBzAHUARQBsAGUAbQBzABIwVgBpAHMAdQBFAGwAZQBtAHMAUwBwAGUAYwBpAGEAbABDAG8AbgB0AHIAbwBsAHMAEyhWAGkAcwB1AEUAbABlAG0AcwBXAGkAbgBDAG8AbgB0AHIAbwBsAHMAFCRWAGkAcwB1AEUAbABlAG0AVABlAHgAdABFAGQAaQB0AG8AcgAVIlYAaQBzAHUATgBhAHQAaQB2AGUAQwBvAG4AdAByAG8AbAAWFHYAaQBzAHUAaQBuAHAAdQB0AHMAFwxzAHkAcwB0AGUAbQAYGFYAaQBzAHUARQBsAGUAbQBCAGEAcwBlABkmRABlAHYAUABsAGEAYwBlAGgAbwBsAGQAZQByAHMAVQBzAGUAZAAaCGIAbwBvAGwAGyJQAGwAdQBnAGkAbgBDAG8AbgBzAHQAcgBhAGkAbgB0AHMAHEx7ADQAMwBkADUAMgBiAGMAZQAtADkANAAyAGMALQA0ADQAZAA3AC0AOQBlADkANAAtADEAYgBmAGQAZgAzADEAMABlADYAMwBjAH0AHRxBAHQATABlAGEAcwB0AFYAZQByAHMAaQBvAG4AHhRQAGwAdQBnAGkAbgBHAHUAaQBkAB8WUwB5AHMAdABlAG0ALgBHAHUAaQBkACBIYQBmAGMAZAA1ADQANAA2AC0ANAA5ADEANAAtADQAZgBlADcALQBiAGIANwA4AC0AOQBiAGYAZgBlAGIANwAwAGYAZAAxADcAIRRVAHAAZABhAHQAZQBJAG4AZgBvACJMewBiADAAMwAzADYANgBhADgALQBiADUAYwAwAC0ANABiADkAYQAtAGEAMAAwAGUALQBlAGIAOAA2ADAAMQAxADEAMAA0AGMAMwB9ACMOVQBwAGQAYQB0AGUAcwAkTHsAMQA4ADYAOABmAGYAYwA5AC0AZQA0AGYAYwAtADQANQAzADIALQBhAGMAMAA2AC0AMQBlADMAOQBiAGIANQA1ADcAYgA2ADkAfQAlTHsAYQA1AGIAZAA0ADgAYwAzAC0AMABkADEANwAtADQAMQBiADUALQBiADEANgA0AC0ANQBmAGMANgBhAGQAMgBiADkANgBiADcAfQAmFk8AYgBqAGUAYwB0AHMAVAB5AHAAZQAnVFUAcABkAGEAdABlAEwAYQBuAGcAdQBhAGcAZQBNAG8AZABlAGwARgBvAHIAQwBvAG4AdgBlAHIAdABpAGIAbABlAEwAaQBiAHIAYQByAGkAZQBzACgQTABpAGIAVABpAHQAbABlACkUTABpAGIAQwBvAG0AcABhAG4AeQAqHlUAcABkAGEAdABlAFAAcgBvAHYAaQBkAGUAcgBzACs4UwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBIAGEAcwBoAHQAYQBiAGwAZQAsEnYAaQBzAHUAZQBsAGUAbQBzAC1INgBjAGIAMQBjAGQAZQAxAC0AZAA1AGQAYwAtADQAYQAzAGIALQA5ADAANQA0AC0AMgAxAGYAYQA3ADUANgBhADMAZgBhADQALihJAG4AdABlAHIAZgBhAGMAZQBWAGUAcgBzAGkAbwBuAEkAbgBmAG8AL0x7AGMANgAxADEAZQA0ADAAMAAtADcAZgBiADkALQA0AGMAMwA1AC0AYgA5AGEAYwAtADQAZQAzADEANABiADUAOQA5ADYANAAzAH0AMBhNAGEAagBvAHIAVgBlAHIAcwBpAG8AbgAxGE0AaQBuAG8AcgBWAGUAcgBzAGkAbwBuADIMTABlAGcAYQBjAHkAMzBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAFYAZQByAHMAaQBvAG4ASQBuAGYAbwA0MEwAbwBhAGQATABpAGIAcgBhAHIAaQBlAHMASQBuAHQAbwBQAHIAbwBqAGUAYwB0ADUaQwBvAG0AcABhAHQAaQBiAGkAbABpAHQAeQDQAAIaA9ADAS0E0AUGGgfQBwgaAUUHCQjQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtDtAPAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60BAAAA0A0BLRHQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0S0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAUAAAA0AwLrQIAAADQDQEtE9APAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAAAAAANAMC60CAAAA0A0BLRTQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0V0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtFtAPAS0X0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60EAAAA0A0BLRjQDwEtENAZGq0BRRscAdAAHBoCRR0LBAMAAAAFAAAADQAAAAAAAADQHh8tINAhIhoCRSMkAtAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAAAAANADAS0n0CgBLRHQKQEtENAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAQAAANADAS0n0CgBLRHQKQEtEJoqKwFFAAEC0AABLSzQAAEtF9AAHy0t0C4vGgPQMAutAQAAANAxC60XAAAA0DIarQDQMy8aA9AwC60CAAAA0DELrQMAAADQMhqtANA0Gq0A0DUarQA=</v>
+          </d>
+        </o>
+        <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
+        <o>
+          <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
+          <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>Rules</v>
+            <o>
+              <v n="Name">"Rules"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+          </d>
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
+        <o>
+          <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
+        <o>
+          <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+      </d>
+      <d n="Values" t="Hashtable" />
+    </o>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
+    </PlcProjectOptions>
+  </ProjectExtensions>
+</Project>

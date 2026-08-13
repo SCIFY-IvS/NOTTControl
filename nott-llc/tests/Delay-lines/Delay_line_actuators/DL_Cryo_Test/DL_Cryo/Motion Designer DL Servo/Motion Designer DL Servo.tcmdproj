@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Name>TwinCAT Motion Designer</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{a678e0ef-700d-47df-8e4f-cf17ccd2ba87}</ProjectGuid>
+    <AssemblyName>Motion Designer DL Servo</AssemblyName>
+    <RootNamespace>Motion Designer DL Servo</RootNamespace>
+  </PropertyGroup>
+</Project>

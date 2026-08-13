@@ -1,0 +1,1262 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SHUTTER" Id="{1cb0f4e0-da22-4f09-b830-732d2f4f14b3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SHUTTER EXTENDS FB_SHUTTER_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	
+	(***** Local variables *****)
+	{attribute 'OPC.UA.DA' := '0'}
+	toutCmd:	TON;
+	{attribute 'OPC.UA.DA' := '0'}
+	bOpen:		BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	bClosed:	BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	bFault: 	BOOL;
+
+	(***** Physical signals - to be mapped!!! *****)
+
+	(* Outputs *)
+	{attribute 'OPC.UA.DA' := '0'}
+	q_bSwitch 		AT %Q*: 		BOOL;
+
+	(* Inputs *)	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nCouplerState	AT %I*: 		UINT := 8;	(* Link it to Coupler->InfoData->State *)
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bFault 		AT %I*: 		BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bOpen 		AT %I*: 		BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bClosed		AT %I*: 		BOOL;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute the base class object FB_SHUTTER_BASE
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="ActionCloseExecute" Id="{c0bde88b-5dba-446b-a0ae-9804b1edf230}">
+      <Declaration><![CDATA[METHOD ActionCloseExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the closing of the shutter *)
+SetAction('ActionCloseExecute');
+
+// Log event
+M_LogEventStart('CLOSE');
+
+(* Clear the error *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+(* Close the shutter *)
+q_bSwitch	:= M_GetLogicalState(FALSE, cfg.bActiveLowSwitch);
+
+(* start the timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionDisableComplete" Id="{66dcce55-b807-42c1-b20c-fa0dbd90cc4a}">
+      <Declaration><![CDATA[METHOD ActionDisableComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionDisableComplete');
+
+(* reply OK *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+(* Reset the timer action *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionDisableExecute" Id="{1a0f3cb2-0f46-4875-b21e-2ce63437dddf}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionDisableExecute');
+
+// Log event
+M_LogEventStart('DISABLE');
+
+(* Set Shutter initial position obtained from the configuration *)
+q_bSwitch	:= M_GetLogicalState(cfg.bInitialState, cfg.bActiveLowSwitch);
+
+(* start the cmd timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableComplete" Id="{1290ec18-c358-4e1a-9cc8-573d638e60f6}">
+      <Declaration><![CDATA[METHOD ActionEnableComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionEnableComplete');
+
+// Log event
+M_LogEventEnd('ENABLE');
+
+(* reply OK *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+(* Reset the timer action *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{0538174f-0d99-4308-8cd0-823031a574c6}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionErrExecute');
+
+IF nEvent = E_SHUTTER_EVENT.ERRFAULT THEN
+	M_SetStatus(E_SHUTTER_ERROR.FAULT_SIG);	
+ELSIF nEvent = E_SHUTTER_EVENT.ERRALLACTIVE THEN
+	M_SetStatus(E_SHUTTER_ERROR.BOTH_SIG_ACTIVE);	
+END_IF
+		
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitAbort" Id="{0676d44b-8c18-48a2-bd40-3a1395654ef7}">
+      <Declaration><![CDATA[METHOD ActionInitAbort
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitAbort');
+
+(* reply Error *)
+M_SetStatus(E_SHUTTER_ERROR.INIT_FAILURE);
+
+(* Reset the timer for the command *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitComplete" Id="{07808e00-f135-4349-b4bf-d79495fd33a5}">
+      <Declaration><![CDATA[METHOD ActionInitComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitComplete');
+
+// Log event
+M_LogEventEnd('INIT');
+
+(* reply OK *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+(* Reset the timer action *)
+toutCmd(IN:=FALSE);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{97b3cbdb-2a31-4af5-89ec-31cfa4270810}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+// Log event
+M_LogEventStart('INIT');
+
+(* Set Shutter initial position obtained from the configuration *)
+q_bSwitch	:= M_GetLogicalState(cfg.bInitialState, cfg.bActiveLowSwitch);
+
+(* start the cmd timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitReject" Id="{f426e1e9-89fa-457d-b49c-9506f6d8243a}">
+      <Declaration><![CDATA[METHOD ActionInitReject
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitReject');
+
+(* Reject an INIT command since another one is in progress. *)
+(* do not reset the timer ... *)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionOpenExecute" Id="{7440fc23-3594-4859-bb19-bfa09ef5d487}">
+      <Declaration><![CDATA[METHOD ActionOpenExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the opening of the shutter *)
+
+SetAction('ActionOpenExecute');
+
+// Log event
+M_LogEventStart('OPEN');
+
+(* Clear the error *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+(* Open the shutter *)
+q_bSwitch	:= M_GetLogicalState(TRUE, cfg.bActiveLowSwitch);
+
+(* start the timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{56d8d59c-0d80-4ec6-b493-a859cca72bda}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionResetExecute');
+
+// Log event
+M_LogEventEnd('RESET');
+
+(* reply Error *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+(* Disable outputs *)
+q_bSwitch			:= FALSE;
+
+(* Reset the timer for the command *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{2cc698b7-d124-4661-b575-77ab400279eb}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the closing of the shutter *)
+SetAction('ActionStopExecute');
+
+(* Clear the error *)
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_OPENING THEN
+	(* Close the shutter *)
+	q_bSwitch	:= M_GetLogicalState(FALSE, cfg.bActiveLowSwitch);
+
+	// Log event
+	M_LogEventEnd('STOP_CLOSE');
+ELSIF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSING THEN
+	(* Open the shutter *)
+	q_bSwitch	:= M_GetLogicalState(TRUE, cfg.bActiveLowSwitch);
+
+	// Log event
+	M_LogEventEnd('STOP_OPEN');
+END_IF
+
+(* start the timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{7fdbcc8b-abb1-4ec9-b1f5-edfef2cce909}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionUnexpExecute');
+
+(*
+	We don't want to overwrite initial error.
+	Update error only if it is currently equal to OK. 
+*)
+IF stat.nErrorCode = E_SHUTTER_ERROR.OK THEN
+	IF nEvent = E_SHUTTER_EVENT.ISOPEN THEN
+		M_LogEventError('Shutter unexpectedly OPEN');
+		M_SetStatus(E_SHUTTER_ERROR.UNEXPECTED_OPENED);
+	ELSIF nEvent = E_SHUTTER_EVENT.ISCLOSED THEN
+		M_LogEventError('Shutter unexpectedly CLOSED');
+		M_SetStatus(E_SHUTTER_ERROR.UNEXPECTED_CLOSED);
+	ELSIF nEvent = E_SHUTTER_EVENT.ERRNONEACTIVE THEN
+		M_LogEventError('Both Shutter end switches unexpectedly cleared');
+		M_SetStatus(E_SHUTTER_ERROR.UNEXPECTED_NONE);
+	END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityClosing" Id="{5eb3a437-3006-45b3-88ff-1b8a65c2807b}">
+      <Declaration><![CDATA[METHOD ActivityClosing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity monitors the close shutter task and 
+	triggers the ISOPEN event at completion. 
+*)
+SetAction('ActivityClosing');
+
+(* 
+	if the timeout is detected before reaching the position, 
+	then trigger the internal error event 
+*)
+toutCmd(IN:=TRUE);
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('CLOSE command timed out');
+
+	// Set the time to CLOSE to -1, meaning FAILED
+	stat.nLastTimeToClose	:= -1;
+	
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	nInternalEvent  := E_SHUTTER_EVENT.ERRTIMEOUTCLOSE;
+	M_SetStatus(E_SHUTTER_ERROR.TIMEOUT_CLOSE);
+END_IF
+
+// Check if shutter is CLOSED
+IF 	((bOpen   = FALSE OR  cfg.bIgnoreOpen) AND bClosed = TRUE)  OR
+	( bOpen   = FALSE AND cfg.bIgnoreClosed) THEN
+	// Log event
+	M_LogEventEnd('CLOSE');
+
+	// Get the time to CLOSE
+	// The actual time equals the measured time minus a PLC task cycle.
+	stat.nLastTimeToClose := TIME_TO_DINT(toutCmd.ET) - UDINT_TO_DINT(stat.nCycleTime)/1000;
+	
+	toutCmd(IN:=FALSE);	// Reset Timer
+	nEvent 	:= E_SHUTTER_EVENT.ISCLOSED;
+	M_SetStatus(E_SHUTTER_ERROR.OK);	
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityDisabling" Id="{c9f3a36b-ff33-4e18-b295-39ccaa5ef0d7}">
+      <Declaration><![CDATA[METHOD ActivityDisabling
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Activity to monitor the shutter disabling task. 
+	The end state should be the predefined position of the shutter
+	that is defined by configuration parameter cfg.bInitialState.
+*)
+SetAction('ActivityDisabling');
+
+(* check if the initial position is reached *)
+IF cfg.bInitialState = FALSE THEN
+	(* Waiting for CLOSED state *)
+	IF	(bOpen   = FALSE AND (bClosed = TRUE OR cfg.bIgnoreClosed))		OR
+		(bClosed = TRUE  AND cfg.bIgnoreOpen) 	THEN
+		// Log event
+		M_LogEventDebug('After DISABLE the shutter should be CLOSED');
+		M_LogEventEnd('DISABLE_CLOSE');
+
+		nEvent  := E_SHUTTER_EVENT.DISABLECLOSED;
+		M_SetStatus(E_SHUTTER_ERROR.OK);
+		RETURN;
+	END_IF
+ELSE
+	(* Waiting for OPEN state *)
+	IF	(bOpen   = TRUE  AND (bClosed = FALSE OR cfg.bIgnoreClosed))	OR
+		(bClosed = FALSE AND cfg.bIgnoreOpen) 	THEN
+		// Log event
+		M_LogEventDebug('After DISABLE the shutter should be OPEN');
+		M_LogEventEnd('DISABLE_OPEN');
+
+		nEvent  := E_SHUTTER_EVENT.DISABLEOPEN;
+		M_SetStatus(E_SHUTTER_ERROR.OK);
+		RETURN;
+	END_IF		
+END_IF
+
+
+(* 
+	if the timeout is detected before reaching the target position, 
+	then trigger the internal error event 
+*)
+toutCmd(IN:=TRUE);
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('DISABLE command timed out');
+
+	toutCmd(IN:=FALSE);	(* Reset the timer *)
+	nEvent  := E_SHUTTER_EVENT.ERRDISABLE;
+	M_SetStatus(E_SHUTTER_ERROR.TIMEOUT_DISABLE);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitializing" Id="{8da8ed92-ba64-4e29-a504-03b8696318bd}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Activity to monitor the shutter initialization task and 
+	trigger the E_SHUTTER_EVENT.INITCLOSED or E_SHUTTER_EVENT.INITOPEN event depending 
+	on the configured default state. 		
+*)
+SetAction('ActivityInitializing');
+
+
+(* 
+	Check if the initial position is reached.
+	We need additional internal events E_SHUTTER_EVENT.INITCLOSED & E_SHUTTER_EVENT.INITOPEN in order to
+	cope with the scenario when the initial state is the oposit one from the configured target.
+	Example:
+		The shutter ISCLOSED at the beginning of this activity while the configured default state ISCLOSED.
+		By introducing E_SHUTTER_EVENT.INITCLOSED & E_SHUTTER_EVENT.INITOPEN we avoid the ISCLOSED event.
+*)
+IF cfg.bInitialState = FALSE THEN
+	(* Waiting for CLOSED state *)
+	IF	(bOpen   = FALSE AND (bClosed = TRUE OR cfg.bIgnoreClosed))		OR
+		(bClosed = TRUE  AND cfg.bIgnoreOpen) 	THEN
+		nInternalEvent  := E_SHUTTER_EVENT.INITCLOSED;
+	END_IF
+ELSE
+	(* Waiting for OPEN state *)
+	IF	(bOpen   = TRUE  AND (bClosed = FALSE OR cfg.bIgnoreClosed))	OR
+		(bClosed = FALSE AND cfg.bIgnoreOpen) 	THEN
+		nInternalEvent  := E_SHUTTER_EVENT.INITOPEN;
+	END_IF		
+END_IF
+
+
+(* 
+	If the timeout is detected before reaching the initial position, 
+	then trigger the internal error event 
+*)
+toutCmd(IN:=TRUE);
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('INIT command timed out');
+
+	toutCmd(IN:=FALSE);	(* Reset the timer *)
+	nInternalEvent  := E_SHUTTER_EVENT.ERRINIT;
+	M_SetStatus(E_SHUTTER_ERROR.TIMEOUT_INIT);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityOpening" Id="{e8d4797f-b4b2-47d1-851a-d0db0696e55c}">
+      <Declaration><![CDATA[METHOD ActivityOpening
+VAR_INPUT
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity to monitor the open shutter task and 
+	trigger the ISOPEN event at completion. 
+*)
+SetAction('ActivityOpening');
+
+(* 
+	if the timeout is detected before reaching the position, 
+	then trigger the internal error event 
+*)
+toutCmd(IN:=TRUE);
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('OPEN command timed out');
+
+	// Set the time to OPEN to -1, meaning FAILED
+	stat.nLastTimeToOpen	:= -1;
+	
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	nInternalEvent  := E_SHUTTER_EVENT.ERRTIMEOUTOPEN;
+	M_SetStatus(E_SHUTTER_ERROR.TIMEOUT_OPEN);
+END_IF
+
+// Check if shutter is OPEN
+IF	bOpen  THEN
+	// Log event
+	M_LogEventEnd('OPEN');
+
+	// Get the time to OPEN
+	// The actual time equals the measured time minus a PLC task cycle.
+	stat.nLastTimeToOpen := TIME_TO_DINT(toutCmd.ET) - UDINT_TO_DINT(stat.nCycleTime)/1000;
+	
+	toutCmd(IN:=FALSE);	// Reset Timer
+	nEvent 	:= E_SHUTTER_EVENT.ISOPEN;
+	M_SetStatus(E_SHUTTER_ERROR.OK);	
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{1bcb3be0-13a0-4554-b509-be6652ab20ef}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+nEvent := E_SHUTTER_EVENT.HWOK;
+
+
+(*
+	Read all inputs, i.e. get status of INPUT signals based on ActiveLow configuration 
+*)
+
+bFault	:= M_GetLogicalState(i_bFault, 	cfg.bActiveLowFault) AND NOT cfg.bIgnoreFault;
+
+// Get bOpen
+IF 	(M_GetLogicalState(i_bOpen,   cfg.bActiveLowOpen)   = TRUE  AND NOT cfg.bIgnoreOpen) OR
+	(M_GetLogicalState(i_bClosed, cfg.bActiveLowClosed) = FALSE AND NOT cfg.bIgnoreClosed AND cfg.bIgnoreOpen) THEN
+	bOpen	:= TRUE;
+ELSE
+	bOpen	:= FALSE;
+END_IF
+
+// Get bClosed
+IF 	(M_GetLogicalState(i_bOpen,   cfg.bActiveLowOpen)   = FALSE AND NOT cfg.bIgnoreOpen   AND cfg.bIgnoreClosed) OR
+	(M_GetLogicalState(i_bClosed, cfg.bActiveLowClosed) = TRUE  AND NOT cfg.bIgnoreClosed) THEN
+	bClosed	:= TRUE;
+ELSE
+	bClosed	:= FALSE;
+END_IF
+
+
+// HW Status in textual form: 'UNKNOWN', 'ERROR', 'OPEN' or 'CLOSED'.
+// HW Status doesn't depend on the Fault signal. It's a reflection of HW Status only.
+// NOTE: We don't check the error in the first 20ms of opening or closing.
+IF	bOpen   = TRUE AND 
+	bClosed = TRUE AND 
+	(TIME_TO_UDINT(toutCmd.ET) > 20  OR TIME_TO_UDINT(toutCmd.ET) = 0)	THEN
+	// Both signals active ==> ERROR
+	stat.nHwStatus	:= E_SHUTTER_HW_STATUS.ERROR;
+	stat.sHwStatus	:= 'ERROR';
+ELSIF bOpen = FALSE AND bClosed = FALSE	THEN
+	// Both signals not active ==> UNKNOWN
+	stat.nHwStatus	:= E_SHUTTER_HW_STATUS.UNKNOWN;
+	stat.sHwStatus	:= 'UNKNOWN';
+ELSIF bOpen = TRUE  AND bClosed = FALSE	THEN
+	stat.nHwStatus	:= E_SHUTTER_HW_STATUS.OPEN;
+	stat.sHwStatus	:= 'OPEN';
+ELSIF bOpen = FALSE AND bClosed = TRUE THEN
+	stat.nHwStatus	:= E_SHUTTER_HW_STATUS.CLOSED;
+	stat.sHwStatus	:= 'CLOSED';
+END_IF
+
+
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals:  such as shutter is open/closed.
+*)
+
+IF i_nCouplerState <> 8 THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+	NOTE: We don't check in first 500 cycles so EtherCAT gets stable.
+ 	*)
+	SetEvent(E_SHUTTER_EVENT.ERRHW);
+	M_SetStatus(E_SHUTTER_ERROR.HW_NOT_OP);
+
+ELSIF nInternalEvent <> E_SHUTTER_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_SHUTTER_EVENT.NONE;
+ELSIF ctrl.bExecute = TRUE  THEN
+	(* Handle commands *)
+	ctrl.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	M_SetLastCommand(ctrl.nCommand);			(* Save the last command *)
+	SetEvent(ctrl.nCommand);
+	ctrl.nCommand 		:= E_SHUTTER_COMMAND.NONE;	(* Clear the Command *)
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+	IF bFault = TRUE AND NOT cfg.bIgnoreFault THEN
+		SetEvent(E_SHUTTER_EVENT.ERRFAULT);
+		M_SetStatus(E_SHUTTER_ERROR.FAULT_SIG);
+		RETURN;	
+	ELSIF	(stat.nSubstate = E_SHUTTER_SUBSTATE.OP_OPENING) OR
+			(stat.nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSING) 	 THEN
+		(* 
+			In these transitioning states it should not be possible that
+			both switches are active at the same time.
+			When closing, the OPEN switch should deactivate before the CLOSED switch gets active.
+			When opening, the CLOSED switch should deactivate before the OPEN switch gets active.
+			// NOTE: We don't check the error in the first 20ms of opening or closing.
+		 *) 
+		IF 	bOpen = TRUE AND bClosed = TRUE AND TIME_TO_UDINT(toutCmd.ET) > 20 THEN
+			SetEvent(E_SHUTTER_EVENT.ERRALLACTIVE);
+			RETURN;
+		END_IF
+	ELSIF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSING THEN
+		(* 
+			In this transitioning state it should not be possible that
+			both switches are active at the same time.
+			The OPEN switch should deactivate first. 
+		*) 
+		IF 	bOpen = TRUE AND bClosed = TRUE THEN
+			SetEvent(E_SHUTTER_EVENT.ERRALLACTIVE);
+			RETURN;
+		END_IF
+	END_IF
+
+	IF stat.nSubstate = E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED OR 
+	   stat.nSubstate = E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN OR 
+	   stat.nSubstate = E_SHUTTER_SUBSTATE.OP_DISABLING OR 
+	   stat.nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSED OR 
+	   stat.nSubstate = E_SHUTTER_SUBSTATE.OP_OPEN OR 
+	   stat.nSubstate = E_SHUTTER_SUBSTATE.OP_ERROR THEN
+	   
+		(* read shutter open/closed physical signals *)		
+		IF	  stat.nHwStatus = E_SHUTTER_HW_STATUS.OPEN THEN
+			SetEvent(E_SHUTTER_EVENT.ISOPEN);
+		ELSIF stat.nHwStatus = E_SHUTTER_HW_STATUS.CLOSED THEN
+			SetEvent(E_SHUTTER_EVENT.ISCLOSED);
+		ELSIF bOpen = TRUE AND bClosed = TRUE THEN
+			SetEvent(E_SHUTTER_EVENT.ERRALLACTIVE);
+		ELSIF stat.nHwStatus	= E_SHUTTER_HW_STATUS.UNKNOWN 		AND
+			  stat.nSubstate <> E_SHUTTER_SUBSTATE.OP_DISABLING	THEN
+			SetEvent(E_SHUTTER_EVENT.ERRNONEACTIVE);	
+		END_IF	
+	END_IF	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetLogicalState" Id="{d590d510-9329-47db-8e23-349a471d0ac4}">
+      <Declaration><![CDATA[METHOD M_GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	M_GetLogicalState := NOT state;
+ELSE
+	M_GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{a6395d91-813f-4cab-a494-3e3d4e48bd2a}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_SHUTTER_RPC_ERROR.OK:					str	:= 'OK';
+	E_SHUTTER_RPC_ERROR.NOT_OP:				str	:= 'Cannot control shutter. Not in OP state.';
+	E_SHUTTER_RPC_ERROR.NOT_NOTOP_READY:		str	:= 'Call failed. Not in NOTOP_READY.';
+	E_SHUTTER_RPC_ERROR.NOT_NOTOP_NOTREADY:	str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_SHUTTER_RPC_ERROR.STILL_OPENING:		str	:= 'Not allowed to close the shutter while opening.';
+	E_SHUTTER_RPC_ERROR.STILL_CLOSING:		str	:= 'Not allowed to open the shutter while closing.';
+	E_SHUTTER_RPC_ERROR.LOCAL:				str	:= 'RPC calls not allowed in Local mode.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetLastCommand" Id="{084e1f0c-4562-4076-94b3-076fbbb0aeca}">
+      <Declaration><![CDATA[METHOD M_SetLastCommand
+VAR_INPUT
+	cmd:	E_SHUTTER_COMMAND;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nLastCommand	:= cmd;
+
+CASE cmd OF
+	E_SHUTTER_COMMAND.RESET:
+		stat.sLastCommand	:= 'RESET';
+	E_SHUTTER_COMMAND.INIT:
+		stat.sLastCommand	:= 'INIT';
+	E_SHUTTER_COMMAND.STOP:
+		stat.sLastCommand	:= 'STOP';
+	E_SHUTTER_COMMAND.ENABLE:
+		stat.sLastCommand	:= 'ENABLE';
+	E_SHUTTER_COMMAND.DISABLE:
+		stat.sLastCommand	:= 'DISABLE';
+	E_SHUTTER_COMMAND.OPEN:
+		stat.sLastCommand	:= 'OPEN';
+	E_SHUTTER_COMMAND.CLOSE:
+		stat.sLastCommand	:= 'CLOSE';
+ELSE
+		stat.sLastCommand	:= 'NONE';
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{8fc853df-88b2-40ab-99ba-2b788cf16ba9}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	E_SHUTTER_RPC_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nRpcErrorCode	:= nErrorCode;
+stat.sRPCErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Close" Id="{e12adfdb-fdab-41b1-b2c9-f1cd1467e8a1}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Close : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Close	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Close command is accepted only in OP state.
+IF stat.nState <> E_SHUTTER_STATE.OP THEN
+	RPC_Close	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+// Shutter should not be commanded to close while still opening.
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_OPENING THEN
+	RPC_Close	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.STILL_OPENING);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.CLOSE;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Close	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{60466611-4f84-4632-bec6-707cbadd749d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF stat.nState <> E_SHUTTER_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.DISABLE;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Disable	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{4d9488e9-b083-4821-aa71-d9c5fd8da4b8}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+IF	stat.nState = E_SHUTTER_STATE.NOTOP						AND  
+	stat.nSubstate <> E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN	AND  
+	stat.nSubstate <> E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.ENABLE;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Enable	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{aae974ee-71ef-440d-920b-33456756aa63}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Init	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Init command is accepted only if device is in NOTOP_NOTREADY or ERROR.
+IF 	stat.nSubstate <> E_SHUTTER_SUBSTATE.NOTOP_NOTREADY  AND  
+	stat.nSubstate <> E_SHUTTER_SUBSTATE.NOTOP_ERROR 		THEN
+	RPC_Init	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.NOT_NOTOP_NOTREADY);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.INIT;
+ctrl.bExecute := TRUE;
+
+
+// Call was successful
+RPC_Init	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Open" Id="{aba17171-3ae5-45f9-bc45-4035bb8f1d6b}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Open : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Open	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Open command is accepted only in OP state.
+IF stat.nState <> E_SHUTTER_STATE.OP THEN
+	RPC_Open	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.NOT_OP);
+	RETURN;
+END_IF
+
+// Shutter should not be commanded to open while still closing.
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSING THEN
+	RPC_Open	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.STILL_CLOSING);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.OPEN;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Open	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{009bb7f2-47b9-4dea-b080-934391fea01c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.RESET;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDebug" Id="{6040db75-ab4c-46c7-98e4-7457ef13f944}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDebug : INT
+VAR_INPUT
+	in_bDebug:	BOOL 	:= FALSE;		// If TRUE, show event logs of Debug type
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Debugging
+cfg.bDebug	:= in_bDebug;
+
+// Call was successful
+RPC_SetDebug	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetLog" Id="{43bfa140-8be5-4a9c-bdd7-b6149496dbd5}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetLog : INT
+VAR_INPUT
+	in_bLog:	BOOL 	:= FALSE;		// If TRUE, activate event logging
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Logging
+cfg.bLog	:= in_bLog;
+
+// Call was successful
+RPC_SetLog	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{b2dd7536-18fe-40cb-90c1-82c88b5daf9d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_SHUTTER_COMMAND.STOP;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_SHUTTER_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SHUTTER">
+      <LineId Id="45" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionCloseExecute">
+      <LineId Id="17" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="20" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionDisableComplete">
+      <LineId Id="3" Count="3" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionDisableExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="5" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionEnableComplete">
+      <LineId Id="3" Count="1" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionErrExecute">
+      <LineId Id="3" Count="2" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="9" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionInitAbort">
+      <LineId Id="3" Count="3" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionInitComplete">
+      <LineId Id="3" Count="1" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="8" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionInitExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="5" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionInitReject">
+      <LineId Id="3" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionOpenExecute">
+      <LineId Id="3" Count="3" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="7" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionResetExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="16" Count="2" />
+      <LineId Id="5" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionStopExecute">
+      <LineId Id="3" Count="4" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="33" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActionUnexpExecute">
+      <LineId Id="3" Count="7" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActivityClosing">
+      <LineId Id="3" Count="5" />
+      <LineId Id="21" Count="5" />
+      <LineId Id="78" Count="2" />
+      <LineId Id="48" Count="2" />
+      <LineId Id="27" Count="3" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="69" Count="2" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="52" Count="2" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="44" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActivityDisabling">
+      <LineId Id="3" Count="11" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="18" Count="4" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="26" Count="9" />
+      <LineId Id="58" Count="2" />
+      <LineId Id="36" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActivityInitializing">
+      <LineId Id="3" Count="36" />
+      <LineId Id="49" Count="2" />
+      <LineId Id="40" Count="2" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.ActivityOpening">
+      <LineId Id="3" Count="5" />
+      <LineId Id="19" Count="5" />
+      <LineId Id="78" Count="2" />
+      <LineId Id="46" Count="2" />
+      <LineId Id="25" Count="3" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="68" Count="2" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="40" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.CheckForEvents">
+      <LineId Id="286" Count="137" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.M_GetLogicalState">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.M_SetLastCommand">
+      <LineId Id="3" Count="18" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Close">
+      <LineId Id="37" Count="1" />
+      <LineId Id="40" Count="3" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Disable">
+      <LineId Id="30" Count="1" />
+      <LineId Id="33" Count="3" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Enable">
+      <LineId Id="36" Count="1" />
+      <LineId Id="39" Count="3" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Init">
+      <LineId Id="32" Count="1" />
+      <LineId Id="35" Count="3" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="24" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Open">
+      <LineId Id="37" Count="1" />
+      <LineId Id="40" Count="3" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="29" Count="3" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Reset">
+      <LineId Id="19" Count="1" />
+      <LineId Id="22" Count="3" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_SetDebug">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_SetLog">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER.RPC_Stop">
+      <LineId Id="19" Count="1" />
+      <LineId Id="22" Count="3" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

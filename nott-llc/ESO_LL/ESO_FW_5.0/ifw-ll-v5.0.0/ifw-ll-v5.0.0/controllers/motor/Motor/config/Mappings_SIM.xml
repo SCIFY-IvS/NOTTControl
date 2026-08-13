@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TINC^NC-Task 1 SAF^Axes^Phytron_57_500_1.2">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 9 (EL7041)">
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Error" Size="1" OffsA="3"/>
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving negative" Size="1" OffsA="5"/>
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Moving positive" Size="1" OffsA="4"/>
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready" Size="1" OffsA="1"/>
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Ready to enable"/>
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Torque reduced" Size="1" OffsA="6"/>
+			<Link VarA="Drive^Inputs^In^nState1" VarB="STM Status^Status^Warning" Size="1" OffsA="2"/>
+			<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 1" Size="1" OffsA="3"/>
+			<Link VarA="Drive^Inputs^In^nState2" VarB="STM Status^Status^Digital input 2" Size="1" OffsA="4"/>
+			<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+			<Link VarA="Drive^Inputs^In^nState4" VarB="WcState^WcState"/>
+			<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Enable"/>
+			<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reduce torque" Size="1" OffsA="2"/>
+			<Link VarA="Drive^Outputs^Out^nCtrl1" VarB="STM Control^Control^Reset" Size="1" OffsA="1"/>
+			<Link VarA="Drive^Outputs^Out^nDataOut2[0]" VarB="STM Velocity^Velocity"/>
+			<Link VarA="Enc^Inputs^In^nDataIn1[0]" VarB="ENC Status compact^Counter value"/>
+			<Link VarA="Enc^Inputs^In^nDataIn2[0]" VarB="ENC Status compact^Latch value"/>
+			<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter overflow" Size="1" OffsA="4"/>
+			<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Counter underflow" Size="1" OffsA="3"/>
+			<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Extrapolation stall" Size="1" OffsA="7"/>
+			<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch C valid"/>
+			<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Latch extern valid" Size="1" OffsA="1"/>
+			<Link VarA="Enc^Inputs^In^nState1" VarB="ENC Status compact^Status^Set counter done" Size="1" OffsA="2"/>
+			<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of extern latch" Size="1" OffsA="4"/>
+			<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input A"/>
+			<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input B" Size="1" OffsA="1"/>
+			<Link VarA="Enc^Inputs^In^nState2" VarB="ENC Status compact^Status^Status of input C" Size="1" OffsA="2"/>
+			<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^InputToggle" Size="1" OffsA="1"/>
+			<Link VarA="Enc^Inputs^In^nState4" VarB="WcState^WcState"/>
+			<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch C"/>
+			<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on negative edge" Size="1" OffsA="3"/>
+			<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Enable latch extern on positive edge" Size="1" OffsA="1"/>
+			<Link VarA="Enc^Outputs^Out^nCtrl1" VarB="ENC Control compact^Control^Set counter" Size="1" OffsA="2"/>
+			<Link VarA="Enc^Outputs^Out^nDataOut1[0]" VarB="ENC Control compact^Set counter value"/>
+		</OwnerB>
+	</OwnerA>
+	<OwnerA Name="TIPC^Motor^Motor Instance">
+		<OwnerB Name="TIID^Device 1 (EtherCAT)">
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_DcToExtTimeOffset" VarB="InfoData^DcToExtTimeOffset"/>
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_DcToTcTimeOffset" VarB="InfoData^DcToTcTimeOffset"/>
+		</OwnerB>
+		<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 4 (EK1100)^Term 22 (EL6688)">
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_EL6688_AdsAddr" VarB="InfoData^AdsAddr"/>
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_EL6688_Data^Control_value_update_toggle" VarB="External Sync^Control value update toggle"/>
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_EL6688_Data^External_device_not_connected" VarB="External Sync^External device not connected"/>
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_EL6688_Data^External_time_stamp" VarB="External Sync^External time stamp"/>
+			<Link VarA="PlcTask Inputs^MAIN.astro.i_EL6688_Data^Internal_time_stamp" VarB="External Sync^Internal time stamp"/>
+		</OwnerB>
+		<OwnerB Name="TINC^NC-Task 1 SAF^Axes^ADC1">
+			<Link VarA="PlcTask Inputs^MAIN.adc.motor1.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+			<Link VarA="PlcTask Outputs^MAIN.adc.motor1.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+		</OwnerB>
+		<OwnerB Name="TINC^NC-Task 1 SAF^Axes^ADC2">
+			<Link VarA="PlcTask Inputs^MAIN.adc.motor2.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+			<Link VarA="PlcTask Outputs^MAIN.adc.motor2.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+		</OwnerB>
+		<OwnerB Name="TINC^NC-Task 1 SAF^Axes^DROT">
+			<Link VarA="PlcTask Inputs^MAIN.drot.motor.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+			<Link VarA="PlcTask Outputs^MAIN.drot.motor.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+		</OwnerB>
+		<OwnerB Name="TINC^NC-Task 1 SAF^Axes^Motor1">
+			<Link VarA="PlcTask Inputs^MAIN.Motor001.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+			<Link VarA="PlcTask Outputs^MAIN.Motor001.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+		</OwnerB>
+		<OwnerB Name="TINC^NC-Task 1 SAF^Axes^Motor2">
+			<Link VarA="PlcTask Inputs^MAIN.Motor002.Axis.NcToPlc" VarB="Outputs^ToPlc"/>
+			<Link VarA="PlcTask Outputs^MAIN.Motor002.Axis.PlcToNc" VarB="Inputs^FromPlc"/>
+		</OwnerB>
+		<OwnerB Name="TIPC^Motor^Motor Instance">
+			<Link VarA="PlcTask Inputs^MAIN.Motor002.switches" VarB="PlcTask Outputs^MAIN.SIM_Motor002.switches"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Motor001.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.Motor001.q_bBrake_Ctrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Motor002.i_bBrake_Ctrl" VarB="PlcTask Outputs^MAIN.Motor002.q_bBrake_Ctrl"/>
+			<Link VarA="PlcTask Inputs^MAIN.adc.motor1.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_adc_motor1.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.adc.motor2.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_adc_motor2.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.adc.motor2.switches" VarB="PlcTask Outputs^MAIN.SIM_adc_motor2.switches"/>
+			<Link VarA="PlcTask Inputs^MAIN.drot.motor.switches" VarB="PlcTask Outputs^MAIN.SIM_drot_motor.switches"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Motor001.q_bBrake_Stat" VarB="PlcTask Inputs^MAIN.Motor001.i_bBrake_Stat"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Motor001.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Motor001.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Motor001.switches" VarB="PlcTask Inputs^MAIN.Motor001.switches"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Motor002.q_bBrake_Stat" VarB="PlcTask Inputs^MAIN.Motor002.i_bBrake_Stat"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Motor002.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Motor002.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_adc_motor1.switches" VarB="PlcTask Inputs^MAIN.adc.motor1.switches"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_drot_motor.q_nCouplerState" VarB="PlcTask Inputs^MAIN.drot.motor.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.ccs_sim.q_ccs_data" VarB="PlcTask Inputs^MAIN.adc.i_ccs_data"/>
+			<Link VarA="PlcTask Outputs^MAIN.ccs_sim.q_ccs_data" VarB="PlcTask Inputs^MAIN.drot.i_ccs_data"/>
+		</OwnerB>
+		<OwnerB Name="TIRC^TcCOM Objects^Object1 (trkModule)">
+			<Link VarA="PlcTask Inputs^MAIN.adc.i_trk_data" VarB="Outputs^TrackingData"/>
+			<Link VarA="PlcTask Inputs^MAIN.ccs_sim.i_trk_data" VarB="Outputs^TrackingData"/>
+			<Link VarA="PlcTask Inputs^MAIN.drot.i_trk_data" VarB="Outputs^TrackingData"/>
+			<Link VarA="PlcTask Outputs^MAIN.ccs_sim.q_mean_coordinates" VarB="Inputs^MeanCoordinates"/>
+		</OwnerB>
+		<OwnerB Name="TIRC^TcCOM Objects^Object2 (trkParams)">
+			<Link VarA="PlcTask Outputs^MAIN.ccs_sim.q_ccs_data" VarB="Inputs^CcsData"/>
+		</OwnerB>
+	</OwnerA>
+	<OwnerA Name="TIRC^TcCOM Objects^Object1 (trkModule)">
+		<OwnerB Name="TIRC^TcCOM Objects^Object2 (trkParams)">
+			<Link VarA="Inputs^SlaParams" VarB="Outputs^SlaParams"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

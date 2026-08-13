@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_HEATER_CTRL" Id="{03729769-f984-40ba-bda1-7a8648ca93ee}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_HEATER_CTRL EXTENDS FB_CRYO_BIN_CTRL
+VAR_INPUT
+	// Two input values for comparison
+	in_lrTemp1:		LREAL;	// Lowest temperature in  cryostat
+	in_lrTemp2:		LREAL;	// Detector temperature.
+	// Input values Valid flag
+	in_bValidTemp1:	BOOL;
+	in_bValidTemp2:	BOOL;
+	// Two parameters for decision making
+	// Delat-T SetPoint between Detector and Coldbench during WarmUp
+	in_lrDelta_Low:		LREAL	:= 10.0;
+	// Delat-T SetPoint between Detector and Coldbench during WarmUp	
+	in_lrDelta_High:	LREAL	:= 5.0;
+
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set generic error if temperature inputs are not valid
+IF NOT in_bValidTemp1 OR NOT in_bValidTemp2  THEN
+	stat.bCtrlOK	:= FALSE;
+ELSE
+	stat.bCtrlOK	:= TRUE;
+END_IF
+
+// Execute parent FB.
+SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="M_User_SetAction" Id="{daeaed50-a415-47d4-9bda-ae0aee8b66c6}">
+      <Declaration><![CDATA[METHOD M_User_SetAction : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO USER
+//
+// This method implements the logic for controlling a heater.
+// There are two input values from sensors and two deltas for comparison.
+//
+// This example implements the heater control with the following assumptions:
+//
+// in_lrTemp1 - Lowest Temperature in the system (L)
+// in_lrTemp2 - Temperature of the Detector (D). Coming from Lakeshore.
+//
+// The heater should keep the System temperature  
+// in_lrPar1 to in_lrPar2 lower than the detector temperature.
+// 
+// in_lrPar1  - Delta [K] to turn the heater ON:  IF L < D - in_lrPar1
+// in_lrPar2  - Delta [K] to turn the heater OFF: IF L > D - in_lrPar2
+//
+// in_lrDelta1 > in_lrDelta2, e.g. 10K > 4K.
+//
+// For example:
+// 	in_lrPar1 = 10K
+// 	in_lrPar1 = 4K
+// 	Detector temperature D = 100K
+// 	The lowest system temperature is kept in range [(100-10)..(100-4)] = [90K..96K].
+//	The heater is turned ON  at < 90K.
+//	The heater is turned OFF at > 96K.
+//
+IF	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_OFF  OR  
+	stat.nState = E_CRYO_BIN_CTRL_STATE.ACTIVE_ON THEN
+	
+	IF in_lrTemp1 < in_lrTemp2 - in_lrDelta_Low THEN
+		// Activate the actuator
+		M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.ON;
+	ELSIF in_lrTemp1 > in_lrTemp2 - in_lrDelta_High THEN
+		// Dectivate the actuator
+		M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.OFF;
+	END_IF
+
+ELSE
+	// Don't do anything
+	M_User_SetAction	:= E_CRYO_BIN_CTRL_ACTION.NONE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_HEATER_CTRL">
+      <LineId Id="79" Count="8" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_HEATER_CTRL.M_User_SetAction">
+      <LineId Id="5" Count="8" />
+      <LineId Id="105" Count="3" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="109" Count="4" />
+      <LineId Id="115" Count="1" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="83" Count="2" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="96" Count="1" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="18" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

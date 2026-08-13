@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+
+CONTENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+APP_BUNDLE="$(cd "$CONTENTS_DIR/.." && pwd)"
+ROOT_DIR="$(cd "$APP_BUNDLE/.." && pwd)"
+
+PYTHON=""
+for candidate in \
+    "$ROOT_DIR/.venv/bin/python" \
+    "$ROOT_DIR/venv/bin/python" \
+    "$(command -v python3 2>/dev/null || true)" \
+    "$(command -v python 2>/dev/null || true)"
+do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+        PYTHON="$candidate"
+        break
+    fi
+done
+
+if [[ -z "$PYTHON" ]]; then
+    osascript -e 'display alert "NOTTControl" message "Python 3 was not found. Install Python 3 or activate the project virtual environment."' || true
+    exit 1
+fi
+
+exec "$PYTHON" -m nottcontrol.main "$@"

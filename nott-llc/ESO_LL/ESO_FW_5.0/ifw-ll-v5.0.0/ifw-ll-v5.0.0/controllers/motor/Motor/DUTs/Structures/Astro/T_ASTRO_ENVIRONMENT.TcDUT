@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_ASTRO_ENVIRONMENT" Id="{e4cbeff2-4e89-4de2-a94f-5fe85b101f66}">
+    <Declaration><![CDATA[// Structure containing atmospheric conditions.
+TYPE T_ASTRO_ENVIRONMENT :
+STRUCT
+	temperature:	LREAL   := 20.0;	// Air temperature [degC]
+	pressure:		LREAL   := 760.0;	// Atmospheric Pressure [mbar]
+	humidity:		LREAL   := 50;		// Relative humidity [0.0..1.0]
+	lapserate:		LREAL   := 0.0065;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,692 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_MODBUS_COMM_BASE" Id="{aa4b5137-b59c-4878-b08b-f016986f7966}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MODBUS_COMM_BASE
+VAR_INPUT
+	in_bSimulation:		BOOL := FALSE;
+	in_nModel:			DINT;	// Device model number. Zero if N/A.
+	in_cReadFunction:	BYTE := 3;	// Function used for READ. MUST be 3 or 4.
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_MODBUS_CFG;				// Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_MODBUS_CTRL;				// Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_MODBUS_INFO; 				// Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_MODBUS_STAT;				// Status parameters - ReadOnly
+
+	{attribute 'OPC.UA.DA' := '0'}
+	simRef:		REFERENCE TO FB_SIM_MODBUS_COMM_BASE;	// Reference to COMM simulator
+
+
+	(***** Physical signals - to be mapped to EL60xx serial port terminal !!! *****)
+	COMin_EL60xx	AT %I* 	: KL6inData22B;	(* linked to the EL60xx *)
+	COMout_EL60xx	AT %Q*	: KL6outData22B;(* linked to the EL60xx *)
+	i_nCouplerState	AT %I*	: UINT;			(* Link it to Coupler->InfoData->State *)
+
+	(* Serial line control *)
+	COMportControl: 		SerialLineControl;
+	RxBuffer:				ComBuffer;		(* Receive data buffer; used with all receive function blocks *)
+	TxBuffer:				ComBuffer;		(* Transmit data buffer; used with all receive function blocks *)
+
+
+	(* Send/Receive FB's and VAR's *)
+	Receive: 			ReceiveData;
+	Send:				SendData;
+	ClearComBufferTx:	ClearComBuffer;
+	ClearComBufferRx:	ClearComBuffer;
+	ComReset:			ComReset;
+
+	(* Timers *)
+	fbTimer:			TON; (* Timeout for RECEIVE *)
+
+	State:				INT := E_MODBUS_STATE.NOT_INIT;
+	nextState:			INT := E_MODBUS_STATE.IDLE;
+
+
+	cmd:				STRING(16);		// Only first 8 bytes are used
+
+	nBytesToReceive:	UDINT;			// 8 for command, 7 for status
+	nBytesToSend:		UDINT := 8;		// Always 8
+
+	crc:				WORD;			// CRC Check word
+
+	i:					INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(* ============================================
+	Check if the HW is OK. 
+	The coupler state must be 8, i.e. OPERATIONAL.
+============================================== *)
+IF i_nCouplerState <> 8  AND  NOT in_bSimulation THEN	(* If the hardware status is NOT OK, we cannot trust the readings. *)
+	stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.NOT_IN_OP_STATE);
+	stat.sErrorText	:= 'Not in OPERATIONAL state. Check if variable i_nCouplerState is linked to HW.';
+	stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.ERROR);
+	stat.sStatus	:= 'ERROR';
+	RETURN;
+END_IF
+
+
+//
+// Execute Simulator, if in simulation
+//
+IF in_bSimulation  THEN
+	simRef(in_nModel := in_nModel);
+END_IF
+
+
+(*====================================================
+	Handling of commands sent through OPC UA interface.
+	Executed only when flag bExecute goes from LOW to HIGH.
+	bExecute is reset by the PLC application.
+=====================================================*)
+
+IF ctrl.bExecute THEN
+	ctrl.bExecute	:= FALSE;
+	(* Save last command and reset the command *)
+	stat.nLastCommand 	:= M_GetINT(ctrl.nCommand);
+	ctrl.nCommand		:= E_MODBUS_CMD.NONE;
+
+	(* Commands can only be sent when device is IDLE *)
+	IF INT_TO_DINT(stat.nLastCommand) <> INT_TO_DINT(E_MODBUS_CMD.INIT)  AND  State <> E_MODBUS_STATE.IDLE THEN
+		State 			:= E_MODBUS_STATE.ERROR;
+		stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.ERROR);
+		stat.sStatus	:= 'ERROR';
+		stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.NOT_IDLE);
+		stat.sErrorText	:= 'Device busy. Should be in IDLE to receive commands.';
+		RETURN;
+	END_IF
+
+
+	(* Device has to be initialised before being used *)
+	IF INT_TO_DINT(stat.nLastCommand) <> INT_TO_DINT(E_MODBUS_CMD.INIT) THEN
+		IF NOT stat.bInitialised  THEN
+			State 			:= E_MODBUS_STATE.ERROR;
+			stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.ERROR);
+			stat.sStatus	:= 'ERROR';
+			stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.NOT_INIT);
+			stat.sErrorText	:= 'Device not initialised.';
+			RETURN;
+		END_IF
+	END_IF
+
+
+
+	CASE stat.nLastCommand OF
+	E_RS_COMM_CMD.INIT:
+		// Comm port specific.
+		// M_ActionInitExecute() has to set next State!!!
+		M_ActionInitExecute();
+
+	E_RS_COMM_CMD.SEND:
+		stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.OK);
+		stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.BUSY);
+		stat.sErrorText	:= 'OK';
+		stat.sStatus	:= 'BUSY';
+		State 			:= E_MODBUS_STATE.PREPARE_SEND;
+
+	END_CASE
+
+END_IF
+
+
+
+(*====================================================
+	Background communication with KL60xx terminal.
+	Called only during Send or Receive!!!
+	It communicates with the serial line hardware device and 
+	transmits or receives data.
+=====================================================*)
+
+CASE State OF
+E_MODBUS_STATE.IDLE,
+E_MODBUS_STATE.CLEAR_BUFFER,
+E_MODBUS_STATE.SEND,
+E_MODBUS_STATE.RECEIVE:
+
+	COMportControl(
+		Mode		:= ComSerialLineMode_t.SERIALLINEMODE_KL6_22B_STANDARD,
+		pComIn		:= ADR(COMin_EL60xx),				(* I/O data; see global variables *)
+		pComOut		:= ADR(COMout_EL60xx),				(* I/O data; see global variables *)
+		SizeComIn	:= UINT_TO_INT(SIZEOF(COMin_EL60xx)),			(* I/O data; see global variables *)
+		TxBuffer	:= TxBuffer,						(* transmit buffer; see global variables *)
+		RxBuffer	:= RxBuffer);						(* receive buffer; see global variables *)
+
+END_CASE
+
+
+
+
+
+(*======================
+=======================
+ 	State machine 
+=======================
+=======================*)
+
+CASE State OF
+
+E_MODBUS_STATE.ERROR:
+	ClearComBufferTx (Buffer := TxBuffer);
+	ClearComBufferRx (Buffer := RxBuffer);
+	stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.ERROR);
+	stat.sStatus	:= 'ERROR';
+	State 			:= E_MODBUS_STATE.IDLE;
+	RETURN;
+
+
+E_MODBUS_STATE.NOT_INIT:
+	ClearComBufferTx (Buffer := TxBuffer);
+	ClearComBufferRx (Buffer := RxBuffer);
+	stat.bInitialised	:= FALSE;
+	stat.nErrorCode		:= M_GetINT(E_MODBUS_ERROR.OK);
+	stat.sErrorText		:= 'OK';
+	stat.nStatus		:= M_GetINT(E_MODBUS_STATUS.NOT_INIT);
+	stat.sStatus		:= 'NOT INIT';
+
+
+E_MODBUS_STATE.IDLE:
+	(* Nothing to do in IDLE *)
+	RETURN;
+
+
+E_MODBUS_STATE.RESET:
+	(* Reset the connected serial hardware *)
+	ComReset (
+		Execute 	:= TRUE,
+		pComIn		:= ADR(COMin_EL60xx),
+		pComOut		:= ADR(COMout_EL60xx),
+		SizeComIn	:= SIZEOF(COMin_EL60xx),
+		);
+
+	(* Next step is to clear the buffers *)
+	IF ComReset.Done THEN
+		fbTimer (IN := FALSE);	// Reset the timer
+		State 		:= E_MODBUS_STATE.CLEAR_BUFFER;
+	END_IF
+	RETURN;
+
+
+E_MODBUS_STATE.PREPARE_SEND:
+	(*******************************************************************************************
+	Here we set the command string, i.e. add suffix if not included in the command.
+	Then, the state is changed to  E_MODBUS_STATE.SEND.
+	********************************************************************************************)
+
+	(* Clear reply string *)
+	MEMSET(ADR(stat.DeviceReply), 0 , SIZEOF(stat.DeviceReply) );
+
+	cmd	:= '';
+	cmd[0] := ctrl.nSlaveID;
+	cmd[2] := M_GetHighByte(ctrl.nRegister);
+	cmd[3] := M_GetLowByte(ctrl.nRegister);
+	IF ctrl.nCmdType = E_MODBUS_CMD_TYPE.WRITE  THEN
+		cmd[1] := 6;			// Write Function
+		nBytesToReceive	:= 8;	// Reply equals Command
+		cmd[4] := M_GetHighByte(ctrl.nValue);
+		cmd[5] := M_GetLowByte(ctrl.nValue);
+	ELSE
+		cmd[1] := in_cReadFunction;			// Read Function (3 or 4)
+		nBytesToReceive	:= DINT_TO_UDINT(2 * ctrl.nWords  +  5); 
+		// Bytes 4..5, receive one word (2 bytes)
+		cmd[4] := M_GetHighByte(ctrl.nWords);
+		cmd[5] := M_GetLowByte(ctrl.nWords);
+	END_IF
+	
+	// Calculate CRC for the first 6 bytes
+	crc	:= M_CRC(ADR(cmd),6);
+	
+	cmd[6] := M_GetLowByte(crc);
+	cmd[7] := M_GetHighByte(crc);
+	
+	IF in_bSimulation THEN
+		fbTimer (IN := FALSE); 	(* reset timer *)
+		ClearComBufferRx (Buffer := RxBuffer);
+		stat.sReply		:= simRef.M_GetSimReply(cmd);	// Get simulated reply
+		FOR i:=0 TO 255 DO
+			stat.DeviceReply[i] := stat.sReply[i];
+		END_FOR
+		stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.IDLE);
+		stat.sStatus	:= 'IDLE';
+		State 			:= E_MODBUS_STATE.IDLE;
+	ELSE	
+		ClearComBufferTx (Buffer := TxBuffer);
+		stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.BUSY);
+		stat.sStatus	:= 'BUSY';
+		State 			:= E_MODBUS_STATE.SEND;
+	END_IF
+	RETURN;
+
+
+E_MODBUS_STATE.SEND:
+
+	(* Send the command via serial port. *)
+	Send(
+		pSendData	:= ADR(cmd),
+		Length		:= nBytesToSend,
+		TXbuffer	:= TxBuffer);
+
+	(* If the string was not sent in one cycle, go to next cycle *)
+	IF Send.Busy THEN
+		RETURN;
+	ELSE
+		IF Send.Error <> ComError_t.COMERROR_NOERROR THEN
+			State 			:= E_MODBUS_STATE.ERROR;
+			stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.SEND);
+			stat.sErrorText	:= 'Send Failed';
+		ELSE
+			fbTimer (IN := FALSE);	// reset timer
+			// One extra call of background communication
+			COMportControl(
+				Mode		:= ComSerialLineMode_t.SERIALLINEMODE_KL6_22B_STANDARD,
+				pComIn		:= ADR(COMin_EL60xx),				(* I/O data; see global variables *)
+				pComOut		:= ADR(COMout_EL60xx),				(* I/O data; see global variables *)
+				SizeComIn	:= UINT_TO_INT(SIZEOF(COMin_EL60xx)),			(* I/O data; see global variables *)
+				TxBuffer	:= TxBuffer,						(* transmit buffer; see global variables *)
+				RxBuffer	:= RxBuffer);						(* receive buffer; see global variables *)
+
+			State := E_MODBUS_STATE.RECEIVE; 	(* Next state is RECEIVE *)
+		END_IF
+		RETURN;
+	END_IF
+
+
+
+E_MODBUS_STATE.RECEIVE:
+	(* Start the 3 sec timeout timer for receive *)
+	fbTimer (IN := TRUE, PT := T#3S);
+
+	(* Check for timeout. Goto ERROR if timeout expired. *)
+	IF fbTimer.Q THEN
+		fbTimer (IN := FALSE); (* reset timer *)
+
+		State 			:= E_MODBUS_STATE.ERROR;
+		stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.TIMEOUT);
+		stat.sErrorText	:= 'Timeout on Receive';
+		RETURN;
+	END_IF
+
+	// Wait for the reply.
+	// Terminate read 1000 ms after receiving the first character.
+	Receive(
+		pReceiveData	:= ADR(stat.DeviceReply),
+		SizeReceiveData := nBytesToReceive,
+		Timeout			:= T#1000MS,
+		Reset			:= FALSE,
+		RXbuffer		:= RxBuffer);
+
+
+	(* Check for possible errors *)
+	IF Receive.Error <> ComError_t.COMERROR_NOERROR THEN
+		fbTimer (IN := FALSE);	(* reset timer *)
+
+		State 			:= E_MODBUS_STATE.ERROR;
+		stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.RECEIVE);
+		stat.sErrorText	:= 'Receive Failed';
+		RETURN;
+	END_IF
+
+	(* Handle reply *)
+	IF Receive.DataReceived THEN
+		(* We have received a reply. Reset timers and triggers. *)
+		fbTimer (IN := FALSE); 	(* reset timer *)
+
+		// Calculate CRC for the first (nBytesToReceive-2) bytes.
+		// The last two bytes are the CRC returned by the device.
+		// Do a CRC check.
+		crc	:= M_CRC(ADR(stat.DeviceReply),UDINT_TO_INT(nBytesToReceive-2));
+		
+		IF stat.DeviceReply[nBytesToReceive-1] <> M_GetHighByte(crc) THEN
+			State 			:= E_MODBUS_STATE.ERROR;
+			stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.RECEIVE);
+			stat.sErrorText	:= 'Received CRC does not match';
+			RETURN;
+		ELSIF stat.DeviceReply[nBytesToReceive-2] <> M_GetLowByte(crc) THEN
+			State 			:= E_MODBUS_STATE.ERROR;
+			stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.RECEIVE);
+			stat.sErrorText	:= 'Received CRC does not match';
+			RETURN;
+		END_IF
+	
+		
+		(* Clear the receive buffer ONLY when all replies have been received! *)
+		ClearComBufferRx (Buffer := RxBuffer);
+		State 			:= E_MODBUS_STATE.IDLE;
+		stat.nStatus	:= M_GetINT(E_MODBUS_STATUS.IDLE);
+		stat.sStatus	:= 'IDLE';
+		RETURN;
+	ELSIF Receive.RxTimeout THEN
+		(* Handle reply *)
+		(* We have received a reply. Reset timers and triggers. *)
+		fbTimer (IN := FALSE); 	(* reset timer *)
+
+		// Clear the receive buffer
+		ClearComBufferRx (Buffer := RxBuffer);
+
+		stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.TIMEOUT);
+		stat.sErrorText	:= 'Did not receive expected number of bytes';
+
+		State 			:= E_MODBUS_STATE.ERROR;
+		RETURN;
+	END_IF
+
+
+
+E_MODBUS_STATE.CLEAR_BUFFER:
+	// Read all characters present in the receive buffer.
+	// Keep reading for 1 sec.
+	fbTimer (IN := TRUE, PT := T#1S);
+	IF fbTimer.Q THEN
+		(* reset timer *)
+		fbTimer (IN := FALSE);
+		stat.bInitialised	:= TRUE;
+		stat.nStatus		:= M_GetINT(E_MODBUS_STATUS.IDLE);
+		stat.sStatus		:= 'INITIALISED';
+		State 				:= E_MODBUS_STATE.IDLE;
+		RETURN;
+	END_IF
+
+	Receive(
+		pReceiveData	:= ADR(stat.DeviceReply),
+		SizeReceiveData := SIZEOF(nBytesToReceive),
+		Timeout			:= T#300MS,
+		Reset			:= FALSE,
+		RXbuffer		:= RxBuffer);
+
+
+
+ELSE
+(* Unsuported state *)
+	State 			:= E_MODBUS_STATE.ERROR;
+	stat.nErrorCode	:= M_GetINT(E_MODBUS_ERROR.WRONG_STATE);
+	stat.sErrorText	:= 'Unknown State';
+END_CASE
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_ActionInitExecute" Id="{557e8f68-23b6-46bd-b776-c29facd04fc3}">
+      <Declaration><![CDATA[METHOD M_ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// If in simulation, there is no need to reset anything.
+// Just set it to initialised and go to IDLE state.
+//
+IF in_bSimulation THEN
+	fbTimer (IN := FALSE);	// Reset timer
+	stat.bInitialised	:= TRUE;
+	stat.nStatus		:= M_GetINT(E_MODBUS_STATUS.IDLE);
+	stat.sStatus		:= 'INITIALISED';
+	State 				:= E_MODBUS_STATE.IDLE;
+ELSE
+	stat.bInitialised	:= FALSE;
+	stat.sStatus		:= 'INITIALISING';
+	stat.nStatus		:= M_GetINT(E_MODBUS_STATUS.BUSY);
+	stat.nErrorCode		:= M_GetINT(E_MODBUS_ERROR.OK);
+	stat.sErrorText		:= 'OK';
+
+	// Reset the connected serial hardware 
+	ComReset (
+		Execute 	:= FALSE,
+		pComIn		:= ADR(COMin_EL60xx),
+		pComOut		:= ADR(COMout_EL60xx),
+		SizeComIn	:= SIZEOF(COMin_EL60xx),
+		);
+
+	// Set next state
+	State 	:= E_MODBUS_STATE.RESET;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ActivityConnect" Id="{8cb362bc-1829-44ae-b460-f77bfe4ff48c}">
+      <Declaration><![CDATA[METHOD M_ActivityConnect
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Implement in extended FB
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ComPortControl" Id="{6daf0d21-10ae-40be-a30d-c1c56311dbbf}">
+      <Declaration><![CDATA[METHOD M_ComPortControl
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Implement in extended FB
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CRC" Id="{4f48bcad-0e80-4742-b6bc-9d58ee8a228d}">
+      <Declaration><![CDATA[METHOD M_CRC : WORD
+VAR_INPUT
+	p:	POINTER TO BYTE;
+	n:	INT;
+END_VAR
+VAR
+  crc: 			WORD;
+  bit_count: 	BYTE;
+  char_ptr: 	POINTER TO BYTE;
+  pos:			INT := 0;
+END_VAR
+VAR CONSTANT
+	POLYNOMIAL: WORD := 16#A001;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Start at the beginning of the packet
+char_ptr := p;
+
+// Initialize CRC
+crc := 16#FFFF;
+
+// Loop through the entire packet
+WHILE pos < n DO
+	
+	  // Exclusive-OR the byte with the CRC
+	crc := crc XOR char_ptr^;		// crc ^= (unsigned int)*char_ptr;
+	
+	  // Loop through all 8 data bits
+	  bit_count := 0;
+	  WHILE bit_count < 8 DO
+		  // If the LSB is 1, shift the CRC and XOR
+		  // the polynomial mask with the CRC
+		  IF (crc AND 16#0001) <> 16#0000 THEN
+			
+			  crc := SHR(crc,1);	// crc >>= 1;
+			  crc := crc XOR POLYNOMIAL;	// crc ^= POLYNOMIAL;
+			
+		  // If the LSB is 0, shift the CRC only
+		  else
+			crc := SHR(crc,1);	// crc >>= 1;			
+		END_IF
+		bit_count := bit_count + 1;
+	  END_WHILE
+	  char_ptr := char_ptr + 1;
+	  pos := pos + 1;
+END_WHILE
+
+M_CRC := crc;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetHighByte" Id="{29589a4f-379e-48b3-85e9-30389fce0e60}">
+      <Declaration><![CDATA[METHOD M_GetHighByte : BYTE
+VAR_INPUT
+	n:	DINT;
+END_VAR
+VAR
+	w:	WORD;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[w := DINT_TO_WORD(n);
+M_GetHighByte	:= WORD_TO_BYTE(SHR((w AND 16#FF00), 8));
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetINT" Id="{203d6bc3-c71e-4cc1-a43a-aef5de13781b}">
+      <Declaration><![CDATA[METHOD M_GetINT : INT
+VAR_INPUT
+	nInt:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetINT	:= nInt;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetLowByte" Id="{9cd7a8b9-c1b9-4d3c-82e3-eab508793f73}">
+      <Declaration><![CDATA[METHOD M_GetLowByte : BYTE
+VAR_INPUT
+	n:	DINT;
+END_VAR
+VAR
+	w:	WORD;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[w := DINT_TO_WORD(n);
+M_GetLowByte	:= WORD_TO_BYTE((w AND 16#00FF));
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{501458f6-93fb-47f9-9ae2-f1300009d89a}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Implement in extended FB
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_MODBUS_COMM_BASE">
+      <LineId Id="3" Count="12" />
+      <LineId Id="853" Count="6" />
+      <LineId Id="16" Count="39" />
+      <LineId Id="860" Count="2" />
+      <LineId Id="65" Count="21" />
+      <LineId Id="863" Count="0" />
+      <LineId Id="87" Count="10" />
+      <LineId Id="100" Count="47" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="783" Count="0" />
+      <LineId Id="153" Count="11" />
+      <LineId Id="507" Count="0" />
+      <LineId Id="168" Count="11" />
+      <LineId Id="509" Count="0" />
+      <LineId Id="429" Count="0" />
+      <LineId Id="181" Count="9" />
+      <LineId Id="864" Count="3" />
+      <LineId Id="935" Count="0" />
+      <LineId Id="938" Count="0" />
+      <LineId Id="937" Count="0" />
+      <LineId Id="869" Count="1" />
+      <LineId Id="873" Count="0" />
+      <LineId Id="871" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="724" Count="1" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="872" Count="0" />
+      <LineId Id="200" Count="4" />
+      <LineId Id="214" Count="4" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="745" Count="2" />
+      <LineId Id="761" Count="0" />
+      <LineId Id="765" Count="0" />
+      <LineId Id="770" Count="2" />
+      <LineId Id="766" Count="0" />
+      <LineId Id="784" Count="9" />
+      <LineId Id="769" Count="0" />
+      <LineId Id="767" Count="0" />
+      <LineId Id="764" Count="0" />
+      <LineId Id="748" Count="1" />
+      <LineId Id="231" Count="4" />
+      <LineId Id="237" Count="15" />
+      <LineId Id="738" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="259" Count="1" />
+      <LineId Id="263" Count="2" />
+      <LineId Id="267" Count="7" />
+      <LineId Id="739" Count="0" />
+      <LineId Id="276" Count="1" />
+      <LineId Id="279" Count="0" />
+      <LineId Id="695" Count="0" />
+      <LineId Id="701" Count="0" />
+      <LineId Id="707" Count="0" />
+      <LineId Id="696" Count="1" />
+      <LineId Id="702" Count="0" />
+      <LineId Id="708" Count="3" />
+      <LineId Id="705" Count="0" />
+      <LineId Id="712" Count="3" />
+      <LineId Id="704" Count="0" />
+      <LineId Id="700" Count="0" />
+      <LineId Id="291" Count="5" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="667" Count="0" />
+      <LineId Id="694" Count="0" />
+      <LineId Id="668" Count="1" />
+      <LineId Id="671" Count="0" />
+      <LineId Id="777" Count="1" />
+      <LineId Id="782" Count="0" />
+      <LineId Id="774" Count="1" />
+      <LineId Id="780" Count="1" />
+      <LineId Id="776" Count="0" />
+      <LineId Id="692" Count="1" />
+      <LineId Id="302" Count="20" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="328" Count="0" />
+      <LineId Id="339" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_ActionInitExecute">
+      <LineId Id="25" Count="4" />
+      <LineId Id="37" Count="4" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="9" Count="15" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_ActivityConnect">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_ComPortControl">
+      <LineId Id="24" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_CRC">
+      <LineId Id="3" Count="33" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_GetHighByte">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_GetINT">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_GetLowByte">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_MODBUS_COMM_BASE.M_Reset">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

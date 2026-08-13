@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_MODBUS_STAT" Id="{d30cec6c-2de1-4159-8f0e-6b1cc6b0746c}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_MODBUS_STAT EXTENDS T_CRYO_PUMP_BASE_STAT:
+STRUCT
+	nInputBuffer: 			ARRAY [0..300] OF BYTE;	// Binary data read from ECODRY
+	
+	lrFreqRef:				LREAL;	// Frequency Reference 0x0040
+	lrOutFreq:				LREAL;	// Output Frequency 0x0041
+//	lrOutCurrent:			LREAL;	// Output Current 0x0042
+	lrOutVoltRef:			LREAL;	// Output Voltage Reference 0x0045
+//	lrDcBusVolt:			LREAL;	// DC Bus Voltage 0x0046
+	lrOutPower:				LREAL;	// Output Power 0x0047
+//	lrTemperature:			LREAL;	// Heatsink Temperature 0x0068
+
+	nSwFlash:				UINT;	// Software No. (Flash) 0x004D
+	nSwRom:					UINT;	// Software No. (ROM) 0x005B
+	nOpTime:				UINT;	// Accumulated Operation Time 0x004C
+	nNumRunCmd:				UINT;	// Number of Run Commands 0x0075
+	nFanOpTime:				UINT;	// Cooling Fan Operation Time  0x0067
+	
+	nServiceHours:			UINT;	// Service Hours 0x0667
+	nNumPumpDowns:			UINT;	// Pump-down Cycles after Service 0x0669
+	nDaysUntilService:		UINT;	// Days before Service 0x066C
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

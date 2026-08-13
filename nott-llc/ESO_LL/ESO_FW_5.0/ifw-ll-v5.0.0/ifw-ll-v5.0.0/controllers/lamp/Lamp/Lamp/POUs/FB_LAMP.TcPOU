@@ -1,0 +1,1502 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_LAMP" Id="{1cb0f4e0-da22-4f09-b830-732d2f4f14b3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_LAMP EXTENDS FB_LAMP_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	
+	(***** Local variables *****)
+	{attribute 'OPC.UA.DA' := '0'}
+	bOn:		BOOL;	(* Feedback - combination of digital and analog *)
+	{attribute 'OPC.UA.DA' := '0'}
+	bFault: 	BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	toutCmd:	TON;
+	{attribute 'OPC.UA.DA' := '0'}
+	trg:		R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	timer:		TON;	(* Timer for measuring duration of events *)
+	
+
+
+	(***** Physical signals - to be mapped!!! *****)
+
+	(* Outputs *)
+	{attribute 'OPC.UA.DA' := '0'}
+	q_bSwitch 		AT %Q*: 		BOOL;	(* Lamp control digital output *)
+	{attribute 'OPC.UA.DA' := '0'}
+	q_nIntensity 	AT %Q*: 		INT;	(* Analog OUT [bit] *)
+
+	(* Inputs *)	
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nCouplerState	AT %I*: 		UINT;	(* Link it to Coupler->InfoData->State *)
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bFault 		AT %I*: 		BOOL;	(* HW fault signal *)
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bOn 			AT %I*: 		BOOL;	(* Digital feedback signal *)
+	{attribute 'OPC.UA.DA' := '0'}
+	i_nOn			AT %I*: 		INT;	(* Analog feedback signal *)
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Execute the base class object FB_LAMP_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionDisableExecute" Id="{1a0f3cb2-0f46-4875-b21e-2ce63437dddf}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionDisableExecute');
+
+// Log event
+M_LogEventStart('DISABLE');
+
+(* Set Lamp initial state obtained from the configuration *)
+q_bSwitch			:= M_GetLogicalState(cfg.bInitialState, cfg.bActiveLowSwitch);
+stat.lrIntensity	:= cfg.lrInitialIntensity;
+q_nIntensity		:= LREAL_TO_INT(stat.lrIntensity / 100.0 * cfg.nFullRange);
+
+(* start the cmd timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableComplete" Id="{1290ec18-c358-4e1a-9cc8-573d638e60f6}">
+      <Declaration><![CDATA[METHOD ActionEnableComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionEnableComplete');
+
+// Log event
+M_LogEventEnd('ENABLE');
+
+(* reply OK *)
+M_SetStatus(E_LAMP_ERROR.OK);
+
+(* Reset the timer action *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{0538174f-0d99-4308-8cd0-823031a574c6}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionErrExecute');
+
+IF nEvent = E_LAMP_EVENT.ERRFAULT THEN
+	M_SetStatus(E_LAMP_ERROR.FAULT_SIG);
+END_IF
+		
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitAbort" Id="{0676d44b-8c18-48a2-bd40-3a1395654ef7}">
+      <Declaration><![CDATA[METHOD ActionInitAbort
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitAbort');
+
+M_SetStatus(E_LAMP_ERROR.OK);
+
+(* Reset the timer for the command *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitComplete" Id="{07808e00-f135-4349-b4bf-d79495fd33a5}">
+      <Declaration><![CDATA[METHOD ActionInitComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitComplete');
+
+// Log event
+M_LogEventEnd('INIT');
+
+(* reply OK *)
+M_SetStatus(E_LAMP_ERROR.OK);
+
+(* Reset the timer action *)
+toutCmd(IN:=FALSE);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{97b3cbdb-2a31-4af5-89ec-31cfa4270810}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+VAR
+	nCurrentTime:	UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitExecute');
+
+// Log event
+M_LogEventStart('INIT');
+
+M_SetStatus(E_LAMP_ERROR.OK);	// Clear any error
+
+nCurrentTime			:= M_GetTimeInSec();
+stat.nTimeOffStart		:= nCurrentTime;
+M_UpdateTimes(bOnState:=FALSE, bRestart:=FALSE, bReset:=FALSE);
+
+
+(* Set Lamp initial state obtained from the configuration *)
+q_bSwitch			:= M_GetLogicalState(cfg.bInitialState, cfg.bActiveLowSwitch);
+IF NOT cfg.bInitialState	THEN
+	cfg.lrInitialIntensity	:= 0.0;
+END_IF
+stat.lrIntensity	:= cfg.lrInitialIntensity;
+q_nIntensity		:= LREAL_TO_INT(stat.lrIntensity / 100.0 * cfg.nFullRange);
+
+(* start the cmd timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitReject" Id="{f426e1e9-89fa-457d-b49c-9506f6d8243a}">
+      <Declaration><![CDATA[METHOD ActionInitReject
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionInitReject');
+
+(* Reject an INIT command since another one is in progress. *)
+(* do not reset the timer ... *)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionMaxOnFailure" Id="{814947c3-aee3-4617-8bab-d2d87bccc85d}">
+      <Declaration><![CDATA[METHOD ActionMaxOnFailure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the switching OFF of the lamp *)
+SetAction('ActionMaxOnFailure');
+
+// Log event
+M_LogEventError('Max ON time exceeded. Lamp switched OFF.');
+
+(* Set the error *)
+M_SetStatus(E_LAMP_ERROR.MAXON);
+
+M_UpdateTimes(bOnState:=FALSE, bRestart:=TRUE, bReset:=FALSE);
+
+
+(* Switch lamp OFF *)
+q_bSwitch			:= M_GetLogicalState(FALSE, cfg.bActiveLowSwitch);
+stat.lrIntensity	:= 0;
+q_nIntensity		:= 0;
+
+
+(* 
+	Reset signal trigger and its timer. 
+	Next transition activity, e.g. ActivitySwitchingOff, will complete when the signal has been OFF 
+	for longer than cfg.nSigStablePeriod [ms].
+*)
+trg(CLK:=FALSE);
+timer(IN:=FALSE);	// Timer for stable signal lasting cfg.nSigStablePeriod
+
+(* Restart the command timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionOffExecute" Id="{c0bde88b-5dba-446b-a0ae-9804b1edf230}">
+      <Declaration><![CDATA[METHOD ActionOffExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* code to initiate the switching OFF of the lamp *)
+SetAction('ActionOffExecute');
+
+// Log event
+M_LogEventStart('OFF');
+
+(* Clear the error *)
+M_SetStatus(E_LAMP_ERROR.OK);
+
+M_UpdateTimes(bOnState:=FALSE, bRestart:=TRUE, bReset:=FALSE);
+
+
+(* Switch lamp OFF *)
+q_bSwitch			:= M_GetLogicalState(FALSE, cfg.bActiveLowSwitch);
+stat.lrIntensity	:= 0;
+q_nIntensity		:= 0;
+
+(* 
+	Reset signal trigger and its timer. 
+	Next transition activity, e.g. ActivitySwitchingOff, will complete when the signal has been OFF 
+	for longer than cfg.nSigStablePeriod [ms].
+*)
+trg(CLK:=FALSE);
+timer(IN:=FALSE);	// Timer for stable signal lasting cfg.nSigStablePeriod
+
+(* Restart the command timer *)
+toutCmd(IN:=FALSE);
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionOnExecute" Id="{7440fc23-3594-4859-bb19-bfa09ef5d487}">
+      <Declaration><![CDATA[METHOD ActionOnExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Code to initiate turning the lamp ON *)
+
+SetAction('ActionOnExecute');
+
+// Log event
+M_LogEventStart('ON');
+
+(* Clear the error *)
+M_SetStatus(E_LAMP_ERROR.OK);
+
+(* Turn the control signal ON  and set the intensity *)
+q_bSwitch			:= M_GetLogicalState(TRUE, cfg.bActiveLowSwitch);
+stat.lrIntensity	:= ctrl.lrIntensity;
+q_nIntensity		:= LREAL_TO_INT(stat.lrIntensity / 100.0 * cfg.nFullRange);
+
+// Save time limit for ON and clear it from the command parameters
+stat.nTimeOnLimit	:= ctrl.nTimeOnLimit;
+ctrl.nTimeOnLimit	:= 0;
+
+
+(* 
+	Reset signal trigger and its timer. 
+	Next transition activity, e.g. ActivitySwitchingOn, will complete when the signal has been ON 
+	for longer than cfg.nSigStablePeriod [ms].
+*)
+trg(CLK:=FALSE);
+timer(IN:=FALSE);	// Timer for stable signal lasting cfg.nSigStablePeriod
+
+(* Start the timer for command timeout of cfg.nTimeout *)
+toutCmd(IN:=FALSE);	
+toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nTimeout));]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{c1b4383d-ea91-4237-9ab6-5bd638c3c0d1}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionResetExecute');
+
+// Log event
+M_LogEventEnd('RESET');
+
+(* reply Error *)
+M_SetStatus(E_LAMP_ERROR.OK);
+
+(* Disable outputs *)
+q_bSwitch			:= FALSE;
+stat.lrIntensity	:= 0;
+q_nIntensity		:= 0;
+
+// Reset ON/OFF times
+M_UpdateTimes(bOnState:=bOn,bRestart:=FALSE,bReset:=TRUE);	
+
+(* Reset the timer for the command *)
+toutCmd(IN:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{7fdbcc8b-abb1-4ec9-b1f5-edfef2cce909}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActionUnexpExecute');
+
+IF nEvent = E_LAMP_EVENT.ISON THEN
+	// In case of a timeout while switching to ON the state after the timeout
+	// will be E_LAMP_SUBSTATE.OP_OFF and later on the lamp will go ON. 
+	// In this case, we don't want to set
+	// the error to E_LAMP_ERROR.UNEXPECTED_ON but rather scilently
+	// change the state to E_LAMP_SUBSTATE.OP_ON.
+	IF 	stat.nErrorCode <> E_LAMP_ERROR.TIMEOUT_ON  AND
+		stat.nErrorCode <> E_LAMP_ERROR.TIMEOUT_OFF 	THEN
+		M_LogEventGeneral('Lamp unexpectedly switched ON');
+		M_SetStatus(E_LAMP_ERROR.UNEXPECTED_ON);
+	END_IF
+ELSIF nEvent = E_LAMP_EVENT.ISOFF THEN
+	// In case of a timeout while switching to OFF the state after the timeout
+	// will be E_LAMP_SUBSTATE.OP_ON and later on the lamp will go OFF. 
+	// In this case, we don't want to set
+	// the error to E_LAMP_ERROR.UNEXPECTED_OFF but rather scilently
+	// change the state to E_LAMP_SUBSTATE.OP_OFF.
+	IF 	stat.nErrorCode <> E_LAMP_ERROR.TIMEOUT_OFF	AND
+		stat.nErrorCode <> E_LAMP_ERROR.TIMEOUT_ON THEN
+		M_LogEventGeneral('Lamp unexpectedly switched OFF');
+		M_SetStatus(E_LAMP_ERROR.UNEXPECTED_OFF);
+	END_IF
+ELSIF nEvent = E_LAMP_EVENT.ON THEN
+	// Clear time limit from the command parameters
+	ctrl.nTimeOnLimit	:= 0;
+	M_SetStatus(E_LAMP_ERROR.STILL_COOLING);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityCoolingDown" Id="{f424940d-54ed-48dd-9645-fc3ddef0aec1}">
+      <Declaration><![CDATA[METHOD ActivityCoolingDown
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity waits for cfg.nCooldown seconds until the lamp has warmed up.
+	It triggers E_LAMP_EVENT.WARMED_UP event. 
+*)
+SetAction('ActivityCoolingDown');
+
+// Update the OFF time
+M_UpdateTimes(bOnState:=FALSE, bRestart:=FALSE, bReset:=FALSE);
+
+(* 
+	Warming is complete on expiration of the timer.
+	If there is no warmup (cfg.nWarmup = 0), just set the event E_LAMP_EVENT.WARMED_UP.
+*)
+toutCmd();
+IF 	toutCmd.Q OR 
+	cfg.nCooldown = 0 OR
+	(cfg.nCooldown > 0 AND stat.nTimeOff > cfg.nCooldown)	THEN
+	// Log event
+	M_LogEventEnd('OFF');
+
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	
+	nInternalEvent 		:= E_LAMP_EVENT.COOLED_DOWN;	// This will bring us to (E_LAMP_STATE.OP, E_LAMP_SUBSTATE.OP_OFF)
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityDisabling" Id="{c9f3a36b-ff33-4e18-b295-39ccaa5ef0d7}">
+      <Declaration><![CDATA[METHOD ActivityDisabling
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Activity to monitor the lamp disabling task. 
+	The end state should be the predefined position of the lamp
+	that is defined by configuration parameter cfg.bInitialState.
+*)
+SetAction('ActivityDisabling');
+
+(* check if the initial position is reached *)
+IF cfg.bInitialState = FALSE THEN
+	(* Waiting for OFF state *)
+	IF	bOn   = FALSE THEN
+		// Log event
+		M_LogEventEnd('DISABLE_OFF');
+
+		nEvent  := E_LAMP_EVENT.DISABLEOFF;
+		M_SetStatus(E_LAMP_ERROR.OK);
+		RETURN;
+	END_IF
+ELSE
+	(* Waiting for ON state *)
+	IF	bOn   = TRUE  THEN
+		// Log event
+		M_LogEventEnd('DISABLE_ON');
+
+		nEvent  := E_LAMP_EVENT.DISABLEON;
+		M_SetStatus(E_LAMP_ERROR.OK);
+		RETURN;
+	END_IF		
+END_IF
+
+
+(* 
+	if the timeout is detected before reaching the target position, 
+	then trigger the internal error event 
+*)
+toutCmd(IN:=TRUE);
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('DISABLE command timed out');
+
+	toutCmd(IN:=FALSE);	(* Reset the timer *)
+	nInternalEvent  := E_LAMP_EVENT.ERRDISABLE;
+	SetEvent(E_LAMP_ERROR.TIMEOUT_DISABLE);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitializing" Id="{8da8ed92-ba64-4e29-a504-03b8696318bd}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Activity to monitor the Lamp initialization task and 
+	trigger the E_LAMP_EVENT.INITOFF or E_LAMP_EVENT.INITON event depending 
+	on the configured default state. 		
+*)
+SetAction('ActivityInitializing');
+
+
+(* 
+	Check if the initial position is reached.
+	We need additional internal events E_LAMP_EVENT.INITOFF & E_LAMP_EVENT.INITON in order to
+	cope with the scenario when the initial state is the oposit one from the configured target.
+	Example:
+		The Lamp ISOFF at the beginning of this activity while the configured default state ISOFF.
+		By introducing E_LAMP_EVENT.INITOFF & E_LAMP_EVENT.INITON we avoid the ISOFF event.
+*)
+IF cfg.bInitialState = FALSE THEN
+	(* Waiting for OFF state *)
+	IF	bOn   = FALSE THEN
+		nInternalEvent  := E_LAMP_EVENT.INITOFF;
+	END_IF
+ELSE
+	(* Waiting for ON state *)
+	IF	bOn   = TRUE  THEN
+		nInternalEvent  := E_LAMP_EVENT.INITON;
+	END_IF		
+END_IF
+
+
+(* 
+	If the timeout is detected before reaching the initial position, 
+	then trigger the internal error event 
+*)
+toutCmd(IN:=TRUE);
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('INIT command timed out');
+
+	toutCmd(IN:=FALSE);	(* Reset the timer *)
+	nInternalEvent  := E_LAMP_EVENT.ERRINIT;
+	SetEvent(E_LAMP_ERROR.TIMEOUT_INIT);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityOff" Id="{bca5b047-db45-4e74-957c-6373b6197150}">
+      <Declaration><![CDATA[METHOD ActivityOff
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityOff');
+
+// Clear time limit for ON from the status
+stat.nTimeOnLimit	:= 0;
+
+// Update the OFF time
+M_UpdateTimes(bOnState:=FALSE, bRestart:=FALSE, bReset:=FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityOn" Id="{0aff2a37-5595-4d7e-bb87-d387b85c7afa}">
+      <Declaration><![CDATA[METHOD ActivityOn
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetAction('ActivityOn');
+
+// Update the ON time
+M_UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+
+// Check if the lamp has been ON longer than the time limit for that command.
+IF stat.nTimeOnLimit > 0 AND stat.nTimeOn > stat.nTimeOnLimit THEN
+	M_LogEventGeneral('Time ON limit reached. Switching lamp OFF.');
+	nEvent  := E_LAMP_EVENT.LIMIT_ON;
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivitySwitchingOff" Id="{5eb3a437-3006-45b3-88ff-1b8a65c2807b}">
+      <Declaration><![CDATA[METHOD ActivitySwitchingOff
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity monitors the OFF lamp task and 
+	triggers the ISOFF event at completion. 
+*)
+SetAction('ActivitySwitchingOff');
+
+
+(* 
+	The signal has to be OFF for longer than cfg.nSigStablePeriod [msec].
+	The timer will start when bOn=FALSE trigger is detected.
+*)
+(* Execute trigger - note the 'NOT bOn' detectiong the transition from ON to OFF *)
+trg(CLK := NOT bOn);
+
+IF trg.Q THEN
+	(* Restart the signal duration timer *)
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nSigStablePeriod));
+END_IF
+
+(* Execute signal duration timer *)
+timer();
+
+IF	timer.Q OR 
+	((NOT bOn) AND cfg.nSigStablePeriod = 0) THEN
+	timer(IN:=FALSE);	// Reset the signal duration timer
+	toutCmd(IN:=FALSE);	// Reset the command timeout timer
+
+	(* Update time ON/OFF *)
+	M_UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+
+	(* 
+		Normally, we would go to state E_LAMP_SUBSTATE.OP_COOLING. 
+		However, if the cooldown time is zero, i.e. no cooldown, we go directly to state E_LAMP_SUBSTATE.OP_OFF.
+	*)
+	IF cfg.nCooldown > 0 THEN
+		// Log event
+		M_LogEventStart('COOLING');
+
+		// Restart the command timeout timer
+		toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nCooldown * 1000));	// [sec] => [msec]
+		nInternalEvent 		:= E_LAMP_EVENT.ISOFF;	// This will bring us to SetState(E_LAMP_STATE.OP, E_LAMP_SUBSTATE.OP_COOLING)
+	ELSE
+		// Log event
+		M_LogEventEnd('OFF');
+
+		nInternalEvent 		:= E_LAMP_EVENT.COOLED_DOWN;	// This will bring us to SetState(E_LAMP_STATE.OP, E_LAMP_SUBSTATE.OP_OFF)
+	END_IF
+	
+//	M_SetStatus(E_LAMP_ERROR.OK);	
+
+	RETURN;
+END_IF
+
+(* 
+	if the timeout is detected before reaching the position, 
+	then trigger the internal error event 
+*)
+toutCmd();
+IF toutCmd.Q THEN
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	timer(IN:=FALSE);	(* Reset the signal duration timer *)
+	
+	nInternalEvent  := E_LAMP_EVENT.ERRTIMEOUTOFF;
+	SetEvent(E_LAMP_EVENT.ERRTIMEOUTOFF);
+	M_SetStatus(E_LAMP_ERROR.TIMEOUT_OFF);	
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivitySwitchingOn" Id="{e8d4797f-b4b2-47d1-851a-d0db0696e55c}">
+      <Declaration><![CDATA[METHOD ActivitySwitchingOn
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity to monitor the ON lamp task and 
+	trigger the ISON event at completion. 
+*)
+SetAction('ActivitySwitchingOn');
+
+(* 
+	The signal has to be ON for longer than cfg.nSigStablePeriod [msec].
+	The timer will start when bOn trigger is detected.
+*)
+(* Execute trigger *)
+trg(CLK:=bOn);
+
+IF trg.Q THEN
+	(* Restart the signal duration timer *)
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nSigStablePeriod));
+END_IF
+
+(* Execute signal duration timer *)
+timer();
+
+IF	timer.Q OR 
+	(bOn AND cfg.nSigStablePeriod = 0) THEN
+	timer(IN:=FALSE);	// Reset the signal duration timer
+	toutCmd(IN:=FALSE);	// Reset the command timeout timer
+
+	(* Update time ON/OFF *)
+	IF stat.nTimeOn > 0 THEN
+		// Lamp was already ON, restart the ON time.
+		M_UpdateTimes(bOnState:=TRUE, bRestart:=TRUE, bReset:=FALSE);
+	ELSE
+		// Lamp was OFF, don't restart the ON time.
+		M_UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+	END_IF
+
+	(* 
+		Normally, we would go to state E_LAMP_SUBSTATE.OP_WARMING. 
+		However, if the warmup time is zero, i.e. no warmup, we go directly to state E_LAMP_SUBSTATE.OP_ON.
+	*)
+	IF cfg.nWarmup > 0 THEN
+		// Log event
+		M_LogEventStart('WARMING UP');
+
+		// Restart the command timeout timer
+		toutCmd(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nWarmup * 1000));	// [sec] => [msec]
+		nInternalEvent 		:= E_LAMP_EVENT.ISON;	// This will bring us to SetState(E_LAMP_STATE.OP, E_LAMP_SUBSTATE.OP_WARMING)
+	ELSE
+		// Log event
+		M_LogEventEnd('ON');
+
+		nInternalEvent 		:= E_LAMP_EVENT.WARMED_UP;	// This will bring us to SetState(E_LAMP_STATE.OP, E_LAMP_SUBSTATE.OP_ON)
+	END_IF
+	
+	M_SetStatus(E_LAMP_ERROR.OK);	
+
+	RETURN;
+END_IF
+
+(* 
+	if the timeout is detected before reaching the position, 
+	then trigger the internal error event 
+*)
+toutCmd();
+IF toutCmd.Q THEN
+	// Log event
+	M_LogEventError('ON command timed out');
+
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	timer(IN:=FALSE);	(* Reset the signal duration timer *)
+	
+	nInternalEvent  := E_LAMP_EVENT.ERRTIMEOUTON;
+	SetEvent(E_LAMP_EVENT.ERRTIMEOUTON);
+	M_SetStatus(E_LAMP_ERROR.TIMEOUT_ON);	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityWarmingUp" Id="{ae00d9bb-65cc-41c6-82a7-503bc3469803}">
+      <Declaration><![CDATA[METHOD ActivityWarmingUp
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	This activity waits for cfg.nWarmup seconds until the lamp has warmed up.
+	It triggers E_LAMP_EVENT.WARMED_UP event. 
+*)
+SetAction('ActivityWarmingUp');
+
+// Update the ON time
+M_UpdateTimes(bOnState:=TRUE, bRestart:=FALSE, bReset:=FALSE);
+
+(* 
+	Warming is complete on expiration of the timer.
+	If there is no warmup (cfg.nWarmup = 0), just set the event E_LAMP_EVENT.WARMED_UP.
+*)
+toutCmd();
+IF toutCmd.Q OR cfg.nWarmup = 0 THEN
+	// Log event
+	M_LogEventEnd('ON');
+
+	toutCmd(IN:=FALSE);	(* Reset Timer *)
+	
+	nInternalEvent 		:= E_LAMP_EVENT.WARMED_UP;	// This will bring us to (E_LAMP_STATE.OP, E_LAMP_SUBSTATE.OP_ON)
+END_IF
+
+// Check if the lamp has been ON longer than the time limit for that command.
+IF stat.nTimeOnLimit > 0 AND stat.nTimeOn > stat.nTimeOnLimit THEN
+	M_LogEventGeneral('Time ON limit reached during warmup. Switching lamp OFF.');
+	nEvent  := E_LAMP_EVENT.LIMIT_ON;
+	RETURN;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{1bcb3be0-13a0-4554-b509-be6652ab20ef}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+nEvent := E_LAMP_EVENT.HWOK;
+
+
+(*
+	Read all inputs, i.e. get status of INPUT signals based on ActiveLow configuration 
+*)
+
+bFault	:= M_GetLogicalState(i_bFault, cfg.bActiveLowFault) AND NOT cfg.bIgnoreFault;
+
+(* The lamp ON feedback can be analog and/or digital. *)
+stat.bOnDigital	:= M_GetLogicalState(i_bOn, cfg.bActiveLowOn);	// Digital feedback
+stat.nOn		:= i_nOn;										// Analog  feedback
+
+IF cfg.nAnalogThreshold <> 0	THEN
+// Analog feedback is checked only if the threshold is not 0.0.
+	stat.bOnAnalog	:=	((i_nOn > cfg.nAnalogThreshold) AND NOT cfg.bInvertAnalog) OR
+						((i_nOn < cfg.nAnalogThreshold) AND     cfg.bInvertAnalog);
+ELSE
+	stat.bOnAnalog	:= FALSE;
+END_IF
+	
+IF 	(stat.bOnDigital OR  stat.bOnAnalog)	THEN
+	bOn	:= TRUE;
+ELSE
+	bOn	:= FALSE;
+END_IF
+
+
+M_UpdateTimes(bOnState:=bOn,bRestart:=FALSE, bReset:=FALSE);	// Update the Time
+
+
+(* HW Status in textual form: 'ERROR', 'ON' or 'OFF' *)
+IF 		bFault THEN
+	stat.nHwStatus	:= E_LAMP_HW_STATUS.ERROR;
+	stat.sHwStatus	:= 'ERROR';
+ELSIF 	bOn   = TRUE  THEN
+	stat.nHwStatus	:= E_LAMP_HW_STATUS.ON;
+	stat.sHwStatus	:= 'ON';
+ELSIF 	bOn   = FALSE  THEN
+	stat.nHwStatus	:= E_LAMP_HW_STATUS.OFF;
+	stat.sHwStatus	:= 'OFF';
+END_IF
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals:  such as Lamp is ON/OFF.
+*)
+
+IF 	i_nCouplerState <> 8 AND 
+	NOT (ctrl.bExecute AND ctrl.nCommand = E_LAMP_COMMAND.RESET) THEN	
+	// NOTE:	We give priority to RESET command in order 
+	//			to be able to switch from OP to NOT_OP on RESET.
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_LAMP_EVENT.ERRHW);
+	M_SetStatus(E_LAMP_ERROR.HW_NOT_OP);
+
+ELSIF nInternalEvent <> E_LAMP_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_LAMP_EVENT.NONE;
+ELSIF ctrl.bExecute = TRUE  THEN
+	(* Handle commands *)
+	ctrl.bExecute	:= FALSE;				(* Clear the Execute bit *)
+	M_SetLastCommand(ctrl.nCommand);		(* Save the last command *)
+	SetEvent(ctrl.nCommand);				(* Set the event *)
+	ctrl.nCommand 	:= E_LAMP_COMMAND.NONE;	(* Clear the Command *)
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+	IF bFault THEN
+		SetEvent(E_LAMP_EVENT.ERRFAULT);
+		M_SetStatus(E_LAMP_ERROR.FAULT_SIG);
+		RETURN;	
+	END_IF
+
+	IF stat.nSubstate = E_LAMP_SUBSTATE.NOTOP_READY_OFF OR 
+	   stat.nSubstate = E_LAMP_SUBSTATE.NOTOP_READY_ON OR 
+	   stat.nSubstate = E_LAMP_SUBSTATE.OP_DISABLING OR 
+	   stat.nSubstate = E_LAMP_SUBSTATE.OP_OFF OR 
+	   stat.nSubstate = E_LAMP_SUBSTATE.OP_ON	OR 
+	   stat.nSubstate = E_LAMP_SUBSTATE.OP_ERROR THEN
+	   
+		(* Set events for ON and OFF *)		
+		IF	bOn   = TRUE  THEN
+			SetEvent(E_LAMP_EVENT.ISON);
+		ELSIF	bOn   = FALSE THEN
+			SetEvent(E_LAMP_EVENT.ISOFF);
+		END_IF	
+	END_IF	
+(*
+	IF stat.nSubstate = E_LAMP_SUBSTATE.OP_SWITCHING_ON THEN
+		(* Set events for ON  *)		
+		IF	bOn   = TRUE  THEN
+			SetEvent(E_LAMP_EVENT.ISON);
+		END_IF	
+	END_IF	
+	*)
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRpcErrorText" Id="{a6395d91-813f-4cab-a494-3e3d4e48bd2a}">
+      <Declaration><![CDATA[METHOD M_GetRpcErrorText : STRING
+VAR_INPUT
+	ErrorCode:	INT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_LAMP_RPC_ERROR.OK:						str	:= 'OK';
+	E_LAMP_RPC_ERROR.NOT_OP:					str	:= 'Cannot control lamp. Not in OP state.';
+	E_LAMP_RPC_ERROR.NOT_NOTOP_READY:			str	:= 'Call failed. Not in NOTOP_READY.';
+	E_LAMP_RPC_ERROR.NOT_NOTOP_NOTREADY:		str	:= 'Call failed. Not in NOTOP_NOTREADY/ERROR.';
+	E_LAMP_RPC_ERROR.SWITCHING_ON:			str	:= 'Lamp OFF failed. Still switching ON.';
+	E_LAMP_RPC_ERROR.SWITCHING_OFF:			str	:= 'Lamp ON failed. Still switching OFF.';
+	E_LAMP_RPC_ERROR.COOLING:					str	:= 'Lamp ON failed. Still cooling down.';
+	E_LAMP_RPC_ERROR.LOCAL:					str	:= 'RPC calls not allowed in Local mode.';
+ELSE
+	str	:= 'Unregistered RPC error.';
+END_CASE
+
+M_GetRpcErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetLastCommand" Id="{084e1f0c-4562-4076-94b3-076fbbb0aeca}">
+      <Declaration><![CDATA[METHOD M_SetLastCommand
+VAR_INPUT
+	cmd:	E_LAMP_COMMAND;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nLastCommand	:= cmd;
+
+CASE cmd OF
+	E_LAMP_COMMAND.RESET:
+		stat.sLastCommand	:= 'RESET';
+	E_LAMP_COMMAND.INIT:
+		stat.sLastCommand	:= 'INIT';
+	E_LAMP_COMMAND.STOP:
+		stat.sLastCommand	:= 'STOP';
+	E_LAMP_COMMAND.ENABLE:
+		stat.sLastCommand	:= 'ENABLE';
+	E_LAMP_COMMAND.DISABLE:
+		stat.sLastCommand	:= 'DISABLE';
+	E_LAMP_COMMAND.ON:
+		stat.sLastCommand	:= 'ON';
+	E_LAMP_COMMAND.OFF:
+		stat.sLastCommand	:= 'OFF';
+ELSE
+		stat.sLastCommand	:= 'NONE';
+END_CASE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetRpcStatus" Id="{8fc853df-88b2-40ab-99ba-2b788cf16ba9}">
+      <Declaration><![CDATA[METHOD M_SetRpcStatus : INT
+VAR_INPUT
+	nErrorCode:	E_LAMP_RPC_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nRpcErrorCode	:= nErrorCode;
+stat.sRpcErrorText	:= M_GetRpcErrorText(nErrorCode);
+
+M_SetRpcStatus		:= nErrorCode;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateCtrlParams" Id="{b04f9099-393e-40fe-beb7-380b5fa09589}">
+      <Declaration><![CDATA[METHOD M_UpdateCtrlParams : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Turn the control signal ON  and set the intensity *)
+q_bSwitch			:= M_GetLogicalState(TRUE, cfg.bActiveLowSwitch);
+stat.lrIntensity	:= ctrl.lrIntensity;
+q_nIntensity		:= LREAL_TO_INT(stat.lrIntensity / 100.0 * cfg.nFullRange);
+
+// Save time limit for ON and clear it from the command parameters
+stat.nTimeOnLimit	:= ctrl.nTimeOnLimit;
+ctrl.nTimeOnLimit	:= 0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Disable" Id="{60466611-4f84-4632-bec6-707cbadd749d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Disable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Disable	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Disable command is accepted only if device is in OP state.
+IF stat.nState <> E_LAMP_STATE.OP THEN
+	RPC_Disable	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSE
+	// Set disable command
+	ctrl.nCommand := E_LAMP_COMMAND.DISABLE;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Disable	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Enable" Id="{4d9488e9-b083-4821-aa71-d9c5fd8da4b8}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Enable : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Enable	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// Enable command is accepted only if device is in NOTOP_READY.
+IF	stat.nState = E_LAMP_STATE.NOTOP					AND  
+	stat.nSubstate <> E_LAMP_SUBSTATE.NOTOP_READY_OFF	AND  
+	stat.nSubstate <> E_LAMP_SUBSTATE.NOTOP_READY_ON		THEN
+	RPC_Enable	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.NOT_NOTOP_READY);
+	RETURN;
+ELSE
+	// Set enable command
+	ctrl.nCommand := E_LAMP_COMMAND.ENABLE;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Enable	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Init" Id="{aae974ee-71ef-440d-920b-33456756aa63}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Init : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stat.bLocal THEN
+	// RPC calls are not allowed in Local mode.
+	RPC_Init	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+ELSIF i_nCouplerState <> 8 THEN
+	// EtherCAT is not OPERATIONAL, device cannot be initialised.
+	RPC_Init	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF	stat.nSubstate <> E_LAMP_SUBSTATE.NOTOP_NOTREADY	AND  
+		stat.nSubstate <> E_LAMP_SUBSTATE.NOTOP_ERROR		THEN
+	// Init command is accepted only if device is in NOTOP_NOTREADY or ERROR.
+	RPC_Init	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.NOT_NOTOP_NOTREADY);
+	RETURN;
+ELSE
+	// Set INIT command
+	ctrl.nCommand := E_LAMP_COMMAND.INIT;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Init	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Off" Id="{e12adfdb-fdab-41b1-b2c9-f1cd1467e8a1}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Off : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Off	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// OFF command is accepted only in OP state.
+IF	stat.nState <> E_LAMP_STATE.OP	THEN
+	RPC_Off	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF stat.nSubstate = E_LAMP_SUBSTATE.OP_SWITCHING_ON THEN
+	// Lamp should not be commanded to go OFF if being switched ON.
+	RPC_Off	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.SWITCHING_ON);
+	RETURN;
+ELSE
+	// Set OFF command
+	ctrl.nCommand := E_LAMP_COMMAND.OFF;
+	ctrl.bExecute := TRUE;
+	
+	// Call was successful
+	RPC_Off	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_On" Id="{aba17171-3ae5-45f9-bc45-4035bb8f1d6b}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_On : INT
+VAR_INPUT
+	in_lrIntensity:		LREAL	:= 0.0;	// Intensity 0-100% [%]
+	in_nTimeOnLimit:	UDINT	:= 0;	// Auto OFF after this time [sec]. 0 - no limit
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_On	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+// ON command is accepted only in OP state and NOT COOLING.
+IF	stat.nState <> E_LAMP_STATE.OP	THEN
+	RPC_On	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.NOT_OP);
+	RETURN;
+ELSIF stat.nSubstate = E_LAMP_SUBSTATE.OP_COOLING THEN
+	RPC_On	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.COOLING);
+	RETURN;
+ELSIF stat.nSubstate = E_LAMP_SUBSTATE.OP_SWITCHING_OFF THEN
+	// Lamp should not be commanded to go ON if being switched OFF.
+	RPC_On	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.SWITCHING_OFF);
+	RETURN;
+ELSE
+	// Set ON command
+	ctrl.nCommand 		:= E_LAMP_COMMAND.ON;
+	ctrl.lrIntensity	:= in_lrIntensity;
+	ctrl.nTimeOnLimit	:= in_nTimeOnLimit;
+	ctrl.bExecute 		:= TRUE;
+	
+	// Call was successful
+	RPC_On	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Reset" Id="{009bb7f2-47b9-4dea-b080-934391fea01c}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Reset : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Reset	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_LAMP_COMMAND.RESET;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Reset	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDebug" Id="{6040db75-ab4c-46c7-98e4-7457ef13f944}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDebug : INT
+VAR_INPUT
+	in_bDebug:	BOOL 	:= FALSE;		// If TRUE, activate event logging of Debug type
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Debugging
+cfg.bDebug	:= in_bDebug;
+
+// Call was successful
+RPC_SetDebug	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetLog" Id="{43bfa140-8be5-4a9c-bdd7-b6149496dbd5}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetLog : INT
+VAR_INPUT
+	in_bLog:	BOOL 	:= FALSE;		// If TRUE, activate event logging
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Enable/disable Logging
+cfg.bLog	:= in_bLog;
+
+// Call was successful
+RPC_SetLog	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_Stop" Id="{b2dd7536-18fe-40cb-90c1-82c88b5daf9d}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_Stop : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_Stop	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.LOCAL);
+	RETURN;
+END_IF
+
+ctrl.nCommand := E_LAMP_COMMAND.STOP;
+ctrl.bExecute := TRUE;
+
+// Call was successful
+RPC_Stop	:= M_SetRpcStatus(E_LAMP_RPC_ERROR.OK);
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_LAMP">
+      <LineId Id="51" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionDisableExecute">
+      <LineId Id="13" Count="1" />
+      <LineId Id="23" Count="2" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="17" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionEnableComplete">
+      <LineId Id="3" Count="1" />
+      <LineId Id="14" Count="2" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionErrExecute">
+      <LineId Id="3" Count="3" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionInitAbort">
+      <LineId Id="3" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionInitComplete">
+      <LineId Id="3" Count="1" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionInitExecute">
+      <LineId Id="32" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="56" Count="2" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="33" Count="7" />
+      <LineId Id="66" Count="2" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="41" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionInitReject">
+      <LineId Id="3" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionMaxOnFailure">
+      <LineId Id="3" Count="2" />
+      <LineId Id="28" Count="2" />
+      <LineId Id="6" Count="7" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="14" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionOffExecute">
+      <LineId Id="3" Count="2" />
+      <LineId Id="33" Count="2" />
+      <LineId Id="6" Count="8" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="15" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionOnExecute">
+      <LineId Id="3" Count="3" />
+      <LineId Id="36" Count="2" />
+      <LineId Id="7" Count="6" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="14" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionResetExecute">
+      <LineId Id="3" Count="1" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="5" Count="5" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActionUnexpExecute">
+      <LineId Id="3" Count="2" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivityCoolingDown">
+      <LineId Id="3" Count="16" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="20" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivityDisabling">
+      <LineId Id="3" Count="10" />
+      <LineId Id="42" Count="2" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="17" Count="3" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="24" Count="9" />
+      <LineId Id="48" Count="2" />
+      <LineId Id="34" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivityInitializing">
+      <LineId Id="3" Count="34" />
+      <LineId Id="47" Count="2" />
+      <LineId Id="38" Count="2" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivityOff">
+      <LineId Id="8" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivityOn">
+      <LineId Id="9" Count="1" />
+      <LineId Id="3" Count="2" />
+      <LineId Id="14" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivitySwitchingOff">
+      <LineId Id="3" Count="35" />
+      <LineId Id="105" Count="2" />
+      <LineId Id="39" Count="3" />
+      <LineId Id="108" Count="2" />
+      <LineId Id="43" Count="2" />
+      <LineId Id="100" Count="1" />
+      <LineId Id="51" Count="13" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivitySwitchingOn">
+      <LineId Id="3" Count="40" />
+      <LineId Id="83" Count="2" />
+      <LineId Id="44" Count="3" />
+      <LineId Id="80" Count="2" />
+      <LineId Id="48" Count="3" />
+      <LineId Id="53" Count="9" />
+      <LineId Id="77" Count="2" />
+      <LineId Id="63" Count="4" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.ActivityWarmingUp">
+      <LineId Id="3" Count="14" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="18" Count="3" />
+      <LineId Id="31" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.CheckForEvents">
+      <LineId Id="109" Count="15" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="228" Count="0" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="230" Count="1" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="127" Count="32" />
+      <LineId Id="217" Count="2" />
+      <LineId Id="160" Count="32" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="193" Count="16" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.M_GetRpcErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.M_SetLastCommand">
+      <LineId Id="3" Count="18" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.M_SetRpcStatus">
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.M_UpdateCtrlParams">
+      <LineId Id="7" Count="3" />
+      <LineId Id="14" Count="3" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_Disable">
+      <LineId Id="28" Count="5" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="17" Count="5" />
+      <LineId Id="13" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_Enable">
+      <LineId Id="40" Count="5" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="29" Count="5" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_Init">
+      <LineId Id="35" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="36" Count="1" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="46" Count="1" />
+      <LineId Id="12" Count="1" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="21" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_Off">
+      <LineId Id="48" Count="5" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="18" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_On">
+      <LineId Id="50" Count="5" />
+      <LineId Id="8" Count="1" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="19" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_Reset">
+      <LineId Id="19" Count="5" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_SetDebug">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_SetLog">
+      <LineId Id="61" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_LAMP.RPC_Stop">
+      <LineId Id="19" Count="5" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="11" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

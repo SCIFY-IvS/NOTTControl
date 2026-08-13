@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MOTOR_MODE" Id="{a06e4a35-fc6d-4f0c-92a6-b7bd4f9bfa61}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MOTOR_MODE :
+(
+	POS				:= 0,
+	VEL
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <POU Name="FB_IODEV_2_4_2_2_USER_CONFIG" Id="{1cb0f4e0-da22-4f09-b830-732d2f4f14b3}" SpecialFunc="None">
+    <Declaration><![CDATA[// EXAMPLE: Customised FB_IODEV_BASE for 2 DI, 4 AI, 2 DO and 2 AO.
+//          Overloaded M_UserConfigure() method for User Configuration of channels.
+FUNCTION_BLOCK FB_IODEV_2_4_2_2_USER_CONFIG EXTENDS FB_IODEV_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Control parameters that EXTEND T_IODEV_CTRL
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:	T_IODEV_CTRL_2_2;	
+	// Status parameters that EXTEND T_IODEV_STAT
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:	T_IODEV_STAT_2_4;	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//
+// TODO_USER
+//
+//
+// Set References
+RefCtrl	REF=ctrl;
+RefStat	REF=stat;
+
+// Set number of channels for each type.
+// Default values are set to zero.
+// Set whatever is not zero, i.e. whatever is defined.
+// WARNING: The values MUST match the sizes of corresponding arrays above !!!
+//
+cfg.nNum_DI		:=	2; 	// Number of digital INPUT signals, arrDI:	ARRAY [0..1]
+cfg.nNum_AI		:=	4; 	// Number of analog INPUT signals,  arrAI:	ARRAY [0..3]
+//cfg.nNum_DisI	:=	0; 	// Number of discrete INPUT signals
+//cfg.nNum_TI	:=	0; 	// Number of text INPUT signals
+
+cfg.nNum_DO		:=	2; 	// Number of digital OUTPUT signals, arrDO:	ARRAY [0..1]
+cfg.nNum_AO		:=	2; 	// Number of analog OUTPUT signals,  arrAO:	ARRAY [0..1]
+//cfg.nNum_DisO	:=	0; 	// Number of discrete OUTPUT signals
+//cfg.nNum_TO	:=	0; 	// Number of text OUTPUT signals
+
+//
+// Set pointers for EXISTING arrays ONLY, e.g. arrDI, arrAI, etc.
+//
+pArrDI	:= ADR(stat.arrDI[0]);
+pArrAI	:= ADR(stat.arrAI[0]);
+pArrDO	:= ADR(ctrl.arrDO[0]);
+pArrAO	:= ADR(ctrl.arrAO[0]);
+
+//
+// Execute the base class object FB_IODEV_BASE
+//
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_UserConfigure" Id="{77f5dbc1-debe-4ddd-a95d-c4599803cef9}">
+      <Declaration><![CDATA[// TODO_USER
+//
+// Define individual channel configurations, if used.
+METHOD M_UserConfigure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO_USER
+//
+// Example implementation.
+// Hard code any signal configuration.
+//
+
+// Configuration parameter cfg.bUserConfig defines if 
+// the hard-coded configuration below should be used or
+// the signals will be configured from the WS.
+
+//
+// Digital signals
+//
+// Digital inputs (defined in stat structure T_IODEV_STAT_CUSTOM)
+// Signal DI[0] is a door open signal
+// Signal DI[1] is a light switch signal
+stat.arrDI[0].M_Configure('CLOSED', 'OPEN');
+stat.arrDI[1].M_Configure('OFF',    'ON');
+
+// Digital outputs (defined in ctrl structure T_IODEV_CTRL_CUSTOM)
+// Signal DO[0] is a pure digital signal without user defined labels
+// Signal DO[1] is a light switch signal that is controlled by setting User labels 'OFF' and 'ON'.
+ctrl.arrDO[0].M_Configure(CONVERSION_IODEV_NONE, 	'0', 	'1');
+ctrl.arrDO[1].M_Configure(CONVERSION_IODEV_DIGITAL,	'OFF',	'ON');
+
+
+//
+// Analog signals
+//
+// Analog inputs (defined in stat structure T_IODEV_STAT_CUSTOM)
+stat.arrAI[0].M_Configure(CONVERSION_IODEV_NONE, 		0.0,   0.0, 0.0);
+stat.arrAI[1].M_Configure(CONVERSION_IODEV_LINEAR, 		2.0,   1.0, 0.0);
+stat.arrAI[2].M_Configure(CONVERSION_IODEV_QUADRATIC,	2.0,   1.0, 5.0);
+// Edwards pressure guage
+// P =10^(1.5*V - 12)    [mbar]
+// 16-bit A/D converter, +=10V, e.g. EL3102.
+// 1V = 2^16/10/2 = 3276.8 bit
+// P = 10^(1.5*V - 12) = 10^(1.5/3276.8*bit - 12) = 10^(0.000457763*bit - 12)
+stat.arrAI[3].M_Configure(CONVERSION_IODEV_EXP10, 	0.000457763, -12.0, 0.0);	
+
+//
+// Analog outputs (defined in ctrl structure T_IODEV_CTRL_CUSTOM)
+ctrl.arrAO[0].M_Configure(CONVERSION_IODEV_NONE, 	0.0,   0.0, 0.0);	// No conversion
+ctrl.arrAO[1].M_Configure(CONVERSION_IODEV_LINEAR, 	0.1,   0.0, 0.0);	// out = User/10
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_2_4_2_2_USER_CONFIG">
+      <LineId Id="126" Count="5" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="91" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="80" Count="1" />
+      <LineId Id="99" Count="1" />
+      <LineId Id="84" Count="4" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="72" Count="3" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_2_4_2_2_USER_CONFIG.M_UserConfigure">
+      <LineId Id="113" Count="0" />
+      <LineId Id="108" Count="4" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="23" Count="1" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="76" Count="1" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="26" Count="2" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="64" Count="4" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="87" Count="3" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

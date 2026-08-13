@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_slaPa" Id="{bbdc1fe0-f8b2-4822-866f-b9922420242c}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+/*+
+**  - - - - - -
+**   s l a P a
+**  - - - - - -
+**
+**  HA, Dec to Parallactic Angle.
+**
+**  (double precision)
+**
+**  Given:
+**     ha     d     hour angle in radians (geocentric apparent)
+**     dec    d     declination in radians (geocentric apparent)
+**     phi    d     observatory latitude in radians (geodetic)
+**
+**  The result is in the range -pi to +pi
+**
+*)
+FUNCTION F_slaPa : LREAL
+VAR_INPUT
+	ha, dec, phi:	LREAL;
+END_VAR
+VAR
+	cp, cqsz, sqsz:	LREAL;
+	result:			LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+{
+   double cp, cqsz, sqsz;
+
+   cp = cos ( phi );
+   sqsz = cp * sin ( ha );
+   cqsz = sin ( phi ) * cos ( dec) - cp * sin ( dec) * cos ( ha );
+   return ( ( sqsz != 0.0 || cqsz != 0.0 ) ? atan2 ( sqsz, cqsz ) : 0.0 );
+}
+*)
+
+cp := COS ( phi );
+sqsz := cp * SIN ( ha );
+cqsz := SIN ( phi ) * COS ( dec) - cp * SIN ( dec) * COS ( ha );
+
+//   return ( ( sqsz != 0.0 || cqsz != 0.0 ) ? atan2 ( sqsz, cqsz ) : 0.0 );
+IF sqsz <> 0.0 OR cqsz <> 0.0 THEN
+	result	:= F_atan2(sqsz, cqsz);
+ELSE
+	result	:= 0.0;
+END_IF
+	
+F_slaPa	:= result;]]></ST>
+    </Implementation>
+    <LineIds Name="F_slaPa">
+      <LineId Id="7" Count="0" />
+      <LineId Id="30" Count="7" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="39" Count="2" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="49" Count="1" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

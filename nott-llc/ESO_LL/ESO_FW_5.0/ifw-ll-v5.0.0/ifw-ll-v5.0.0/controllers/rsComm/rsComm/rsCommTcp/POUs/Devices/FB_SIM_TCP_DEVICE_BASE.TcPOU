@@ -1,0 +1,232 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SIM_TCP_DEVICE_BASE" Id="{7dfba500-9546-4391-ac99-f20ee87d6803}" SpecialFunc="None">
+    <Declaration><![CDATA[//
+// This is the BASE FB for simulators of TCP based devices.
+// This a 
+// See also FB_SIM_TCP_LAKESHORE that EXTENDS FB_SIM_TCP_DEVICE_BASE
+// 
+FUNCTION_BLOCK FB_SIM_TCP_DEVICE_BASE
+VAR_INPUT
+	// Simulation flag.
+	// If TRUE, it means that it doesn't use real network HW but
+	// rather localhost IP address '127.0.0.1'.
+	// In other words, it simulates a device on the same PLC.
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bSimulation:		BOOL := FALSE;		
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bEnable:			BOOL	:= TRUE;	// If TRUE, simulator is active
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nModel:			DINT;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReplySuffix:	STRING(16);			// Terminator for reply
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sTcpIpAdr: 		STRING(16);			// Server IP address, e.g. '192.168.0.80' 
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nTcpPort:		UINT;				// Server Tcp port 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	Device:		FB_TCP_SERVER;
+	sReply:		STRING(255);
+	ptrDevCtrl:	POINTER TO T_TCP_SERVER_CTRL	:= ADR(Device.ctrl);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT in_bEnable THEN
+	RETURN;
+ELSE
+	Device(	in_bSimulation	:= in_bSimulation,
+			in_sTcpIpAdr	:= in_sTcpIpAdr,
+			in_nTcpPort		:= in_nTcpPort);
+	
+	IF Device.out_bAccepted AND Device.out_bReceived THEN
+		// A command has arrived. Send a simulated reply
+		sReply	:=	M_GetSimReply(in_sReceived	:=Device.out_sReceived); 
+		
+		// Trigger SEND
+		ptrDevCtrl^.nCommand	:= E_RS_COMM_CMD.SEND;
+		ptrDevCtrl^.sCmd		:= sReply;
+		ptrDevCtrl^.bExecute	:= TRUE;
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="M_ActivityDo" Id="{16635484-ecb2-463d-8181-68c9826b7e44}">
+      <Declaration><![CDATA[METHOD M_ActivityDo
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GenerateRandom_LREAL" Id="{c678ede3-400c-4fe9-bccf-753bac6c3a5d}">
+      <Declaration><![CDATA[// Get random value in_lrValue + (in_lrNominator * DRAND)
+METHOD M_GenerateRandom_LREAL : LREAL
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrValue:		LREAL;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrNominator:	LREAL;
+END_VAR
+VAR
+	lrVal:	LREAL;
+	lrRand:	LREAL;
+	fbDrand:	Tc2_System.DRAND;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+	nSeed:	INT := 0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbDrand(Seed:=nSeed);
+nSeed	:= nSeed + 1;
+lrRand	:= in_lrNominator * fbDrand.Num;
+lrVal	:= in_lrValue + lrRand;
+
+M_GenerateRandom_LREAL	:= lrVal;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Get_INT_TO_STRING" Id="{76310536-5f21-4e01-8e6e-5ff17fa0c3d9}">
+      <Declaration><![CDATA[// Get string with terminator. 
+METHOD M_Get_INT_TO_STRING : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nValue:		INT;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Add sufix, if any
+IF in_sReplySuffix <> '' THEN
+	M_Get_INT_TO_STRING	:= CONCAT (INT_TO_STRING(in_nValue),in_sReplySuffix);
+ELSE
+	M_Get_INT_TO_STRING	:= INT_TO_STRING(in_nValue);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Get_LREAL_TO_STRING" Id="{c19b7f32-b436-4d41-b2ab-186e68e050e7}">
+      <Declaration><![CDATA[// Get string with given precision and add terminator. 
+METHOD M_Get_LREAL_TO_STRING : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrValue:		LREAL;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPrecision:	INT	:= 2;	// Number of decimal places, default 2
+END_VAR
+VAR
+	lrVal:		LREAL;
+    fbFormat:	FB_FormatString;
+	sFormat:	STRING;
+    sVal:		T_MaxString;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get the input value
+lrVal	:= in_lrValue;
+// Create a string like '%.2f'
+sFormat	:= CONCAT(CONCAT('%.', INT_TO_STRING(in_nPrecision)),'f');
+// Print LREAL with <in_nPrecision> decimal places
+fbFormat( sFormat := sFormat, arg1 := F_LREAL( lrVal ), sOut => sVal);
+
+// Add sufix, if any
+IF in_sReplySuffix <> '' THEN
+	M_Get_LREAL_TO_STRING	:= CONCAT (sVal,in_sReplySuffix);
+ELSE
+	M_Get_LREAL_TO_STRING	:= sVal;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetRandom_LREAL_TO_STRING" Id="{693a42b8-f0a3-4994-8799-18964c313d6b}">
+      <Declaration><![CDATA[METHOD M_GetRandom_LREAL_TO_STRING : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrValue:		LREAL;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_lrNominator:	LREAL;
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPrecision:	INT	:= 2;	// Number of decimal places, default 2
+END_VAR
+VAR
+	lrVal:		LREAL;
+    fbFormat:	FB_FormatString;
+	sFormat:	STRING;
+    sVal:		T_MaxString;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Get a random value
+lrVal	:= M_GenerateRandom_LREAL(in_lrValue,in_lrNominator);
+// Create a string like '%.2f'
+sFormat	:= CONCAT(CONCAT('%.', INT_TO_STRING(in_nPrecision)),'f');
+// Print LREAL with <in_nPrecision> decimal places
+fbFormat( sFormat := sFormat, arg1 := F_LREAL( lrVal ), sOut => sVal);
+
+// Add sufix, if any
+IF in_sReplySuffix <> '' THEN
+	M_GetRandom_LREAL_TO_STRING	:= CONCAT (sVal,in_sReplySuffix);
+ELSE
+	M_GetRandom_LREAL_TO_STRING	:= sVal;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSimReply" Id="{b51f6a30-d5d4-4641-830d-5609ca39cfc3}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReceived:	STRING(255);		// String received from a client
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement simulater replies in FBs that EXTEND FB_SIM_RS_COMM_BASE.
+M_GetSimReply := '';	// Dummy implementation]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE">
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="1" />
+      <LineId Id="66" Count="1" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="25" Count="2" />
+      <LineId Id="29" Count="1" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="13" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE.M_ActivityDo">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE.M_GenerateRandom_LREAL">
+      <LineId Id="172" Count="5" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE.M_Get_INT_TO_STRING">
+      <LineId Id="155" Count="3" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE.M_Get_LREAL_TO_STRING">
+      <LineId Id="148" Count="12" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE.M_GetRandom_LREAL_TO_STRING">
+      <LineId Id="185" Count="12" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_TCP_DEVICE_BASE.M_GetSimReply">
+      <LineId Id="160" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

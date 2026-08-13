@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_HEALTH_STATUS" Id="{353d5357-15d7-4497-b801-b5a9f6588c9f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_HEALTH_STATUS
+VAR_INPUT
+	// TRUE if the subject is in Good health
+	bIsGood: BOOL;
+	// TRUE to add a warning to the Good health state
+	bHasWarning: BOOL := FALSE;
+	// TRUE if the health status is used
+	bIsEnabled: BOOL := TRUE;
+END_VAR
+VAR_OUTPUT
+	// TRUE if the subject is enabled
+	bEnabled: BOOL;
+    // TRUE if the subject is in good health
+	bGood: BOOL;
+	// TRUE if the subject is in good health, but there are one or more warnings present
+	bWarning: BOOL;
+	// TRUE if the subject is in bad health
+	bBad: BOOL;
+END_VAR
+VAR_IN_OUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[bEnabled := bIsEnabled;
+bBad := (NOT(bIsGood)) AND bIsEnabled;
+bGood := (bIsGood AND (NOT(bHasWarning))) AND bIsEnabled;
+bWarning := (bIsGood AND bHasWarning) AND bIsEnabled;
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_HEALTH_STATUS">
+      <LineId Id="120" Count="0" />
+      <LineId Id="92" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
