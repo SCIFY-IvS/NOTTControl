@@ -154,9 +154,11 @@ class DelayLine(Motor):
         self.ongoing_sequence = False
 
     def move_sequence_rel(self, rel_pos: float, check_valid: bool= True,
-                    cp_backlash=True):
+                    cp_backlash=True,
+                    dt=0.1, timeout=30.,
+                    initial=None, verbose=False):
         target_pos = self.position_microns + rel_pos
-        
+        self.move_sequence(target_pos, check_valid, cp_backlash, dt, timeout, initial, verbose)
         
 
     def move_abs(self, target_pos: float, check_valid: bool= True):
