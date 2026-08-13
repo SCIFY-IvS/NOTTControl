@@ -19,8 +19,8 @@ class DelayLine(Motor):
 
     def __init__(self, opcua_conn, opcua_prefix: str, name: str,
                  speed: float = None, pos_min: float = 0.0,
-                 pos_max: float = 12500.0,
-                 backlash=4.0, deadband=0.02):
+                 pos_max: float = 12500.0, prev_dir: int=0,
+                 backlash: float=4.0, deadband: float=0.02):
         """
         Params
         ------
@@ -34,15 +34,31 @@ class DelayLine(Motor):
                 - defaults to 0.0
         pos_max : upper bound of travel range (µm)
                 - defaults to 12500.0 (CMA12PP open-loop stepper CMA actuator)
+        prev_dir : direction of previous move
+                - 0 if no previous move has occurred
+                - -1 if previous move was in the negative direction
+                - +1 if previous move was in the positive direction
+        backlash : backlash to compensate upon switching direction (um)
+                - defaults to 4.0
+        deadband : displacement below which not to call motion (um)
+                - defaults to 0.02
         """
         if speed is None:
             speed = float(config.getint('DL', 'default_speed'))
         super().__init__(opcua_conn, opcua_prefix, name, speed)
         self.pos_min = pos_min
         self.pos_max = pos_max
+        self.prev_dir = prev_dir
         self.backlash = backlash
         self.ongoing_sequence = False
         self.deadband = deadband
+
+        # Move negative to neutralize backlash and establish direction
+        init_pos = self.position_microns
+        target_pos = init_pos - 3*backlash
+        self.move_sequence(target_pos, cp_backlash=False)
+        # Move back to initial position
+        self.move_sequence(init_pos, cp_backlash=True)
 
     # Status checks
 
@@ -110,9 +126,12 @@ class DelayLine(Motor):
                     initial=None, verbose=False):
         self.ongoing_sequence = True
         distance = target_pos - self.position_microns
-        need_cp = (not distance  >= 0.) and np.abs(distance) >= self.deadband 
+        # Direction of requested move
+        curr_dir = np.sign(distance, dtype=int)
+        # Compensate backlash if direction of motion changed and motion is beyond deadband.
+        need_cp = (not curr_dir == self.prev_dir) and np.abs(distance) >= self.deadband 
         if need_cp and cp_backlash:
-            self.move_abs(self.position_microns - self.backlash)
+            self.move_abs(self.position_microns + curr_dir * self.backlash)
             sleep(0.2)
             if verbose:
                 print(self.position_microns, self.target_microns)
@@ -131,11 +150,12 @@ class DelayLine(Motor):
             print(t_est)
         self.await_motor(dt=dt, timeout=t_est+10., verbose=verbose)
 
+        self.prev_dir = curr_dir
         self.ongoing_sequence = False
 
     def move_sequence_rel(self, rel_pos: float, check_valid: bool= True,
                     cp_backlash=True):
-        target_pos = self.positio_microns + rel_pos
+        target_pos = self.position_microns + rel_pos
         
         
 
