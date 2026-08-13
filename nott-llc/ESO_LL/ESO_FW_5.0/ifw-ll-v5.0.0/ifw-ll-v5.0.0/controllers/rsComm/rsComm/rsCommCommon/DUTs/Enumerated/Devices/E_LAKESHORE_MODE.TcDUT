@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_LAKESHORE_MODE" Id="{8568dac4-960c-4f3a-9b39-b8e92e069be9}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_LAKESHORE_MODE :
+(
+	MONITORING := 0,
+	COOLING,
+	WARMUP,
+	COOLING_UPDATE,
+	WARMUP_UPDATE,
+	SINGLE_SETUP,
+	STOP
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

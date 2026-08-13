@@ -6,6 +6,8 @@
 
 #include "macie_lib.h"
 
+#include <errno.h>
+
 using std::map;
 using std::string;
 using std::vector;
@@ -17,6 +19,44 @@ static timestamp_t get_timestamp()
     struct timeval now;
     gettimeofday(&now, NULL);
     return now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \brief EnsureDirectoryExists Create path and missing parents (mkdir -p).
+bool EnsureDirectoryExists(const string &path)
+{
+    if (path.empty())
+        return false;
+
+    struct stat st = {0};
+    if (stat(path.c_str(), &st) == 0)
+        return S_ISDIR(st.st_mode);
+
+    string normalized = path;
+    while (normalized.size() > 1 && normalized[normalized.size() - 1] == '/')
+        normalized.erase(normalized.size() - 1);
+
+    for (size_t i = 1; i <= normalized.size(); ++i)
+    {
+        if (i < normalized.size() && normalized[i] != '/')
+            continue;
+
+        string partial = normalized.substr(0, i);
+        if (partial.empty() || partial == "/")
+            continue;
+
+        if (stat(partial.c_str(), &st) == -1)
+        {
+            if (mkdir(partial.c_str(), 0700) != 0 && errno != EEXIST)
+                return false;
+        }
+        else if (!S_ISDIR(st.st_mode))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // Sleep for some number of millisec
@@ -82,6 +122,9 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     // ptUserData->nBytesMin       = 1024 * 1024;
     ptUserData->nBytesMax = UINT_MAX;    // Maximum number of total bytes allowed for mem allocation
     ptUserData->bUseSciDataFunc = false; // Use MACIE_ReadUSBScienceData() or MACIE_ReadUSBFrameData()?
+    ptUserData->bScienceInterfaceOpen = false;
+    ptUserData->bKeepScienceInterface = false;
+    ptUserData->nPixBufferScienceConfigured = 0;
 
     ptUserData->bSaveData = false;
     ptUserData->uiFileNum = 0;
@@ -91,6 +134,16 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
 
     ptUserData->bStripeModeAllowed = false;
     ptUserData->bStripeMode = false;
+    ptUserData->bSoftStripeActive = false;
+    ptUserData->uiSoftStripeY1 = 0;
+    ptUserData->uiSoftStripeY2 = 0;
+    ptUserData->bSoftSerialRamps = false;
+    ptUserData->uiSoftSerialNRamps = 0;
+
+    ptUserData->pDisplayPreview = NULL;
+    ptUserData->displayPreviewNx = 0;
+    ptUserData->displayPreviewNy = 0;
+    ptUserData->bDisplayPreviewValid = false;
 
     // Pixel clocking scheme for full frame and subarray window
     // Normal (0) or Enhanced (1)
@@ -748,6 +801,17 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
     }
     else // Slow Mode
     {
+        // Soft SC: refresh StripeReads*/Skips* before the h6900 latch so a DIT
+        // reconfigure copies the soft window into the MCD data table (5401–5405).
+        // Do NOT rewrite those counters after reconfigure — that desyncs GigE
+        // (~0xFFFF / 65535 ADU), same class of bug as touching 4024 around open/close.
+        if (ptUserData->bSoftStripeActive &&
+            ASIC_STRIPEMode(ptUserData, false, false))
+        {
+            unsigned int ypix_pre = 0;
+            ypix_burst_stripe(ptUserData, &ypix_pre, true);
+        }
+
         unsigned int idle_value = 0;
         unsigned int regtemp = 0;
         unsigned int time_tot = 0;
@@ -758,11 +822,17 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         unsigned int ff_time_ms = ff_time_pix / ptUserData->pixelRate;
         unsigned int timeout = 0;
         unsigned int ypix = 0;
+        double exp_ft_ms = exposure_frametime_ms(ptUserData);
+        // Use the larger of full-frame and current geometry; keep a floor so
+        // window/stripe misconfig cannot leave us with a tiny timeout.
         if ((ypix_burst_stripe(ptUserData, &ypix, false) == true) || (nout > 1))
             timeout = 2 * ff_time_ms;
         else
-            timeout = 2 * exposure_frametime_ms(ptUserData);
-        // unsigned int timeout = 2 * exposure_frametime_ms(ptUserData);
+            timeout = 2 * (unsigned int)(exp_ft_ms + 0.5);
+        if (timeout < 2 * (unsigned int)(exp_ft_ms + 0.5))
+            timeout = 2 * (unsigned int)(exp_ft_ms + 0.5);
+        if (timeout < 10000)
+            timeout = 10000;
         if (timeout < time_wait)
             timeout = 2 * time_wait;
 
@@ -775,6 +845,7 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         if (WriteASICBits(ptUserData, regWrite) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "WriteASICReg failed in %s\n", __func__);
+            delete regWrite;
             return false;
         }
 
@@ -799,6 +870,7 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
             if (ReadASICBits(ptUserData, regWrite, &regtemp) == false)
             {
                 verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+                delete regWrite;
                 return false;
             }
 
@@ -810,8 +882,13 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfiguration failed with h%04x<%i:%i> = 0x%04x. Expecting 0x%04x\n",
                            regWrite->addr, regWrite->bit0, regWrite->bit1, regtemp, idle_value);
+            // Force halt so the next command is not stuck in reconfigure.
+            WriteASICReg(ptUserData, 0x6900, idle_value);
+            delay(200);
+            delete regWrite;
             return false;
         }
+        delete regWrite;
 
         // Make sure detector information is consistent
         unsigned int uiDetType = 0;
@@ -841,14 +918,27 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         }
     }
 
-    // Check if STRIPE Mode is enabled
-    // We need to update RowsPerFrame since this is not done properly
+    // Check if STRIPE Mode is enabled.
+    // RowsPerFrame / PixPerRow are ASIC *output* regs (cfg "(Out)"): under soft SC
+    // the ASIC Y window stays full-frame, so those outs often reflect full height and
+    // can change after each acquire. Force the delivered geometry into the outs for
+    // MACIE buffer sizing, but exposure_frametime_ms() uses the same geometry
+    // formula so UI timing stays stable.
     if (ASIC_STRIPEMode(ptUserData, false, false))
     {
         unsigned int ypix_sub = exposure_ypix(ptUserData);
-
+        unsigned int xpix_sub = exposure_xpix(ptUserData);
         unsigned int ExtraLines = 0;
+        unsigned int ExtraPixels = 0;
+        unsigned int nout = ASIC_NumOutputs(ptUserData);
+        if (nout < 1)
+            nout = 1;
         GetASICParameter(ptUserData, "ExtraLines", &ExtraLines);
+        GetASICParameter(ptUserData, "ExtraPixels", &ExtraPixels);
+        unsigned int ppr = xpix_sub / nout + ExtraPixels;
+        if (ptUserData->DetectorMode == CAMERA_MODE_SLOW)
+            ppr += 8;
+        SetASICParameter(ptUserData, "PixPerRow", ppr);
         SetASICParameter(ptUserData, "RowsPerFrame", ypix_sub + ExtraLines + 1);
     }
 
@@ -859,7 +949,8 @@ bool ReconfigureASIC(MACIE_Settings *ptUserData)
         return false;
     }
 
-    // Save exposure frame and ramp times to ptUserData for use during acquisition
+    // Soft/burst stripe: prefer geometry-based frame time (Out regs may have been
+    // clobbered again by GetASICSettings reading full-frame ASIC Y).
     ptUserData->frametime_ms = exposure_frametime_ms(ptUserData);
     ptUserData->ramptime_ms = exposure_ramptime_ms(ptUserData);
 
@@ -1263,6 +1354,115 @@ double MemBufferFrac(MACIE_Settings *ptUserData)
     return ((double)MACIE_AvailableScienceData(ptUserData->handle)) / nbytes_buf;
 }
 
+static int acquire_trigger_timeout_ms(MACIE_Settings *ptUserData, int nframes_save)
+{
+    double frametime_ms = ptUserData->frametime_ms;
+    double ramptime_ms = ptUserData->ramptime_ms;
+    int timeout = (int)(ramptime_ms + nframes_save * frametime_ms + 2 * frametime_ms + 100);
+
+    if (ptUserData->connection == MACIE_GigE)
+    {
+        // GigE delivery often lags ASIC clocking; USB-sized timeouts are too tight.
+        int gige_timeout = (int)(ramptime_ms + nframes_save * (frametime_ms + 2000.0) + 5000.0);
+        if (gige_timeout > timeout)
+            timeout = gige_timeout;
+    }
+
+    return timeout;
+}
+
+static int frame_fill_timeout_ms(MACIE_Settings *ptUserData, long nbytes_frm,
+                                 int triggerTimeout, long frame_index)
+{
+    int timeout = triggerTimeout + (int)(frame_index * ptUserData->frametime_ms * 2.0);
+
+    if (ptUserData->connection == MACIE_GigE)
+    {
+        int nbytes_timeout = (int)(nbytes_frm / 500.0) + (int)(ptUserData->frametime_ms + 2000.0);
+        if (nbytes_timeout > timeout)
+            timeout = nbytes_timeout;
+    }
+
+    return timeout;
+}
+
+static bool wait_for_science_bytes(MACIE_Settings *ptUserData, long nbytes_target,
+                                   int wait_delta, int timeout_ms, long *nbytes_out)
+{
+    int wait_total = 0;
+    long nbytes = 0;
+
+    while (wait_total <= timeout_ms)
+    {
+        if (ptUserData->offline_develop)
+            nbytes = nbytes_target;
+        else
+            nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+
+        if (nbytes >= nbytes_target)
+        {
+            if (nbytes_out != NULL)
+                *nbytes_out = nbytes;
+            return true;
+        }
+
+        delay(wait_delta);
+        wait_total += wait_delta;
+    }
+
+    if (ptUserData->offline_develop == false)
+        nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
+    if (nbytes_out != NULL)
+        *nbytes_out = nbytes;
+    return nbytes >= nbytes_target;
+}
+
+static bool EnsureAsicIdleBeforeAcquire(MACIE_Settings *ptUserData)
+{
+    if (ptUserData->offline_develop)
+        return true;
+
+    for (int attempt = 0; attempt < 2; ++attempt)
+    {
+        unsigned int regval = 0;
+        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
+
+        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+            return false;
+        }
+        if (regval == 0)
+            return true;
+
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "ASIC h6900<5:0>=0x%04x before acquire; halting (attempt %i)\n",
+                       regval, attempt + 1);
+        HaltCameraAcq(ptUserData);
+        // Soft-SC / live keep GigE open across serial triggers. Closing here
+        // forced a reopen race (and a segfault when reuse_science was stale).
+        if (!ptUserData->bKeepScienceInterface)
+            CloseScienceInterface(ptUserData);
+        delay(300);
+    }
+
+    unsigned int regval = 0;
+    regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
+    if (ReadASICBits(ptUserData, &regComp, &regval) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
+        return false;
+    }
+    if (regval != 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "ASIC still busy after halt: h6900<5:0>=0x%04x\n", regval);
+        return false;
+    }
+
+    return true;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief AcquireDataUSB Trigger the ASIC to start acquiring data.
 ///  First configure science USB data interface then trigger exposure acquisition.
@@ -1308,40 +1508,21 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
     // int buffsize = exposure_xpix(ptUserData) * exposure_ypix(ptUserData);
     // ptUserData->bUseSciDataFunc = false;
 
-    // Function to update any burst-stripe features (h4300-h4304 and h4034)
+    // Do not rewrite StripeReads* here: touching 4024… around GigE open/close
+    // starved downloads. Counters are programmed only in set_frame_settings.
     unsigned int ypix = ptUserData->uiDetectorHeight;
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
+    if (ypix_burst_stripe(ptUserData, &ypix, false) == true)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe is enabled with %i rows.\n", ypix);
-        // Delay partial frame time to ensure proper transition from full frame to stripe
-        delay(int(0.5 * ptUserData->frametime_ms));
-    }
     else
-    {
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
-    }
 
-    // Make sure h6900<0> is 0 before triggering acquisition.
-    // For USB, this must be done before configuring interface,
-    // because USB interface's data read and command read share
-    // the same USB pipe.
-    if (ptUserData->offline_develop == false)
-    {
-        unsigned int regval = 0;
-
-        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
-        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
-            return false;
-        }
-        if (regval != 0)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed with h6900<5:0> = 0x%04x\n", regval);
-            return false;
-        }
-    }
+    if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
+        return false;
     verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
+
+    // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+    CloseScienceInterface(ptUserData);
+    delay(100);
 
     // Set up USB3 science data interface for image acquisition.
     // MACIE_CloseUSBScienceInterface needs to be called before we
@@ -1357,7 +1538,9 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         {
             if (MACIE_ConfigureUSBScienceInterface(handle, slctMACIEs, data_mode, buffsize, nbuf) != MACIE_OK)
             {
-                verbose_printf(LOG_ERROR, ptUserData, "Science interface configuration failed.\n");
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "Science interface configuration failed: %s\n",
+                               MACIE_Error());
                 return false;
             }
         }
@@ -1372,6 +1555,7 @@ bool AcquireDataUSB(MACIE_Settings *ptUserData, bool externalTrigger)
         }
     }
     verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
+    ptUserData->bScienceInterfaceOpen = true;
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1476,72 +1660,105 @@ bool AcquireDataGigE(MACIE_Settings *ptUserData, bool externalTrigger)
     // int buffsize = exposure_xpix(ptUserData) * exposure_ypix(ptUserData);
     // ptUserData->bUseSciDataFunc = false;
 
-    // Function to update any burst-stripe features (h4300-h4304 and h4034)
+    // Do not rewrite StripeReads* here: touching 4024… around GigE open/close
+    // starved downloads. Counters are programmed only in set_frame_settings.
     unsigned int ypix = ptUserData->uiDetectorHeight;
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
+
+    if (ypix_burst_stripe(ptUserData, &ypix, false) == true)
         verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe is enabled with %i rows.\n", ypix);
-        // Delay partial frame time to ensure proper transition from full frame to stripe
-        delay(int(0.5 * ptUserData->frametime_ms));
+    else
+        verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
+
+    if (EnsureAsicIdleBeforeAcquire(ptUserData) == false)
+        return false;
+    verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
+
+    // Soft SC: Halt can leave the burst data-table stale so the next trigger
+    // ignores Skips1 and clocks from row 0. Re-latch via ReconfigureASIC
+    // (pre-h6900 StripeReads refresh + latch). Do NOT call ypix_burst_stripe
+    // with bSet=true here — bare StripeReads writes desync GigE (~0xFFFF /
+    // 65535 ADU); see f3fb095.
+    if (ptUserData->bSoftStripeActive)
+    {
+        if (ReconfigureASIC(ptUserData) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData,
+                           "%s(): soft-SC ReconfigureASIC failed before trigger\n",
+                           __func__);
+            return false;
+        }
+        unsigned int ypix_soft = 0;
+        ypix_burst_stripe(ptUserData, &ypix_soft, false);
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): soft-SC reconfigured → %u rows (soft y=[%u,%u])\n",
+                       __func__, ypix_soft,
+                       ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2);
+    }
+
+    // Compute AFTER idle check: EnsureAsicIdle may CloseScienceInterface when the
+    // ASIC was still busy. Using a stale reuse_science flag skipped GigE
+    // reconfigure and triggered with a closed interface (soft-SC serial ramp 2+ segfault).
+    const bool reuse_science =
+        ptUserData->bKeepScienceInterface &&
+        ptUserData->bScienceInterfaceOpen &&
+        ptUserData->nPixBufferScienceConfigured == ptUserData->nPixBuffer;
+
+    if (!reuse_science)
+    {
+        // Close any stale science interface before reconfiguring (e.g. after halt/timeout).
+        CloseScienceInterface(ptUserData);
+        delay(100);
+
+        // Set up GigE science data interface for image acquisition.
+        verbose_printf(LOG_INFO, ptUserData, "Configuring science interface...\n");
+        verbose_printf(LOG_INFO, ptUserData, "  nbuf = %i\n", nbuf);
+        verbose_printf(LOG_INFO, ptUserData, "  buffsize = %i pixels\n", buffsize);
+        if (ptUserData->offline_develop == false)
+        {
+            bool configured = false;
+            for (int attempt = 0; attempt < 2; ++attempt)
+            {
+                delay(100);
+                try
+                {
+                    int bufferSize;
+                    int remotePort = 42037; //TODO:verify
+                    if (MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) == MACIE_OK)
+                    {
+                        configured = true;
+                        break;
+                    }
+
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "Science interface configuration failed (attempt %i): %s\n",
+                                   attempt + 1, MACIE_Error());
+                }
+                catch (const std::exception &e)
+                {
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "Caught exception at %s during AcquireDataGigE() (attempt %i).\n",
+                                   __func__, attempt + 1);
+                    std::cerr << e.what() << '\n';
+                }
+
+                HaltCameraAcq(ptUserData);
+                CloseScienceInterface(ptUserData);
+                delay(500);
+            }
+
+            if (configured == false)
+                return false;
+        }
+        ptUserData->bScienceInterfaceOpen = true;
+        ptUserData->nPixBufferScienceConfigured = ptUserData->nPixBuffer;
+        verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
     }
     else
     {
-        verbose_printf(LOG_DEBUG, ptUserData, "Burst stripe disabled; %i rows.\n", ypix);
+        verbose_printf(LOG_INFO, ptUserData,
+                       "Keeping GigE science interface open (live continuous).\n");
     }
 
-    // Make sure h6900<0> is 0 before triggering acquisition.
-    // For USB, this must be done before configuring interface,
-    // because USB interface's data read and command read share
-    // the same USB pipe.
-    if (ptUserData->offline_develop == false)
-    {
-        unsigned int regval = 0;
-
-        regInfo regComp = gen_regInfo(0x6900, 0, 5, 0);
-        if (ReadASICBits(ptUserData, &regComp, &regval) == false)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed in %s\n", __func__);
-            return false;
-        }
-        if (regval != 0)
-        {
-            verbose_printf(LOG_ERROR, ptUserData, "ReadASICBits failed with h6900<5:0> = 0x%04x\n", regval);
-            return false;
-        }
-    }
-    verbose_printf(LOG_INFO, ptUserData, "ReadASICBits 0x6900 succeeded.\n");
-
-    // Set up USB3 science data interface for image acquisition.
-    // MACIE_CloseUSBScienceInterface needs to be called before we
-    // can use any read functions again (e.g., MACIE_ReadASICReg).
-    verbose_printf(LOG_INFO, ptUserData, "Configuring science interface...\n");
-    verbose_printf(LOG_INFO, ptUserData, "  nbuf = %i\n", nbuf);
-    verbose_printf(LOG_INFO, ptUserData, "  buffsize = %i pixels\n", buffsize);
-    if (ptUserData->offline_develop == false)
-    {
-        // Give a slight delay before opening USB interface
-        delay(100);
-        try
-        {
-            int bufferSize;
-            int remotePort = 42037; //TODO:verify
-            if(MACIE_ConfigureGigeScienceInterface(handle, slctMACIEs, data_mode, buffsize, remotePort, &bufferSize) != MACIE_OK)
-            {
-                verbose_printf(LOG_ERROR, ptUserData, "Science interface configuration failed.\n");
-                return false;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            verbose_printf(LOG_ERROR, ptUserData,
-                           "Caught exception at %s during AcquireDataGigE().\n",
-                           __func__);
-            std::cerr << e.what() << '\n';
-
-            return false;
-        }
-    }
-    verbose_printf(LOG_INFO, ptUserData, "Science interface configuration succeeded.\n");
     verbose_printf(LOG_INFO, ptUserData, "Trigger image acquisition...\n");
 
     // Trigger image acquisition
@@ -1607,31 +1824,84 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
 
     string strDir = ptUserData->saveDir;
 
-    // Create save directory if it doesn't exist
-    struct stat st = {0};
-    if (stat(strDir.c_str(), &st) == -1)
-        mkdir(strDir.c_str(), 0700);
+    // Create save directory (and parents) if it doesn't exist.
+    // Single-level mkdir() fails for nested paths like .../ramp_test/YYYYMMDD/
+    // and then readdir(NULL) segfaults — that matches the post-trigger crash.
+    if (EnsureDirectoryExists(strDir) == false)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Cannot create/open saveDir '%s' (errno=%d). "
+                       "Check path and permissions.\n",
+                       strDir.c_str(), errno);
+        return ptUserData->uiFileNum;
+    }
 
-    // Go through files in save directory to find last written file number
+    // Go through files in save directory to find last written file number.
+    // Expect ramp names like nott_YYYYMMDD_000018.fits (6-digit counter before .fits).
+    // Skip derived *_science.fits products from the GUI.
     DIR *dir = opendir(strDir.c_str());
+    if (dir == NULL)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "opendir('%s') failed (errno=%d); using in-memory index %u.\n",
+                       strDir.c_str(), errno, ptUserData->uiFileNum);
+        return ptUserData->uiFileNum;
+    }
+
     struct dirent *ent;
-    uint val;
     uint max_val = 0;
-    int pos;
-    string s, sub;
+    string s;
     while ((ent = readdir(dir)) != NULL)
     {
         s = string(ent->d_name);
-        if ((s.rfind(".fits") != string::npos) && (s.size() > 6))
+        if (s.size() < 12)
+            continue;
+
+        // Case-insensitive .fits suffix
+        string lower = s;
+        for (size_t i = 0; i < lower.size(); ++i)
+            lower[i] = (char)tolower((unsigned char)lower[i]);
+        if (lower.size() < 5 || lower.compare(lower.size() - 5, 5, ".fits") != 0)
+            continue;
+        if (lower.size() >= 14 &&
+            lower.compare(lower.size() - 14, 14, "_science.fits") == 0)
+            continue;
+
+        // Require _NNNNNN.fits at the end (6 digits).
+        size_t dot = s.rfind('.');
+        if (dot == string::npos || dot < 7)
+            continue;
+        size_t under = s.rfind('_', dot - 1);
+        if (under == string::npos || dot < under + 7)
+            continue;
+        if (dot - under - 1 != 6)
+            continue;
+
+        bool digits = true;
+        unsigned int val = 0;
+        for (size_t i = under + 1; i < dot; ++i)
         {
-            pos = s.rfind("_");
-            sub = s.substr(pos + 1, 6);
-            val = atoi(sub.c_str());
-            if (val >= max_val)
-                max_val = val + 1;
+            if (!isdigit((unsigned char)s[i]))
+            {
+                digits = false;
+                break;
+            }
+            val = val * 10u + (unsigned int)(s[i] - '0');
         }
+        if (!digits)
+            continue;
+        if (val + 1 > max_val)
+            max_val = val + 1;
     }
     closedir(dir);
+
+    // Never go backwards relative to the in-memory high-water mark (avoids
+    // reusing a name when directory listing is stale or a prior write failed).
+    if (ptUserData->uiFileNum > max_val)
+        max_val = ptUserData->uiFileNum;
+
+    verbose_printf(LOG_INFO, ptUserData,
+                   "Next FITS file index in %s: %06u\n", strDir.c_str(), max_val);
     return max_val;
 }
 
@@ -1640,7 +1910,11 @@ unsigned int getFileNumStart(MACIE_Settings *ptUserData)
 /// \param ptUserData The user-set structure containing the hardware parameters
 std::vector<std::string> getFileNames(MACIE_Settings *ptUserData)
 {
+    // Ensure at least one filename when saving; uiNumSaves can still be 0 if
+    // acquire runs before exposure settings were applied to ptUserData.
     uint nfiles = ptUserData->uiNumSaves;
+    if (nfiles < 1)
+        nfiles = 1;
     string strDir = ptUserData->saveDir;
     string strPre = ptUserData->filePrefix;
     uint fnum = getFileNumStart(ptUserData);
@@ -1649,16 +1923,27 @@ std::vector<std::string> getFileNames(MACIE_Settings *ptUserData)
 
     string name = "";
     std::vector<std::string> names; // Empty on creation
-    // printf("nfiles: %i\n", nfiles);
     for (uint i = 0; i < nfiles; ++i)
     {
-        ss.str("");
-        ss << std::setw(6) << std::setfill('0') << fnum;
-        name = strDir + strPre + ss.str() + ".fits";
+        // Skip names that already exist so CFITSIO create never collides.
+        for (;;)
+        {
+            ss.str("");
+            ss.clear();
+            ss << std::setw(6) << std::setfill('0') << fnum;
+            name = strDir + strPre + ss.str() + ".fits";
+            struct stat st;
+            if (stat(name.c_str(), &st) != 0)
+                break;
+            verbose_printf(LOG_WARNING, ptUserData,
+                           "FITS %s already exists — bumping index.\n", name.c_str());
+            fnum++;
+        }
         names.push_back(name);
-        // verbose_printf(LOG_INFO, ptUserData, " filename: %s\n", names[i].c_str());
         fnum++;
     }
+    // Persist next free index for subsequent acquires.
+    ptUserData->uiFileNum = fnum;
     return names;
 }
 
@@ -1679,6 +1964,7 @@ bool CloseUSBScienceInterface(MACIE_Settings *ptUserData)
     }
     // Set burst stripe to idle in full frame
     burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
 
     return true;
 }
@@ -1700,8 +1986,45 @@ bool CloseGigEScienceInterface(MACIE_Settings *ptUserData)
     }
     // Set burst stripe to idle in full frame
     burst_stripe_set_ffidle(ptUserData);
+    ptUserData->bScienceInterfaceOpen = false;
 
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \brief CloseScienceInterface Close the active science data interface, if open.
+/// \param ptUserData The user-set structure containing all the hardware parameters.
+bool CloseScienceInterface(MACIE_Settings *ptUserData)
+{
+    if (ptUserData->bScienceInterfaceOpen == false)
+    {
+        verbose_printf(LOG_INFO, ptUserData, "Science interface not open; skipping close.\n");
+        return true;
+    }
+
+    bool ok;
+    if (ptUserData->connection == MACIE_USB)
+        ok = CloseUSBScienceInterface(ptUserData);
+    else
+        ok = CloseGigEScienceInterface(ptUserData);
+    ptUserData->nPixBufferScienceConfigured = 0;
+    return ok;
+}
+
+void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
+{
+    if (SettingsCheckNULL(ptUserData) == false)
+        return;
+    ptUserData->bKeepScienceInterface = keep;
+    if (!keep)
+    {
+        CloseScienceInterface(ptUserData);
+        verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep disabled; interface closed.\n");
+    }
+    else
+    {
+        verbose_printf(LOG_INFO, ptUserData, "Live science-interface keep enabled.\n");
+    }
 }
 
 bool HaltCameraAcq(MACIE_Settings *ptUserData)
@@ -1727,6 +2050,96 @@ bool HaltCameraAcq(MACIE_Settings *ptUserData)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// \brief ClearDisplayPreview Free the in-memory ZMQ display preview buffer.
+void ClearDisplayPreview(MACIE_Settings *ptUserData)
+{
+    if (ptUserData == NULL)
+        return;
+    delete[] ptUserData->pDisplayPreview;
+    ptUserData->pDisplayPreview = NULL;
+    ptUserData->displayPreviewNx = 0;
+    ptUserData->displayPreviewNy = 0;
+    ptUserData->bDisplayPreviewValid = false;
+}
+
+/// CDS = last − first when nframes≥2, else copy the single plane (float32).
+static bool store_display_preview_plane(MACIE_Settings *ptUserData,
+                                        int xpix, int ypix, int nframes_ramp,
+                                        const unsigned short *pU16,
+                                        const float *pF32)
+{
+    if (ptUserData == NULL || xpix <= 0 || ypix <= 0 || nframes_ramp < 1)
+        return false;
+    if (pU16 == NULL && pF32 == NULL)
+        return false;
+
+    const long framesize = (long)xpix * (long)ypix;
+    float *disp = NULL;
+    try
+    {
+        disp = new float[framesize];
+    }
+    catch (const std::exception &e)
+    {
+        verbose_printf(LOG_WARNING, ptUserData,
+                       "display preview alloc failed: %s\n", e.what());
+        return false;
+    }
+
+    if (nframes_ramp == 1)
+    {
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[i];
+        }
+    }
+    else
+    {
+        const long last0 = framesize * (long)(nframes_ramp - 1);
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[last0 + i] - pF32[i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[last0 + i] - (float)pU16[i];
+        }
+    }
+
+    ClearDisplayPreview(ptUserData);
+    ptUserData->pDisplayPreview = disp;
+    ptUserData->displayPreviewNx = xpix;
+    ptUserData->displayPreviewNy = ypix;
+    ptUserData->bDisplayPreviewValid = true;
+    verbose_printf(LOG_INFO, ptUserData,
+                   "  Stored display preview %dx%d (CDS/single) for ZMQ\n",
+                   xpix, ypix);
+    return true;
+}
+
+bool StoreDisplayPreviewU16(MACIE_Settings *ptUserData,
+                            int xpix, int ypix, int nframes_ramp,
+                            const unsigned short *pU16)
+{
+    return store_display_preview_plane(ptUserData, xpix, ypix, nframes_ramp, pU16, NULL);
+}
+
+bool StoreDisplayPreviewF32(MACIE_Settings *ptUserData,
+                            int xpix, int ypix, int nframes_ramp,
+                            const float *pF32)
+{
+    return store_display_preview_plane(ptUserData, xpix, ypix, nframes_ramp, NULL, pF32);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// \brief DownloadAndSaveAllUSB Function to download all requested frames
 ///  from MACIE, coadd average if requested, and save to FITS.
 /// \param ptUserData The user-set structure containing all the hardware parameters.
@@ -1735,13 +2148,24 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     // Number of ramps to coadd together
     const int ncoadds = (int)ptUserData->uiNumCoadds;
 
+    verbose_printf(LOG_INFO, ptUserData, "DownloadAndSaveAllUSB: saveDir=%s\n",
+                   ptUserData->saveDir.c_str());
+
+    // Drop any stale preview until this acquire produces a new one.
+    ClearDisplayPreview(ptUserData);
+
     const int xpix = (int)exposure_xpix(ptUserData);
     const int ypix = (int)exposure_ypix(ptUserData);
     // Number of pixels in frame for download
     const int framesize = xpix * ypix;
 
     // Number of requested ramps
-    const int nramps = (int)ASIC_NRamps(ptUserData, false, 0);
+    // Soft SC serial mode: ASIC NumRamps stays 1; download this many single-ramp
+    // triggers (re-armed inside the loop) so middle-stripe geometry stays stable.
+    const int nramps = (ptUserData->bSoftSerialRamps && ptUserData->uiSoftSerialNRamps > 0)
+                           ? (int)ptUserData->uiSoftSerialNRamps
+                           : (int)ASIC_NRamps(ptUserData, false, 0);
+    const bool soft_serial = ptUserData->bSoftSerialRamps && (nramps > 1);
     // Number of groups in a ramp
     const int ngroups = (int)ASIC_NGroups(ptUserData, false, 0);
     // Number of frame reads in a group
@@ -1774,11 +2198,10 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     // Frame and Ramp times
     double frametime_ms = ptUserData->frametime_ms;
-    double ramptime_ms = ptUserData->ramptime_ms;
     // Calculate a timeout to wait for data.
     // Assume full frame idle time
     // Timeout setting while waiting for data download to trigger
-    int triggerTimeout = int(ramptime_ms + 2 * frametime_ms + 100);
+    int triggerTimeout = acquire_trigger_timeout_ms(ptUserData, nframes_ramp);
     // unsigned int nout = ASIC_NumOutputs(ptUserData, true);
     // unsigned int ff_time_pix = ptUserData->uiDetectorHeight * ptUserData->uiDetectorWidth / nout;
     // double ff_time_ms  = (double) ff_time_pix / ptUserData->pixelRate;
@@ -1829,6 +2252,17 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     int coadd_cnt = 0;
     int ifile = 0;
+    int nwritten = 0;
+    bool write_failed = false;
+    bool download_failed = false;
+
+    if (filenames.empty() && ptUserData->bSaveData)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "No FITS output names generated (saveDir='%s' prefix='%s').\n",
+                       ptUserData->saveDir.c_str(), ptUserData->filePrefix.c_str());
+        write_failed = true;
+    }
 
     // Flag indicating buffer is getting too full
     bool buff_flag = false;
@@ -1836,7 +2270,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     uint nbytes_req = uint(rampsize) * uint(nramps);
 
     t0 = get_timestamp();
-    for (int ii = 0; ii < nramps; ++ii)
+    for (int ii = 0; ii < nramps && !write_failed; ++ii)
     {
 
         // Testing of Halt Acquisition
@@ -1845,6 +2279,24 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         //     verbose_printf(LOG_ERROR, ptUserData, "Halt encountered on ramp %i of %i.\n", ii+1, nramps);
         //     break;
         // }
+
+        // Soft SC serial: first ramp was triggered by acquire(); each further
+        // ramp is a new single-ramp trigger with GigE reused (no reconfigure).
+        if (soft_serial && ii > 0)
+        {
+            verbose_printf(LOG_INFO, ptUserData,
+                           "Soft SC serial: trigger ramp %i of %i\n", ii + 1, nramps);
+            // AcquireDataGigE re-latches soft SC via ReconfigureASIC (not bare
+            // StripeReads writes, which desync GigE to ~65535 ADU).
+            if (AcquireDataGigE(ptUserData, false) == false)
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "AcquireDataGigE failed on soft-SC serial ramp %i of %i.\n",
+                               ii + 1, nramps);
+                download_failed = true;
+                break;
+            }
+        }
 
         // If the memory buffer is 90% full, then set buffer overflow flag.
         // But only if the number of requested bytes is greater than max buffer size.
@@ -1862,6 +2314,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Failed download on ramp %i of %i.\n", ii + 1, nramps);
             verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+            download_failed = true;
             break;
         }
         t = get_timestamp() - t;
@@ -1878,14 +2331,27 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
         // If no coadding, keep in 16-bit format and save
         if (ncoadds == 1)
         {
+            // In-memory CDS for ZMQ acquire reply (before / instead of disk preview).
+            const bool have_preview = StoreDisplayPreviewU16(
+                ptUserData, xpix, ypix, nframes_ramp, pData);
+
             if (ptUserData->bSaveData)
             {
+                if (ifile >= (int)filenames.size())
+                {
+                    verbose_printf(LOG_ERROR, ptUserData,
+                                   "No FITS filename left for ramp %i (uiNumSaves=%u, names=%zu).\n",
+                                   ii + 1, ptUserData->uiNumSaves, filenames.size());
+                    write_failed = true;
+                    break;
+                }
                 verbose_printf(LOG_INFO, ptUserData, "Writing: %s\n", filenames[ifile].c_str());
                 t = get_timestamp();
                 if (WriteFITSRamp(pData, naxis, USHORT_IMG, filenames[ifile]) == false)
                 {
                     verbose_printf(LOG_ERROR, ptUserData, "Failed to write FITS (16-bit) at %s\n", __func__);
                     verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+                    write_failed = true;
                     break;
                 }
                 t = get_timestamp() - t;
@@ -1893,6 +2359,29 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                 verbose_printf(LOG_INFO, ptUserData, "  Time to write FITS file: %f seconds\n\n", time_taken);
                 // Increment file name index
                 ifile++;
+                nwritten++;
+            }
+            else if (!have_preview)
+            {
+                // Fallback for clients that still poll preview.fits.
+                string preview = ptUserData->saveDir;
+                if (!preview.empty() && preview.back() != '/')
+                    preview += "/";
+                preview += "preview.fits";
+                verbose_printf(LOG_INFO, ptUserData, "Writing preview: %s\n", preview.c_str());
+                if (WriteFITSRamp(pData, naxis, USHORT_IMG, preview) == false)
+                {
+                    verbose_printf(LOG_ERROR, ptUserData, "Failed to write preview FITS at %s\n", __func__);
+                    write_failed = true;
+                    break;
+                }
+                nwritten++;
+            }
+            else
+            {
+                verbose_printf(LOG_INFO, ptUserData,
+                               "Skipping preview.fits (ZMQ display preview ready).\n");
+                nwritten++;
             }
         }
         // Otherwise add pData to 32-bit coadder
@@ -1922,8 +2411,20 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     verbose_printf(LOG_INFO, ptUserData, "  Time to take average: %f seconds\n", time_taken);
                 }
 
+                // In-memory CDS for ZMQ acquire reply (before / instead of disk preview).
+                const bool have_preview = StoreDisplayPreviewF32(
+                    ptUserData, xpix, ypix, nframes_ramp, pRampBuffer);
+
                 if (ptUserData->bSaveData)
                 {
+                    if (ifile >= (int)filenames.size())
+                    {
+                        verbose_printf(LOG_ERROR, ptUserData,
+                                       "No FITS filename left for coadd product (uiNumSaves=%u).\n",
+                                       ptUserData->uiNumSaves);
+                        write_failed = true;
+                        break;
+                    }
                     // Save FITS files
                     verbose_printf(LOG_INFO, ptUserData, "Writing: %s\n", filenames[ifile].c_str());
                     t = get_timestamp();
@@ -1931,6 +2432,7 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     {
                         verbose_printf(LOG_ERROR, ptUserData, "Failed to write FITS (32-bit) at %s\n", __func__);
                         verbose_printf(LOG_ERROR, ptUserData, "Breaking out of acquisition on sequence %i of %i.\n", ii + 1, nramps);
+                        write_failed = true;
                         break;
                     }
                     t = get_timestamp() - t;
@@ -1938,6 +2440,28 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
                     verbose_printf(LOG_INFO, ptUserData, "  Time to write FITS file: %f seconds\n\n", time_taken);
                     // Increment file name index
                     ifile++;
+                    nwritten++;
+                }
+                else if (!have_preview)
+                {
+                    string preview = ptUserData->saveDir;
+                    if (!preview.empty() && preview.back() != '/')
+                        preview += "/";
+                    preview += "preview.fits";
+                    verbose_printf(LOG_INFO, ptUserData, "Writing preview: %s\n", preview.c_str());
+                    if (WriteFITSRamp(pRampBuffer, naxis, FLOAT_IMG, preview) == false)
+                    {
+                        verbose_printf(LOG_ERROR, ptUserData, "Failed to write preview FITS at %s\n", __func__);
+                        write_failed = true;
+                        break;
+                    }
+                    nwritten++;
+                }
+                else
+                {
+                    verbose_printf(LOG_INFO, ptUserData,
+                                   "Skipping preview.fits (ZMQ display preview ready).\n");
+                    nwritten++;
                 }
 
                 // Reset pRampBuffer to 0s
@@ -1985,15 +2509,57 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
 
     // Explicitly send Halt command (h6900=0x8000)
     HaltCameraAcq(ptUserData);
-    delay(100);
-    if (CloseGigEScienceInterface(ptUserData) == false)
+    if (ptUserData->bKeepScienceInterface)
     {
-        verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface failed after acquisition\n");
-        return false;
+        verbose_printf(LOG_INFO, ptUserData,
+                       "Keeping GigE science interface open after download (live).\n");
     }
     else
-        verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
-    // Do this again??
+    {
+        delay(100);
+        if (CloseGigEScienceInterface(ptUserData) == false)
+        {
+            verbose_printf(LOG_ERROR, ptUserData, "CloseGigEScienceInterface failed after acquisition\n");
+            return false;
+        }
+        else
+            verbose_printf(LOG_INFO, ptUserData, "CloseGigEScienceInterface succeeded after acquisition\n");
+    }
+
+    if (download_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished with download failure (%i FITS file(s) written).\n",
+                       nwritten);
+        return false;
+    }
+    if (ptUserData->bSaveData && write_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished with FITS write failure (%i file(s) written).\n",
+                       nwritten);
+        return false;
+    }
+    if (!ptUserData->bSaveData && write_failed)
+    {
+        verbose_printf(LOG_ERROR, ptUserData, "Acquisition finished with preview FITS write failure.\n");
+        return false;
+    }
+    if (ptUserData->bSaveData && nwritten == 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished but no FITS files were written "
+                       "(bSaveData=%i nramps=%i uiNumSaves=%u names=%zu).\n",
+                       (int)ptUserData->bSaveData, nramps, ptUserData->uiNumSaves,
+                       filenames.size());
+        return false;
+    }
+    if (!ptUserData->bSaveData && nwritten == 0)
+    {
+        verbose_printf(LOG_ERROR, ptUserData,
+                       "Acquisition finished but preview FITS was not written.\n");
+        return false;
+    }
 
     return true;
 }
@@ -2040,96 +2606,37 @@ bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], l
                            long nframes_save, int triggerTimeout, int wait_delta)
 {
 
-    long nbytes = 0;
     long nbytes_frm = framesize * 2; // 16 bits = 2 bytes
 
     verbose_printf(LOG_DEBUG, ptUserData, "triggerTimeout = %i, wait_delta:%i\n", triggerTimeout, wait_delta);
-    // unsigned short dltimeout = (ptUserData->DetectorMode==CAMERA_MODE_SLOW) ? 6500 : 1500;
-    int wait_total = 0;
-
-    // Delay the larger of 1 second or 1 frame time to see if rest comes down
-    int delay_time = 1000;
-    int frame_time_ms = (int)ptUserData->frametime_ms;
-    if (delay_time < frame_time_ms)
-        delay_time = frame_time_ms;
 
     // Download timeout
     unsigned short dltimeout = (ushort)ptUserData->ramptime_ms;
+    if (ptUserData->connection == MACIE_GigE && triggerTimeout > (int)dltimeout)
+        dltimeout = (ushort)triggerTimeout;
 
     timestamp_t t;
     double time_taken = 0;
     for (long i = 0; i < nframes_save; ++i)
     {
         verbose_printf(LOG_DEBUG, ptUserData, "  Frame %li of %li\n", i + 1, nframes_save);
-        nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        wait_total = 0;
+        int frame_timeout = frame_fill_timeout_ms(ptUserData, nbytes_frm, triggerTimeout, i);
+        long nbytes = 0;
 
-        // Poll available science data
-        // When any amount of data shows up, break out and call the d/l function
-        // Timeout if no data after triggertimout is reached
-        while (nbytes <= 0)
+        if (wait_for_science_bytes(ptUserData, nbytes_frm, wait_delta, frame_timeout, &nbytes) == false)
         {
-            // Delay for some time
-            delay(wait_delta);
-            wait_total += wait_delta;
-
-            // Check to see if data has shown up on port yet
-            if (ptUserData->offline_develop == true)
-                nbytes = nbytes_frm;
-            else
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-
-            verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
-
-            // Return false if we've reached time limit but haven't gotten all the bytes
-            if (wait_total > triggerTimeout)
-            {
-                verbose_printf(LOG_ERROR, ptUserData, "Trigger timeout limit of %i ms reached at: %s\n",
-                               triggerTimeout, __func__);
-                verbose_printf(LOG_ERROR, ptUserData, "  Frame %li of %li.\n", i + 1, nframes_save);
-                verbose_printf(LOG_ERROR, ptUserData, "  Expecting %li bytes. Only %li bytes available in %i ms.\n",
-                               nbytes_frm, nbytes, wait_total);
-
-                // Delay the larger of 1 second or 1 frame time to see if rest comes down
-                verbose_printf(LOG_ERROR, ptUserData, "  Delaying %i msec more...\n", delay_time);
-                delay(delay_time);
-
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-                verbose_printf(LOG_WARNING, ptUserData, "  After delay, nbytes available: %li\n", nbytes);
-                if (nbytes < nbytes_frm)
-                {
-                    verbose_printf(LOG_ERROR, ptUserData, "  Returning...\n");
-                    return false;
-                }
-                else
-                {
-                    verbose_printf(LOG_ERROR, ptUserData, "  Continuing...\n");
-                    break;
-                }
-            }
+            verbose_printf(LOG_ERROR, ptUserData, "Trigger timeout limit of %i ms reached at: %s\n",
+                           frame_timeout, __func__);
+            verbose_printf(LOG_ERROR, ptUserData, "  Frame %li of %li.\n", i + 1, nframes_save);
+            verbose_printf(LOG_ERROR, ptUserData, "  Expecting %li bytes. Only %li bytes available.\n",
+                           nbytes_frm, nbytes);
+            return false;
         }
 
-        if (get_verbose(ptUserData) == LOG_DEBUG)
-        {
-            wait_total = 0;
-            while (wait_total < delay_time)
-            {
-                nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-                verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
-
-                delay(wait_delta);
-                wait_total += wait_delta;
-
-                if (nbytes >= nbytes_frm)
-                    break;
-            }
-            nbytes = (long)MACIE_AvailableScienceData(ptUserData->handle);
-        }
-        verbose_printf(LOG_DEBUG, ptUserData, "  wait_total (ms): %i, nbytes: %li\n", wait_total, nbytes);
+        verbose_printf(LOG_DEBUG, ptUserData, "  nbytes ready: %li\n", nbytes);
 
         // Download a frame into pData buffer
         t = get_timestamp();
-        // if (DownloadDataUSB(ptUserData, &pData[i*framesize], framesize, dltimeout)==false)
         if (DownloadFrameUSB(ptUserData, &pData[i * framesize], framesize, dltimeout) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "DownloadFrameUSB failed at %s\n", __func__);
@@ -2144,8 +2651,8 @@ bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], l
         t = get_timestamp() - t;
         time_taken = t / 1000.0L;
 
-        verbose_printf(LOG_DEBUG, ptUserData, "  Frame dl time: %.0f ms (wait_total: %i ms, nbytes: %li)\n",
-                       time_taken, wait_total, nbytes);
+        verbose_printf(LOG_DEBUG, ptUserData, "  Frame dl time: %.0f ms (frame_timeout: %i ms, nbytes: %li)\n",
+                       time_taken, frame_timeout, nbytes);
     }
     return true;
 }
@@ -2437,51 +2944,43 @@ bool WriteFITSRamp(void *pData, vector<long> naxis, int bitpix, string filename)
 
     int status = 0;
 
+    // CFITSIO: prefix "!" to overwrite if the file already exists.
+    string create_path = string("!") + filename;
+
     // create new FITS file
-    if (fits_create_file(&poutfits, filename.c_str(), &status))
+    if (fits_create_file(&poutfits, create_path.c_str(), &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_create_file()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_create_file(%s)\n", filename.c_str());
+        fits_report_error(stderr, status);
+        return false;
     }
 
     // Write the required keywords for the primary array image
     if (fits_create_img(poutfits, bitpix, naxes, &naxis[0], &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_create_img()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_create_img()\n");
+        fits_report_error(stderr, status);
+        fits_close_file(poutfits, &status);
+        return false;
     }
 
     // Write data array to the FITS file
     if (fits_write_img(poutfits, datatype, 1, npix, pData, &status))
     {
-        if (status)
-        {
-            printf("Failed at fits_write_img()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_write_img()\n");
+        fits_report_error(stderr, status);
+        fits_close_file(poutfits, &status);
+        return false;
     }
 
     // Add header keywords
 
     // Close FITS file
     if (fits_close_file(poutfits, &status))
-        ;
     {
-        if (status)
-        {
-            printf("Failed at fits_close_file()\n");
-            fits_report_error(stderr, status);
-            return false;
-        }
+        printf("Failed at fits_close_file()\n");
+        fits_report_error(stderr, status);
+        return false;
     }
 
     return true;
@@ -3439,8 +3938,9 @@ bool SetASICParameter(MACIE_Settings *ptUserData, string addr_name, unsigned int
 
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
-    // Check if addr_name key exists
-    // If it's not valid, throw warning, but return true.
+    // Check if addr_name key exists. Missing names are a hard failure for
+    // callers that require the bit; optional features (e.g. ExpMode on DevBrd
+    // fast microcode) must check RegMap themselves before calling.
     if (RegMap.count(addr_name) == 0)
     {
         verbose_printf(LOG_WARNING, ptUserData,
@@ -3808,15 +4308,32 @@ bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
     double rtime_ms = ptUserData->ramptime_ms;         // Ramp time including reset frames
     double itime_ms = exposure_inttime_ms(ptUserData); // Photon collection time
     double etime_sec = rtime_ms * ncoadds * nsaved_ramps / 1000;
+    double eff = exposure_efficiency(ptUserData);
     verbose_printf(LOG_INFO, ptUserData, "MACIE Clock Rate = %i MHz\n", ptUserData->clkRateM);
     verbose_printf(LOG_INFO, ptUserData, "Frame time: %.3f ms\n", ptUserData->frametime_ms);
     verbose_printf(LOG_INFO, ptUserData, "Ramp time: %.3f ms\n", rtime_ms);
     verbose_printf(LOG_INFO, ptUserData, "Ramp photon-collection time: %.3f ms\n", itime_ms);
+    verbose_printf(LOG_INFO, ptUserData, "Ramp overhead (ramp-photon): %.3f ms\n",
+                   rtime_ms - itime_ms);
+    verbose_printf(LOG_INFO, ptUserData,
+                   "ASIC duty-cycle efficiency: %.1f%%  (ng=%u nr=%u nd=%u nk=%u)\n",
+                   eff * 100.0, ngroups, nreads, ndrops, nresets);
     verbose_printf(LOG_INFO, ptUserData, "Estimated time to execute Exposure: %.3f sec\n", etime_sec);
 
     return true;
 }
 
+void load_exposure_settings(MACIE_Settings *ptUserData, bool &bSave,
+                           uint &ncoadds, uint &nsaved_ramps, uint &ngroups, uint &nreads, uint &ndrops, uint &nresets)
+{
+    bSave = ptUserData->bSaveData;
+    ncoadds = ASIC_NCoadds(ptUserData, false, 0);
+    nsaved_ramps = ASIC_NSaves(ptUserData, false, 0);
+    ngroups = ASIC_NGroups(ptUserData, false, 0);
+    nreads = ASIC_NReads(ptUserData, false, 0);
+    ndrops = ASIC_NDrops(ptUserData, false, 0);
+    nresets = ASIC_NResets(ptUserData, false, 0);
+}
 ////////////////////////////////////////////////////////////////////////////////
 /// \brief set_frame_settings Set the window and stripe frame sizes.
 /// \param ptUserData The user-set structure containing the hardware parameters.
@@ -3857,20 +4374,58 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // uint ny = y2 - y1 + 1;
     // uint nx = x2 - x1 + 1;
 
-    // First check if we're trying to set Stripe Mode
+    map<string, regInfo> &RegMap = ptUserData->RegMap;
+
+    // Vertical-only window = burst stripe when the microcode exposes it.
+    // Soft-track requested Y and keep ASIC Y at full frame (MCD data table
+    // slot 5402→Y2 stays ydet-1). Edge and centered SC both use StripeReads*.
+    // Otherwise fall back to WinMode (single-output, slower, valid pixels).
+    bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
-        // Enable stripe mode
-        ASIC_STRIPEMode(ptUserData, true, true);
-
-        // // TODO: For the meantime, we are restricted to powers of 2
-        // if ((ny & (ny - 1)) != 0)
-        // {
-        //     verbose_printf(LOG_WARNING, ptUserData, "");
-        // }
+        if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
+        {
+            ASIC_STRIPEMode(ptUserData, true, true);
+            use_burst_stripe = true;
+            // Keep ASIC Y at full frame: MCD data table 5402→4023(Y2) must stay
+            // ydet-1 alongside Reads2 handling. Track SC height in soft state.
+            ptUserData->bSoftStripeActive = true;
+            ptUserData->uiSoftStripeY1 = y1;
+            ptUserData->uiSoftStripeY2 = y2;
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): SC via burst stripe (parallel outputs) "
+                           "soft y=[%u,%u]; ASIC Y kept [0,%u].\n",
+                           __func__, y1, y2, ydet - 1);
+        }
+        else
+        {
+            ptUserData->bStripeMode = false;
+            ptUserData->bSoftStripeActive = false;
+            if (RegMap.count("HorzWinMode") > 0)
+                ASIC_Generic(ptUserData, "HorzWinMode", true, 0);
+            if (RegMap.count("VertWinMode") > 0)
+                ASIC_Generic(ptUserData, "VertWinMode", true, 1);
+            else if (RegMap.count("WinMode") > 0)
+            {
+                ASIC_Generic(ptUserData, "WinMode", true, 1);
+                verbose_printf(LOG_WARNING, ptUserData,
+                               "%s(): SC via WinMode (burst stripe unavailable in %s); "
+                               "single-output window.\n",
+                               __func__, ptUserData->ASICRegs);
+            }
+            else
+            {
+                verbose_printf(LOG_ERROR, ptUserData,
+                               "%s(): Vertical window requested but no "
+                               "StripeReads*/WinMode/VertWinMode in %s.\n",
+                               __func__, ptUserData->ASICRegs);
+                return false;
+            }
+        }
     }
     else
     {
+        ptUserData->bSoftStripeActive = false;
         // Turn vertical window on/off first, then horizontal
         // Order matters, because ASIC_WinHorz will disable stripe
         ASIC_WinVert(ptUserData, true, (uint)bVertWin);
@@ -3883,7 +4438,7 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         y1 = 0;
         y2 = ydet - 1;
     }
-    // Set x1=0 and x2=ydet-1 if bHorzWin=False
+    // Set x1=0 and x2=xdet-1 if bHorzWin=False
     if (bHorzWin == false)
     {
         x1 = 0;
@@ -3892,8 +4447,29 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
 
     ASIC_setX1(ptUserData, x1);
     ASIC_setX2(ptUserData, x2);
-    ASIC_setY1(ptUserData, y1);
-    ASIC_setY2(ptUserData, y2);
+    // Burst stripe: leave ASIC Y at full so data-table Y2 stays ydet-1.
+    if (use_burst_stripe)
+    {
+        ASIC_setY1(ptUserData, 0);
+        ASIC_setY2(ptUserData, ydet - 1);
+    }
+    else
+    {
+        ASIC_setY1(ptUserData, y1);
+        ASIC_setY2(ptUserData, y2);
+    }
+
+    // Program skip/read counters before reconfigure. Otherwise stripe mode only
+    // shrinks RowsPerFrame and the ASIC clocks ny rows from row 0 (not from y1).
+    unsigned int ypix_stripe = 0;
+    if (ypix_burst_stripe(ptUserData, &ypix_stripe, true))
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): Burst stripe soft y1=%u y2=%u → %u rows.\n",
+                       __func__,
+                       ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2,
+                       ypix_stripe);
+    }
 
     if (ReconfigureASIC(ptUserData) == false)
     {
@@ -3902,21 +4478,24 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
 
     // TODO:
-    // Pixel Clock scheme checks (i.e., Normal vs Enhanced) are necessary if there are
-    // differences between full frame and subarray window clocking schemes. Normally
-    // these would be the same, but there is a bug in the Slow Mode v5.0+ microcode
-    // where Enhanced mode causes the columns to shift every other acquisition.
-    // The shifted column then persists after switching back to full frame.
-    // Something is wrong with the pixel timing code.
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
+    // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
+    // acquisition. Full-frame may use Enhanced; any window / burst-stripe SC
+    // must stay Normal (0) or Live oscillates between clean CDS and channel
+    // seams / horizontal artifacts.
     if (RegMap.count("PixelClkScheme") > 0)
     {
-        uint pixClk = (bHorzWin == false) ? ptUserData->ffPixelClkScheme : ptUserData->winPixelClkScheme;
+        uint pixClk = ptUserData->ffPixelClkScheme;
+        if (use_burst_stripe || bVertWin || bHorzWin)
+            pixClk = ptUserData->winPixelClkScheme; // Normal
         SetASICParameter(ptUserData, "PixelClkScheme", pixClk);
         if (ReconfigureASIC(ptUserData) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
         }
+        verbose_printf(LOG_INFO, ptUserData,
+                       "%s(): PixelClkScheme=%u (%s)\n",
+                       __func__, pixClk,
+                       (use_burst_stripe || bVertWin || bHorzWin) ? "window/SC Normal" : "full-frame");
     }
 
     x1 = ASIC_getX1(ptUserData);
@@ -3930,7 +4509,16 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     verbose_printf(LOG_INFO, ptUserData, "Horizontal Window: %i\n", ASIC_WinHorz(ptUserData, false, 0));
     verbose_printf(LOG_INFO, ptUserData, "  X1: %i X2: %i, xpix: %i\n", x1, x2, xpix);
     verbose_printf(LOG_INFO, ptUserData, "Vertical Window: %i\n", ASIC_WinVert(ptUserData, false, 0));
-    verbose_printf(LOG_INFO, ptUserData, "  Y1: %i Y2: %i, ypix: %i\n", y1, y2, ypix);
+    if (ptUserData->bSoftStripeActive)
+    {
+        verbose_printf(LOG_INFO, ptUserData,
+                       "  ASIC Y1: %i Y2: %i; soft SC Y1: %i Y2: %i, ypix: %i\n",
+                       y1, y2, ptUserData->uiSoftStripeY1, ptUserData->uiSoftStripeY2, ypix);
+    }
+    else
+    {
+        verbose_printf(LOG_INFO, ptUserData, "  Y1: %i Y2: %i, ypix: %i\n", y1, y2, ypix);
+    }
     verbose_printf(LOG_INFO, ptUserData, "STRIPE Mode: %i\n", (uint)ASIC_STRIPEMode(ptUserData, false, false));
     verbose_printf(LOG_INFO, ptUserData, "Frame time: %.3f ms\n", ptUserData->frametime_ms);
 
@@ -3954,9 +4542,42 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     return true;
 }
 
+extern void load_frame_settings(MACIE_Settings *ptUserData, bool &bHorzWin, bool &bVertWin,
+    uint &x1, uint &x2, uint &y1, uint &y2)
+{
+    if (ptUserData->bSoftStripeActive)
+    {
+        bVertWin = true;
+        bHorzWin = false;
+        x1 = 0;
+        x2 = ptUserData->uiDetectorWidth - 1;
+        y1 = ptUserData->uiSoftStripeY1;
+        y2 = ptUserData->uiSoftStripeY2;
+        return;
+    }
+
+    bVertWin = ASIC_WinVert(ptUserData, false, 0);
+    bHorzWin = ASIC_WinHorz(ptUserData, false, 0);
+
+    x1 = ASIC_getX1(ptUserData);
+    x2 = ASIC_getX2(ptUserData);
+    y1 = ASIC_getY1(ptUserData);
+    y2 = ASIC_getY2(ptUserData);
+
+    // Unified WinMode cannot express "vertical-only" vs "horizontal-only".
+    // Infer from the programmed span so SC / Channel presets rematch correctly.
+    if (bHorzWin && bVertWin && x1 == 0 && x2 == ptUserData->uiDetectorWidth - 1)
+        bHorzWin = false;
+    if (bHorzWin && bVertWin && y1 == 0 && y2 == ptUserData->uiDetectorHeight - 1)
+        bVertWin = false;
+}
+
 // Subarray mode might not exist in certain microcodes.
 // If these parameters don't exist, then return detector limits.
 // If not in window mode, then return detector limits.
+
+// Full-frame idle for burst-stripe counters (defined with ypix_burst_stripe).
+static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData);
 
 // Set/get STRIPE mode
 bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
@@ -3996,15 +4617,10 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
-            // Turn off any burst Striping
-            if (RegMap.count("StripeReads1") > 0)
-                ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-            if (RegMap.count("StripeReads2") > 0)
-                ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-            if (RegMap.count("StripeSkips1") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-            if (RegMap.count("StripeSkips2") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
+            // Restore full-frame stripe counters before clearing the flag's
+            // effect on later close/idle helpers (write while still allowed).
+            burst_stripe_write_ffidle(ptUserData);
+            ptUserData->bSoftStripeActive = false;
         }
     }
     else // Or simply get current state
@@ -4293,27 +4909,35 @@ unsigned int ASIC_setY2(MACIE_Settings *ptUserData, unsigned int val)
     return ASIC_Generic(ptUserData, addr_name, true, val);
 }
 
-// Call this function to set burst mode to full frame for idling purposes (after acquisition)
+// Full-frame idle for HxRG burst-stripe counters (MCD data table → 4024…).
+// Never write Reads*=0: that produced 0-byte GigE downloads on this microcode.
+// Only call this while stripe mode is (or was just) active — writing these
+// registers on a pristine full-frame Slow path also broke GigE downloads.
+static void burst_stripe_write_ffidle(MACIE_Settings *ptUserData)
+{
+    map<string, regInfo> &RegMap = ptUserData->RegMap;
+    if (RegMap.count("StripeReads1") == 0)
+        return;
+
+    unsigned int ydet = ptUserData->uiDetectorHeight;
+    ASIC_Generic(ptUserData, "StripeReads1", true, ydet);
+    if (RegMap.count("StripeSkips1") > 0)
+        ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
+    if (RegMap.count("StripeReads2") > 0)
+        ASIC_Generic(ptUserData, "StripeReads2", true, 0);
+    if (RegMap.count("StripeSkips2") > 0)
+        ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
+    if (RegMap.count("RowReads") > 0)
+        ASIC_Generic(ptUserData, "RowReads", true, ydet);
+}
+
+// Call this after closing the science interface. Do not rewrite stripe counters
+// here: touching 4024… after every GigE close broke full-frame downloads even
+// with Reads1=ydet. Full-frame idle is restored only when ASIC_STRIPEMode
+// turns stripe off (return to Full Frame / XY window).
 void burst_stripe_set_ffidle(MACIE_Settings *ptUserData)
 {
-
-    map<string, regInfo> &RegMap = ptUserData->RegMap;
-    unsigned int ydet = ptUserData->uiDetectorHeight;
-    unsigned int ypix = 0;
-    // If burst stripe mode is enabled,
-    if (ypix_burst_stripe(ptUserData, &ypix, true) == true)
-    {
-        if (RegMap.count("StripeReads1") > 0)
-            ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-        if (RegMap.count("StripeReads2") > 0)
-            ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-        if (RegMap.count("StripeSkips1") > 0)
-            ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-        if (RegMap.count("StripeSkips2") > 0)
-            ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-        if (RegMap.count("RowReads") > 0)
-            ASIC_Generic(ptUserData, "RowReads", true, ydet);
-    }
+    (void)ptUserData;
 }
 
 // Returns true if running Burst Stripe Mode, otherwise false
@@ -4322,47 +4946,60 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
     map<string, regInfo> &RegMap = ptUserData->RegMap;
 
     unsigned int ydet = ptUserData->uiDetectorHeight;
-    unsigned int y1 = ASIC_getY1(ptUserData);
-    unsigned int y2 = ASIC_getY2(ptUserData);
+    // Prefer soft SC bounds: ASIC Y stays full-frame for the MCD data table.
+    unsigned int y1 = ptUserData->bSoftStripeActive
+                          ? ptUserData->uiSoftStripeY1
+                          : ASIC_getY1(ptUserData);
+    unsigned int y2 = ptUserData->bSoftStripeActive
+                          ? ptUserData->uiSoftStripeY2
+                          : ASIC_getY2(ptUserData);
     unsigned int ny = y2 - y1 + 1; // Number of requested rows
 
-    // Set all to 0 if Stripe Mode is disabled or burst striping is not existent
-    // or y1 and y2 cover the entire active region
-    if ((ASIC_STRIPEMode(ptUserData, false, 0) == 0) || (RegMap.count("StripeReads1") == 0) || ((y1 < 4) && (y2 > ydet - 5)))
+    // No counter map → nothing to program.
+    if (RegMap.count("StripeReads1") == 0)
     {
-        // Turn off any burst Striping
+        *ypix = ny;
+        return false;
+    }
+
+    // Full-frame / stripe off: do NOT touch 4024… (that broke GigE when done
+    // on every acquire). Only restore idle when leaving an active stripe span.
+    if (ASIC_STRIPEMode(ptUserData, false, 0) == 0)
+    {
+        *ypix = ny;
+        return false;
+    }
+
+    // Stripe on but Y covers the full array → idle counters, not a stripe.
+    // Skip this when soft SC is active (ASIC Y is intentionally full-frame).
+    if (!ptUserData->bSoftStripeActive && (y1 < 4) && (y2 > ydet - 5))
+    {
         if (bSet)
-        {
-            if (RegMap.count("StripeReads1") > 0)
-                ASIC_Generic(ptUserData, "StripeReads1", true, 0);
-            if (RegMap.count("StripeReads2") > 0)
-                ASIC_Generic(ptUserData, "StripeReads2", true, 0);
-            if (RegMap.count("StripeSkips1") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips1", true, 0);
-            if (RegMap.count("StripeSkips2") > 0)
-                ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            if (RegMap.count("RowReads") > 0)
-                ASIC_Generic(ptUserData, "RowReads", true, ydet);
-        }
+            burst_stripe_write_ffidle(ptUserData);
 
         *ypix = ny;
         return false;
     }
 
     unsigned int yrows = 0;
-    // If Stripe Mode is enabled and Burst Striping exists, update registers based on Y1 and Y2
-    // We also want to always include the top/bottom reference rows
+    // HxRG_Teledyne.mcd data table 5401–5405 loads:
+    //   4024 StripeReads1, 4023 Y2, 4034 Skips2, 4033 Reads2, 4025 Skips1
+    // Keep ASIC Y2=ydet-1 (soft SC). Bottom: Reads1=ny, Skips1=ydet-ny, Reads2=0.
     if (y1 < 4) // Lower reference pixels included in active block
     {
-        // yrows = ny + y1 + 4; // Number of requested rows plus bottom plus top
         yrows = ny;
         if (bSet)
         {
-            ASIC_Generic(ptUserData, "StripeReads1", true, yrows - 4);
+            ASIC_Generic(ptUserData, "StripeReads1", true, yrows);
             ASIC_Generic(ptUserData, "StripeSkips1", true, ydet - yrows);
-            ASIC_Generic(ptUserData, "StripeReads2", true, 4);
+            ASIC_Generic(ptUserData, "StripeReads2", true, 0);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): bottom stripe Reads1=%u Skips1=%u Reads2=0 Skips2=0 "
+                           "(soft y1=%u y2=%u ny=%u; ASIC Y2 left at full)\n",
+                           __func__, yrows, ydet - yrows, y1, y2, ny);
         }
     }
     else if (y2 > ydet - 5) // Upper reference pixels included in active block
@@ -4375,20 +5012,56 @@ bool ypix_burst_stripe(MACIE_Settings *ptUserData, unsigned int *ypix, bool bSet
             ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
             ASIC_Generic(ptUserData, "StripeReads2", true, ydet - y1 - 4);
             ASIC_Generic(ptUserData, "StripeSkips2", true, 0);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
         }
     }
-    else // No reference pixels included in requested block
+    else // Middle of frame: center block [y1, y2]
     {
-        // yrows = ny + 8;
-        yrows = ny;
+        // Hardware sequence is Read1 → Skip1 → Read2 → Skip2.
+        // Reads1 must be non-zero — a zero-length first read is ignored and the
+        // ASIC then clocks from row 0 instead of the centered strip.
+        //
+        // Include the 4 bottom reference rows, then skip to y1 and read the
+        // science block. Counters must sum to ydet (a short cycle desyncs
+        // GigE and often leaves the download buffer at ~0xFFFF / 65k ADU).
+        //
+        // MACIE also requires ramp bytes to be a multiple of 1 MiB when nx is a
+        // multiple of 512. Raw delivered height ny+4 (e.g. SC512 → 516) fails
+        // that rule and yields all-0xFFFF frames. Pad Reads2 so delivered rows
+        // are a multiple of 256 (SC512 → 768; safe for 1- and 2-sample ramps).
+        unsigned int yrows_raw = ny + 4;
+        yrows = yrows_raw;
+        const unsigned int y_align = 256;
+        if ((yrows % y_align) != 0)
+            yrows += (y_align - (yrows % y_align));
         if (bSet)
         {
+            unsigned int skip_pre = (y1 >= 4) ? (y1 - 4) : y1;
+            unsigned int reads2 = yrows - 4;
+            if (reads2 < ny)
+                reads2 = ny;
+            unsigned int used = 4 + skip_pre + reads2;
+            unsigned int skip_post = (used < ydet) ? (ydet - used) : 0;
+            if (4 + skip_pre + reads2 + skip_post != ydet)
+            {
+                // Keep the cycle exact if padding would overrun the array.
+                yrows = yrows_raw;
+                reads2 = ny;
+                skip_post = (y2 < ydet - 1) ? (ydet - y2 - 1) : 0;
+            }
             ASIC_Generic(ptUserData, "StripeReads1", true, 4);
-            ASIC_Generic(ptUserData, "StripeSkips1", true, y1);
-            ASIC_Generic(ptUserData, "StripeReads2", true, ny - 8);
-            ASIC_Generic(ptUserData, "StripeSkips2", true, ydet - y2 - 1);
-            ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            ASIC_Generic(ptUserData, "StripeSkips1", true, skip_pre);
+            ASIC_Generic(ptUserData, "StripeReads2", true, reads2);
+            ASIC_Generic(ptUserData, "StripeSkips2", true, skip_post);
+            if (RegMap.count("RowReads") > 0)
+                ASIC_Generic(ptUserData, "RowReads", true, yrows);
+            verbose_printf(LOG_INFO, ptUserData,
+                           "%s(): middle stripe Reads1=4 Skips1=%u Reads2=%u Skips2=%u "
+                           "(soft y1=%u y2=%u ny=%u → %u rows incl. refs"
+                           "%s)\n",
+                           __func__, skip_pre, reads2, skip_post, y1, y2, ny, yrows,
+                           (yrows > yrows_raw) ? ", GigE-padded" : "");
         }
     }
 
@@ -4414,22 +5087,36 @@ unsigned int exposure_frametime_pix(MACIE_Settings *ptUserData)
     if (SettingsCheckNULL(ptUserData) == false)
         return false;
 
-    // Update PixPerRow & RowsPerFrame for offline testing mode
-    if (ptUserData->offline_develop == true)
+    // Soft / burst stripe: PixPerRow & RowsPerFrame are ASIC output registers and
+    // often track full-frame Y (soft SC keeps ASIC Y full). Derive pixel count from
+    // the delivered geometry so frame/photon times stay stable across acquires.
+    unsigned int y_burst = 0;
+    const bool burst = ypix_burst_stripe(ptUserData, &y_burst, false) ||
+                       ptUserData->bSoftStripeActive;
+    if (burst || ptUserData->offline_develop == true)
     {
-        LOG_LEVEL log_prev = get_verbose(ptUserData);
-        set_verbose(ptUserData, LOG_WARNING);
         unsigned int nout = ASIC_NumOutputs(ptUserData);
-        unsigned int xtra_pix = ASIC_Generic(ptUserData, "ExtraPixels", false, 0);
-        unsigned int xtra_lines = ASIC_Generic(ptUserData, "ExtraLines", false, 0);
-        unsigned int ppr = exposure_xpix(ptUserData) / nout + xtra_pix;
-        unsigned int rpf = exposure_ypix(ptUserData) + xtra_lines;
+        if (nout < 1)
+            nout = 1;
+        unsigned int xtra_pix = 0;
+        unsigned int xtra_lines = 0;
+        GetASICParameter(ptUserData, "ExtraPixels", &xtra_pix);
+        GetASICParameter(ptUserData, "ExtraLines", &xtra_lines);
+        unsigned int xpix = exposure_xpix(ptUserData);
+        unsigned int ypix = exposure_ypix(ptUserData);
+        unsigned int ppr = xpix / nout + xtra_pix;
+        unsigned int rpf = ypix + xtra_lines + 1;
         if (ptUserData->DetectorMode == CAMERA_MODE_SLOW)
-            SetASICParameter(ptUserData, "PixPerRow", ppr + 8);
-        else
+            ppr += 8;
+        if (ptUserData->offline_develop == true)
+        {
+            LOG_LEVEL log_prev = get_verbose(ptUserData);
+            set_verbose(ptUserData, LOG_WARNING);
             SetASICParameter(ptUserData, "PixPerRow", ppr);
-        SetASICParameter(ptUserData, "RowsPerFrame", rpf + 1);
-        set_verbose(ptUserData, log_prev);
+            SetASICParameter(ptUserData, "RowsPerFrame", rpf);
+            set_verbose(ptUserData, log_prev);
+        }
+        return ppr * rpf;
     }
 
     unsigned int PixPerRow = 0;

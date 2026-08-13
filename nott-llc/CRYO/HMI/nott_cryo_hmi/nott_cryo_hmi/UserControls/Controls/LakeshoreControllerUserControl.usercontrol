@@ -1,0 +1,208 @@
+<div id="LakeshoreControllerUserControl" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControl" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%" data-tchmi-creator-viewport-width="500" data-tchmi-creator-viewport-height="500">
+
+<div id="LakeshoreControllerFrameworkControl" data-tchmi-type="TcHmi.Controls.CryoFramework.LakeshoreController" data-tchmi-basesymbolcontrol-devicestate-box-size="20" data-tchmi-basesymbolcontrol-devicestate-box-size-unit="%" data-tchmi-basesymbolcontrol-eventbox-box-size="20" data-tchmi-basesymbolcontrol-eventbox-box-size-unit="%" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness="2" data-tchmi-basesymbolcontrol-eventbox-stroke-thickness-unit="px" data-tchmi-basesymbolcontrol-state="0" data-tchmi-basesymbolcontrol-symbol-stroke-thickness-unit="px" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-lakeshorecontroller-commstate="0" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-basesymbolcontrol-symbol-margin="%pp%SymbolMarginSize%/pp%" data-tchmi-basesymbolcontrol-symbol-stroke-thickness="%pp%StrokeThickness%/pp%" data-tchmi-lakeshorecontroller-value="%pp%Label%/pp%" data-tchmi-basesymbolcontrol-warning-confirmed="%pp%LakeshoreControllerHmiObject::out_stat::stAlarms::bWarningConfirmed%/pp%" data-tchmi-basesymbolcontrol-warning-raised="%pp%LakeshoreControllerHmiObject::out_stat::stAlarms::bWarningRaised%/pp%" data-tchmi-basesymbolcontrol-alarm-confirmed="%pp%LakeshoreControllerHmiObject::out_stat::stAlarms::bAlarmConfirmed%/pp%" data-tchmi-basesymbolcontrol-alarm-raised="%pp%LakeshoreControllerHmiObject::out_stat::stAlarms::bAlarmRaised%/pp%">
+</div>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%pp%LakeshoreControllerHmiObject::out_stat::bCommProblem%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%pp%LakeshoreControllerHmiObject::out_stat::bConfigured%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "Condition",
+                "active": true,
+                "parts": [
+                  {
+                    "if": [
+                      {
+                        "compare1": {
+                          "objectType": "Symbol",
+                          "valueType": "tchmi:general#/definitions/BOOL",
+                          "symbolExpression": "%pp%LakeshoreControllerHmiObject::out_stat::bCommProblem%/pp%"
+                        },
+                        "compare2": {
+                          "objectType": "StaticValue",
+                          "valueType": "tchmi:general#/definitions/BOOL",
+                          "value": true
+                        },
+                        "compareOperator": "==",
+                        "logic": null
+                      }
+                    ],
+                    "then": [
+                      {
+                        "objectType": "WriteToSymbol",
+                        "active": true,
+                        "symbolExpression": "%ctrl%LakeshoreControllerFrameworkControl::State%/ctrl%",
+                        "value": {
+                          "objectType": "StaticValue",
+                          "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                          "value": 0.0
+                        },
+                        "asyncWait": true
+                      }
+                    ]
+                  },
+                  {
+                    "else": [
+                      {
+                        "objectType": "WriteToSymbol",
+                        "active": true,
+                        "symbolExpression": "%ctrl%LakeshoreControllerFrameworkControl::State%/ctrl%",
+                        "value": {
+                          "objectType": "StaticValue",
+                          "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                          "value": 2.0
+                        },
+                        "asyncWait": true
+                      }
+                    ]
+                  }
+                ],
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%LakeshoreControllerFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 0.0
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  },
+  {
+    "event": "%pp%LakeshoreControllerHmiObject::out_stat::bConfigured%/pp%",
+    "actions": [
+      {
+        "objectType": "Condition",
+        "active": true,
+        "parts": [
+          {
+            "if": [
+              {
+                "compare1": {
+                  "objectType": "Symbol",
+                  "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+                  "symbolExpression": "%pp%LakeshoreControllerHmiObject::out_stat::bConfigured%/pp%"
+                },
+                "compare2": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:general#/definitions/BOOL",
+                  "value": true
+                },
+                "compareOperator": "==",
+                "logic": null
+              }
+            ],
+            "then": [
+              {
+                "objectType": "Condition",
+                "active": true,
+                "parts": [
+                  {
+                    "if": [
+                      {
+                        "compare1": {
+                          "objectType": "Symbol",
+                          "valueType": "tchmi:general#/definitions/BOOL",
+                          "symbolExpression": "%pp%LakeshoreControllerHmiObject::out_stat::bCommProblem%/pp%"
+                        },
+                        "compare2": {
+                          "objectType": "StaticValue",
+                          "valueType": "tchmi:general#/definitions/BOOL",
+                          "value": true
+                        },
+                        "compareOperator": "==",
+                        "logic": null
+                      }
+                    ],
+                    "then": [
+                      {
+                        "objectType": "WriteToSymbol",
+                        "active": true,
+                        "symbolExpression": "%ctrl%LakeshoreControllerFrameworkControl::State%/ctrl%",
+                        "value": {
+                          "objectType": "StaticValue",
+                          "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                          "value": 0.0
+                        },
+                        "asyncWait": true
+                      }
+                    ]
+                  },
+                  {
+                    "else": [
+                      {
+                        "objectType": "WriteToSymbol",
+                        "active": true,
+                        "symbolExpression": "%ctrl%LakeshoreControllerFrameworkControl::State%/ctrl%",
+                        "value": {
+                          "objectType": "StaticValue",
+                          "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                          "value": 2.0
+                        },
+                        "asyncWait": true
+                      }
+                    ]
+                  }
+                ],
+                "asyncWait": true
+              }
+            ]
+          },
+          {
+            "else": [
+              {
+                "objectType": "WriteToSymbol",
+                "active": true,
+                "symbolExpression": "%ctrl%LakeshoreControllerFrameworkControl::State%/ctrl%",
+                "value": {
+                  "objectType": "StaticValue",
+                  "valueType": "tchmi:framework#/definitions/PositiveNumber",
+                  "value": 0.0
+                },
+                "asyncWait": true
+              }
+            ]
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>

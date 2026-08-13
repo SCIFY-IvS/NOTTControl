@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_SERVICES" Id="{e0b2a64a-6269-4f5b-a870-91e57dd02859}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SERVICES
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR    
+    // Let's always link the EtherCAT DevState, so that 
+    // we always have one sync variable (even if all subsystems are disabled)
+    {attribute 'TcLinkTo' := 'TIID^Device 1 (EtherCAT)^Inputs^DevState'}
+	i_nDevState AT %I* : UINT;
+    
+    {attribute 'TcLinkTo' := '.i_inTime             := TIID^Device 1 (EtherCAT)^PLC (EK1200)^PTP (EL6688)^  External Sync^Internal time stamp;
+                              .i_exTime             := TIID^Device 1 (EtherCAT)^PLC (EK1200)^PTP (EL6688)^  External Sync^External time stamp;
+                              .i_dc2TcOffset        := TIID^Device 1 (EtherCAT)^InfoData^DcToTcTimeOffset;
+                              .i_dc2ExtOffset       := TIID^Device 1 (EtherCAT)^InfoData^DcToExtTimeOffset;
+                              .i_extDevNotConnected := TIID^Device 1 (EtherCAT)^PLC (EK1200)^PTP (EL6688)^  External Sync^External device not connected;
+                              .i_AdsAddr            := TIID^Device 1 (EtherCAT)^PLC (EK1200)^PTP (EL6688)^InfoData^AdsAddr;
+                              .i_exNtpExtTime       := TIRC^TcCOM Objects^NtpProvider^Outputs^nExtTime;
+                              .i_exNtpSysTime       := TIRC^TcCOM Objects^NtpProvider^Outputs^nSysTime;
+                              .i_exNtpExtOffset     := TIRC^TcCOM Objects^NtpProvider^Outputs^nSysToExtTimeOffset;
+                              .i_NtpConnected       := TIRC^TcCOM Objects^NtpProvider^Diagnostic^bIsConnected;
+                              .i_exNtpSynchronized  := TIRC^TcCOM Objects^NtpProvider^Diagnostic^bIsSynchronized'}
+    fbTime : FB_TIME;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbTime();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SERVICES">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

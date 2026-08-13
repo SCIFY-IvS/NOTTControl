@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_EVENT_LISTENER" Id="{3f56ea05-5d12-4cf3-aa32-b1078ff3baf8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EVENT_LISTENER
+VAR_INPUT
+	refFbEventFilter  : REFERENCE TO FB_TcEventFilter; 
+	refFbTime:  REFERENCE TO FB_TIME;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	hr : HRESULT;
+	
+	bSubscribe : BOOL := TRUE;
+	bSubscribed : BOOL;
+	bUnSubscribe : BOOL;
+	
+	fbMessageListener : FB_SAMPLE_LISTENER;
+	Message: INT;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbMessageListener.CustomExecute(refFbTime); // retrieve messages and its texts
+
+
+IF bSubscribe THEN 
+	bSubscribe := FALSE;
+	hr := fbMessageListener.Subscribe2(refFbEventFilter); //subscribe to retrieve defined events
+	IF SUCCEEDED(hr) THEN	
+		bSubscribed := TRUE;
+	END_IF
+END_IF 
+
+IF bUnSubscribe THEN 
+	bUnSubscribe := FALSE;
+	hr := fbMessageListener.Unsubscribe();
+	IF SUCCEEDED(hr) THEN	
+		bSubscribed := FALSE;
+	END_IF
+END_IF 
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_EVENT_LISTENER">
+      <LineId Id="199" Count="17" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

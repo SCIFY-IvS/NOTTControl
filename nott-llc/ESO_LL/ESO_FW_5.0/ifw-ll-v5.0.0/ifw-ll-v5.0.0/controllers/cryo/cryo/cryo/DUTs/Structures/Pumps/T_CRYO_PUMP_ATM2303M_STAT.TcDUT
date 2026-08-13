@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_ATM2303M_STAT" Id="{04534795-42a9-493a-9b89-ad7458630c07}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_ATM2303M_STAT EXTENDS T_CRYO_PUMP_BASE_STAT :
+STRUCT
+
+	// Digital status input signals
+	bSpeed100:			BOOL;	// pump speed > 100 rpm
+	
+	
+	// STA command
+	// All attributes are defined in T_CRYO_PUMP_BASE_STAT
+	
+	// LEV10 command
+	nNominalSpeed:				DINT;	// [rpm]
+	nStandbySpeed:				DINT;	// [rpm]
+	nSetPoint_AtSpeed:			DINT;	// ‘At speed’ relay set point (3 to 50%)
+	nSetPoint_Temp:				DINT;	// temperature set point (30 to 65°C)
+	nSetPoint_BearingWarn:		DINT;	// landing bearing warning set point (0 to 99%)
+	nSetPoint_BearingCounter:	DINT;	// landing bearing counter (0 to 100%)
+	
+	// SEL command
+	
+	// VER Command (4 version strings)
+	sVer1:	STRING;
+	sVer2:	STRING;
+	sVer3:	STRING;
+	sVer4:	STRING;
+
+	sIDN:	STRING;
+	sRDI:	STRING;
+	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

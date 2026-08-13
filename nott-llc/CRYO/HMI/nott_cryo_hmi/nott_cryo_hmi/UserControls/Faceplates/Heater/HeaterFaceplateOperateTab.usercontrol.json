@@ -1,0 +1,24 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-heaterobject",
+      "displayName": "HeaterObject",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.FB_HMI_CRYO_HEATER",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "HeaterObject",
+      "propertySetterName": "setHeaterObject",
+      "propertyGetterName": "getHeaterObject",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

@@ -1,0 +1,99 @@
+<div id="Events" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%">
+
+
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "rgba(237, 237, 237, 1)"
+}
+</script>
+<div id="Events_TcHmiEventGrid" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEventGrid" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-server-interval="1000" data-tchmi-show-menu-bar="true" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%">
+<script data-tchmi-target-attribute="data-tchmi-filter" type="application/json">
+[
+  {
+    "path": "domain",
+    "comparator": "==",
+    "value": "TcHmiEventLogger"
+  },
+  {
+    "logic": "OR"
+  },
+  {
+    "path": "domain",
+    "comparator": "==",
+    "value": "TcHmiAlarm"
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-columns" type="application/json">
+[
+  {
+    "columnName": "type"
+  },
+  {
+    "columnName": "severity"
+  },
+  {
+    "columnName": "timeAndDateRaised"
+  },
+  {
+    "columnName": "params::sourceName",
+    "label": "%l%L_Source%/l%"
+  },
+  {
+    "columnName": "text",
+    "width": 1,
+    "widthUnit": "factor"
+  },
+  {
+    "columnName": "alarmState"
+  },
+  {
+    "columnName": "confirmationState"
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-sorting" type="application/json">
+[
+  {
+    "name": "timeRaised",
+    "order": "Descending"
+  }
+]
+</script>
+
+</div>
+<div id="Events_TcHmiButton_ResetFilters" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="672" data-tchmi-left-unit="px" data-tchmi-text="%l%L_ResetFilter%/l%" data-tchmi-top="5" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "Function",
+        "active": true,
+        "fn": "TcHmi.Functions.MyNamespace.SetFilterOfEvents",
+        "fnParams": [
+          {
+            "objectType": "Symbol",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "symbolExpression": "%ctrl%Events_TcHmiEventGrid%/ctrl%"
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+            "value": ""
+          },
+          {
+            "objectType": "StaticValue",
+            "valueType": "tchmi:general#/definitions/Boolean",
+            "value": false
+          }
+        ],
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+</div>

@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_TEMPERATURES" Id="{575ff2c9-a964-4186-9084-4c0cc38e6ece}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_TEMPERATURES EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+
+VAR_IN_OUT
+    voters          : FB_METIS_VOTERS;
+END_VAR
+VAR
+    // active tab of the main frame
+    eActiveTab : E_HMI_TEMP_TABS := E_HMI_TEMP_TABS.VOTERS;
+    sActiveName : STRING;
+    
+    // components
+    fbVoters       		: FB_HMI_TEMP_VOTERS;
+
+    
+    // buttons
+    fbVotersButton       : FB_HMI_BUTTON(sName := 'Voters'               , sIconName := '', nThisTab := E_HMI_CRY_TABS.VOTERS);
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// update the components
+
+fbVoters(fbInstance := voters);
+
+// update the buttons
+
+fbVotersButton(
+    stColor     := fbVoters.fbStatusColor,
+    nActiveTab  := eActiveTab,
+    sActiveName := sActiveName);
+
+
+
+// update the summary health/busy status
+fbHealthStatus(
+    bIsEnabled  := TRUE,
+    bIsGood     :=     fbVoters.fbHealthStatus.bGood,
+    bHasWarning :=     fbVoters.fbHealthStatus.bWarning);
+
+fbBusyStatus(
+    bIsEnabled   := TRUE,
+    bIsBusy      :=    fbVoters.fbBusyStatus.bBusy);
+
+M_UpdateStatusColor();]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_TEMPERATURES">
+      <LineId Id="47" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="62" Count="3" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="79" Count="4" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="95" Count="3" />
+      <LineId Id="104" Count="1" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Name>Drive Manager 2</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{b353dc3a-fb96-429e-bcd3-cec059d05d43}</ProjectGuid>
+    <TcPath>
+    </TcPath>
+    <AssemblyName>TwinCAT Drive Manager DL Servo</AssemblyName>
+    <RootNamespace>TwinCAT Drive Manager DL Servo</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Term 20 %28EL7047%29.tcdmdrv">
+      <SubType>Content</SubType>
+    </Content>
+  </ItemGroup>
+</Project>

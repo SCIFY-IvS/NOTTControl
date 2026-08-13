@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <DUT Name="E_MA_COMMAND" Id="{fd004b0d-5eb1-48d2-980c-ec119720523d}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MA_COMMAND :
+(
+	NONE	:= 0,
+	
+	// Commands corresponding to events - MUST match E_MA_EVENT !!!
+	RESET,
+	INIT,
+	STOP,
+	ENABLE,
+	DISABLE,
+	MA_MOVE,
+	START_TRACK,
+	STOP_TRACK
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

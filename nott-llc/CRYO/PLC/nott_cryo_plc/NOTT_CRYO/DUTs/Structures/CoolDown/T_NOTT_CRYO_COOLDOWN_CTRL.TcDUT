@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_COOLDOWN_CTRL" Id="{883c7900-d96f-4a62-8ed5-0946b01068bd}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_COOLDOWN_CTRL :
+STRUCT
+	
+	bEnable_Cooler:		BOOL := FALSE;
+		// Command override (cor)
+	cor_Cooler:				FB_CRYO_CMD_OVERRIDE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

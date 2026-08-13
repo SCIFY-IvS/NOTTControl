@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_STATUS" Id="{b6659442-3a09-4982-8e54-2e782c920cd4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_STATUS
+VAR_INPUT
+	sText : STRING;
+	stColor : T_HMI_COLORS;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_STATUS">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

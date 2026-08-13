@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_PUMPS" Id="{d10bb9f8-f672-463e-8ef0-c4300969af2d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_PUMPS EXTENDS FB_HMI_COMPONENT
+VAR
+	// System health & busy status
+//    fbHealthStatus: 		FB_HMI_HEALTH_STATUS;
+//    fbBusyStatus: 			FB_HMI_BUSY_STATUS;
+//    fbStatusColor: 			T_HMI_COLORS;
+	
+	// Pumps
+	fbRpBranchAButton: 		FB_HMI_BUTTON('RP A' , '', 	E_HMI_PUMPS_TABS.RP_BRANCH_A);
+	fbRpBranchBButton: 		FB_HMI_BUTTON('RP B' , '', 	E_HMI_PUMPS_TABS.RP_BRANCH_B);
+	fbTpBranchAButton: 		FB_HMI_BUTTON('TP A' , '', 	E_HMI_PUMPS_TABS.TP_BRANCH_A);
+	fbTpBranchBButton: 		FB_HMI_BUTTON('TP B' , '', 	E_HMI_PUMPS_TABS.TP_BRANCH_B);
+	
+		// Pumps
+	fbRpBranchA:			FB_HMI_RP_BRANCH_A;
+	fbRpBranchB:			FB_HMI_RP_BRANCH_B;
+	fbTpBranchA:			FB_HMI_TP_BRANCH_A;
+	fbTpBranchB:			FB_HMI_TP_BRANCH_B;
+	
+	    // active tab of the main frame
+    eActiveTab : E_HMI_PUMPS_TABS := E_HMI_PUMPS_TABS.RP_BRANCH_A;
+    sActiveName : STRING;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// Pumps
+ 			
+fbRpBranchA();
+fbRpBranchB();
+fbTpBranchA();
+fbTpBranchB();
+
+// Pumps
+
+fbRpBranchAButton(stColor:= fbRpBranchA.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 		
+fbRpBranchBButton(stColor:= fbRpBranchB.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 
+fbTpBranchAButton(stColor:= fbTpBranchA.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); 
+fbTpBranchBButton(stColor:= fbTpBranchB.fbStatusColor, nActiveTab:= eActiveTab, sActiveName:= sActiveName); ]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_PUMPS">
+      <LineId Id="30" Count="5" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="37" Count="5" />
+      <LineId Id="36" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_MOTOR_AXIS_TYPE" Id="{0f4b84ae-1519-4ccd-bde9-e8382723ccd1}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MOTOR_AXIS_TYPE :
+(
+	LINEAR				:= 1,
+	CIRCULAR,
+	CIRCULAR_OPTIMISED
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,258 @@
+<div id="EvacuateSequence" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="100" data-tchmi-width-unit="%" data-tchmi-height-unit="%">
+
+<div id="EvacuateSequence_SequenceContainer" data-tchmi-type="TcHmi.Controls.CryoFramework.SequenceContainer" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-seqcontainer-sequence="%s%PLC1.MAIN.pds_cryo_ctrl.evac.hmi_sequence.stat%/s%">
+<div id="EvacuateSequence_Process_S1" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-seqbase-font-size-unit="px" data-tchmi-top="3" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="OFF" data-tchmi-seqbase-blockid="1" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S1ToS2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="407" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="47" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S1ToS2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="411" data-tchmi-left-unit="px" data-tchmi-top="43" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_Process_S2" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-seqbase-font-size-unit="px" data-tchmi-top="53" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Close Prevacuum Valve" data-tchmi-seqbase-blockid="2" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S2ToS3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="411" data-tchmi-left-unit="px" data-tchmi-top="92" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S2ToS3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="407" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="97" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S3" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-seqbase-font-size-unit="px" data-tchmi-top="103" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Start Roughing Pump" data-tchmi-seqbase-blockid="3" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S3ToS4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="407" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="147" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S3ToS4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="411" data-tchmi-left-unit="px" data-tchmi-top="143" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_Process_S4" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="153" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Wait VAG1 Pressure < 5 mbar" data-tchmi-seqbase-blockid="4" data-tchmi-seqbase-state="0">
+
+
+</div>
+<div id="EvacuateSequence_TcHmiLine_S4ToS5_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="193" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S4ToS5_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="311" data-tchmi-left-unit="px" data-tchmi-top="198" data-tchmi-top-unit="px" data-tchmi-width="99" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S4ToS5_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="53" data-tchmi-height-unit="px" data-tchmi-left="311" data-tchmi-left-unit="px" data-tchmi-top="198" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S4ToS5_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="311" data-tchmi-left-unit="px" data-tchmi-top="251" data-tchmi-top-unit="px" data-tchmi-width="39" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S4ToS5" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="340" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="247" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S7" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="447" data-tchmi-left-unit="px" data-tchmi-top="192" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Open Insulation Valve" data-tchmi-seqbase-blockid="7" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S7ToS8" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="607" data-tchmi-left-unit="px" data-tchmi-top="211" data-tchmi-top-unit="px" data-tchmi-width="30" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S7ToS8" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="632" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="207" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S8" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="598" data-tchmi-left-unit="px" data-tchmi-top="192" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Wait VAGC < Prevacuum Pressure 10^-1 mbar" data-tchmi-seqbase-blockid="8" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S8ToS9" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="758" data-tchmi-left-unit="px" data-tchmi-top="211" data-tchmi-top-unit="px" data-tchmi-width="30" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S8ToS9" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="782" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="207" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S9" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="748" data-tchmi-left-unit="px" data-tchmi-top="192" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Start Turbo-Molecular Pump" data-tchmi-seqbase-blockid="9" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_Process_S11" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="314" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Evacuating" data-tchmi-seqbase-blockid="11" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S11ToS12_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="354" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S11ToS12" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="406" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="358" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Decision_S5" data-tchmi-type="TcHmi.Controls.CryoFramework.Decision" data-tchmi-height="70" data-tchmi-height-unit="px" data-tchmi-left="305" data-tchmi-left-unit="px" data-tchmi-seqbase-font-size-unit="px" data-tchmi-seqbase-state="0" data-tchmi-top="216" data-tchmi-top-unit="px" data-tchmi-width="170" data-tchmi-width-unit="px" data-tchmi-seqbase-blockid="5" data-tchmi-seqbase-value="Pressure Cryostat < 10^-2 mbar" data-tchmi-seqbase-text-font-size="8">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S5ToS7_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="211" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S5ToS7_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="211" data-tchmi-top-unit="px" data-tchmi-width="77" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S5ToS7" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="481" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="207" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S5ToS6_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="286" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S5ToS6_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="291" data-tchmi-top-unit="px" data-tchmi-width="77" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S5ToS6" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="481" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="287" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S12" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="364" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Close Insulation Valve" data-tchmi-seqbase-blockid="12" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S12ToS13" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="404" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S12ToS13" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="406" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="408" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S13" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="414" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="3 Second Delay" data-tchmi-seqbase-blockid="13" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S13ToS14" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="454" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S13ToS14" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="406" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="460" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S14" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="466" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Stop Turbo-Molecular Pump" data-tchmi-seqbase-blockid="14" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S14ToS15" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="506" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S14ToS15" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="406" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="510" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S14ToS15_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="6" data-tchmi-height-unit="px" data-tchmi-left="406" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,0 50,50 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="560" data-tchmi-top-unit="px" data-tchmi-width="8" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S15" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="516" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Stop Roughing Pump" data-tchmi-seqbase-blockid="15" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S15ToS16_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="5" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="606" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S15ToS16" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="10" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="556" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_Process_S6" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="447" data-tchmi-left-unit="px" data-tchmi-top="265" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Start Turbo-Molecular Pump" data-tchmi-seqbase-blockid="6" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S6ToS10" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="607" data-tchmi-left-unit="px" data-tchmi-top="289" data-tchmi-top-unit="px" data-tchmi-width="30" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S6ToS10" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="631" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="285" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_Process_S10" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="596" data-tchmi-left-unit="px" data-tchmi-top="265" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Open Insulation Valve" data-tchmi-seqbase-blockid="10" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_Process_S16" data-tchmi-type="TcHmi.Controls.CryoFramework.Process" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="310" data-tchmi-left-unit="px" data-tchmi-top="566" data-tchmi-top-unit="px" data-tchmi-width="160" data-tchmi-width-unit="px" data-tchmi-seqbase-value="Wait Turbo-Molecular Pump In Standby" data-tchmi-seqbase-blockid="16" data-tchmi-seqbase-state="0">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S16ToS1_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="291" data-tchmi-left-unit="px" data-tchmi-top="611" data-tchmi-top-unit="px" data-tchmi-width="120" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S16ToS1_3" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="588" data-tchmi-height-unit="px" data-tchmi-left="291" data-tchmi-left-unit="px" data-tchmi-top="22" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S16ToS1_4" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="291" data-tchmi-left-unit="px" data-tchmi-top="22" data-tchmi-top-unit="px" data-tchmi-width="60" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_SequenceControlFaceplate_Evacuate" data-tchmi-type="TcHmi.Controls.System.TcHmiUserControlHost" data-tchmi-height="130" data-tchmi-height-unit="px" data-tchmi-left="664" data-tchmi-left-unit="px" data-tchmi-target-user-control="UserControls/Faceplates/Sequence/SequenceControlFaceplate.usercontrol" data-tchmi-top="485" data-tchmi-top-unit="px" data-tchmi-width="350" data-tchmi-width-unit="px" data-tchmi-title="%l%L_Evacuate%/l%" data-tchmi-sequencepopupcontent="Pages/EvacuateSequence.content" data-tchmi-sequencepageidentity="EvacuateSequence" data-tchmi-sequencestatetext="%s%PLC1.MAIN.pds_cryo_ctrl.evac.stat.sStatus%/s%" data-tchmi-permitstop="false" data-tchmi-permitstart="false" data-tchmi-startstopsequence="%s%PLC1.MAIN.pds_cryo_ctrl.ctrl.bEnable_Evac%/s%" data-tchmi-showsequencebutton="false">
+</div>
+<div id="EvacuateSequence_TcHmiRectangle_Start" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiRectangle" data-tchmi-height="42" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="25" data-tchmi-top-unit="px" data-tchmi-width="107" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="0" data-tchmi-background-color="%tr%SequenceConfirmBackgroundColor%/tr%">
+
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-radius" type="application/json">
+{
+  "topLeft": 20.0,
+  "topRight": 20.0,
+  "bottomLeft": 20.0,
+  "bottomRight": 20.0,
+  "topLeftUnit": "px",
+  "topRightUnit": "px",
+  "bottomLeftUnit": "px",
+  "bottomRightUnit": "px"
+}
+</script>
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+
+
+</div>
+<div id="EvacuateSequence_TcHmiTextblock_Start" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="33" data-tchmi-top-unit="px" data-tchmi-width="107" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text="%l%L_Start%/l%" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S16ToS1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="345" data-tchmi-left-unit="px" data-tchmi-points="0,0 100,50 0,100 0,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="18" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S10ToS11_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="695" data-tchmi-left-unit="px" data-tchmi-top="305" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S10ToS11_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="470" data-tchmi-left-unit="px" data-tchmi-top="335" data-tchmi-top-unit="px" data-tchmi-width="225" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiPolyline_S10ToS11" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiPolyline" data-tchmi-height="8" data-tchmi-height-unit="px" data-tchmi-left="470" data-tchmi-left-unit="px" data-tchmi-points="100,0 100,100 0,50 100,0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-top="331" data-tchmi-top-unit="px" data-tchmi-width="6" data-tchmi-width-unit="px" data-tchmi-fill-color="%tr%SequenceArrowFillColor%/tr%">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S9ToS11_1" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="103" data-tchmi-height-unit="px" data-tchmi-left="849" data-tchmi-left-unit="px" data-tchmi-top="232" data-tchmi-top-unit="px" data-tchmi-width="1" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_S9ToS11_2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="470" data-tchmi-left-unit="px" data-tchmi-top="335" data-tchmi-top-unit="px" data-tchmi-width="379" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiLine_StartToS2" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="411" data-tchmi-left-unit="px" data-tchmi-top="45" data-tchmi-top-unit="px" data-tchmi-width="79" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiRectangle_Stop" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiRectangle" data-tchmi-height="42" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="338" data-tchmi-top-unit="px" data-tchmi-width="107" data-tchmi-width-unit="px" data-tchmi-stroke-thickness="0" data-tchmi-background-color="%tr%SequenceConfirmBackgroundColor%/tr%">
+<script data-tchmi-target-attribute="data-tchmi-border-width" type="application/json">
+{
+  "left": 1,
+  "right": 1,
+  "top": 1,
+  "bottom": 1,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-radius" type="application/json">
+{
+  "topLeft": 20.0,
+  "topRight": 20.0,
+  "bottomLeft": 20.0,
+  "bottomRight": 20.0,
+  "topLeftUnit": "px",
+  "topRightUnit": "px",
+  "bottomLeftUnit": "px",
+  "bottomRightUnit": "px"
+}
+</script>
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-border-style" type="application/json">
+{
+  "left": "Solid",
+  "right": "Solid",
+  "top": "Solid",
+  "bottom": "Solid"
+}
+</script>
+
+
+</div>
+<div id="EvacuateSequence_TcHmiTextblock_Stop" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="26" data-tchmi-height-unit="px" data-tchmi-left="490" data-tchmi-left-unit="px" data-tchmi-top="346" data-tchmi-top-unit="px" data-tchmi-width="107" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text="%l%L_Stop%/l%" data-tchmi-text-horizontal-alignment="Center" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-font-size="14" data-tchmi-text-font-weight="Bold">
+</div>
+<div id="EvacuateSequence_TcHmiLine_StopToS11" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiLine" data-tchmi-height="1" data-tchmi-height-unit="px" data-tchmi-left="410" data-tchmi-left-unit="px" data-tchmi-top="356" data-tchmi-top-unit="px" data-tchmi-width="80" data-tchmi-width-unit="px" data-tchmi-x2="0" data-tchmi-y2="0" data-tchmi-scale-mode="ScaleToFill" data-tchmi-y1="0" data-tchmi-x1="1">
+</div>
+<div id="EvacuateSequence_TcHmiButton_Back" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiButton" data-tchmi-height="80" data-tchmi-height-unit="px" data-tchmi-left="11" data-tchmi-left-unit="px" data-tchmi-text="%l%L_Back%/l%" data-tchmi-top="11" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-icon="%tr%BackIcon%/tr%" data-tchmi-icon-width="50" data-tchmi-icon-height="50" data-tchmi-icon-vertical-alignment="Top" data-tchmi-text-vertical-alignment="Bottom" data-tchmi-text-font-size="14">
+
+<script data-tchmi-target-attribute="data-tchmi-text-padding" type="application/json">
+{
+  "left": 0,
+  "right": 0,
+  "top": 0,
+  "bottom": 5,
+  "leftUnit": "px",
+  "rightUnit": "px",
+  "topUnit": "px",
+  "bottomUnit": "px"
+}
+</script>
+
+
+
+
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%i%SelectedPageIdentity%/i%",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:project#/definitions/PageIdentity",
+          "value": "CryogenicController"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="EvacuateSequence_TcHmiTextblock_S5_Yes" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="19" data-tchmi-height-unit="px" data-tchmi-left="447" data-tchmi-left-unit="px" data-tchmi-text="%l%L_Yes%/l%" data-tchmi-top="291" data-tchmi-top-unit="px" data-tchmi-width="23" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
+</div>
+<div id="EvacuateSequence_TcHmiTextblock_S5_No" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="19" data-tchmi-height-unit="px" data-tchmi-left="447" data-tchmi-left-unit="px" data-tchmi-text="%l%L_No%/l%" data-tchmi-top="211" data-tchmi-top-unit="px" data-tchmi-width="23" data-tchmi-width-unit="px" data-tchmi-word-wrap="true">
+</div>
+</div>
+</div>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_READ_WRITE_TEMP_VOTE_CONFIG" Id="{1ce3f43a-2a68-4dfc-b24d-dd3ca393e5ab}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_READ_WRITE_TEMP_VOTE_CONFIG EXTENDS FB_READ_WRITE_CONFIG_BASE
+VAR_INPUT
+	in_sTVoteName:      T_MaxString;
+END_VAR
+VAR_IN_OUT
+	Temp_Vote_Config:   T_NOTT_TEMP_VOTE_CFG;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^(
+    in_sEntryName  := in_sTVoteName,
+    in_sSubFolder  := 'Temperature_Vote\',
+    in_sXPath      := '/Temperature_Vote_Configuration/',
+    in_pSymAddr    := ADR(Temp_Vote_Config),
+    in_cbSymSize   := SIZEOF(Temp_Vote_Config));
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

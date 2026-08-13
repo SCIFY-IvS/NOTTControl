@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_STATUS" Id="{5766e9aa-57cc-4bf1-8096-2d98d2138682}">
+    <Declaration><![CDATA[TYPE T_SA_STATUS EXTENDS T_RS_BASE_STAT :
+STRUCT
+	nNumMod:		UINT;			// Total number of MODules [0..6]. Should be >= 1.
+	nNumCh:			UINT;			// Total number of CHannels [0..18]. Should be >= 1.
+
+	nRetries:		UDINT := 0;		// Total number of retries in case of communication problems
+	
+	sLibVersion:	STRING	:= 'UNKNOWN';		// Library version as string, e.g. '1.2.0.0'
+	sReply:			STRING(255); 	// Last device Reply to predefined commands
+	lastCtrlCmd:	STRING;			// Last Ctrl command sent to Device
+	
+	nDevState:		UDINT;
+	sIDN:			STRING := '';	// Device info
+	sDevSerNum:		STRING := '';	// Device serial number
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	stDevState:		T_SA_DEV_STATE;						// DEVice state
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	arrModState:	ARRAY [0..5]  OF T_SA_MOD_STATE;	// Array of MODule state
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

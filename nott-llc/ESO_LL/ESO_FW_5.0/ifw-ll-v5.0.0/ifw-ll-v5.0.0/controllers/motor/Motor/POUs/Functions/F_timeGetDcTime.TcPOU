@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="F_timeGetDcTime" Id="{7186f94b-4e7e-43fa-be53-91561abe491a}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+ *****************************************************************************
+ * timeGetDcTime: Get TwinCAT DC time from UTC time
+ *
+ *  IN   vltUTC: UTC time 
+ *  OUT  dcTIME: TwinCAT DC time
+ ***************************************************************************** 
+ *)
+FUNCTION F_timeGetDcTime : ULINT
+VAR_INPUT
+	ut:	T_TIMEVAL;
+END_VAR
+VAR
+	val:   	ULINT := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+HRESULT timeGetDcTime(vltTIMEVAL vltUTC, LONGLONG *dcTime)
+{
+	HRESULT hr = S_OK; 
+	LONGLONG val = 0;
+	val = vltUTC.tv_sec * 1000000000;
+	val -= OFFSET_UNIX;
+	*dcTime = val + vltUTC.tv_usec * 1000;
+	return hr;
+}
+*)
+val	:= ut.tv_sec * 1000000000;
+val := val - DINT_TO_ULINT(GCL.C_OFFSET_UNIX);
+
+F_timeGetDcTime	:= val + DINT_TO_ULINT(ut.tv_usec) * 1000;
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="F_timeGetDcTime">
+      <LineId Id="7" Count="0" />
+      <LineId Id="17" Count="8" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="27" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

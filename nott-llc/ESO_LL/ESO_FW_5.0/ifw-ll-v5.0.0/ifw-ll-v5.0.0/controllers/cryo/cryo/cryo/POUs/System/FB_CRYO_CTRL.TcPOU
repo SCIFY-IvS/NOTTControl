@@ -1,0 +1,1478 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_CTRL" Id="{d6e60d4f-f8b6-4737-accb-80f00d84378d}" SpecialFunc="None">
+    <Declaration><![CDATA[// Cryogenic Controller Example - ESO IRATEC
+FUNCTION_BLOCK FB_CRYO_CTRL
+VAR_INPUT
+END_VAR
+VAR
+
+	///////////////////////////
+	// Configuration parameters
+	///////////////////////////
+	cfg:	T_CRYO_CFG;
+	
+	/////////////////////
+	// Control parameters
+	/////////////////////
+	ctrl:	T_CRYO_CTRL;
+
+	/////////////////////
+	// Status parameters
+	/////////////////////
+	stat:	T_CRYO_STAT;
+
+
+	/////////////////////
+	// System Logging
+	/////////////////////
+	syslog:	T_CRYO_LOG;
+
+
+	/////////////////////
+	// Local variables
+	/////////////////////
+
+
+
+	{attribute 'OPC.UA.DA' := '0'}
+	timer:		TON;		// Timer for commands
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrLog:		ARRAY [0..9] OF POINTER TO STRING(80);
+	{attribute 'OPC.UA.DA' := '0'}
+	nLogPos:	INT := -1;
+	
+	
+
+//////////////////////////////////////////////
+//             Controllers
+//////////////////////////////////////////////
+
+//
+// LN2 Valve control
+//
+	{attribute 'OPC.UA.DA' := '1'}
+	LN2: 			FB_CRYO_LN2_CTRL;
+	
+//
+// Repressurizing Valve control
+//
+	{attribute 'OPC.UA.DA' := '1'}
+	RepressValve:	FB_CRYO_VALVE_CTRL;
+	
+	
+//
+// Evacuation Valve control
+//
+	EvacSys:	FB_CRYO_EVACUATION_SYSTEM;
+
+//
+// Heater control
+//
+	{attribute 'OPC.UA.DA' := '1'}
+	Heater: 		FB_CRYO_HEATER_CTRL;
+	
+//
+// CCC control
+//
+	{attribute 'OPC.UA.DA' := '1'}
+	CCC:			FB_CRYO_CCC_CTRL;
+
+//
+// CCC control
+//
+//	{attribute 'OPC.UA.DA' := '1'}
+	Lakeshore:		FB_LAKESHORE_RS;
+	
+	// Compressor	
+	cpa:	FB_CRYO_CPA;
+
+//////////////////////////////////////////////
+//             Sensors
+//////////////////////////////////////////////
+ 
+//
+// VACUUM Sensors
+//
+	{attribute 'OPC.UA.DA' := '1'}
+	Pressure_Cryo:		FB_CRYO_PRESSURE;	
+	{attribute 'OPC.UA.DA' := '1'}
+	Pressure_Evac:		FB_CRYO_PRESSURE;	
+	
+ 
+///////////////////////////////////////////////////////
+//                  Temperatures
+///////////////////////////////////////////////////////
+ 
+//
+// PT100 Temperatures
+//
+	Temp_Ambient:		FB_CRYO_TEMPERATURE;	// Ambient temperature
+	Temp_ColdBench:		FB_CRYO_TEMPERATURE;	// Cold Bench temperature
+	Temp_LN2_Exhaust:	FB_CRYO_TEMPERATURE;	// LN2 Exhaust temperature
+	Temp_LN2_Inlet:		FB_CRYO_TEMPERATURE;	// LN2 Inlet   temperature
+	Temp_Mirror:		FB_CRYO_TEMPERATURE;	// Entrance Mirror temperature
+	Temp_WarmUp:		FB_CRYO_TEMPERATURE;	// Reference temperature for WarmUp
+
+//
+// Lakeshore temperatures
+//
+	Temp_DET:			FB_CRYO_TEMPERATURE;	// Lakeshore Channel A
+	Temp_HeatShield:	FB_CRYO_TEMPERATURE;	// Heat Shield Lakeshore Channel B
+ 
+//
+// IRATEC specific Temperatures
+//
+	Temp_FW:			FB_CRYO_TEMPERATURE;	// Filter Wheel temperature
+
+	
+
+//
+// System triggers
+//	
+	{attribute 'OPC.UA.DA' := '0'}
+	trgPrecool:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgCool:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgWarmup:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgRepress:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgEvacOn:			R_TRIG;
+	{attribute 'OPC.UA.DA' := '0'}
+	trgEvacOff:			F_TRIG;
+
+//
+//	Input signals
+//	
+	i_bEvacRootPumpOK		AT%I*:	BOOL;
+	i_bEvacTurboPumpOK		AT%I*:	BOOL;
+	i_bEmergencySTOP		AT%I*:	BOOL;
+	i_bManualOverride		AT%I*:	BOOL;
+	i_bVacPumpConnected		AT%I*:	BOOL;
+	i_bLN2TankConnected		AT%I*:	BOOL;
+	i_bRepressLN2Connected	AT%I*:	BOOL;
+
+
+//
+// Dummy values for simulation, etc.
+//
+	// Dummy OP state for mapping of simulated devices.
+	q_nStateDummy	AT%Q*:	UINT := 8;		
+
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Increment cycle counter
+stat.nCycleCounter := stat.nCycleCounter + 1;
+
+// Wait until the controller is configured.
+IF NOT stat.bConfigured THEN
+	M_Configure(); 
+	RETURN;
+END_IF
+
+
+//
+// Read Temperature and Pressure Sensors
+//
+M_ReadSensors();
+
+
+//
+// Check for sensor HW errors
+//
+M_CheckForSensorErrors();
+
+
+
+///////////////////
+// System Operation
+///////////////////
+
+//
+// Execute Controllers
+//
+M_ExecuteControllers();
+
+
+//
+// Capture system commands
+//
+M_CheckForCommands();
+
+
+//
+// Perform a safety check
+//
+M_SafetyCheck();
+
+
+//
+// Execute system state machine
+//
+M_StateMachine();
+]]></ST>
+    </Implementation>
+    <Method Name="M_CheckForCommands" Id="{b3c6e6aa-1586-4592-991a-74db9a8ffd5e}">
+      <Declaration><![CDATA[METHOD M_CheckForCommands
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Capture precooling command
+trgPrecool(CLK := ctrl.bEnable_Precool);
+IF	trgPrecool.Q AND 
+	(stat.nState = E_CRYO_CTRL_STATE.WARM_VACUUM OR stat.nState = E_CRYO_CTRL_STATE.PRE_COOLED) THEN
+	ctrl.bExecute	:= TRUE;
+	ctrl.nCommand	:= E_CRYO_CTRL_CMD.PRECOOL;
+END_IF
+
+
+// Capture Cool command
+trgCool(CLK := ctrl.bEnable_Cool);
+IF	trgCool.Q AND stat.nState = E_CRYO_CTRL_STATE.PRE_COOLED THEN
+	ctrl.bExecute	:= TRUE;
+	ctrl.nCommand	:= E_CRYO_CTRL_CMD.COOL;
+END_IF
+
+
+// Capture Warmup command
+trgWarmup(CLK := ctrl.bEnable_Warmup);
+IF	trgWarmup.Q AND 
+	(stat.nState = E_CRYO_CTRL_STATE.PRE_COOLED OR stat.nState = E_CRYO_CTRL_STATE.COLD) THEN
+	ctrl.bExecute	:= TRUE;
+	ctrl.nCommand	:= E_CRYO_CTRL_CMD.WARM_UP;
+END_IF
+
+
+// Capture Repressure command
+trgRepress(CLK := ctrl.bEnable_RepressCtrl);
+IF	trgRepress.Q AND 
+	(stat.nState = E_CRYO_CTRL_STATE.WARM_VACUUM) THEN
+	ctrl.bExecute	:= TRUE;
+	ctrl.nCommand	:= E_CRYO_CTRL_CMD.REPRESSURIZE;
+END_IF
+
+
+// Capture Evacuation ON/OFF trigger
+trgEvacOn(CLK := ctrl.bEnable_Evac);
+trgEvacOff(CLK := ctrl.bEnable_Evac);
+IF	trgEvacOn.Q AND NOT ctrl.bEnable_RepressSys THEN
+	ctrl.bEnable_Evac	:= TRUE;
+	M_SysLog('Evacuation started.');
+ELSIF trgEvacOff.Q THEN
+	ctrl.bEnable_Evac	:= FALSE;
+	M_SysLog('Evacuation stopped.');
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckForSensorErrors" Id="{e147f220-db5d-4e17-bd45-ee5f80f6f4b1}">
+      <Declaration><![CDATA[METHOD M_CheckForSensorErrors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[////////////////////////////////////////////////
+// Check for errors by testing the 'Valid' flag.
+////////////////////////////////////////////////
+IF		NOT Pressure_Cryo.stat.bValid	THEN
+	stat.bError	:= TRUE;
+	stat.sState	:= 'Cryo Vacuum gauge problem';
+	stat.nState	:= E_CRYO_CTRL_STATE.ERROR;
+ELSIF	NOT Temp_Mirror.stat.bValid	THEN
+	stat.bError	:= TRUE;
+	stat.sState	:= 'Mirror Temperature sensor problem';
+	stat.nState	:= E_CRYO_CTRL_STATE.ERROR;
+ELSE
+	stat.bError	:= FALSE;
+	stat.sState	:= '';
+END_IF
+
+
+///////////////////////
+// Check for Interlocks
+///////////////////////
+
+//
+// Evacuation and Repressurization are mutually exclusive.
+//
+IF EvacSys.in_bEnable THEN
+	ctrl.bEnable_RepressSys	:= FALSE;
+ELSIF RepressValve.in_bEnable THEN
+	ctrl.bEnable_Evac	:= FALSE;
+END_IF
+
+//
+// Disable control in failure state
+//
+IF stat.bError THEN
+	ctrl.bEnable_Precool	:= FALSE;
+	ctrl.bEnable_Cool 		:= FALSE;
+	ctrl.bEnable_Warmup		:= FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckLakeshoreCommand" Id="{be41b795-455d-4af3-b636-24f67650036d}">
+      <Declaration><![CDATA[METHOD M_CheckLakeshoreCommand
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* TODO
+
+IF ctrl.bLS_UpdateSETP THEN
+	// Reset trigger flag
+	ctrl.bLS_UpdateSETP	:= FALSE;
+	
+	// Safety
+	IF ctrl.lrLS_RAMP > 1.0 THEN
+		ctrl.lrLS_RAMP	:= 1.0;
+	ELSIF ctrl.lrLS_RAMP < 0.0 THEN
+		ctrl.lrLS_RAMP	:= 0.0;
+	END_IF
+	
+	// Set the mode
+	IF ctrl.nLS_Mode <> E_CRYO_LAKESHORE_MODE.MONITORING THEN
+		Lakeshore.M_SetMode(ctrl.nLS_Mode);
+	ELSE
+		RETURN;	// Nothing to do
+	END_IF
+ELSE
+	RETURN;	// Nothing to do
+END_IF
+
+
+
+
+CASE ctrl.nLS_Mode OF
+	E_CRYO_LAKESHORE_MODE.MONITORING,
+	E_CRYO_LAKESHORE_MODE.COOLING,
+	E_CRYO_LAKESHORE_MODE.WARMUP,
+	E_CRYO_LAKESHORE_MODE.COOLING_UPDATE,
+	E_CRYO_LAKESHORE_MODE.WARMUP_UPDATE:
+		Lakeshore.M_SetMode(E_CRYO_LAKESHORE_MODE.MONITORING);	// No action
+		
+	E_CRYO_LAKESHORE_MODE.SINGLE_SETUP:
+		IF stat.nState = E_CRYO_CTRL_STATE.COLD THEN
+			Lakeshore.M_SetParams(
+				in_nPID_A_P			:= cfg.LS_W_PID_A_P, 
+				in_nPID_A_I			:= cfg.LS_W_PID_A_I, 
+				in_nPID_A_D			:= cfg.LS_W_PID_A_D, 
+				in_nHeater_Range	:= cfg.LS_W_Heater_Range, 
+				in_lrCtrlRamp		:= ctrl.lrLS_RAMP, 
+				in_lrSetpoint_A		:= ctrl.lrLS_SETP);
+		END_IF
+	ELSE
+		Lakeshore.M_SetMode(E_CRYO_LAKESHORE_MODE.MONITORING);	// No action
+END_CASE
+*)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_CheckVacuum" Id="{333e79aa-fbce-4e80-8799-8adf627b68b6}">
+      <Declaration><![CDATA[// Method to check status of the cryostat vacuum.
+// TODO: The limits might depend on the temperature.
+METHOD M_CheckVacuum
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF Pressure_Cryo.stat.bValid  THEN
+	IF Pressure_Cryo.stat.lrPressure < cfg.lrPress_GoodVac THEN
+		stat.bInVacuum	:= TRUE;
+		stat.bGoodVacuum:= TRUE;
+	ELSIF Pressure_Cryo.stat.lrPressure < cfg.lrPress_InVac THEN
+		stat.bInVacuum	:= TRUE;
+		stat.bGoodVacuum:= FALSE;
+	ELSE
+		stat.bInVacuum	:= FALSE;
+		stat.bGoodVacuum:= FALSE;
+	END_IF 
+ELSE
+	stat.bInVacuum	:= FALSE;
+	stat.bGoodVacuum:= FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{6b1ff45b-ac29-46b7-bfed-5c22653d648f}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stat.bConfigured THEN
+	RETURN;
+ELSIF stat.nCycleCounter = 100 THEN
+	// Set pointers to system logs.
+	ptrLog[0] := ADR(syslog.s0);
+	ptrLog[1] := ADR(syslog.s1);
+	ptrLog[2] := ADR(syslog.s2);
+	ptrLog[3] := ADR(syslog.s3);
+	ptrLog[4] := ADR(syslog.s4);
+	ptrLog[5] := ADR(syslog.s5);
+	ptrLog[6] := ADR(syslog.s6);
+	ptrLog[7] := ADR(syslog.s7);
+	ptrLog[8] := ADR(syslog.s8);
+	ptrLog[9] := ADR(syslog.s9);
+ELSIF stat.nCycleCounter > 200 THEN
+	stat.bConfigured	:= TRUE;
+ELSE
+	RETURN;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteControllers" Id="{ecd9afa5-738c-4753-b62d-612a0c867fca}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Controllers, i.e. LN2 cooler, Heater, ...
+//
+
+// Activate Lakeshore SETP command, if any (see ctrl.xxLS_...)
+M_CheckLakeshoreCommand();
+
+// Execute Lakeshore 340 controller
+Lakeshore(
+	in_bSimulation	:= TRUE,
+	in_sName		:= 'LS340',
+	in_nModel		:= 340, 
+	in_bAutoMonitor	:= TRUE, 
+	in_nPeriod 		:= 2000,
+	in_sCmdSuffix	:= '$0D$0A',
+	in_sReplySuffix	:= '$0D$0A');
+
+
+LN2(
+	in_bEnable			:= ctrl.bEnable_Precool, 
+	in_nFeedback		:= E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY, 
+	in_lrTempK			:= Temp_LN2_Exhaust.stat.lrTempK, 
+	in_bValid			:= Temp_LN2_Exhaust.stat.bValid, 
+	in_lrTempValveOpen	:= cfg.lrTemp_LN2ValveOpen, 
+	in_lrTempValveClose	:= cfg.lrTemp_LN2ValveClose);
+	
+RepressValve(in_bEnable	:= ctrl.bEnable_RepressCtrl);
+	
+EvacSys(
+	in_bEnable			:= ctrl.bEnable_Evac,
+	in_Pressure_Cryo	:= Pressure_Cryo.stat,
+	in_Pressure_Evac	:= Pressure_Evac.stat,
+	in_Temp_Cryo		:= Temp_Mirror.stat,
+	in_bRepressValveOpen:= RepressValve.stat.bActON, 
+	in_bRepressValveOK	:= NOT RepressValve.stat.bError);
+
+	
+// Heater compares DET temperature against the lowest temperature in the system. 
+// Lowest temperature is calculated in M_ReadSensors() by 
+// calling M_GetLowestTemperature().
+Heater(
+	in_bEnable		:= (ctrl.bEnable_Heater AND NOT i_bEmergencySTOP), 
+	in_nFeedback	:= E_CRYO_BIN_ACT_FEEDBACK.ON_ONLY, 
+	in_lrTemp1		:= stat.lrHighestTempK, 
+	in_lrTemp2		:= Temp_DET.stat.lrTempK, 
+	in_bValidTemp1	:= stat.bHighestTempValid,
+	in_bValidTemp2	:= Temp_DET.stat.bValid,
+	in_lrDelta_Low	:= cfg.lrTemp_DeltaDet_Bench_Low, 
+	in_lrDelta_High	:= cfg.lrTemp_DeltaDet_Bench_High);
+
+	
+CCC(in_bEnable	:= ctrl.bEnable_CCC);
+
+
+cpa(in_bSimulation				:= FALSE,
+	in_sName					:= 'PT810-01',
+	in_sSN_Compressor			:= 'CPA289C-W2EHCE-180201A',
+	in_sSN_PulseTube			:= 'CH40810-180208A',
+	in_nYear_Compressor			:= 2018,
+	in_nYear_PulseTube			:= 2020,
+	in_lrNextService_Compressor	:= 20000.0,
+	in_lrNextService_PulseTube	:= 35000.0,
+	in_nSlaveID					:= 16,
+	in_nPeriod					:= 1000);
+	
+	]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetHighestTemperature" Id="{f099693e-d874-48c5-b3ed-d3d7c79c242b}">
+      <Declaration><![CDATA[METHOD M_GetHighestTemperature
+VAR_INPUT
+END_VAR
+VAR
+	lrTempK:	LREAL	:= 0.0;	// The lowest possible temperature
+	bValid:		BOOL	:= FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Get the warmest temperature among Mirror, Bench, FilterWheel and WarmUp
+//
+
+// If there is at least one Valid reading, the result is valid.
+IF	Temp_Mirror.stat.bValid 	OR 
+	Temp_ColdBench.stat.bValid	OR 
+	Temp_FW.stat.bValid			OR 
+	Temp_WarmUp.stat.bValid			THEN
+	bValid	:= TRUE;
+END_IF
+
+
+// Get the highest temperature from Valid temperatures.
+// Take Mirror temperature first, if Valid.
+// If not Valid, try with WarmUp sensor.
+// If that doesn't work, take the Filter Wheel temperature.
+IF Temp_Mirror.stat.bValid THEN
+	IF Temp_Mirror.stat.lrTempK > lrTempK THEN
+		lrTempK	:= Temp_Mirror.stat.lrTempK;
+	END_IF
+ELSIF Temp_WarmUp.stat.bValid THEN
+	IF Temp_WarmUp.stat.lrTempK > lrTempK THEN
+		lrTempK	:= Temp_Mirror.stat.lrTempK;
+	END_IF
+ELSIF Temp_FW.stat.bValid THEN
+	IF Temp_FW.stat.lrTempK > lrTempK THEN
+		lrTempK	:= Temp_Mirror.stat.lrTempK;
+	END_IF
+END_IF
+
+
+// Update status
+stat.lrHighestTempK		:= lrTempK;
+stat.bHighestTempValid	:= bValid;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetLowestTemperature" Id="{bf361e98-30dd-4e82-9d81-54c9087f08fa}">
+      <Declaration><![CDATA[METHOD M_GetLowestTemperature
+VAR_INPUT
+END_VAR
+VAR
+	lrTempK:	LREAL	:= 293.15;	// Room temperature 20 C
+	bValid:		BOOL	:= FALSE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Get the coldest temperature among Mirror, Bench, FilterWheel and WarmUp
+//
+
+// If there is at least one Valid reading, the result is valid.
+IF	Temp_Mirror.stat.bValid 	OR 
+	Temp_ColdBench.stat.bValid	OR 
+	Temp_FW.stat.bValid			OR 
+	Temp_WarmUp.stat.bValid			THEN
+	bValid	:= TRUE;
+END_IF
+
+
+// Get the lowest temperature from Valid temperatures.
+IF Temp_Mirror.stat.bValid AND Temp_Mirror.stat.lrTempK < lrTempK THEN
+	lrTempK	:= Temp_Mirror.stat.lrTempK;
+END_IF
+
+IF Temp_ColdBench.stat.bValid AND Temp_ColdBench.stat.lrTempK < lrTempK THEN
+	lrTempK	:= Temp_ColdBench.stat.lrTempK;
+END_IF
+
+IF Temp_FW.stat.bValid AND Temp_FW.stat.lrTempK < lrTempK THEN
+	lrTempK	:= Temp_FW.stat.lrTempK;
+END_IF
+
+IF Temp_WarmUp.stat.bValid AND Temp_WarmUp.stat.lrTempK < lrTempK THEN
+	lrTempK	:= Temp_WarmUp.stat.lrTempK;
+END_IF
+
+// Update status
+stat.lrLowestTempK		:= lrTempK;
+stat.bLowestTempValid	:= bValid;
+
+// Get Temperature difference (DET -Lowest temperature) [K]
+IF stat.bLowestTempValid  AND  Temp_DET.stat.bValid  THEN
+	stat.bDiffTempValid	:= TRUE;
+	stat.lrDiffTempK	:= Temp_DET.stat.lrTempK - stat.lrLowestTempK;
+ELSE
+	stat.bDiffTempValid	:= FALSE;
+	stat.lrDiffTempK	:= -100;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetState" Id="{5a884a9e-ba07-433e-b2f1-a9a097b44b59}">
+      <Declaration><![CDATA[METHOD M_GetState
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Determine the initial state based on the command and actuator state.
+IF NOT stat.bCtrlOK	THEN
+	stat.nState	:= E_CRYO_CTRL_STATE.ERROR;
+ELSIF	Temp_Mirror.stat.lrTempK >= cfg.lrTemp_Precooled  AND  NOT stat.bInVacuum	THEN
+	stat.nState	:= E_CRYO_CTRL_STATE.WARM_PRESS;
+ELSIF	Temp_Mirror.stat.lrTempK >= cfg.lrTemp_Precooled  AND  stat.bInVacuum  THEN
+	stat.nState	:= E_CRYO_CTRL_STATE.WARM_VACUUM;
+ELSIF	Temp_Mirror.stat.lrTempK < cfg.lrTemp_Cold 	AND  stat.bInVacuum  THEN
+	stat.nState	:= E_CRYO_CTRL_STATE.COLD;
+ELSIF	Temp_Mirror.stat.lrTempK < cfg.lrTemp_Precooled  AND  stat.bInVacuum  THEN
+	stat.nState	:= E_CRYO_CTRL_STATE.PRE_COOLED;
+END_IF
+M_SetStatus(stat.nState);	
+	
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadSensors" Id="{672cff29-2690-4702-a7ba-5d0f0ce7deac}">
+      <Declaration><![CDATA[METHOD M_ReadSensors
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Read system temperatures, i.e. LN2, Bench and Detector temperatures
+//
+Temp_Ambient		(in_lrScale_1:=0.1);
+Temp_ColdBench 		(in_lrScale_1:=0.1, in_bIgnoreUnderrange_1 := ctrl.bIgnoreUnderrange_ColdBench);
+Temp_LN2_Exhaust	(in_lrScale_1:=0.1);
+Temp_LN2_Inlet		(in_lrScale_1:=0.1);
+Temp_Mirror			(in_lrScale_1:=0.1);
+Temp_WarmUp			(in_lrScale_1:=0.1);
+
+Temp_FW				(in_lrScale_1:=0.1);	// IRATEC specific
+
+//
+// Lakeshore temperature
+//
+// Important note:
+// In normal operation, call to Temp_DET() will result in a reading that is
+// not valid since the underlying temperature sensors should not be 
+// mapped to temperature signals.
+// However, call to Temp_DET.M_GetTemperatureFromLakeshore() will copy 
+// the Lakeshore reading to it and update the Valid flag.
+//
+// DET temperature is Lakeshore Channel A
+
+(* TODO
+Temp_DET(in_lrScale_1:=0.1);	
+Temp_DET.M_GetTemperatureFromLakeshore(
+	bValid	:= (Lakeshore.stat.nErrorCode=0),
+	lrTempK	:=  Lakeshore.stat.lrKRDG_A,
+	lrTempC	:=  Lakeshore.stat.lrCRDG_A);
+
+// HeatShield temperature is Lakeshore Channel B
+Temp_HeatShield(in_lrScale_1:=0.1);
+Temp_HeatShield.M_GetTemperatureFromLakeshore(
+	bValid	:= (Lakeshore.stat.nErrorCode=0),
+	lrTempK	:=  Lakeshore.stat.lrKRDG_B,
+	lrTempC	:=  Lakeshore.stat.lrCRDG_B);
+
+*)
+
+// Both pressure sensors are of PKR250/251 type
+Pressure_Cryo(	in_lrLimitInVac		:= cfg.lrPress_InVac, 
+				in_lrLimitGoodVac	:= cfg.lrPress_GoodVac);
+Pressure_Evac(	in_lrLimitInVac		:= cfg.lrPress_InVac, 
+				in_lrLimitGoodVac	:= cfg.lrPress_GoodVac);	
+
+//
+// Get the lowest temperature in the cryostat
+//	
+M_GetLowestTemperature();
+
+//
+// Get the highest temperature in the cryostat
+//	
+M_GetHighestTemperature();
+	
+
+//
+// Check Vacuum in the system
+//	
+M_CheckVacuum();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SafetyCheck" Id="{bb820798-874a-468f-852d-2934989cda4b}">
+      <Declaration><![CDATA[METHOD M_SafetyCheck
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Repressurization safety
+//
+IF	NOT ctrl.bEnable_Evac AND
+	(stat.nState = E_CRYO_CTRL_STATE.WARM_PRESS 		OR 
+	 stat.nState = E_CRYO_CTRL_STATE.REPRESSURIZING 	OR 
+	 stat.nState = E_CRYO_CTRL_STATE.WARM_VACUUM) 		THEN
+	ctrl.bSafe_Repress	:= TRUE;
+ELSE
+	ctrl.bSafe_Repress	:= FALSE;
+	ctrl.bEnable_RepressSys:= FALSE;
+END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{f025e401-b414-44ce-9499-c12078610b3c}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nState:	E_CRYO_CTRL_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+CASE nState OF
+	
+	E_CRYO_CTRL_STATE.NONE:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= FALSE;
+	stat.sState	:= 'OFF';
+	
+	E_CRYO_CTRL_STATE.WARM_PRESS:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'WARM  -  PRESSURIZED';
+	
+	E_CRYO_CTRL_STATE.WARM_VACUUM:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'WARM  -  VACUUM';
+	
+	E_CRYO_CTRL_STATE.PRE_COOLING:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'PRE-COOLING...';
+	
+	E_CRYO_CTRL_STATE.PRE_COOLED:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'PRE-COOLED';
+
+	E_CRYO_CTRL_STATE.COOLING_DOWN:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'COOLING DOWN...';
+
+	E_CRYO_CTRL_STATE.COLD:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'COLD';
+
+	E_CRYO_CTRL_STATE.WARMING_UP:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive	:= TRUE;
+	IF Temp_Mirror.stat.lrTempK >= cfg.lrTemp_Warm	THEN
+		stat.sState	:= 'WARM';
+	ELSIF	Temp_Mirror.stat.lrTempK < cfg.lrTemp_Warm AND
+			Temp_Mirror.stat.lrTempK >= cfg.lrTemp_Precooled	THEN
+		stat.sState	:= 'WARMING UP... PRE-COOLED';
+	ELSE
+		stat.sState	:= 'WARMING UP... COLD';
+	END_IF
+
+	E_CRYO_CTRL_STATE.REPRESSURIZING:
+	stat.bDone	:= FALSE;
+	stat.bBusy	:= TRUE;
+	stat.bError	:= FALSE;
+	stat.bActive:= TRUE;
+	stat.sState	:= 'RE-PRESSURIZING...';
+	
+	E_CRYO_CTRL_STATE.ERROR:
+	stat.bDone	:= TRUE;
+	stat.bBusy	:= FALSE;
+	stat.bError	:= TRUE;
+	stat.bActive:= FALSE;
+	stat.sState	:= 'ERROR';
+
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{f7bc139f-316a-4d67-87a9-8a35421cffa4}">
+      <Declaration><![CDATA[METHOD M_StateMachine
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[////////////////
+// State Machine
+////////////////
+CASE stat.nState OF
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.NONE:
+	/////////////////////////////////
+	//
+	// This is the state on power-up.
+	// Determine the initial state based on the command and actuator state.
+	M_GetState();	
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.WARM_PRESS:
+	/////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= FALSE;
+	ctrl.bSafe_Cooling	:= FALSE;
+	ctrl.bSafe_Warmup	:= FALSE;
+
+	ctrl.bEnable_RepressCtrl:= FALSE;
+	ctrl.bEnable_Heater		:= FALSE;
+
+	IF	ctrl.bExecute	THEN
+		ctrl.bExecute		:= FALSE;
+		stat.nLastCommand	:= ctrl.nCommand;
+		ctrl.nCommand		:= E_CRYO_CTRL_CMD.NONE;
+	ELSIF Pressure_Cryo.stat.lrPressure < cfg.lrPress_InVac THEN
+		// Evacuation is not part of the State Machine.
+		// Once the air has been evacuated, we switch to WARM_VACUUM.
+		stat.nState := E_CRYO_CTRL_STATE.WARM_VACUUM;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	//////////////////////////////////////////
+	E_CRYO_CTRL_STATE.WARM_VACUUM:
+	//////////////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= NOT ctrl.bEnable_RepressSys;
+	ctrl.bSafe_Cooling	:= FALSE;
+	ctrl.bSafe_Warmup	:= FALSE;
+	
+	// In this state CCC should be OFF
+	ctrl.bEnable_CCC	:= FALSE;
+	ctrl.bEnable_Heater	:= FALSE;
+
+	IF	ctrl.bExecute	THEN
+		ctrl.bExecute		:= FALSE;
+		stat.nLastCommand	:= ctrl.nCommand;
+		ctrl.nCommand		:= E_CRYO_CTRL_CMD.NONE;
+		IF stat.nLastCommand = E_CRYO_CTRL_CMD.PRECOOL	THEN
+			IF CCC.stat.bActive THEN
+				ctrl.bEnable_Precool	:= FALSE;
+				M_SysLog('Cannot start pre-cooling. CCC still active!');
+				RETURN;
+			ELSIF CCC.stat.bError THEN
+				ctrl.bEnable_Precool	:= FALSE;
+				M_SysLog('Cannot start pre-cooling. CCC in Error state!');
+				RETURN;
+			END_IF
+			
+			// Configure Lakeshore for Cooling
+			Lakeshore.M_RampEnable(
+				in_nPID_A_P			:= cfg.LS_C_PID_A_P, 
+				in_nPID_A_I			:= cfg.LS_C_PID_A_I, 
+				in_nPID_A_D			:= cfg.LS_C_PID_A_D, 
+				in_nHeater_Range	:= cfg.LS_C_Heater_Range, 
+				in_lrCtrlRamp		:= cfg.LS_C_CTRL_RAMP, 
+				in_lrSetpoint_A		:= cfg.LS_C_SETPOINT_A);
+			
+			M_SysLog('Pre-cooling started.');
+			stat.nState	:= E_CRYO_CTRL_STATE.PRE_COOLING;
+		ELSIF stat.nLastCommand = E_CRYO_CTRL_CMD.REPRESSURIZE	THEN
+			// Disable Evacuation Valve control
+			ctrl.bEnable_Evac	:= FALSE;
+			ctrl.bEnable_RepressCtrl := TRUE;
+			
+			// Configure Lakeshore just to monitor. Disable control.
+			Lakeshore.M_RampDisable();
+
+			M_SysLog('Re-pressurization started.');
+			stat.nState	:= E_CRYO_CTRL_STATE.REPRESSURIZING;
+		END_IF
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.PRE_COOLING:
+	/////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= TRUE;
+	ctrl.bSafe_Cooling	:= FALSE;
+	ctrl.bSafe_Warmup	:= FALSE;
+
+	ctrl.bEnable_CCC	:= FALSE;
+
+	ctrl.bEnable_RepressCtrl:= FALSE;
+
+	IF Temp_Mirror.stat.lrTempK < cfg.lrTemp_Precooled	THEN
+		M_SysLog('Pre-cooling complete. State is Pre-cooled.');
+		stat.nState	:= E_CRYO_CTRL_STATE.PRE_COOLED;
+	ELSIF NOT ctrl.bEnable_Precool THEN
+		// Pre-cooling has been interrupted.
+		// Go back to WARM_VACUUM state.
+		M_SysLog('Pre-cooling interrupted. State is Warm-Vacuum.');
+		stat.nState := E_CRYO_CTRL_STATE.WARM_VACUUM;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	///////////////////////////////////////////
+	E_CRYO_CTRL_STATE.PRE_COOLED:
+	///////////////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= TRUE;
+	ctrl.bSafe_Cooling	:= NOT ctrl.bEnable_Precool;
+	ctrl.bSafe_Warmup	:= NOT ctrl.bEnable_Precool;
+	ctrl.bEnable_CCC	:= FALSE;
+
+	ctrl.bEnable_RepressCtrl:= FALSE;
+
+	//
+	// Only COOL and WARM_UP commands are allowed in state PRE_COOLED.
+	// Other commands are ignored.
+	//
+	IF	ctrl.bExecute	THEN
+		ctrl.bExecute		:= FALSE;
+		stat.nLastCommand	:= ctrl.nCommand;
+		ctrl.nCommand		:= E_CRYO_CTRL_CMD.NONE;
+		IF stat.nLastCommand = E_CRYO_CTRL_CMD.COOL	THEN
+			IF LN2.stat.bActive THEN
+				M_SysLog('Cannot start cooling. LN2 still active!');
+				RETURN;
+			ELSIF LN2.stat.bError THEN
+				M_SysLog('Cannot start cooling. LN2 in Error state!');
+				RETURN;
+			END_IF
+
+			// Configure Lakeshore for cooling
+			Lakeshore.M_RampEnable(
+				in_nPID_A_P			:= cfg.LS_C_PID_A_P, 
+				in_nPID_A_I			:= cfg.LS_C_PID_A_I, 
+				in_nPID_A_D			:= cfg.LS_C_PID_A_D, 
+				in_nHeater_Range	:= cfg.LS_C_Heater_Range, 
+				in_lrCtrlRamp		:= cfg.LS_C_CTRL_RAMP, 
+				in_lrSetpoint_A		:= cfg.LS_C_SETPOINT_A);
+			
+			M_SysLog('Cool-down started.');
+			stat.nState	:= E_CRYO_CTRL_STATE.COOLING_DOWN;
+		ELSIF stat.nLastCommand = E_CRYO_CTRL_CMD.WARM_UP	THEN
+			// Eable Evacuation Valve control here.
+			// This way the user will be able to turn it on/off
+			// during the warmup phase.
+			ctrl.bEnable_Evac	:= TRUE;
+
+			// Configure Lakeshore for Warmup
+			Lakeshore.M_RampEnable(
+				in_nPID_A_P			:= cfg.LS_W_PID_A_P, 
+				in_nPID_A_I			:= cfg.LS_W_PID_A_I, 
+				in_nPID_A_D			:= cfg.LS_W_PID_A_D, 
+				in_nHeater_Range	:= cfg.LS_W_Heater_Range, 
+				in_lrCtrlRamp		:= cfg.LS_W_CTRL_RAMP, 
+				in_lrSetpoint_A		:= cfg.LS_W_SETPOINT_A);
+			
+			M_SysLog('Warm-up started.');
+			stat.nState	:= E_CRYO_CTRL_STATE.WARMING_UP;
+		END_IF
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.COOLING_DOWN:
+	/////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= FALSE;
+	ctrl.bSafe_Cooling	:= TRUE;
+	ctrl.bSafe_Warmup	:= FALSE;
+	ctrl.bEnable_CCC	:= TRUE;
+
+	ctrl.bEnable_RepressCtrl:= FALSE;
+	
+	IF Temp_Mirror.stat.lrTempK < cfg.lrTemp_Cold	THEN
+		M_SysLog('Cool-down complete. State is Cold.');
+		// Enable Evacuation Valve control
+		ctrl.bEnable_Evac	:= TRUE;
+		stat.nState	:= E_CRYO_CTRL_STATE.COLD;
+	ELSIF NOT ctrl.bEnable_Cool THEN
+		// Cooling has been interrupted.
+		// Go back to PRE_COOLED state.
+		M_SysLog('Cooling interrupted. State is Pre-cooled.');
+		stat.nState := E_CRYO_CTRL_STATE.PRE_COOLED;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	///////////////////////////////////////////
+	E_CRYO_CTRL_STATE.COLD:
+	///////////////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= FALSE;
+	ctrl.bSafe_Cooling	:= TRUE;
+	ctrl.bSafe_Warmup	:= NOT ctrl.bEnable_Cool;
+
+	ctrl.bEnable_CCC		:= TRUE;
+	ctrl.bEnable_RepressCtrl:= FALSE;
+
+	//
+	// Only WARM_UP command is allowed in state COLD.
+	// Other commands are ignored.
+	//
+	IF	ctrl.bExecute	THEN
+		ctrl.bExecute		:= FALSE;
+		stat.nLastCommand	:= ctrl.nCommand;
+		ctrl.nCommand		:= E_CRYO_CTRL_CMD.NONE;
+		IF stat.nLastCommand = E_CRYO_CTRL_CMD.WARM_UP	THEN
+			// Turbo OK
+			// CCC OFF - by Hand (button)
+			// LN2 OFF
+			
+			// Eable Evacuation Valve control here.
+			// This way the user will be able to turn it on/off
+			// during the warmup phase.
+			ctrl.bEnable_Evac	:= TRUE;
+
+			// Configure Lakeshore for Warmup
+			Lakeshore.M_RampEnable(
+				in_nPID_A_P			:= cfg.LS_W_PID_A_P, 
+				in_nPID_A_I			:= cfg.LS_W_PID_A_I, 
+				in_nPID_A_D			:= cfg.LS_W_PID_A_D, 
+				in_nHeater_Range	:= cfg.LS_W_Heater_Range, 
+				in_lrCtrlRamp		:= cfg.LS_W_CTRL_RAMP, 
+				in_lrSetpoint_A		:= cfg.LS_W_SETPOINT_A);
+			
+			M_SysLog('Warm-up started.');
+			stat.nState	:= E_CRYO_CTRL_STATE.WARMING_UP;
+		END_IF
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.WARMING_UP:
+	/////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= FALSE;
+	ctrl.bSafe_Cooling	:= FALSE;
+
+	ctrl.bEnable_Heater := TRUE;
+
+	// In this state CCC should be OFF
+	ctrl.bEnable_CCC	:= FALSE;
+	
+	// Switch LN2 OFF
+	ctrl.bEnable_Precool	:= FALSE;
+	
+	// Block re-pressurisation subsystem
+	ctrl.bEnable_RepressCtrl:= FALSE;
+
+	// TODO: ???
+	// Evac.stat.bActON must be all the time. 
+	// If not, error AND 
+	// ctrl.bEnable_Heater := false; AND
+	// Re-configure Lakeshore for IDLE (no warming)
+
+	IF Temp_Mirror.stat.lrTempK > cfg.lrTemp_Warm	THEN
+		// Cryo temperature is higher than the Warm threshold.
+		// The cryo is in WARM_VACUUM state.
+		ctrl.bEnable_Warmup	:= FALSE;
+		M_SysLog('Warm-up complete. State is Warm-Vacuum.');
+		stat.nState	:= E_CRYO_CTRL_STATE.WARM_VACUUM;
+	ELSIF NOT ctrl.bEnable_Warmup THEN
+		// Warming up has been interrupted.
+		// Based on the Bench temperature determine whether
+		// the Cryo is in PRE_COOLED or COLD state.
+		IF	Temp_Mirror.stat.lrTempK <  cfg.lrTemp_Warm AND
+			Temp_Mirror.stat.lrTempK >= cfg.lrTemp_Precooled	THEN
+			// Go back to PRE_COOLED state.
+			M_SysLog('Warming up interrupted. State is Pre-cooled.');
+			stat.nState := E_CRYO_CTRL_STATE.PRE_COOLED;
+		ELSE
+			// Go back to COLD state.
+			M_SysLog('Warming up interrupted. State is Cold.');
+			stat.nState := E_CRYO_CTRL_STATE.COLD;
+		END_IF
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.REPRESSURIZING:
+	/////////////////////////////////
+	//
+	ctrl.bSafe_Precool	:= FALSE;
+	ctrl.bSafe_Cooling	:= FALSE;
+	ctrl.bSafe_Warmup	:= FALSE;
+
+	ctrl.bEnable_CCC	:= FALSE;
+
+	IF	Temp_Mirror.stat.lrTempK > cfg.lrTemp_Precooled	AND  
+		Pressure_Cryo.stat.lrPressure >= cfg.lrPress_Atm  		THEN
+		ctrl.bEnable_RepressCtrl	:= FALSE;
+		// Disable Evacuation Valve control
+		ctrl.bEnable_Evac	:= FALSE;
+		M_SysLog('Re-pressurization complete. State is Warm-Pressurized.');
+		stat.nState	:= E_CRYO_CTRL_STATE.WARM_PRESS;
+	ELSIF NOT ctrl.bEnable_RepressCtrl THEN
+		// Re-pressurization has been interrupted.
+		// Go back to WARM_VACUUM state.
+		M_SysLog('Re-pressurization interrupted. State is Warm-Vacuum.');
+		stat.nState := E_CRYO_CTRL_STATE.WARM_VACUUM;
+	END_IF
+	M_SetStatus(stat.nState);	
+	RETURN;
+	
+	
+	/////////////////////////////////
+	E_CRYO_CTRL_STATE.ERROR:
+	/////////////////////////////////
+	//
+	// RESET the controller in order to try to clear error
+	IF ctrl.bReset THEN
+		ctrl.bReset	:= FALSE;	// Clear RESET flag
+		// Goto NONE state
+		stat.nState	:= E_CRYO_CTRL_STATE.NONE;
+		M_SetStatus(stat.nState);	
+	ELSIF NOT stat.bError  THEN
+		// Goto NONE state
+		stat.nState	:= E_CRYO_CTRL_STATE.NONE;
+		M_SetStatus(stat.nState);	
+	END_IF
+	RETURN;
+
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SysLog" Id="{1fe4ba8d-2d6b-4c37-b2c3-432bd81335ee}">
+      <Declaration><![CDATA[METHOD M_SysLog
+VAR_INPUT
+	str:	STRING(80);
+END_VAR
+VAR
+	i:	INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nLogPos	:= nLogPos + 1;
+IF nLogPos > 9 THEN
+	FOR i := 1 TO 9 DO
+		// Shift last 9 readings
+		ptrLog[i-1]^ := ptrLog[i]^;
+	END_FOR
+	nLogPos	:= 9;
+END_IF
+
+ptrLog[nLogPos]^ := str;
+ ]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_CTRL">
+      <LineId Id="9193" Count="9" />
+      <LineId Id="9296" Count="2" />
+      <LineId Id="9240" Count="0" />
+      <LineId Id="9299" Count="0" />
+      <LineId Id="9295" Count="0" />
+      <LineId Id="9241" Count="5" />
+      <LineId Id="9282" Count="3" />
+      <LineId Id="9308" Count="0" />
+      <LineId Id="9311" Count="2" />
+      <LineId Id="9300" Count="0" />
+      <LineId Id="9310" Count="0" />
+      <LineId Id="9309" Count="0" />
+      <LineId Id="9286" Count="1" />
+      <LineId Id="9301" Count="0" />
+      <LineId Id="9288" Count="1" />
+      <LineId Id="9303" Count="1" />
+      <LineId Id="9290" Count="0" />
+      <LineId Id="9302" Count="0" />
+      <LineId Id="9291" Count="1" />
+      <LineId Id="9305" Count="1" />
+      <LineId Id="9293" Count="0" />
+      <LineId Id="9307" Count="0" />
+      <LineId Id="9294" Count="0" />
+      <LineId Id="7296" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_CheckForCommands">
+      <LineId Id="6" Count="25" />
+      <LineId Id="46" Count="8" />
+      <LineId Id="32" Count="10" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_CheckForSensorErrors">
+      <LineId Id="64" Count="6" />
+      <LineId Id="72" Count="3" />
+      <LineId Id="77" Count="2" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="82" Count="3" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="87" Count="3" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="104" Count="3" />
+      <LineId Id="109" Count="1" />
+      <LineId Id="108" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_CheckLakeshoreCommand">
+      <LineId Id="84" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="67" Count="1" />
+      <LineId Id="70" Count="3" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="62" Count="4" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="4" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="34" Count="6" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="54" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_CheckVacuum">
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="13" Count="3" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="22" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_Configure">
+      <LineId Id="28" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="15" Count="8" />
+      <LineId Id="33" Count="1" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_ExecuteControllers">
+      <LineId Id="65" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="140" Count="1" />
+      <LineId Id="132" Count="2" />
+      <LineId Id="142" Count="1" />
+      <LineId Id="70" Count="21" />
+      <LineId Id="108" Count="1" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="97" Count="7" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="105" Count="1" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="120" Count="6" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="147" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_GetHighestTemperature">
+      <LineId Id="45" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="42" Count="2" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="111" Count="1" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="103" Count="7" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_GetLowestTemperature">
+      <LineId Id="45" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="42" Count="2" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="35" Count="2" />
+      <LineId Id="15" Count="2" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="24" Count="3" />
+      <LineId Id="29" Count="3" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="72" Count="3" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="19" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_GetState">
+      <LineId Id="6" Count="3" />
+      <LineId Id="11" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_ReadSensors">
+      <LineId Id="6" Count="3" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="52" Count="1" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="64" Count="8" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="144" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="81" Count="2" />
+      <LineId Id="145" Count="1" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="131" Count="1" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="94" Count="1" />
+      <LineId Id="101" Count="3" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="124" Count="1" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="122" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_SafetyCheck">
+      <LineId Id="6" Count="13" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_SetStatus">
+      <LineId Id="141" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="101" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="146" Count="6" />
+      <LineId Id="160" Count="39" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="219" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="227" Count="1" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="201" Count="6" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="29" Count="2" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_StateMachine">
+      <LineId Id="1072" Count="65" />
+      <LineId Id="1139" Count="79" />
+      <LineId Id="1220" Count="16" />
+      <LineId Id="1238" Count="70" />
+      <LineId Id="1310" Count="107" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CTRL.M_SysLog">
+      <LineId Id="6" Count="2" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="13" Count="2" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

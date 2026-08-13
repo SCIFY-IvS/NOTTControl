@@ -1,0 +1,180 @@
+<div id="StatusBar" data-tchmi-type="TcHmi.Controls.System.TcHmiContent" data-tchmi-top="0" data-tchmi-left="0" data-tchmi-width="100" data-tchmi-height="40" data-tchmi-width-unit="%" data-tchmi-height-unit="px">
+
+
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "rgba(37, 39, 50, 1)"
+}
+</script>
+<div id="StatusBar_TcHmiGrid" data-tchmi-type="TcHmi.Controls.System.TcHmiGrid" data-tchmi-height="100" data-tchmi-height-unit="%" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%">
+
+<script data-tchmi-target-attribute="data-tchmi-column-options" type="application/json">
+[
+  {
+    "width": 40.0,
+    "widthUnit": "px",
+    "widthMode": "Value",
+    "maxWidth": 40.0,
+    "maxWidthUnit": "px",
+    "minWidth": 40.0,
+    "minWidthUnit": "px",
+    "overflow": false
+  },
+  {
+    "width": 176.0,
+    "widthUnit": "px",
+    "widthMode": "Value",
+    "maxWidth": 176.0,
+    "maxWidthUnit": "px",
+    "minWidth": 176.0,
+    "minWidthUnit": "px",
+    "overflow": false
+  },
+  {
+    "width": 40.0,
+    "widthUnit": "px",
+    "widthMode": "Value",
+    "maxWidth": 40.0,
+    "maxWidthUnit": "px",
+    "minWidth": 40.0,
+    "minWidthUnit": "px",
+    "overflow": false
+  },
+  {
+    "width": 166.0,
+    "widthUnit": "px",
+    "widthMode": "Value",
+    "maxWidth": 166.0,
+    "maxWidthUnit": "px",
+    "minWidth": 166.0,
+    "minWidthUnit": "px",
+    "overflow": false
+  },
+  {
+    "width": 1.0,
+    "widthUnit": "factor",
+    "widthMode": "Value",
+    "maxWidthUnit": "px",
+    "minWidthUnit": "px",
+    "overflow": false
+  }
+]
+</script>
+<div id="StatusBar_TcHmiImage_Clock" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="5" data-tchmi-left-unit="px" data-tchmi-src="Images/clock-circular-outline.svg" data-tchmi-top="5" data-tchmi-top-unit="px" data-tchmi-width="30" data-tchmi-width-unit="px">
+</div>
+<div id="StatusBar_TcHmiImage_User" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiImage" data-tchmi-height="30" data-tchmi-height-unit="px" data-tchmi-left="5" data-tchmi-left-unit="px" data-tchmi-src="Images/user.svg" data-tchmi-top="5" data-tchmi-top-unit="px" data-tchmi-width="30" data-tchmi-width-unit="px" data-tchmi-grid-column-index="2">
+</div>
+<div id="StatusBar_TcHmiDateTimeDisplay" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiDateTimeDisplay" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="176" data-tchmi-width-unit="px" data-tchmi-time-display-layout="DateTimeSingleLine" data-tchmi-text-font-weight="Bold" data-tchmi-text-horizontal-alignment="Left" data-tchmi-text-font-family="InconsolataBold" data-tchmi-grid-column-index="1">
+<script data-tchmi-target-attribute="data-tchmi-text-color" type="application/json">
+{
+  "color": "rgba(255, 255, 255, 1)"
+}
+</script>
+</div>
+<div id="StatusBar_TcHmiTextblock_Username" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiTextblock" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-text="%UserName%" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="166" data-tchmi-width-unit="px" data-tchmi-word-wrap="true" data-tchmi-text-vertical-alignment="Center" data-tchmi-text-font-size="17" data-tchmi-text-font-weight="Bold" data-tchmi-text-font-family="InconsolataBold" data-tchmi-grid-column-index="3">
+<script data-tchmi-target-attribute="data-tchmi-text-color" type="application/json">
+{
+  "color": "rgba(255, 255, 255, 1)"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onInitialized",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%ctx%owner::Text%/ctx%",
+        "value": {
+          "objectType": "Symbol",
+          "valueType": "tchmi:server#/definitions/ADS-PLC1.STRING-64-ReadOnly",
+          "symbolExpression": "%f%GetCurrentUsername()%/f%"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+<div id="StatusBar_TcHmiEventLine" data-tchmi-type="TcHmi.Controls.Beckhoff.TcHmiEventLine" data-tchmi-height="40" data-tchmi-height-unit="px" data-tchmi-left="0" data-tchmi-left-unit="px" data-tchmi-server-interval="1000" data-tchmi-top="0" data-tchmi-top-unit="px" data-tchmi-width="100" data-tchmi-width-unit="%" data-tchmi-text-font-weight="Bold" data-tchmi-text-font-size="17" data-tchmi-text-font-family="InconsolataBold" data-tchmi-grid-column-index="4">
+<script data-tchmi-target-attribute="data-tchmi-filter" type="application/json">
+[
+  {
+    "path": "domain",
+    "comparator": "==",
+    "value": "TcHmiEventLogger"
+  },
+  {
+    "logic": "OR"
+  },
+  {
+    "path": "domain",
+    "comparator": "==",
+    "value": "TcHmiAlarm"
+  }
+]
+</script>
+<script data-tchmi-target-attribute="data-tchmi-sorting" type="application/json">
+[
+  {
+    "name": "timeRaised",
+    "order": "Descending"
+  }
+]
+</script>
+
+
+<script data-tchmi-target-attribute="data-tchmi-background-color" type="application/json">
+{
+  "color": "rgba(40, 40, 40, 1)"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-text-color" type="application/json">
+{
+  "color": "rgba(255, 255, 255, 1)"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-border-color" type="application/json">
+{
+  "color": "rgba(74, 74, 74, 1)"
+}
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-message-format" type="application/json">
+[
+  {
+    "name": "timeRaised"
+  },
+  {
+    "text": " | "
+  },
+  {
+    "name": "text"
+  }
+]
+</script>
+
+<script data-tchmi-target-attribute="data-tchmi-trigger" type="application/json">[
+  {
+    "event": "%ctx%owner::Id|EventRegistrationMode=Resolve%/ctx%.onPressed",
+    "actions": [
+      {
+        "objectType": "WriteToSymbol",
+        "active": true,
+        "symbolExpression": "%i%SelectedPageIdentity%/i%",
+        "value": {
+          "objectType": "StaticValue",
+          "valueType": "tchmi:project#/definitions/PageIdentity",
+          "value": "Events"
+        },
+        "asyncWait": true
+      }
+    ]
+  }
+]</script>
+</div>
+</div>
+</div>

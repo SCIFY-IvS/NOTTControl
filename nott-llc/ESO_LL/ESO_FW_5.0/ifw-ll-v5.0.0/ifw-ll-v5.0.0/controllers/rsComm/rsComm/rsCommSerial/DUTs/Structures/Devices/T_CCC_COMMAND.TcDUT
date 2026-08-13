@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_CCC_COMMAND" Id="{b07e227e-9849-4e2f-9f29-97cc291fd602}">
+    <Declaration><![CDATA[TYPE T_CCC_COMMAND :
+STRUCT
+	cmd:		STRING(8);	(* Command to send *)
+	nValues:	DINT;   	(* Number of returned numbers (values) in the reply *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

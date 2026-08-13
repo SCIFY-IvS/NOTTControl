@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_MODBUS_STAT" Id="{e5d4f5de-a3b4-4218-a867-4a0b5180985c}">
+    <Declaration><![CDATA[TYPE T_MODBUS_STAT EXTENDS T_RS_COMM_STAT:
+STRUCT
+	DeviceReply: 		ARRAY [0..300] OF BYTE;
+	nValue:				DINT;	// Value read from the device
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

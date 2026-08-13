@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <GVL Name="GVL_TrkSiteConstants" Id="{56334379-3960-414c-9261-35cbbb1896f5}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	C_HEIGHT    : LREAL := 2648;
+	C_LONGITUDE : LREAL := 1.228800386;
+	C_LATITUDE  : LREAL := -0.429833092;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

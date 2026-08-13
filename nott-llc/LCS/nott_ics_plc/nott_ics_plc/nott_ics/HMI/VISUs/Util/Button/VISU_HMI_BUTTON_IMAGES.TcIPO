@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <ImagePool Name="VISU_HMI_BUTTON_IMAGES" Id="{482a4492-ef47-42ca-bf28-10f35d45eb88}">
+    <XmlArchive>
+      <Data>
+        <o xml:space="preserve" t="ImagePoolObject">
+          <v n="UniqueIdGenerator">"104"</v>
+          <l n="BitmapPool" t="ArrayList" cet="ImagePoolItem">
+            <o>
+              <v n="BitmapID">"Start"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\home.png"</v>
+              <v n="ItemID">12</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Cover"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\cover.png"</v>
+              <v n="ItemID">14</v>
+            </o>
+            <o>
+              <v n="BitmapID">"M1"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\m1.png"</v>
+              <v n="ItemID">17</v>
+            </o>
+            <o>
+              <v n="BitmapID">"M3"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\m3.png"</v>
+              <v n="ItemID">20</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Services"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\services.png"</v>
+              <v n="ItemID">23</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Telemetry"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\telemetry.png"</v>
+              <v n="ItemID">26</v>
+            </o>
+            <o>
+              <v n="BitmapID">"M2"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\m2.png"</v>
+              <v n="ItemID">29</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Hydraulics"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\hydraulics.png"</v>
+              <v n="ItemID">32</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Safety"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\safety.png"</v>
+              <v n="ItemID">35</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Axes"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\axes.png"</v>
+              <v n="ItemID">38</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Dome"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\dome.png"</v>
+              <v n="ItemID">43</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Events"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\Events.png"</v>
+              <v n="ItemID">46</v>
+            </o>
+            <o>
+              <v n="BitmapID">"SubSystems"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\subsystems.png"</v>
+              <v n="ItemID">96</v>
+            </o>
+            <o>
+              <v n="BitmapID">"Interlock"</v>
+              <v n="FileID">"5ce3da45-db07-42e7-a21c-a00fff4ed8f6|HMI\Images\Button\interlock.png"</v>
+              <v n="ItemID">99</v>
+            </o>
+            <o>
+              <v n="BitmapID">""</v>
+              <v n="FileID">""</v>
+              <v n="ItemID">102</v>
+            </o>
+          </l>
+          <v n="GuidInit">{4d546ef1-227c-4114-bbe5-a324231d787c}</v>
+          <v n="GuidReInit">{3805920b-5eee-4deb-b86b-b4e9f9046179}</v>
+          <v n="GuidExitX">{3caafdc4-d935-435a-b7a9-a17a6c8a2a10}</v>
+          <v n="ValidIds">true</v>
+        </o>
+      </Data>
+      <TypeList>
+        <Type n="ArrayList">System.Collections.ArrayList</Type>
+        <Type n="Boolean">System.Boolean</Type>
+        <Type n="Guid">System.Guid</Type>
+        <Type n="ImagePoolItem">{215b2719-0347-4e4d-ba85-8bcd66946f66}</Type>
+        <Type n="ImagePoolObject">{bb0b9044-714e-4614-ad3e-33cbdf34d16b}</Type>
+        <Type n="Int32">System.Int32</Type>
+        <Type n="String">System.String</Type>
+      </TypeList>
+    </XmlArchive>
+  </ImagePool>
+</TcPlcObject>

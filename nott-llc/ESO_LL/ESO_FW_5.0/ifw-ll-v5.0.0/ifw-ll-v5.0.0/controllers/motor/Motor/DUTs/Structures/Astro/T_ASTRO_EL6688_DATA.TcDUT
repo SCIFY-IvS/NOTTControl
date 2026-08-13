@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_ASTRO_EL6688_DATA" Id="{6ab8186b-93aa-45bd-89a4-83a2b1941be3}">
+    <Declaration><![CDATA[TYPE T_ASTRO_EL6688_DATA :
+STRUCT
+	Control_value_update_toggle:	BOOL;
+	External_device_not_connected:	BOOL;
+	Internal_time_stamp:			ULINT;
+	External_time_stamp:			ULINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

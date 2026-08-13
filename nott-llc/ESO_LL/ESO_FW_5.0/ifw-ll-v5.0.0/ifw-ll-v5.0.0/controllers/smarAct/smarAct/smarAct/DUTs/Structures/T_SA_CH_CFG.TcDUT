@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_CH_CFG" Id="{45a8d09b-e455-487f-b0b1-606bbbbdd43e}">
+    <Declaration><![CDATA[TYPE T_SA_CH_CFG :
+STRUCT
+	sName:	STRING := 'Not Used';	// Positioner name, e.g. 'PYR Filter Wheel'
+	sUnits:	STRING := 'none';		// Positioner User Units
+	
+	bUsed:	BOOL;
+	
+	lrMaxVelocity:	LREAL := 1.0;	// Maximum velocity	[UU]
+	
+	//
+	// SmarAct Positioner configuration parameters.
+	// All units are User Units [UU], mm, deg, etc.
+	// The driver converts them into Positioner units.
+	// During Referencing (INIT), these parameters will be written to
+	// the positioner.
+	// The monitoring task will read them from the positioner and 
+	// save them into T_SA_CH_STATUS that is contained in T_SA_STATUS.
+	//
+	
+	//
+	// Channel Number [0..17]
+	//
+	// 18 channels max. 6 modules [0..5], 3 connections each [CH1, CH2, CH3].
+	// channel = (Module x 3) + (CH-1)
+	// For example:
+	//   First connection (CH1) of first module (Module0): channel = 0 x 3 + (1-1) = 0
+	//   Second connection (CH2) of first module (Module0): channel = 0 x 3 + (2-1) = 1
+	//   Third connection (CH3) of third module (Module2): channel = 2 x 3 + (3-1) = 8
+	//  
+	nCHAN:			UINT := 0;
+
+	//
+	// MODule number that the channel belongs to [0..5].
+	// Calculated from the channel number. i.e. the index of this instance.
+	// channel = (Module x 3) + (CH-1)
+	// Module = index / 3
+	// index = 0, 1 or 2    => Module = 0
+	// index = 3, 4 or 5    => Module = 1
+	// ...
+	// index = 15, 16 or 17 => Module = 5
+	//
+	nMOD:			UINT;	// Module  number [0..5]
+
+	//
+	// Positioning
+	//
+
+	// Conversion from UU to SmarAct units, i.e. [nd] or [pm].
+	// This is just the correction of the Base Resolution (if needed).
+	// Pos [SmarAct] = lnScale * Pos [UU] / EXPT(10, T_SA_CH_STATUS:nTUN_BASE_RES)
+	//
+	lrScale:		LREAL := 1.0;	
+	
+	
+	// Position of Reference [UU].
+	// This is the position to set for the REFerence (INIT).
+	// Equivalent to 'Calibrate on Switch' in FB_MOTOR.
+	// Set position for Reference in User Units
+	// ':CHAN#:POS <pos>'	
+	// <pos> = lrREF_POS  / EXPT(10, T_SA_CH_STATUS:nTUN_BASE_RES) * lnScale
+	//
+	lrREF_POS:		LREAL := 0;
+	
+	lrREF_VEL:		LREAL := 0.01;	// Velocity for referencing [UU/s]
+	
+	// Hold Time [ms].
+	// In-position holding time. (-1) means indefinite.
+	// ':CHAN#:HOLD <time>'
+	//
+	nHOLD:			DINT := -1;
+	
+	
+	
+	// In Position Threshold in [UU].
+	// ':CHAN#:INP:THR <thr>'
+	//
+	lrINP_THR:		LREAL := 0.01;	
+	
+	// In Position Delay [ms]
+	// ':CHAN#:INP:DEL <delay>'
+	// Move is complete after the positioner has been in position for <delay> ms.
+	//
+	nINP_DEL:		UDINT := 1000;
+	
+	// Range Limit Min (lower limit) [UU].
+	// ':CHAN#:RLIM:MIN <lim>'
+	// Note: If both lrRangeLimitMin and lrRangeLimitMax are set to 0.0,
+	//       limits are not set.
+	//
+	lrRangeLimitMin:	LREAL := 0.0;
+
+	// Range Limit Max (upper limit) [UU].
+	// ':CHAN#:RLIM:MAX <lim>'
+	//
+	lrRangeLimitMax:	LREAL := 0.0;
+	
+	
+	//
+	// Calibration, Referencing (INIT) and State configuration
+	//
+	
+	// Referencing Options.
+	// :CHAN#:REF:OPT <opt>
+	// It is expected that only the direction for referencing is needed to be configured.
+	//    0 – positive (default)
+	//    1 - negative
+	nREF_OPT:		UINT := 0;
+
+	// Calibration Options.
+	// :CHAN#:CAL:OPT <opt>
+	// It is expected that only the direction for Calibration is needed to be configured.
+	//    0 – positive (default)
+	//    1 - negative
+	nCAL_OPT:		UINT := 0;
+
+	// Positionign control options.
+	// 256 - ‘In Position’ flag is set on move completion.
+	// ':CHAN#:PCON:OPT <opt>'
+	nPCON_OPT:		UINT := 256;
+	
+	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_JANSSEN_STAT" Id="{570503f0-c6bf-49ed-bd39-a090239f60bf}">
+    <Declaration><![CDATA[TYPE T_JANSSEN_STAT EXTENDS T_RS_BASE_STAT :
+STRUCT
+	(* STAT *)
+	nRetries:			INT := 0;			// Total number of retries in case of communication problems
+	
+	bPeriodic:			BOOL := FALSE;		(* Flag if device is reading periodically *)
+
+	sReply:				STRING; 			(* Last Reply to predefined commands*)
+	
+	sRandomtext_1:				STRING;
+	sRandomtext_2:				STRING;
+	sRandomtext_3:				STRING;
+	sRandomtext_4:				STRING;
+	sRandomtext_5:				STRING;
+	sRandomtext_6:				STRING;
+	sRandomtext_7:				STRING;
+	sRandomtext_8:				STRING;
+	
+	sDeviceID:			STRING(48);
+	
+	(*Baut rate *)
+	sBaud_rate_RS422: 			STRING;
+	sBaud_rate_USB: 			STRING;
+	sFirmware_Version:			STRING;
+	sChannel_1_Stop:			STRING;
+	sChannel_2_Stop:			STRING;
+	sChannel_3_Stop:			STRING;
+	
+	sFailSafeState_1:			STRING;
+	sFailSafeState_2:			STRING;
+	sFailSafeState_3:			STRING;
+	
+	//  
+			
+	
+	// FBST – Get status position control
+	sPositionControlStatus:		STRING;
+	
+	bPositionControl:			BOOL;
+	bMovingToSetPoint:			BOOL;
+	bInvalidSetPoint_1:			BOOL;
+	bInvalidSetPoint_2:			BOOL;
+	bInvalidSetPoint_3:			BOOL;
+	
+	
+	nPositionError_1:			DINT;
+	nPositionError_2:			DINT;
+	nPositionError_3:			DINT;
+	
+	// MLS Get calibration values
+	sCalibrationValues:			STRING;
+	
+	nCalibrationValues_Cannel_1:	T_JANSSEN_CALIBTATION_VALUES;
+	nCalibrationValues_Cannel_2:	T_JANSSEN_CALIBTATION_VALUES;
+	nCalibrationValues_Cannel_3:	T_JANSSEN_CALIBTATION_VALUES;
+	
+	// CGVA 4 counter values of all three channels
+	sCounterValues:				STRING;
+	
+	nCounterValue_Channel_1:		DINT;
+	nCounterValue_Channel_2:		DINT;
+	nCounterValue_Channel_3:		DINT;
+	
+	// Command Error
+	sCommandError:				STRING;
+	
+	//Emergency Stop
+	bEmergencyStopEnabled:		BOOL;
+	
+	//FBCS – Go to setpoint -> Control loop setpoints set
+	bPositionControlLoop:		BOOL;
+	
+	//Servo Drive Control
+	bServoDrive:				BOOL:= FALSE;
+	sServoDriveStatus:			STRING;
+	
+	//Flex Control
+	bFlexDrive:					BOOL;
+	
+	// /MODLIST Get a list of all installed modules
+	
+	sInstalledModules:			ARRAY[1..6] OF STRING;
+	
+	// CGVA – Get current counter value of all channels
+	
+	nCounterValues:				ARRAY[1..3] OF DINT;
+	
+	// Get calibration values.  command specific for Basedrive mode of operation
+	//Command MLS [ADDR] [CH]
+	//Response [GAIN],[UT],[LT]
+	
+	sCalibValues_1:				STRING;
+	sCalibValues_2:				STRING;
+	sCalibValues_3:				STRING;
+
+		
+	
+	
+	
+	
+	(* Status retrieved with command CCC_CMD_GET_STAT *)
+	(* decode CSTAT1 byte *)
+	bWarn_cabinet_high:			BOOL;
+	bWarn_cabinet_no_control:	BOOL;
+	bWarn_outlet_high:			BOOL;
+	bWarn_inlet_high:			BOOL;
+	bWarn_airflow_insufficient:	BOOL;
+	bWarn_coolant_insufficient:	BOOL;
+	bWarn_door_open:			BOOL;
+	bWarn_relay1_warning:		BOOL;
+	bWarn_relay2_alarm:			BOOL;
+
+	(* decode CSTAT2 byte *)
+	bFault_temp_sensor_ambient:	BOOL;
+	bFault_temp_sensor_cabinet:	BOOL;
+	bFault_temp_sensor_inlet:	BOOL;
+	bFault_temp_sensor_outlet:	BOOL;
+	bFault_analog_supply:		BOOL;
+	bFault_digital_supply:		BOOL;
+	
+	(* Temperatures [degC] retrieved with command CCC_CMD_GET_TEMP *)
+	lrTemp_outlet:	LREAL;
+	lrTemp_inlet:	LREAL;
+	lrTemp_cabinet:	LREAL;
+	lrTemp_ambient:	LREAL;
+	
+	(* Flows [l/h] retrieved with command CCC_CMD_GET_FLOW *)
+	lrFlow_1:		LREAL;
+	lrFlow_2:		LREAL;
+	lrFlow_3:		LREAL;
+	
+	// SmarACT STATs
+	
+	//bLocal:			BOOL	:= FALSE;	// if TRUE, device operated from PLC GUI 
+
+	//nErrorCode: 	E_SA_CH_ERROR 	:= E_SA_CH_ERROR.OK;	// Error code 
+	//nRpcErrorCode: 	E_SA_RPC_ERROR 	:= E_SA_RPC_ERROR.OK;	// RPC Error code
+
+	bCtrlCommProblem:	BOOL;			// SmarAct MCS2 Controller Comm Problem
+	//nCtrlErrorCode: E_SM_ERROR;			// SmarAct MCS2 Controller Error code
+	nCtrlState:		E_RS_BASE_STATE;	// SmarAct MCS2 Controller State	
+
+	//sErrorText: 	STRING 	:= 'OK'; 			// Error text 
+	//sRpcErrorText: 	STRING 	:= 'OK'; 			// RPC Error text 
+	//sStatus: 		STRING 	:= 'OK'; 			// Status in textual form, e.g. 'OFF' 
+	
+	//
+	// Standard ELT States and Substates
+	//
+	//nState:			E_SA_POS_ELT_STATE 		:= E_SA_POS_ELT_STATE.NOTOP;
+	//nSubstate:		E_SA_POS_ELT_SUBSTATE	:= E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY;
+	
+	//sState:			STRING	:= 'NOTOP';
+	//sSubstate:		STRING	:= 'NOT READY';
+
+	//
+	// Positioner State Machine State.
+	// Depending on the State, different command sets will be executed.
+	//
+	nPosState:			E_SA_POS_SM_STATE := E_SA_POS_SM_STATE.NOT_READY;
+	nLastPosState:		E_SA_POS_SM_STATE := E_SA_POS_SM_STATE.NOT_READY;
+	
+
+	lrPosTarget:		LREAL;			// Target  position in User Units
+	lrPosActual:		LREAL;			// Current position in User Units
+
+	//bConfigured:		BOOL;			// Flag if M_Configure has been executed.	
+	bError:				BOOL;
+	bEnabled:			BOOL;			// Flag if axis is enabled
+	//bInitialised:		BOOL;			// Flag if positioner has been initialised/referenced
+	bInPosition:		BOOL;			// Flag if axis is In-Position
+
+	//
+	// Channel State parameters read from the controller
+	// A channel is a Positioner.
+	//
+	nCH_STATE:				UDINT;			// Positioner State as UDINT
+	{attribute 'OPC.UA.DA' := '0'}
+	stState:			T_SA_CH_STATE;	// Positioner State structure, from nSTATE
+	
+	//
+	// Device/Channel/Positioner status in user units, i.e. [pm] and [nd].
+	// These values are read periodically.
+	// Values are normally huge, e.g. pos=18000000000 [nd].
+	//
+	{attribute 'OPC.UA.DA' := '0'}
+	devStatus:			T_SA_DEV_STATUS; 
+
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

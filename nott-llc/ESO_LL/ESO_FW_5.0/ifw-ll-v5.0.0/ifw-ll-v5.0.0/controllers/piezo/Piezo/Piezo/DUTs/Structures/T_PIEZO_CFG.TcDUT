@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="T_PIEZO_CFG" Id="{f9924ab9-cd48-4def-aee7-2b2b462ed7be}">
+    <Declaration><![CDATA[TYPE T_PIEZO_CFG :
+STRUCT
+	sName:			STRING	:= 'Piezo';	// Instance name
+	nNumAxes:		INT := 3;		// Default 3 axes [0..2]
+
+	nMaxOn:			DINT := 0;		// Maximum time for Piezo to be active [sec].
+									// It goes to zero after this time.
+									// If equal zero, check is not done.
+									
+	// Important note:
+	// OPC UA cannot access individual items in arrays, e.g. nHome[2].
+	// However, it can access, e.g. nHome[2].nValue.
+	// That's why all configurable parameters are of type T_PIEZO_INT or T_PIEZO_LREAL.
+
+	// Full range of A/D converter for analog output. Default is 15-bit.
+	// Beckhoff 16-bit analog output terminals include the sign.
+	// Effectively, for 0-10V terminals, this is a 15-bit resolution.
+	nFullRange:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT;	// HOME position [bit]
+	nHome:			ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT;	// HOME position [bit]
+	nLimitLow:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT;	// Output lower limit [bit]
+	nLimitHigh:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT;	// Output upper limit [bit]
+	
+	//
+	// Conversions
+	//
+	// Conversion from User units (UU), i.e. Volts, to bits for SET values, i.e. OUTPUTS!
+	// stat.nSetPosBit[i] := cfg.nUserOffsetBit_Set[i].nValue  +  stat.lrPosUsr[i] * cfg.lrUser2Bit[i].lrValue   (units [bit])
+	//
+	lrUser2Bit_Set:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_LREAL;	// Scale UU [V] to bits (default 10V=32767 bit)
+	nUserOffsetBit_Set:	ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT;	// Offset [bit]
+
+	//
+	// Conversion from User units (UU), i.e. Volts, to bits for GET values, i.e. INPUTS, FEEDBACK!
+	// stat.nActPosBit[i] := 
+	//    cfg.nUserOffsetBit_Get[i].lrValue  +  stat.lrActPosUsr[i].lrValue * cfg.lrUser2Bit[i].lrValue   (units [bit])
+	// stat.lrActPosUsr[i].lrValue := 
+	//   (stat.nActPosBit[i].nValue - cfg.nUserOffsetBit_Get[i].nValue) / cfg.lrUser2Bit_Get[i].lrValue
+	//
+	lrUser2Bit_Get:		ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_LREAL;	// Scale UU [V] to bits (default 10V=32767 bit)
+	nUserOffsetBit_Get:	ARRAY [0..(GVL.C_nNumAxes-1)] OF T_PIEZO_INT;	// Offset [bit]
+
+	// Logging
+	bLogExtTime:		BOOL 	:= FALSE;		// If TRUE, use external time in event logs. Default FALSE.
+	bDebug:				BOOL 	:= FALSE;		// If TRUE, show event logs of Debug type. Default FALSE.
+	bLog:				BOOL 	:= TRUE;		// If TRUE, log events. Default TRUE.
+	
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

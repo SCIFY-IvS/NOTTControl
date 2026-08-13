@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="T_CRYO_PUMP_BASE_STAT" Id="{9dbe3db1-5020-4b5b-a95a-001bff637a51}">
+    <Declaration><![CDATA[TYPE T_CRYO_PUMP_BASE_STAT EXTENDS T_RS_BASE_STAT :
+STRUCT
+	
+	nRetries:			UDINT := 0;			// Total number of retries in case of communication problems
+	nPumpState:			E_CRYO_PUMP_STATE := E_CRYO_PUMP_STATE.OFF;
+	sPumpState:			STRING := 'OFF';
+
+	sReply:				STRING(255); 		(* Last Reply to predefined commands*)
+
+	// Digital status input signals
+	bReady:				BOOL;	// If TRUE, pump is operational
+	bMoving:			BOOL;	// If TRUE, pump is rotating, i.e. speed > 0.
+	bWarning:			BOOL;	// presence of a warning
+	bAlarm:				BOOL;	// presence of an alarm
+	
+	// Values obtained via serial communication
+	nCtrlMode:			DINT;	// e.g. 0-Hand held, 1-Remote, 2-Serial, etc
+	sCtrlMode:			STRING;	// e.g. 'Hand held', 'Remote', 'Serial', etc
+
+	bON:				BOOL;	// Flag if Motor Pump is ON
+	nElecPower:			DINT;	// Electronic drive power [W]
+	nElecHours:			DINT;	// Electronic drive unit operating hours
+	nElecTemp:			DINT;	// Drive Electronics Temperature [degC]
+	nMotorCurr:			DINT;	// Pump Motor Current [mA]
+	nMotorVolt:			DINT;	// Pump Motor Voltage [V]
+	nPumpHours:			DINT;	// Pump operating hours
+	nPumpSpeed:			DINT;	// Pump Motor Speed [rpm]
+	nPumpTemp:			DINT;	// Pump Temperature[degC]
+	
+	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

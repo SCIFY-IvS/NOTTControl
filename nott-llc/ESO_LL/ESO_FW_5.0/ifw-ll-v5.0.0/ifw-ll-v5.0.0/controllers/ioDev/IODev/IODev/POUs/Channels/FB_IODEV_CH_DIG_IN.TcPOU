@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <POU Name="FB_IODEV_CH_DIG_IN" Id="{7c3814c2-2487-44ae-8b4f-f0d7eca0660c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IODEV_CH_DIG_IN EXTENDS FB_IODEV_CH_DIGITAL
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Physical input signal.
+	// No access via OPC UA.
+	{attribute 'OPC.UA.DA' := '0'}
+	i_bValue	AT %I*:	BOOL;
+
+	// Status - OPC UA Read only
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	bValue:		BOOL;
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	sValueUser:	STRING(16)	:= '0';
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Nothing to do
+;]]></ST>
+    </Implementation>
+    <Method Name="M_Compute" Id="{3a27165d-19d5-40e5-9792-85fefbafff57}">
+      <Declaration><![CDATA[METHOD M_Compute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Read Digital INPUT and update labels
+bValue	:= i_bValue;
+
+IF bValue THEN
+	sValueUser	:= sLabel_1;
+ELSE
+	sValueUser	:= sLabel_0;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{786c64b1-810e-410c-b8f6-87b3f771f881}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+	in_sLabel_0:	STRING(16)	:= '0';
+	in_sLabel_1:	STRING(16)	:= '1';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Set labels
+sLabel_0	:= in_sLabel_0;
+sLabel_1	:= in_sLabel_1;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Reset" Id="{4b88f267-476d-4483-a113-fa19f3bbdb00}">
+      <Declaration><![CDATA[METHOD M_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[sLabel_0	:= '0';
+sLabel_1	:= '1';
+
+bValue		:= FALSE;
+sValueUser	:= sLabel_0;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_IODEV_CH_DIG_IN">
+      <LineId Id="30" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_DIG_IN.M_Compute">
+      <LineId Id="6" Count="7" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_DIG_IN.M_Configure">
+      <LineId Id="12" Count="0" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_IODEV_CH_DIG_IN.M_Reset">
+      <LineId Id="7" Count="1" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

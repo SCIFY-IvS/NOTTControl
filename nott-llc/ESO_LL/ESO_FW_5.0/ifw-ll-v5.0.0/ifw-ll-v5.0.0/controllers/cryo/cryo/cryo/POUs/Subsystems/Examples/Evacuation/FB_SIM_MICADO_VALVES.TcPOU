@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SIM_MICADO_VALVES" Id="{ce089dec-c69c-4634-876a-cfb0567779c6}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_MICADO_VALVES
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	// Output valve control signals
+	i_bON_PVV1	AT %I*:	BOOL;
+	i_bON_PVV2	AT %I*:	BOOL;
+	i_bON_PVV3	AT %I*:	BOOL;
+	i_bON_PVV4	AT %I*:	BOOL;
+	i_bON_GBV	AT %I*:	BOOL;
+	
+	
+	// Simulation of ON/open feedback signal
+	q_bON_PVV1	AT %Q*:	BOOL := FALSE;
+	q_bON_PVV2	AT %Q*:	BOOL := FALSE;
+	q_bON_PVV3	AT %Q*:	BOOL := FALSE;
+	q_bON_PVV4	AT %Q*:	BOOL := FALSE;
+	q_bON_GBV	AT %Q*:	BOOL := FALSE;
+	
+	// Simulation of OFF/closed feedback signal
+	q_bOFF_PVV1	AT %Q*:	BOOL := TRUE;
+	q_bOFF_PVV2	AT %Q*:	BOOL := TRUE;
+	q_bOFF_PVV3	AT %Q*:	BOOL := TRUE;
+	q_bOFF_PVV4	AT %Q*:	BOOL := TRUE;
+	q_bOFF_GBV	AT %Q*:	BOOL := TRUE;
+	
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// ON signals are active low
+q_bON_PVV1	:= i_bON_PVV1;
+q_bON_PVV2	:= i_bON_PVV2;
+q_bON_PVV3	:= i_bON_PVV3;
+q_bON_PVV4	:= i_bON_PVV4;
+q_bON_GBV	:= i_bON_GBV;
+
+
+// OFF signals are active low
+q_bOFF_PVV1	:= NOT i_bON_PVV1;
+q_bOFF_PVV2	:= NOT i_bON_PVV2;
+q_bOFF_PVV3	:= NOT i_bON_PVV3;
+q_bOFF_PVV4	:= NOT i_bON_PVV4;
+q_bOFF_GBV	:= NOT i_bON_GBV;
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SIM_MICADO_VALVES">
+      <LineId Id="34" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="36" Count="11" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

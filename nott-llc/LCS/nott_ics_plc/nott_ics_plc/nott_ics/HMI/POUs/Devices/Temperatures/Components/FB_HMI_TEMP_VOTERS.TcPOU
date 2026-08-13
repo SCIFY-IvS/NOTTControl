@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.14">
+  <POU Name="FB_HMI_TEMP_VOTERS" Id="{cd2781e9-53f0-43ba-ae97-e50dc346100b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HMI_TEMP_VOTERS EXTENDS FB_HMI_COMPONENT
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR_IN_OUT
+    fbInstance : FB_METIS_VOTERS;
+END_VAR
+VAR
+    eActiveTab : E_HMI_VOTER_TABS;
+    sActiveName : STRING;
+    
+    fbVoter1Button  : FB_HMI_BUTTON(sName := 'Master' , sIconName := '', nThisTab := E_HMI_VOTER_TABS.VOTER_1);
+    fbVoter2Button  : FB_HMI_BUTTON(sName := 'Vot Master 1' , sIconName := '', nThisTab := E_HMI_VOTER_TABS.VOTER_2);
+    fbVoter3Button  : FB_HMI_BUTTON(sName := 'Vot Master 2' , sIconName := '', nThisTab := E_HMI_VOTER_TABS.VOTER_3);
+    
+    
+    fbVoter1 : FB_HMI_VOTER;
+    fbVoter2 : FB_HMI_VOTER;
+    fbVoter3 : FB_HMI_VOTER;
+    
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbVoter1(fbInstance := fbInstance.vote_cry_1);
+fbVoter2(fbInstance := fbInstance.vote_cry_2);
+fbVoter3(fbInstance := fbInstance.vote_cry_3);
+
+
+fbVoter1Button(stColor := fbVoter1.fbStatusColor, nActiveTab := eActiveTab, sActiveName := sActiveName);
+fbVoter2Button(stColor := fbVoter2.fbStatusColor, nActiveTab := eActiveTab, sActiveName := sActiveName);
+fbVoter3Button(stColor := fbVoter3.fbStatusColor, nActiveTab := eActiveTab, sActiveName := sActiveName);
+
+
+fbHealthStatus(
+    bIsEnabled :=  fbVoter1.fbHealthStatus.bEnabled
+                OR fbVoter2.fbHealthStatus.bEnabled
+                OR fbVoter3.fbHealthStatus.bEnabled,
+    bIsGood :=  (fbVoter1.fbHealthStatus.bGood OR NOT fbVoter1.fbHealthStatus.bEnabled)
+            AND (fbVoter2.fbHealthStatus.bGood OR NOT fbVoter2.fbHealthStatus.bEnabled)
+            AND (fbVoter3.fbHealthStatus.bGood OR NOT fbVoter3.fbHealthStatus.bEnabled));
+
+fbBusyStatus(bIsEnabled := FALSE);
+
+M_UpdateStatusColor();
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_HMI_TEMP_VOTERS">
+      <LineId Id="325" Count="2" />
+      <LineId Id="334" Count="4" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="460" Count="3" />
+      <LineId Id="471" Count="2" />
+      <LineId Id="481" Count="0" />
+      <LineId Id="484" Count="0" />
+      <LineId Id="346" Count="0" />
+      <LineId Id="485" Count="0" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="92" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

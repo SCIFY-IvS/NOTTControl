@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_TEMP_VOTE_CFG" Id="{c3c12024-8932-41ca-8b1e-c63f2d8dcc1c}">
+    <Declaration><![CDATA[TYPE T_NOTT_TEMP_VOTE_CFG :
+STRUCT
+	bEnabled        : BOOL;
+    sDescription    : STRING; 
+
+	sTemp1_Name	    : STRING;
+	sTemp2_Name	    : STRING;
+	sTemp3_Name	    : STRING;
+	sTemp4_Name	    : STRING;
+	sTemp5_Name	    : STRING;
+	
+	nVote_Method    : E_METIS_TEMP_VOTE_METHOD;
+	
+	eTemperature1   : E_ALL_NOTT_TEMPERATURES;
+	eTemperature2   : E_ALL_NOTT_TEMPERATURES;
+	eTemperature3   : E_ALL_NOTT_TEMPERATURES;
+	eTemperature4   : E_ALL_NOTT_TEMPERATURES;
+	eTemperature5   : E_ALL_NOTT_TEMPERATURES;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

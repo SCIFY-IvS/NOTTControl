@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_CRYO_CMD_OVERRIDE" Id="{408a1c02-44cc-42a9-a9ad-e27489508c2a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CRYO_CMD_OVERRIDE
+VAR_INPUT
+	in_bEnable:		BOOL;			// External ON/OFF command.
+	in_bCorrEngCmd:	BOOL := FALSE;	// Correct active ENG command when switching to MANUAL Mode.
+END_VAR
+VAR_OUTPUT
+	out_bEnable:	BOOL := FALSE;	// Resulting command
+	out_bError:		BOOL := FALSE;	// Error flag (bug in SW implementation)
+	out_bInterlock:	BOOL := FALSE;	// Flag if any command is prevented
+	out_bWarning:	BOOL := FALSE;	// ENG command set to a not permitted command
+	out_sMode:		STRING := '';	// Active Mode
+	out_sStatus:	STRING := 'OK';	// Textual description in case of problems
+END_VAR
+VAR
+	bAutoMode:		BOOL := TRUE;	// AUTO=true, MANUAL=false
+	bEngMode:		BOOL := FALSE;	// Commissioning/Engineering mode. Ignores interlocks
+	
+	
+	// Disable/enable manual control buttons
+	bDisableBtnOn:	BOOL := FALSE;
+	bDisableBtnOff:	BOOL := FALSE;
+
+	// ON/OFF command permissions
+	bPermitOn:		BOOL := TRUE;
+	bPermitOff:		BOOL := TRUE;
+	
+	// Manual command
+	bManualCmd:		BOOL := FALSE;
+	
+	// Reset interlocks (if possible)
+	bReset:			BOOL := FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Interlock is active if any command is not allowed
+out_bInterlock	:= (NOT bPermitOn) OR (NOT bPermitOff);
+
+// Both commands cannot be prevented at the same time ==> error
+out_bError	:= (NOT bPermitOn) AND (NOT bPermitOff);
+
+// This should never happen. Indicates error in the implementation.
+IF out_bError	THEN
+	out_sStatus	:= 'ERROR: Both commands prevented!';
+	RETURN;
+ELSE
+	out_sStatus	:= 'OK';
+END_IF
+
+
+IF bAutoMode THEN
+	out_sMode	:= 'AUTO';
+	
+	// There are no warnings in AUTO mode.
+	out_bWarning:= FALSE;
+	
+	// Disable Manual control buttons
+	bDisableBtnOn	:= TRUE;
+	bDisableBtnOff	:= TRUE;
+	
+	// Only permitted commands can be set. Otherwise, error.
+	IF in_bEnable AND NOT bPermitOn THEN
+		// Impossible condition ==> error
+		out_sStatus	:= 'ERROR: System command TRUE not permitted!';
+		out_bError	:= TRUE;
+		RETURN;
+	ELSIF NOT in_bEnable AND NOT bPermitOff THEN
+		// Impossible condition ==> error
+		out_sStatus	:= 'ERROR: System command FALSE not permitted!';
+		out_bError	:= TRUE;
+		RETURN;
+	END_IF
+	
+	// IN command =+> OUT command.
+	bManualCmd	:= in_bEnable;
+	out_bEnable	:= in_bEnable;
+
+ELSIF bEngMode	THEN
+	out_sMode	:= 'ENG';
+	
+	// No restrictions, no safety !!!
+	// User responsible for damage caused by wrong/dangerous commands.
+
+	// Enable both buttons.
+	bDisableBtnOn	:= FALSE;
+	bDisableBtnOff	:= FALSE;
+	
+	// Only set a warning if the user selects a command that the system doesn't allow.
+	IF bManualCmd AND NOT bPermitOn THEN
+		out_sStatus	:= 'WARNING: Command TRUE is not safe!';
+		out_bWarning:= TRUE;
+	ELSIF NOT bManualCmd AND NOT bPermitOff THEN
+		out_sStatus	:= 'WARNING: Command FALSE is not safe!';
+		out_bWarning:= TRUE;
+	ELSE
+		out_sStatus	:= 'OK';
+		out_bWarning:= FALSE;
+	END_IF
+
+	// Assign user command to the output without any checks !!!
+	out_bEnable		:= bManualCmd;
+
+ELSE	// Manual mode.
+	out_sMode	:= 'MANUAL';
+	
+	// Enable only permitted buttons.
+	bDisableBtnOn	:= NOT bPermitOn;
+	bDisableBtnOff	:= NOT bPermitOff;
+	
+	IF in_bCorrEngCmd	THEN
+		// When exiting ENG Mode, if this flag is set, 
+		// correct command set in ENG Mode if not permitted.
+		IF	bManualCmd = TRUE   AND  NOT bPermitOn  THEN
+			bManualCmd	:= FALSE;	// Set command to OFF
+		ELSIF	bManualCmd = FALSE   AND  NOT bPermitOff  THEN
+			bManualCmd	:= TRUE;	// Set command to ON
+		END_IF
+	END_IF
+
+	// Only set a warning if the user selects a command that the system doesn't allow.
+	IF bManualCmd AND NOT bPermitOn THEN
+		out_sStatus	:= 'WARNING: Command TRUE is not safe!';
+		out_bWarning:= TRUE;
+	ELSIF NOT bManualCmd AND NOT bPermitOff THEN
+		out_sStatus	:= 'WARNING: Command FALSE is not safe!';
+		out_bWarning:= TRUE;
+	ELSE
+		out_sStatus	:= 'OK';
+		out_bWarning:= FALSE;
+	END_IF
+
+	// Set the output command
+	out_bEnable		:= bManualCmd;
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="M_SetAllPermitted" Id="{65deb55b-182d-4677-95f9-06eee1099d2a}">
+      <Declaration><![CDATA[METHOD M_SetAllPermitted
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOn	:= TRUE;
+bPermitOff	:= TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetPermissionOff" Id="{73df617c-532a-4d40-a52c-263f816686c4}">
+      <Declaration><![CDATA[METHOD M_SetPermissionOff
+VAR_INPUT
+	in_bPermit:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOff	:= in_bPermit;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetPermissionOn" Id="{6d243c73-ca80-4cd3-8efe-6f6c1b702a2d}">
+      <Declaration><![CDATA[METHOD M_SetPermissionOn
+VAR_INPUT
+	in_bPermit:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOn	:= in_bPermit;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetPermissions" Id="{06bf6bb9-680c-4a82-b1f3-db0a96b2a5c9}">
+      <Declaration><![CDATA[METHOD M_SetPermissions
+VAR_INPUT
+	in_bPermitOn:	BOOL;
+	in_bPermitOff:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitOn	:= in_bPermitOn;
+bPermitOff	:= in_bPermitOff;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_CMD_OVERRIDE">
+      <LineId Id="538" Count="7" />
+      <LineId Id="593" Count="0" />
+      <LineId Id="546" Count="0" />
+      <LineId Id="594" Count="1" />
+      <LineId Id="547" Count="3" />
+      <LineId Id="632" Count="1" />
+      <LineId Id="620" Count="1" />
+      <LineId Id="624" Count="0" />
+      <LineId Id="551" Count="6" />
+      <LineId Id="600" Count="0" />
+      <LineId Id="558" Count="1" />
+      <LineId Id="596" Count="1" />
+      <LineId Id="601" Count="0" />
+      <LineId Id="598" Count="1" />
+      <LineId Id="560" Count="2" />
+      <LineId Id="630" Count="0" />
+      <LineId Id="563" Count="2" />
+      <LineId Id="634" Count="1" />
+      <LineId Id="566" Count="6" />
+      <LineId Id="602" Count="1" />
+      <LineId Id="605" Count="0" />
+      <LineId Id="616" Count="0" />
+      <LineId Id="608" Count="0" />
+      <LineId Id="610" Count="0" />
+      <LineId Id="617" Count="0" />
+      <LineId Id="615" Count="0" />
+      <LineId Id="618" Count="1" />
+      <LineId Id="613" Count="1" />
+      <LineId Id="573" Count="3" />
+      <LineId Id="636" Count="1" />
+      <LineId Id="577" Count="3" />
+      <LineId Id="639" Count="0" />
+      <LineId Id="642" Count="0" />
+      <LineId Id="649" Count="0" />
+      <LineId Id="643" Count="4" />
+      <LineId Id="641" Count="0" />
+      <LineId Id="587" Count="0" />
+      <LineId Id="654" Count="11" />
+      <LineId Id="588" Count="1" />
+      <LineId Id="45" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CMD_OVERRIDE.M_SetAllPermitted">
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CMD_OVERRIDE.M_SetPermissionOff">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CMD_OVERRIDE.M_SetPermissionOn">
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_CMD_OVERRIDE.M_SetPermissions">
+      <LineId Id="15" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,337 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_NOTT_CRYO_COOLDOWN" Id="{3d276ebb-7af3-413c-9feb-e00a6a8d77c1}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NOTT_CRYO_COOLDOWN
+VAR_INPUT
+	in_bEnable:	BOOL := FALSE;	// System active while in_bEnable is TRUE
+END_VAR
+VAR_OUTPUT
+	out_bPermit_Evacuation_Stop:	BOOL := FALSE;
+	out_bPermit_WarmUp:				BOOL := FALSE;
+
+END_VAR
+
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_temps:						FB_NOTT_TEMPERATURES;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_heaters:					FB_NOTT_HEATERS;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_ctrls:      				FB_NOTT_TCTRLs;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_votes: 					FB_NOTT_VOTERS;
+END_VAR
+VAR
+	
+	{attribute 'TcHmiSymbol.Show'}	
+	cfg:	T_NOTT_CRYO_COOLDOWN_CFG;
+	{attribute 'TcHmiSymbol.Show'}
+	ctrl:	T_NOTT_CRYO_COOLDOWN_CTRL;
+
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	{attribute 'TcHmiSymbol.Show'}
+	stat:	T_NOTT_CRYO_COOLDOWN_STAT;
+
+// Cooler	
+	
+	{attribute 'TcHmiSymbol.Show'}
+	cooler:			FB_METIS_CRYO_CPA;
+	
+//
+// Internals
+//
+	timer:	TON;
+	trig:	R_TRIG;	// Start trigger
+//
+
+	{attribute 'TcHmiSymbol.Show'}
+	bPermitStart:	BOOL := FALSE;
+	{attribute 'TcHmiSymbol.Show'}
+	bPermitStop:	BOOL := FALSE;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_Configure();
+M_ExecuteControllers();
+M_StateMachine( 
+	nott_temps  := nott_temps,
+	nott_heaters := nott_heaters,
+	nott_t_ctrls := nott_t_ctrls,
+	nott_t_votes := nott_t_votes
+);
+M_UpdateStatus();]]></ST>
+    </Implementation>
+    <Method Name="M_Configure" Id="{ccc9267f-822f-4685-96df-ac997867417a}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	refBOOL:	REFERENCE TO BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// IF stat.bConfigured THEN
+// 
+// ELSE
+// 	RETURN;
+// END_IF
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteControllers" Id="{8cc20e87-b626-4c5a-9321-01e3b09d7bff}">
+      <Declaration><![CDATA[METHOD M_ExecuteControllers
+VAR
+	ptrSimTemp:	POINTER TO LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+	
+ctrl.cor_Cooler(in_bEnable:=ctrl.bEnable_Cooler);
+Cooler(
+	in_bEnable:= ctrl.cor_Cooler.out_bEnable,
+	in_bSimulation:= FALSE, 
+	in_sName:= 'PTC Cooler', 
+	in_sSN_Compressor:= 'CPA28H5W2DNCE-410730000001', 
+	in_sSN_PulseTube:= 'PT810-19880200001', 
+	in_nYear_Compressor:= 2023, 
+	in_nYear_PulseTube:= 2023, 
+	in_lrNextService_Compressor:= 20000.0, 
+	in_lrNextService_PulseTube:= 40000.0, 
+	in_nSlaveID:= 16, 
+	in_nPeriod:= 1000);
+
+
+	]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PermitStart_Cooldown" Id="{95df11b7-4bb9-482f-b138-99b0dcae3606}">
+      <Declaration><![CDATA[METHOD M_PermitStart_Cooldown
+VAR_INPUT
+	in_bPermissionStart: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitStart := in_bPermissionStart;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PermitStop_Cooldown" Id="{be3e58f2-d762-45b8-8be2-732b8074256e}">
+      <Declaration><![CDATA[METHOD M_PermitStop_Cooldown
+VAR_INPUT
+	in_bPermissionStop: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPermitStop := in_bPermissionStop;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{7abd98e3-84d4-4188-bcad-d6dcca952a4b}">
+      <Declaration><![CDATA[METHOD M_StateMachine : BOOL
+VAR_INPUT
+END_VAR
+VAR_IN_OUT
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_temps:						FB_NOTT_TEMPERATURES;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_heaters:					FB_NOTT_HEATERS;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_ctrls:      				FB_NOTT_TCTRLs;
+	{attribute 'OPC.UA.DA' := '0'}
+	nott_t_votes: 					FB_NOTT_VOTERS;
+END_VAR
+VAR_INST
+    tonStopCooldown : TON;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_StateMachine := FALSE;
+
+CASE stat.nState OF
+
+    E_NOTT_CRYO_COOLDOWN_STATE.NONE:
+        // Nothing to do here
+        stat.sStatus := 'NONE';
+		stat.bActive := FALSE;
+		stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.OFF;
+
+    E_NOTT_CRYO_COOLDOWN_STATE.OFF:
+
+        ctrl.cor_Cooler.M_SetPermissions(FALSE, TRUE); // Only OFF allowed
+
+        stat.sState  := 'OFF';
+        stat.sStatus := 'OFF';
+
+        ctrl.bEnable_Cooler := FALSE;
+
+        out_bPermit_Evacuation_Stop := TRUE;
+        out_bPermit_WarmUp          := TRUE;
+		stat.bActive := FALSE;
+		
+        trig(CLK := in_bEnable);
+
+        IF trig.Q THEN
+            stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.START_PTC;
+            stat.sStatus := 'Starting PTC...';
+
+            out_bPermit_Evacuation_Stop := FALSE;
+            out_bPermit_WarmUp          := FALSE;
+			
+			stat.bActive := TRUE;
+        END_IF;
+
+
+    E_NOTT_CRYO_COOLDOWN_STATE.START_PTC:
+		stat.bActive := TRUE;
+        ctrl.bEnable_Cooler := TRUE;
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_WarmUp          := FALSE;
+
+        IF cooler.stat.bActive THEN
+            stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.START_RAMPDOWN_DETECTOR;
+            stat.sStatus := 'PTC started. Starting detector ramp down...';
+        END_IF;
+
+
+    E_NOTT_CRYO_COOLDOWN_STATE.START_RAMPDOWN_DETECTOR:
+
+        // Enable detector heaters
+        nott_heaters.h_detector.M_SetEnable();
+        nott_heaters.h_detector_spare.M_SetEnable();
+
+        // Enable detector temperature control loops
+        nott_t_ctrls.tc_detector.M_SetEnable();
+        nott_t_ctrls.tc_detector_spare.M_SetEnable();
+
+        // Set detector setpoints
+        nott_t_ctrls.tc_detector.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_Det,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        nott_t_ctrls.tc_detector_spare.M_Set_SetPoint(
+            m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+            m_lrFixedSetpoint  := cfg.lrTemp_Det,
+            m_lrSetpointOffset := 0.0,
+            m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0)
+        );
+
+        stat.sStatus := 'Detector ramp down active...';
+
+        stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.COOLING;
+		stat.bActive := TRUE;
+
+    E_NOTT_CRYO_COOLDOWN_STATE.COOLING:
+
+        out_bPermit_Evacuation_Stop := FALSE;
+        out_bPermit_WarmUp          := FALSE;
+		stat.bActive := TRUE;
+        IF in_bEnable THEN
+
+            IF     (nott_temps.t_detector_vote.stat.lrTempK   < cfg.lrTemp_Det)
+               AND (nott_temps.t_base_plate_vote.stat.lrTempK < cfg.lrTemp_BasePlate) THEN
+
+                stat.sStatus := 'Operational temperature achieved.';
+                stat.nState  := E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED;
+
+            ELSE
+                stat.sStatus := 'Cooling...';
+            END_IF;
+
+        ELSE
+            stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
+            stat.sStatus := 'Stopping cooldown...';
+        END_IF;
+
+
+    E_NOTT_CRYO_COOLDOWN_STATE.OPERATIONAL_TEMPERATURE_ACHIEVED:
+		stat.bActive := TRUE;
+        IF in_bEnable THEN
+
+                stat.sStatus := 'Operational temperature achieved.';
+
+                out_bPermit_Evacuation_Stop := TRUE;
+                out_bPermit_WarmUp          := FALSE;
+
+
+        ELSE
+            stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN;
+            stat.sStatus := 'Stopping cooldown...';
+
+            out_bPermit_Evacuation_Stop := FALSE;
+            out_bPermit_WarmUp          := FALSE;
+        END_IF;
+
+
+    E_NOTT_CRYO_COOLDOWN_STATE.STOP_COOLDOWN:
+		stat.bActive := TRUE;
+		// Disable PTC
+		ctrl.bEnable_Cooler := FALSE;
+	
+		out_bPermit_Evacuation_Stop := FALSE;
+		out_bPermit_WarmUp          := FALSE;
+	
+		// Keep detector protection active
+		nott_heaters.h_detector.M_SetEnable();
+		nott_heaters.h_detector_spare.M_SetEnable();
+	
+		nott_t_ctrls.tc_detector.M_SetEnable();
+		nott_t_ctrls.tc_detector_spare.M_SetEnable();
+	
+		// Follow the lowest cryostat temperature +10 K
+		nott_t_ctrls.tc_detector.M_Set_SetPoint(
+			m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+			m_lrFixedSetpoint  := nott_temps.out_lrLowestTemp,
+			m_lrSetpointOffset := 10.0,
+			m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0));
+	
+		nott_t_ctrls.tc_detector_spare.M_Set_SetPoint(
+			m_eSetpointType    := E_METIS_CTRL_SETPOINT_SWITCH.FIXED,
+			m_lrFixedSetpoint  := nott_temps.out_lrLowestTemp,
+			m_lrSetpointOffset := 10.0,
+			m_pSetpointTemp    := nott_temps.M_SetTemperatureSensor(0));
+	
+		stat.sStatus := 'Waiting for detector protection...';
+	
+		// Safety timeout (e.g. 5 minutes)
+		tonStopCooldown(IN := TRUE, PT := T#15M);
+	
+		IF ((nott_temps.t_detector_vote.stat.lrTempK >= (nott_temps.out_lrLowestTemp + 8.0))
+			OR tonStopCooldown.Q) THEN
+	
+			tonStopCooldown(IN := FALSE);
+	
+			stat.sStatus := 'Cooldown stopped.';
+			stat.nState := E_NOTT_CRYO_COOLDOWN_STATE.OFF;
+			stat.bActive := FALSE;
+		END_IF;
+
+
+ELSE
+    stat.nState  := E_NOTT_CRYO_COOLDOWN_STATE.NONE;
+    stat.sStatus := 'UNKNOWN STATE';
+	stat.bActive := FALSE;
+END_CASE;
+
+M_StateMachine := TRUE;
+	
+	]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{322aef71-4cd7-4e8d-8c64-bfe31c78f2b3}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.bEnabled		:= in_bEnable;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

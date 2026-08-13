@@ -1,0 +1,1137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_SHUTTER_BASE" Id="{9b20579e-46f1-487a-b0e9-71610139463f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SHUTTER_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA':='0'}
+	in_sName:				STRING	:= 'Shutter';	// Instance name
+
+	{attribute 'OPC.UA.DA':='0'}
+	in_bActiveLowClosed:	BOOL 	:= FALSE;		// If TRUE, the CLOSED signal is Active Low, default FALSE
+	{attribute 'OPC.UA.DA':='0'}
+	in_bActiveLowFault:		BOOL 	:= FALSE;		// If TRUE, the FAULT signal is Active Low, default FALSE
+	{attribute 'OPC.UA.DA':='0'}
+	in_bActiveLowOpen:		BOOL 	:= FALSE;		// If TRUE, the OPEN signal is Active Low, default FALSE
+	{attribute 'OPC.UA.DA':='0'}
+	in_bActiveLowSwitch:	BOOL 	:= FALSE;		// If TRUE, the SWITCH signal is Active Low, default FALSE
+
+	{attribute 'OPC.UA.DA':='0'}
+	in_bIgnoreClosed:		BOOL 	:= FALSE;		// If TRUE, the CLOSED signal is Ignored, default FALSE
+	{attribute 'OPC.UA.DA':='0'}
+	in_bIgnoreFault:		BOOL 	:= FALSE;		// If TRUE, the FAULT signal is Ignored, default FALSE
+	{attribute 'OPC.UA.DA':='0'}
+	in_bIgnoreOpen:			BOOL 	:= FALSE;		// If TRUE, the OPEN signal is Ignored, default FALSE
+
+	
+	{attribute 'OPC.UA.DA':='0'}
+	in_bInitialState:		BOOL 	:= FALSE;		// Default shutter position is FALSE/CLOSED
+	{attribute 'OPC.UA.DA':='0'}
+	in_nTimeout:     		UDINT 	:= 3000;		// Timeout for OPEN/CLOSE transitions [msec], default 3000 ms
+
+	{attribute 'OPC.UA.DA':='0'}
+	in_bLogExtTime:			BOOL 	:= FALSE;		// If TRUE, use external time in event logs. Default FALSE.
+	{attribute 'OPC.UA.DA':='0'}
+	in_bLog:				BOOL 	:= TRUE;		// If TRUE, log events. Default TRUE.
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR RETAIN
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_SHUTTER_CFG;	
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_SHUTTER_CTRL;	
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_SHUTTER_INFO;	(* ReadOnly *)
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_SHUTTER_STAT;	(* ReadOnly *)
+
+	{attribute 'OPC.UA.DA' := '0'}
+	nEvent:		      	DINT := E_SHUTTER_EVENT.NONE;
+	{attribute 'OPC.UA.DA' := '0'}
+	nInternalEvent:		DINT := E_SHUTTER_EVENT.NONE;
+	
+	// Operational Events
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventStart:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventEnd:		FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventError:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventDebug:	FB_TcMessage;
+	{attribute 'OPC.UA.DA' := '0'}
+	fbEventGeneral:	FB_TcMessage;
+	
+	(***** Physical signals - to be mapped!!! *****)
+
+	(* Outputs *)
+
+	(* Inputs *)
+	
+	// Flag if the device is ready to receive commands.
+	// It takes a couple of cycles for the system to read inputs after reboot.
+	{attribute 'OPC.UA.DA' := '0'}
+	bDeviceReady:	BOOL 	:= FALSE;
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// On first cycle configure from input params and internally execute M_UserConfigure()
+IF NOT bDeviceReady THEN
+	// Set device Configuration
+	M_Configure();
+	RETURN;
+END_IF
+
+// Increment counter.
+// This will be seen as 'alive' flag.
+stat.nCycleCounter	:= stat.nCycleCounter + 1;
+
+
+(* === Check for commands and internal events to be processed === *)
+CheckForEvents();
+
+(* === Process events according to the State Machine === *)
+ProcessEvents();
+
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActionCloseExecute" Id="{8df5e8e5-d231-47e0-80a7-3f3129f3904a}">
+      <Declaration><![CDATA[METHOD ActionCloseExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionDisableExecute" Id="{6fc35504-cac0-44ac-ad71-a249e896f4d1}">
+      <Declaration><![CDATA[METHOD ActionDisableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableComplete" Id="{d3a5feb5-11d8-407c-9384-7da066c05c39}">
+      <Declaration><![CDATA[METHOD ActionEnableComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionEnableExecute" Id="{ef01bce1-e3d5-44f4-9ac2-7266aba2948c}">
+      <Declaration><![CDATA[METHOD ActionEnableExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionErrExecute" Id="{f0b03128-67d1-4f29-8bef-9e922ed95113}">
+      <Declaration><![CDATA[METHOD ActionErrExecute
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitAbort" Id="{e9720cce-33ed-44ab-8765-59705f455dbf}">
+      <Declaration><![CDATA[METHOD ActionInitAbort
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitComplete" Id="{56051acc-d213-4084-b91c-4495ca171c5d}">
+      <Declaration><![CDATA[METHOD ActionInitComplete
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitExecute" Id="{7c08ae8b-b17b-4fe9-92ef-38c23e0bebc2}">
+      <Declaration><![CDATA[METHOD ActionInitExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionInitReject" Id="{6e09029d-40c6-4972-a65b-1d11fa327959}">
+      <Declaration><![CDATA[METHOD ActionInitReject
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionOpenExecute" Id="{7e32a4c6-40e9-4483-ae7a-330aeaa799ea}">
+      <Declaration><![CDATA[METHOD ActionOpenExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionResetExecute" Id="{ed28dfa9-8c19-4ef7-b6fa-7e3c1a84e955}">
+      <Declaration><![CDATA[METHOD ActionResetExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionStopExecute" Id="{347b68cf-22e4-4432-9e4d-428120ff0276}">
+      <Declaration><![CDATA[METHOD ActionStopExecute
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActionUnexpExecute" Id="{fabeea70-ef5f-4c6d-b939-031dc980b796}">
+      <Declaration><![CDATA[METHOD ActionUnexpExecute
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityClosing" Id="{3cce3bbc-fede-4b68-bbe0-e7ac26348c76}">
+      <Declaration><![CDATA[METHOD ActivityClosing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityDisabling" Id="{d4f82c1d-d70f-4b02-b15f-63975ee2a792}">
+      <Declaration><![CDATA[METHOD ActivityDisabling
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityInitializing" Id="{8b8e1bac-980c-4f00-b852-db89d34da7dd}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityOpening" Id="{1228c683-5117-4fbc-a2ed-13fdab0adf28}">
+      <Declaration><![CDATA[METHOD ActivityOpening
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{21796d32-c062-4e31-afea-506812fda30e}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{bd336feb-f03a-429f-92a9-35a747dfe0f6}">
+      <Declaration><![CDATA[METHOD M_Configure : BOOL
+VAR_INPUT
+END_VAR
+VAR
+     fbGetCurTaskIdx:	GETCURTASKINDEX;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// If device is ready, there is nothing to configure.
+IF bDeviceReady THEN
+	RETURN;
+END_IF
+
+// If first cycle, copy configuration AND RETURN in order for the system to read all inputs before doing any work
+IF stat.nCycleCounter = 0 THEN
+	cfg.sName				:= in_sName;			// Instance name
+	cfg.bActiveLowClosed	:= in_bActiveLowClosed;	// If TRUE, the CLOSED signal is Active Low, default FALSE
+	cfg.bActiveLowFault		:= in_bActiveLowFault;	// If TRUE, the FAULT signal is Active Low, default FALSE
+	cfg.bActiveLowOpen		:= in_bActiveLowOpen;	// If TRUE, the OPEN signal is Active Low, default FALSE
+	cfg.bActiveLowSwitch	:= in_bActiveLowSwitch;	// If TRUE, the SWITCH signal is Active Low, default FALSE
+
+	cfg.bIgnoreClosed		:= in_bIgnoreClosed;	// If TRUE, the CLOSED signal is Ignored, default FALSE
+	cfg.bIgnoreFault		:= in_bIgnoreFault;		// If TRUE, the FAULT signal is Ignored, default FALSE
+	cfg.bIgnoreOpen			:= in_bIgnoreOpen;		// If TRUE, the OPEN signal is Ignored, default FALSE
+
+	cfg.bInitialState		:= in_bInitialState;	// Default shutter position is FALSE/CLOSED
+	cfg.nTimeout			:= in_nTimeout;			// Timeout for OPEN/CLOSE transitions [msec], default 3000 ms
+
+	cfg.bLogExtTime			:= in_bLogExtTime;		// If TRUE, use external time in event logs
+	cfg.bLog				:= in_bLog;				// If TRUE, use external time in event logs
+	
+	// Get the version number 
+	stat.sLibVersion	:= stLibVersion_ESO_LDC_Shutter_Library.sVersion;
+
+	// Get cycle time in microsec.
+	// CycleTime in _TaskInfo is given in 100 ns. 1 us = 1000 ns
+	fbGetCurTaskIdx();
+	stat.nCycleTime	:=  (TwinCAT_SystemInfoVarList._TaskInfo[fbGetCurTaskIdx.index].CycleTime)/10;
+	
+	// Increment counter.
+	stat.nCycleCounter	:= stat.nCycleCounter + 1;
+	RETURN;
+ELSIF (stat.nCycleCounter * stat.nCycleTime) < 5000000 THEN
+	// EtherCAT is normally ready after 3.5 sec.
+	// We give it 5 sec to consider it to be ready.
+	// Increment counter.
+	stat.nCycleCounter	:= stat.nCycleCounter + 1;
+	RETURN;
+END_IF
+
+// The system shoud be ready, i.e. coupler state is 8.
+
+// Create Event instances
+fbEventStart.CreateEx	(TC_EVENTS.ShutterOpsEventClass.ActionStart,0);
+fbEventEnd.CreateEx		(TC_EVENTS.ShutterOpsEventClass.ActionEnd,0);
+fbEventError.CreateEx	(TC_EVENTS.ShutterOpsEventClass.Error,0);
+fbEventDebug.CreateEx	(TC_EVENTS.ShutterOpsEventClass.Debug,0);
+fbEventGeneral.CreateEx	(TC_EVENTS.ShutterOpsEventClass.General,0);
+
+// The device is ready now.
+bDeviceReady := TRUE;
+
+
+// Clear errors
+M_SetStatus(E_SHUTTER_ERROR.OK);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetErrorText" Id="{8c7cc3da-ad51-4e6b-91f6-ad6e3a854aff}">
+      <Declaration><![CDATA[METHOD M_GetErrorText : STRING
+VAR_INPUT
+	ErrorCode:	DINT;
+END_VAR
+VAR
+	str:	STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE ErrorCode OF
+	E_SHUTTER_ERROR.OK:					str	:= 'OK';
+	E_SHUTTER_ERROR.HW_NOT_OP:			str	:= 'ERROR: TwinCAT not in OP state or CouplerState not mapped.';
+	E_SHUTTER_ERROR.INIT_FAILURE:			str	:= 'ERROR: INIT command aborted due to STOP or RESET.';
+	E_SHUTTER_ERROR.UNEXPECTED_CLOSED:	str	:= 'ERROR: Shutter unexpectedly closed.';
+	E_SHUTTER_ERROR.UNEXPECTED_NONE:		str	:= 'ERROR: Unexpectedly no OPEN or CLOSED signal active.';
+	E_SHUTTER_ERROR.UNEXPECTED_OPENED:	str	:= 'ERROR: Shutter unexpectedly opened.';
+	E_SHUTTER_ERROR.FAULT_SIG:			str	:= 'ERROR: Fault signal active.';
+	E_SHUTTER_ERROR.BOTH_SIG_ACTIVE:		str	:= 'ERROR: Both OPEN and CLOSED signals active.';
+	E_SHUTTER_ERROR.TIMEOUT_ENABLE:		str	:= 'ERROR: ENABLE timed out.';
+	E_SHUTTER_ERROR.TIMEOUT_DISABLE:		str	:= 'ERROR: DISABLE timed out.';
+	E_SHUTTER_ERROR.TIMEOUT_INIT:			str	:= 'ERROR: INIT timed out.';
+	E_SHUTTER_ERROR.TIMEOUT_CLOSE:		str	:= 'ERROR: CLOSE timed out.';
+	E_SHUTTER_ERROR.TIMEOUT_OPEN:			str	:= 'ERROR: OPEN timed out.';
+	E_SHUTTER_ERROR.SIM_NOT_INITIALISED:	str	:= 'ERROR: Shutter simulator not initialised.';
+	E_SHUTTER_ERROR.SIM_NULL_POINTER:		str	:= 'ERROR: NULL pointer to Shutter.';
+ELSE
+	str	:= 'Unregistered error.';
+END_CASE
+
+M_GetErrorText	:= str;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventDebug" Id="{76ff400f-eecc-453d-bdbd-16ea83a14a8b}">
+      <Declaration><![CDATA[METHOD M_LogEventDebug : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log Debug events only if both logging and debugging is enabled
+IF cfg.bLog AND cfg.bDebug THEN
+	fbEventDebug.ipArguments.Clear().AddString(sText);
+	fbEventDebug.Send(0);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventEnd" Id="{924a63d8-c4db-4990-833d-29094815b171}">
+      <Declaration><![CDATA[METHOD M_LogEventEnd : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventEnd.ipArguments.Clear().AddString(sText);
+fbEventEnd.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventError" Id="{09811c01-7dc5-4d6f-9199-d2731ce1b7ee}">
+      <Declaration><![CDATA[METHOD M_LogEventError : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventError.ipArguments.Clear().AddString(sText);
+fbEventError.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventGeneral" Id="{a9dfeb89-9fc4-4c54-af42-3043d81bb670}">
+      <Declaration><![CDATA[METHOD M_LogEventGeneral : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventGeneral.ipArguments.Clear().AddString(sText);
+fbEventGeneral.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_LogEventStart" Id="{3bae18c2-756c-4d13-9096-9ce29d4d65af}">
+      <Declaration><![CDATA[METHOD M_LogEventStart : BOOL
+VAR_INPUT
+	sText:	STRING	:= '';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Log only if logging is enabled
+IF  NOT cfg.bLog THEN
+	RETURN;
+END_IF
+
+fbEventStart.ipArguments.Clear().AddString(sText);
+fbEventStart.Send(0);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetStatus" Id="{3c05461c-82e3-4012-8ec1-1b295a1d1d1a}">
+      <Declaration><![CDATA[METHOD M_SetStatus
+VAR_INPUT
+	nErrorCode:	E_SHUTTER_ERROR;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nErrorCode 	:= nErrorCode;
+stat.sErrorText 	:= M_GetErrorText(nErrorCode);
+
+IF nErrorCode <> E_SHUTTER_ERROR.OK THEN
+	stat.sStatus	:= 'ERROR';
+	stat.nStatus	:= E_SHUTTER_STATUS.ERROR;
+ELSE
+	stat.sStatus	:= 'OK';
+	stat.nStatus	:= E_SHUTTER_STATUS.OK;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{6e9c6b9a-4c2b-4268-a28e-d15cd6e7df03}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+
+VAR
+	ActionUnexpectedOpenExecute: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.NOTOP_INITIALIZING THEN
+	ActivityInitializing();
+END_IF
+
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_OPENING THEN
+	ActivityOpening();
+END_IF
+
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSING THEN
+	ActivityClosing();
+END_IF
+
+IF stat.nSubstate = E_SHUTTER_SUBSTATE.OP_DISABLING THEN
+	ActivityDisabling();
+END_IF
+
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE stat.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_SHUTTER_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE stat.nSubstate OF
+	
+	E_SHUTTER_SUBSTATE.NOTOP_NOTREADY:		
+		IF nEvent = E_SHUTTER_EVENT.INIT THEN
+			ActionInitExecute();
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_INITIALIZING);
+			M_SetStatus(E_SHUTTER_ERROR.OK);
+			RETURN;
+		END_IF
+		
+	E_SHUTTER_SUBSTATE.NOTOP_INITIALIZING:			
+		IF nEvent = E_SHUTTER_EVENT.STOP THEN
+			ActionInitAbort();
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ERRINIT THEN
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.INITCLOSED THEN
+			ActionInitComplete();
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.INITOPEN THEN
+			ActionInitComplete();
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN);
+			RETURN;
+		END_IF
+		
+	E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED:			
+		IF nEvent = E_SHUTTER_EVENT.ISOPEN THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ENABLE THEN
+			ActionEnableComplete();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSED);
+			RETURN;
+		END_IF
+
+	E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN:			
+		IF nEvent = E_SHUTTER_EVENT.ISCLOSED THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ENABLE THEN
+			ActionEnableComplete();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPEN);
+			RETURN;
+		END_IF
+
+	E_SHUTTER_SUBSTATE.NOTOP_ERROR:			
+		IF	nEvent = E_SHUTTER_EVENT.HWOK 				AND 
+			stat.nErrorCode = E_SHUTTER_ERROR.HW_NOT_OP 	THEN
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF nEvent = E_SHUTTER_EVENT.ERRHW THEN
+		SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SHUTTER_EVENT.ERRFAULT THEN
+		// TODO
+		SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_ERROR);			
+		RETURN;
+	ELSIF nEvent = E_SHUTTER_EVENT.ERRALLACTIVE THEN
+		// TODO
+		ActionErrExecute(nEvent);
+		SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_SHUTTER_STATE.OP:
+
+	(* Transitions from OP subastates *)
+	CASE stat.nSubstate OF
+	E_SHUTTER_SUBSTATE.OP_CLOSED:			
+		IF nEvent = E_SHUTTER_EVENT.OPEN THEN
+			ActionOpenExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPENING);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.CLOSE THEN
+			// Nothing to do. Just clear previous error, if any.
+			M_SetStatus(E_SHUTTER_ERROR.OK);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ISOPEN THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPEN);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_DISABLING);
+			RETURN;		
+		ELSIF nEvent = E_SHUTTER_EVENT.ERRNONEACTIVE THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+			RETURN;				
+		END_IF
+
+	E_SHUTTER_SUBSTATE.OP_OPENING:			
+		IF nEvent = E_SHUTTER_EVENT.ISOPEN THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPEN);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ISCLOSED THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ERRTIMEOUTOPEN THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.STOP THEN
+			ActionStopExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSING);
+			RETURN;			
+		END_IF
+		
+	E_SHUTTER_SUBSTATE.OP_OPEN:			
+		IF nEvent = E_SHUTTER_EVENT.CLOSE THEN
+			ActionCloseExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSING);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.OPEN THEN
+			// Nothing to do. Just clear previous error, if any.
+			M_SetStatus(E_SHUTTER_ERROR.OK);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ISCLOSED THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSED);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_DISABLING);
+			RETURN;	
+		ELSIF nEvent = E_SHUTTER_EVENT.ERRNONEACTIVE THEN
+			ActionUnexpExecute(nEvent);
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+			RETURN;				
+		END_IF
+		
+	E_SHUTTER_SUBSTATE.OP_CLOSING:			
+		IF nEvent = E_SHUTTER_EVENT.ISCLOSED THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSED);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ISOPEN THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPEN);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ERRTIMEOUTCLOSE THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.STOP THEN
+			ActionStopExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPENING);
+			RETURN;			
+		END_IF
+		
+	E_SHUTTER_SUBSTATE.OP_ERROR:			
+		IF nEvent = E_SHUTTER_EVENT.CLOSE THEN
+			ActionCloseExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSING);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.OPEN THEN
+			ActionOpenExecute();
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPENING);
+			RETURN;			
+		ELSIF nEvent = E_SHUTTER_EVENT.ISOPEN THEN
+			M_LogEventGeneral('Recovered from error. Shutter is OPEN.');
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_OPEN);
+			RETURN;			
+		ELSIF nEvent = E_SHUTTER_EVENT.ISCLOSED THEN
+			M_LogEventGeneral('Recovered from error. Shutter is CLOSED.');
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_CLOSED);
+			RETURN;	
+		ELSIF nEvent = E_SHUTTER_EVENT.DISABLE THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_DISABLING);
+			RETURN;			
+		END_IF
+
+	E_SHUTTER_SUBSTATE.OP_DISABLING:			
+		IF nEvent = E_SHUTTER_EVENT.DISABLECLOSED THEN
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.DISABLEOPEN THEN
+			SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN);
+			RETURN;
+		ELSIF nEvent = E_SHUTTER_EVENT.ERRDISABLE THEN
+			SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+			RETURN;
+		END_IF
+		
+	END_CASE
+	
+	(* Transitions from OP state *)
+	IF nEvent = E_SHUTTER_EVENT.ERRHW THEN
+		SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SHUTTER_EVENT.ERRFAULT THEN
+		SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SHUTTER_EVENT.ERRALLACTIVE THEN
+		// TODO
+		ActionErrExecute(nEvent);
+		SetState(E_SHUTTER_STATE.OP, E_SHUTTER_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_SHUTTER_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_SHUTTER_STATE.NOTOP, E_SHUTTER_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetAction" Id="{2acba3b2-45b6-4a2a-b462-51ba88d57ca8}">
+      <Declaration><![CDATA[METHOD SetAction
+VAR_INPUT
+	actionName:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+stat.sActionDesc := actionName;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetEvent" Id="{6b68da34-70da-405a-b0a8-7235e5482c8e}">
+      <Declaration><![CDATA[METHOD SetEvent
+VAR_INPUT
+	nEventId:			DINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+nEvent := nEventId;
+
+CASE nEventId OF
+	E_SHUTTER_EVENT.NONE:
+		stat.sEventDesc := '';
+		RETURN;
+		
+	E_SHUTTER_EVENT.RESET:
+		stat.sEventDesc := 'CMD RESET';
+		RETURN;
+	
+	E_SHUTTER_EVENT.INIT:
+		stat.sEventDesc := 'CMD INIT';
+		RETURN;
+
+	E_SHUTTER_EVENT.STOP:
+		stat.sEventDesc := 'CMD STOP';
+		RETURN;
+
+	E_SHUTTER_EVENT.ENABLE:
+		stat.sEventDesc := 'CMD ENABLE';
+		RETURN;
+
+	E_SHUTTER_EVENT.DISABLE:
+		stat.sEventDesc := 'CMD DISABLE';
+		RETURN;
+
+	E_SHUTTER_EVENT.OPEN:
+		stat.sEventDesc := 'CMD OPEN';
+		RETURN;
+
+	E_SHUTTER_EVENT.CLOSE:
+		stat.sEventDesc := 'CMD CLOSE';
+		RETURN;
+	
+	(* events corresponding to internal events *)
+	E_SHUTTER_EVENT.INITCLOSED:
+		stat.sEventDesc := 'INT INITCLOSED';
+		RETURN;
+
+	E_SHUTTER_EVENT.INITOPEN:
+		stat.sEventDesc := 'INT INITOPEN';
+		RETURN;
+
+	E_SHUTTER_EVENT.DISABLECLOSED:
+		stat.sEventDesc := 'INT DISABLECLOSED';
+		RETURN;
+	
+	E_SHUTTER_EVENT.DISABLEOPEN:
+		stat.sEventDesc := 'INT DISABLEOPEN';
+		RETURN;
+	
+	(* evetnts mapped to HW signals *)
+	E_SHUTTER_EVENT.ISOPEN:
+		stat.sEventDesc := 'SIG ISOPEN';
+		RETURN;
+
+	E_SHUTTER_EVENT.ISCLOSED:
+		stat.sEventDesc := 'SIG ISCLOSED';
+		RETURN;
+
+	E_SHUTTER_EVENT.HWOK:
+		stat.sEventDesc := 'SIG HWOK';
+		RETURN;
+
+	E_SHUTTER_EVENT.ERRHW:
+		stat.sEventDesc := 'INT ERRHW';
+		RETURN;
+
+	E_SHUTTER_EVENT.ERRFAULT:	
+		stat.sEventDesc := 'INT ERRFAULT';
+		RETURN;
+
+	E_SHUTTER_EVENT.ERRALLACTIVE:
+		stat.sEventDesc := 'INT ERRALLACTIVE';
+		RETURN;
+	
+	E_SHUTTER_EVENT.ERRNONEACTIVE:	
+		stat.sEventDesc := 'INT ERRNONEACTIVE';
+		RETURN;
+		
+	E_SHUTTER_EVENT.ERRINIT:
+		stat.sEventDesc := 'INT ERRINIT';
+		RETURN;
+
+	E_SHUTTER_EVENT.ERRDISABLE:
+		stat.sEventDesc := 'INT ERRDISABLE';
+		RETURN;
+	
+END_CASE 
+
+(* INTERNAL ERROR *)
+stat.sEventDesc := 'UNKNOWN EVENT';
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetState" Id="{725c2510-95cb-4885-9251-304ab558f2e2}">
+      <Declaration><![CDATA[METHOD SetState : BOOL
+VAR_INPUT
+	nState:			E_SHUTTER_STATE;
+	nSubstate:		E_SHUTTER_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* 
+	Update State Machine active state configuration.
+
+	ToDo: support initial pseudo state/substate.
+*)
+
+IF nState <> E_SHUTTER_STATE.NONE THEN
+	stat.nState	:= nState;
+END_IF
+IF nSubstate <> E_SHUTTER_SUBSTATE.NONE THEN
+	stat.nSubstate	:= nSubstate;
+END_IF
+
+(* Update active state configuration description *)
+
+IF nState = E_SHUTTER_STATE.NOTOP THEN
+	stat.sState	:= 'NOT OP';
+ELSIF nState = E_SHUTTER_STATE.OP THEN
+	stat.sState	:= 'OPERATIONAL';
+END_IF
+
+IF nSubstate = E_SHUTTER_SUBSTATE.NOTOP_NOTREADY THEN
+	stat.sSubstate	:= 'NOT READY';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.NOTOP_INITIALIZING THEN
+	stat.sSubstate	:= 'INITIALIAZING';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.NOTOP_READY_CLOSED THEN
+	stat.sSubstate	:= 'READY CLOSED';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.NOTOP_READY_OPEN THEN
+	stat.sSubstate	:= 'READY OPEN';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.NOTOP_ERROR THEN
+	stat.sSubstate	:= 'ERROR';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSED THEN
+	stat.sSubstate	:= 'CLOSED';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.OP_OPEN THEN
+	stat.sSubstate	:= 'OPEN';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.OP_CLOSING THEN
+	stat.sSubstate	:= 'CLOSING';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.OP_OPENING THEN
+	stat.sSubstate	:= 'OPENING';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.OP_DISABLING THEN
+	stat.sSubstate	:= 'DISABLING';
+ELSIF nSubstate = E_SHUTTER_SUBSTATE.OP_ERROR THEN
+	stat.sSubstate	:= 'ERROR';
+ELSE
+	stat.sSubstate	:= '';
+END_IF
+
+
+SetState	:= TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SHUTTER_BASE">
+      <LineId Id="43" Count="10" />
+      <LineId Id="36" Count="6" />
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionCloseExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionDisableExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionEnableComplete">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionEnableExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionErrExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionInitAbort">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionInitComplete">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionInitExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionInitReject">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionOpenExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionResetExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionStopExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActionUnexpExecute">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActivityClosing">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActivityDisabling">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActivityInitializing">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ActivityOpening">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.CheckForEvents">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_Configure">
+      <LineId Id="312" Count="0" />
+      <LineId Id="308" Count="0" />
+      <LineId Id="310" Count="1" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="164" Count="1" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="249" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="255" Count="1" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="262" Count="1" />
+      <LineId Id="266" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="270" Count="1" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="272" Count="0" />
+      <LineId Id="305" Count="2" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="182" Count="3" />
+      <LineId Id="313" Count="1" />
+      <LineId Id="187" Count="5" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="281" Count="1" />
+      <LineId Id="287" Count="1" />
+      <LineId Id="283" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="193" Count="5" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_GetErrorText">
+      <LineId Id="48" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="77" Count="2" />
+      <LineId Id="62" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_LogEventDebug">
+      <LineId Id="22" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="15" Count="1" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_LogEventEnd">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_LogEventError">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_LogEventGeneral">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_LogEventStart">
+      <LineId Id="12" Count="4" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.M_SetStatus">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.ProcessEvents">
+      <LineId Id="3" Count="39" />
+      <LineId Id="47" Count="7" />
+      <LineId Id="60" Count="17" />
+      <LineId Id="85" Count="10" />
+      <LineId Id="103" Count="11" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="115" Count="9" />
+      <LineId Id="311" Count="0" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="312" Count="1" />
+      <LineId Id="322" Count="1" />
+      <LineId Id="328" Count="0" />
+      <LineId Id="324" Count="1" />
+      <LineId Id="129" Count="13" />
+      <LineId Id="298" Count="3" />
+      <LineId Id="143" Count="7" />
+      <LineId Id="159" Count="10" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="170" Count="1" />
+      <LineId Id="333" Count="2" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="330" Count="0" />
+      <LineId Id="180" Count="8" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="189" Count="7" />
+      <LineId Id="205" Count="12" />
+      <LineId Id="336" Count="2" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="331" Count="1" />
+      <LineId Id="227" Count="12" />
+      <LineId Id="346" Count="0" />
+      <LineId Id="240" Count="2" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="243" Count="24" />
+      <LineId Id="308" Count="2" />
+      <LineId Id="318" Count="0" />
+      <LineId Id="321" Count="0" />
+      <LineId Id="327" Count="0" />
+      <LineId Id="319" Count="1" />
+      <LineId Id="272" Count="9" />
+      <LineId Id="314" Count="3" />
+      <LineId Id="284" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.SetAction">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.SetEvent">
+      <LineId Id="3" Count="94" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SHUTTER_BASE.SetState">
+      <LineId Id="3" Count="24" />
+      <LineId Id="30" Count="23" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

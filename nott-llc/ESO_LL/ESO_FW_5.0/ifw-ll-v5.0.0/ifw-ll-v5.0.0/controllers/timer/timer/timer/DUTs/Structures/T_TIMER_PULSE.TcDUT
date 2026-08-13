@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <DUT Name="T_TIMER_PULSE" Id="{451e5dd0-5c9c-4999-bf02-a182f944249d}">
+    <Declaration><![CDATA[TYPE T_TIMER_PULSE :
+	(*
+	Definition of pulse width(s) for slow frequences (< 1 kHz).
+	There are up to two regions of high bits in a single 1 ms cycle. 
+	Case 1: Bit pattern crosses the boundary of two consequtive cycles.
+	A single pulse can spread over two cycles. offset1 and w1 are the 
+	offset and the width of the pulse in the first cycle, 
+	while offset2 (=0) and w2 are the offset and the width of the pulse 
+	at the beginning of the second cycle.
+	Case 2: The cycle contains the end of the current pulse and the biginning
+			of the next.
+	offset1 (=0) and w1 are the offset and the width of the end of the current 
+	pulse from the previous cycle, while offset2 and w2 are the offset and the 
+	width of the next pulse (whatever fits into the cycle).
+*)
+STRUCT
+	offset1:	UDINT;
+	w1:			UDINT;
+	offset2:	UDINT;
+	w2:			UDINT;
+	nextCycle:	UDINT;	(* Cycle for next trigger *)
+	nextOffset:	UDINT;	(* Offset in the cycle for next trigger *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,493 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <POU Name="FB_SIM_LAMP" Id="{cdc20ae3-b7e8-4041-8913-f51782748d05}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_LAMP
+VAR_INPUT
+	ptrDev:		POINTER TO FB_LAMP;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	ptrCfg:		POINTER TO T_LAMP_CFG;
+	ptrStat:	POINTER TO T_LAMP_STAT;
+
+	{attribute 'OPC.UA.DA':='1'}
+	cfg:			T_SIM_LAMP_CFG;		(* ActiveLow configuration for each signal *)
+	{attribute 'OPC.UA.DA':='1'}
+	stat:			T_SIM_LAMP_STAT;	(* Simulator status parameters *)
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bSwitch:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA':='0'}
+	bSwitchLast:	BOOL := FALSE;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	bOn:			BOOL := TRUE;	// Digital feedback
+	{attribute 'OPC.UA.DA':='0'}
+	nOn:			DINT := 0;		// Analog feedback
+	{attribute 'OPC.UA.DA':='0'}
+	bFault:			BOOL := FALSE;
+	{attribute 'OPC.UA.DA':='0'}
+	nCouplerState:	UINT := 8;       // normal coupler state
+	
+    (* Inputs *)
+	{attribute 'OPC.UA.DA':='0'}
+	i_bSwitch 		AT %I*: 	BOOL;
+
+	(* Outputs *)	
+	{attribute 'OPC.UA.DA':='0'}
+	q_bFault 		AT %Q*: 	BOOL;
+	{attribute 'OPC.UA.DA':='0'}
+	q_bOn 			AT %Q*: 	BOOL;	// Digital feedback signal
+	{attribute 'OPC.UA.DA':='0'}
+	q_nOn 			AT %Q*: 	INT;	// Analog feedback signal
+	{attribute 'OPC.UA.DA':='0'}
+	q_nCouplerState AT %Q*:		UINT := 8;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	timer:			TON;
+	
+	{attribute 'OPC.UA.DA':='0'}
+	trigger:		R_TRIG;	// To capture device INIT
+
+	{attribute 'OPC.UA.DA':='0'}
+	counter:		DINT	:= 0; 	// Counter used to 	
+
+	{attribute 'OPC.UA.DA':='0'}
+	nOnStart:		DINT;
+	{attribute 'OPC.UA.DA':='0'}
+	nOnEnd:			DINT;
+	{attribute 'OPC.UA.DA':='0'}
+	nOnDelta:		DINT;		// Total analog signal change during ramp
+	
+	t1, t2:	LREAL;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Give simulator 20 cycles of idle until real device is ready.
+IF counter < 20 THEN
+	counter	:= counter + 1;
+	RETURN;
+END_IF
+
+// Initialise the simulator, i.e. set pointers to the real device, etc.
+IF NOT stat.bInitialised THEN
+	ptrCfg	:= ADR(ptrDev^.cfg);
+	ptrStat	:= ADR(ptrDev^.stat);
+
+	// Check for NULL pointers in input parameters
+	IF ptrCfg = 0  OR  ptrStat = 0 THEN
+		stat.nErrorCode	:= E_LAMP_ERROR.SIM_NULL_POINTER;
+		stat.sErrorText	:= 'ERROR: Input parameter is a NULL pointer';
+		stat.sStatus	:= 'ERROR';
+		RETURN;
+	END_IF
+
+	RPC_ResetConfig();	// Copy configuration from device
+	
+	// Set analog feedback to a good starting level.
+	M_SetAnalogFeedback();
+
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(100));	// Update almost immediately
+
+	stat.nErrorCode	:= E_LAMP_ERROR.OK;
+	stat.sErrorText	:= 'OK';
+	stat.sStatus	:= 'OK';
+	
+	stat.bInitialised	:= TRUE;
+	RETURN;
+END_IF
+
+// There are two possible triggers: 
+// 	- Detect device INIT (action = 'ActionInitExecute')
+// 	- Activation of switch (change of i_bSwitch state)
+
+// Check for INIT trigger
+trigger(CLK:=(ptrStat^.sActionDesc = 'ActionInitExecute'));
+
+// Get the state of control command
+bSwitch := M_GetLogicalState(i_bSwitch, cfg.bActiveLowSwitch);
+
+IF trigger.Q THEN
+	timer(IN:=FALSE);
+	RPC_ResetConfig();	// Copy configuration from device
+	// Set analog feedback to a good starting level.
+	M_SetAnalogFeedback();
+ELSIF bSwitch <> bSwitchLast THEN
+	ReloadConfig();	// Reload configuration from device
+	
+	// Switch value has changed. 
+	bSwitchLast	:= bSwitch;
+
+	// Delayed response
+	timer(IN:=FALSE);
+	timer(IN:=TRUE,PT:=UDINT_TO_TIME(cfg.nDelay));
+	
+	// If analog feedback is used, find out how much to ramp it.
+	IF cfg.nAnalogThreshold <> 0	THEN
+		nOnStart	:= nOn;
+		// Set target feedback is 10 bit beyond the threshold.
+		// This value depends on the command (on/off) and the logic (over/under threshold).
+		IF bSwitch = M_GetLogicalState(TRUE, cfg.bActiveLowSwitch) THEN
+		// The command was ON
+			IF cfg.bInvertAnalog THEN
+				nOnEnd	:= cfg.nAnalogThreshold - 10;
+			ELSE
+				nOnEnd	:= cfg.nAnalogThreshold + 10;
+			END_IF
+		ELSE
+		// The command was OFF
+			IF cfg.bInvertAnalog THEN
+				nOnEnd	:= MAX(32000, cfg.nAnalogThreshold + 10);	// was cfg.nAnalogThreshold + 10;
+			ELSE
+				nOnEnd	:= 0;	// was cfg.nAnalogThreshold - 10;
+			END_IF
+		END_IF
+		// This is how much to change simulated feedback over cfg.nDelay.
+		nOnDelta	:= nOnEnd - nOnStart;
+	END_IF
+END_IF
+
+
+// Execute the timer
+timer();
+
+// If analog feedback is used, ramp up/down the simulated feedback.
+IF cfg.nAnalogThreshold <> 0	THEN
+	bOn	:= FALSE;	// Don't use the digital feedback.
+	IF timer.ET > INT_TO_TIME(0)	THEN
+		t1	:= TIME_TO_LREAL(timer.ET);
+		t2	:= TIME_TO_LREAL(timer.PT);
+		nOn	:=	nOnStart + LREAL_TO_INT((t1*t1*t1) / (t2*t2*t2) * nOnDelta);
+	END_IF
+ELSE
+	nOn	:= 0;
+END_IF
+
+// Set new outputs once the timer has expired
+IF timer.Q THEN
+	timer(IN:=FALSE);	// Reset timer
+	// Set digital output, i.e. feedback, if analog feedback is not used.
+	IF cfg.nAnalogThreshold = 0	THEN
+		bOn	:= M_GetLogicalState(bSwitch,	cfg.bActiveLowOn);
+	END_IF
+END_IF
+
+
+(* Assign outputs *)
+q_bFault		:= M_GetLogicalState(bFault, cfg.bActiveLowFault);
+q_bOn 			:= bOn;
+q_nOn			:= DINT_TO_INT(nOn);
+q_nCouplerState := nCouplerState;
+
+]]></ST>
+    </Implementation>
+    <Method Name="M_GetLogicalState" Id="{3a675f1a-7819-414a-ae93-030e56ccbed7}">
+      <Declaration><![CDATA[METHOD M_GetLogicalState : BOOL
+(*
+	This method returns the state of the variable based on its 
+	activeLow configuration.
+	Syntax:
+		bState	:= M_GetLogicalState (<var value>,  <activeLow cfg>);
+		
+	Example 1:
+		var = TRUE;
+		activeLow = FALSE;
+		bState	:= M_GetLogicalState (TRUE,  FALSE); = TRUE
+
+	Example 2:
+		var = TRUE;
+		activeLow = TRUE;
+		bState	:= M_GetLogicalState (TRUE,  TRUE); = FALSE
+*)
+VAR_INPUT
+	state:		BOOL;
+	activeLow:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF activeLow THEN
+	M_GetLogicalState := NOT state;
+ELSE
+	M_GetLogicalState := state;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetAnalogFeedback" Id="{d2bca2b1-91f0-4a82-a8c3-07c1122d0c1d}">
+      <Declaration><![CDATA[// Set starting analog feedback depending 
+// on the analog feedback configuration and the command.
+METHOD M_SetAnalogFeedback
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Reset analog feedback, if not used.
+IF cfg.nAnalogThreshold = 0	THEN
+	nOn	:= 0;
+ELSE
+	// Analog feedback set to a value equivalent to OFF.
+	IF cfg.bInvertAnalog THEN
+		nOn	:= MAX(32000, cfg.nAnalogThreshold + 10);
+	ELSE
+		nOn	:= 0;
+	END_IF
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReloadConfig" Id="{218d6e0f-49d5-49bd-9c7d-43586e515fe9}">
+      <Declaration><![CDATA[METHOD ReloadConfig : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowOn		:= ptrCfg^.bActiveLowOn;
+cfg.bActiveLowFault		:= ptrCfg^.bActiveLowFault;
+cfg.bActiveLowSwitch	:= ptrCfg^.bActiveLowSwitch;
+cfg.bInvertAnalog		:= ptrCfg^.bInvertAnalog;
+cfg.nDelay				:= ptrCfg^.nTimeout / 2;	// Response delay = 1/2 of real lamp timeout
+cfg.nAnalogThreshold	:= ptrCfg^.nAnalogThreshold;
+nCouplerState			:= 8;
+
+// Reset analog feedback, if not used.
+IF cfg.nAnalogThreshold = 0	THEN
+	nOn	:= 0;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_ResetConfig" Id="{cefd105e-0777-45a9-b272-dea41c909353}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_ResetConfig : INT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ReloadConfig();
+
+// Set valid intensity feedback
+nOn	:= cfg.nAnalogThreshold;
+
+
+// Reset Fault signal
+bFault		:= FALSE;
+
+// Get the Switch value
+bSwitch := M_GetLogicalState(i_bSwitch, cfg.bActiveLowSwitch);
+
+bOn	:= M_GetLogicalState(bSwitch,	cfg.bActiveLowOn);	// Set lamp state
+
+RPC_ResetConfig	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Fault" Id="{6ccde042-cf6f-4575-bdf0-06366a66a95a}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Fault : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowFault	:= bValue;
+
+RPC_SetActiveLow_Fault	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_On" Id="{23934f2f-e237-4c2f-ac22-9cf7b73719c4}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_On : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowOn	:= bValue;
+
+RPC_SetActiveLow_On	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetActiveLow_Switch" Id="{a4ecdb8e-bcef-4dcf-b895-66561c234cd6}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetActiveLow_Switch : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.bActiveLowSwitch	:= bValue;
+
+RPC_SetActiveLow_Switch	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetCouplerState" Id="{45255316-3d56-412d-a07e-b4d5796053d0}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetCouplerState : INT
+VAR_INPUT
+	nValue:	UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nCouplerState	:= nValue;
+
+RPC_SetCouplerState	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetDelay" Id="{1004106a-d14c-4cdf-9cbe-1c39692b430f}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetDelay : INT
+VAR_INPUT
+	nDelay:	UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[cfg.nDelay	:= nDelay;
+
+RPC_SetDelay	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetFault" Id="{b6977385-799f-43dd-85f1-bcc9ffea15b2}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetFault : INT
+VAR_INPUT
+	bValue:	BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bFault	:= bValue;
+
+RPC_SetFault	:= E_LAMP_RPC_ERROR.OK;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_LAMP">
+      <LineId Id="381" Count="0" />
+      <LineId Id="383" Count="1" />
+      <LineId Id="386" Count="0" />
+      <LineId Id="385" Count="0" />
+      <LineId Id="387" Count="0" />
+      <LineId Id="382" Count="0" />
+      <LineId Id="216" Count="12" />
+      <LineId Id="230" Count="0" />
+      <LineId Id="574" Count="0" />
+      <LineId Id="586" Count="1" />
+      <LineId Id="231" Count="12" />
+      <LineId Id="245" Count="8" />
+      <LineId Id="499" Count="0" />
+      <LineId Id="254" Count="0" />
+      <LineId Id="591" Count="1" />
+      <LineId Id="257" Count="0" />
+      <LineId Id="504" Count="1" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="502" Count="0" />
+      <LineId Id="262" Count="2" />
+      <LineId Id="457" Count="2" />
+      <LineId Id="496" Count="0" />
+      <LineId Id="472" Count="1" />
+      <LineId Id="476" Count="0" />
+      <LineId Id="490" Count="0" />
+      <LineId Id="479" Count="5" />
+      <LineId Id="491" Count="0" />
+      <LineId Id="485" Count="4" />
+      <LineId Id="478" Count="0" />
+      <LineId Id="470" Count="0" />
+      <LineId Id="469" Count="0" />
+      <LineId Id="463" Count="0" />
+      <LineId Id="265" Count="4" />
+      <LineId Id="449" Count="0" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="450" Count="0" />
+      <LineId Id="492" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="510" Count="1" />
+      <LineId Id="453" Count="1" />
+      <LineId Id="474" Count="1" />
+      <LineId Id="452" Count="0" />
+      <LineId Id="270" Count="4" />
+      <LineId Id="493" Count="0" />
+      <LineId Id="275" Count="0" />
+      <LineId Id="494" Count="0" />
+      <LineId Id="276" Count="5" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="282" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.M_GetLogicalState">
+      <LineId Id="49" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.M_SetAnalogFeedback">
+      <LineId Id="6" Count="3" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="27" Count="4" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="40" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.ReloadConfig">
+      <LineId Id="3" Count="2" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="36" Count="1" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_ResetConfig">
+      <LineId Id="7" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="48" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="18" Count="2" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_SetActiveLow_Fault">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_SetActiveLow_On">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_SetActiveLow_Switch">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_SetCouplerState">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_SetDelay">
+      <LineId Id="2" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_LAMP.RPC_SetFault">
+      <LineId Id="3" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

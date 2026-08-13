@@ -169,6 +169,20 @@ def all_shutters_open(n_aper):
     for i in range(n_aper):
         shutter_open(str(i+1))
 
+
+#### H2RG / MACIE ####
+######################
+
+def h2rg_acquire():
+    """Trigger one H2RG Acquire via the open GUI (like Infratec Start record).
+
+    The H2RG window must already be open and Initialized; do not use during Live.
+    """
+    from nottcontrol.camera.macie.gui_remote import acquire
+
+    return acquire()
+
+
 # if __name__ == '__main__':
 #     opcua_motor = 'nott_ics.Delay_Lines.NDL4'
 #     speed = 0.02
@@ -178,4 +192,4 @@ def all_shutters_open(n_aper):
 #     move_abs_dl(pos, speed, opcua_motor, pos_offset)
 #     # move_rel_dl(rel_pos, speed, opcua_motor)
 
-    
+     

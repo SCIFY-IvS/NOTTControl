@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.12">
+  <DUT Name="T_TIME_SIGNAL" Id="{a82f4ee5-7cfa-41c9-b67b-e09673e5f4ef}">
+    <Declaration><![CDATA[TYPE T_TIME_SIGNAL :
+STRUCT
+	status : E_TIME_SIGNAL_STATUS := E_TIME_SIGNAL_STATUS.NOT_CONNECTED;
+	qos    : E_TIME_SIGNAL_QOS    := E_TIME_SIGNAL_QOS.NOT_VALID;
+	time_difference : UDINT; // Time difference between DC and External Time Source
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

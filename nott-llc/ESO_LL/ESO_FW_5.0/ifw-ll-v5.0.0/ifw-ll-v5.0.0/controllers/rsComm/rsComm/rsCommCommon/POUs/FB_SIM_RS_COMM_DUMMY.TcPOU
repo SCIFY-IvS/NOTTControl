@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="FB_SIM_RS_COMM_DUMMY" Id="{78ec6e3a-ce3c-4295-b8dc-c355f2704bf3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SIM_RS_COMM_DUMMY EXTENDS FB_SIM_RS_COMM_BASE
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//
+	// TODO: Status structure for <devices>.
+	// See also: FB_SIM_RS_COMM_LAKESHORE.
+	//
+	
+	fbTimer:		TON;	// Used for ramps etc.
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[M_ActivityDo();	// Implement ramps, etc, if any]]></ST>
+    </Implementation>
+    <Method Name="M_ActivityDo" Id="{7f03c4d6-d27a-4edc-a39c-4fcf4fce9948}">
+      <Declaration><![CDATA[METHOD M_ActivityDo
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement ramps, if any.]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSimReply" Id="{558b92bd-7e8f-440e-bfa8-d37b7ddaa29f}">
+      <Declaration><![CDATA[METHOD M_GetSimReply : STRING(255)
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_sReceived:	STRING(255);		// String received from a client
+END_VAR
+VAR
+	sReply:	STRING(255);
+	lrVal:	LREAL;
+	i:		INT;
+    fbFormat   : FB_FormatString;
+    sOut       : T_MaxString;
+	nCh:	INT := 8;	// Number of channels for models 218 and 224
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO User: Implement simulated replies.
+
+// Dummy empty reply
+M_GetSimReply	:= in_sReplySuffix;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SIM_RS_COMM_DUMMY">
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_RS_COMM_DUMMY.M_ActivityDo">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SIM_RS_COMM_DUMMY.M_GetSimReply">
+      <LineId Id="227" Count="1" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

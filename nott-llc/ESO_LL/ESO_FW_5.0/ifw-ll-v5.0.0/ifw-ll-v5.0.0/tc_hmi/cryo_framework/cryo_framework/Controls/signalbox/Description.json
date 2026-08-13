@@ -1,0 +1,255 @@
+﻿{
+  "$schema": "../../.hmiframework/Schema/ControlDescription.Schema.json",
+  "apiVersion": 1,
+  "name": "signalbox",
+  "namespace": "TcHmi.Controls.cryo_framework",
+  "displayName": "Signalbox",
+  "version": {
+    "full": "1.0.0.0",
+    "major": 1,
+    "minor": 0,
+    "revision": 0,
+    "build": 0
+  },
+  "visible": true,
+  "themeable": "Standard",
+  "base": "TcHmi.Controls.System.TcHmiControl",
+  "description": "This description text will be used as a Tooltip in Visual Studio.",
+  "properties": {
+    "containerControl": false,
+    "geometry": {
+      "width": 150,
+      "height": 150
+    }
+  },
+  "icons": [
+    {
+      "name": "Icons/16x16.png",
+      "width": 16,
+      "height": 16
+    },
+    {
+      "name": "Icons/24x24.png",
+      "width": 24,
+      "height": 24
+    },
+    {
+      "name": "Icons/32x32.png",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "Icons/64x64.png",
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "template": "Template.html",
+  "dependencyFiles": [
+    {
+      "name": "signalbox.js",
+      "type": "JavaScript",
+      "description": "Contains all the main logic."
+    },
+    {
+      "name": "Style.css",
+      "type": "Stylesheet",
+      "description": "Theme independent style"
+    }
+  ],
+    "themes": {
+        "Base": {
+            "resources": [
+                {
+                    "name": "Themes/Base/Style.css",
+                    "type": "Stylesheet",
+                    "description": "Theme dependent style"
+                }
+            ]
+        },
+        "Base-Dark": {
+            "resources": [
+                {
+                    "name": "Themes/Base-Dark/Style.css",
+                    "type": "Stylesheet",
+                    "description": "Theme dependent style"
+                }
+            ]
+        }
+    },
+  "attributes": [
+    {
+      "name": "data-tchmi-signalbox-alarm",
+      "propertyName": "AlarmState",
+      "propertySetterName": "setAlarmState",
+      "propertyGetterName": "getAlarmState",
+      "displayName": "Alarm State",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "Value",
+      "description": "Alarm state (Active or not)",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-signalbox-warning",
+      "propertyName": "WarningState",
+      "propertySetterName": "setWarningState",
+      "propertyGetterName": "getWarningState",
+      "displayName": "Warning State",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:general#/definitions/Boolean",
+      "category": "Value",
+      "description": "Warning State (Active or not)",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-signalbox-alarm-color",
+      "propertyName": "AlarmColor",
+      "propertySetterName": "setAlarmColor",
+      "propertyGetterName": "getAlarmColor",
+      "displayName": "Alarm Color",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/SolidColor",
+      "category": "Value",
+      "description": "Color of Signalbox when Alarm State is active",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-signalbox-warning-color",
+      "propertyName": "WarningColor",
+      "propertySetterName": "setWarningColor",
+      "propertyGetterName": "getWarningColor",
+      "displayName": "Warning Color",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/SolidColor",
+      "category": "Value",
+      "description": "Color of Signalbox when Warning State is active",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-signalbox-text-color",
+      "propertyName": "SignalTextColor",
+      "propertySetterName": "setSignalTextColor",
+      "propertyGetterName": "getSignalTextColor",
+      "displayName": "Signal Text Color",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/SolidColor",
+      "category": "Value",
+      "description": "Color of State text when active",
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": false
+    },
+    {
+      "name": "data-tchmi-signalbox-stroke-thickness",
+      "propertyName": "BoxStrokeThickness",
+      "propertySetterName": "setBoxStrokeThickness",
+      "propertyGetterName": "getBoxStrokeThickness",
+      "displayName": "StrokeThickness",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/MeasurementValue",
+      "category": "Drawing",
+      "description": "Specifies the width of the outline of the control in pixel.",
+      "readOnly": false,
+      "bindable": true,
+      "defaultBindingMode": "OneWay",
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": null
+    },
+    {
+      "name": "data-tchmi-signalbox-stroke-thickness-unit",
+      "propertyName": "BoxStrokeThicknessUnit",
+      "propertyGetterName": "getBoxStrokeThicknessUnit",
+      "refTo": "BoxStrokeThickness",
+      "displayName": "StrokeThicknessUnit",
+      "visible": true,
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/PixelUnit",
+      "category": "Drawing",
+      "description": "Only Pixel is allowed.",
+      "readOnly": true,
+      "bindable": false,
+      "defaultBindingMode": "OneWay",
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": "px"
+    },
+    {
+      "name": "data-tchmi-signalbox-box-size",
+      "propertyName": "BoxSize",
+      "propertySetterName": "setBoxSize",
+      "propertyGetterName": "getBoxSize",
+      "displayName": "Size",
+      "visible": true,
+      "themeable": "Standard",
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/MeasurementValue",
+      "category": "Drawing",
+      "description": "Specifies the height and width of the corner box in pixel.",
+      "readOnly": false,
+      "bindable": true,
+      "defaultBindingMode": "OneWay",
+      "heritable": true,
+      "defaultValue": 20,
+      "defaultValueInternal": 20
+    },
+    {
+      "name": "data-tchmi-signalbox-box-size-unit",
+      "propertyName": "BoxSizeUnit",
+      "propertySetterName": "setBoxSizeUnit",
+      "propertyGetterName": "getBoxSizeUnit",
+      "refTo": "BoxSize",
+      "displayName": "Size",
+      "visible": true,
+      "displayPriority": 10,
+      "type": "tchmi:framework#/definitions/PixelUnit",
+      "category": "Drawing",
+      "description": "Only Pixel is allowed.",
+      "readOnly": true,
+      "bindable": false,
+      "defaultBindingMode": "OneWay",
+      "heritable": true,
+      "defaultValue": null,
+      "defaultValueInternal": "px"
+    }
+  ],
+  "attributeCategories": [],
+  "functions": [],
+  "events": [],
+  "dataTypes": [
+    {
+      "schema": "Schema/Types.Schema.json"
+    }
+  ]
+}

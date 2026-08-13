@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_WARMUP_CFG" Id="{d9740ba5-c4a2-4462-8f7a-f4dc308fec00}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_WARMUP_CFG :
+STRUCT
+
+	
+	lrTemp_Det_OffSet:		LREAL := 25.0;	// Detector offset temperature before remaing heaters are turned ON [K]
+	lrTemp_Det:				LREAL := 300.0;		// Detector target temperature [K]
+	lrTemp_BasePlate:		LREAL := 300.0;		// Base plate target temperature [K]
+	lrTemp_Shield:			LREAL := 300.0;		// Base plate target temperature [K]
+	lrTemp_Sidecar:		    LREAL := 300.0;		// Base plate target temperature [K]
+	lrTemp_FlatField:		LREAL := 300.0;		// Base plate target temperature [K]
+	lrTemp_PhotonicChip: 	LREAL := 300.0;
+		
+	lrTemp_HighLimit:		LREAL := 305.0;		// Highest temperature limit [K]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

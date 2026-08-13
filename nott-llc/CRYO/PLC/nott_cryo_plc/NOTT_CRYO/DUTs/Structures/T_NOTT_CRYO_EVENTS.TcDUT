@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="T_NOTT_CRYO_EVENTS" Id="{3c5fd466-4b56-4f4c-b2bb-6ce848647b8f}">
+    <Declaration><![CDATA[TYPE T_NOTT_CRYO_EVENTS :
+STRUCT
+	info:		FB_TcMessage;
+	warning:	FB_TcMessage;
+	error:		FB_TcAlarm;
+	critical:	FB_TcAlarm;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

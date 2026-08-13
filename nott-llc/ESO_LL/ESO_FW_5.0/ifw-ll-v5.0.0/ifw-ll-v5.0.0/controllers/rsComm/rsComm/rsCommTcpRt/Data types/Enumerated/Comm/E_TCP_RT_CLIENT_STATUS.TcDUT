@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.16">
+  <DUT Name="E_TCP_RT_CLIENT_STATUS" Id="{e3a1a3ad-46e4-451b-acdf-624cfde81211}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_TCP_RT_CLIENT_STATUS :
+(
+	NOT_INIT	:= -1,
+	IDLE		:= 0,
+	BUSY		:= 1,
+	ERROR		:= 2
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

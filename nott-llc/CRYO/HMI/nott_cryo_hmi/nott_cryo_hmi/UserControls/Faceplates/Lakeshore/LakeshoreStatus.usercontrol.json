@@ -1,0 +1,24 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-lakeshorestatus",
+      "displayName": "LakeshoreStatus",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:server#/definitions/PLC1.ESO_Cryo_HMI_Library.T_HMI_CRYO_LAKESHORE_STAT-ReadOnly-ShowRecursively",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "LakeshoreStatus",
+      "propertySetterName": "setLakeshoreStatus",
+      "propertyGetterName": "getLakeshoreStatus",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

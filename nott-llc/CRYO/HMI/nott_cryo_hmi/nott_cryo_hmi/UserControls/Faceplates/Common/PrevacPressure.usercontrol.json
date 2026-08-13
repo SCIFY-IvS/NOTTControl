@@ -1,0 +1,24 @@
+{
+  "parameters": [
+    {
+      "name": "data-tchmi-pressureinmbar",
+      "displayName": "PressureInMbar",
+      "allowSymbolExpressionsInObject": false,
+      "visible": true,
+      "type": "tchmi:general#/definitions/REAL",
+      "category": "",
+      "description": "",
+      "requiredOnCompile": false,
+      "readOnly": false,
+      "bindable": true,
+      "heritable": true,
+      "propertyName": "PressureInMbar",
+      "propertySetterName": "setPressureInMbar",
+      "propertyGetterName": "getPressureInMbar",
+      "refTo": ""
+    }
+  ],
+  "virtualRights": [],
+  "$schema": "./../../../../Packages/Beckhoff.TwinCAT.HMI.Framework.12.760.59/runtimes/native1.12-tchmi/Schema/UserControlConfig.Schema.json",
+  "description": ""
+}

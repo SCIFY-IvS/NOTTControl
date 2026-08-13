@@ -1,0 +1,656 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_CRYO_PUMP_BASE" Id="{d1f6b2e5-7dd5-44cf-9166-8156b150cdff}" SpecialFunc="None">
+    <Declaration><![CDATA[// Cryo Pump Control Base FB
+FUNCTION_BLOCK FB_CRYO_PUMP_BASE EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bEnable:			BOOL;			// Flag to Start/Stop pump
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nModel:			DINT := 2303;	// Model number
+	{attribute 'OPC.UA.DA' := '0'}
+	in_bAutoMonitor:	BOOL := TRUE;	// If true, it starts PERIODIC reads (monitoring) after INIT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:			DINT := 10000;	// Interval for periodic reading [ms], default 10000 ms = 10 sec
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '0'}
+	cfgBaseRef:			REFERENCE TO T_CRYO_PUMP_BASE_CFG;	
+	{attribute 'OPC.UA.DA' := '0'}
+	ctrlBaseRef:		REFERENCE TO T_CRYO_PUMP_BASE_CTRL;	
+	{attribute 'OPC.UA.DA' := '0'}
+	statBaseRef:		REFERENCE TO T_CRYO_PUMP_BASE_STAT;	
+
+	// Pointers to arrays of INIT and READ commands
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrInitCmds:	POINTER TO ARRAY [1..8]  OF T_CRYO_PUMP_CMD;(* Pointer to INIT commands *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrReadCmds:	POINTER TO ARRAY [1..16] OF T_CRYO_PUMP_CMD;(* Pointer to READ commands *)
+
+
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:		TON; 	// General Timeout
+	timerState:		TON;	// Timer for state changes
+	
+	// Triggers
+	triggerStart:	R_TRIG;
+	triggerStop:	F_TRIG;
+	
+
+	(* Misc internal vars *)
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdCounter:		INT := 1;	// Position in commands table
+	{attribute 'OPC.UA.DA' := '0'}
+	bResult:		BOOL := FALSE;
+	{attribute 'OPC.UA.DA' := '0'}
+	bStarted:		BOOL := FALSE;
+
+	// TODO: Add Input signals in Fbs that EXTEND this FB.
+
+	// Output signals
+	q_bStart		AT %Q*:	BOOL;	// Start/Stop the pump. Common to all.
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Hard-coded configuration
+M_Configure();
+
+(* Execute comm instance *)
+M_ExecuteComm();
+//comm(in_sCmdSuffix:=in_sCmdSuffix, in_sReplySuffix:=in_sReplySuffix, in_nTimeout:=3000);
+
+// Update pump status from digital signals.
+M_UpdateStatus();
+
+// Capture Start/Stop commands and execute the State Machine
+M_StateMachine();
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{943ff090-78dd-4655-9738-7afc6b9bde12}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{0c3b8d59-a81b-4876-a910-cc5e5584e704}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+END_VAR
+
+VAR
+	offset: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CheckForEvents" Id="{123fe5b3-ceb7-44d4-ac29-c032ec9abaa4}">
+      <Declaration><![CDATA[METHOD CheckForEvents
+VAR_INPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Start assuming the HW is OK in case there was no communication problem. 
+	This is needed to recover from the situation where 
+	the HW was failing and now it is working.
+*)
+
+//IF NOT bCommProblem	THEN
+//	nInternalEvent := E_SM_EVENT.HWOK;
+//END_IF
+
+
+
+
+(* 
+	Check for events in the following order: 
+   	1) HW failure: without HW avilability there is no point to do anything
+	2) Internal events: to allow completing the initiated commands before 
+                        starting processing new commands. 
+   	3) Commands: to react to external commands. Commands should be executed 
+                 before processing HW signals to allow to start a recovery action.
+   	4) HW signals: if any.
+*)
+
+IF NOT M_GetCouplerState() THEN	
+	(* Check if the HW is NOT OK *)
+	(*
+	If the hardware status is NOT OK, we cannot trust the readings.
+	Variable i_nCouplerState has to be mapped to a State of a terminal, e.g. EK1100.
+	The value should be 8.
+ 	*)
+	SetEvent(E_SM_EVENT.ERRHW);
+	SetStatus(E_SM_ERROR.HW_NOT_OP, 'ERROR: HW not in OPERATIONAL state');
+	
+ELSIF M_GetCouplerState() AND statRef.nErrorCode = E_SM_ERROR.HW_NOT_OP THEN
+	SetEvent(E_SM_EVENT.HWOK);
+
+ELSIF ctrlRef.bExecute  THEN
+	(* Handle commands *)
+	ctrlRef.bExecute		:= FALSE;			(* Clear the Execute bit *)
+	SetLastCommand(ctrlRef.nCommand);			(* Save the last command *)
+	SetEvent(ctrlRef.nCommand);
+	ctrlRef.nCommand 	:= E_RS_COMMAND.NONE;	(* Clear the Command *)
+ELSIF nInternalEvent <> E_SM_EVENT.NONE THEN
+	(* Handle internal events *)
+	SetEvent(nInternalEvent);
+	nInternalEvent := E_SM_EVENT.NONE;
+ELSE
+	(* Handle HW problems and unexpected bahaviour *)
+	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Configure" Id="{f16a6216-5472-4d26-aa76-d9129c7b1400}">
+      <Declaration><![CDATA[METHOD M_Configure
+VAR_INPUT
+END_VAR
+VAR
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: Implement specific configuration
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ExecuteComm" Id="{b3035e52-0aed-459b-a584-4a6966b3f258}">
+      <Declaration><![CDATA[METHOD M_ExecuteComm
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCouplerState" Id="{54a5f04c-0e9e-4ea7-8026-b5d534062fba}">
+      <Declaration><![CDATA[METHOD M_GetCouplerState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetSpeed" Id="{a318d0a5-4bcd-43d9-970c-3cfe5640d1c9}">
+      <Declaration><![CDATA[METHOD M_GetSpeed : DINT
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsReady" Id="{11ce1476-ffa8-41a2-a7c7-fb71127c98ce}">
+      <Declaration><![CDATA[METHOD M_IsReady : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_IsRunning" Id="{d5bcf153-83a4-4efe-bfbb-33ca9fe79446}">
+      <Declaration><![CDATA[METHOD M_IsRunning : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_StateMachine" Id="{39306af3-b312-459f-8112-c9e62877a39e}">
+      <Declaration><![CDATA[METHOD M_StateMachine
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//////////////////////
+// Pump State Machine
+//////////////////////
+CASE statBaseRef.nPumpState OF
+	E_CRYO_PUMP_STATE.OFF:
+		// Capture START command
+		triggerStart(CLK:=in_bEnable);
+		IF triggerStart.Q THEN
+			// in_bEnable is TRUE, start the pump.
+			ctrlBaseRef.bStart		:= TRUE;
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.STARTING;
+			statBaseRef.sPumpState	:= 'Starting...';
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfgBaseRef.nTimeoutState));
+		END_IF
+	E_CRYO_PUMP_STATE.STARTING:
+		timerState();
+		triggerStop(CLK:= in_bEnable);
+		IF timerState.Q THEN
+			// Timeout, stop the pump.
+			ctrlBaseRef.bStart		:= FALSE;
+			timerState(IN:=FALSE);
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.ERROR;
+			statBaseRef.sPumpState	:= 'ERROR - Timeout on START';
+		ELSIF M_IsReady() THEN
+			timerState(IN:=FALSE);
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.ON;
+			statBaseRef.sPumpState	:= 'ON';
+		ELSIF triggerStop.Q THEN
+			// in_bEnable is FALSE, stop the pump.
+			ctrlBaseRef.bStart		:= FALSE;
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfgBaseRef.nTimeoutState));
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.STOPPING;
+			statBaseRef.sPumpState	:= 'Stopping...';
+		END_IF
+	E_CRYO_PUMP_STATE.ON:
+		triggerStop(CLK:= in_bEnable);
+		IF triggerStop.Q THEN
+			// in_bEnable is FALSE, stop the pump.
+			// Restart the timer
+			ctrlBaseRef.bStart		:= FALSE;
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfgBaseRef.nTimeoutState));
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.STOPPING;
+			statBaseRef.sPumpState	:= 'Stopping...';
+		ELSIF NOT M_IsReady()  OR  NOT M_IsRunning() THEN
+			ctrlBaseRef.bStart		:= FALSE;
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.ERROR;
+			statBaseRef.sPumpState	:= 'ERROR - Unexpected STOP';
+		END_IF
+	E_CRYO_PUMP_STATE.STOPPING:
+		timerState();
+		// Capture START command
+		triggerStart(CLK:=in_bEnable);
+		IF timerState.Q THEN
+			timerState(IN:=FALSE);
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.ERROR;
+			statBaseRef.sPumpState	:= 'ERROR - Timeout on STOP';
+		ELSIF NOT M_IsReady()  AND NOT M_IsRunning() THEN
+			timerState(IN:=FALSE);
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.OFF;
+			statBaseRef.sPumpState	:= 'OFF';
+		ELSIF triggerStart.Q THEN
+			// in_bEnable is TRUE, start the pump.
+			ctrlBaseRef.bStart		:= TRUE;
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.STARTING;
+			statBaseRef.sPumpState	:= 'Starting...';
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfgBaseRef.nTimeoutState));
+		END_IF
+	E_CRYO_PUMP_STATE.ERROR:
+		// To recover from error, STOP command has to be issued
+		// in order to reset triggerStop.
+		// Capture STOP command
+		triggerStop(CLK:=in_bEnable);
+		IF triggerStop.Q THEN
+			// in_bEnable is TRUE, start the pump.
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.OFF;
+			statBaseRef.sPumpState	:= 'OFF';
+		END_IF
+		
+		// If in_bEnable is FALSE, Capture START command.
+		triggerStart(CLK:=in_bEnable);
+		IF triggerStart.Q THEN
+			// in_bEnable is TRUE, start the pump.
+			ctrlBaseRef.bStart		:= TRUE;
+			statBaseRef.nPumpState	:= 	E_CRYO_PUMP_STATE.STARTING;
+			statBaseRef.sPumpState	:= 'Starting...';
+			// Restart the timer
+			timerState(IN:=FALSE);
+			timerState(IN:=TRUE,PT:=UDINT_TO_TIME(cfgBaseRef.nTimeoutState));
+		END_IF
+END_CASE
+
+
+// Update outputs
+q_bStart	:= ctrlBaseRef.bStart;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{9f6d2e67-3314-446c-8419-b5a949c84a0f}">
+      <Declaration><![CDATA[METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// TODO: For each pump FB that extends FB_CRYO_PUMP_BASE update inputs in M_UpdateStatus(), e.g.
+
+(*
+// Update inputs
+stat.bReady		:= i_bReady;
+stat.bSpeed100	:= i_bSpeed100;
+stat.bWarning	:= i_bWarning;
+stat.bAlarm		:= i_bAlarm;
+
+CASE stat.nCtrlMode	OF
+	0:	stat.sCtrlMode	:= 'HHR (Hand-Held Remote)';
+	1:	stat.sCtrlMode	:= 'REMOTE';
+	2:	stat.sCtrlMode	:= 'SERIAL LINK';
+	3:	stat.sCtrlMode	:= 'FIELDBUS';
+ELSE
+	stat.sCtrlMode	:= 'UNKNOWN';
+END_CASE
+
+*)
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ProcessEvents" Id="{d1e82ebe-3282-485f-bb11-192d4a0f4fea}">
+      <Declaration><![CDATA[METHOD ProcessEvents
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+(* 
+	Before processing the event, execute the Do-Activity tasks. 
+	Note that, in case of orthogonal regions, more than one Do-Activity 
+	could run in the same PLC cycle.
+	Note: Most of these activities have timeouts since they take time.
+*)
+
+IF	statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING 		OR 
+	statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY			OR
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_ERROR 	AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY) 		OR 
+	(statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_ERROR 		AND 
+	 nLastGoodSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING)			THEN
+	ActivityMonitoring(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.OP_MONITORING_USER THEN
+	ActivityMonitoringUser(TRUE);
+ELSIF statRef.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING THEN
+	ActivityInitializing(TRUE);
+END_IF
+
+// Set last known good substate. Used for recovery from comm problems.
+M_SetLastGoodSubstate();
+
+(* 
+	Evaluate state machine transitions.
+*)
+
+CASE statRef.nState OF
+
+//***********************************
+// NOTOP
+//***********************************
+E_RS_BASE_STATE.NOTOP:
+
+	(* Transitions from NOTOP substates *)
+	CASE statRef.nSubstate OF
+	
+	E_RS_BASE_SUBSTATE.NOTOP_NOTREADY:		
+		IF 	nEvent = E_SM_EVENT.INIT OR cfgRef.bAutoMonitor  THEN
+			nEvent := E_SM_EVENT.INIT;
+			ActionInitExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING);
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_INITIALIZING:			
+		IF nEvent = E_SM_EVENT.INITDONE THEN
+			nReadType := E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			IF cfgRef.bAutoMonitor THEN
+				nEvent := E_SM_EVENT.ENABLE;
+				statRef.bAutoStarted	:= TRUE;
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			ELSE
+				SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_READY);
+			END_IF
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.ERRINIT THEN
+			// INIT failed. Keep re-trying.
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.NOTOP_READY:			
+		IF nEvent = E_SM_EVENT.ENABLE THEN
+			IF cfgRef.bAutoMonitor THEN
+				// Monitoring is already in progress.
+				// It has to complete the read cycle in a clean way.
+				nNextState		:= E_RS_BASE_STATE.OP;					// Next state after STOP	
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.OP_MONITORING;	// Next substate after STOP	
+				nNextDescription:= 'BUSY';
+				nReadType		:= E_RS_BASE_READ_TYPE.PERIODIC;
+				RETURN;
+			ELSE
+				SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+				// This call MUST be after SetState()
+				ActivityMonitoring(FALSE);	// Reset Monitoring method
+			END_IF
+		END_IF
+
+	E_RS_BASE_SUBSTATE.NOTOP_ERROR:			
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+			RETURN;
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.NOTOP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+
+	(* Transitions from NOTOP state *)
+	IF	nEvent = E_SM_EVENT.ERRHW OR
+		nEvent = E_SM_EVENT.ERRCOMM	THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+		RETURN;
+	END_IF
+	
+//***********************************
+// OPERATIONAL
+//***********************************
+E_RS_BASE_STATE.OP:
+
+	(* Transitions from OP subastates *)
+	CASE statRef.nSubstate OF
+	E_RS_BASE_SUBSTATE.OP_ERROR:			
+		IF nEvent = E_SM_EVENT.HWOK THEN
+			SetStatus(E_SM_ERROR.OK, 'OK');
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_ERROR);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.COMMOK THEN
+			SetState(E_RS_BASE_STATE.OP, nLastGoodSubstate);
+			RETURN;			
+		END_IF
+
+	E_RS_BASE_SUBSTATE.OP_MONITORING:
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+			RETURN;			
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.OP_MONITORING_USER:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.STOPMON THEN
+			ActionStopExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READDONE THEN
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_IDLE);
+			RETURN;			
+		END_IF
+		
+	E_RS_BASE_SUBSTATE.OP_IDLE:			
+		IF nEvent = E_SM_EVENT.DISABLE THEN
+			ActionDisableExecute();
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READ THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.SINGLE;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.READ_USER THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.SINGLE_USER;
+			ActivityMonitoringUser(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING_USER);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR OR nEvent = E_SM_EVENT.ENABLE THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC;
+			ActivityMonitoring(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING);
+			RETURN;			
+		ELSIF nEvent = E_SM_EVENT.MONITOR_USER THEN
+			nReadType	:= E_RS_BASE_READ_TYPE.PERIODIC_USER;
+			ActivityMonitoringUser(FALSE);	// Reset Monitoring method
+			SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_MONITORING_USER);
+			RETURN;			
+		END_IF
+		
+	END_CASE
+	
+	// Transitions from OP state.
+	// Valid for any OP substate.
+	IF nEvent = E_SM_EVENT.ERRHW THEN
+		ActionUnexpExecute();
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	ELSIF nEvent = E_SM_EVENT.ERRCOMM THEN
+		SetState(E_RS_BASE_STATE.OP, E_RS_BASE_SUBSTATE.OP_ERROR);
+		RETURN;
+	END_IF
+	
+END_CASE
+
+(* 
+	"Global" internal transitions valid in any state should go here.
+	They do not change the active state configuration. 
+	They are evaluated after all the others transitions have been 
+	considered.
+*) 
+IF nEvent = E_SM_EVENT.RESET THEN
+	ActionResetExecute();
+	SetState(E_RS_BASE_STATE.NOTOP, E_RS_BASE_SUBSTATE.NOTOP_NOTREADY);
+	RETURN;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CRYO_PUMP_BASE">
+      <LineId Id="157" Count="1" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="634" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="470" Count="1" />
+      <LineId Id="473" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.ActivityInitializing">
+      <LineId Id="31" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.ActivityMonitoring">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.CheckForEvents">
+      <LineId Id="9" Count="32" />
+      <LineId Id="58" Count="1" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="42" Count="5" />
+      <LineId Id="49" Count="8" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_Configure">
+      <LineId Id="20" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_ExecuteComm">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_GetCouplerState">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_GetSpeed">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_IsReady">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_IsRunning">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_StateMachine">
+      <LineId Id="9" Count="100" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.M_UpdateStatus">
+      <LineId Id="261" Count="0" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="89" Count="2" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="97" Count="4" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="265" Count="2" />
+      <LineId Id="108" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CRYO_PUMP_BASE.ProcessEvents">
+      <LineId Id="6" Count="39" />
+      <LineId Id="47" Count="19" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="68" Count="140" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

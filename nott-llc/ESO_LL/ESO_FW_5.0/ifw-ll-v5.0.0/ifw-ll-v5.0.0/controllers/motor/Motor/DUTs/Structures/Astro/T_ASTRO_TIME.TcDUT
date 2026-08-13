@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="T_ASTRO_TIME" Id="{5789e7a2-4eef-48ca-b78f-bb2d5a3b4a6a}">
+    <Declaration><![CDATA[TYPE T_ASTRO_TIME :
+STRUCT
+	leap_second:	INT;
+	lUtcTime:		ULINT;		   	// UTC time in nanoseconds
+	sUtcTime:		STRING;			// UTC time as string
+	ut1:			LREAL;			// MJD time [day]
+	tu:				LREAL;			// TU  time [day]. tu := (ut1 - 51544.5) / 36525.0;
+	gmst:			LREAL;			// Greenwich Mean Sidereal Time
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

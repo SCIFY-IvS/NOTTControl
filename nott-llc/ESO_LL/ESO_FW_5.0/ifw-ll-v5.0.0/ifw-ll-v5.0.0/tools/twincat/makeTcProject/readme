@@ -1,0 +1,106 @@
+#
+# Create a project called plcprj with one of each controller.
+#
+
+
+D:\GIT\ifw-ll\tools\twincat\makeTcProject>type MakeTcProject.cfg
+VisualStudio: 2013
+Binaries: C:\Temp\PLC
+Project: plcprj
+Lamps: 1
+Shutters: 1
+Motors: 1
+ADC: yes
+DROT: yes
+IODEV: yes
+Piezos: 1
+Actuators: 1
+
+D:\GIT\ifw-ll\tools\twincat\makeTcProject>MakeTcProject.exe
+MakeTcProject $Id: Program.cs 332694 2020-05-20 21:22:51Z wpirani $
+INFO:
+Visual Studio = '2013'
+Binaries = C:\Temp\PLC
+Project = 'plcprj'
+Motors = 1
+Lamps = 1
+Shutters = 1
+DROT = True
+ADC = True
+IODev = True
+Piezos = 1
+Actuators = 1
+Trying to lunch Visual Studio 2013...
+Creating empty project...
+Adding module trkParams with GUID {15952e35-5679-4d71-9f28-196df14bbd2e}
+Adding module trkModule with GUID {6f6a340e-378a-4fe4-ab0d-f15c12dfef0c}
+Populating project...
+Adding libraries...
+Copying required libraries to System repository...
+Copying required libraries to System repository...
+        C:\Temp\PLC\Libraries\actuator.library
+        C:\Temp\PLC\Libraries\IODev.library
+        C:\Temp\PLC\Libraries\Lamp.library
+        C:\Temp\PLC\Libraries\Motor.library
+        C:\Temp\PLC\Libraries\Mudpi.library
+        C:\Temp\PLC\Libraries\Piezo.library
+        C:\Temp\PLC\Libraries\plctpl.library
+        C:\Temp\PLC\Libraries\rsCommCommon.library
+        C:\Temp\PLC\Libraries\rsCommSerial.library
+        C:\Temp\PLC\Libraries\rsCommTcp.library
+        C:\Temp\PLC\Libraries\rsCommTcpRt.library
+        C:\Temp\PLC\Libraries\Shutter.library
+        C:\Temp\PLC\Libraries\Switch.library
+        C:\Temp\PLC\Libraries\timer.library
+Adding required libraries to this project...
+Importing VISUs...
+Importing: GUI_CCS_SIM.TcVIS from ..\..\..\controllers\motor\Motor\VISUs\Tracking\
+Importing: GUI_time_info.TcVIS from ..\..\..\controllers\timer\timer\timer\VISUs\
+Importing: GUI_MA_ADC.TcVIS from ..\..\..\controllers\motor\Motor\VISUs\Tracking\
+Importing: GUI_MA_DROT.TcVIS from ..\..\..\controllers\motor\Motor\VISUs\Tracking\
+Importing: GUI_Lamp001.TcVIS from ..\..\..\controllers\lamp\Lamp\Lamp\VISUs\
+Importing: GUI_Motor001_Cfg.TcVIS from ..\..\..\controllers\motor\Motor\VISUs\Motor\
+Importing: GUI_Motor001_Ctrl.TcVIS from ..\..\..\controllers\motor\Motor\VISUs\Motor\
+Importing: GUI_Shutter001.TcVIS from ..\..\..\controllers\shutter\Shutter\Shutter\VISUs\
+Importing: GUI_IODev001.TcVIS from ..\..\..\controllers\ioDev\IODev\IODev\VISUs\
+Importing: GUI_Piezo001.TcVIS from ..\..\..\controllers\piezo\Piezo\Piezo\VISUs\
+Importing: GUI_Actuator001.TcVIS from ..\..\..\controllers\actuator\actuator\actuator\VISUs\
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_CCS_SIM.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_time_info.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_MA_ADC.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_MA_DROT.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_Lamp001.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_Motor001_Cfg.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_Motor001_Ctrl.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_Shutter001.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_IODev001.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_Piezo001.TcVIS
+Fixing references for: C:\temp\Solutions\plcprj\plcprj\VISUs\GUI_Actuator001.TcVIS
+Building project...
+Linking variables...
+Fixing C:\temp\Solutions\plcprj\plcprj\PlcTask.TcTTO...
+All done!
+
+
+#
+# The TwinCAT project is created in C:\Temp\Solutions
+#
+
+D:\GIT\ifw-ll\tools\twincat\makeTcProject>c:
+
+C:\>cd Temp\Solutions
+
+C:\Temp\Solutions>dir
+ Volume in drive C has no label.
+ Volume Serial Number is 1210-6BCB
+
+ Directory of C:\Temp\Solutions
+
+22/05/2020  09:35    <DIR>          .
+22/05/2020  09:35    <DIR>          ..
+22/05/2020  14:48    <DIR>          plcprj
+               0 File(s)              0 bytes
+               3 Dir(s)  90,251,116,544 bytes free
+
+
+

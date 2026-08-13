@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_CTRL_STATE" Id="{8481a251-a855-4d51-b613-73faf0fd853f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_CTRL_STATE :
+(
+	NONE 			:= 0,
+	WARM_PRESS,				// Warm & Pressurized
+	WARM_VACUUM,			// Warm & Vacuum
+	PRE_COOLING,			// Pre_cooling
+	PRE_COOLED,				// Pre_cooled
+	COOLING_DOWN,			// Cooling down
+	COLD,					// Cold, i.e. fully operational
+	WARMING_UP,				// Warming up
+	REPRESSURIZING,			// Re-pressurizing			
+	ERROR					// Controller failure
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

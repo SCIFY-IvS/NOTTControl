@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_CRYO_EVAC_PRESSURES_50000" Id="{57786c9b-70d1-431a-80da-c42eb0d56e59}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_CRYO_EVAC_PRESSURES_50000 :
+(
+	NONE := 0,
+	VAG1,		
+	VAG2,		
+	VAG3,		
+	VAGF,		
+	VAGG		
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

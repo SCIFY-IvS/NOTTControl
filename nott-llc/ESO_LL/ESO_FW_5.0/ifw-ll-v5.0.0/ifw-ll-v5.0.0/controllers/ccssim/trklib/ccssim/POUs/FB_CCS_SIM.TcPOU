@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_CCS_SIM" Id="{9dd5b39c-af33-4f30-9c96-4ec3ce6ec000}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CCS_SIM
+VAR_INPUT
+	refTimeObj  : REFERENCE TO FB_TIME; 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:				T_CCS_CFG;
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:				T_CCS_CTRL;
+	{attribute 'OPC.UA.DA' := '1'}
+	stat:				T_CCS_STAT;
+	
+    // Tracking data structure are defined in C++ module
+	{attribute 'OPC.UA.DA' := '0'}
+	i_trk_data          AT %I*: PointingKernelPositions;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	q_ccs_data          AT %Q*: CcsData;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	q_mean_coordinates  AT %Q*: TrkMeanCoordinates;
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	q_mudpi_cfg  AT %Q*: T_MUDPI_CFG;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// Get parameters
+GetParams();
+
+// Set parameters
+SetParams();]]></ST>
+    </Implementation>
+    <Method Name="FB_init" Id="{51e92a47-c20e-45ff-8c3a-9298e09677aa}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+cfg.site.height              := GVL_TrkSiteConstants.C_HEIGHT;
+cfg.site.latitude            := GVL_TrkSiteConstants.C_LATITUDE;
+cfg.site.longitude           := GVL_TrkSiteConstants.C_LONGITUDE;
+cfg.mudpi.enabled 			 := FALSE;
+cfg.mudpi.destination_port	 := 10000;
+cfg.mudpi.source_port		 := 8000;
+cfg.mudpi.address			 := 0;
+cfg.mudpi.component_id	     := 500;
+cfg.mudpi.topic_id			 := 10;
+ctrl.environment.humidity    := GVL_TrkDefaultEnvironment.C_HUMIDITY;
+ctrl.environment.lapserate   := GVL_TrkDefaultEnvironment.C_LAPSERATE;
+ctrl.environment.pressure    := GVL_TrkDefaultEnvironment.C_PRESSURE;
+ctrl.environment.temperature := GVL_TrkDefaultEnvironment.C_TEMPERATURE;
+ctrl.meanCoordinates.alpha   := 0;
+ctrl.meanCoordinates.delta   := -890000.0;
+ctrl.meanCoordinates.equinox := 2000.0;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetParams" Id="{d9e0cfc5-d2af-4af8-aeb7-431bdf29e07c}">
+      <Declaration><![CDATA[METHOD GetParams
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// Assign output variables according input configuration and control.
+memcpy(ADR(q_ccs_data.site), ADR(cfg.site), SIZEOF(q_ccs_data.site));	
+memcpy(ADR(q_mudpi_cfg), ADR(cfg.mudpi), SIZEOF(q_mudpi_cfg));	
+memcpy(ADR(q_ccs_data.environment), ADR(ctrl.environment), SIZEOF(q_ccs_data.environment));
+memcpy(ADR(q_mean_coordinates), ADR(ctrl.meanCoordinates), SIZEOF(q_mean_coordinates));
+q_ccs_data.equinox := ctrl.equinox;
+q_ccs_data.dut := ctrl.dut;
+q_ccs_data.wavelength := ctrl.wavelength;
+q_mudpi_cfg.address := F_IpAddress2Integer(IpAddress := cfg.ip_address);
+
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_SetCoordinates" Id="{3c980e30-80bb-4e69-b66d-f171981c9d87}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+METHOD RPC_SetCoordinates : BOOL
+VAR_INPUT
+	in_alpha:	 LREAL := 000000.0;
+	in_delta:    LREAL := 000000.0;
+	in_equinox:  LREAL := 2000.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+ctrl.meanCoordinates.alpha := in_alpha;
+ctrl.meanCoordinates.delta := in_delta;
+ctrl.meanCoordinates.equinox := in_equinox;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetParams" Id="{7b9bdd87-06d7-47d1-b67b-dc712daeb0bc}">
+      <Declaration><![CDATA[METHOD SetParams
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+//memcpy(ADR(stat.apparent), ADR(i_trk_data.apparent), SIZEOF(stat.apparent));
+//memcpy(ADR(stat.observed), ADR(i_trk_data.observed), SIZEOF(stat.observed));
+memcpy(ADR(stat.data), ADR(i_trk_data), SIZEOF(stat.data));
+stat.gui_data.alt := RAD_TO_DEG(stat.data.target_observed_altaz[0]);
+stat.gui_data.az := RAD_TO_DEG(stat.data.target_observed_altaz[1]);
+stat.gui_data.pa := RAD_TO_DEG(stat.data.parallactic_angle);
+stat.gui_data.ra := F_Rad2Hms(stat.data.radec_at_altaz_at_requested_xy[0]);
+stat.gui_data.dec := F_Rad2Dms(stat.data.radec_at_altaz_at_requested_xy[1]);
+stat.gui_data.north_angle := RAD_TO_DEG(stat.data.north_angle);
+stat.gui_data.pupil_angle := RAD_TO_DEG(stat.data.pupil_angle);
+stat.gui_data.time_tai := DCTIME64_TO_STRING(refTimeObj.MudpiTimeToDc(stat.data.time_tai));
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_CCS_SIM">
+      <LineId Id="43" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="47" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_SIM.FB_init">
+      <LineId Id="8" Count="3" />
+      <LineId Id="28" Count="5" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_SIM.GetParams">
+      <LineId Id="6" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="9" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="27" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_SIM.RPC_SetCoordinates">
+      <LineId Id="10" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_CCS_SIM.SetParams">
+      <LineId Id="6" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="36" Count="6" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="20" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

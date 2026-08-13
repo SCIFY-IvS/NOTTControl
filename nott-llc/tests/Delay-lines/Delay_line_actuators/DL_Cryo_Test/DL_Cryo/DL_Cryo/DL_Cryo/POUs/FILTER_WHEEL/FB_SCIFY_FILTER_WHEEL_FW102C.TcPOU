@@ -1,0 +1,2381 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_SCIFY_FILTER_WHEEL_FW102C" Id="{2280ab14-7309-4c94-a6bd-a8cefba098ee}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SCIFY_FILTER_WHEEL_FW102C EXTENDS FB_RS_BASE
+VAR_INPUT
+	{attribute 'OPC.UA.DA' := '0'}
+	in_nPeriod:	DINT := 10000;	// Interval for periodic reading [ms], default 10000 ms = 10 sec 
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR CONSTANT
+	{attribute 'OPC.UA.DA' := '0'}
+	//sCmdSuffix:		STRING(16) := '$0D$0A'; // CR LF
+	sCmdSuffix:		STRING(16) := '$0D';		// CR
+	{attribute 'OPC.UA.DA' := '0'}
+	sReplySuffix:	STRING(16) := '$3E';		// >
+END_VAR
+VAR
+	{attribute 'OPC.UA.DA' := '1'}
+	cfg:		T_SCIFY_FILTER_WHEEL_CFG;		//  Config parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	ctrl:		T_JANSSEN_CTRL;					//  Control parameters
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	info:		T_JANSSEN_INFO; 				//  Info parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	stat:		T_SCIFY_FILTER_WHEEL_STAT;					//  Status parameters - ReadOnly
+	{attribute 'OPC.UA.DA' := '1'}
+	ch_ctrl:	T_JANSSEN_CH_CTRL;				//  Channel control
+
+	{attribute 'OPC.UA.DA' := '0'}
+	comm:		FB_RS_COMM_NO_SIM;					// Instance of generic comm object. OPC UA Disabled!!!
+	
+	//{attribute 'OPC.UA.DA' := '0'}
+	//comm:		FB_RS_COMM_LAKESHORE;	// Instance of Lakeshore customized comm 
+	
+	(* Pointers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCfg:		POINTER TO T_RS_COMM_CFG 	:= ADR(comm.cfg);	(* Pointer to comm.cfg instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommCtrl:	POINTER TO T_RS_COMM_CTRL 	:= ADR(comm.ctrl);	(* Pointer to comm.ctrl instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrCommStat:	POINTER TO T_RS_COMM_STAT 	:= ADR(comm.stat);	(* Pointer to comm.stat instance *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrInitCmds:	POINTER TO ARRAY [1..4] OF T_JANSSEN_COMMAND;		(* Pointer to INIT commands *)
+	{attribute 'OPC.UA.DA' := '0'}
+	ptrReadCmds:	POINTER TO ARRAY [1..4] OF T_JANSSEN_COMMAND;		(* Pointer to READ commands *)
+
+
+	(* Timers *)
+	{attribute 'OPC.UA.DA' := '0'}
+	fbTimer:			TON; (* General Timeout *)
+	
+	(* Misc internal vars *)
+	{attribute 'OPC.UA.DA' := '0'}
+	cmdCounter:			INT := 1;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Set references
+cfgRef	REF=cfg;
+ctrlRef	REF=ctrl;
+statRef	REF=stat;
+
+
+(* Execute comm instance *)
+comm(in_sCmdSuffix:=sCmdSuffix, in_sReplySuffix:=sReplySuffix, in_nTimeout:=3000);
+
+
+
+// Execute the base class object FB_RS_BASE
+SUPER^();
+
+]]></ST>
+    </Implementation>
+    <Method Name="ActivityInitializing" Id="{66bf509c-3334-479a-ba52-c97f3fddc288}">
+      <Declaration><![CDATA[METHOD ActivityInitializing
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// SmarACT
+SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= -1;	// First init command. CASE 15: will increment it to 0
+	//cmdCounter		:= 1;	
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Initialize COMM port
+		(* Reset the port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF M_GetCommStatus() = E_RS_COMM_STATUS.IDLE  AND M_GetCommInitialised() THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+
+			// Extract values from the reply to a stat variable.
+			IF ptrCommCtrl^.bHasReply	THEN
+				// Index is not important for INIT commands because they don't
+				// refer to MODule or CHANnel.
+				// We put zero for the input parameter.
+				M_ReadReply();	// Index is not important for INIT commands.
+			END_IF
+
+			cmdCounter		:= cmdCounter + 1;	// Increment init command index
+			fbTimer (IN := FALSE);	// disable timer 
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Init); // Wait INIT delay
+			bCommProblem	:= FALSE;
+			nMethodState 	:= 18;	// Execute next device INIT command
+		ELSIF M_GetCommStatus() = E_RS_COMM_STATUS.ERROR  AND fbTimer.ET > T#4900MS THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF cfg.cmdList_Init[cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= cfg.cmdList_Init[cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= cfg.cmdList_Init[cmdCounter].nReplies;
+		ptrCommCtrl^.bHasReply		:= cfg.cmdList_Init[cmdCounter].nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+
+(*
+// Lakeshore
+SetAction('ActivityInitializing');
+
+
+IF NOT bExecute THEN
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Init will start from the first init command
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Set communication parameters and Model configuration
+
+		(* Set comm suffixes for commands and replies *)
+		ptrCommCfg^.sCmdSuffix		:= sCmdSuffix;
+		ptrCommCfg^.sReplySuffix	:= sReplySuffix;
+
+		// Set monitoring period (input parameter)
+		cfg.tDelay_Periodic	:= DINT_TO_TIME(in_nPeriod);
+		// Auto monitor, i.e. monitor in Standby_Ready as well
+		cfg.bAutoMonitor	:= TRUE; 
+		//cfg.bAutoMonitor	:= FALSE;
+
+		(* Set pointer to INIT and READ commands *)
+		ptrInitCmds := ADR(cfg.cmdList_Init);
+		//ptrReadCmds := ADR(cfg.cmdList_Read);
+		ptrReadCmds := ADR(cfg.cmdList_Mon);
+		(* Set initial state and status *)
+		stat.bInitialised	:= FALSE;
+		stat.sReply			:= '';
+		stat.sDeviceID		:= '';
+
+		SetStatus(E_SM_ERROR.OK, 'BUSY');
+
+		nMethodState := 10;				// Go to next state, i.e. INIT_COMM
+
+	10:	// Initialize COMM port
+		(* Reset the serial port *)
+		ptrCommCtrl^.nCommand	:= E_RS_COMM_CMD.INIT;
+		ptrCommCtrl^.bExecute	:= TRUE;
+
+		// Init dev will start from the first init command.
+		// We set counter to 0. It will be incremented in Wait IDLE.
+		cmdCounter	:= 0;
+
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is reset, i.e. idle
+		
+	15:	// Wait IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			 stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			(*
+			IF cmdCounter >= 1 THEN
+				// We are IDLE after an INIT command, i.e. CCC_CMD_RESET or CCC_CMD_GET_VERS
+				IF ptrInitCmds^ [cmdCounter].cmd = cfg.CCC_CMD_RESET  THEN
+					(* No action. Just check proper reply. *)
+					IF FIND (stat.sReply, 'N')= 1 THEN
+						SetStatus(E_CCC_ERROR.COMM, 'ERROR: Failed to RESET device');
+						bCommProblem	:= TRUE;
+						nEvent := E_SM_EVENT.ERRINIT;
+						RETURN;
+					END_IF
+				ELSIF ptrInitCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_VERS  THEN
+					(* Save the reply into stat.sDeviceID. *)
+					IF FIND (stat.sReply, 'N')= 1 THEN
+						SetStatus(E_CCC_ERROR.COMM, 'ERROR: Command GET_VERS failed');
+						bCommProblem	:= TRUE;
+						nEvent := E_SM_EVENT.ERRINIT;
+						RETURN;
+					ELSIF FIND (stat.sReply, 'ESO')<> 2 THEN
+						SetStatus(E_CCC_ERROR.COMM, 'ERROR: Failed to get device ID');
+						bCommProblem	:= TRUE;
+						nEvent := E_SM_EVENT.ERRINIT;
+						RETURN;
+					ELSE
+						stat.sDeviceID	:= MID (stat.sReply, LEN(stat.sReply)-5, 2);
+					END_IF
+				END_IF
+			END_IF
+			*)
+			// Restart the timer for delay between INIT commands
+			fbTimer (IN := FALSE);	// disable timer 
+			
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Init); // Wait INIT delay
+			
+			cmdCounter		:= cmdCounter + 1;	// Increment init command index
+			bCommProblem	:= FALSE;
+			nMethodState 	:= 18;	// Execute next device INIT command
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_CCC_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		ELSIF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			SetStatus(E_JANSSEN_ERROR.TIMEOUT, 'ERROR: Communication timeout');	
+			bCommProblem	:= TRUE;
+			nEvent := E_SM_EVENT.ERRINIT;
+			RETURN;
+		END_IF 
+
+	
+	
+	18:	// Wait INIT Delay
+		fbTimer (IN := TRUE);
+		IF fbTimer.Q THEN
+			// Timer expired after 5 sec. This is an error.
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 20;	// Execute next device INIT command
+			RETURN;
+		END_IF
+
+	
+	
+	20:	// INIT DEV
+		IF ptrInitCmds^ [cmdCounter].cmd = '' THEN
+			// Device INIT is done. Go to IDLE 
+			stat.bInitialised 	:= TRUE;
+			cmdCounter			:= 1;
+			SetStatus(E_JANSSEN_STATUS.IDLE, 'IDLE');
+			nEvent 		:= E_SM_EVENT.INITDONE;
+			RETURN;
+		END_IF
+		
+		
+		
+		(* Send INIT command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrInitCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= 1;
+		ptrCommCtrl^.bHasReply		:= TRUE;
+		ptrCommCtrl^.bExecute		:= TRUE;
+	
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+		
+		// On next cycle wait until the comm port is idle
+		nMethodState 	:= 15;	// On next cycle wait until the comm port is idle
+	
+END_CASE
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ActivityMonitoring" Id="{98f6c266-9501-4b2a-81c2-fb213a928529}">
+      <Declaration><![CDATA[METHOD ActivityMonitoring
+VAR_INPUT
+	bExecute:	BOOL;
+END_VAR
+VAR_INST
+	{attribute 'OPC.UA.DA' := '0'}
+    nMethodState:	INT := 0;	// State Machine current state
+	{attribute 'OPC.UA.DA' := '0'}
+	nRetries:		INT := 0;	// Number of retries in case of communication problems
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nCmdType:		E_JANSSEN_CMD_TYPE := E_JANSSEN_CMD_TYPE.READ;
+	{attribute 'OPC.UA.DA' := '0'}
+	devCmd:			T_JANSSEN_COMMAND;	// Device command to be sent
+	
+	{attribute 'OPC.UA.DA' := '0'}
+	nCmdIdx:		UINT := 0;	// Command index in specific command list. [0..15]
+
+END_VAR
+VAR
+	bError:			BOOL;
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+//SmarACT
+//
+// At least one module must be used.
+// If not, don't do anything.
+//
+(*
+IF stat.nNumMod = 0	THEN
+	SetAction('ERROR: No Module Used !!!'); 
+	SetStatus(E_SM_ERROR.INIT_FAILURE, 'ERROR: No Module Used !!!');
+	RETURN;
+END_IF
+*)
+IF NOT cfg.bAutoMonitor AND stat.nSubstate = E_RS_BASE_SUBSTATE.NOTOP_READY THEN
+	SetAction('No Monitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'IDLE');
+	nMethodState	:= 0;	// Reset the state machine
+	RETURN;
+END_IF
+
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	nCmdType		:= E_JANSSEN_CMD_TYPE.READ;	// We start with READ commands.
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Get valid channel.
+		// This call will check if the current channel is used.
+		// If not, it will take next available channel.
+		
+		//nChIdx	:= M_GetValidChannel(nChIdx);
+		
+		
+		
+		// If this is the very first command for the channel,
+		// Set commands.
+		IF nCmdIdx = 0	THEN
+			M_SetCmdList();
+		END_IF
+		
+		
+		// Get next command to execute.
+		// The command depends on the state of the positioner and 
+		// the current index (nCmdIdx) of the command in the list.
+		//
+		//devCmd	:= M_GetCommand(nCmdIdx);
+		devCmd	:= M_GetCommand(nCmdIdx);
+			
+		// Check if we have arrived at the end of the command list.
+		// In this case, go to the next channel.
+		IF devCmd.cmd = '' THEN
+			// We have executed all commands.
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE	THEN
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= '';
+				RETURN;
+			END_IF
+			
+			//
+			// Update Positioner status
+			//
+			//ptrCH[nChIdx]^.M_UpdateStatus();
+			
+			//M_UpdateStatus();
+			
+			// Check if the State Machine State should be changed.
+			// If yes, M_SetNextPosState() will set new state and return TRUE.
+			// This can happen due to any Positioner control command (CAL, REF, RESET, ENABLE, DISABLE, MOVE or STOP)
+			//IF ptrCH[nChIdx]^.M_SetNextPosState()	THEN
+			
+			IF M_SetNextPosState()	THEN
+				// The State has changed.
+				// Reset command index to 0, i.e. start from the first command.
+				nCmdIdx	:= 0;
+			//ELSE
+				// Get NEXT valid channel
+				//nChIdx	:= M_GetValidChannel(nChIdx + 1);
+				
+				// Reset command index to 0
+				//nCmdIdx	:= 0;
+			END_IF
+					
+				
+			// Wait tDelay_Periodic before re-starting the READ.
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+			nMethodState 	:= 10;	// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+		
+		// Send command
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= devCmd.cmd;
+		ptrCommCtrl^.nNumReplies	:= devCmd.nReplies;
+		ptrCommCtrl^.bHasReply		:= devCmd.nReplies > 0;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		
+		
+		statRef.sErrorText	:= 'BUSY';
+
+		// In case we are executing a CTRL command with no replies,
+		// we apply a long timeout.
+		// However, when the comm port becomes IDLE and after at 
+		// least 200ms, we go to the next command. (see nMethodState 12:)
+		IF NOT ptrCommCtrl^.bHasReply THEN
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#10S); 
+			nCmdIdx			:= nCmdIdx + 1;	// Go to next command.
+			nMethodState	:= 12;				// Goto WAIT for delay
+			RETURN;
+		ELSE			
+			// There is a reply, i.e. this is a 'READ' command.
+			// For regular READ commands, apply short delay of 10ms before 
+			// checking the status of comm port. 
+			// Start the timer by going false/true
+			fbTimer (IN := FALSE); // Reset timer
+			fbTimer (IN := TRUE, PT := T#10MS);	
+
+			statRef.sErrorText	:= 'BUSY';
+			nMethodState := 15;	// Goto short delay
+			RETURN;
+		END_IF
+		
+		
+		
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 0;				// Goto handling of next command
+			RETURN;
+		END_IF
+	
+	12:	// Wait until the comm port is idle and at least 200ms have expired.
+		// Otherwise, wait the PT period.
+		fbTimer (IN := TRUE);
+
+		IF (M_GetCommStatus() = E_RS_COMM_STATUS.IDLE  AND  fbTimer.ET > T#200MS)	OR
+			fbTimer.Q	THEN
+			fbTimer (IN := FALSE);
+			nMethodState 	:= 0;				// Goto handling of next command
+			RETURN;
+		END_IF
+
+	
+	15:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			fbTimer (IN := TRUE, PT := T#3S);	// 3 sec timeout for reply
+			statRef.sErrorText	:= 'BUSY';
+			nMethodState 	:= 20;	// Goto Wait for IDLE/Reply
+			RETURN;
+		END_IF
+	
+
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF M_GetCommStatus() = E_RS_COMM_STATUS.IDLE THEN
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			
+			// Extract values from the reply to a stat variable.
+			M_ReadReply();
+
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+
+			nCmdIdx			:= nCmdIdx + 1;	// Go to next command.
+			
+			nMethodState 	:= 0;				// Goto Send command
+			nEvent := E_SM_EVENT.COMMOK;
+			RETURN;
+		ELSIF M_GetCommStatus() = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_LAKESHORE_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 2 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 1 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+				RETURN;
+			END_IF
+			// Apply a short delay of 1 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#1000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		END_IF
+
+	
+END_CASE
+
+(*
+
+// Lakeshore
+IF NOT bExecute THEN
+	SetAction('ActivityMonitoring'); 
+	SetStatus(E_SM_ERROR.OK, 'BUSY');
+	nMethodState	:= 0;	// Reset the state machine
+	cmdCounter		:= 1;	// Reading will start from the first command in the array
+	nCmdType		:= E_JANSSEN_CMD_TYPE.READ;	// We start with READ commands.
+	nRetries		:= 0;					
+	RETURN;
+END_IF
+
+// Handle State Machine
+CASE nMethodState OF
+	0:	// Execute a command from the command array
+		IF ptrReadCmds^ [cmdCounter].cmd = '' OR cmdCounter > 4 THEN
+			// We arrived to the end of the array of pre-defined commands
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE	THEN
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= 'IDLE';
+				RETURN;
+			END_IF
+
+			// Periodic READ is done. Wait tDelay_Periodic before re-starting the READ.
+			cmdCounter	:= 1;
+			SetStatus(E_SM_ERROR.OK, 'IDLE');
+			
+			(* Start the timer by going false/true *)
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := cfg.tDelay_Periodic);
+			nMethodState := 10;				// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+		
+		(* Send command with index cmdCounter *)
+		ptrCommCtrl^.nCommand		:= E_RS_COMM_CMD.SEND;
+		ptrCommCtrl^.sCmd			:= ptrReadCmds^ [cmdCounter].cmd;
+		ptrCommCtrl^.nNumReplies	:= 1;
+		ptrCommCtrl^.bHasReply		:= TRUE;
+		ptrCommCtrl^.bExecute		:= TRUE;
+		
+		stat.sErrorText := 'BUSY';
+		(* Start the timer by going false/true *)
+		fbTimer (IN := FALSE); (* Reset timer *)
+		fbTimer (IN := TRUE, PT := T#5S); (* 5 sec timeout for reply *)
+
+		nMethodState := 20;				// Goto WAIT for Reading to complete,
+
+	10:	// Wait until the delay timeout expires
+		fbTimer (IN := TRUE);
+
+		// Check if we have to exit Monitoring
+		IF nNextState <> E_RS_BASE_STATE.NONE THEN
+			fbTimer (IN := FALSE); (* Stop the timer *)
+			SetStatus(E_SM_ERROR.OK, nNextDescription);
+			SetState(nNextState, nNextSubstate);
+			nNextState		:= E_RS_BASE_STATE.NONE;
+			nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+			nNextDescription:= 'IDLE';
+			RETURN;
+		END_IF
+	
+		(* If Timer has expired, go to the next state. *)
+		IF fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			cmdCounter		:= 1;	// Reading will start from the first command in the array
+			nMethodState 	:= 0;	// Goto Wait for tDelay_Periodic
+			RETURN;
+		END_IF
+	
+
+
+	20:	// Wait for the reading to complete, i.e. IDLE
+		fbTimer (IN := TRUE);
+		IF comm.stat.nStatus = E_RS_COMM_STATUS.IDLE THEN
+			bError	:= FALSE;
+			// Communication is IDLE 
+			fbTimer (IN := FALSE);	// disable timer 
+			stat.sReply		:= ptrCommStat^.sReply;	// Save the reply
+			 
+			M_ReadReply();
+		//IF ptrCommCtrl^.sCmd = '/GBR RS422' THEN
+			// Get the DEVice ID
+			//stat.sBaud_rate_RS422	:= LEFT(stat.sReply, LEN(stat.sReply) - LEN(sReplySuffix));
+		//END_IF
+			(*
+			(* Extract the readins from the reply. *)
+			IF ptrReadCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_STAT  THEN
+				IF NOT M_UpdateDevStatus() THEN
+					SetStatus(E_CCC_ERROR.COMM, 'ERROR: GET_STAT reply format not correct');
+					bError	:= TRUE;
+				END_IF
+			ELSIF ptrReadCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_TEMP  THEN
+				IF NOT M_UpdateDevTemps() THEN
+					SetStatus(E_CCC_ERROR.COMM, 'ERROR: GET_TEMP reply format not correct');
+					bError	:= TRUE;
+				END_IF
+			ELSIF ptrReadCmds^ [cmdCounter].cmd = cfg.CCC_CMD_GET_FLOW  THEN
+				IF NOT M_UpdateDevFlows() THEN
+					SetStatus(E_CCC_ERROR.COMM, 'ERROR: GET_FLOW reply format not correct');
+					bError	:= TRUE;
+				END_IF
+			END_IF
+			*)
+			bCommProblem	:= FALSE;
+			nRetries		:= 0;	// Reset number of retries
+			
+			// Check if we have to exit Monitoring
+			IF nNextState <> E_RS_BASE_STATE.NONE THEN
+				fbTimer (IN := FALSE); (* Stop the timer *)
+				SetStatus(E_SM_ERROR.OK, nNextDescription);
+				SetState(nNextState, nNextSubstate);
+				nNextState		:= E_RS_BASE_STATE.NONE;
+				nNextSubstate	:= E_RS_BASE_SUBSTATE.NONE;
+				nNextDescription:= 'IDLE';
+				RETURN;
+			END_IF
+	
+			cmdCounter		:= cmdCounter + 1;	// Reading will start from the first command in the array
+			
+			nMethodState 	:= 0;				// Goto Send command
+			nEvent := E_SM_EVENT.COMMOK;
+			RETURN;
+		ELSIF comm.stat.nStatus = E_RS_COMM_STATUS.ERROR OR fbTimer.Q THEN
+			fbTimer (IN := FALSE);
+			SetStatus(E_JANSSEN_ERROR.COMM, 'ERROR: Communication error');	
+			bCommProblem	:= TRUE;
+			// Retry up to 2 times
+			nRetries		:= nRetries + 1;		// Increment number of retries
+			stat.nRetries	:= stat.nRetries + 1;	// Increment total number of retries
+			IF nRetries > 1 THEN
+				nEvent := E_SM_EVENT.ERRCOMM;
+			END_IF
+			// Apply a short delay of 1 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#1000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		ELSIF bError THEN
+			// Apply a short delay of 3 sec and retry
+			fbTimer (IN := FALSE); (* Reset timer *)
+			fbTimer (IN := TRUE, PT := T#3000MS);
+			nMethodState := 10;				// Goto Wait 
+			RETURN;
+		END_IF
+
+	
+END_CASE
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCalibrationValues" Id="{8c503f60-8fc2-4201-8a61-38ac4f96d9fe}">
+      <Declaration><![CDATA[METHOD M_GetCalibrationValues : BOOL
+(* FB to extract 'n' values from 'str' and copy them into stat.lrArrReadings starting from index 'idx'.*)
+
+VAR_INPUT
+	//idx:	INT;		(* arr [idx] will hold the first extracted value, arr [idx+1] the second one, etc. *)
+	//n:		INT;		(* Number of values to extract from the string - command specific *)
+	
+	str:	STRING(255);		(* String returned in Lakeshore reply *)
+	ch_idx:	INT;
+END_VAR
+VAR_OUTPUT
+	ok:		BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+END_VAR
+
+VAR
+	idx:	INT := 1; // starting index
+	n:		INT	:= 3; // Max values in Get calibration string
+	i:		INT; 
+	str_l:	STRING(255);
+	pos:	INT;
+	
+	nCalibrationValues: ARRAY[1..3] OF DINT; 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[i	:= 0;
+str_l	:= str;
+ok	:= TRUE; (* OK *)
+
+
+WHILE i < n DO
+	nCalibrationValues[idx + i]	:= STRING_TO_DINT(str_l); (* take the first number *)
+	(* move to just after the comma *)
+	IF i < (n-1) THEN
+		pos := FIND (str_l, ','); (* find the comma *)
+		IF pos = 0 THEN (* less than 'n' numbers present in the string *)
+			ok	:= FALSE; (* ERROR *)
+			i 	:= n;
+		ELSE
+			str_l := RIGHT (str_l, LEN(str_l) - pos);
+			i	:= i + 1;
+		END_IF
+	ELSE
+		i	:= i + 1;
+	END_IF
+END_WHILE
+
+IF ch_idx = 1 THEN
+	stat.nCalibrationValues_Cannel_1.nGainSetting:= nCalibrationValues[1];
+	stat.nCalibrationValues_Cannel_1.nUpperThresholdValue:= nCalibrationValues[2];
+	stat.nCalibrationValues_Cannel_1.nLowerThresholdValue:= nCalibrationValues[3];
+ELSIF ch_idx = 2 THEN
+	stat.nCalibrationValues_Cannel_2.nGainSetting:= nCalibrationValues[1];
+	stat.nCalibrationValues_Cannel_2.nUpperThresholdValue:= nCalibrationValues[2];
+	stat.nCalibrationValues_Cannel_2.nLowerThresholdValue:= nCalibrationValues[3];
+ELSIF ch_idx = 3 THEN
+	stat.nCalibrationValues_Cannel_3.nGainSetting:= nCalibrationValues[1];
+	stat.nCalibrationValues_Cannel_3.nUpperThresholdValue:= nCalibrationValues[2];
+	stat.nCalibrationValues_Cannel_3.nLowerThresholdValue:= nCalibrationValues[3];
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommand" Id="{ae3d91ea-8d38-4966-b4a0-14c6e1220e13}">
+      <Declaration><![CDATA[//
+// Get command with index 'index' from ctrl.cmdList[]
+//
+METHOD M_GetCommand : T_JANSSEN_COMMAND
+VAR_INPUT
+	index:		UINT;
+END_VAR
+VAR
+	emptyCmd:	T_JANSSEN_COMMAND;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF index < 0 OR index > 15	THEN
+	// The index is not valid. Set empty command.
+	M_GetCommand	:= emptyCmd;
+ELSE
+	M_GetCommand	:= ctrl.cmdList[index];
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommInitialised" Id="{7c689689-00bb-4f65-81aa-5c59664f43bc}">
+      <Declaration><![CDATA[METHOD M_GetCommInitialised : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// This is just a dummy method for BASE FB
+M_GetCommInitialised	:= comm.M_GetInitialised();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCommStatus" Id="{efd7e21f-6018-4040-89a6-c5466a690c7b}">
+      <Declaration><![CDATA[METHOD M_GetCommStatus : E_RS_COMM_STATUS
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[M_GetCommStatus	:= comm.M_GetStatus();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetCounterValues" Id="{5f6a12f6-cc05-49af-bbc2-df27d29fa4bd}">
+      <Declaration><![CDATA[METHOD M_GetCounterValues : BOOL
+(* FB to extract 'n' values from 'str' and copy them into stat.lrArrReadings starting from index 'idx'.*)
+
+VAR_INPUT
+	//idx:	INT;		(* arr [idx] will hold the first extracted value, arr [idx+1] the second one, etc. *)
+	//n:		INT;		(* Number of values to extract from the string - command specific *)
+	
+	str:	STRING(255);		(* String returned in Lakeshore reply *)
+	//ch_idx:	INT;
+END_VAR
+VAR_OUTPUT
+	ok:		BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+END_VAR
+
+VAR
+	idx:	INT := 1; // starting index
+	n:		INT	:= 4; // Max values in Get calibration string
+	i:		INT; 
+	str_l:	STRING(255);
+	pos:	INT;
+	
+	nCounterValues: ARRAY[1..3] OF DINT; 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[i	:= 0;
+str_l	:= str;
+ok	:= TRUE; (* OK *)
+
+
+WHILE i < n DO
+	nCounterValues[idx + i]	:= STRING_TO_DINT(str_l); (* take the first number *)
+	(* move to just after the comma *)
+	IF i < (n-1) THEN
+		pos := FIND (str_l, ','); (* find the comma *)
+		IF pos = 0 THEN (* less than 'n' numbers present in the string *)
+			ok	:= FALSE; (* ERROR *)
+			i 	:= n;
+		ELSE
+			str_l := RIGHT (str_l, LEN(str_l) - pos);
+			i	:= i + 1;
+		END_IF
+	ELSE
+		i	:= i + 1;
+	END_IF
+END_WHILE
+
+stat.nCounterValue_Channel_1	:= nCounterValues[1];
+stat.nCounterValue_Channel_2	:= nCounterValues[2];
+stat.nCounterValue_Channel_3	:= nCounterValues[3];]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetErrorString" Id="{89688418-0f2d-40ff-b8cc-d83b453c4932}">
+      <Declaration><![CDATA[METHOD M_GetErrorString : STRING
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF	stat.stState.bRANGE_LIMIT_REACHED		THEN
+	M_GetErrorString	:= 'ERROR: Range limit reached';
+ELSIF	stat.stState.bEND_STOP_REACHED	THEN
+	M_GetErrorString	:= 'ERROR: End Stop reached';
+ELSIF	stat.stState.bFOLLOWING_LIMIT_REACHED	THEN
+	M_GetErrorString	:= 'ERROR: Following error';
+ELSIF	stat.stState.bPOSITIONER_OVERLOAD		THEN
+	M_GetErrorString	:= 'ERROR: Positioner overload';
+ELSIF	stat.stState.bOVER_TEMPERATURE			THEN
+	M_GetErrorString	:= 'ERROR: Overtemperature';
+ELSIF	stat.stState.bPOSITIONER_FAULT			THEN
+	M_GetErrorString	:= 'ERROR: Positioner fault';
+ELSIF	stat.stState.bMOVEMENT_FAILED			THEN
+	M_GetErrorString	:= 'ERROR: Movement failed';
+ELSE
+	M_GetErrorString	:= 'Positioner Error';
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetFailSafeState" Id="{823369d6-f071-4608-9ef2-4e32faadb6ba}">
+      <Declaration><![CDATA[METHOD M_GetFailSafeState
+VAR_INPUT
+	sFailSafeState:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ 
+IF FIND(sFailSafeState,'NO ERRORS PRESENT') > 0 THEN
+	stat.stState.bControllerStateError := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_GetPositionControlStatus" Id="{dbc8e766-a44b-4704-be7f-370121fe7314}">
+      <Declaration><![CDATA[METHOD M_GetPositionControlStatus : BOOL
+(* FB to extract 'n' values from 'str' and copy them into stat.lrArrReadings starting from index 'idx'.*)
+
+VAR_INPUT
+	//idx:	INT;		(* arr [idx] will hold the first extracted value, arr [idx+1] the second one, etc. *)
+	//n:		INT;		(* Number of values to extract from the string - command specific *)
+	str:	STRING(255);		(* String returned in Lakeshore reply *)
+END_VAR
+VAR_OUTPUT
+	ok:		BOOL;		(* TRUE if the reading was correct, i.e. 'n' values successfully extracted from 'str'.  *)
+END_VAR
+
+VAR
+	idx:	INT := 1; // starting index
+	n:		INT	:= 8; // Max values in position control status string
+	i:		INT; 
+	str_l:	STRING(255);
+	pos:	INT;
+	
+	nPositionContolStatusValues: ARRAY[1..8] OF DINT; 
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[i	:= 0;
+str_l	:= str;
+ok	:= TRUE; (* OK *)
+
+
+WHILE i < n DO
+	nPositionContolStatusValues[idx + i]	:= STRING_TO_DINT(str_l); (* take the first number *)
+	(* move to just after the comma *)
+	IF i < (n-1) THEN
+		pos := FIND (str_l, ','); (* find the comma *)
+		IF pos = 0 THEN (* less than 'n' numbers present in the string *)
+			ok	:= FALSE; (* ERROR *)
+			i 	:= n;
+		ELSE
+			str_l := RIGHT (str_l, LEN(str_l) - pos);
+			i	:= i + 1;
+		END_IF
+	ELSE
+		i	:= i + 1;
+	END_IF
+END_WHILE
+
+stat.bPositionControl:= DINT_TO_BOOL(nPositionContolStatusValues[1]);
+stat.bMovingToSetPoint:= DINT_TO_BOOL(nPositionContolStatusValues[2]);
+stat.bInvalidSetPoint_1:= DINT_TO_BOOL(nPositionContolStatusValues[3]);
+stat.bInvalidSetPoint_2:= DINT_TO_BOOL(nPositionContolStatusValues[4]);
+stat.bInvalidSetPoint_3:= DINT_TO_BOOL(nPositionContolStatusValues[5]);
+
+stat.nPositionError_1:= nPositionContolStatusValues[6];
+stat.nPositionError_2:= nPositionContolStatusValues[7];
+stat.nPositionError_3:= nPositionContolStatusValues[8];]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ReadReply" Id="{31b3c72e-8035-4773-9375-8be47df980e2}">
+      <Declaration><![CDATA[METHOD M_ReadReply : BOOL
+VAR_INPUT
+	//index:	UINT;	// Channel number!
+END_VAR
+VAR
+	pos:			INT;	// Position of the terminator in the reply.
+    parsed_reply: 	STRING;
+	//refChStatus:	REFERENCE TO T_SA_CH_STATUS;
+	length_reply: INT;
+	length_suffix: INT;
+	remaining_length: INT;
+	
+	////////////////////
+	//Test String//////
+	s_Test_String: STRING := '1,1,1,1,1,26,27,28';
+	s_Test_Calibrstion_string: STRING := '74, 992, -56';
+	//////////////////
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Reply should always end with in_sReplySuffix ('$R$N') character.
+// Otherwise, it's an error.
+// Only commands with the reply from which the value should be read are handled.
+//
+
+pos := FIND (stat.sReply, sReplySuffix);
+length_suffix:= LEN(sReplySuffix);
+length_reply:= LEN(stat.sReply);
+remaining_length := length_reply - length_suffix;
+
+IF pos > 0	THEN
+	length_reply:= LEN(sReplySuffix);
+	length_suffix:= LEN(stat.sReply);
+	remaining_length := length_reply - length_suffix;
+    parsed_reply := LEFT(stat.sReply, LEN(stat.sReply) - LEN(sReplySuffix));
+	
+	IF ptrCommCtrl^.sCmd = '*idn?' THEN
+		// Get the DEVice ID
+		stat.sDeviceID	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'pos?' THEN
+		// Get the DEVice ID
+		stat.nCurrentFilterPosition	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'speed?' THEN
+		// Get the DEVice ID
+		stat.bMoveSpeed	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'sensors?' THEN
+		// Get the DEVice ID
+		stat.bFilterSensors	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'baud?' THEN
+		// Get the DEVice ID
+		stat.sBaud_rate_RS232	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'STP 3' THEN
+		// Get the DEVice ID
+		stat.sChannel_3_Stop	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'GFS 1' THEN
+		// Get the DEVice ID
+		stat.sFailSafeState_1	:= parsed_reply;
+		M_GetFailSafeState(parsed_reply);
+	ELSIF ptrCommCtrl^.sCmd = 'GFS 2' THEN
+		// Get the DEVice ID
+		stat.sFailSafeState_2	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'GFS 3' THEN
+		// Get the DEVice ID
+		stat.sFailSafeState_3	:= parsed_reply;
+	ELSIF ptrCommCtrl^.sCmd = 'FBST' THEN
+		// Get the DEVice ID
+		stat.sPositionControlStatus	:= parsed_reply;
+		M_GetPositionControlStatus(s_Test_String);
+	ELSIF ptrCommCtrl^.sCmd = 'MLS 4 1' THEN
+		// Get Calibration Values
+		stat.sCalibrationValues	:= parsed_reply;
+		M_GetCalibrationValues(parsed_reply, 1);
+	ELSIF ptrCommCtrl^.sCmd = 'MLS 4 2' THEN
+		// Get Calibration Values
+		stat.sCalibrationValues	:= parsed_reply;
+		M_GetCalibrationValues(parsed_reply, 2);
+	ELSIF ptrCommCtrl^.sCmd = 'MLS 4 3' THEN
+		// Get Calibration Values
+		stat.sCalibrationValues	:= parsed_reply;
+		M_GetCalibrationValues(parsed_reply, 3);
+	ELSIF ptrCommCtrl^.sCmd = 'CGVA 4' THEN
+		// Get Calibration Values
+		stat.sCounterValues	:= parsed_reply;
+		M_GetCounterValues(s_Test_Calibrstion_string);
+	ELSIF FIND(ptrCommCtrl^.sCmd,'FBEN') > 0 THEN
+		// Enable Servo Drive Mode
+		stat.sServoDriveStatus := parsed_reply;
+		IF FIND(parsed_reply,'enabled') > 0 THEN
+			stat.bServoDrive := TRUE;
+		END_IF
+	ELSIF ptrCommCtrl^.sCmd = 'FBXT' THEN
+		// Disable Servo Drive Mode
+		stat.sServoDriveStatus := parsed_reply;
+		IF FIND(parsed_reply,'disabled') > 0 THEN
+			stat.bServoDrive := FALSE;
+		END_IF	
+	
+		
+	END_IF
+	M_ReadReply	:= TRUE; (* OK *)
+ELSE
+	M_ReadReply	:= FALSE;	//	Failed to read from the reply
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetChanState" Id="{1f6471a9-4d84-47f4-b34b-9cc87d09ac01}">
+      <Declaration><![CDATA[METHOD M_SetChanState
+VAR_INPUT
+	nStatus:	UDINT;	// Channel Status as UINT (WORD)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*
+// Get Channel State as a number.
+stat.nCH_STATE	:= nStatus;
+
+//
+// Extract Channel state from the status word.
+//
+stat.stState.bACTIVELY_MOVING			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_ACTIVELY_MOVING);
+stat.stState.bCLOSED_LOOP_ACTIVE		:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_CLOSED_LOOP_ACTIVE);
+stat.stState.bCALIBRATING				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_CALIBRATING);
+stat.stState.bREFERENCING				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_REFERENCING);
+stat.stState.bMOVE_DELAYED				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_MOVE_DELAYED);
+stat.stState.bSENSOR_PRESENT			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_SENSOR_PRESENT);
+stat.stState.bIS_CALIBRATED				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_CALIBRATED);
+stat.stState.bIS_REFERENCED				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_REFERENCED);
+stat.stState.bEND_STOP_REACHED			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_END_STOP_REACHED);
+stat.stState.bRANGE_LIMIT_REACHED		:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_RANGE_LIMIT_REACHED);
+stat.stState.bFOLLOWING_LIMIT_REACHED	:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_FOLLOWING_LIMIT_REACHED);
+stat.stState.bMOVEMENT_FAILED			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_MOVEMENT_FAILED);
+stat.stState.bIS_STREAMING				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_STREAMING);
+stat.stState.bPOSITIONER_OVERLOAD		:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_POSITIONER_OVERLOAD);
+stat.stState.bOVER_TEMPERATURE			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_OVER_TEMPERATURE);
+stat.stState.bREFERENCE_MARK			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_REFERENCE_MARK);
+stat.stState.bIS_PHASED					:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IS_PHASED);
+stat.stState.bPOSITIONER_FAULT			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_POSITIONER_FAULT);
+stat.stState.bAMPLIFIER_ENABLED			:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_AMPLIFIER_ENABLED);
+stat.stState.bIN_POSITION				:= UDINT_TO_BOOL(nStatus AND E_SA_CH_STATE.BIT_IN_POSITION);
+
+
+IF	stat.stState.bRANGE_LIMIT_REACHED		OR
+	stat.stState.bEND_STOP_REACHED			OR
+	stat.stState.bFOLLOWING_LIMIT_REACHED	OR
+	stat.stState.bMOVEMENT_FAILED			OR
+	stat.stState.bPOSITIONER_OVERLOAD		OR
+	stat.stState.bOVER_TEMPERATURE			OR
+	stat.stState.bPOSITIONER_FAULT			THEN
+		stat.stState.bERROR	:= TRUE;
+		stat.bError			:= TRUE;
+		stat.sErrorText		:= 'Positioner failure';
+		stat.nPosState 		:= E_SA_POS_SM_STATE.ERROR;
+ELSE
+	// There is no positioner error but maybe the 
+	// communication with the MCS2 controller is lost.
+	stat.stState.bERROR	:= FALSE;
+	
+	// Check errors from the MCS2 controller.
+	IF stat.bCtrlCommProblem  OR  stat.nCtrlErrorCode <> 0	THEN
+		stat.bError	:= TRUE;
+	ELSE
+		stat.bError		:= FALSE;
+		stat.nErrorCode	:= E_SA_CH_ERROR.OK;
+		stat.sErrorText	:= 'OK';
+	END_IF
+END_IF
+
+*)
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetCmdList" Id="{60292273-1503-45d3-b26b-e50cf7e0c8c7}">
+      <Declaration><![CDATA[METHOD M_SetCmdList
+VAR_INPUT
+	//index:			UINT := 0;	// Channel index
+END_VAR
+VAR
+	//nChState:	E_SA_POS_SM_STATE := ptrCH[index]^.stat.nPosState;
+	//nChState:	E_SA_POS_SM_STATE := E_SA_POS_SM_STATE.CALIB;
+	i:			INT;
+	cmd:		STRING;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Copy corresponding list of commands to the list in the 'ctrl' structure.
+// The generic list contains # characters !
+// Examples: ':MOD#:STAT?', ':CHAN#:POS:TARG?', etc.
+// They have to be replaced with Channel or Module number.
+//
+//CASE nChState OF
+CASE stat.nPosState	OF
+	
+	E_SA_POS_SM_STATE.NOT_READY:
+		ctrl.cmdList	:= cfg.cmdList_NOT_READY;
+	
+	(*E_SA_POS_SM_STATE.CALIB:
+		// Calibration requires only one command, ':CAL#'.
+		ctrl.cmdList[0].cmd			:= 'GFS 1';
+		ctrl.cmdList[0].nReplies	:= 1;
+		ctrl.cmdList[1].cmd			:= '';		// Command terminator
+	*)
+	E_SA_POS_SM_STATE.INIT:
+		ctrl.cmdList	:= cfg.cmdList_CfgSet;
+	
+	(*E_SA_POS_SM_STATE.POST_INIT:
+		ctrl.cmdList	:= cfg.cmdList_POST_INIT;
+	
+	E_SA_POS_SM_STATE.CALIB_REF:
+		// First set the MIN and MAX limits.
+		// Calibrate the REFerence mark. 
+		// Read new MIN and MAX limits.
+		
+		ctrl.cmdList[1].cmd			:= '';
+		ctrl.cmdList[1].nReplies	:= 0;
+		ctrl.cmdList[2].cmd			:= ':CHAN#:POS ***';
+		ctrl.cmdList[2].nReplies	:= 0;
+		ctrl.cmdList[3].cmd			:= ':CHAN#:RLIM:MIN?';
+		ctrl.cmdList[3].nReplies	:= 1;
+		ctrl.cmdList[4].cmd			:= ':CHAN#:RLIM:MAX?';
+		ctrl.cmdList[4].nReplies	:= 1;
+		ctrl.cmdList[5].cmd			:= '';		// Command terminator
+	*)
+	E_SA_POS_SM_STATE.READY:
+		ctrl.cmdList	:= cfg.cmdList_Mon;
+	
+	E_SA_POS_SM_STATE.OP:
+		ctrl.cmdList	:= cfg.cmdList_Mon;
+		//ctrl.cmdList	:= cfg.cmdList_enable_servo_drive;
+		
+	
+	
+	E_SA_POS_SM_STATE.BASE_DRIVE_MODE: // Janssen controller Basic Drive Mode 
+	
+	E_SA_POS_SM_STATE.MOVING:
+		// Move the positioner. 
+		// Set direction ':CHAN#:VEL <vel>'
+		// Set velocity ':CHAN#:VEL <vel>'
+		// Move         ':MOVE# <pos>'.
+		
+		//Command MOV [ADDR] [DIR] [FREQ] [RSS] [STEPS] [TEMP] [STAGE] [DF]
+		//Command (example) MOV 1 1 600 100 0 293 CLA2601 1
+		//Response (example) Actuating the stage.
+
+		ctrl.cmdList[0].cmd			:= 'MOV 1 1 600 100 0 293 CLA2601 1';
+		ctrl.cmdList[0].nReplies	:= 1;
+		ctrl.cmdList[1].cmd			:= '';
+		ctrl.cmdList[1].nReplies	:= 0;
+		//ctrl.cmdList[0].cmd			:= ':CHAN#:VEL ***';
+		//ctrl.cmdList[0].nReplies	:= 0;
+		//ctrl.cmdList[1].cmd			:= ':MOVE# ***';
+		//ctrl.cmdList[1].nReplies	:= 0;
+		//ctrl.cmdList[2].cmd			:= '';		// Command terminator
+	
+	E_SA_POS_SM_STATE.STOP:
+		// Stop the positioner. 
+		// Requires only one command, ':STOP#'.
+		//Command STP [ADDR]
+		//Command (example) STP 1
+		//Response (example) Stopping the stage.
+		
+		ctrl.cmdList[0].cmd			:= 'STP 3';
+		ctrl.cmdList[0].nReplies	:= 1;
+		ctrl.cmdList[1].cmd			:= '';
+		ctrl.cmdList[0].nReplies	:= 0;		// Command terminator
+	
+	E_SA_POS_SM_STATE.FLEX_DRIVE_MODE: // Janssen controller external input mode
+		ctrl.cmdList	:= cfg.cmdList_enable_flex_drive;
+	
+	E_SA_POS_SM_STATE.SERVO_DRIVE_MODE: // Janssen controller Servo Drive Mode
+		ctrl.cmdList	:= cfg.cmdList_enable_servo_drive;
+		
+	E_SA_POS_SM_STATE.DISABLE_SERVO_DRIVE_MODE: // Janssen controller Servo Drive Mode
+		ctrl.cmdList	:= cfg.cmdList_disable_servo_drive;
+		
+
+	E_SA_POS_SM_STATE.MOVING_TO_SETPOINT:// 3 positioners are Moving to their respective set points in Servo Drive Mode
+		ctrl.cmdList	:= cfg.cmdList_moving_to_setpoint;
+
+	E_SA_POS_SM_STATE.EMERGENCY_STOP:    // Emergency stop to halt the positioners
+		ctrl.cmdList	:= cfg.cmdList_emergency_stop;
+	
+
+
+	E_SA_POS_SM_STATE.ERROR:
+		ctrl.cmdList	:= cfg.cmdList_Mon;
+END_CASE
+
+(*
+// Set MOD or CHAN index, depending on the command.
+FOR i:=0 TO 15 DO
+	cmd	:= ctrl.cmdList[i].cmd;
+	IF cmd <> ''	THEN
+		IF FIND(cmd, ':MOD#') = 1	THEN
+			// A MODule command. Set MOD index.
+			ctrl.cmdList[i].cmd			:= ptrCH[index]^.M_SetCommandModule(cmd);
+		ELSIF FIND(cmd, ':CHAN#') = 1  OR  FIND(cmd, ':MOVE#') = 1	THEN
+			// Channel commands.
+			// Commands with parameters have the dummy string '***'.
+			// Replace *** in generic command with the value.
+			IF FIND(cmd, '***') > 0 THEN
+				cmd	:= ptrCH[index]^.M_SetCommandValue(cmd);
+			END_IF
+			// Set CHAN number in the command.
+			ctrl.cmdList[i].cmd			:= ptrCH[index]^.M_SetCommandChannel(cmd);
+		ELSIF FIND(cmd, ':CAL#') = 1  OR  FIND(cmd, ':REF#') = 1  OR  FIND(cmd, ':STOP#') = 1	THEN
+			// Channel command. Replace only the channel number.
+			ctrl.cmdList[i].cmd			:= ptrCH[index]^.M_SetCommandChannel(cmd);
+		END_IF
+	END_IF
+END_FOR
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetNextPosState" Id="{6217215c-ff89-4801-a531-bb0f65caa33b}">
+      <Declaration><![CDATA[//
+// Set next positioner State Machine State.
+// This is done at the end of command list execution.
+// It Returns TRUE if the state has changed.
+//
+METHOD M_SetNextPosState : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE stat.nPosState OF
+	
+	
+	E_SA_POS_SM_STATE.NOT_READY:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.REF	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.INIT;
+			stat.sStatus		:= 'Referencing/INIT Started';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_1 := 'State from NOT Ready TO INIT';
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF	
+		
+		
+				
+	E_SA_POS_SM_STATE.INIT:
+		ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+		stat.nPosState 		:= E_SA_POS_SM_STATE.READY;
+		stat.bInitialised	:= TRUE;
+		stat.sStatus		:= 'Reference mark calibrated - initialised';
+		M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+        M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		stat.sRandomtext_2 := 'State from INIT TO READY';
+
+
+	E_SA_POS_SM_STATE.READY:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.ENABLE	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.SERVO_DRIVE_MODE;
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_3 := 'State from READY TO SERVO_DRIVE_MODE';
+			
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN			
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			stat.nErrorCode		:= E_SM_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+
+	E_SA_POS_SM_STATE.SERVO_DRIVE_MODE:
+		ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+		stat.nPosState 		:= E_SA_POS_SM_STATE.OP;
+		//stat.sStatus		:= 'Operational';
+		//M_SetState(E_SA_POS_ELT_STATE.OP);
+		//M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		stat.sRandomtext_4 := 'State from READY To OP' ;	
+	
+	E_SA_POS_SM_STATE.OP:
+		IF	ch_ctrl.nCmd = E_SA_CH_CMD.MOV THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING_TO_SETPOINT;
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			//stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			//stat.sStatus		:= 'Moving to a setpoint...';
+			//M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);	
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_5 := 'State from OP TO MOVING_TO_SETPOINT';
+		
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.DISABLE	THEN
+			ch_ctrl.nCmd 		:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.DISABLE_SERVO_DRIVE_MODE;
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN			
+			ch_ctrl.nCmd 		:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			stat.nErrorCode		:= E_SM_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+	
+	E_SA_POS_SM_STATE.DISABLE_SERVO_DRIVE_MODE:
+		ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+		stat.nPosState 		:= E_SA_POS_SM_STATE.READY;
+		//stat.sStatus		:= 'Ready';
+		//M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+		//M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		stat.sRandomtext_6 := 'DISABLE_SERVO_DRIVE To Ready' ;
+	
+	
+	E_SA_POS_SM_STATE.MOVING_TO_SETPOINT:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.STOP THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.EMERGENCY_STOP;			
+			//stat.sStatus		:= 'Stopping...';
+			//M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_7 := 'State from MOVING_TO_SET_POINT To EMERGENCY_STOP' ;
+		ELSE
+			stat.nPosState := E_SA_POS_SM_STATE.OP;
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		END_IF
+		
+	E_SA_POS_SM_STATE.EMERGENCY_STOP:
+		stat.nPosState := E_SA_POS_SM_STATE.OP;
+		stat.sStatus		:= 'Positioner Stopped';
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+
+	E_SA_POS_SM_STATE.ERROR:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.REF	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.INIT;
+			stat.bInitialised	:= FALSE;
+			stat.sStatus		:= 'Referencing/INIT Started';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+		ELSE
+			stat.sStatus		:= M_GetErrorString();
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+		
+END_CASE
+
+
+
+
+(*
+
+CASE stat.nPosState OF
+	
+	
+	E_SA_POS_SM_STATE.NOT_READY:
+				
+		//IF ch_ctrl.nCmd = E_SA_CH_CMD.REF	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.INIT;
+			stat.sStatus		:= 'Referencing/INIT Started';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_1 := 'Not Ready done';
+		//ELSE
+		//	M_SetNextPosState	:= FALSE;	// State has NOT changed
+		//END_IF
+		
+	// Janssen
+	E_SA_POS_SM_STATE.INIT:
+		stat.nPosState 	:= E_SA_POS_SM_STATE.READY;	// was READY
+		stat.nLastPosState := E_SA_POS_SM_STATE.INIT;
+		stat.bInitialised	:= TRUE;
+		stat.sStatus		:= 'Reference mark calibrated - initialised';
+		M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+        M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		stat.sRandomtext_2 := 'INIT done';
+
+	E_SA_POS_SM_STATE.READY:
+		stat.sRandomtext_3 := 'In Ready';
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.ENABLE	THEN
+		
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.SERVO_DRIVE_MODE;
+			stat.nLastPosState := E_SA_POS_SM_STATE.READY;
+			stat.sStatus		:= 'Operational';
+			M_SetState(E_SA_POS_ELT_STATE.OP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_4 := 'Executed Enable done';
+		
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+		
+			stat.sRandomtext_5 := 'inside RESET';
+			
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			//stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.nErrorCode		:= E_SM_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+		
+	
+	E_SA_POS_SM_STATE.OP:
+		
+		stat.sRandomtext_6 := 'Inside OP state';
+		
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			//stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.nErrorCode		:= E_SM_ERROR.OK;
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.DISABLE	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.READY;
+			stat.sStatus		:= 'Ready';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+			
+			stat.sRandomtext_7 := 'DISABLE executed';
+			
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.MOVE_TO_SETPOINT	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING_TO_SETPOINT;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Moving to a setpoint...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.EMERGENCY_STOP	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF	NOT stat.stState.bACTIVELY_MOVING	AND
+				// check this
+				stat.stState.bIN_POSITION			AND
+				stat.nLastPosState <> E_SA_POS_SM_STATE.CALIB_REF	THEN
+					stat.sStatus		:= 'Move completed';
+					M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.DISABLE_SERVO_DRIVE	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Operational';
+			M_SetState(E_SA_POS_ELT_STATE.OP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			//stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.nErrorCode		:= E_SM_ERROR.OK;
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+		
+		stat.sRandomtext_7 := 'Exiting OP state';
+	(*	
+	// Basic Drive Mode
+	E_SA_POS_SM_STATE.BASE_DRIVE_MODE:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.MOV	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Moving...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.STOP	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF	NOT stat.stState.bACTIVELY_MOVING	AND
+				// Check this and Servo drive mode
+				stat.stState.bIN_POSITION			AND
+				stat.nLastPosState <> E_SA_POS_SM_STATE.CALIB_REF	THEN
+					stat.sStatus		:= 'Move completed';
+					M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.DISABLE_BASE_DRIVE	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Operational';
+			M_SetState(E_SA_POS_ELT_STATE.OP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			//stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.nErrorCode		:= E_SM_ERROR.OK;
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		END_IF
+	
+	E_SA_POS_SM_STATE.MOVING:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.STOP	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			stat.nPosState := E_SA_POS_SM_STATE.OP;
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		END_IF
+	
+	E_SA_POS_SM_STATE.STOP:
+		stat.nPosState := E_SA_POS_SM_STATE.BASE_DRIVE_MODE;
+		stat.sStatus		:= 'Positioner Stopped';
+		M_SetNextPosState	:= TRUE;	// State HAS changed
+	
+	// Flex Drive Mode (External Input)
+	E_SA_POS_SM_STATE.FLEX_DRIVE_MODE:
+		IF  ch_ctrl.nCmd = E_SA_CH_CMD.DISABLE_FLEX_DRIVE	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Operational';
+			M_SetState(E_SA_POS_ELT_STATE.OP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		END_IF
+	*)
+	
+	// Servo Drive Mode
+	E_SA_POS_SM_STATE.SERVO_DRIVE_MODE:
+		stat.sRandomtext_6 := 'Inside Servodrive Mode';
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.MOVE_TO_SETPOINT	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING_TO_SETPOINT;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Moving to a setpoint...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.EMERGENCY_STOP	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF	NOT stat.stState.bACTIVELY_MOVING	AND
+				// check this
+				stat.stState.bIN_POSITION			AND
+				stat.nLastPosState <> E_SA_POS_SM_STATE.CALIB_REF	THEN
+					stat.sStatus		:= 'Move completed';
+					M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.DISABLE_SERVO_DRIVE	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Operational';
+			M_SetState(E_SA_POS_ELT_STATE.OP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			//stat.nErrorCode		:= E_SA_CH_ERROR.OK; 
+			stat.nErrorCode		:= E_SM_ERROR.OK;
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		END_IF
+		
+	
+	E_SA_POS_SM_STATE.MOVING_TO_SET_POINT:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.EMERGENCY_STOP	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.STOP;
+			stat.sStatus		:= 'Stopping...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.SET_POINT_ACHIEVED	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bSERVO_DRIVE_ENABLED	:= TRUE;
+			//stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.SERVO_DRIVE_MODE;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Servo Drive Enabled';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF	NOT stat.stState.bACTIVELY_MOVING	AND
+				// Check this and Servo drive mode
+				stat.stState.bIN_POSITION			AND
+				stat.nLastPosState <> E_SA_POS_SM_STATE.CALIB_REF	THEN
+					stat.sStatus		:= 'Move completed';
+					M_SetNextPosState	:= FALSE;	// State has NOT changed
+		ELSE
+			M_SetNextPosState	:= FALSE;	// State has NOT changed	
+		END_IF
+	
+	E_SA_POS_SM_STATE.EMERGENCY_STOP:
+		stat.nPosState := E_SA_POS_SM_STATE.SERVO_DRIVE_MODE;
+		stat.sStatus		:= 'Positioner Stopped';
+		M_SetNextPosState	:= TRUE;	// State HAS changed	
+	
+	
+	
+	
+	// Error
+	E_SA_POS_SM_STATE.ERROR:
+		IF ch_ctrl.nCmd = E_SA_CH_CMD.CALIB	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.CALIB;
+			stat.bInitialised	:= FALSE;
+			stat.sStatus		:= 'Calibrating...';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.REF	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.INIT;
+			stat.bInitialised	:= FALSE;
+			stat.sStatus		:= 'Referencing/INIT Started';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.MOV	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.stState.bACTIVELY_MOVING	:= TRUE;
+			stat.stState.bIN_POSITION		:= FALSE;
+			stat.nPosState 		:= E_SA_POS_SM_STATE.MOVING;
+			stat.nLastPosState 	:= E_SA_POS_SM_STATE.OP;
+			stat.sStatus		:= 'Moving...';
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSIF ch_ctrl.nCmd = E_SA_CH_CMD.RESET	THEN
+			ch_ctrl.nCmd 			:= E_SA_CH_CMD.NONE;	// Reset command
+			stat.nPosState 		:= E_SA_POS_SM_STATE.NOT_READY;
+			stat.bInitialised	:= FALSE;
+			//stat.nErrorCode		:= E_SA_CH_ERROR.OK;
+			stat.nErrorCode		:= E_SM_ERROR.OK; 
+			stat.sErrorText		:= 'OK';
+			stat.sStatus		:= 'Positioner Reset';
+			M_SetState(E_SA_POS_ELT_STATE.NOTOP);
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+			M_SetNextPosState	:= TRUE;	// State HAS changed
+		ELSE
+			stat.sStatus		:= M_GetErrorString();
+			M_SetNextPosState	:= FALSE;	// State has NOT changed
+		END_IF
+END_CASE
+
+*)]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetState" Id="{b75b1e7b-32b3-4eff-98b4-3ac2ea80c812}">
+      <Declaration><![CDATA[METHOD M_SetState
+VAR_INPUT
+	nState: E_SA_POS_ELT_STATE;
+	//nState: E_RS_BASE_STATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nState	:= nState;
+
+// Set substate string
+CASE nState	OF
+	E_SA_POS_ELT_STATE.NOTOP: 	stat.sState	:= 'NOT OP';
+	E_SA_POS_ELT_STATE.OP: 		stat.sState	:= 'OPERATIONAL';
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_SetSubstate" Id="{c6ed9a37-e0bc-4456-b3b7-caf0c33ad98b}">
+      <Declaration><![CDATA[METHOD M_SetSubstate
+VAR_INPUT
+	nSubstate: E_SA_POS_ELT_SUBSTATE;
+	//nSubstate: E_RS_BASE_SUBSTATE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stat.nSubstate	:= nSubstate;
+
+// Set substate string
+CASE nSubstate	OF
+	E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY: 		
+		stat.sSubstate	:= 'NOT READY';
+		stat.sStatus	:= '';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_READY: 			stat.sSubstate	:= 'READY';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING:	stat.sSubstate	:= 'INITIALIZING';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_ABORTING:		stat.sSubstate	:= 'ABORTING';
+	E_SA_POS_ELT_SUBSTATE.NOTOP_ERROR:			stat.sSubstate	:= 'ERROR';
+	
+	E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL:		stat.sSubstate	:= 'STANDSTILL';            
+	E_SA_POS_ELT_SUBSTATE.OP_MOVING:			stat.sSubstate	:= 'MOVING';
+	E_SA_POS_ELT_SUBSTATE.OP_SETTING_POS:		stat.sSubstate	:= 'SETTING POS';
+	E_SA_POS_ELT_SUBSTATE.OP_STOPPING:			stat.sSubstate	:= 'STOPPING';
+	E_SA_POS_ELT_SUBSTATE.OP_ERROR:				stat.sSubstate	:= 'ERROR';
+	
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_UpdateStatus" Id="{9320d265-62bb-47b4-8151-551122abc947}">
+      <Declaration><![CDATA[//
+// Convert Positioner status from Device to User mode.
+//
+METHOD M_UpdateStatus
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//
+// Update bEnabled flag.
+// If TRUE, it means that the amplifier is enabled and the sensor is present.
+//
+//stat.bEnabled	:= stat.stState.bAMPLIFIER_ENABLED AND  stat.stState.bSENSOR_PRESENT;
+
+
+//
+// Set the in-position flag
+//
+//stat.bInPosition	:= stat.stState.bIN_POSITION;
+
+
+//
+// Set target and actual positions in [UU]
+//
+
+//stat.lrPosTarget	:= M_ConvertPosDev2User(stat.devStatus.lnPosTarget);
+//stat.lrPosActual	:= M_ConvertPosDev2User(stat.devStatus.lnPosActual);
+
+
+//
+// Set Standard ELT States and Substates
+//
+
+
+//
+// Substate
+//
+CASE stat.nState OF
+	E_SA_POS_ELT_STATE.NOTOP:
+	/////////////////////////
+	IF stat.bError	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_ERROR);
+	ELSIF	stat.nPosState = E_SA_POS_SM_STATE.NOT_READY	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+	ELSIF 	stat.nPosState = E_SA_POS_SM_STATE.CALIB  		OR
+			stat.nPosState = E_SA_POS_SM_STATE.INIT  		OR
+			stat.nPosState = E_SA_POS_SM_STATE.POST_INIT	OR	
+			stat.nPosState = E_SA_POS_SM_STATE.CALIB_REF  		THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_INITIALIZING);
+	ELSIF 	stat.nPosState = E_SA_POS_SM_STATE.READY  	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_READY);
+	ELSE
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.NOTOP_NOTREADY);
+	END_IF
+	
+	E_SA_POS_ELT_STATE.OP:
+	//////////////////////
+	IF stat.stState.bACTIVELY_MOVING	THEN
+		IF stat.nPosState = E_SA_POS_SM_STATE.STOP	THEN
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STOPPING);
+		ELSE
+			M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_MOVING);
+		END_IF
+	ELSIF stat.stState.bERROR	THEN
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_ERROR);
+	ELSE
+		M_SetSubstate(E_SA_POS_ELT_SUBSTATE.OP_STANDSTILL);
+	END_IF
+END_CASE
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RPC_MoveToFilterPosition" Id="{a891cab5-0225-4d18-a733-bd314ebedae6}">
+      <Declaration><![CDATA[{attribute 'TcRpcEnable':='1'}
+{attribute 'TcRpcEnable'}
+METHOD RPC_MoveToFilterPosition : INT
+VAR_INPUT
+	in_nFilterPos:		DINT;	// 1 - 6
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+// If the SmarAct MCS2 Controller is in error,
+// the positioner cannot be controlled.
+//IF stat.nCtrlErrorCode <> 0  OR  stat.nCtrlState <> E_RS_BASE_STATE.OP THEN
+//	RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.CTRL_ERROR);
+//	RETURN;
+//END_IF
+
+
+// RPC calls are not allowed in Local mode.
+IF stat.bLocal THEN
+	RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.LOCAL);
+	RETURN;
+// Move Absolute command is accepted only in OP state.
+ELSIF	stat.nState <> E_SA_POS_ELT_STATE.OP	THEN
+	RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.NOT_OP);
+	RETURN;
+// The positioner has to be initialised / OP (operational), i.e. already REFerenced.
+ELSIF	NOT stat.bInitialised	THEN
+	RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.CH_NOT_OP);
+	RETURN;
+
+// If SW limits are active, check the limits
+ELSIF in_nFilterPos > 6  THEN 	
+		RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.SW_LIMIT_UPPER);
+		RETURN;
+ELSIF in_nFilterPos < 1  THEN 	
+		RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.SW_LIMIT_LOWER);
+		RETURN;
+	
+END_IF
+
+// Set command
+ch_ctrl.nCmd	:= E_SA_CH_CMD.MOV;
+ch_ctrl.lrPos	:= in_nFilterPos;
+
+
+
+// Call was successful
+RPC_MoveToFilterPosition	:= M_SetRpcStatus(E_SA_RPC_ERROR.OK);
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C">
+      <LineId Id="60" Count="7" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="68" Count="4" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.ActivityInitializing">
+      <LineId Id="293" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="191" Count="5" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="197" Count="87" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="296" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="15" Count="20" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="36" Count="3" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="40" Count="60" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="101" Count="41" />
+      <LineId Id="169" Count="1" />
+      <LineId Id="143" Count="15" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.ActivityMonitoring">
+      <LineId Id="463" Count="0" />
+      <LineId Id="470" Count="0" />
+      <LineId Id="212" Count="3" />
+      <LineId Id="414" Count="0" />
+      <LineId Id="216" Count="26" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="466" Count="1" />
+      <LineId Id="244" Count="32" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="277" Count="4" />
+      <LineId Id="439" Count="0" />
+      <LineId Id="469" Count="0" />
+      <LineId Id="282" Count="131" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="464" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="471" Count="0" />
+      <LineId Id="20" Count="4" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="25" Count="74" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="180" Count="3" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="101" Count="61" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetCalibrationValues">
+      <LineId Id="26" Count="20" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="60" Count="1" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="62" Count="2" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetCommand">
+      <LineId Id="14" Count="6" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetCommInitialised">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetCommStatus">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetCounterValues">
+      <LineId Id="28" Count="19" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="50" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetErrorString">
+      <LineId Id="6" Count="16" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetFailSafeState">
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="2" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_GetPositionControlStatus">
+      <LineId Id="32" Count="19" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="59" Count="3" />
+      <LineId Id="64" Count="2" />
+      <LineId Id="56" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_ReadReply">
+      <LineId Id="18" Count="19" />
+      <LineId Id="44" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="50" Count="1" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="74" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="103" Count="2" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="107" Count="2" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="111" Count="2" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="115" Count="2" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="177" Count="1" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="180" Count="1" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="38" Count="3" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_SetChanState">
+      <LineId Id="248" Count="0" />
+      <LineId Id="167" Count="26" />
+      <LineId Id="196" Count="1" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="198" Count="5" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="240" Count="0" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="238" Count="1" />
+      <LineId Id="241" Count="0" />
+      <LineId Id="243" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="206" Count="2" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_SetCmdList">
+      <LineId Id="13" Count="7" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="21" Count="1" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="23" Count="4" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="30" Count="1" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="32" Count="2" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="37" Count="9" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="152" Count="2" />
+      <LineId Id="51" Count="3" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="177" Count="2" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="93" Count="2" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="55" Count="5" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="171" Count="1" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="159" Count="2" />
+      <LineId Id="215" Count="2" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="162" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="156" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="67" Count="1" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="69" Count="22" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_SetNextPosState">
+      <LineId Id="1013" Count="3" />
+      <LineId Id="1375" Count="0" />
+      <LineId Id="1350" Count="0" />
+      <LineId Id="1374" Count="0" />
+      <LineId Id="1398" Count="1" />
+      <LineId Id="1397" Count="0" />
+      <LineId Id="1365" Count="1" />
+      <LineId Id="1352" Count="0" />
+      <LineId Id="1382" Count="1" />
+      <LineId Id="1363" Count="1" />
+      <LineId Id="1351" Count="0" />
+      <LineId Id="1017" Count="0" />
+      <LineId Id="1032" Count="0" />
+      <LineId Id="1376" Count="0" />
+      <LineId Id="1353" Count="0" />
+      <LineId Id="1401" Count="2" />
+      <LineId Id="1400" Count="0" />
+      <LineId Id="1367" Count="0" />
+      <LineId Id="1354" Count="0" />
+      <LineId Id="1407" Count="0" />
+      <LineId Id="1041" Count="2" />
+      <LineId Id="1384" Count="0" />
+      <LineId Id="1377" Count="0" />
+      <LineId Id="1355" Count="0" />
+      <LineId Id="1368" Count="0" />
+      <LineId Id="1356" Count="0" />
+      <LineId Id="1408" Count="0" />
+      <LineId Id="1511" Count="0" />
+      <LineId Id="1436" Count="8" />
+      <LineId Id="1435" Count="0" />
+      <LineId Id="1385" Count="0" />
+      <LineId Id="1409" Count="0" />
+      <LineId Id="1386" Count="0" />
+      <LineId Id="1076" Count="0" />
+      <LineId Id="1493" Count="0" />
+      <LineId Id="1495" Count="2" />
+      <LineId Id="1509" Count="1" />
+      <LineId Id="1508" Count="0" />
+      <LineId Id="1498" Count="2" />
+      <LineId Id="1077" Count="1" />
+      <LineId Id="1387" Count="0" />
+      <LineId Id="1378" Count="0" />
+      <LineId Id="1357" Count="0" />
+      <LineId Id="1415" Count="2" />
+      <LineId Id="1419" Count="0" />
+      <LineId Id="1369" Count="0" />
+      <LineId Id="1414" Count="0" />
+      <LineId Id="1358" Count="0" />
+      <LineId Id="1410" Count="0" />
+      <LineId Id="1482" Count="0" />
+      <LineId Id="1502" Count="2" />
+      <LineId Id="1501" Count="0" />
+      <LineId Id="1420" Count="0" />
+      <LineId Id="1422" Count="0" />
+      <LineId Id="1426" Count="2" />
+      <LineId Id="1430" Count="4" />
+      <LineId Id="1421" Count="0" />
+      <LineId Id="1388" Count="0" />
+      <LineId Id="1390" Count="1" />
+      <LineId Id="1389" Count="0" />
+      <LineId Id="1271" Count="0" />
+      <LineId Id="1512" Count="0" />
+      <LineId Id="1516" Count="7" />
+      <LineId Id="1515" Count="0" />
+      <LineId Id="1513" Count="0" />
+      <LineId Id="1272" Count="0" />
+      <LineId Id="1392" Count="0" />
+      <LineId Id="1380" Count="0" />
+      <LineId Id="1296" Count="0" />
+      <LineId Id="1479" Count="1" />
+      <LineId Id="1476" Count="0" />
+      <LineId Id="1360" Count="0" />
+      <LineId Id="1411" Count="0" />
+      <LineId Id="1488" Count="2" />
+      <LineId Id="1297" Count="0" />
+      <LineId Id="1396" Count="0" />
+      <LineId Id="1298" Count="0" />
+      <LineId Id="1491" Count="1" />
+      <LineId Id="1412" Count="0" />
+      <LineId Id="1306" Count="1" />
+      <LineId Id="1537" Count="6" />
+      <LineId Id="1373" Count="0" />
+      <LineId Id="1532" Count="0" />
+      <LineId Id="1534" Count="2" />
+      <LineId Id="1533" Count="0" />
+      <LineId Id="1362" Count="0" />
+      <LineId Id="1348" Count="1" />
+      <LineId Id="1011" Count="1" />
+      <LineId Id="1008" Count="2" />
+      <LineId Id="504" Count="3" />
+      <LineId Id="518" Count="0" />
+      <LineId Id="921" Count="0" />
+      <LineId Id="520" Count="5" />
+      <LineId Id="975" Count="1" />
+      <LineId Id="526" Count="3" />
+      <LineId Id="545" Count="6" />
+      <LineId Id="994" Count="0" />
+      <LineId Id="992" Count="0" />
+      <LineId Id="552" Count="0" />
+      <LineId Id="978" Count="0" />
+      <LineId Id="583" Count="1" />
+      <LineId Id="979" Count="0" />
+      <LineId Id="585" Count="0" />
+      <LineId Id="995" Count="0" />
+      <LineId Id="586" Count="1" />
+      <LineId Id="993" Count="0" />
+      <LineId Id="588" Count="3" />
+      <LineId Id="980" Count="1" />
+      <LineId Id="592" Count="0" />
+      <LineId Id="982" Count="0" />
+      <LineId Id="996" Count="0" />
+      <LineId Id="593" Count="0" />
+      <LineId Id="991" Count="0" />
+      <LineId Id="990" Count="0" />
+      <LineId Id="594" Count="8" />
+      <LineId Id="983" Count="1" />
+      <LineId Id="603" Count="3" />
+      <LineId Id="650" Count="1" />
+      <LineId Id="985" Count="1" />
+      <LineId Id="652" Count="0" />
+      <LineId Id="987" Count="0" />
+      <LineId Id="653" Count="16" />
+      <LineId Id="988" Count="1" />
+      <LineId Id="972" Count="0" />
+      <LineId Id="931" Count="38" />
+      <LineId Id="930" Count="0" />
+      <LineId Id="719" Count="2" />
+      <LineId Id="997" Count="1" />
+      <LineId Id="722" Count="75" />
+      <LineId Id="973" Count="0" />
+      <LineId Id="798" Count="1" />
+      <LineId Id="999" Count="0" />
+      <LineId Id="800" Count="41" />
+      <LineId Id="974" Count="0" />
+      <LineId Id="842" Count="78" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_SetState">
+      <LineId Id="7" Count="5" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_SetSubstate">
+      <LineId Id="7" Count="17" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.M_UpdateStatus">
+      <LineId Id="9" Count="15" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="25" Count="44" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_SCIFY_FILTER_WHEEL_FW102C.RPC_MoveToFilterPosition">
+      <LineId Id="62" Count="0" />
+      <LineId Id="11" Count="19" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="43" Count="1" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="78" Count="1" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="51" Count="10" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

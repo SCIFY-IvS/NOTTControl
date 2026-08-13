@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<VarLinks>
+	<OwnerA Name="TIPC^actuator^actuator Instance">
+		<OwnerB Name="TIPC^actuator^actuator Instance">
+			<Link VarA="PlcTask Inputs^MAIN.Actuator001.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Actuator001.q_bOn"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator002.i_bOn" VarB="PlcTask Outputs^MAIN.SIM_Actuator002.q_bOn"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator002.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Actuator002.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator003.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Actuator003.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.Actuator004.i_nCouplerState" VarB="PlcTask Outputs^MAIN.SIM_Actuator004.q_nCouplerState"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator001.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator001.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator002.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator002.q_bSwitch"/>
+			<Link VarA="PlcTask Inputs^MAIN.SIM_Actuator003.i_bSwitch" VarB="PlcTask Outputs^MAIN.Actuator003.q_bSwitch"/>
+			<Link VarA="PlcTask Outputs^MAIN.Actuator004.q_bSwitch" VarB="PlcTask Inputs^MAIN.SIM_Actuator004.i_bSwitch"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator001.q_nCouplerState" VarB="PlcTask Inputs^MAIN.Actuator001.i_nCouplerState"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator003.q_bOn" VarB="PlcTask Inputs^MAIN.Actuator003.i_bOn"/>
+			<Link VarA="PlcTask Outputs^MAIN.SIM_Actuator004.q_bOn" VarB="PlcTask Inputs^MAIN.Actuator004.i_bOn"/>
+		</OwnerB>
+	</OwnerA>
+</VarLinks>

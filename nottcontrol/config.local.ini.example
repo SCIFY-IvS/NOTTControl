@@ -1,0 +1,9 @@
+# Local overrides for this machine — copy to config.local.ini or let the GUI
+# create it when you move ROIs. This file is tracked only as an example;
+# config.local.ini itself is gitignored and survives git pull.
+#
+# [H2RG DETECTOR]
+# ROI 1 = 333,105,4,105
+#
+# [INFRATEC CAMERA]
+# ROI 1 = 333,105,4,105

@@ -1,9 +1,24 @@
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QMainWindow,
+    QPushButton,
+    QSizePolicy,
+)
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.uic import loadUi
-from nottcontrol.opcua import OPCUAConnection
 from nottcontrol import config
+from nottcontrol.app_icon import install_nott_logo_header
 from nottcontrol.components.shutter import Shutter
+from nottcontrol.components.device_polling import (
+    shutter_status_opc_nodes,
+    split_shutter_status_values,
+)
+from nottcontrol.theme import (
+    PANEL_BUTTON_STYLE,
+    PANEL_BUTTON_SECONDARY_STYLE,
+    linux_safe_stylesheet,
+)
 
 class ShutterWindow(QMainWindow):
     closing = pyqtSignal()
@@ -13,11 +28,7 @@ class ShutterWindow(QMainWindow):
 
         self.parent = parent
 
-        url =  config['DEFAULT']['opcuaaddress']
-
-        # save the OPC UA connection
-        self.opcua_conn = OPCUAConnection(url)
-        self.opcua_conn.connect()
+        self.opcua_conn = opcua_conn
 
         self._shutter1 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH1", 'Shutter 1')
         self._shutter2 = Shutter(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Shutters.NSH2", 'Shutter 2')
@@ -27,41 +38,115 @@ class ShutterWindow(QMainWindow):
         self.redis_client = redis_client
 
         self.ui = loadUi('shutters.ui', self)
+        install_nott_logo_header(self, title="Shutter Control")
+        self._layout_shutter_panels()
+        self.setMinimumSize(1100, 680)
 
         self.ui.shutter_widget_1.setup(self.opcua_conn, self.redis_client, self._shutter1)
         self.ui.shutter_widget_2.setup(self.opcua_conn, self.redis_client, self._shutter2)
         self.ui.shutter_widget_3.setup(self.opcua_conn, self.redis_client, self._shutter3)
         self.ui.shutter_widget_4.setup(self.opcua_conn, self.redis_client, self._shutter4)
 
+        self._shutter_widgets = [
+            (self._shutter1, self.ui.shutter_widget_1),
+            (self._shutter2, self.ui.shutter_widget_2),
+            (self._shutter3, self.ui.shutter_widget_3),
+            (self._shutter4, self.ui.shutter_widget_4),
+        ]
+        self._shutter_prefixes = [
+            shutter._prefix for shutter, _ in self._shutter_widgets
+        ]
+
         self.ui.actionClose_all.triggered.connect(self.close_all)
         self.ui.actionOpen_all.triggered.connect(self.open_all)
+        self._btn_open_all.clicked.connect(self.open_all)
+        self._btn_close_all.clicked.connect(self.close_all)
 
         self.t_pos = QTimer()
         self.t_pos.timeout.connect(self.load_positions)
-        self.t_pos.start(5)
+        position_save_interval_ms = config.getint(
+            "SENSORS", "position_save_interval_ms", fallback=1000
+        )
+        self.t_pos.start(position_save_interval_ms)
 
         self.t = QTimer()
         self.t.timeout.connect(self.refresh_status)
         self.t.start(200)
 
+    def _layout_shutter_panels(self) -> None:
+        container = self.ui.centralwidget
+        if container.layout() is not None:
+            return
+        layout = QGridLayout(container)
+        layout.setContentsMargins(12, 8, 12, 12)
+        layout.setSpacing(12)
+
+        self._btn_open_all = QPushButton("Open all", container)
+        self._btn_close_all = QPushButton("Close all", container)
+        self._btn_open_all.setObjectName("pb_open_all")
+        self._btn_close_all.setObjectName("pb_close_all")
+        self._btn_open_all.setMinimumWidth(110)
+        self._btn_close_all.setMinimumWidth(110)
+        self._btn_open_all.setMinimumHeight(32)
+        self._btn_close_all.setMinimumHeight(32)
+        self._btn_open_all.setStyleSheet(linux_safe_stylesheet(PANEL_BUTTON_STYLE))
+        self._btn_close_all.setStyleSheet(
+            linux_safe_stylesheet(PANEL_BUTTON_SECONDARY_STYLE)
+        )
+
+        actions = QHBoxLayout()
+        actions.setContentsMargins(0, 0, 0, 0)
+        actions.setSpacing(10)
+        actions.addStretch(1)
+        actions.addWidget(self._btn_open_all)
+        actions.addWidget(self._btn_close_all)
+        layout.addLayout(actions, 0, 0, 1, 2)
+
+        widgets = (
+            self.ui.shutter_widget_1,
+            self.ui.shutter_widget_2,
+            self.ui.shutter_widget_3,
+            self.ui.shutter_widget_4,
+        )
+        for index, widget in enumerate(widgets):
+            widget.setMinimumHeight(200)
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            layout.addWidget(widget, 1 + index // 2, index % 2)
+
     def closeEvent(self, *args):
         self.t.stop()
         self.t_pos.stop()
-        self.opcua_conn.disconnect()
         self.closing.emit()
         super().closeEvent(*args)
 
     def refresh_status(self):
-        self.ui.shutter_widget_1.refresh_status()
-        self.ui.shutter_widget_2.refresh_status()
-        self.ui.shutter_widget_3.refresh_status()
-        self.ui.shutter_widget_4.refresh_status()
+        try:
+            values = self.opcua_conn.read_nodes(
+                shutter_status_opc_nodes(self._shutter_prefixes)
+            )
+            for (shutter, widget), row in zip(
+                self._shutter_widgets,
+                split_shutter_status_values(values, len(self._shutter_widgets)),
+            ):
+                status, state, substate, position = row
+                hw_status = shutter.hardware_state_from_position(position)
+                widget.apply_status_values(status, state, substate, hw_status)
+        except Exception as e:
+            print(e)
     
     def load_positions(self):
-        self.ui.shutter_widget_1.load_position()
-        self.ui.shutter_widget_2.load_position()
-        self.ui.shutter_widget_3.load_position()
-        self.ui.shutter_widget_4.load_position()
+        try:
+            values = self.opcua_conn.read_nodes(
+                shutter_status_opc_nodes(self._shutter_prefixes)
+            )
+            for (shutter, widget), row in zip(
+                self._shutter_widgets,
+                split_shutter_status_values(values, len(self._shutter_widgets)),
+            ):
+                hw_status = shutter.hardware_state_from_position(row[3])
+                widget.apply_hardware_state(hw_status)
+        except Exception as e:
+            print(e)
     
     def close_all(self):
         try:

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_MOTOR_SIGNAL" Id="{a56047b8-0367-40a9-aef9-5833355705af}">
+    <Declaration><![CDATA[TYPE T_MOTOR_SIGNAL :
+STRUCT
+	bActive:	BOOL	:= FALSE;
+	bActiveLow:	BOOL	:= FALSE;
+	bUsed:		BOOL	:= FALSE;
+	lrPosition:	LREAL	:= 0.0;
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

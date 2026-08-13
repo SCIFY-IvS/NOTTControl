@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.10">
+  <DUT Name="T_SA_SIM_CH_CFG" Id="{4c73d87d-9ba8-45c2-a19d-c412f1c4d3a9}">
+    <Declaration><![CDATA[TYPE T_SA_SIM_CH_CFG :
+STRUCT
+	
+	//
+	// SmarAct Positioner configuration parameters.
+	// All units are Positioner System Units [DevU], pd and nm.
+	//
+	
+	//
+	// Channel Number [0..17]
+	//
+	nCHAN:			UINT := 0;
+
+	//
+	// MODule number that the channel belongs to [0..5].
+	//
+	nMOD:			UINT;	// Module  number [0..5]
+
+	nCLIN:			DINT := 1;	// Channel Control Loop Input (1 = SENSOR)
+
+	nBASE_UNIT:		DINT := 2;	// Channel Base Unit (2=meter, 3=degree)
+
+	nBASE_RES:		DINT := -9;	// Channel Base Resolution
+
+	nTUN_MTYP:		DINT := 0;	// Channel Positioner Movement Type (0=linear, 1=rotary)
+
+	nTUN_RTYP:		DINT := 2;	// Channel Positioner Reference Type (1=end stop, 2=single coded)
+
+	//
+	// Positioning
+	//
+
+	// Position of Reference [UU].
+	// This is the position to set for the REFerence (INIT).
+	// Equivalent to 'Calibrate on Switch' in FB_MOTOR.
+	// ':CHAN#:POS <pos>'	
+	//
+	lnREF_POS:		LINT := 0;
+	
+	lnREF_VEL:		LINT := 1;	// Velocity for referencing DevU/s]
+
+	lnVEL:			LINT := 1;	// Velocity for referencing DevU/s]
+	
+	// Hold Time [ms].
+	// In-position holding time. (-1) means indefinite.
+	// ':CHAN#:HOLD <time>'
+	//
+	nHOLD:			DINT := -1;
+	
+
+	
+	// In Position Threshold in [UU].
+	// ':CHAN#:INP:THR <thr>'
+	//
+	nINP_THR:		UDINT := 1;	
+	
+	// In Position Delay [ms]
+	// ':CHAN#:INP:DEL <delay>'
+	// Move is complete after the positioner has been in position for <delay> ms.
+	//
+	nINP_DEL:		UDINT := 1000;
+	
+	// Range Limit Min (lower limit) [UU].
+	// ':CHAN#:RLIM:MIN <lim>'
+	// Note: If both lrRangeLimitMin and lrRangeLimitMax are set to 0.0,
+	//       limits are not set.
+	//
+	lnRLIM_MIN:		LINT := 0;
+
+	// Range Limit Max (upper limit) [UU].
+	// ':CHAN#:RLIM:MAX <lim>'
+	//
+	lnRLIM_MAX:		LINT := 0;
+
+
+	//
+	// Calibration, Referencing (INIT) and State configuration
+	//
+	
+	// Referencing Options.
+	// :CHAN#:REF:OPT <opt>
+	// It is expected that only the direction for referencing is needed to be configured.
+	//    0 – positive (default)
+	//    1 - negative
+	nREF_OPT:		UINT := 0;
+
+	// Calibration Options.
+	// :CHAN#:CAL:OPT <opt>
+	// It is expected that only the direction for Calibration is needed to be configured.
+	//    0 – positive (default)
+	//    1 - negative
+	nCAL_OPT:		UINT := 0;
+
+	// Positionign control options.
+	// 256 - ‘In Position’ flag is set on move completion.
+	// ':CHAN#:PCON:OPT <opt>'
+	nPCON_OPT:		UINT := 256;
+	
+	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

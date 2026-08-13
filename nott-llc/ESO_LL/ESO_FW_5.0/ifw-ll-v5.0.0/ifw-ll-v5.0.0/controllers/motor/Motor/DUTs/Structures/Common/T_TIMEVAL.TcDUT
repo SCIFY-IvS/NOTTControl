@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.9">
+  <DUT Name="T_TIMEVAL" Id="{a8ba7203-ae2a-4d07-bd5c-cd2ed3e2c016}">
+    <Declaration><![CDATA[TYPE T_TIMEVAL :
+STRUCT
+    tv_sec:		UDINT;	// seconds since midnight January 1,1970 UTC
+    tv_usec:	DINT;  	// and microseconds
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
