@@ -1364,6 +1364,7 @@ class H2rgMainWindow(QMainWindow):
         self._last_exposure_report: dict[str, float | int | str] | None = None
         self._initialized = False
         self._macie_operation_busy = False
+        self._macie_operation_gen = 0
         self._last_zmq_fits_poll = 0.0
         self._fowler_pairs = MACIE_FOWLER_PAIRS_DEFAULT
         self.image = None
@@ -1482,7 +1483,7 @@ class H2rgMainWindow(QMainWindow):
         return (
             "ok;"
             f"initialized={int(self._initialized)};"
-            f"busy={int(self._macie_operation_busy)};"
+            f"busy={int(self._macie_operation_busy or self._operation_lock.locked())};"
             f"live={int(self._live_active)}"
         )
 
@@ -1493,7 +1494,7 @@ class H2rgMainWindow(QMainWindow):
             return "nok;not_initialized"
         if self._live_active:
             return "nok;live_active"
-        if self._macie_operation_busy:
+        if self._macie_operation_busy or self._operation_lock.locked():
             return "nok;busy"
         done = threading.Event()
         self._remote_op_error = None
@@ -1513,7 +1514,7 @@ class H2rgMainWindow(QMainWindow):
                 self._remote_op_error = "live_active"
                 self._on_operation_failed("Stop live mode before acquiring")
                 return
-            if self._macie_operation_busy:
+            if self._macie_operation_busy or self._operation_lock.locked():
                 self._remote_op_error = "busy"
                 return
             self.acquire(done_event=done)
@@ -3482,6 +3483,22 @@ class H2rgMainWindow(QMainWindow):
         )
         return self._macie
 
+    def _begin_macie_operation_busy(self) -> int:
+        """Grey out MACIE controls. Returns a generation token for a matching release."""
+        self._macie_operation_gen += 1
+        gen = self._macie_operation_gen
+        self._macie_operation_busy = True
+        self._sync_background_buttons_enabled()
+        self.macie_operation_busy.emit(True)
+        return gen
+
+    def _release_macie_operation_busy(self, gen: int) -> None:
+        """Re-enable MACIE controls. No-op if a newer operation has started."""
+        if gen != self._macie_operation_gen or not self._macie_operation_busy:
+            return
+        self._macie_operation_busy = False
+        self.macie_operation_busy.emit(False)
+
     def _run_macie_operation(
         self,
         label: str,
@@ -3489,14 +3506,13 @@ class H2rgMainWindow(QMainWindow):
         *,
         status: str | None = None,
         done_event: threading.Event | None = None,
+        after_macie=None,
     ) -> None:
         if status:
             self.status_updated.emit(status)
         # Set busy synchronously so worker-side checks (save-dir sync, next-frame
         # rglob) see it before the Queued GUI slot runs.
-        self._macie_operation_busy = True
-        self._sync_background_buttons_enabled()
-        self.macie_operation_busy.emit(True)
+        gen = self._begin_macie_operation_busy()
 
         def worker() -> None:
             macie = self._macie
@@ -3505,6 +3521,11 @@ class H2rgMainWindow(QMainWindow):
             try:
                 with self._operation_lock:
                     operation()
+                # Re-enable the GUI as soon as MACIE/ZMQ is done; FITS archive
+                # continues here without holding the operation lock.
+                if after_macie is not None:
+                    self._release_macie_operation_busy(gen)
+                    after_macie()
             except Exception as exc:
                 message = f"{label} failed: {exc}"
                 if isinstance(done_event, threading.Event):
@@ -3513,8 +3534,7 @@ class H2rgMainWindow(QMainWindow):
             finally:
                 if macie is not None:
                     macie.resume_live_acquisition()
-                self._macie_operation_busy = False
-                self.macie_operation_busy.emit(False)
+                self._release_macie_operation_busy(gen)
                 if isinstance(done_event, threading.Event):
                     done_event.set()
 
@@ -3785,6 +3805,8 @@ class H2rgMainWindow(QMainWindow):
                 done_event.set()
             return
 
+        ctx: dict = {}
+
         def operation() -> None:
             from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
 
@@ -3800,6 +3822,14 @@ class H2rgMainWindow(QMainWindow):
             keep_files = self._save_image_enabled()
             self._fits_dir_ok = None
             self._arm_frame_timing("Acquire")
+            ctx.update(
+                macie=macie,
+                exposure=exposure,
+                ncoadds=ncoadds,
+                nseq=nseq,
+                keep_files=keep_files,
+                zmq_timeout_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0),
+            )
 
             if not keep_files:
                 preview = self._preview_fits_path()
@@ -3807,49 +3837,14 @@ class H2rgMainWindow(QMainWindow):
                     before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
                 except OSError:
                     before_mtime = 0.0
+                ctx["preview"] = preview
+                ctx["before_mtime"] = before_mtime
                 result = macie.acquire()
-                if result.frame is not None:
-                    self._raw_fits_cube = None
-                    self._raw_fits_header = None
-                    self._last_fits_path = None
-                    self._frame_timing_status = (
-                        "Acquire complete — displayed via ZMQ preview (not archived)"
-                    )
-                    self.frame_ready.emit(
-                        numpy.asarray(result.frame, dtype=numpy.float32)
-                    )
-                    return
-                frame, path = self._wait_for_preview_fits(
-                    preview,
-                    before_mtime=before_mtime,
-                    timeout_s=fits_wait_timeout_s(
-                        float(exposure["execution_s"]),
-                        ncoadds=ncoadds,
-                        nseq=nseq,
-                        margin_s=MACIE_FITS_WAIT_MARGIN_S,
-                        maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
-                        + MACIE_FITS_WAIT_MARGIN_S,
-                    ),
-                )
-                if frame is None:
-                    self._frame_timing_t0 = None
-                    self.status_updated.emit(self._missing_fits_status())
-                    return
-                self._last_fits_path = None
-                self._frame_timing_status = (
-                    f"Acquire complete — displayed via {path.name} (not archived)"
-                )
-                self.frame_ready.emit(frame)
+                ctx["result"] = result
+                self.status_updated.emit("Acquire complete — finishing FITS…")
                 return
 
             before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
-            wait_timeout_s = fits_wait_timeout_s(
-                float(exposure["execution_s"]),
-                ncoadds=ncoadds,
-                nseq=nseq,
-                margin_s=MACIE_FITS_WAIT_MARGIN_S,
-                maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
-            )
             expected = max(1, nseq)
             self._acquire_previewed_names = set()
             self._acquire_preview_reduction = self._selected_ramp_mode()
@@ -3871,39 +3866,120 @@ class H2rgMainWindow(QMainWindow):
                     name="h2rg-acquire-preview",
                 )
                 preview_thread.start()
-            result = None
-            ramp_paths: list[Path] = []
-            frame = None
-            preview_path = None
+            ctx.update(
+                before_mtime=before_mtime,
+                before_name=before_name,
+                expected=expected,
+                stop_preview=stop_preview,
+                preview_thread=preview_thread,
+            )
             try:
                 result = macie.acquire()
-                # Multi-frame: skip early ZMQ paint — it is only the last ramp.
-                if result.frame is not None and expected <= 1:
-                    self._frame_timing_skip_report = True
-                    self.frame_ready.emit(
-                        numpy.asarray(result.frame, dtype=numpy.float32)
-                    )
-                    self.status_updated.emit("Acquire: preview — ZMQ")
-
-                ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
-                    before_mtime,
-                    macie,
-                    before_name=before_name,
-                    expected_count=expected,
-                    timeout_s=wait_timeout_s,
-                    display_each=expected > 1,
-                )
-            finally:
+            except Exception:
                 stop_preview.set()
                 if preview_thread is not None:
                     preview_thread.join(timeout=2.0)
+                raise
+            ctx["result"] = result
+            # Multi-frame: skip early ZMQ paint — it is only the last ramp.
+            if result.frame is not None and expected <= 1:
+                self._frame_timing_skip_report = True
+                self.frame_ready.emit(
+                    numpy.asarray(result.frame, dtype=numpy.float32)
+                )
+                self.status_updated.emit("Acquire: preview — ZMQ")
+            else:
+                self.status_updated.emit("Acquire complete — finishing FITS…")
+
+        def after_macie() -> None:
+            self._finish_acquire_archive(ctx)
+
+        self._run_macie_operation(
+            "Acquire",
+            operation,
+            done_event=done_event,
+            after_macie=after_macie,
+        )
+
+    def _finish_acquire_archive(self, ctx: dict) -> None:
+        """Wait for ramp FITS, stamp headers, and write science files.
+
+        Runs after ZMQ acquire returns, with the GUI already re-enabled.
+        """
+        macie = ctx.get("macie")
+        result = ctx.get("result")
+        keep_files = bool(ctx.get("keep_files", True))
+        exposure = ctx.get("exposure") or {}
+        ncoadds = int(ctx.get("ncoadds", 1) or 1)
+        nseq = int(ctx.get("nseq", 1) or 1)
+        zmq_timeout_s = float(ctx.get("zmq_timeout_s", 0.0) or 0.0)
+        stop_preview = ctx.get("stop_preview")
+        preview_thread = ctx.get("preview_thread")
+
+        try:
+            if not keep_files:
+                if result is not None and result.frame is not None:
+                    self._raw_fits_cube = None
+                    self._raw_fits_header = None
+                    self._last_fits_path = None
+                    self._frame_timing_status = (
+                        "Acquire complete — displayed via ZMQ preview (not archived)"
+                    )
+                    self.frame_ready.emit(
+                        numpy.asarray(result.frame, dtype=numpy.float32)
+                    )
+                    return
+                preview = ctx.get("preview")
+                if preview is None:
+                    self._frame_timing_t0 = None
+                    self.status_updated.emit(self._missing_fits_status())
+                    return
+                frame, path = self._wait_for_preview_fits(
+                    preview,
+                    before_mtime=float(ctx.get("before_mtime", 0.0) or 0.0),
+                    timeout_s=fits_wait_timeout_s(
+                        float(exposure.get("execution_s", 0.0) or 0.0),
+                        ncoadds=ncoadds,
+                        nseq=nseq,
+                        margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                        maximum_s=zmq_timeout_s + MACIE_FITS_WAIT_MARGIN_S,
+                    ),
+                )
+                if frame is None:
+                    self._frame_timing_t0 = None
+                    self.status_updated.emit(self._missing_fits_status())
+                    return
+                self._last_fits_path = None
+                self._frame_timing_status = (
+                    f"Acquire complete — displayed via {path.name} (not archived)"
+                )
+                self.frame_ready.emit(frame)
+                return
+
+            wait_timeout_s = fits_wait_timeout_s(
+                float(exposure.get("execution_s", 0.0) or 0.0),
+                ncoadds=ncoadds,
+                nseq=nseq,
+                margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                maximum_s=zmq_timeout_s + MACIE_FITS_WAIT_MARGIN_S,
+            )
+            expected = max(1, int(ctx.get("expected", nseq) or 1))
+            ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
+                float(ctx.get("before_mtime", 0.0) or 0.0),
+                macie,
+                before_name=ctx.get("before_name"),
+                expected_count=expected,
+                timeout_s=wait_timeout_s,
+                display_each=expected > 1,
+            )
 
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
+                cards = self._acquisition_fits_header_cards()
                 for ramp_path in ramp_paths:
                     # Always stamp DETMODE / cryo cards on the ramp archive,
                     # including when science FITS writes are disabled.
-                    self._stamp_ramp_fits_headers(ramp_path)
+                    self._apply_cryo_temps_to_ramp(ramp_path, cards)
                     if (
                         ramp_path.name == preview_path.name
                         and self._raw_fits_header is not None
@@ -3935,8 +4011,11 @@ class H2rgMainWindow(QMainWindow):
                 else:
                     self._frame_timing_t0 = None
                     self.status_updated.emit(self._missing_fits_status())
-
-        self._run_macie_operation("Acquire", operation, done_event=done_event)
+        finally:
+            if isinstance(stop_preview, threading.Event):
+                stop_preview.set()
+            if preview_thread is not None:
+                preview_thread.join(timeout=2.0)
 
     def _arm_frame_timing(self, label: str = "Acquire") -> None:
         """Start wall-clock timing; reported when the frame is displayed."""
@@ -4156,7 +4235,14 @@ class H2rgMainWindow(QMainWindow):
             )
             return None
         try:
-            if not wait_for_file_size_stable(resolved, settle_s=0.4, timeout_s=60.0):
+            already_shown = ramp_path.name in getattr(
+                self, "_acquire_previewed_names", set()
+            )
+            settle_s = 0.05 if already_shown else 0.4
+            timeout_s = 2.0 if already_shown else 60.0
+            if not wait_for_file_size_stable(
+                resolved, settle_s=settle_s, timeout_s=timeout_s
+            ):
                 raise TruncatedFitsError(f"FITS still growing: {resolved.name}")
             data, header = load_fits_data(resolved)
         except Exception as exc:
@@ -4934,8 +5020,16 @@ class H2rgMainWindow(QMainWindow):
             if local_ok and len(seen) >= expected_count:
                 # Require byte-size stability (not just file presence) so full-frame
                 # SMB copies are not opened mid-write (~3 MB of an ~8 MB plane).
+                # Skip ramps already shown during acquire — those waited already.
+                previewed = getattr(self, "_acquire_previewed_names", set())
+                candidates = list(seen.values())[-max(1, expected_count) :]
+                unchecked = [
+                    path for path in candidates if path.name not in previewed
+                ]
+                if not unchecked:
+                    break
                 ready = True
-                for path in list(seen.values())[-max(1, expected_count) :]:
+                for path in unchecked:
                     if not wait_for_file_size_stable(
                         path, settle_s=0.35, timeout_s=1.2
                     ):
@@ -4972,6 +5066,8 @@ class H2rgMainWindow(QMainWindow):
                 path.name.lower(),
             ),
         )
+        if expected_count > 1 and len(ramp_paths) > expected_count:
+            ramp_paths = ramp_paths[:expected_count]
         if not ramp_paths:
             # Acquire finished but SMB never showed the file — pull newest over ZMQ
             # even if the basename matches the pre-acquire snapshot.
