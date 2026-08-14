@@ -73,8 +73,9 @@ def calc_ramp_plan(
     CDS / Ramp follow Jarron Leisenring's calc_ramp_settings: nreads stays 1 and
     longer DIT is obtained with drop frames between two groups (ngmax=2).
 
-    Soft SC is no longer used. ``windowed_cds`` applies only to true WinMode
-    (horizontal / XY) layouts that still need a minimum of two clocked samples.
+    ``windowed_cds`` applies only to CDS (and SingleFrame) on true WinMode
+    (horizontal / XY). It forces a minimum of two clocked samples. Ramp on
+    WinMode may be a single read so photon time can equal frame time.
 
     Fowler uses one group with an even number of reads (2 × fowler_pairs) and
     ASIC ExpMode=Fowler; pair-difference averaging is done in software.
@@ -100,10 +101,9 @@ def calc_ramp_plan(
         return {"ngroups": 1, "nreads": 1, "ndrops": 0, "fowler_pairs": 0}
 
     if mode == "Ramp":
-        # Photon time quantized to whole frame times (round, like prior Ramp).
+        # Photon time quantized to whole frame times. WinMode may be 1 sample;
+        # the CDS two-sample floor does not apply here.
         n_frames = max(1, int(round(tint_ms / frametime_ms)))
-        if windowed_cds:
-            return _jarron_two_group_plan(frametime_ms, n_frames=n_frames)
         tint_rounded = n_frames * frametime_ms
         if n_frames == 1:
             return {

@@ -63,13 +63,13 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(plan["ndrops"], 0)
         self.assertEqual(plan["tint_ms"], 200.0)
 
-    def test_ramp_windowed_min_two_samples_via_groups(self) -> None:
-        # WinMode: never a lone read — Jarron 2×1 with no drops (min CDS pair).
+    def test_ramp_windowed_allows_single_read(self) -> None:
+        # Ramp on WinMode may be 1 sample so photon time can equal frame time.
         plan = calc_ramp_plan(50.0, 200.0, mode="Ramp", windowed_cds=True)
-        self.assertEqual(plan["ngroups"], 2)
+        self.assertEqual(plan["ngroups"], 1)
         self.assertEqual(plan["nreads"], 1)
         self.assertEqual(plan["ndrops"], 0)
-        self.assertEqual(plan["tint_ms"], 400.0)
+        self.assertEqual(plan["tint_ms"], 200.0)
 
     def test_ramp_windowed_long_dit_uses_drops(self) -> None:
         # 5 s with 374 ms frames → round to 13 frames: 2 groups, 11 drops.

@@ -3604,7 +3604,7 @@ class H2rgMainWindow(QMainWindow):
             self._save_image_enabled(),
             tint_key,
             window_index,
-            windowed,  # WinMode (horizontal/XY) — keep a geometry-stable ramp plan
+            windowed_cds,  # CDS+WinMode two-sample floor; Ramp ignores this
             MACIE_INTEGRATION_NGROUPS_MAX,
         )
 
@@ -3685,8 +3685,8 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=self._save_image_enabled(),
-            # WinMode only: keep a geometry-stable plan (never 1-read).
-            windowed_cds=self._windowed_cds_layout(),
+            # CDS WinMode: never 1-read. Ramp WinMode may be one frame.
+            windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
         self._last_tint_ms = float(result["inttime_ms"])
         # Ramp/CDS may quantize DIT to N×frametime — mirror in the box.
