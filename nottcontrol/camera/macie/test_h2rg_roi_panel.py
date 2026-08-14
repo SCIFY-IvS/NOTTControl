@@ -47,6 +47,18 @@ class BrightnessTests(unittest.TestCase):
         self.assertEqual(profile.shape, (4,))
         numpy.testing.assert_allclose(profile, region.mean(axis=1))
 
+    def test_profile_min_max_statistics(self) -> None:
+        region = numpy.array(
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
+            dtype=numpy.float64,
+        )
+        numpy.testing.assert_allclose(
+            roi_profile_1d(region, statistic="min"), region.min(axis=1)
+        )
+        numpy.testing.assert_allclose(
+            roi_profile_1d(region, statistic="max"), region.max(axis=1)
+        )
+
     def test_subframe_brightness_uses_window_origin(self) -> None:
         # Full-frame ROI at detector (10, 800); SC stripe starts at y=768.
         frame = numpy.zeros((512, 2048), dtype=numpy.float64)

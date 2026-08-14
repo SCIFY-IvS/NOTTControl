@@ -1343,6 +1343,7 @@ class H2rgMainWindow(QMainWindow):
         self._roi_panel: H2rgRoiPanel | None = None
         self._roi_plots: H2rgRoiPlots | None = None
         self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
+        self._last_roi_regions: dict[int, numpy.ndarray] | None = None
         self._last_roi_plot_refresh = 0.0
         # Full-frame origin of the displayed subframe (+ optional pad_top).
         self._display_origin_x = 0
@@ -2259,6 +2260,7 @@ class H2rgMainWindow(QMainWindow):
             window_seconds=MACIE_ROI_TIME_WINDOW_S,
         )
         self._roi_plots.window_seconds_changed.connect(self._on_roi_time_span_changed)
+        self._roi_plots.statistic_changed.connect(self._on_roi_plot_statistic_changed)
         self._roi_plots.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         root.addWidget(self._roi_plots, stretch=0)
 
@@ -2449,6 +2451,24 @@ class H2rgMainWindow(QMainWindow):
 
     def _on_roi_time_span_changed(self, _window_seconds: float) -> None:
         self._refresh_roi_plots(force=True)
+
+    def _on_roi_plot_statistic_changed(self, _statistic: str) -> None:
+        if self._last_roi_regions is not None:
+            self._last_roi_profiles = self._roi_profiles_from_regions(
+                self._last_roi_regions
+            )
+        self._refresh_roi_plots(force=True)
+
+    def _roi_profiles_from_regions(
+        self, regions: dict[int, numpy.ndarray]
+    ) -> dict[int, numpy.ndarray]:
+        statistic = "avg"
+        if self._roi_plots is not None:
+            statistic = self._roi_plots.selected_statistic()
+        return {
+            index: roi_profile_1d(region, statistic=statistic)
+            for index, region in regions.items()
+        }
 
     def _selected_window_mode(self) -> WindowMode:
         index = 0
@@ -2846,17 +2866,15 @@ class H2rgMainWindow(QMainWindow):
         for index, row in self._roi_panel.rows.items():
             row.set_values(results.get(index))
 
-        profiles: dict[int, numpy.ndarray] = {}
-        for index, region in regions.items():
-            profiles[index] = roi_profile_1d(region)
-        self._last_roi_profiles = profiles
+        self._last_roi_regions = regions
+        self._last_roi_profiles = self._roi_profiles_from_regions(regions)
 
         if record:
             stamp = datetime.now(timezone.utc).replace(tzinfo=None)
             for index, result in results.items():
                 row = self._roi_panel.rows.get(index)
                 if row is not None:
-                    row.add_max_value(result.max)
+                    row.add_sample(result)
             if self._roi_plots is not None:
                 self._roi_plots.append_timestamp(stamp)
             if MACIE_RECORD_ROIS:
