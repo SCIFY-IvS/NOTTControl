@@ -84,6 +84,8 @@ sudo apt-get install -y libgl1-mesa-dri mesa-utils
 
 Run the application from an environment where the package is installed. The entry script changes the working directory to the `nottcontrol` package folder so that **`config.ini`** and **`.ui`** files are found next to [`nottcontrol/main.py`](nottcontrol/main.py).
 
+**H2RG / MACIE GigE:** science Ethernet is a **direct cable** to `enp2s0f1` (not the wall). Leave campus `enp2s0f0` / `10.33.179.136` alone. After reboot, restore the host `/32` on `enp2s0f1` — see [`nottcontrol/camera/macie/Readme.MD`](nottcontrol/camera/macie/Readme.MD).
+
 ## Configuration
 
 Edit [`nottcontrol/config.ini`](nottcontrol/config.ini) for your site:

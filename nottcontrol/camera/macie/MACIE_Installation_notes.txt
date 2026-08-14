@@ -104,5 +104,52 @@ Then run:
 	sudo udevadm control --reload-rules
 	#sudo udevadm trigger
 
+=======================================================================
+
+GigE: MACIE direct link on nott-server (required for science rate)
+------------------------------------------------------------------
+
+Science Ethernet is a DIRECT cable: MACIE GigE port <-> nott-server enp2s0f1.
+Do not use the lab wall/switch for this link (too slow). Do not touch the
+campus NIC (enp2s0f0 / 10.33.179.136) — that is VNC, SSH, and the rest of
+the instrument LAN.
+
+  Campus / VNC:     enp2s0f0  10.33.179.136/24   (leave alone)
+  MACIE card:       GigE      10.33.179.135      (do not change)
+  Direct-link host: enp2s0f1  10.33.179.137/32   (server only, not the card)
+
+After every reboot, enp2s0f1 comes up with no IPv4. Restore:
+
+	sudo ip addr flush dev enp2s0f1
+	sudo ip link set enp2s0f1 up
+	sudo ip addr add 10.33.179.137/32 dev enp2s0f1
+	sudo ip route replace 10.33.179.135/32 dev enp2s0f1
+	ping -c 3 10.33.179.135
+
+Check:
+
+	ip route get 10.33.179.135
+	# ... dev enp2s0f1 ...
+	ip route get 10.33.179.1
+	# ... dev enp2s0f0 ...   (VNC must stay here)
+
+NEVER put 10.33.179.137/24 (or any 10.33.179.0/24) on enp2s0f1 — that steals
+the lab subnet and drops VNC. Use /32 only.
+
+To make it survive reboot (on nott-server, from this tree):
+
+	cd nottcontrol/camera/macie/network
+	sudo install -m 755 macie-gige-up.sh /usr/local/sbin/macie-gige-up.sh
+	sudo install -m 644 macie-gige.service /etc/systemd/system/macie-gige.service
+	sudo install -m 644 99-unmanaged-macie.conf /etc/NetworkManager/conf.d/99-unmanaged-macie.conf
+	sudo nmcli device set enp2s0f1 managed no
+	sudo nmcli general reload
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now macie-gige.service
+
+Then: ping -c 3 10.33.179.135
+      ip route get 10.33.179.1   # must still be enp2s0f0
+
+See also nottcontrol/camera/macie/Readme.MD
 
 
