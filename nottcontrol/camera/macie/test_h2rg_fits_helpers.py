@@ -91,6 +91,12 @@ class StripeWindowTests(unittest.TestCase):
                 _centered_window(size),
             )
 
+    def test_photonic_chip_window(self) -> None:
+        mode = {m.label: m for m in WINDOW_MODES}["Photonic chip"]
+        self.assertTrue(mode.x_window)
+        self.assertTrue(mode.y_window)
+        self.assertEqual((mode.x1, mode.x2, mode.y1, mode.y2), (1024, 1087, 900, 980))
+
 
 class CentralValueTests(unittest.TestCase):
     def test_fits_header_text_from_dict(self) -> None:
