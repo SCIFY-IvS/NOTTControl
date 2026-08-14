@@ -94,3 +94,27 @@ sudo ip addr flush dev enp2s0f1
 ```
 
 Never assign `10.33.179.0/24` to `enp2s0f1` in netplan or NetworkManager.
+
+### Socket receive buffer (required for Init / MSAC)
+
+MSAC and `zmq_server` request a ~**134217 KB** (~128 MiB) socket receive buffer. If `net.core.rmem_max` is the Linux default (~208 KB), Init fails with:
+
+`Unable to set socket receive buffer size at the OS level to 134217 KB`
+
+This is independent of the `/32` address. Raise it **now** (immediate):
+
+```bash
+sysctl net.core.rmem_max
+sudo sysctl -w net.core.rmem_max=268435456
+sudo sysctl -w net.core.rmem_default=134217728
+sudo sysctl -w net.core.wmem_max=268435456
+```
+
+`rmem_max` is 256 MiB because the kernel doubles `SO_RCVBUF` for bookkeeping. Then retry Init (close MSAC first if using the GUI).
+
+Persist (same `network/` folder):
+
+```bash
+sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-macie-gige.conf
+sudo sysctl --system
+```

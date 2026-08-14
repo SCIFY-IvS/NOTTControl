@@ -150,6 +150,17 @@ To make it survive reboot (on nott-server, from this tree):
 Then: ping -c 3 10.33.179.135
       ip route get 10.33.179.1   # must still be enp2s0f0
 
+Socket receive buffer (Init / MSAC fails without this):
+
+  Unable to set socket receive buffer size at the OS level to 134217 KB
+
+	sudo sysctl -w net.core.rmem_max=268435456
+	sudo sysctl -w net.core.rmem_default=134217728
+	sudo sysctl -w net.core.wmem_max=268435456
+	sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-macie-gige.conf
+	sudo sysctl --system
+
 See also nottcontrol/camera/macie/Readme.MD
+
 
 
