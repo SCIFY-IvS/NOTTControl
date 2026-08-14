@@ -130,14 +130,16 @@ sudo systemctl enable --now macie-gige.service
 
 If VNC drops, on the local console: `sudo systemctl stop macie-gige.service` then `sudo ip addr flush dev enp2s0f1`.
 
-**Socket receive buffer** (required for Init / MSAC). Without this you get `Unable to set socket receive buffer size at the OS level to 134217 KB`:
+**Socket receive buffer** (required for Init / MSAC). Without this you get `Unable to set socket receive buffer size at the OS level to 134217 KB`. The `sysctl -w` lines are what actually work; do **not** run `sysctl --system` (it reloads `/etc/sysctl.conf` and restores Lucid’s `33554432`):
 
 ```bash
 sudo sysctl -w net.core.rmem_max=268435456
 sudo sysctl -w net.core.rmem_default=134217728
 sudo sysctl -w net.core.wmem_max=268435456
-sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-macie-gige.conf
-sudo sysctl --system
+sudo rm -f /etc/sysctl.d/99-macie-gige.conf
+sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-zz-macie-gige.conf
+sudo sysctl -p /etc/sysctl.d/99-zz-macie-gige.conf
+sysctl net.core.rmem_max   # must be 268435456, not 33554432
 ```
 
 Then start `zmq_server` from `nottcontrol/camera/macie/` (close MSAC first — only one client on the card):

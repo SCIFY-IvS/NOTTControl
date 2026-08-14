@@ -110,11 +110,21 @@ sudo sysctl -w net.core.rmem_default=134217728
 sudo sysctl -w net.core.wmem_max=268435456
 ```
 
-`rmem_max` is 256 MiB because the kernel doubles `SO_RCVBUF` for bookkeeping. Then retry Init (close MSAC first if using the GUI).
-
-Persist (same `network/` folder):
+`rmem_max` is 256 MiB because the kernel doubles `SO_RCVBUF` for bookkeeping. Confirm:
 
 ```bash
-sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-macie-gige.conf
-sudo sysctl --system
+sysctl net.core.rmem_max net.core.rmem_default
+# expect: 268435456 and 134217728  (not 33554432)
+```
+
+Then retry Init (close MSAC first if using the GUI).
+
+**Persist:** `/etc/sysctl.conf` is applied last (`99-sysctl.conf`). On nott-server it still has Lucid/Arena `rmem_max=33554432` (32 MiB). Installing as `99-macie-gige.conf` and running `sysctl --system` **reverts** the working values. Install under a name that sorts **after** `99-sysctl.conf`, and apply **only** that file (do not run `sysctl --system`):
+
+```bash
+sudo rm -f /etc/sysctl.d/99-macie-gige.conf
+sudo install -m 644 99-macie-gige-sysctl.conf /etc/sysctl.d/99-zz-macie-gige.conf
+sudo sysctl -p /etc/sysctl.d/99-zz-macie-gige.conf
+sysctl net.core.rmem_max
+# must be 268435456
 ```
