@@ -40,6 +40,7 @@ from nottcontrol import config
 from nottcontrol.app_icon import load_app_icon, make_nott_logo_title_header
 from nottcontrol.camera.macie.fits_header_meta import (
     exposure_fits_cards,
+    file_identity_fits_cards,
     fits_header_cards_from_redis,
     header_cards_as_value_dict,
 )
@@ -4146,20 +4147,24 @@ class H2rgMainWindow(QMainWindow):
         return cards
 
     def _apply_cryo_temps_to_ramp(self, ramp_path: Path | None, cards) -> None:
-        """Stamp Redis status onto the in-memory and on-disk ramp headers when possible."""
-        if not cards:
+        """Stamp Redis status, file ID, and UTC DATE-OBS onto the ramp FITS."""
+        all_cards = list(cards or [])
+        resolved = None
+        if ramp_path is not None:
+            resolved = self._resolve_ramp_path(ramp_path) or ramp_path
+            all_cards.extend(file_identity_fits_cards(resolved))
+        if not all_cards:
             return
         if self._raw_fits_header is not None:
-            for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
+            for keyword, (value, _comment) in header_cards_as_value_dict(
+                all_cards
+            ).items():
                 self._raw_fits_header[keyword] = value
-        if ramp_path is None:
-            return
-        resolved = self._resolve_ramp_path(ramp_path)
         if resolved is None or not resolved.is_file():
             return
         from nottcontrol.camera.macie.fits_header_meta import update_fits_file_header_cards
 
-        update_fits_file_header_cards(resolved, cards)
+        update_fits_file_header_cards(resolved, all_cards)
 
     def _stamp_ramp_fits_headers(self, ramp_path: Path | None) -> list:
         """Write DETMODE/EXPTIME (+ cryo cards) onto the on-disk ramp FITS."""
@@ -4212,6 +4217,8 @@ class H2rgMainWindow(QMainWindow):
             return None
         output_path = self._science_output_path(ramp_path)
         cards = self._acquisition_fits_header_cards()
+        cards.extend(file_identity_fits_cards(ramp_path))
+        cards.append(("FILENAME", output_path.name, "Original FITS file name"))
         try:
             save_science_fits(
                 output_path,
@@ -4261,6 +4268,8 @@ class H2rgMainWindow(QMainWindow):
         )
         output_path = self._science_output_path(ramp_path)
         cards = self._acquisition_fits_header_cards()
+        cards.extend(file_identity_fits_cards(resolved))
+        cards.append(("FILENAME", output_path.name, "Original FITS file name"))
         for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
             header[keyword] = value
         self._raw_fits_header = dict(header)
