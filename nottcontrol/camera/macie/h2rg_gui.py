@@ -83,6 +83,9 @@ MACIE_ZMQ_ADDRESS = config.get(
 )
 MACIE_OFFLINE_MODE = config.getboolean(H2RG_SECTION, "offline_mode", fallback=False)
 MACIE_IMAGE_SCALE = config.getint(H2RG_SECTION, "image_display_scale", fallback=2)
+MACIE_IMAGE_DISPLAY_HZ = config.getfloat(
+    H2RG_SECTION, "image_display_refresh_hz", fallback=5.0
+)
 FITS_DIR_CHECK_TIMEOUT_S = config.getfloat(
     H2RG_SECTION, "fits_directory_check_timeout_s", fallback=1.0
 )
@@ -1389,6 +1392,7 @@ class H2rgMainWindow(QMainWindow):
         self._acquire_preview_lock = threading.Lock()
         self._acquire_preview_reduction = "CDS"
         self._acquire_preview_fowler = 2
+        self._acquire_preview_last_emit = 0.0
         self._pending_roi_display: numpy.ndarray | None = None
         self._cached_files_today: int | None = None
         self._pending_roi_record = False
@@ -3849,6 +3853,7 @@ class H2rgMainWindow(QMainWindow):
             self._acquire_previewed_names = set()
             self._acquire_preview_reduction = self._selected_ramp_mode()
             self._acquire_preview_fowler = self._fowler_pairs_value()
+            self._acquire_preview_last_emit = 0.0
             # Poll local FITS while acquire() runs so each multi-ramp FITS paints
             # as it is written (natural cadence), not as a burst after ZMQ returns.
             stop_preview = threading.Event()
@@ -4841,6 +4846,30 @@ class H2rgMainWindow(QMainWindow):
             dir_ok=True,
         )
 
+    def _acquire_preview_due(self) -> bool:
+        """True when another acquire preview paint is allowed (config Hz)."""
+        hz = float(MACIE_IMAGE_DISPLAY_HZ)
+        if hz <= 0.0:
+            return False
+        interval = 1.0 / hz
+        return (time.monotonic() - self._acquire_preview_last_emit) >= interval
+
+    def _newest_ramp_path(self, paths) -> Path | None:
+        newest: Path | None = None
+        newest_mtime = -1.0
+        newest_name = ""
+        for path in paths:
+            try:
+                mtime = path.stat().st_mtime if path.exists() else 0.0
+            except OSError:
+                mtime = 0.0
+            name = path.name.lower()
+            if newest is None or (mtime, name) > (newest_mtime, newest_name):
+                newest = path
+                newest_mtime = mtime
+                newest_name = name
+        return newest
+
     def _emit_acquire_preview(
         self,
         path: Path,
@@ -4856,10 +4885,11 @@ class H2rgMainWindow(QMainWindow):
             try:
                 if not path.is_file():
                     return None
-                # Full-frame ramps appear on SMB before CFITSIO finishes writing;
-                # wait for a stable size so Astropy does not open a truncated file.
+                # Brief settle so a fast 5 Hz preview can skip truncated SMB
+                # copies and retry on the next tick (do not use the 0.35 s
+                # archive settle — that would cap the refresh well below 5 Hz).
                 if not wait_for_file_size_stable(
-                    path, settle_s=0.35, timeout_s=2.0
+                    path, settle_s=0.08, timeout_s=0.4
                 ):
                     return None
                 data, header = load_fits_data(path)
@@ -4878,6 +4908,7 @@ class H2rgMainWindow(QMainWindow):
             displayed.add(path.name)
             status = f"Acquire: frame {index}/{expected_count} — {path.name}"
         frame = numpy.asarray(frame, dtype=numpy.float32)
+        self._acquire_preview_last_emit = time.monotonic()
         self.acquire_preview_frame.emit(frame, status)
         return frame
 
@@ -4888,24 +4919,38 @@ class H2rgMainWindow(QMainWindow):
         expected_count: int,
         stop_event: threading.Event,
     ) -> None:
-        """While acquire() runs, show each new local FITS as it is written.
+        """While acquire() runs, refresh the display at image_display_refresh_hz.
+
+        Always paints the newest ramp (and the last frame when the sequence
+        finishes). Intermediate files are skipped so a fast nseq cannot queue
+        a full replay after ZMQ returns.
 
         Must not call macie/ZMQ: acquire() holds the client lock until the
         sequence finishes, so any get_save_dir() here would stall until the end.
         """
-        while not stop_event.wait(0.15):
-            if not self._local_fits_accessible(allow_probe=True):
-                continue
-            for path in self._collect_new_ramp_paths(
-                before_mtime, before_name=before_name
+        discovered: dict[str, Path] = {}
+        while True:
+            stopped = stop_event.is_set()
+            if self._local_fits_accessible(allow_probe=True):
+                for path in self._collect_new_ramp_paths(
+                    before_mtime, before_name=before_name
+                ):
+                    discovered[path.name] = path
+            latest = self._newest_ramp_path(discovered.values())
+            have_all = len(discovered) >= expected_count
+            force = stopped or have_all
+            if latest is not None and (
+                force or self._acquire_preview_due()
             ):
                 self._emit_acquire_preview(
-                    path,
-                    index=len(self._acquire_previewed_names) + 1,
+                    latest,
+                    index=len(discovered),
                     expected_count=expected_count,
                 )
-            if len(self._acquire_previewed_names) >= expected_count:
+            if force:
                 break
+            if stop_event.wait(0.05):
+                continue
 
     def _display_acquire_preview(self, frame, status: str = "") -> None:
         """Paint one Acquire frame + ROI plots (GUI thread; no processEvents)."""
@@ -4938,7 +4983,7 @@ class H2rgMainWindow(QMainWindow):
         # Sync overlays to subframe geometry, then ROI numbers + plots.
         self._update_roi_values(display, record=True)
         self._update_roi_overlays()
-        self._refresh_roi_plots(force=True)
+        self._refresh_roi_plots(force=False)
 
     def _wait_for_acquire_frames(
         self,
@@ -4963,22 +5008,19 @@ class H2rgMainWindow(QMainWindow):
             nonlocal last_frame
             if not display_each:
                 return
-            displayed = self._acquire_previewed_names
-            ordered = sorted(
-                seen.values(),
-                key=lambda path: (
-                    path.stat().st_mtime if path.exists() else 0.0,
-                    path.name.lower(),
-                ),
+            latest = self._newest_ramp_path(seen.values())
+            if latest is None:
+                return
+            force = len(seen) >= expected_count
+            if not force and not self._acquire_preview_due():
+                return
+            frame = self._emit_acquire_preview(
+                latest,
+                index=len(seen),
+                expected_count=expected_count,
             )
-            for path in ordered:
-                frame = self._emit_acquire_preview(
-                    path,
-                    index=len(displayed) + 1,
-                    expected_count=expected_count,
-                )
-                if frame is not None:
-                    last_frame = frame
+            if frame is not None:
+                last_frame = frame
 
         while time.monotonic() < deadline:
             for path in self._collect_new_ramp_paths(
@@ -5018,24 +5060,15 @@ class H2rgMainWindow(QMainWindow):
                 if len(seen) >= expected_count:
                     break
             if local_ok and len(seen) >= expected_count:
-                # Require byte-size stability (not just file presence) so full-frame
-                # SMB copies are not opened mid-write (~3 MB of an ~8 MB plane).
-                # Skip ramps already shown during acquire — those waited already.
+                # Sequence is complete: only the newest ramp still needs a
+                # size-stable check. Intermediate files are not displayed.
+                latest = self._newest_ramp_path(seen.values())
                 previewed = getattr(self, "_acquire_previewed_names", set())
-                candidates = list(seen.values())[-max(1, expected_count) :]
-                unchecked = [
-                    path for path in candidates if path.name not in previewed
-                ]
-                if not unchecked:
+                if latest is None or latest.name in previewed:
                     break
-                ready = True
-                for path in unchecked:
-                    if not wait_for_file_size_stable(
-                        path, settle_s=0.35, timeout_s=1.2
-                    ):
-                        ready = False
-                        break
-                if ready:
+                if wait_for_file_size_stable(
+                    latest, settle_s=0.35, timeout_s=1.2
+                ):
                     break
             elif local_ok and seen and expected_count <= 1:
                 # Single-frame acquire: stop once the first new file size settles.
