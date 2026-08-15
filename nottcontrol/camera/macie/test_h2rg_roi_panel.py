@@ -9,6 +9,7 @@ import numpy
 from nottcontrol.camera.macie.h2rg_gui import (
     WINDOW_MODES,
     display_window_origin,
+    soft_sc_delivered_height,
     soft_sc_top_pad,
     window_origin_for_frame,
 )
@@ -46,28 +47,40 @@ class BrightnessTests(unittest.TestCase):
         self.assertEqual(profile.shape, (4,))
         numpy.testing.assert_allclose(profile, region.mean(axis=1))
 
+    def test_profile_min_max_statistics(self) -> None:
+        region = numpy.array(
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
+            dtype=numpy.float64,
+        )
+        numpy.testing.assert_allclose(
+            roi_profile_1d(region, statistic="min"), region.min(axis=1)
+        )
+        numpy.testing.assert_allclose(
+            roi_profile_1d(region, statistic="max"), region.max(axis=1)
+        )
+
     def test_subframe_brightness_uses_window_origin(self) -> None:
         # Full-frame ROI at detector (10, 800); SC stripe starts at y=768.
-        frame = numpy.zeros((516, 2048), dtype=numpy.float64)
-        frame[4 + (800 - 768), 10] = 42.0
+        frame = numpy.zeros((512, 2048), dtype=numpy.float64)
+        frame[800 - 768, 10] = 42.0
         results, _regions = compute_roi_brightness(
             frame,
             {1: (10, 800, 1, 1)},
             origin_x=0,
             origin_y=768,
-            pad_top=4,
+            pad_top=0,
         )
         self.assertIn(1, results)
         self.assertAlmostEqual(results[1].avg, 42.0)
 
     def test_roi_outside_subframe_cleared(self) -> None:
-        frame = numpy.ones((516, 2048), dtype=numpy.float64)
+        frame = numpy.ones((512, 2048), dtype=numpy.float64)
         results, regions = compute_roi_brightness(
             frame,
             {1: (10, 100, 4, 4)},  # detector y=100 is above SC512 stripe
             origin_x=0,
             origin_y=768,
-            pad_top=4,
+            pad_top=0,
             window_x1=0,
             window_x2=2047,
             window_y1=768,
@@ -78,7 +91,7 @@ class BrightnessTests(unittest.TestCase):
 
     def test_origin_zero_still_gated_by_science_window(self) -> None:
         # Old bug: origin left at 0 on an SC frame still sampled y=105.
-        frame = numpy.full((516, 2048), 99.0, dtype=numpy.float64)
+        frame = numpy.full((512, 2048), 99.0, dtype=numpy.float64)
         results, _regions = compute_roi_brightness(
             frame,
             {1: (333, 105, 4, 105)},
@@ -110,29 +123,25 @@ class BrightnessTests(unittest.TestCase):
     def test_sc512_frame_infers_origin(self) -> None:
         mode = next(m for m in WINDOW_MODES if m.label == "SC 512")
         ox, oy, pad = window_origin_for_frame(
-            (516, 2048), mode, candidates=WINDOW_MODES
+            (512, 2048), mode, candidates=WINDOW_MODES
         )
-        self.assertEqual((ox, oy, pad), (0, 768, 4))
+        self.assertEqual((ox, oy, pad), (0, 768, 0))
 
-    def test_sc512_gige_padded_frame_infers_origin(self) -> None:
-        from nottcontrol.camera.macie.h2rg_gui import soft_sc_delivered_height
-
+    def test_sc512_delivered_height_is_ny(self) -> None:
         mode = next(m for m in WINDOW_MODES if m.label == "SC 512")
-        # ny+4=516 → next multiple of 256 is 768 (GigE 1 MiB-safe).
-        self.assertEqual(soft_sc_delivered_height(mode), 768)
+        self.assertEqual(soft_sc_delivered_height(mode), 512)
         ox, oy, pad = window_origin_for_frame(
-            (768, 2048), mode, candidates=WINDOW_MODES
+            (512, 2048), mode, candidates=WINDOW_MODES
         )
-        self.assertEqual((ox, oy, pad), (0, 768, 4))
-
+        self.assertEqual((ox, oy, pad), (0, 768, 0))
 
 
 class RemapTests(unittest.TestCase):
-    def test_sc512_middle_pad(self) -> None:
+    def test_sc512_no_pad(self) -> None:
         mode = next(m for m in WINDOW_MODES if m.label == "SC 512")
-        self.assertEqual(soft_sc_top_pad(mode), 4)
+        self.assertEqual(soft_sc_top_pad(mode), 0)
         ox, oy, pad = display_window_origin(mode)
-        self.assertEqual((ox, oy, pad), (0, 768, 4))
+        self.assertEqual((ox, oy, pad), (0, 768, 0))
 
     def test_full_frame_no_pad(self) -> None:
         mode = WINDOW_MODES[0]
@@ -145,12 +154,12 @@ class RemapTests(unittest.TestCase):
             origin_x=0,
             origin_y=768,
             image_w=2048,
-            image_h=516,
-            pad_top=4,
+            image_h=512,
+            pad_top=0,
         )
-        self.assertEqual(local, (333, 36, 4, 10))
+        self.assertEqual(local, (333, 32, 4, 10))
         full = map_roi_image_to_full(
-            local, origin_x=0, origin_y=768, pad_top=4
+            local, origin_x=0, origin_y=768, pad_top=0
         )
         self.assertEqual(full, (333, 800, 4, 10))
 
@@ -160,8 +169,8 @@ class RemapTests(unittest.TestCase):
             origin_x=0,
             origin_y=768,
             image_w=2048,
-            image_h=516,
-            pad_top=4,
+            image_h=512,
+            pad_top=0,
         )
         self.assertNotIn(1, mapped)
         self.assertIn(2, mapped)
