@@ -95,6 +95,31 @@ def parse_acquire_preview_parts(
     return AcquireResult(frame=frame)
 
 
+def override_nseq(macie, nseq: int = 1):
+    """Force *nseq* on a live MACIE session and return the prior 7-tuple.
+
+    Take Background only needs one ramp. Leaving nseq=1 latched makes the next
+    Acquire skip reconfigure (matching exposure fingerprint) and silently
+    record one frame instead of the GUI's N. Callers must restore with
+    ``restore_exposure_settings`` in a ``finally`` block.
+    """
+    save, ncoadds, old_nseq, ngroups, nreads, ndrops, nresets = (
+        macie.read_exposure_settings()
+    )
+    previous = (save, ncoadds, old_nseq, ngroups, nreads, ndrops, nresets)
+    macie.exposure_settings(
+        save, ncoadds, int(nseq), ngroups, nreads, ndrops, nresets
+    )
+    return previous
+
+
+def restore_exposure_settings(macie, saved) -> None:
+    """Re-apply a 7-tuple from ``read_exposure_settings`` / ``override_nseq``."""
+    if saved is None:
+        return
+    macie.exposure_settings(*saved)
+
+
 class DetectorMode(Enum):
     SLOW = 1
     FAST = 2

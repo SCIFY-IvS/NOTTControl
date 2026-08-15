@@ -4651,75 +4651,86 @@ class H2rgMainWindow(QMainWindow):
 
     def _acquire_single_frame_for_background(self, macie):
         """Run one acquire (nseq forced to 1) and return the science frame."""
-        from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
+        from nottcontrol.camera.macie.macie_interface import (
+            ZMQ_ACQUIRE_TIMEOUT_MS,
+            override_nseq,
+            restore_exposure_settings,
+        )
 
         exposure = self._apply_exposure_settings(macie)
         try:
             ncoadds = int(exposure.get("ncoadds", 1))
         except (TypeError, ValueError):
             ncoadds = 1
-        # Background darks only need one ramp.
+        # Background darks only need one ramp. Restore nseq afterwards —
+        # otherwise the next Acquire can skip reconfigure and record 1 of N.
+        saved_exposure = None
         try:
-            save, _ncoadds, _nseq, ngroups, nreads, ndrops, nresets = (
-                macie.read_exposure_settings()
-            )
-            macie.exposure_settings(
-                save, ncoadds, 1, ngroups, nreads, ndrops, nresets
-            )
-        except Exception:
-            pass
-        nseq = 1
-        keep_files = self._save_image_enabled()
-        self._fits_dir_ok = None
-        self._arm_frame_timing("Take Background")
-
-        if not keep_files:
-            preview = self._preview_fits_path()
             try:
-                before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
-            except OSError:
-                before_mtime = 0.0
+                saved_exposure = override_nseq(macie, 1)
+            except Exception:
+                pass
+            # Fingerprint still describes the GUI's N-frame request. Drop it
+            # so a later Acquire re-latches nseq even if restore fails.
+            self._applied_exposure_fingerprint = None
+            nseq = 1
+            keep_files = self._save_image_enabled()
+            self._fits_dir_ok = None
+            self._arm_frame_timing("Take Background")
+
+            if not keep_files:
+                preview = self._preview_fits_path()
+                try:
+                    before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
+                except OSError:
+                    before_mtime = 0.0
+                result = macie.acquire()
+                if result.frame is not None:
+                    return numpy.asarray(result.frame, dtype=numpy.float32)
+                frame, _path = self._wait_for_preview_fits(
+                    preview,
+                    before_mtime=before_mtime,
+                    timeout_s=fits_wait_timeout_s(
+                        float(exposure["execution_s"]),
+                        ncoadds=ncoadds,
+                        nseq=nseq,
+                        margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                        maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
+                        + MACIE_FITS_WAIT_MARGIN_S,
+                    ),
+                )
+                if frame is None:
+                    raise RuntimeError(self._missing_fits_status())
+                return numpy.asarray(frame, dtype=numpy.float32)
+
+            before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
+            wait_timeout_s = fits_wait_timeout_s(
+                float(exposure["execution_s"]),
+                ncoadds=ncoadds,
+                nseq=nseq,
+                margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
+            )
             result = macie.acquire()
+            ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
+                before_mtime,
+                macie,
+                before_name=before_name,
+                expected_count=1,
+                timeout_s=wait_timeout_s,
+                display_each=False,
+            )
+            if frame is not None:
+                return numpy.asarray(frame, dtype=numpy.float32)
             if result.frame is not None:
                 return numpy.asarray(result.frame, dtype=numpy.float32)
-            frame, _path = self._wait_for_preview_fits(
-                preview,
-                before_mtime=before_mtime,
-                timeout_s=fits_wait_timeout_s(
-                    float(exposure["execution_s"]),
-                    ncoadds=ncoadds,
-                    nseq=nseq,
-                    margin_s=MACIE_FITS_WAIT_MARGIN_S,
-                    maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
-                    + MACIE_FITS_WAIT_MARGIN_S,
-                ),
-            )
-            if frame is None:
-                raise RuntimeError(self._missing_fits_status())
-            return numpy.asarray(frame, dtype=numpy.float32)
-
-        before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
-        wait_timeout_s = fits_wait_timeout_s(
-            float(exposure["execution_s"]),
-            ncoadds=ncoadds,
-            nseq=nseq,
-            margin_s=MACIE_FITS_WAIT_MARGIN_S,
-            maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
-        )
-        result = macie.acquire()
-        ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
-            before_mtime,
-            macie,
-            before_name=before_name,
-            expected_count=1,
-            timeout_s=wait_timeout_s,
-            display_each=False,
-        )
-        if frame is not None:
-            return numpy.asarray(frame, dtype=numpy.float32)
-        if result.frame is not None:
-            return numpy.asarray(result.frame, dtype=numpy.float32)
-        raise RuntimeError(self._missing_fits_status())
+            raise RuntimeError(self._missing_fits_status())
+        finally:
+            if saved_exposure is not None:
+                try:
+                    restore_exposure_settings(macie, saved_exposure)
+                except Exception:
+                    self._applied_exposure_fingerprint = None
 
     def acquire_background(self) -> None:
         """Close shutters, acquire a dark, store as background, re-open shutters."""
