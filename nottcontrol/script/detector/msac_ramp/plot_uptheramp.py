@@ -28,6 +28,10 @@ chosen once on the last CDS plane (``last − reset`` or ``last − first``)
 after outlier rejection, then those same pixels are averaged on every
 sample. No background ROI is subtracted. Override the box with
 ``--illum-roi``, ``--illum-center``, or ``--illum-size``.
+
+Detector-quality products (reset spatial QA, per-pixel ramp slope and
+residual RMS) are written beside the flux plot as ``msac_qa_*.png`` /
+``msac_qa_*.fits``. Disable with ``--no-qa``.
 """
 
 from __future__ import annotations
@@ -1090,6 +1094,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip writing the illuminated-region crop FITS cube",
     )
     parser.add_argument(
+        "--no-qa",
+        action="store_true",
+        help="Skip detector-quality PNG/FITS maps of the reset and ramp",
+    )
+    parser.add_argument(
         "--show",
         action="store_true",
         help="Accepted for compatibility; plot is always written to PNG (Agg backend)",
@@ -1598,6 +1607,24 @@ def main(argv: list[str] | None = None) -> int:
         cds_short=cds_short,
         flux_label=flux_label,
     )
+    if not args.no_qa:
+        try:
+            from .detector_qa import run_detector_qa
+        except ImportError:
+            from detector_qa import run_detector_qa
+
+        run_detector_qa(
+            out_dir=ramp_dir,
+            cds_cube=cds_cube,
+            sample_index=indices,
+            reset_frame=reset_frame,
+            reset_name=reset_fits_path.name if reset_fits_path is not None else None,
+            first_science=np.asarray(stack[0], dtype=np.float64),
+            illum_box=(row0, row1, col0, col1),
+            pixels=pixels if pixels.size else None,
+            n_sigma=args.n_sigma,
+            cds_short=cds_short,
+        )
     return 0
 
 

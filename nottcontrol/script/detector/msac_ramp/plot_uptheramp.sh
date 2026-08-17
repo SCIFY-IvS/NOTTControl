@@ -28,8 +28,11 @@
 # Y = mean of 10 photonic-chip pixels chosen on the last CDS plane
 #     (outliers rejected), then tracked on every sample.
 #
-# PNG (full frame + illuminated crop + flux vs frame) and FITS cubes
-# are written into the session data folder.
+# PNG (flux plot + detector QA of reset and ramp) and FITS cubes
+# are written into the session data folder:
+#   msac_qa_reset.png / msac_qa_ramp.png
+#   msac_qa_slope.fits / msac_qa_resid_rms.fits
+# Skip QA with --no-qa.
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)
