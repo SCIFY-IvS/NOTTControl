@@ -221,6 +221,12 @@ class Actuator(Motor):
             # Return to initial position.
             self.move_sequence(init_pos, cp_backlash=True)
 
+    # Setters
+
+    def set_speed(self, speed: float):
+        # speed in um/s
+        self._speed = speed
+
     # Status checks
 
     @property
@@ -515,6 +521,7 @@ class ActuatorCluster:
     def move_abs_all(
         self,
         target_pos=None,
+        speeds=None,
         cp_backlash: bool = True,
         verbose: bool = False,
         **move_sequence_kwargs,
@@ -527,6 +534,7 @@ class ActuatorCluster:
         ----------
         target_pos : (N,) array (um)
             Pass np.nan to skip an actuator.
+        speeds : (N,) array (um/s)
         cp_backlash : bool — forwarded to move_sequence.
         verbose     : bool — forwarded to move_sequence.
         **move_sequence_kwargs — other kwargs for move_sequence.
@@ -535,6 +543,9 @@ class ActuatorCluster:
         if target_pos is None:
             target_pos = self.tbuff.total
         target_pos = np.asarray(target_pos, dtype=float)
+        if not speeds is None:
+            for i, motor in enumerate(self.motors):
+                motor.set_speed(speeds[i])
         for motor, tgt in zip(self.motors, target_pos):
             if np.isnan(tgt):
                 continue
