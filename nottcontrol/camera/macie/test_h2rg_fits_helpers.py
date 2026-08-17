@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -16,6 +17,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     _centered_vertical_stripe,
     _centered_window,
     _channel_window,
+    acquire_archive_science_params,
     central_value_median,
     fits_basename,
     fits_frame_number_label,
@@ -353,6 +355,60 @@ class ResolveRampFitsPathTests(unittest.TestCase):
                 search_dirs=[Path(tmp)],
             )
             self.assertIsNone(resolved)
+
+
+class AcquireArchiveScienceParamsTests(unittest.TestCase):
+    def test_snapshot_is_not_the_live_gui_mode(self) -> None:
+        ctx = {
+            "ramp_mode": "CDS",
+            "fowler_pairs": 2,
+            "tint_ms": 12.5,
+            "keep_files": True,
+            "exposure": {"ngroups": 4, "nreads": 1, "ndrops": 0},
+        }
+        params = acquire_archive_science_params(ctx)
+        # Operator switches Fowler / unchecks Save after ZMQ returns.
+        live_gui = {"ramp_mode": "Fowler", "fowler_pairs": 8, "keep_files": False}
+        self.assertEqual(params["ramp_mode"], "CDS")
+        self.assertEqual(params["fowler_pairs"], 2)
+        self.assertEqual(params["tint_ms"], 12.5)
+        self.assertTrue(params["keep_files"])
+        self.assertEqual(params["exposure_report"]["ngroups"], 4)
+        self.assertNotEqual(params["ramp_mode"], live_gui["ramp_mode"])
+        self.assertNotEqual(params["keep_files"], live_gui["keep_files"])
+
+    def test_invalid_pairs_and_missing_mode_fall_back(self) -> None:
+        params = acquire_archive_science_params(
+            {"fowler_pairs": "x", "tint_ms": "bad"}
+        )
+        self.assertEqual(params["ramp_mode"], "CDS")
+        self.assertEqual(params["fowler_pairs"], 2)
+        self.assertIsNone(params["tint_ms"])
+        self.assertTrue(params["keep_files"])
+
+    def test_archive_holds_operation_lock_until_fits_finish(self) -> None:
+        """Second Acquire must wait; overlapping archive mixed ramp files."""
+        lock = threading.Lock()
+        archive_started = threading.Event()
+        release_archive = threading.Event()
+        events: list[str] = []
+
+        def worker() -> None:
+            with lock:
+                events.append("zmq-done")
+                archive_started.set()
+                release_archive.wait(timeout=2.0)
+                events.append("archive-done")
+
+        thread = threading.Thread(target=worker)
+        thread.start()
+        self.assertTrue(archive_started.wait(timeout=2.0))
+        self.assertTrue(lock.locked())
+        self.assertFalse(lock.acquire(timeout=0.05))
+        release_archive.set()
+        thread.join(timeout=2.0)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(events, ["zmq-done", "archive-done"])
 
 
 if __name__ == "__main__":

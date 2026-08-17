@@ -1135,6 +1135,33 @@ def is_new_ramp_fits(
     return bool(before_name and name != before_name)
 
 
+def acquire_archive_science_params(ctx: dict) -> dict:
+    """Acquire-time snapshot used when writing ramp/science FITS after ZMQ returns.
+
+    The GUI is re-enabled as soon as ``acquire()`` returns so the operator can
+    inspect the last frame. Live combo boxes (CDS vs Fowler) and the Save
+    checkbox must not be re-read while the archive thread is still writing —
+    otherwise science FITS get the wrong reduction and DETMODE.
+    """
+    try:
+        fowler_pairs = int(ctx.get("fowler_pairs") or 2)
+    except (TypeError, ValueError):
+        fowler_pairs = 2
+    tint_raw = ctx.get("tint_ms")
+    try:
+        tint_ms = None if tint_raw is None else float(tint_raw)
+    except (TypeError, ValueError):
+        tint_ms = None
+    ramp_mode = ctx.get("ramp_mode") or "CDS"
+    return {
+        "ramp_mode": str(ramp_mode),
+        "fowler_pairs": fowler_pairs,
+        "tint_ms": tint_ms,
+        "keep_files": bool(ctx.get("keep_files", True)),
+        "exposure_report": ctx.get("exposure") or {},
+    }
+
+
 def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -> bool:
     result: list[bool | None] = [None]
 
@@ -3544,11 +3571,13 @@ class H2rgMainWindow(QMainWindow):
             try:
                 with self._operation_lock:
                     operation()
-                # Re-enable the GUI as soon as MACIE/ZMQ is done; FITS archive
-                # continues here without holding the operation lock.
-                if after_macie is not None:
-                    self._release_macie_operation_busy(gen)
-                    after_macie()
+                    # Re-enable the GUI as soon as MACIE/ZMQ is done so a long
+                    # nseq does not stay greyed out. Keep the operation lock
+                    # through FITS archive so a second Acquire/Set cannot mix
+                    # ramp files or stamp the next exposure onto this one.
+                    if after_macie is not None:
+                        self._release_macie_operation_busy(gen)
+                        after_macie()
             except Exception as exc:
                 message = f"{label} failed: {exc}"
                 if isinstance(done_event, threading.Event):
@@ -3851,6 +3880,9 @@ class H2rgMainWindow(QMainWindow):
                 ncoadds=ncoadds,
                 nseq=nseq,
                 keep_files=keep_files,
+                ramp_mode=self._selected_ramp_mode(),
+                fowler_pairs=self._fowler_pairs_value(),
+                tint_ms=self._last_tint_ms,
                 zmq_timeout_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0),
             )
 
@@ -3928,7 +3960,9 @@ class H2rgMainWindow(QMainWindow):
     def _finish_acquire_archive(self, ctx: dict) -> None:
         """Wait for ramp FITS, stamp headers, and write science files.
 
-        Runs after ZMQ acquire returns, with the GUI already re-enabled.
+        Runs after ZMQ acquire returns, with the GUI already re-enabled,
+        but still under ``_operation_lock``. Reduction/DETMODE come from the
+        acquire-time snapshot in *ctx*, not live GUI fields.
         """
         macie = ctx.get("macie")
         result = ctx.get("result")
@@ -3999,7 +4033,12 @@ class H2rgMainWindow(QMainWindow):
 
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
-                cards = self._acquisition_fits_header_cards()
+                params = acquire_archive_science_params(ctx)
+                cards = self._acquisition_fits_header_cards(
+                    ramp_mode=params["ramp_mode"],
+                    tint_ms=params["tint_ms"],
+                    report=params["exposure_report"],
+                )
                 for ramp_path in ramp_paths:
                     # Always stamp DETMODE / cryo cards on the ramp archive,
                     # including when science FITS writes are disabled.
@@ -4008,9 +4047,24 @@ class H2rgMainWindow(QMainWindow):
                         ramp_path.name == preview_path.name
                         and self._raw_fits_header is not None
                     ):
-                        science_path = self._save_science_fits(frame, ramp_path)
+                        science_path = self._save_science_fits(
+                            frame,
+                            ramp_path,
+                            reduction=params["ramp_mode"],
+                            fowler_pairs=params["fowler_pairs"],
+                            tint_ms=params["tint_ms"],
+                            keep_files=params["keep_files"],
+                            report=params["exposure_report"],
+                        )
                     else:
-                        science_path = self._save_science_fits_from_ramp(ramp_path)
+                        science_path = self._save_science_fits_from_ramp(
+                            ramp_path,
+                            reduction=params["ramp_mode"],
+                            fowler_pairs=params["fowler_pairs"],
+                            tint_ms=params["tint_ms"],
+                            keep_files=params["keep_files"],
+                            report=params["exposure_report"],
+                        )
                     if science_path is not None:
                         science_paths.append(science_path)
                 preview_science = (
@@ -4151,12 +4205,23 @@ class H2rgMainWindow(QMainWindow):
         """Instrument status from Redis (temps, pressures, DL positions) for FITS."""
         return fits_header_cards_from_redis(self._redis)
 
-    def _acquisition_fits_header_cards(self):
-        """Cards stamped on ramp/science FITS after acquire (mode + timing + cryo)."""
-        report = self._last_exposure_report or {}
+    def _acquisition_fits_header_cards(
+        self,
+        *,
+        ramp_mode: str | None = None,
+        tint_ms: float | None = None,
+        report: dict | None = None,
+    ):
+        """Cards stamped on ramp/science FITS after acquire (mode + timing + cryo).
+
+        Pass the acquire-time snapshot when writing the archive; live GUI
+        fields may have changed after ZMQ returned.
+        """
+        if report is None:
+            report = self._last_exposure_report or {}
         cards = exposure_fits_cards(
-            mode=self._selected_ramp_mode(),
-            tint_ms=self._last_tint_ms,
+            mode=self._selected_ramp_mode() if ramp_mode is None else ramp_mode,
+            tint_ms=self._last_tint_ms if tint_ms is None else tint_ms,
             ngroups=report.get("ngroups"),
             nreads=report.get("nreads"),
             ndrops=report.get("ndrops"),
@@ -4227,14 +4292,34 @@ class H2rgMainWindow(QMainWindow):
         return None, preview
 
     def _save_science_fits(
-        self, frame: numpy.ndarray, ramp_path: Path | None
+        self,
+        frame: numpy.ndarray,
+        ramp_path: Path | None,
+        *,
+        reduction: str | None = None,
+        fowler_pairs: int | None = None,
+        tint_ms: float | None = None,
+        keep_files: bool | None = None,
+        report: dict | None = None,
     ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS or ramp_path is None:
             return None
-        if not self._save_image_enabled():
+        if keep_files is None:
+            keep_files = self._save_image_enabled()
+        if not keep_files:
             return None
+        if reduction is None:
+            reduction = self._selected_ramp_mode()
+        if fowler_pairs is None:
+            fowler_pairs = self._fowler_pairs_value()
+        if tint_ms is None:
+            tint_ms = self._last_tint_ms
         output_path = self._science_output_path(ramp_path)
-        cards = self._acquisition_fits_header_cards()
+        cards = self._acquisition_fits_header_cards(
+            ramp_mode=reduction,
+            tint_ms=tint_ms,
+            report=report,
+        )
         cards.extend(file_identity_fits_cards(ramp_path))
         cards.append(("FILENAME", output_path.name, "Original FITS file name"))
         try:
@@ -4242,9 +4327,9 @@ class H2rgMainWindow(QMainWindow):
                 output_path,
                 frame,
                 source_header=self._raw_fits_header,
-                tint_ms=self._last_tint_ms,
-                reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
-                fowler_pairs=self._fowler_pairs_value(),
+                tint_ms=tint_ms,
+                reduction=reduction,  # type: ignore[arg-type]
+                fowler_pairs=fowler_pairs,
                 extra_cards=cards,
             )
             return output_path
@@ -4252,11 +4337,28 @@ class H2rgMainWindow(QMainWindow):
             print(f"H2RG failed to save science FITS: {exc}")
             return None
 
-    def _save_science_fits_from_ramp(self, ramp_path: Path) -> Path | None:
+    def _save_science_fits_from_ramp(
+        self,
+        ramp_path: Path,
+        *,
+        reduction: str | None = None,
+        fowler_pairs: int | None = None,
+        tint_ms: float | None = None,
+        keep_files: bool | None = None,
+        report: dict | None = None,
+    ) -> Path | None:
         if not MACIE_SAVE_SCIENCE_FITS:
             return None
-        if not self._save_image_enabled():
+        if keep_files is None:
+            keep_files = self._save_image_enabled()
+        if not keep_files:
             return None
+        if reduction is None:
+            reduction = self._selected_ramp_mode()
+        if fowler_pairs is None:
+            fowler_pairs = self._fowler_pairs_value()
+        if tint_ms is None:
+            tint_ms = self._last_tint_ms
         resolved = self._resolve_ramp_path(ramp_path)
         if resolved is None:
             print(
@@ -4281,11 +4383,15 @@ class H2rgMainWindow(QMainWindow):
         frame = science_image_from_cube(
             data,
             header,
-            reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
-            fowler_pairs=self._fowler_pairs_value(),
+            reduction=reduction,  # type: ignore[arg-type]
+            fowler_pairs=fowler_pairs,
         )
         output_path = self._science_output_path(ramp_path)
-        cards = self._acquisition_fits_header_cards()
+        cards = self._acquisition_fits_header_cards(
+            ramp_mode=reduction,
+            tint_ms=tint_ms,
+            report=report,
+        )
         cards.extend(file_identity_fits_cards(resolved))
         cards.append(("FILENAME", output_path.name, "Original FITS file name"))
         for keyword, (value, _comment) in header_cards_as_value_dict(cards).items():
@@ -4296,9 +4402,9 @@ class H2rgMainWindow(QMainWindow):
                 output_path,
                 frame,
                 source_header=header,
-                tint_ms=self._last_tint_ms,
-                reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
-                fowler_pairs=self._fowler_pairs_value(),
+                tint_ms=tint_ms,
+                reduction=reduction,  # type: ignore[arg-type]
+                fowler_pairs=fowler_pairs,
                 extra_cards=cards,
             )
             return output_path
@@ -4651,75 +4757,86 @@ class H2rgMainWindow(QMainWindow):
 
     def _acquire_single_frame_for_background(self, macie):
         """Run one acquire (nseq forced to 1) and return the science frame."""
-        from nottcontrol.camera.macie.macie_interface import ZMQ_ACQUIRE_TIMEOUT_MS
+        from nottcontrol.camera.macie.macie_interface import (
+            ZMQ_ACQUIRE_TIMEOUT_MS,
+            override_nseq,
+            restore_exposure_settings,
+        )
 
         exposure = self._apply_exposure_settings(macie)
         try:
             ncoadds = int(exposure.get("ncoadds", 1))
         except (TypeError, ValueError):
             ncoadds = 1
-        # Background darks only need one ramp.
+        # Background darks only need one ramp. Restore nseq afterwards —
+        # otherwise the next Acquire can skip reconfigure and record 1 of N.
+        saved_exposure = None
         try:
-            save, _ncoadds, _nseq, ngroups, nreads, ndrops, nresets = (
-                macie.read_exposure_settings()
-            )
-            macie.exposure_settings(
-                save, ncoadds, 1, ngroups, nreads, ndrops, nresets
-            )
-        except Exception:
-            pass
-        nseq = 1
-        keep_files = self._save_image_enabled()
-        self._fits_dir_ok = None
-        self._arm_frame_timing("Take Background")
-
-        if not keep_files:
-            preview = self._preview_fits_path()
             try:
-                before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
-            except OSError:
-                before_mtime = 0.0
+                saved_exposure = override_nseq(macie, 1)
+            except Exception:
+                pass
+            # Fingerprint still describes the GUI's N-frame request. Drop it
+            # so a later Acquire re-latches nseq even if restore fails.
+            self._applied_exposure_fingerprint = None
+            nseq = 1
+            keep_files = self._save_image_enabled()
+            self._fits_dir_ok = None
+            self._arm_frame_timing("Take Background")
+
+            if not keep_files:
+                preview = self._preview_fits_path()
+                try:
+                    before_mtime = preview.stat().st_mtime if preview.is_file() else 0.0
+                except OSError:
+                    before_mtime = 0.0
+                result = macie.acquire()
+                if result.frame is not None:
+                    return numpy.asarray(result.frame, dtype=numpy.float32)
+                frame, _path = self._wait_for_preview_fits(
+                    preview,
+                    before_mtime=before_mtime,
+                    timeout_s=fits_wait_timeout_s(
+                        float(exposure["execution_s"]),
+                        ncoadds=ncoadds,
+                        nseq=nseq,
+                        margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                        maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
+                        + MACIE_FITS_WAIT_MARGIN_S,
+                    ),
+                )
+                if frame is None:
+                    raise RuntimeError(self._missing_fits_status())
+                return numpy.asarray(frame, dtype=numpy.float32)
+
+            before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
+            wait_timeout_s = fits_wait_timeout_s(
+                float(exposure["execution_s"]),
+                ncoadds=ncoadds,
+                nseq=nseq,
+                margin_s=MACIE_FITS_WAIT_MARGIN_S,
+                maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
+            )
             result = macie.acquire()
+            ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
+                before_mtime,
+                macie,
+                before_name=before_name,
+                expected_count=1,
+                timeout_s=wait_timeout_s,
+                display_each=False,
+            )
+            if frame is not None:
+                return numpy.asarray(frame, dtype=numpy.float32)
             if result.frame is not None:
                 return numpy.asarray(result.frame, dtype=numpy.float32)
-            frame, _path = self._wait_for_preview_fits(
-                preview,
-                before_mtime=before_mtime,
-                timeout_s=fits_wait_timeout_s(
-                    float(exposure["execution_s"]),
-                    ncoadds=ncoadds,
-                    nseq=nseq,
-                    margin_s=MACIE_FITS_WAIT_MARGIN_S,
-                    maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0)
-                    + MACIE_FITS_WAIT_MARGIN_S,
-                ),
-            )
-            if frame is None:
-                raise RuntimeError(self._missing_fits_status())
-            return numpy.asarray(frame, dtype=numpy.float32)
-
-        before_mtime, before_name = self._fits_snapshot_before_acquire(macie)
-        wait_timeout_s = fits_wait_timeout_s(
-            float(exposure["execution_s"]),
-            ncoadds=ncoadds,
-            nseq=nseq,
-            margin_s=MACIE_FITS_WAIT_MARGIN_S,
-            maximum_s=(ZMQ_ACQUIRE_TIMEOUT_MS / 1000.0) + MACIE_FITS_WAIT_MARGIN_S,
-        )
-        result = macie.acquire()
-        ramp_paths, frame, preview_path = self._wait_for_acquire_frames(
-            before_mtime,
-            macie,
-            before_name=before_name,
-            expected_count=1,
-            timeout_s=wait_timeout_s,
-            display_each=False,
-        )
-        if frame is not None:
-            return numpy.asarray(frame, dtype=numpy.float32)
-        if result.frame is not None:
-            return numpy.asarray(result.frame, dtype=numpy.float32)
-        raise RuntimeError(self._missing_fits_status())
+            raise RuntimeError(self._missing_fits_status())
+        finally:
+            if saved_exposure is not None:
+                try:
+                    restore_exposure_settings(macie, saved_exposure)
+                except Exception:
+                    self._applied_exposure_fingerprint = None
 
     def acquire_background(self) -> None:
         """Close shutters, acquire a dark, store as background, re-open shutters."""
