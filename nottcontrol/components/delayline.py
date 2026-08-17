@@ -18,7 +18,10 @@ from nottcontrol.script.lib.nott_utils import (
     ActuatorCluster,
     LayeredRegister,
     MotorError,
+    _get_actuator_args as get_motor_args,
 )
+from nottcontrol.components.ldc import CO2LDC
+from nottcontrol.components.ldc import NOTT_LDC
 
 
 class DelayLine(ActuatorCluster):
@@ -49,3 +52,10 @@ class DelayLine(ActuatorCluster):
     def positions(self):
         """Current positions of all the delay lines (um)."""
         return self.position_microns
+
+
+def create_nott_co2_lines(opcua_conn, myconfig=None):
+    """Deprecated function for building a CO2 gas line cluster.
+    myconfig is accepted but ignored, parameters are read from config.ini.
+    Use CO2LDC(opcua_conn) to build a CO2 gas line cluster instead."""
+    return CO2LDC(opcua_conn)
