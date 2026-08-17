@@ -164,20 +164,26 @@ class Actuator(Motor):
     Positions and displacements are in um throughout.
     PLC expects mm, so move_abs does the conversion before calling command_move_absolute.
 
+    No motion is fired if the requested displacement is below the deadband value.
+
     Backlash correction is bi-directional and made direction-aware via the prev_dir field.
     Correction is carried out when the direction of the requested move differs from the previous move and the displacements exceeds deadband.
     The actuator retraces by {backlash} um in the direction of the requested move before making an accurate final approach.
+
+    Sub-resolution displacement is carried out - regardless of direction - by a similar approach:
+    overshooting, retracing to clear backlash and accurately approaching the demanded position.
 
     Parameters
     ----------
     opcua_conn : OPCUACOnnection
     opcua_prefix : str - OPCUA node prefix of actuator
     name : str - readable name of actuator
-    speed : float - default motion speed (um/s)
+    speed : float - default speed (um/s)
     pos_min : float - lower travel limit (um). Defaults to 0.
     pos_max : float - upper travel limit (um). Defaults to 12500.
     backlash : float - retrace distance (um). Defaults to 4.
-    deadband : float - minimal displacement to trigger a backlash correction (uim). Defaults to 0.02
+    deadband : float - displacement below which no motion is fired. Defaults to 0.02 um
+    resolution : float - resolution. Defaults to 0.2 um (Newport TRA6CC model)
     init_backlash : bool - if True, fire a retrace and return at actuator initialisation to establish a known direction state.
                            Defaults to False. Only set to True for the air delay lines.
     prev_dir : int - direction of last move. Defaults to 0. (unknown)
@@ -194,6 +200,7 @@ class Actuator(Motor):
         pos_max: float = 12500.0,
         backlash: float = 4.0,
         deadband: float = 0.02,
+        resolution: float = 0.2,
         init_backlash: bool = False,
         prev_dir: int = 0,
     ):
@@ -202,6 +209,7 @@ class Actuator(Motor):
         self.pos_max = pos_max
         self.backlash = backlash
         self.deadband = deadband
+        self.resolution = resolution
         self.prev_dir = prev_dir
         self.ongoing_sequence = False
 
@@ -323,6 +331,8 @@ class Actuator(Motor):
 
         Updates self.prev_dir at the end of the move.
 
+        Sub-resolution displacements are made in similar fashion, regardless of whether the direction changes.
+
         Params
         ------
         target_pos : float (um)
@@ -340,16 +350,33 @@ class Actuator(Motor):
             return
 
         curr_dir = int(np.sign(distance))
+
+        # Displacement below resolution?
+        need_double = abs(distance) < self.resolution and abs(distance) > 0
+        # Displacement above resolution, need backlash correction?
         need_cp = cp_backlash and curr_dir != self.prev_dir and self.prev_dir != 0
 
-        if need_cp:
-            retrace = self.position_microns + curr_dir * self.backlash
-            self.move_abs(retrace, check_valid)
+        if need_double:
+            # Overshoot in requested direction
+            overshoot_pos = self.position_microns + curr_dir * 3 * self.backlash
+            self.move_abs(overshoot_pos, check_valid=True)
+            _time.sleep(0.2)
+            self.await_motor(dt=dt, timeout=timeout)
+            # Retrace in opposite direction to clear backlash
+            retrace_pos = overshoot_pos - curr_dir * self.backlash
+            self.move_abs(retrace_pos, check_valid=True)
+            _time.sleep(0.2)
+            self.await_motor(dt=dt, timeout=timeout)
+
+        elif need_cp:
+            overshoot_pos = self.position_microns + curr_dir * self.backlash
+            self.move_abs(overshoot_pos, check_valid)
             _time.sleep(0.2)
             if verbose:
-                print(f"  {self.name}: backlash → {retrace:.2f} µm")
+                print(f"  {self.name}: backlash → {overshoot_pos:.2f} µm")
             self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
+        # Accurate approach
         self.move_abs(target_pos, check_valid)
         _time.sleep(0.2)
         if verbose:
