@@ -4,7 +4,7 @@
 # Default root: ~/frames/H2RG_ASIC/UpTheRamp/
 # The script uses the latest subdirectory under that root (session folder).
 #
-# Default illuminated region: [H2RG DETECTOR] ROI 2
+# Default illuminated region: Photonic chip WinMode (X=1024–1087, Y=928–959)
 # Default background / reference: ROI 8 (pedestal subtracted per plane)
 # Override with --illum-roi / --bg-roi / --illum-center / --illum-size;
 # disable pedestal with --no-bg-roi.

@@ -22,10 +22,10 @@ from both cubes. The illuminated-mean plot still includes that first point
 (with illuminated / background boxes), the **illuminated crop**, and
 **flux vs frame**.
 
-Illuminated box defaults to **H2RG ROI 2**; background / reference
-defaults to **H2RG ROI 8** (``config.ini`` / ``config.local.ini``).
-Each CDS plane is pedestal-corrected by subtracting the sigma-clipped
-mean of the background ROI. Override with ``--illum-roi``, ``--bg-roi``,
+Illuminated box defaults to the **Photonic chip** WinMode
+(``X=1024–1087``, ``Y=928–959``). Background / reference defaults to
+**H2RG ROI 8**. Each CDS plane is pedestal-corrected by subtracting the
+sigma-clipped mean of the background ROI. Override with ``--illum-roi``,
 ``--illum-center``, or ``--illum-size``; disable with ``--no-bg-roi``.
 """
 
@@ -53,6 +53,11 @@ DEFAULT_ILLUM_CENTER_X = 1045
 DEFAULT_ILLUM_CENTER_Y = 943
 DEFAULT_ILLUM_ROI = 2
 DEFAULT_BG_ROI = 8
+# Match H2RG GUI WindowMode "Photonic chip" (inclusive detector pixels).
+PHOTONIC_CHIP_X1 = 1024
+PHOTONIC_CHIP_X2 = 1087
+PHOTONIC_CHIP_Y1 = 928
+PHOTONIC_CHIP_Y2 = 959
 H2RG_SECTION = "H2RG DETECTOR"
 # Full-frame H2RG; smaller shapes are treated as windowed readouts.
 DEFAULT_FULL_FRAME = 2048
@@ -242,6 +247,40 @@ def illuminated_box_from_xywh(
             f"(rows[{row0}:{row1}), cols[{col0}:{col1}))"
         )
     return row0, row1, col0, col1
+
+
+def photonic_chip_xywh() -> tuple[int, int, int, int]:
+    """Return ``(x, y, w, h)`` for the Photonic chip WinMode."""
+    return (
+        PHOTONIC_CHIP_X1,
+        PHOTONIC_CHIP_Y1,
+        PHOTONIC_CHIP_X2 - PHOTONIC_CHIP_X1 + 1,
+        PHOTONIC_CHIP_Y2 - PHOTONIC_CHIP_Y1 + 1,
+    )
+
+
+def photonic_chip_label() -> str:
+    return (
+        f"Photonic chip (X={PHOTONIC_CHIP_X1}–{PHOTONIC_CHIP_X2}, "
+        f"Y={PHOTONIC_CHIP_Y1}–{PHOTONIC_CHIP_Y2})"
+    )
+
+
+def photonic_chip_illum_box(
+    shape: tuple[int, int],
+) -> tuple[tuple[int, int, int, int], tuple[int, int, int, int]]:
+    """Return ``(image_box, detector_box)`` as ``(row0, row1, col0, col1)``.
+
+    Full-frame cubes are cropped at the WinMode coordinates. A delivered
+    frame that is already the photonic-chip size uses the whole image, with
+    detector-pixel labels still at ``1024–1087``, ``928–959``.
+    """
+    x, y, w, h = photonic_chip_xywh()
+    det_box = (y, y + h, x, x + w)
+    height, width = int(shape[0]), int(shape[1])
+    if height == h and width == w:
+        return (0, h, 0, w), det_box
+    return illuminated_box_from_xywh((height, width), x, y, w, h), det_box
 
 
 def resolve_illum_center(
@@ -570,6 +609,8 @@ def plot_file_series(
     illum_frame: np.ndarray | None = None,
     illum_box: tuple[int, int, int, int] | None = None,
     bg_box: tuple[int, int, int, int] | None = None,
+    region_label: str | None = None,
+    detector_box: tuple[int, int, int, int] | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
@@ -602,11 +643,14 @@ def plot_file_series(
         ax_full.set_ylabel("Y [pix]")
         if illum_box is not None:
             irow0, irow1, icol0, icol1 = illum_box
+            box_label = region_label or (
+                f"Illum X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1}"
+            )
             _draw_box(
                 ax_full,
                 *illum_box,
                 color="#ff6b6b",
-                label=f"Illum X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1}",
+                label=box_label,
             )
         if bg_box is not None:
             _draw_box(ax_full, *bg_box, color="#4cc9f0", label="Bg")
@@ -615,22 +659,26 @@ def plot_file_series(
         fig.colorbar(im_full, ax=ax_full, fraction=0.046, pad=0.04, label="ADU")
 
         vmin_i, vmax_i = _display_limits(illum_frame)
-        if illum_box is not None:
-            irow0, irow1, icol0, icol1 = illum_box
+        axis_box = detector_box if detector_box is not None else illum_box
+        if axis_box is not None:
+            irow0, irow1, icol0, icol1 = axis_box
             illum_extent = (
                 icol0 - 0.5,
                 icol1 - 0.5,
                 irow1 - 0.5,
                 irow0 - 0.5,
             )
-            illum_title = (
-                f"Illuminated region (last − first)\n"
-                f"X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1} "
-                f"({icol1 - icol0}×{irow1 - irow0} pix)"
-            )
+            if region_label:
+                illum_title = f"{region_label}\n(last − first)"
+            else:
+                illum_title = (
+                    f"Illuminated region (last − first)\n"
+                    f"X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1} "
+                    f"({icol1 - icol0}×{irow1 - irow0} pix)"
+                )
         else:
             illum_extent = None
-            illum_title = "Illuminated region (last − first)"
+            illum_title = region_label or "Illuminated region (last − first)"
         im_illum = ax_illum.imshow(
             illum_frame,
             origin="upper",
@@ -742,12 +790,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--illum-roi",
         type=int,
-        default=DEFAULT_ILLUM_ROI,
+        default=None,
         metavar="N",
         help=(
-            f"Use [H2RG DETECTOR] ROI N as the illuminated box "
-            f"(default: {DEFAULT_ILLUM_ROI}). Ignored if --illum-center "
-            "or --illum-size is set."
+            "Use [H2RG DETECTOR] ROI N as the illuminated box. "
+            "Default is the Photonic chip WinMode "
+            f"(X={PHOTONIC_CHIP_X1}–{PHOTONIC_CHIP_X2}, "
+            f"Y={PHOTONIC_CHIP_Y1}–{PHOTONIC_CHIP_Y2}). "
+            "Ignored if --illum-center or --illum-size is set."
         ),
     )
     parser.add_argument(
@@ -902,9 +952,10 @@ def main(argv: list[str] | None = None) -> int:
     req_center_x = int(args.illum_center[0]) if explicit_center else None
     req_center_y = int(args.illum_center[1]) if explicit_center else None
     use_manual_illum = explicit_center or illum_h is not None
-    illum_roi_index = int(args.illum_roi)
+    illum_roi_index = args.illum_roi
     bg_roi_index = int(args.bg_roi)
     use_bg_roi = not args.no_bg_roi
+    use_photonic = not use_manual_illum and illum_roi_index is None
 
     records: list[tuple[int, str, str, np.ndarray, dict]] = []
     index_tag = "M"
@@ -989,6 +1040,8 @@ def main(argv: list[str] | None = None) -> int:
     ny, nx = int(stack.shape[-2]), int(stack.shape[-1])
 
     illum_source = "manual"
+    region_label: str | None = None
+    detector_box: tuple[int, int, int, int] | None = None
     if use_manual_illum:
         if illum_h is None:
             illum_h = illum_w = DEFAULT_ILLUM_SIZE
@@ -1004,8 +1057,23 @@ def main(argv: list[str] | None = None) -> int:
             center_x=center_x,
             center_y=center_y,
         )
+    elif use_photonic:
+        try:
+            (row0, row1, col0, col1), detector_box = photonic_chip_illum_box(
+                (ny, nx)
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"{photonic_chip_label()} does not fit image {ny}×{nx}: {exc}"
+            ) from exc
+        illum_h, illum_w = row1 - row0, col1 - col0
+        drow0, drow1, dcol0, dcol1 = detector_box
+        center_x = (dcol0 + dcol1) // 2
+        center_y = (drow0 + drow1) // 2
+        illum_source = photonic_chip_label()
+        region_label = photonic_chip_label()
     else:
-        roi = load_h2rg_roi_xywh(illum_roi_index)
+        roi = load_h2rg_roi_xywh(int(illum_roi_index))
         if roi is None:
             raise RuntimeError(
                 f"No [{H2RG_SECTION}] ROI {illum_roi_index} in config.ini "
@@ -1177,17 +1245,31 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                     extra_cards={
                         "ILLUMROI": (
-                            0 if use_manual_illum else illum_roi_index,
-                            "H2RG ROI index used for crop (0=manual)",
+                            0
+                            if use_manual_illum or use_photonic
+                            else int(illum_roi_index),
+                            "H2RG ROI index used for crop (0=photonic/manual)",
                         ),
                         "BGROI": (
                             bg_roi_index if use_bg_roi else 0,
                             "H2RG ROI index used as pedestal (0=none)",
                         ),
-                        "ILLUMX0": (col0, "Crop col start (inclusive, 0-based)"),
-                        "ILLUMX1": (col1, "Crop col end (exclusive, 0-based)"),
-                        "ILLUMY0": (row0, "Crop row start (inclusive, 0-based)"),
-                        "ILLUMY1": (row1, "Crop row end (exclusive, 0-based)"),
+                        "ILLUMX0": (
+                            (detector_box[2] if detector_box else col0),
+                            "Crop col start (inclusive, detector)",
+                        ),
+                        "ILLUMX1": (
+                            (detector_box[3] if detector_box else col1),
+                            "Crop col end (exclusive, detector)",
+                        ),
+                        "ILLUMY0": (
+                            (detector_box[0] if detector_box else row0),
+                            "Crop row start (inclusive, detector)",
+                        ),
+                        "ILLUMY1": (
+                            (detector_box[1] if detector_box else row1),
+                            "Crop row end (exclusive, detector)",
+                        ),
                         "ILLUMCX": (center_x, "Illuminated box centre X"),
                         "ILLUMCY": (center_y, "Illuminated box centre Y"),
                     },
@@ -1212,6 +1294,8 @@ def main(argv: list[str] | None = None) -> int:
         illum_frame=last_cds[row0:row1, col0:col1],
         illum_box=(row0, row1, col0, col1),
         bg_box=(bg_row0, bg_row1, bg_col0, bg_col1) if use_bg_roi else None,
+        region_label=region_label,
+        detector_box=detector_box,
     )
     return 0
 
