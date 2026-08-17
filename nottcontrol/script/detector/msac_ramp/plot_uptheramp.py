@@ -601,7 +601,13 @@ def plot_file_series(
         ax_full.set_xlabel("X [pix]")
         ax_full.set_ylabel("Y [pix]")
         if illum_box is not None:
-            _draw_box(ax_full, *illum_box, color="#ff6b6b", label="Illum")
+            irow0, irow1, icol0, icol1 = illum_box
+            _draw_box(
+                ax_full,
+                *illum_box,
+                color="#ff6b6b",
+                label=f"Illum X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1}",
+            )
         if bg_box is not None:
             _draw_box(ax_full, *bg_box, color="#4cc9f0", label="Bg")
         if illum_box is not None or bg_box is not None:
@@ -609,6 +615,22 @@ def plot_file_series(
         fig.colorbar(im_full, ax=ax_full, fraction=0.046, pad=0.04, label="ADU")
 
         vmin_i, vmax_i = _display_limits(illum_frame)
+        if illum_box is not None:
+            irow0, irow1, icol0, icol1 = illum_box
+            illum_extent = (
+                icol0 - 0.5,
+                icol1 - 0.5,
+                irow1 - 0.5,
+                irow0 - 0.5,
+            )
+            illum_title = (
+                f"Illuminated region (last − first)\n"
+                f"X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1} "
+                f"({icol1 - icol0}×{irow1 - irow0} pix)"
+            )
+        else:
+            illum_extent = None
+            illum_title = "Illuminated region (last − first)"
         im_illum = ax_illum.imshow(
             illum_frame,
             origin="upper",
@@ -617,10 +639,11 @@ def plot_file_series(
             vmax=vmax_i,
             interpolation="nearest",
             aspect="equal",
+            extent=illum_extent,
         )
-        ax_illum.set_title("Illuminated region (last − first)")
-        ax_illum.set_xlabel("X [pix in box]")
-        ax_illum.set_ylabel("Y [pix in box]")
+        ax_illum.set_title(illum_title)
+        ax_illum.set_xlabel("X [pix]")
+        ax_illum.set_ylabel("Y [pix]")
         fig.colorbar(im_illum, ax=ax_illum, fraction=0.046, pad=0.04, label="ADU")
         row += 1
 
