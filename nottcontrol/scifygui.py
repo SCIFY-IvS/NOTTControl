@@ -1,15 +1,29 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QInputDialog, QMessageBox, QLabel
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QInputDialog,
+    QMessageBox,
+    QLabel,
+)
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.uic import loadUi
 from pathlib import Path
-from nottcontrol.app_icon import install_nott_logo_header, load_app_icon, make_nott_logo_title_header
+from nottcontrol.app_icon import (
+    install_nott_logo_header,
+    load_app_icon,
+    make_nott_logo_title_header,
+)
 from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.theme import apply_main_window_styles
 from asyncua import ua
 from datetime import datetime
 from nottcontrol.redisclient import RedisClient
-from nottcontrol.camera.infratec.scify import MainWindow as camera_ui, camera_status_snapshot
+from nottcontrol.camera.infratec.scify import (
+    MainWindow as camera_ui,
+    camera_status_snapshot,
+)
 from nottcontrol.components.camera_status_panel import CameraStatusPanel
 from nottcontrol import config, sensor_config_path, cryo_status_config_path
 from nottcontrol.sensors import (
@@ -58,6 +72,7 @@ import json
 #     input_args = [ua.Variant(arg, ua.VariantType.Variant) for arg in args]
 #     result = await method_node.call_method(method_name, *input_args)
 #     return result
+
 
 async def call_method_async(opcua_conn, node_id, method_name, *args):
     try:
@@ -115,12 +130,12 @@ class MainWindow(QMainWindow):
         self.cryostat_window = None
         self.ldc_window = None
 
-        url =  config['DEFAULT']['databaseurl']
+        url = config["DEFAULT"]["databaseurl"]
         self.redis_client = RedisClient(url)
         self._redis_warned = False
 
         # set up the main window
-        self.ui = loadUi('main_window.ui', self)
+        self.ui = loadUi("main_window.ui", self)
         self.setWindowTitle("NOTT instrument control")
         apply_main_window_styles(self)
         self._load_header_logos()
@@ -152,7 +167,9 @@ class MainWindow(QMainWindow):
 
         self.camera_status_panel = CameraStatusPanel(self.ui.centralwidget)
 
-        self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(sensor_config_path)
+        self.sensor_opc_nodes, self.sensor_redis_keys = load_sensor_config(
+            sensor_config_path
+        )
         (
             self.temp_opc_nodes,
             _temp_redis_keys,
@@ -306,7 +323,9 @@ class MainWindow(QMainWindow):
             button.setGeometry(20, y, 200, button_height)
             y += button_height + button_gap
 
-    def _set_logo_label(self, label: QLabel, logo_path: Path, width: int, height: int) -> None:
+    def _set_logo_label(
+        self, label: QLabel, logo_path: Path, width: int, height: int
+    ) -> None:
         label.setStyleSheet("background: transparent;")
         label.setAttribute(Qt.WA_TranslucentBackground, True)
         label.setAlignment(Qt.AlignCenter)
@@ -380,7 +399,7 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             print(f"Error opening camera window: {e}")
-    
+
     def clear_camera_window(self):
         self.camera_window = None
         if self._dashboard_camera == "INFRATEC":
@@ -506,13 +525,13 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(e)
 
-
-
     def open_delay_lines(self):
 
         try:
             if self.delayline_window is None:
-                self.delayline_window = DelayLinesWindow(self, self.opcua_conn, self.redis_client)
+                self.delayline_window = DelayLinesWindow(
+                    self, self.opcua_conn, self.redis_client
+                )
                 self.delayline_window.closing.connect(self.clear_dl_window)
                 self.delayline_window.show()
                 print("Dl window is opening fine")
@@ -524,7 +543,9 @@ class MainWindow(QMainWindow):
     def open_shutter_window(self):
         try:
             if self.shutter_window is None:
-                self.shutter_window = ShutterWindow(self, self.opcua_conn, self.redis_client)
+                self.shutter_window = ShutterWindow(
+                    self, self.opcua_conn, self.redis_client
+                )
                 self.shutter_window.closing.connect(self.clear_shutter_window)
                 self.shutter_window.show()
                 print("Shutter window is opening fine")
@@ -536,7 +557,9 @@ class MainWindow(QMainWindow):
     def open_tiptilt_window(self):
         try:
             if self.tiptilt_window is None:
-                self.tiptilt_window = TipTiltWindow(self, self.opcua_conn, self.redis_client)
+                self.tiptilt_window = TipTiltWindow(
+                    self, self.opcua_conn, self.redis_client
+                )
                 self.tiptilt_window.closing.connect(self.clear_tiptilt_window)
                 self.tiptilt_window.show()
                 print("Tiptilt window is opening fine")
@@ -590,10 +613,10 @@ class MainWindow(QMainWindow):
                 self.cryostat_window.activateWindow()
         except Exception as e:
             print(f"Error opening cryostat window: {e}")
-    
+
     def clear_shutter_window(self):
         self.shutter_window = None
-    
+
     def clear_dl_window(self):
         self.delayline_window = None
 
@@ -637,9 +660,7 @@ class MainWindow(QMainWindow):
             status = values[index * 3]
             state = values[index * 3 + 1]
             position_mm = coerce_sensor_value(values[index * 3 + 2])
-            self.tt_status_panel.update_status(
-                actuator_id, status, state, position_mm
-            )
+            self.tt_status_panel.update_status(actuator_id, status, state, position_mm)
 
     def load_shutter_status(self):
         values = self.opcua_conn.read_nodes(self.shutter_status_opc_nodes)
@@ -660,15 +681,10 @@ class MainWindow(QMainWindow):
                 last = {}
                 self._last_shutter_redis_pos = last
             previous = last.get(name)
-            if (
-                previous is None
-                or abs(float(position_mm) - previous) >= 0.05
-            ):
-                self.redis_client.add_shutter_position(
-                    name, now, float(position_mm)
-                )
+            if previous is None or abs(float(position_mm) - previous) >= 0.05:
+                self.redis_client.add_shutter_position(name, now, float(position_mm))
                 last[name] = float(position_mm)
-    
+
     def read_and_store_sensor_values(self):
         try:
             if not self._poll_cryo_opc():
@@ -751,7 +767,6 @@ class MainWindow(QMainWindow):
             cache["updated_at"],
         )
 
-
     def _read_cryo_equipment_status(self) -> dict[str, object]:
         if not self.cryo_status_items:
             return {}
@@ -775,7 +790,8 @@ class MainWindow(QMainWindow):
         updated_at: datetime | None = None,
     ) -> None:
         temp_tag_values = {
-            tag: coerce_sensor_value(value) for tag, value in zip(temp_tags, temp_values)
+            tag: coerce_sensor_value(value)
+            for tag, value in zip(temp_tags, temp_values)
         }
         pressure_tag_values = None
         if pressure_tags is not None and pressure_values is not None:
@@ -785,7 +801,11 @@ class MainWindow(QMainWindow):
             }
         self.pressure_panel.update_values(pressure_tag_values, equipment_status)
         self.cryo_temp_panel.update_values(temp_tag_values)
-        if self.cryostat_window is not None and pressure_tags is not None and pressure_values is not None:
+        if (
+            self.cryostat_window is not None
+            and pressure_tags is not None
+            and pressure_values is not None
+        ):
             self.cryostat_window.sync_from_values(
                 temp_tags,
                 temp_values,
@@ -800,6 +820,7 @@ class MainWindow(QMainWindow):
         self.temp3 = temp_tag_values.get(HEADLINE_TEMP_TAGS[2])
         self.temp4 = temp_tag_values.get(HEADLINE_TEMP_TAGS[3])
 
+
 class DelayLinesWindow(QMainWindow):
     closing = pyqtSignal()
 
@@ -810,20 +831,40 @@ class DelayLinesWindow(QMainWindow):
 
         self.opcua_conn = opcua_conn
 
-        default_speed = config.getint('DL', 'default_speed')
+        default_speed = config.getfloat("DL", "default_speed")
 
-        self._motor1 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1", 'DL_1', default_speed)
-        self._motor2 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2", 'DL_2', default_speed)
-        self._motor3 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL3", 'DL_3', default_speed)
-        self._motor4 = Motor(self.opcua_conn, "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4", 'DL_4', default_speed)
+        self._motor1 = Motor(
+            self.opcua_conn,
+            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL1",
+            "DL_1",
+            default_speed,
+        )
+        self._motor2 = Motor(
+            self.opcua_conn,
+            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL2",
+            "DL_2",
+            default_speed,
+        )
+        self._motor3 = Motor(
+            self.opcua_conn,
+            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL3",
+            "DL_3",
+            default_speed,
+        )
+        self._motor4 = Motor(
+            self.opcua_conn,
+            "ns=4;s=MAIN.nott_ics.Delay_Lines.NDL4",
+            "DL_4",
+            default_speed,
+        )
 
         self.redis_client = redis_client
 
         # set up the delay lines window
-        self.ui = loadUi('delay_lines.ui', self)
+        self.ui = loadUi("delay_lines.ui", self)
         install_nott_logo_header(self, title="Delay Lines")
         # Dl statuses
-        #self.dl1_status()
+        # self.dl1_status()
 
         self.ui.motor_widget_1.setup(self.opcua_conn, self.redis_client, self._motor1)
         self.ui.motor_widget_2.setup(self.opcua_conn, self.redis_client, self._motor2)
@@ -842,7 +883,7 @@ class DelayLinesWindow(QMainWindow):
 
         self.ui.actionSave_Current_Positions.triggered.connect(self.save_dl_positions)
         self.ui.actionRecall_Positions.triggered.connect(self.recall_dl_positions)
-        
+
         self.saved_configurations = self.redis_client.load_DL_pos()
 
         self.timestamp = None
@@ -869,7 +910,9 @@ class DelayLinesWindow(QMainWindow):
         pos3 = self._motor3.getPositionAndSpeed()[0]
         pos4 = self._motor4.getPositionAndSpeed()[0]
 
-        name, dlgResult = QInputDialog.getText(self, "Please provide a name for the DL configuration", "Name")
+        name, dlgResult = QInputDialog.getText(
+            self, "Please provide a name for the DL configuration", "Name"
+        )
         if dlgResult:
             print(name)
         else:
@@ -879,36 +922,39 @@ class DelayLinesWindow(QMainWindow):
         self.saved_configurations[name] = [pos1, pos2, pos3, pos4]
 
         self.redis_client.save_DL_pos(self.saved_configurations)
-    
-    def recall_dl_positions(self):
-        print('Recall DL positions')
 
-        name, dlgResult = QInputDialog.getText(self, "Please provide the name of the saved configuration", "Name")
+    def recall_dl_positions(self):
+        print("Recall DL positions")
+
+        name, dlgResult = QInputDialog.getText(
+            self, "Please provide the name of the saved configuration", "Name"
+        )
         if dlgResult:
             print(name)
         else:
             print("cancel")
             return
-        
+
         if not name in self.saved_configurations:
             print("Configuration not found!")
             msgBox = QMessageBox(self)
             msgBox.setText("Configuration not found!")
             msgBox.exec()
             return
-        
+
         configuration = self.saved_configurations[name]
-        print(f'Loading DL positions: pos1: {configuration[0]}; pos2: {configuration[1]}; pos3: {configuration[2]}; pos4; {configuration[3]}')
+        print(
+            f"Loading DL positions: pos1: {configuration[0]}; pos2: {configuration[1]}; pos3: {configuration[2]}; pos4; {configuration[3]}"
+        )
 
         self._motor1.command_move_absolute(configuration[0]).execute()
         self._motor2.command_move_absolute(configuration[1]).execute()
         self._motor3.command_move_absolute(configuration[2]).execute()
         self._motor4.command_move_absolute(configuration[3]).execute()
 
-    
     def startCameraRecording(self):
         self.parent.camera_window.start_recording()
-    
+
     def stopCameraRecording(self):
         self.parent.camera_window.stop_recording()
 
@@ -918,7 +964,8 @@ class DelayLinesWindow(QMainWindow):
                 motor_status_opc_nodes(self._motor_prefixes)
             )
             for (_, widget), row in zip(
-                self._motor_widgets, split_motor_status_values(values, len(self._motor_widgets))
+                self._motor_widgets,
+                split_motor_status_values(values, len(self._motor_widgets)),
             ):
                 widget.apply_status_values(*row)
         except Exception as e:
@@ -929,7 +976,7 @@ class DelayLinesWindow(QMainWindow):
                     widget.clearActiveCommand(
                         f"Status refresh failed ({e}); Absolute/Relative re-enabled"
                     )
-    
+
     def load_positions(self):
         try:
             values = self.opcua_conn.read_nodes(

@@ -27,7 +27,9 @@ class TipTiltWidget(QWidget):
         # read default step size from config
         default_step = nott_config["tip_tilt_control"]["step_default"]
         self.ui.le_stepsize.setText(str(default_step))
-        self._default_speed = float(nott_config["TIPTILT"]["default_speed"])
+        self._default_speed = nott_config.getfloat("TIPTILT", "default_speed") * 10 ** (
+            -3
+        )
 
         self.ui.bt_moveleft.clicked.connect(self.move_left)
         self.ui.bt_moveup.clicked.connect(self.move_up)
