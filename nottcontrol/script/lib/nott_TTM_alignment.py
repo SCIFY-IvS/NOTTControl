@@ -76,7 +76,6 @@ from nottcontrol.script.lib.nott_utils import (
 # Opcua address
 url = nott_config["DEFAULT"]["opcuaaddress"]
 # Global parameters
-t_write = nott_config.getint("redis", "t_write")
 bool_UT = nott_config.getboolean("injection", "bool_UT")
 bool_offset = nott_config.getboolean("injection", "bool_offset")
 fac_loc = nott_config.getint("injection", "fac_loc")
@@ -92,9 +91,8 @@ act_speed = nott_config.getfloat("injection", act_speed)
 act_backlash = nott_config.getfloat("injection", act_backlash)
 act_deadband = nott_config.getfloat("injection", act_deadband)
 print(
-    "Read configuration [t_write,bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double,speed,backlash,deadband] : ",
+    "Read configuration [bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double,speed,backlash,deadband] : ",
     [
-        t_write,
         bool_UT,
         bool_offset,
         fac_loc,
