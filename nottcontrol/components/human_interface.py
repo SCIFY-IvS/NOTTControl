@@ -703,7 +703,7 @@ class HumInt(object):
         """
         delta_pos = np.asarray(delta_pos, dtype=float)
 
-        if not len(delta_pos) == len(self.delay_lines):
+        if not len(delta_pos) == len(self.dl):
             raise self.DelayLineError(
                 f"Input position offsets (length {len(delta_pos)}) must match the amount of available delay lines {len(self.delay_lines)}."
             )
