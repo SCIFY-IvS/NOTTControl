@@ -141,3 +141,10 @@ class BirefLDC(ActuatorCluster):
             opcua_conn, prefix="biref", init_backlash=False
         )
         super().__init__(cluster.motors)
+
+
+class NOTT_LDC:
+    """Placeholder for a higher-level class that contains all (air, glass, CO2, birefringence)
+    LDC clusters in one object. Not yet implemented."""
+
+    pass

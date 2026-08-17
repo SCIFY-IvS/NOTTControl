@@ -37,7 +37,12 @@ import threading
 import numpy as np
 from datetime import datetime, timedelta, timezone
 
-from nottcontrol.components.motor import Motor
+simulation = False
+if simulation:
+    from nottcontrol.components.motor import MotorSim as Motor
+else:
+    from nottcontrol.components.motor import Motor
+
 from nottcontrol import config as nott_config
 
 simulation = False
@@ -330,7 +335,7 @@ class Actuator(Motor):
         dt : float (s) - polling interval for await_motor
         timeout : float (s) - timeout for each sub move
         """
-        timeout = np.max(timeout, self.time_to_target + 10.0)
+        timeout = max(timeout, self.time_to_target + 10.0)
         self.ongoing_sequence = True
         distance = target_pos - self.position_microns
 
@@ -472,7 +477,17 @@ class ActuatorCluster:
             positions[i] = m.position_microns
         return positions
 
+    def is_valid(self, target_pos):
+        """Check the validity of each target position in a full target position array.
+        Raise a ValueError if any target position is outside the travel range of the motor it is imposed to."""
+        for motor, pos in zip(self.motors, target_pos):
+            motor._valid_move(pos)
+
     # Motion
+
+    def move_abs_one(self, target_pos: float, cp_backlash: bool = True):
+        """Move a single actuator, not yet implemented."""
+        return
 
     def move_abs_all(
         self,
