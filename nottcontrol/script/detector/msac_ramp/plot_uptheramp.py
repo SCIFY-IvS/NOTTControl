@@ -23,10 +23,11 @@ With first-sample subtraction the zero self-subtraction plane is
 **omitted** from both cubes. Reset subtraction keeps every science plane.
 
 Illuminated box defaults to the **Photonic chip** WinMode
-(``X=1024–1087``, ``Y=928–959``). Background / reference defaults to
-**H2RG ROI 8**. Each CDS plane is pedestal-corrected by subtracting the
-sigma-clipped mean of the background ROI. Override with ``--illum-roi``,
-``--illum-center``, or ``--illum-size``; disable with ``--no-bg-roi``.
+(``X=1024–1087``, ``Y=928–959``). The **10 brightest** pixels are
+chosen once on the last CDS plane (``last − reset`` or ``last − first``)
+after outlier rejection, then those same pixels are averaged on every
+sample. No background ROI is subtracted. Override the box with
+``--illum-roi``, ``--illum-center``, or ``--illum-size``.
 """
 
 from __future__ import annotations
@@ -48,11 +49,11 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 DEFAULT_RAMP_ROOT = Path.home() / "frames" / "H2RG_ASIC" / "UpTheRamp"
 DEFAULT_N_ILLUM_PIXELS = 100
+DEFAULT_N_BRIGHTEST = 10
 DEFAULT_ILLUM_SIZE = 20
 DEFAULT_ILLUM_CENTER_X = 1045
 DEFAULT_ILLUM_CENTER_Y = 943
 DEFAULT_ILLUM_ROI = 2
-DEFAULT_BG_ROI = 8
 # Match H2RG GUI WindowMode "Photonic chip" (inclusive detector pixels).
 PHOTONIC_CHIP_X1 = 1024
 PHOTONIC_CHIP_X2 = 1087
@@ -404,6 +405,89 @@ def choose_pixels(
     return coords[pick]
 
 
+def _mad_scale(values: np.ndarray) -> tuple[float, float]:
+    """Return ``(median, 1.4826 * MAD)`` for *values* (finite only)."""
+    work = np.asarray(values, dtype=np.float64)
+    work = work[np.isfinite(work)]
+    if work.size == 0:
+        return float("nan"), float("nan")
+    med = float(np.median(work))
+    mad = float(np.median(np.abs(work - med)))
+    scale = 1.4826 * mad if mad > 0 else float(np.std(work))
+    if not np.isfinite(scale) or scale < 1e-12:
+        scale = 0.0
+    return med, scale
+
+
+def isolated_hot_mask(image: np.ndarray, *, n_sigma: float) -> np.ndarray:
+    """True for isolated hot spikes (brighter than every 3×3 neighbour).
+
+    A compact waveguide spot (2+ adjacent bright pixels) is kept; a
+    single-pixel cosmic or hot pixel is rejected.
+    """
+    img = np.asarray(image, dtype=np.float64)
+    finite = np.isfinite(img)
+    med, scale = _mad_scale(img)
+    if not finite.any() or not np.isfinite(med):
+        return np.zeros(img.shape, dtype=bool)
+    padded = np.pad(
+        np.where(finite, img, np.nan),
+        1,
+        mode="constant",
+        constant_values=np.nan,
+    )
+    neigh_max = np.full(img.shape, -np.inf)
+    height, width = img.shape
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            if dr == 0 and dc == 0:
+                continue
+            sl = padded[1 + dr : 1 + dr + height, 1 + dc : 1 + dc + width]
+            neigh_max = np.fmax(
+                neigh_max, np.where(np.isfinite(sl), sl, -np.inf)
+            )
+    above_bg = img > (med + n_sigma * scale) if scale > 0 else img > med
+    neigh_is_bg = (
+        neigh_max < (med + n_sigma * scale) if scale > 0 else ~np.isfinite(neigh_max)
+    )
+    return finite & above_bg & neigh_is_bg & (img > neigh_max)
+
+
+def select_brightest_after_outliers(
+    image: np.ndarray,
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    *,
+    n_brightest: int,
+    n_sigma: float,
+) -> tuple[np.ndarray, int]:
+    """Return ``(coords_rc, n_rejected)`` for the N brightest box pixels.
+
+    Rejects non-finite values, faint/dead pixels (low-side MAD clip), and
+    isolated hot spikes, then ranks what remains on *image*.
+    """
+    crop = np.asarray(image[row0:row1, col0:col1], dtype=np.float64)
+    finite = np.isfinite(crop)
+    med, scale = _mad_scale(crop)
+    dead = np.zeros(crop.shape, dtype=bool)
+    if np.isfinite(med) and scale > 0:
+        dead = finite & (crop < med - n_sigma * scale)
+    hot = isolated_hot_mask(crop, n_sigma=n_sigma)
+    keep = finite & ~dead & ~hot
+    n_rejected = int(crop.size - keep.sum())
+    if not keep.any():
+        return np.empty((0, 2), dtype=int), n_rejected
+    vals = crop[keep]
+    ys, xs = np.nonzero(keep)
+    order = np.argsort(vals)[::-1]
+    n_used = min(max(1, int(n_brightest)), int(order.size))
+    pick = order[:n_used]
+    coords = np.column_stack((ys[pick] + row0, xs[pick] + col0))
+    return coords, n_rejected
+
+
 def sigma_clip_mean(
     values: np.ndarray,
     *,
@@ -694,6 +778,7 @@ def plot_file_series(
     detector_box: tuple[int, int, int, int] | None = None,
     cds_label: str = "last − first",
     cds_short: str = "frame−first",
+    flux_label: str = "10 brightest",
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
@@ -788,7 +873,7 @@ def plot_file_series(
             int(index),
             mean_val,
         )
-    ax_mean.set_ylabel(f"Illuminated − bg ROI ({cds_short}) [ADU]")
+    ax_mean.set_ylabel(f"{flux_label} ({cds_short}) [ADU]")
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
     if not show_pixels:
@@ -805,7 +890,7 @@ def plot_file_series(
                 linewidth=0.7,
                 color="C1",
             )
-        ax_pix.set_ylabel(f"Pixel − bg ROI ({cds_short}) [ADU]")
+        ax_pix.set_ylabel(f"Pixel ({cds_short}) [ADU]")
         ax_pix.set_xlabel(f"File index ({index_tag})")
         ax_pix.grid(True, alpha=0.3)
 
@@ -883,7 +968,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--n-illum-pixels",
         type=int,
         default=DEFAULT_N_ILLUM_PIXELS,
-        help=f"Random pixels in illuminated box (default: {DEFAULT_N_ILLUM_PIXELS})",
+        help=(
+            "Deprecated. Flux uses --n-brightest after outlier rejection "
+            f"(this flag is ignored; default was {DEFAULT_N_ILLUM_PIXELS} random pixels)"
+        ),
+    )
+    parser.add_argument(
+        "--n-brightest",
+        type=int,
+        default=DEFAULT_N_BRIGHTEST,
+        metavar="N",
+        help=(
+            "Select N brightest illuminated-box pixels on the last CDS plane "
+            f"after outlier rejection, and average those same pixels on every "
+            f"sample (default: {DEFAULT_N_BRIGHTEST})"
+        ),
     )
     parser.add_argument(
         "--illum-roi",
@@ -901,18 +1000,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--bg-roi",
         type=int,
-        default=DEFAULT_BG_ROI,
+        default=None,
         metavar="N",
         help=(
-            f"Use [H2RG DETECTOR] ROI N as background / reference pixels "
-            f"(default: {DEFAULT_BG_ROI}). Subtracted per plane after "
-            "frame−reset (or frame−first if no reset file)."
+            "Optional [H2RG DETECTOR] ROI N subtracted as a pedestal. "
+            "Off by default."
         ),
     )
     parser.add_argument(
         "--no-bg-roi",
         action="store_true",
-        help="Do not subtract a background ROI pedestal",
+        help="Accepted for compatibility; background ROI is off by default",
     )
     parser.add_argument(
         "--illum-size",
@@ -1105,8 +1203,8 @@ def main(argv: list[str] | None = None) -> int:
     req_center_y = int(args.illum_center[1]) if explicit_center else None
     use_manual_illum = explicit_center or illum_h is not None
     illum_roi_index = args.illum_roi
-    bg_roi_index = int(args.bg_roi)
-    use_bg_roi = not args.no_bg_roi
+    use_bg_roi = (not args.no_bg_roi) and args.bg_roi is not None
+    bg_roi_index = int(args.bg_roi) if use_bg_roi else 0
     use_photonic = not use_manual_illum and illum_roi_index is None
 
     records: list[tuple[int, str, str, np.ndarray, dict]] = []
@@ -1274,14 +1372,13 @@ def main(argv: list[str] | None = None) -> int:
         center_y = y + h // 2
         illum_source = f"ROI {illum_roi_index}"
 
-    bg_source = "none"
     bg_row0 = bg_row1 = bg_col0 = bg_col1 = 0
     if use_bg_roi:
         bg_roi = load_h2rg_roi_xywh(bg_roi_index)
         if bg_roi is None:
             raise RuntimeError(
                 f"No [{H2RG_SECTION}] ROI {bg_roi_index} in config.ini "
-                "(or config.local.ini); set ROI or pass --no-bg-roi"
+                "(or config.local.ini); omit --bg-roi or fix the ROI"
             )
         bx, by, bw, bh = bg_roi
         try:
@@ -1301,7 +1398,6 @@ def main(argv: list[str] | None = None) -> int:
             col1=bg_col1,
             n_sigma=args.n_sigma,
         )
-        bg_source = f"ROI {bg_roi_index}"
         logging.info(
             "Background ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d); "
             "pedestal mean over ramp=%.4g ADU",
@@ -1317,17 +1413,28 @@ def main(argv: list[str] | None = None) -> int:
             float(np.nanmean(bg_pedestals)),
         )
 
-    n_illum = min(args.n_illum_pixels, (row1 - row0) * (col1 - col0))
-    pixels = choose_pixels(
-        (ny, nx),
-        n_illum,
-        args.seed,
-        row_slice=(row0, row1),
-        col_slice=(col0, col1),
+    n_brightest = max(1, int(args.n_brightest))
+    pixels, n_rej = select_brightest_after_outliers(
+        cds_cube[-1],
+        row0,
+        row1,
+        col0,
+        col1,
+        n_brightest=n_brightest,
+        n_sigma=args.n_sigma,
     )
+    n_used = int(pixels.shape[0])
+    if n_used == 0:
+        means = np.full(cds_cube.shape[0], np.nan, dtype=np.float64)
+    else:
+        means = np.array(
+            [float(np.mean(pixel_values(plane, pixels))) for plane in cds_cube],
+            dtype=np.float64,
+        )
     logging.info(
         "Illuminated box %dx%d at X=%d Y=%d (%s) -> rows[%d:%d) cols[%d:%d); "
-        "%d pixels (seed=%d); bg=%s",
+        "flux = mean of %d pixels selected on last CDS plane "
+        "(rejected %d outliers); same pixels for all samples",
         illum_h,
         illum_w,
         center_x,
@@ -1337,18 +1444,11 @@ def main(argv: list[str] | None = None) -> int:
         row1,
         col0,
         col1,
-        n_illum,
-        args.seed,
-        bg_source,
+        n_used,
+        n_rej,
     )
-
-    means = np.array(
-        [
-            illuminated_mean_for_image(plane, pixels, n_sigma=args.n_sigma)
-            for plane in cds_cube
-        ],
-        dtype=np.float64,
-    )
+    for row, col in pixels:
+        logging.info("  bright pixel X=%d Y=%d", int(col), int(row))
     pixel_matrix: np.ndarray | None = None
     if args.show_pixels:
         pixel_matrix = np.stack(
@@ -1473,10 +1573,10 @@ def main(argv: list[str] | None = None) -> int:
                     },
                 )
 
+    flux_label = f"{n_used} brightest"
     title = (
-        f"MSAC UpTheRamp — illum−bg ({cds_short}) vs index "
-        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; "
-        f"{illum_source}, bg={bg_source})"
+        f"MSAC UpTheRamp — {n_brightest} brightest ({cds_short}) vs index "
+        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; {illum_source})"
     )
     last_cds = np.asarray(cds_cube[-1], dtype=np.float64)
     plot_file_series(
@@ -1496,6 +1596,7 @@ def main(argv: list[str] | None = None) -> int:
         detector_box=detector_box,
         cds_label=cds_label,
         cds_short=cds_short,
+        flux_label=flux_label,
     )
     return 0
 

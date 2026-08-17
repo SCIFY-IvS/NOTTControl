@@ -5,14 +5,13 @@
 # The script uses the latest subdirectory under that root (session folder).
 #
 # Default illuminated region: Photonic chip WinMode (X=1024–1087, Y=928–959)
-# Default background / reference: ROI 8 (pedestal subtracted per plane)
-# Override with --illum-roi / --bg-roi / --illum-center / --illum-size;
-# disable pedestal with --no-bg-roi.
+# Flux = mean of the 10 brightest pixels after outlier rejection.
+# No background ROI is subtracted. Override the box with --illum-roi /
+# --illum-center / --illum-size.
 #
 # Builds reduced cubes next to the PNG plot:
 #   frame − reset  when a _R0001 (or _R######) FITS is in the session folder
 #   frame − first  otherwise (zero self-subtraction plane omitted)
-#   optional ROI-8 pedestal after that subtraction
 #   msac_uptheramp_frame_minus_first.fits       — full frame
 #   msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
 #
@@ -26,7 +25,8 @@
 # (reset frames _R###### are used as the subtraction reference, not as
 # ramp points).
 # X = file index from the name (_M###### or _N######);
-# Y = illuminated mean − background ROI (frame − reset, or frame − first).
+# Y = mean of 10 photonic-chip pixels chosen on the last CDS plane
+#     (outliers rejected), then tracked on every sample.
 #
 # PNG (full frame + illuminated crop + flux vs frame) and FITS cubes
 # are written into the session data folder.
