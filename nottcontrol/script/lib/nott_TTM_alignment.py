@@ -84,14 +84,12 @@ acq_time = nott_config.getfloat("injection", "acq_time")
 Ncrit = nott_config.getint("injection", "Ncrit")
 Nsteps_skyb = nott_config.getint("injection", "Nsteps_skyb")
 Nexp = nott_config.getint("injection", "Nexp")
-disp_double = nott_config.getfloat("injection", "disp_double")
-step_double = nott_config.getfloat("injection", "step_double")
-speed_double = nott_config.getfloat("injection", "speed_double")
-act_speed = nott_config.getfloat("injection", act_speed)
-act_backlash = nott_config.getfloat("injection", act_backlash)
-act_deadband = nott_config.getfloat("injection", act_deadband)
+act_deadband = nott_config.getfloat("injection", "act_deadband")
+act_backlash = nott_config.getfloat("injection", "act_backlash")
+act_speed = nott_config.getfloat("injection", "act_speed")
+
 print(
-    "Read configuration [bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,disp_double,step_double,speed_double,speed,backlash,deadband] : ",
+    "Read configuration [bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,act_speed,act_backlash,act_deadband] : ",
     [
         bool_UT,
         bool_offset,
@@ -101,9 +99,6 @@ print(
         Ncrit,
         Nsteps_skyb,
         Nexp,
-        disp_double,
-        step_double,
-        speed_double,
         act_speed,
         act_backlash,
         act_deadband,
@@ -429,11 +424,11 @@ class alignment:
                     self.opcua_conn,
                     "ns=4;s=MAIN.nott_ics.TipTilt." + name,
                     name,
-                    speed=speed,
+                    speed=act_speed,
                     pos_min=0.0,
                     pos_max=12000.0,
-                    backlash=backlash,
-                    deadband=deadband,
+                    backlash=act_backlash,
+                    deadband=act_deadband,
                     init_backlash=False,
                 )
                 for name in act_names
@@ -887,9 +882,12 @@ class alignment:
         if config < 0 or config > 3:
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
 
-        acts = self.actuators[config]
+        # Fetch ActuatorCluster corresponding to {config}
+        cluster = self.actuators[config]
+        # Fetch positions from Cluster, convert to mm.
         pos = np.array(
-            [acts[i].getPositionAndSpeed()[0] for i in range(0, 4)], dtype=np.float64
+            [act.position_microns * 10 ** (-3) for act in cluster.motors],
+            dtype=np.float64,
         )
         timestamp = self.ts.ts.get("cam_integtime")[0]
 
@@ -1354,12 +1352,17 @@ class alignment:
         """
         Description
         -----------
-        The function moves all actuators (1,2,3,4) in a configuration "config" (=beam), initially at positions "init_pos",
-        by given displacements "disp", at speeds "speeds", taking into account offsets "pos_offset".
+        Moves all four TTM actuators (1,2,3,4) in configuration {config} (=beam) from positions {init_pos} by displacements {disp} (mm)
+        at speeds {speeds}, accounting for positional offsets {pos_offset}.
+
+        Motion is fired through the ActuatorCluster associated with the given configuration.
+        Backlash correction and sub-resolution displacements are handled internally for each actuator, via move_sequence.
+        All four actuators move simultaneously by threading.
+
         Actuator positions are sampled during the motion and the associated redis timestamps are registered.
-        If "sample" is True, those redis timestamps are used - after the actuator motion - to fetch the IR camera frames that were
-        recorded during the time window of actuator motion.
-        Those IR camera frames can then be passed to the human_interface calibration methods (get_frames_cal(_broad)) to get photometric readouts.
+        This is done by polling the cluster in a loop, whilst the threads are running.
+        If {sample} is True, the collected timestamps are converted to a Frame object after motion is completed.
+        The sampled IR camera frames can then be passed to the human_interface calibration methods (get_frames_cal(_broad)) to get photometric readouts.
         In the context of spiraling, actuator errors "err_prev" of the previous step can be taken into account.
         Actuator naming convention within a configuration :
             1 : TTM1 actuator that is closest to the bench edge
@@ -1406,175 +1409,75 @@ class alignment:
         if config < 0 or config > 3:
             raise ValueError("Please enter a valid configuration number (0,1,2,3)")
 
-        # Actuator names
-        act_names = [
-            "NTTA" + str(config + 1),
-            "NTPA" + str(config + 1),
-            "NTTB" + str(config + 1),
-            "NTPB" + str(config + 1),
-        ]
-
+        # ActuatorCLuster for the given beam {config}
+        cluster = self.actuators[config]
         # Desired final positions
-        final_pos = init_pos + (disp)  # -err_prev) #TBD
+        final_pos = init_pos + disp  # -err_prev #TBD
 
-        # Containers for samples of actuator position and positional errors
+        # Apply positional offsets if specified in config.ini.
+        final_pos_off = final_pos.copy()
+        for i in range(0, 4):
+            if disp[i] != 0:
+                final_pos_off[i] -= pos_offset[i]
+
+        # Containers
         act = []
         act_times = []
         err = np.zeros(4, dtype=np.float64)
 
-        # Auxiliary functions
-        def _wait_for_arrival(act_idx):
-            # Poll until the actuator report a STANDING/OPERATIONAL state.
-            on_destination = False
-            while not on_destination:
-                time.sleep(0.005)
-                status, state, _ = self.actuators[config][
-                    act_idx
-                ].getStatusInformation()
-                on_destination = status == "STANDING" and state == "OPERATIONAL"
+        # Fire all actuator moves simultaneously through ActuatorCluster
+        # Backlash correction and sub-resolution motion handled internally by Actuator.move_sequence
 
-        def _fire_move(act_idx, target_pos, speed):
-            # Fire a MoveAbsolute command through OPCUA (Motor class expects speed in um/s)
-            self.actuators[config][act_idx].command_move_absolute(
-                target_pos, speed * 10**3
-            ).execute()
+        # Actuator-specific speeds passed via the speed parameter of move_sequence
+        t_start_loop = self.ts.ts.get("cam_integtime")[0]
+        # Target positions (skip zero displacements by passing nan)
+        target_pos = np.where(disp != 0, final_pos_off, np.nan)
 
-        # Move functions
-        def move_single(double):
-            """
-            Execute one move on an actuator and sample positions throughout that move.
+        cluster.move_abs_all(
+            target_pos=target_pos * 10 ** (-3),
+            speeds=speeds * 10 ** (-3),
+            cp_backlash=True,
+        )
 
-            Parameters
-            ----------
-            double : single boolean
-                True : this function is called as the first step a double actuator motion, overshooting the target position.
-                        sample positions until target position is passed; don't sample in overshoot phase
-                False : this function is called as a standalone, single move
-                        sample positions until arrival at target position
-            """
-            # Execute move
-            _fire_move(i, final_pos_off[i], speeds[i])
-            # Poll
-            on_destination = False
-            sample_double = True
-            while not on_destination:
-                # If double motion, evaluate whether to sample first
-                if double:
-                    act_pos = self._get_actuator_pos(config)[0]
-                    if disp[i] > 0:
-                        sample_double = act_pos[i] < final_pos[i]
-                    else:
-                        sample_double = act_pos[i] > final_pos[i]
-                # Sample
-                if sample_double:
-                    act_samp = self._get_actuator_pos(config)
-                    act.append(act_samp[0])
-                    act_times.append(act_samp[1])
+        # Poll actuator positions
+        while any(t.is_alive() for t in cluster.threads):
+            sample = self._get_actuator_pos(config)
+            act.append(sample[0])
+            act_times.append(sample[1])
+            time.sleep(0.005)
 
-                status, state, _ = self.actuators[config][i].getStatusInformation()
-                on_destination = status == "STANDING" and state == "OPERATIONAL"
+        # Await completion of all threads
+        cluster.await_all()
 
-            # Arrived at destination
-            ach_pos = self._get_actuator_pos(config)[0][i]
-            if not double:
-                err[i] = ach_pos - final_pos[i]
+        # Restore default speed on all actuators
+        for motor in cluster.motors:
+            motor.set_speed(act_speed)
+
+        # Time keeping
+        t_end_loop = self.ts.ts.get("cam_integtime")[0]
+        t_spent_loop = t_end_loop - t_start_loop
+
+        # Final achieved position, errors
+        achieved_pos = np.array(
+            [motor.positions_microns * 10 ** (3) for motor in cluster.motors],
+            dtype=np.float64,
+        )
+        for i in range(0, 4):
+            if disp[i] != 0:
+                err[i] = achieved_pos[i] - final_pos[i]
                 print(
-                    "Moved actuator "
-                    + act_names[i]
-                    + " by a displacement "
-                    + str(disp[i] * 1000)
-                    + " um with an error "
-                    + str(1000 * (ach_pos - final_pos[i]))
-                    + " um. This required an offset-incorporated displacement of "
-                    + str(1000 * disp_off)
-                    + " um."
+                    f"Actuator {cluster.motors[i].name}:"
+                    f"disp {disp[i] * 10**3:.2f} um | "
+                    f"error {err[i] * 10**3:.2f} um | "
+                    f"offset {pos_offset[i] * 10**3:.2f} um"
                 )
 
-        def move_double():
-            """
-            Sequence of three separate moves for displacements that are sub-actuator-resolution
-                1) Overshoot the target. Sampling happens during this phase, as long as target is not overshot
-                2) Neutralize backlash by retracing 0.5 um
-                3) Accurate approach to final position
-            """
-
-            # 1) Move 1 : Deliberately overshooting and sampling until the target is overshot
-            move_single(True)
-
-            # 2) Move 2 : Neutralize backlash
-            # Current actuator positions
-            act_curr_temp = self._get_actuator_pos(config)[0]
-            # Backlash-neutralized position
-            disp_back = sign * 0.0005
-            pos_back = act_curr_temp[i] + disp_back
-            # Fire move and await completion
-            _fire_move(i, pos_back, 0.0005)
-            _wait_for_arrival(i)
-
-            # 2.5) Update the offset required to reach the final position
-            # Current actuator positions
-            act_curr_temp = self._get_actuator_pos(config)[0]
-            # Necessary displacements
-            act_disp_temp = final_pos - act_curr_temp
-            # Update speed
-            speeds[i] = speed_double
-            # Offsets from accuracy grid
-            pos_offset_return = self._actoffset(speeds, act_disp_temp)
-            # Final target position
-            final_pos_off[i] = final_pos[i] - pos_offset_return[i]
-
-            # 3) Move 3 : Returning to get to the desired position in accurate fashion.
-            # Fire move and await completion
-            _fire_move(i, final_pos_off[i], speeds[i])
-            _wait_for_arrival(i)
-            # Evaluate error
-            ach_pos = self._get_actuator_pos(config)[0][i]
-            err[i] = ach_pos - final_pos[i]
-            print(
-                "Moved actuator "
-                + act_names[i]
-                + " by a displacement "
-                + str(disp[i] * 1000)
-                + " um with an error "
-                + str(1000 * (ach_pos - final_pos[i]))
-                + " um. This required an offset-incorporated displacement of "
-                + str(1000 * disp_off)
-                + " um."
-            )
-
-        # ---------------------
-        # MAIN ACTUATOR LOOP
-        # Looping over all four actuators
-        t_start_loop = self.ts.ts.get("cam_integtime")[0]
-        for i in range(0, 4):
-            # Only continue for actuators upon which displacement is imposed
-            if disp[i] != 0:
-                # Incorporating offsets
-                final_pos_off = final_pos.copy()
-                final_pos_off[i] -= pos_offset[i]  # in mm
-                # Actual displacement (offset incorporated)
-                disp_off = final_pos_off[i] - init_pos[i]
-
-                if np.abs(disp[i]) >= disp_double:
-                    # 1) Single motion suffices
-                    move_single(False)
-                else:
-                    # 2) Double motion necessary
-                    sign = np.sign(disp[i])
-                    # Deliberately overshooting
-                    step_over = step_double
-                    speeds[i] = speed_double
-                    final_pos_off[i] = init_pos[i] + sign * step_over
-                    move_double()
-
-        t_end_loop = self.ts.ts.get("cam_integtime")[0]
-        t_spent_loop = round(t_end_loop - t_start_loop)
-
-        # Retrospectively acquire the frames recorded during the motion time window
-        if sample and len(act_times) > 0:
-            frames = self._timestamps_to_frames(act_times)
-        else:
-            frames = None
+        # Post motion photometry
+        frames = (
+            self._timestamps_to_frames(act_times)
+            if sample and len(act_times) > 0
+            else None
+        )
 
         return t_start_loop, t_spent_loop, act, act_times, frames, err
 
