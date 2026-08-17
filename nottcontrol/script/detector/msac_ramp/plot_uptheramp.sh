@@ -23,7 +23,8 @@
 # X = file index from the name (_M###### or _N######);
 # Y = illuminated mean − background ROI (frame − first).
 #
-# PNG + FITS cubes are written into the session data folder.
+# PNG (full frame + illuminated crop + flux vs frame) and FITS cubes
+# are written into the session data folder.
 #
 # Environment:
 #   MSAC_RAMP_DIR   override UpTheRamp root (or a specific session folder)

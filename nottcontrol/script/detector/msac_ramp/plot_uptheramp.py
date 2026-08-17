@@ -18,7 +18,9 @@ written next to the plot (plane ``k`` = ``frame[k] - frame[0]``):
 
 The zero self-subtraction plane (``frame[0] - frame[0]``) is **omitted**
 from both cubes. The illuminated-mean plot still includes that first point
-(~0) for reference.
+(~0) for reference. The PNG shows the last CDS-relative **full frame**
+(with illuminated / background boxes), the **illuminated crop**, and
+**flux vs frame**.
 
 Illuminated box defaults to **H2RG ROI 2**; background / reference
 defaults to **H2RG ROI 8** (``config.ini`` / ``config.local.ini``).
@@ -516,6 +518,44 @@ def pixel_values(image: np.ndarray, pixels: np.ndarray) -> np.ndarray:
     )
 
 
+def _display_limits(image: np.ndarray) -> tuple[float, float]:
+    finite = np.asarray(image, dtype=np.float64)
+    finite = finite[np.isfinite(finite)]
+    if finite.size == 0:
+        return 0.0, 1.0
+    lo, hi = np.percentile(finite, (5.0, 99.5))
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        lo, hi = float(np.min(finite)), float(np.max(finite))
+        if hi <= lo:
+            hi = lo + 1.0
+    return float(lo), float(hi)
+
+
+def _draw_box(
+    ax,
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    *,
+    color: str,
+    label: str,
+) -> None:
+    from matplotlib.patches import Rectangle
+
+    ax.add_patch(
+        Rectangle(
+            (col0 - 0.5, row0 - 0.5),
+            col1 - col0,
+            row1 - row0,
+            fill=False,
+            edgecolor=color,
+            linewidth=1.2,
+            label=label,
+        )
+    )
+
+
 def plot_file_series(
     *,
     indices: np.ndarray,
@@ -526,16 +566,65 @@ def plot_file_series(
     output: Path,
     title: str,
     show: bool,
+    full_frame: np.ndarray | None = None,
+    illum_frame: np.ndarray | None = None,
+    illum_box: tuple[int, int, int, int] | None = None,
+    bg_box: tuple[int, int, int, int] | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
-    fig, axes = plt.subplots(
-        2 if show_pixels else 1,
-        1,
-        figsize=(9, 7 if show_pixels else 4.5),
-        sharex=True,
-        squeeze=False,
-    )
-    ax_mean = axes[0, 0]
+    show_images = full_frame is not None and illum_frame is not None
+    height_ratios: list[float] = []
+    if show_images:
+        height_ratios.append(1.4)
+    height_ratios.append(1.0)
+    if show_pixels:
+        height_ratios.append(1.0)
+    n_plot_rows = len(height_ratios)
+    fig = plt.figure(figsize=(10.5, 3.6 * n_plot_rows + 0.8), layout="constrained")
+    gs = fig.add_gridspec(n_plot_rows, 2, height_ratios=height_ratios, hspace=0.28, wspace=0.16)
+
+    row = 0
+    if show_images:
+        ax_full = fig.add_subplot(gs[row, 0])
+        ax_illum = fig.add_subplot(gs[row, 1])
+        vmin, vmax = _display_limits(full_frame)
+        im_full = ax_full.imshow(
+            full_frame,
+            origin="upper",
+            cmap="gray",
+            vmin=vmin,
+            vmax=vmax,
+            interpolation="nearest",
+            aspect="equal",
+        )
+        ax_full.set_title("Full frame (last − first)")
+        ax_full.set_xlabel("X [pix]")
+        ax_full.set_ylabel("Y [pix]")
+        if illum_box is not None:
+            _draw_box(ax_full, *illum_box, color="#ff6b6b", label="Illum")
+        if bg_box is not None:
+            _draw_box(ax_full, *bg_box, color="#4cc9f0", label="Bg")
+        if illum_box is not None or bg_box is not None:
+            ax_full.legend(loc="upper right", fontsize=8, framealpha=0.8)
+        fig.colorbar(im_full, ax=ax_full, fraction=0.046, pad=0.04, label="ADU")
+
+        vmin_i, vmax_i = _display_limits(illum_frame)
+        im_illum = ax_illum.imshow(
+            illum_frame,
+            origin="upper",
+            cmap="gray",
+            vmin=vmin_i,
+            vmax=vmax_i,
+            interpolation="nearest",
+            aspect="equal",
+        )
+        ax_illum.set_title("Illuminated region (last − first)")
+        ax_illum.set_xlabel("X [pix in box]")
+        ax_illum.set_ylabel("Y [pix in box]")
+        fig.colorbar(im_illum, ax=ax_illum, fraction=0.046, pad=0.04, label="ADU")
+        row += 1
+
+    ax_mean = fig.add_subplot(gs[row, :])
     ax_mean.plot(indices, means, "o-", markersize=5, color="C0")
     for index, mean_val, name in zip(indices, means, names):
         logging.info(
@@ -548,9 +637,11 @@ def plot_file_series(
     ax_mean.set_ylabel("Illuminated − bg ROI (frame−first) [ADU]")
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
+    if not show_pixels:
+        ax_mean.set_xlabel(f"File index ({index_tag})")
 
     if show_pixels:
-        ax_pix = axes[1, 0]
+        ax_pix = fig.add_subplot(gs[row + 1, :], sharex=ax_mean)
         for i in range(pixel_matrix.shape[1]):
             ax_pix.plot(
                 indices,
@@ -563,10 +654,7 @@ def plot_file_series(
         ax_pix.set_ylabel("Pixel − bg ROI (frame−first) [ADU]")
         ax_pix.set_xlabel(f"File index ({index_tag})")
         ax_pix.grid(True, alpha=0.3)
-    else:
-        ax_mean.set_xlabel(f"File index ({index_tag})")
 
-    fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=150)
     logging.info("Wrote plot: %s", output)
@@ -580,8 +668,8 @@ def plot_file_series(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Plot illuminated-region ADU vs MSAC file index (_M / _N) "
-            "for UpTheRamp FITS."
+            "Plot MSAC UpTheRamp FITS: full frame, illuminated crop, "
+            "and illuminated-region ADU vs file index (_M / _N)."
         )
     )
     parser.add_argument(
@@ -1087,6 +1175,7 @@ def main(argv: list[str] | None = None) -> int:
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; "
         f"{illum_source}, bg={bg_source})"
     )
+    last_cds = np.asarray(cds_cube[-1], dtype=np.float64)
     plot_file_series(
         indices=indices,
         means=means,
@@ -1096,6 +1185,10 @@ def main(argv: list[str] | None = None) -> int:
         output=output,
         title=title,
         show=args.show,
+        full_frame=last_cds,
+        illum_frame=last_cds[row0:row1, col0:col1],
+        illum_box=(row0, row1, col0, col1),
+        bg_box=(bg_row0, bg_row1, bg_col0, bg_col1) if use_bg_roi else None,
     )
     return 0
 
