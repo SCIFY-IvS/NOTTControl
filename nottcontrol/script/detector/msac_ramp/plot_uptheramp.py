@@ -10,17 +10,17 @@ script selects the **latest** subdirectory (by modification time), then
 loads **all** FITS there.
 
 Frames are stacked in file-index order (last plane of each FITS, or all
-planes of a single multi-sample cube). Two **CDS-relative cubes** are
-written next to the plot (plane ``k`` = ``frame[k] - frame[0]``):
+planes of a single multi-sample cube). If a **reset frame** is present
+(``_R0001`` / ``_R######`` in the filename), each science sample is
+``frame - reset``. Otherwise each plane is ``frame[k] - frame[0]``.
+
+Two reduced cubes are written next to the plot:
 
 * full-frame ``msac_uptheramp_frame_minus_first.fits``
 * illuminated-box crop ``msac_uptheramp_frame_minus_first_illum.fits``
 
-The zero self-subtraction plane (``frame[0] - frame[0]``) is **omitted**
-from both cubes. The illuminated-mean plot still includes that first point
-(~0) for reference. The PNG shows the last CDS-relative **full frame**
-(with illuminated / background boxes), the **illuminated crop**, and
-**flux vs frame**.
+With first-sample subtraction the zero self-subtraction plane is
+**omitted** from both cubes. Reset subtraction keeps every science plane.
 
 Illuminated box defaults to the **Photonic chip** WinMode
 (``X=1024–1087``, ``Y=928–959``). Background / reference defaults to
@@ -64,11 +64,13 @@ DEFAULT_FULL_FRAME = 2048
 DEFAULT_SEED = 0
 DEFAULT_N_SIGMA = 3.0
 
-# MSAC names often embed both counters, e.g. ``…_N000012_M000001.fits``.
-# Prefer the tag (M or N) that varies across the session; do not assume it is
-# the trailing field (that is often a constant ``_M000001``).
-FILE_INDEX_RE = re.compile(r"_(?P<tag>[MN])(?P<index>\d+)", re.IGNORECASE)
+# MSAC names often embed counters, e.g. ``…_N000012_M000001.fits`` or
+# a reset frame ``…_R0001.fits``. Prefer the science tag (M or N) that
+# varies across the session; do not assume it is the trailing field.
+FILE_INDEX_RE = re.compile(r"_(?P<tag>[MNR])(?P<index>\d+)", re.IGNORECASE)
 TRAILING_DIGITS_RE = re.compile(r"_(\d+)\s*$")
+SCIENCE_TAGS = frozenset({"M", "N"})
+RESET_TAG = "R"
 
 
 def _fits_in_dir(directory: Path) -> list[Path]:
@@ -110,7 +112,7 @@ def resolve_ramp_dir(path: Path) -> Path:
 
 
 def file_indices_from_name(name: str) -> dict[str, int]:
-    """Return all ``M``/``N`` counters found in *name* (last wins per tag)."""
+    """Return all ``M``/``N``/``R`` counters found in *name* (last wins per tag)."""
     stem = Path(name).stem
     found: dict[str, int] = {}
     for match in FILE_INDEX_RE.finditer(stem):
@@ -123,7 +125,8 @@ def choose_index_tag(paths: list[Path]) -> str | None:
     values: dict[str, set[int]] = {"M": set(), "N": set()}
     for path in paths:
         for tag, index in file_indices_from_name(path.name).items():
-            values[tag].add(index)
+            if tag in SCIENCE_TAGS:
+                values[tag].add(index)
 
     candidates = [
         (tag, len(vals))
@@ -161,23 +164,86 @@ def file_index_from_name(
 
     If *preferred_tag* is set (``M``/``N``), use that counter. Otherwise use
     the last ``_M``/``_N`` field in the name, then trailing ``_######``.
+    Reset ``_R`` counters are ignored here; see ``is_reset_fits``.
     """
     found = file_indices_from_name(name)
+    science = {tag: index for tag, index in found.items() if tag in SCIENCE_TAGS}
     if preferred_tag:
         tag = preferred_tag.upper()
-        if tag in found:
-            return tag, found[tag]
-    if found:
-        # Last match in the filename order: re-scan for ordering.
+        if tag in science:
+            return tag, science[tag]
+    if science:
         stem = Path(name).stem
-        matches = list(FILE_INDEX_RE.finditer(stem))
-        match = matches[-1]
-        return match.group("tag").upper(), int(match.group("index"))
+        matches = [
+            match
+            for match in FILE_INDEX_RE.finditer(stem)
+            if match.group("tag").upper() in SCIENCE_TAGS
+        ]
+        if matches:
+            match = matches[-1]
+            return match.group("tag").upper(), int(match.group("index"))
 
     trailing = TRAILING_DIGITS_RE.search(Path(name).stem)
     if trailing:
         return "#", int(trailing.group(1))
     return None
+
+
+def is_reset_fits(name: str) -> bool:
+    """True if *name* is an MSAC reset frame (``_R0001`` / ``_R######``)."""
+    found = file_indices_from_name(name)
+    if RESET_TAG not in found:
+        return False
+    science = {tag for tag in found if tag in SCIENCE_TAGS}
+    if not science:
+        return True
+    matches = list(FILE_INDEX_RE.finditer(Path(name).stem))
+    return bool(matches) and matches[-1].group("tag").upper() == RESET_TAG
+
+
+def split_science_and_reset(
+    paths: list[Path],
+) -> tuple[list[Path], list[Path]]:
+    """Split FITS paths into science ramps and reset frames."""
+    science: list[Path] = []
+    resets: list[Path] = []
+    for path in paths:
+        if is_reset_fits(path.name):
+            resets.append(path)
+        else:
+            science.append(path)
+    return science, resets
+
+
+def load_reset_reference(
+    reset_paths: list[Path],
+) -> tuple[np.ndarray, Path] | None:
+    """Load the last plane of the first reset FITS (lowest ``R`` index)."""
+    if not reset_paths:
+        return None
+    ranked = sorted(
+        reset_paths,
+        key=lambda p: (
+            file_indices_from_name(p.name).get(RESET_TAG, 10**9),
+            p.name.lower(),
+        ),
+    )
+    chosen = ranked[0]
+    if len(ranked) > 1:
+        logging.info(
+            "Found %d reset frame(s); using %s (R=%s)",
+            len(ranked),
+            chosen.name,
+            file_indices_from_name(chosen.name).get(RESET_TAG),
+        )
+    cube, _header = load_ramp_cube(chosen)
+    reference = np.asarray(last_plane(cube), dtype=np.float64)
+    logging.info(
+        "Reset reference %s: shape=%s",
+        chosen.name,
+        reference.shape,
+    )
+    return reference, chosen
 
 
 def illuminated_box(
@@ -416,6 +482,21 @@ def relative_to_first(cube: np.ndarray) -> np.ndarray:
     return np.asarray(cube, dtype=np.float64) - first
 
 
+def relative_to_reference(cube: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    """Return ``cube[k] - reference`` for every plane (float64)."""
+    data = np.asarray(cube, dtype=np.float64)
+    ref = np.asarray(reference, dtype=np.float64)
+    if data.ndim != 3:
+        raise ValueError(f"Expected (n, y, x) cube, got shape {data.shape}")
+    if ref.ndim != 2:
+        raise ValueError(f"Expected 2-D reset frame, got shape {ref.shape}")
+    if ref.shape != data.shape[1:]:
+        raise ValueError(
+            f"Reset shape {ref.shape} does not match science {data.shape[1:]}"
+        )
+    return data - ref
+
+
 def region_mean(
     image: np.ndarray,
     row0: int,
@@ -611,6 +692,8 @@ def plot_file_series(
     bg_box: tuple[int, int, int, int] | None = None,
     region_label: str | None = None,
     detector_box: tuple[int, int, int, int] | None = None,
+    cds_label: str = "last − first",
+    cds_short: str = "frame−first",
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
@@ -638,7 +721,7 @@ def plot_file_series(
             interpolation="nearest",
             aspect="equal",
         )
-        ax_full.set_title("Full frame (last − first)")
+        ax_full.set_title(f"Full frame ({cds_label})")
         ax_full.set_xlabel("X [pix]")
         ax_full.set_ylabel("Y [pix]")
         if illum_box is not None:
@@ -669,16 +752,16 @@ def plot_file_series(
                 irow0 - 0.5,
             )
             if region_label:
-                illum_title = f"{region_label}\n(last − first)"
+                illum_title = f"{region_label}\n({cds_label})"
             else:
                 illum_title = (
-                    f"Illuminated region (last − first)\n"
+                    f"Illuminated region ({cds_label})\n"
                     f"X={icol0}–{icol1 - 1}, Y={irow0}–{irow1 - 1} "
                     f"({icol1 - icol0}×{irow1 - irow0} pix)"
                 )
         else:
             illum_extent = None
-            illum_title = region_label or "Illuminated region (last − first)"
+            illum_title = region_label or f"Illuminated region ({cds_label})"
         im_illum = ax_illum.imshow(
             illum_frame,
             origin="upper",
@@ -705,7 +788,7 @@ def plot_file_series(
             int(index),
             mean_val,
         )
-    ax_mean.set_ylabel("Illuminated − bg ROI (frame−first) [ADU]")
+    ax_mean.set_ylabel(f"Illuminated − bg ROI ({cds_short}) [ADU]")
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
     if not show_pixels:
@@ -722,7 +805,7 @@ def plot_file_series(
                 linewidth=0.7,
                 color="C1",
             )
-        ax_pix.set_ylabel("Pixel − bg ROI (frame−first) [ADU]")
+        ax_pix.set_ylabel(f"Pixel − bg ROI ({cds_short}) [ADU]")
         ax_pix.set_xlabel(f"File index ({index_tag})")
         ax_pix.grid(True, alpha=0.3)
 
@@ -765,7 +848,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         metavar="N",
-        help="Use only the N newest FITS (default: all files in the session)",
+        help="Use only the N newest science FITS (default: all files in the session)",
+    )
+    parser.add_argument(
+        "--reset-file",
+        type=Path,
+        default=None,
+        help=(
+            "Reset FITS to subtract from each science sample. "
+            "Default: the lowest-index _R###### file in the session folder, "
+            "if present"
+        ),
+    )
+    parser.add_argument(
+        "--no-reset",
+        action="store_true",
+        help="Ignore reset frames and subtract the first science sample instead",
     )
     parser.add_argument(
         "--all",
@@ -808,7 +906,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             f"Use [H2RG DETECTOR] ROI N as background / reference pixels "
             f"(default: {DEFAULT_BG_ROI}). Subtracted per plane after "
-            "frame−first."
+            "frame−reset (or frame−first if no reset file)."
         ),
     )
     parser.add_argument(
@@ -869,15 +967,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help=(
-            "Full-frame FITS cube path (planes = frame - first, first zero "
-            "plane omitted; default: "
+            "Full-frame FITS cube path (planes = frame - reset when a "
+            "reset file is present, else frame - first; default: "
             "msac_uptheramp_frame_minus_first.fits in the session dir)"
         ),
     )
     parser.add_argument(
         "--no-cds-cube",
         action="store_true",
-        help="Skip writing the full-frame frame-minus-first FITS cube",
+        help="Skip writing the full-frame reduced FITS cube",
     )
     parser.add_argument(
         "--illum-cube",
@@ -915,6 +1013,11 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     ramp_dir = resolve_ramp_dir(args.ramp_dir)
+    try:
+        folder_fits = list_ramp_fits(ramp_dir)
+    except FileNotFoundError:
+        folder_fits = []
+
     if args.file:
         paths: list[Path] = []
         for item in args.file:
@@ -924,14 +1027,63 @@ def main(argv: list[str] | None = None) -> int:
             if not path.is_file():
                 raise FileNotFoundError(path)
             paths.append(path.resolve())
+        science_paths, reset_from_args = split_science_and_reset(paths)
+        logging.info(
+            "Using %d science file(s) from --file",
+            len(science_paths),
+        )
     else:
-        all_paths = list_ramp_fits(ramp_dir)
+        science_paths, reset_from_args = split_science_and_reset(folder_fits)
         if args.latest is not None and not args.all:
             n = max(1, int(args.latest))
-            paths = all_paths[-n:]
+            science_paths = science_paths[-n:]
+        logging.info(
+            "Using %d science file(s) from %s",
+            len(science_paths),
+            ramp_dir,
+        )
+
+    _, reset_from_folder = split_science_and_reset(folder_fits)
+    if args.no_reset:
+        reset_paths: list[Path] = []
+    elif args.reset_file is not None:
+        reset_path = args.reset_file.expanduser()
+        if not reset_path.is_absolute():
+            reset_path = ramp_dir / reset_path
+        if not reset_path.is_file():
+            raise FileNotFoundError(reset_path)
+        reset_paths = [reset_path.resolve()]
+    else:
+        seen: dict[Path, Path] = {}
+        for path in reset_from_folder + reset_from_args:
+            seen[path.resolve()] = path.resolve()
+        reset_paths = list(seen.values())
+
+    reset_loaded = None if args.no_reset else load_reset_reference(reset_paths)
+    if reset_loaded is not None:
+        reset_frame, reset_fits_path = reset_loaded
+        logging.info(
+            "Subtracting reset frame %s from each science sample",
+            reset_fits_path.name,
+        )
+    else:
+        reset_frame = None
+        reset_fits_path = None
+        if args.no_reset:
+            logging.info(
+                "Ignoring reset frames (--no-reset); subtracting first science sample"
+            )
         else:
-            paths = all_paths
-        logging.info("Using %d ramp file(s) from %s", len(paths), ramp_dir)
+            logging.info(
+                "No reset frame (_R######) in the session folder; "
+                "subtracting the first science sample"
+            )
+
+    paths = science_paths
+    if not paths:
+        raise RuntimeError(
+            "No science FITS files (reset frames _R###### are not plotted)"
+        )
 
     if args.index_tag == "auto":
         preferred_tag = choose_index_tag(paths)
@@ -1033,7 +1185,34 @@ def main(argv: list[str] | None = None) -> int:
 
     records.sort(key=lambda row: (row[0], row[2].lower()))
     stack = np.stack([row[3] for row in records], axis=0)
-    cds_cube = relative_to_first(stack)
+    if reset_frame is not None:
+        if reset_fits_path is None:
+            raise RuntimeError("Reset frame loaded without a FITS path")
+        if reset_frame.shape != stack.shape[1:]:
+            raise RuntimeError(
+                f"Reset frame {reset_fits_path.name} shape {reset_frame.shape} "
+                f"does not match science {stack.shape[1:]}"
+            )
+        cds_cube = relative_to_reference(stack, reset_frame)
+        cds_short = "frame−reset"
+        cds_label = "last − reset"
+        reduct_card = ("FRAME-RESET", "Each plane = sample - reset frame")
+        skip_ref = False
+        reduct_history = (
+            f"MSAC UpTheRamp CDS-relative cube: each plane = sample - "
+            f"reset ({reset_fits_path.name})"
+        )
+    else:
+        cds_cube = relative_to_first(stack)
+        cds_short = "frame−first"
+        cds_label = "last − first"
+        reduct_card = ("FRAME-FIRST", "Each plane = sample - first sample")
+        skip_ref = True
+        reduct_history = (
+            "MSAC UpTheRamp CDS-relative cube: each plane = "
+            "sample - first sample (ordered by file/plane index); "
+            "zero reference plane omitted"
+        )
     indices = np.array([row[0] for row in records], dtype=np.int64)
     names = [row[2] for row in records]
     index_tag = records[0][1]
@@ -1197,13 +1376,36 @@ def main(argv: list[str] | None = None) -> int:
     write_full = not args.no_cds_cube
     write_illum = not args.no_illum_cube
     if write_full or write_illum:
-        try:
-            cds_for_disk = drop_reference_plane(cds_cube)
-        except ValueError as exc:
-            logging.warning("Skipping CDS cube write(s): %s", exc)
-            write_full = False
-            write_illum = False
+        if skip_ref:
+            try:
+                cds_for_disk = drop_reference_plane(cds_cube)
+            except ValueError as exc:
+                logging.warning("Skipping CDS cube write(s): %s", exc)
+                write_full = False
+                write_illum = False
+                cds_for_disk = None
         else:
+            cds_for_disk = cds_cube
+        if cds_for_disk is not None and (write_full or write_illum):
+            pedestal_note = (
+                f"; pedestal = mean(ROI {bg_roi_index})" if use_bg_roi else ""
+            )
+            reset_cards: dict = {
+                "REDUCT": reduct_card,
+                "SKIPREF": (
+                    skip_ref,
+                    (
+                        "Omitted plane 0 (frame0-frame0 == 0)"
+                        if skip_ref
+                        else "Kept all science planes (reset subtraction)"
+                    ),
+                ),
+            }
+            if reset_fits_path is not None:
+                reset_cards["RESETFIL"] = (
+                    reset_fits_path.name,
+                    "Reset FITS used as subtraction reference",
+                )
             if write_full:
                 save_cube_fits(
                     _resolve_out(
@@ -1211,20 +1413,25 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                     cds_for_disk,
                     reference_header=ref_header,
-                    history=(
-                        "MSAC UpTheRamp CDS-relative cube: each plane = "
-                        "sample - first sample (ordered by file/plane index); "
-                        "zero reference plane omitted"
-                        + (
-                            f"; pedestal = mean(ROI {bg_roi_index})"
-                            if use_bg_roi
-                            else ""
-                        )
-                        + "."
-                    ),
+                    history=reduct_history + pedestal_note + ".",
+                    extra_cards=reset_cards,
                 )
             if write_illum:
                 illum_crop = cds_for_disk[:, row0:row1, col0:col1]
+                illum_history = (
+                    "MSAC UpTheRamp CDS-relative illuminated crop: "
+                    + (
+                        f"each plane = sample - reset ({reset_fits_path.name})"
+                        if reset_fits_path is not None
+                        else (
+                            "each plane = sample - first sample; "
+                            "zero reference plane omitted"
+                        )
+                    )
+                    + "; spatial crop is the illuminated analysis box"
+                    + pedestal_note
+                    + "."
+                )
                 save_cube_fits(
                     _resolve_out(
                         args.illum_cube,
@@ -1232,18 +1439,9 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                     illum_crop,
                     reference_header=ref_header,
-                    history=(
-                        "MSAC UpTheRamp CDS-relative illuminated crop: each "
-                        "plane = sample - first sample; zero reference plane "
-                        "omitted; spatial crop is the illuminated analysis box"
-                        + (
-                            f"; pedestal = mean(ROI {bg_roi_index})"
-                            if use_bg_roi
-                            else ""
-                        )
-                        + "."
-                    ),
+                    history=illum_history,
                     extra_cards={
+                        **reset_cards,
                         "ILLUMROI": (
                             0
                             if use_manual_illum or use_photonic
@@ -1276,7 +1474,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
 
     title = (
-        f"MSAC UpTheRamp — illum−bg (frame−first) vs index "
+        f"MSAC UpTheRamp — illum−bg ({cds_short}) vs index "
         f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; "
         f"{illum_source}, bg={bg_source})"
     )
@@ -1296,6 +1494,8 @@ def main(argv: list[str] | None = None) -> int:
         bg_box=(bg_row0, bg_row1, bg_col0, bg_col1) if use_bg_roi else None,
         region_label=region_label,
         detector_box=detector_box,
+        cds_label=cds_label,
+        cds_short=cds_short,
     )
     return 0
 

@@ -9,8 +9,10 @@
 # Override with --illum-roi / --bg-roi / --illum-center / --illum-size;
 # disable pedestal with --no-bg-roi.
 #
-# Builds CDS-relative cubes (each plane = frame - first; first zero plane
-# omitted; optional ROI-8 pedestal) next to the PNG plot:
+# Builds reduced cubes next to the PNG plot:
+#   frame − reset  when a _R0001 (or _R######) FITS is in the session folder
+#   frame − first  otherwise (zero self-subtraction plane omitted)
+#   optional ROI-8 pedestal after that subtraction
 #   msac_uptheramp_frame_minus_first.fits       — full frame
 #   msac_uptheramp_frame_minus_first_illum.fits — illuminated-box crop
 #
@@ -18,10 +20,13 @@
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --latest 10
 #   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --show-pixels
+#   ./nottcontrol/script/detector/msac_ramp/plot_uptheramp.sh --no-reset
 #
-# Default: all FITS in the latest UpTheRamp session folder.
+# Default: all science FITS in the latest UpTheRamp session folder
+# (reset frames _R###### are used as the subtraction reference, not as
+# ramp points).
 # X = file index from the name (_M###### or _N######);
-# Y = illuminated mean − background ROI (frame − first).
+# Y = illuminated mean − background ROI (frame − reset, or frame − first).
 #
 # PNG (full frame + illuminated crop + flux vs frame) and FITS cubes
 # are written into the session data folder.
