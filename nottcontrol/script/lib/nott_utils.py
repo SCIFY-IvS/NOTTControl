@@ -45,10 +45,6 @@ else:
 
 from nottcontrol import config as nott_config
 
-simulation = False
-if simulation:
-    from nottcontrol.components.motor import MotorSim as Motor
-
 # -----------------------#
 # Timestamp conversions |
 # -----------------------#

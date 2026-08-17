@@ -205,7 +205,7 @@ wav = 3.8  # in un
 
 # Loop over DL scanning iteration
 dl_id = 1  # 4
-speed = config["DL"]["default_speed"]  # mm/s
+speed = config["DL"]["default_speed"] * 10 ** (-3)  # mm/s
 speed0 = speed
 wait_time = 0.08 / speed * 2  # Time in sec to scan X times the coherent envelope
 grab_range = 0.08 / speed * 3  # Time in sec to scan X times the coherent envelope
