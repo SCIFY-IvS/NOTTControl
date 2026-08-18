@@ -89,7 +89,7 @@ class MotorSim(Motor):
         self.state = "OPERATIONAL"
 
     def command_move_absolute(self, pos, speed=None) -> MoveAbsCommand:
-        self.pos
+        pos = self.current_pos
         if speed is not None:
             spd = speed
         else:

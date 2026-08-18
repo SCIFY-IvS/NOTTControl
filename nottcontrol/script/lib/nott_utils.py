@@ -122,8 +122,7 @@ class LayeredRegister(object):
         self._buff[layer] = np.zeros_like(self._buff[layer])
 
     def purge_all(self):
-        for alayer in self._buff:
-            alayer = np.zeros_like(alayer)
+        self._buff = [np.zeros_like(alayer) for alayer in self._buff]
 
     def consolidate_layers(self, layers: list, destination: int | str = 0):
         """
@@ -248,9 +247,10 @@ class Actuator(Motor):
         # Motor sState == 'OPERATIONAL'?
         return self.getStatusInformation()[1] == "OPERATIONAL"
 
-    @property
-    def time_to_target(self):
-        dist_to_go = self.target_microns - self.position_microns
+    def time_to_target(self, target_pos=None):
+        if target_pos is None:
+            target_pos = self.target_microns
+        dist_to_go = target_pos - self.position_microns
         est = np.abs(dist_to_go) / self._speed
         return est
 
@@ -347,7 +347,8 @@ class Actuator(Motor):
         dt : float (s) - polling interval for await_motor
         timeout : float (s) - timeout for each sub move
         """
-        timeout = max(timeout, self.time_to_target + 10.0)
+        target_time = self.time_to_target(target_pos)
+        timeout = max(timeout, target_time + 10.0)
         self.ongoing_sequence = True
         distance = target_pos - self.position_microns
 

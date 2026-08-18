@@ -84,9 +84,9 @@ acq_time = nott_config.getfloat("injection", "acq_time")
 Ncrit = nott_config.getint("injection", "Ncrit")
 Nsteps_skyb = nott_config.getint("injection", "Nsteps_skyb")
 Nexp = nott_config.getint("injection", "Nexp")
-act_deadband = nott_config.getfloat("injection", "act_deadband")
-act_backlash = nott_config.getfloat("injection", "act_backlash")
-act_speed = nott_config.getfloat("injection", "act_speed")
+act_deadband = nott_config.getfloat("TIPTILT", "default_deadband")
+act_backlash = nott_config.getfloat("TIPTILT", "default_backlash")
+act_speed = nott_config.getfloat("TIPTILT", "default_speed")
 
 print(
     "Read configuration [bool_UT,bool_offset,fac_loc,SNR_inj,acq_time,Ncrit,Nsteps_skyb,Nexp,act_speed,act_backlash,act_deadband] : ",
@@ -1434,8 +1434,8 @@ class alignment:
         target_pos = np.where(disp != 0, final_pos_off, np.nan)
 
         cluster.move_abs_all(
-            target_pos=target_pos * 10 ** (-3),
-            speeds=speeds * 10 ** (-3),
+            target_pos=target_pos * 10 ** (3),
+            speeds=speeds * 10 ** (3),
             cp_backlash=True,
         )
 
@@ -1459,7 +1459,7 @@ class alignment:
 
         # Final achieved position, errors
         achieved_pos = np.array(
-            [motor.positions_microns * 10 ** (3) for motor in cluster.motors],
+            [motor.position_microns * 10 ** (-3) for motor in cluster.motors],
             dtype=np.float64,
         )
         for i in range(0, 4):
