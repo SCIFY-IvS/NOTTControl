@@ -1033,6 +1033,20 @@ def fits_frame_number_label(name: str | None) -> str:
     return stem
 
 
+def ramp_fits_sort_key(name: str | None) -> tuple[str, int]:
+    """Order ramps by date prefix then numeric index (``nott_YYYYMMDD_000018``)."""
+    if not name:
+        return ("", -1)
+    label = fits_frame_number_label(name)
+    if label.isdigit():
+        stem = Path(name).stem
+        if stem.lower().endswith("_science"):
+            stem = stem[: -len("_science")]
+        prefix = stem.rsplit("_", 1)[0].lower()
+        return (prefix, int(label))
+    return (str(name).lower(), -1)
+
+
 def next_fits_frame_number(
     directory: Path, *, dir_ok: bool | None = None, width: int = 6
 ) -> str:
@@ -1127,12 +1141,15 @@ def is_new_ramp_fits(
         return mtime > before_mtime
     if mtime > before_mtime:
         return True
-    # Same-second filesystem resolution: accept a different basename only when
-    # mtime is not older. Never treat an older file as new — that caused Live
-    # to flip forever between the latest ramp and the previous one.
+    # Same-second filesystem resolution (SMB often quantizes mtime to 1 s):
+    # a different basename is new only when it sorts *after* the snapshot.
+    # Older siblings from the same 1-second burst must not be treated as the
+    # next acquire — that archived stale ramps and dropped the real frames.
     if mtime < before_mtime:
         return False
-    return bool(before_name and name != before_name)
+    if not before_name:
+        return False
+    return ramp_fits_sort_key(name) > ramp_fits_sort_key(before_name)
 
 
 def acquire_archive_science_params(ctx: dict) -> dict:
@@ -1273,6 +1290,28 @@ def list_new_ramp_fits_in_dir(
         ):
             new_paths.append(path)
     return new_paths
+
+
+def select_acquire_ramp_paths(paths, expected_count: int) -> list[Path]:
+    """Keep the newest *expected_count* ramps (MACIE writes later indices last).
+
+    Extra same-mtime leftovers used to be sliced from the *start* of an
+    ascending sort, so the current acquire's files were the ones dropped.
+    """
+    ramp_paths = sorted(
+        paths,
+        key=lambda path: (
+            path.stat().st_mtime if path.exists() else 0.0,
+            ramp_fits_sort_key(path.name),
+        ),
+    )
+    try:
+        count = max(1, int(expected_count or 1))
+    except (TypeError, ValueError):
+        count = 1
+    if len(ramp_paths) > count:
+        return ramp_paths[-count:]
+    return ramp_paths
 
 
 class H2rgMainWindow(QMainWindow):
@@ -4609,6 +4648,14 @@ class H2rgMainWindow(QMainWindow):
             self._stop_live_ui()
             self._set_status("Live stopped")
             return
+        # GUI is re-enabled after ZMQ returns, but archive still holds
+        # _operation_lock. Live writes new ramps into the same save dir and
+        # would be collected as part of the in-progress science acquire.
+        if self._macie_operation_busy or self._operation_lock.locked():
+            self._on_operation_failed(
+                "Wait for the current acquire to finish archiving"
+            )
+            return
 
         self._set_status("Starting live acquisition…")
 
@@ -5000,18 +5047,16 @@ class H2rgMainWindow(QMainWindow):
 
     def _newest_ramp_path(self, paths) -> Path | None:
         newest: Path | None = None
-        newest_mtime = -1.0
-        newest_name = ""
+        newest_key: tuple[float, tuple[str, int]] = (-1.0, ("", -1))
         for path in paths:
             try:
                 mtime = path.stat().st_mtime if path.exists() else 0.0
             except OSError:
                 mtime = 0.0
-            name = path.name.lower()
-            if newest is None or (mtime, name) > (newest_mtime, newest_name):
+            key = (mtime, ramp_fits_sort_key(path.name))
+            if newest is None or key > newest_key:
                 newest = path
-                newest_mtime = mtime
-                newest_name = name
+                newest_key = key
         return newest
 
     def _emit_acquire_preview(
@@ -5236,15 +5281,7 @@ class H2rgMainWindow(QMainWindow):
                         preview_seen()
             time.sleep(0.2)
 
-        ramp_paths = sorted(
-            seen.values(),
-            key=lambda path: (
-                path.stat().st_mtime if path.exists() else 0.0,
-                path.name.lower(),
-            ),
-        )
-        if expected_count > 1 and len(ramp_paths) > expected_count:
-            ramp_paths = ramp_paths[:expected_count]
+        ramp_paths = select_acquire_ramp_paths(seen.values(), expected_count)
         if not ramp_paths:
             # Acquire finished but SMB never showed the file — pull newest over ZMQ
             # even if the basename matches the pre-acquire snapshot.
