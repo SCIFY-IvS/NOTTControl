@@ -1179,6 +1179,25 @@ def acquire_archive_science_params(ctx: dict) -> dict:
     }
 
 
+def science_image_for_archive(
+    data,
+    header: dict | None,
+    params: dict,
+):
+    """Reduce a raw ramp cube with the acquire-time snapshot, not live GUI fields.
+
+    ``_load_fits_from_path`` uses the current CDS/Fowler combo. The GUI is
+    re-enabled as soon as ZMQ returns, so that combo can change while FITS
+    are still being collected. Science products must ignore that change.
+    """
+    return science_image_from_cube(
+        data,
+        header,
+        reduction=str(params.get("ramp_mode") or "CDS"),
+        fowler_pairs=int(params.get("fowler_pairs") or 2),
+    )
+
+
 def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -> bool:
     result: list[bool | None] = [None]
 
@@ -4073,6 +4092,14 @@ class H2rgMainWindow(QMainWindow):
             if frame is not None and preview_path is not None:
                 science_paths: list[Path] = []
                 params = acquire_archive_science_params(ctx)
+                # Display load uses the live combo; re-reduce from the raw cube
+                # so the last-ramp image matches the acquire-time snapshot.
+                if self._raw_fits_cube is not None:
+                    frame = science_image_for_archive(
+                        self._raw_fits_cube,
+                        self._raw_fits_header,
+                        params,
+                    )
                 cards = self._acquisition_fits_header_cards(
                     ramp_mode=params["ramp_mode"],
                     tint_ms=params["tint_ms"],
@@ -4082,28 +4109,17 @@ class H2rgMainWindow(QMainWindow):
                     # Always stamp DETMODE / cryo cards on the ramp archive,
                     # including when science FITS writes are disabled.
                     self._apply_cryo_temps_to_ramp(ramp_path, cards)
-                    if (
-                        ramp_path.name == preview_path.name
-                        and self._raw_fits_header is not None
-                    ):
-                        science_path = self._save_science_fits(
-                            frame,
-                            ramp_path,
-                            reduction=params["ramp_mode"],
-                            fowler_pairs=params["fowler_pairs"],
-                            tint_ms=params["tint_ms"],
-                            keep_files=params["keep_files"],
-                            report=params["exposure_report"],
-                        )
-                    else:
-                        science_path = self._save_science_fits_from_ramp(
-                            ramp_path,
-                            reduction=params["ramp_mode"],
-                            fowler_pairs=params["fowler_pairs"],
-                            tint_ms=params["tint_ms"],
-                            keep_files=params["keep_files"],
-                            report=params["exposure_report"],
-                        )
+                    # Reduce every ramp from disk with the snapshot. The last
+                    # ramp used to reuse the display frame, which followed the
+                    # live CDS/Fowler combo after ZMQ returned.
+                    science_path = self._save_science_fits_from_ramp(
+                        ramp_path,
+                        reduction=params["ramp_mode"],
+                        fowler_pairs=params["fowler_pairs"],
+                        tint_ms=params["tint_ms"],
+                        keep_files=params["keep_files"],
+                        report=params["exposure_report"],
+                    )
                     if science_path is not None:
                         science_paths.append(science_path)
                 preview_science = (
