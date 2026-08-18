@@ -26,8 +26,9 @@ Illuminated box defaults to the **Photonic chip** WinMode
 (``X=1024–1087``, ``Y=928–959``). The **10 brightest** pixels are
 chosen once on the last CDS plane (``last − reset`` or ``last − first``)
 after outlier rejection, then those same pixels are averaged on every
-sample. No background ROI is subtracted. Override the box with
-``--illum-roi``, ``--illum-center``, or ``--illum-size``.
+sample. Detector pixel **X=1076, Y=936** is always tracked as a separate
+curve (override with ``--track-pixel``). No background ROI is subtracted.
+Override the box with ``--illum-roi``, ``--illum-center``, or ``--illum-size``.
 
 Detector-quality products (reset spatial QA, per-pixel ramp slope and
 residual RMS) are written beside the flux plot as ``msac_qa_*.png`` /
@@ -63,6 +64,8 @@ PHOTONIC_CHIP_X1 = 1024
 PHOTONIC_CHIP_X2 = 1087
 PHOTONIC_CHIP_Y1 = 928
 PHOTONIC_CHIP_Y2 = 959
+# Detector (X, Y) pixels always overplotted on the flux curve (photonic chip).
+DEFAULT_TRACK_PIXELS: tuple[tuple[int, int], ...] = ((1076, 936),)
 H2RG_SECTION = "H2RG DETECTOR"
 # Full-frame H2RG; smaller shapes are treated as windowed readouts.
 DEFAULT_FULL_FRAME = 2048
@@ -719,6 +722,42 @@ def illuminated_mean_for_image(
     return mean_val
 
 
+def resolve_track_pixels(
+    requested: list[tuple[int, int]] | None,
+    *,
+    height: int,
+    width: int,
+) -> list[tuple[int, int]]:
+    """Return in-bounds detector ``(X, Y)`` pixels to track on the flux plot."""
+    specs = list(requested) if requested else list(DEFAULT_TRACK_PIXELS)
+    seen: set[tuple[int, int]] = set()
+    kept: list[tuple[int, int]] = []
+    for x, y in specs:
+        if not (0 <= int(x) < width and 0 <= int(y) < height):
+            logging.warning(
+                "Skipping track pixel X=%d Y=%d (outside %d×%d image)",
+                int(x),
+                int(y),
+                width,
+                height,
+            )
+            continue
+        key = (int(x), int(y))
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(key)
+    return kept
+
+
+def track_pixel_series(
+    cube: np.ndarray, xy: tuple[int, int]
+) -> np.ndarray:
+    """ADU vs plane for detector pixel ``(X, Y)``."""
+    x, y = xy
+    return np.asarray(cube[:, int(y), int(x)], dtype=np.float64)
+
+
 def pixel_values(image: np.ndarray, pixels: np.ndarray) -> np.ndarray:
     return np.array(
         [float(image[int(r), int(c)]) for r, c in pixels],
@@ -783,6 +822,8 @@ def plot_file_series(
     cds_label: str = "last − first",
     cds_short: str = "frame−first",
     flux_label: str = "10 brightest",
+    track_xy: list[tuple[int, int]] | None = None,
+    track_matrix: np.ndarray | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
@@ -828,6 +869,20 @@ def plot_file_series(
             _draw_box(ax_full, *bg_box, color="#4cc9f0", label="Bg")
         if illum_box is not None or bg_box is not None:
             ax_full.legend(loc="upper right", fontsize=8, framealpha=0.8)
+        if track_xy:
+            xs = [x for x, _y in track_xy]
+            ys = [y for _x, y in track_xy]
+            ax_full.scatter(
+                xs,
+                ys,
+                s=48,
+                facecolors="none",
+                edgecolors="#00e5ff",
+                linewidths=1.4,
+                marker="o",
+                zorder=6,
+                label="Track pixel",
+            )
         fig.colorbar(im_full, ax=ax_full, fraction=0.046, pad=0.04, label="ADU")
 
         vmin_i, vmax_i = _display_limits(illum_frame)
@@ -864,11 +919,49 @@ def plot_file_series(
         ax_illum.set_title(illum_title)
         ax_illum.set_xlabel("X [pix]")
         ax_illum.set_ylabel("Y [pix]")
+        if track_xy:
+            ax_illum.scatter(
+                [x for x, _y in track_xy],
+                [y for _x, y in track_xy],
+                s=48,
+                facecolors="none",
+                edgecolors="#00e5ff",
+                linewidths=1.4,
+                marker="o",
+                zorder=6,
+            )
         fig.colorbar(im_illum, ax=ax_illum, fraction=0.046, pad=0.04, label="ADU")
         row += 1
 
     ax_mean = fig.add_subplot(gs[row, :])
-    ax_mean.plot(indices, means, "o-", markersize=5, color="C0")
+    ax_mean.plot(
+        indices, means, "o-", markersize=5, color="C0", label=flux_label
+    )
+    if (
+        track_xy
+        and track_matrix is not None
+        and track_matrix.size
+        and track_matrix.shape[1] == len(track_xy)
+    ):
+        for i, (x, y) in enumerate(track_xy):
+            ax_mean.plot(
+                indices,
+                track_matrix[:, i],
+                "s--",
+                markersize=5,
+                color="C3",
+                label=f"X={x}, Y={y}",
+            )
+            for index, value in zip(indices, track_matrix[:, i]):
+                logging.info(
+                    "track X=%d Y=%d: index=%s%d  ADU=%.4g",
+                    x,
+                    y,
+                    index_tag,
+                    int(index),
+                    float(value),
+                )
+    ax_mean.legend(loc="best", fontsize=8, framealpha=0.85)
     for index, mean_val, name in zip(indices, means, names):
         logging.info(
             "%s: index=%s%d  illum_mean=%.4g ADU",
@@ -1054,6 +1147,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--show-pixels",
         action="store_true",
         help="Also plot individual illuminated-pixel tracks vs file index",
+    )
+    parser.add_argument(
+        "--track-pixel",
+        action="append",
+        nargs=2,
+        type=int,
+        metavar=("X", "Y"),
+        dest="track_pixels",
+        help=(
+            "Detector pixel X Y to overplot on the flux curve (repeatable). "
+            f"Default: {', '.join(f'{x},{y}' for x, y in DEFAULT_TRACK_PIXELS)}"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -1458,6 +1563,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     for row, col in pixels:
         logging.info("  bright pixel X=%d Y=%d", int(col), int(row))
+    requested_track = None
+    if args.track_pixels:
+        requested_track = [(int(x), int(y)) for x, y in args.track_pixels]
+    track_xy = resolve_track_pixels(requested_track, height=ny, width=nx)
+    track_matrix: np.ndarray | None = None
+    if track_xy:
+        track_matrix = np.column_stack(
+            [track_pixel_series(cds_cube, xy) for xy in track_xy]
+        )
+        for x, y in track_xy:
+            logging.info("Tracking detector pixel X=%d Y=%d", x, y)
     pixel_matrix: np.ndarray | None = None
     if args.show_pixels:
         pixel_matrix = np.stack(
@@ -1606,7 +1722,13 @@ def main(argv: list[str] | None = None) -> int:
         cds_label=cds_label,
         cds_short=cds_short,
         flux_label=flux_label,
+        track_xy=track_xy or None,
+        track_matrix=track_matrix,
     )
+    qa_pixels = pixels if pixels.size else None
+    if track_xy:
+        extra = np.array([[y, x] for x, y in track_xy], dtype=int)
+        qa_pixels = extra if qa_pixels is None else np.vstack((qa_pixels, extra))
     if not args.no_qa:
         try:
             from .detector_qa import run_detector_qa
@@ -1621,7 +1743,7 @@ def main(argv: list[str] | None = None) -> int:
             reset_name=reset_fits_path.name if reset_fits_path is not None else None,
             first_science=np.asarray(stack[0], dtype=np.float64),
             illum_box=(row0, row1, col0, col1),
-            pixels=pixels if pixels.size else None,
+            pixels=qa_pixels,
             n_sigma=args.n_sigma,
             cds_short=cds_short,
         )

@@ -6,6 +6,7 @@
 #
 # Default illuminated region: Photonic chip WinMode (X=1024–1087, Y=928–959)
 # Flux = mean of the 10 brightest pixels after outlier rejection.
+# Always overplots detector pixel X=1076, Y=936 (override with --track-pixel).
 # No background ROI is subtracted. Override the box with --illum-roi /
 # --illum-center / --illum-size.
 #
