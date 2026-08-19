@@ -122,8 +122,8 @@ class MotorSim(Motor):
     def stop(self):
         pass
 
-    def getPositionAndSpeed(self):
-        return self.current_pos, self.current_speed, self.timestamp
+    # def getPositionAndSpeed(self):
+    #    return self.current_pos, self.current_speed, self.timestamp
 
     def getStatusInformation(self):
         return self.status, self.state, None
