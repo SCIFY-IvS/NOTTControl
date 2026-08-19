@@ -519,6 +519,7 @@ class MacieInterface():
             "efficiency": timing["efficiency"],
             "ncoadds": int(ncoadds),
             "nseq": int(nseq),
+            "nresets": int(nresets),
             "ramp_mode": ramp_mode,
             "rounded_tint_ms": float(plan["tint_ms"])
             if "tint_ms" in plan

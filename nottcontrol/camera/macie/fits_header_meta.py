@@ -32,6 +32,7 @@ def exposure_fits_cards(
     ngroups: int | None = None,
     nreads: int | None = None,
     ndrops: int | None = None,
+    nresets: int | None = None,
 ) -> list[HeaderCard]:
     """Acquisition timing/mode cards for ramp and science FITS headers."""
     cards: list[HeaderCard] = []
@@ -45,6 +46,10 @@ def exposure_fits_cards(
         cards.append(("NREADS", int(nreads), "Reads per group"))
     if ndrops is not None:
         cards.append(("NDROPS", int(ndrops), "Drop frames between groups"))
+    if nresets is not None:
+        cards.append(
+            ("NRESETS", int(nresets), "Reset frames saved at ramp start")
+        )
     return cards
 
 

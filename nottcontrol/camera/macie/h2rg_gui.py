@@ -1179,6 +1179,22 @@ def acquire_archive_science_params(ctx: dict) -> dict:
     }
 
 
+def cube_reset_kwargs(report: dict | None) -> dict[str, int]:
+    """NGROUPS/NREADS/NRESETS for skipping SaveRstFrames planes in a cube."""
+    kwargs: dict[str, int] = {}
+    if not report:
+        return kwargs
+    for key in ("nresets", "ngroups", "nreads"):
+        raw = report.get(key)
+        if raw is None:
+            continue
+        try:
+            kwargs[key] = int(raw)
+        except (TypeError, ValueError):
+            continue
+    return kwargs
+
+
 def path_is_directory(path: Path, timeout_s: float = FITS_DIR_CHECK_TIMEOUT_S) -> bool:
     result: list[bool | None] = [None]
 
@@ -2775,6 +2791,7 @@ class H2rgMainWindow(QMainWindow):
                 header,
                 reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
                 fowler_pairs=self._fowler_pairs_value(),
+                **cube_reset_kwargs(self._last_exposure_report),
             )
         return self._current_frame
 
@@ -3740,13 +3757,14 @@ class H2rgMainWindow(QMainWindow):
     def _exposure_report_from_server(self, macie) -> dict[str, float | int]:
         """Timing/ramp snapshot for Acquire when Set has not been clicked yet."""
         timing = macie.read_exposure_timing()
-        _save, ncoadds, nseq, ngroups, nreads, ndrops, _nresets = (
+        _save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
             macie.read_exposure_settings()
         )
         return {
             "ngroups": int(ngroups),
             "nreads": int(nreads),
             "ndrops": int(ndrops),
+            "nresets": int(nresets),
             "fowler_pairs": int(self._fowler_pairs),
             "inttime_ms": float(timing["inttime_s"] * 1000.0),
             "ramptime_ms": float(timing["ramptime_s"] * 1000.0),
@@ -4264,6 +4282,7 @@ class H2rgMainWindow(QMainWindow):
             ngroups=report.get("ngroups"),
             nreads=report.get("nreads"),
             ndrops=report.get("ndrops"),
+            nresets=report.get("nresets"),
         )
         cards.extend(self._cryo_fits_header_cards())
         return cards
@@ -4424,6 +4443,7 @@ class H2rgMainWindow(QMainWindow):
             header,
             reduction=reduction,  # type: ignore[arg-type]
             fowler_pairs=fowler_pairs,
+            **cube_reset_kwargs(report),
         )
         output_path = self._science_output_path(ramp_path)
         cards = self._acquisition_fits_header_cards(
@@ -5087,6 +5107,7 @@ class H2rgMainWindow(QMainWindow):
                     header,
                     reduction=self._acquire_preview_reduction,  # type: ignore[arg-type]
                     fowler_pairs=self._acquire_preview_fowler,
+                    **cube_reset_kwargs(self._last_exposure_report),
                 )
             except TruncatedFitsError:
                 # Still being written — retry on the next poll, do not mark shown.
@@ -5364,6 +5385,7 @@ class H2rgMainWindow(QMainWindow):
             header,
             reduction=self._selected_ramp_mode(),  # type: ignore[arg-type]
             fowler_pairs=self._fowler_pairs_value(),
+            **cube_reset_kwargs(self._last_exposure_report),
         )
 
     def _load_fits_from_path(self, path: Path) -> numpy.ndarray:

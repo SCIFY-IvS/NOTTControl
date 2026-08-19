@@ -145,6 +145,89 @@ def ramp_sample_axis(header: dict, shape: tuple[int, ...]) -> int:
     return 0
 
 
+def _header_int(header: dict | None, *keys: str) -> int | None:
+    if not header:
+        return None
+    for key in keys:
+        raw = header.get(key)
+        if raw is None:
+            continue
+        if isinstance(raw, (tuple, list)):
+            raw = raw[0]
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def leading_reset_planes(
+    header: dict | None,
+    shape: tuple[int, ...],
+    *,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
+) -> int:
+    """Count leading reset planes MACIE prepends when SaveRstFrames is on.
+
+    The science stream is ``[reset × NRESETS] + [group reads]``. CDS/Fowler
+    must skip those resets; otherwise last-minus-first is last-minus-reset
+    and SingleFrame returns the reset instead of the science read.
+    """
+    if len(shape) <= 2:
+        return 0
+    axis = ramp_sample_axis(header or {}, shape)
+    nsamples = int(shape[axis])
+    if nsamples <= 1:
+        return 0
+
+    if ngroups is None:
+        ngroups = _header_int(header, "NGROUPS")
+    if nreads is None:
+        nreads = _header_int(header, "NREADS")
+    if nresets is None:
+        nresets = _header_int(header, "NRESETS", "NRESET")
+
+    if ngroups is not None and nreads is not None:
+        science = max(1, int(ngroups)) * max(1, int(nreads))
+        extra = nsamples - science
+        if extra > 0:
+            return extra
+
+    if nresets is not None:
+        return max(0, min(int(nresets), nsamples - 1))
+    return 0
+
+
+def cube_without_reset_planes(
+    data: numpy.ndarray,
+    header: dict | None = None,
+    *,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
+) -> tuple[numpy.ndarray, dict]:
+    """Drop leading reset planes and keep NAXIS3 in sync for axis detection."""
+    arr = numpy.asarray(data)
+    hdr = dict(header or {})
+    skip = leading_reset_planes(
+        hdr,
+        arr.shape,
+        nresets=nresets,
+        ngroups=ngroups,
+        nreads=nreads,
+    )
+    if skip <= 0 or arr.ndim <= 2:
+        return arr, hdr
+    axis = ramp_sample_axis(hdr, arr.shape)
+    sl: list[slice] = [slice(None)] * arr.ndim
+    sl[axis] = slice(skip, None)
+    trimmed = arr[tuple(sl)]
+    hdr["NAXIS3"] = int(trimmed.shape[axis])
+    return trimmed, hdr
+
+
 def cds_science_image(
     data: numpy.ndarray, header: dict | None = None
 ) -> numpy.ndarray:
@@ -214,14 +297,24 @@ def science_image_from_cube(
     *,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
 ) -> numpy.ndarray:
+    arr, hdr = cube_without_reset_planes(
+        data,
+        header,
+        nresets=nresets,
+        ngroups=ngroups,
+        nreads=nreads,
+    )
     if reduction == "Fowler":
-        return fowler_science_image(data, header, fowler_pairs=fowler_pairs)
+        return fowler_science_image(arr, hdr, fowler_pairs=fowler_pairs)
     if reduction == "Ramp":
-        return ramp_science_image(data, header)
+        return ramp_science_image(arr, hdr)
     if reduction == "SingleFrame":
-        return raw_science_image(data, header)
-    return cds_science_image(data, header)
+        return raw_science_image(arr, hdr)
+    return cds_science_image(arr, hdr)
 
 
 def load_science_image(
@@ -229,10 +322,19 @@ def load_science_image(
     *,
     reduction: RampReduction = "CDS",
     fowler_pairs: int = 2,
+    nresets: int | None = None,
+    ngroups: int | None = None,
+    nreads: int | None = None,
 ) -> numpy.ndarray:
     data, header = load_fits_data(source)
     return science_image_from_cube(
-        data, header, reduction=reduction, fowler_pairs=fowler_pairs
+        data,
+        header,
+        reduction=reduction,
+        fowler_pairs=fowler_pairs,
+        nresets=nresets,
+        ngroups=ngroups,
+        nreads=nreads,
     )
 
 

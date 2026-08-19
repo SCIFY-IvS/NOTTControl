@@ -20,6 +20,7 @@ from nottcontrol.camera.macie.h2rg_gui import (
     _channel_window,
     acquire_archive_science_params,
     central_value_median,
+    cube_reset_kwargs,
     fits_basename,
     fits_frame_number_label,
     fits_header_text,
@@ -447,6 +448,14 @@ class AcquireArchiveScienceParamsTests(unittest.TestCase):
         self.assertEqual(params["exposure_report"]["ngroups"], 4)
         self.assertNotEqual(params["ramp_mode"], live_gui["ramp_mode"])
         self.assertNotEqual(params["keep_files"], live_gui["keep_files"])
+
+    def test_cube_reset_kwargs_from_exposure_report(self) -> None:
+        self.assertEqual(
+            cube_reset_kwargs({"ngroups": 2, "nreads": 1, "nresets": 1}),
+            {"ngroups": 2, "nreads": 1, "nresets": 1},
+        )
+        self.assertEqual(cube_reset_kwargs({"nresets": "x"}), {})
+        self.assertEqual(cube_reset_kwargs(None), {})
 
     def test_invalid_pairs_and_missing_mode_fall_back(self) -> None:
         params = acquire_archive_science_params(
