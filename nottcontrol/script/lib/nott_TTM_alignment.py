@@ -1873,7 +1873,7 @@ class alignment:
                     ACT_final = ACT[i_max]
                     act_curr = self._get_actuator_pos(config)[0]
                     act_disp = ACT_final - act_curr
-                    spd_push = np.full(4, speed_double, dtype=np.float64)
+                    spd_push = np.full(4, act_speed * 10 ** (-3), dtype=np.float64)
                     pos_off = self._actoffset(spd_push, act_disp)
                     print(
                         f"Bringing bench to injecting actuator positions at {act_curr + act_disp} mm"
