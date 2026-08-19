@@ -688,7 +688,7 @@ class HumInt(object):
                     continue
                 curr = dl.position_microns
                 print(
-                    f"{dl.name}: {curr:.2f} µm  "
+                    f"\n {dl.name}: {curr:.2f} µm  "
                     f"(target {target_pos[i]:.2f} µm, "
                     f"error {curr - target_pos[i]:.2f} µm)"
                 )

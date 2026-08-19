@@ -286,7 +286,7 @@ class Actuator(Motor):
             if verbose:
                 dtg = self.target_microns - self.position_microns
                 print(
-                    f"  {self.name}: {_time.time() - t0:.1f} s, {dtg:.3f} µm to go",
+                    f"  {self.name}: {_time.time() - t0:.1f} s, curr. pos. {self.position_microns:.3f} µm",
                     end="\r",
                     flush=True,
                 )
@@ -348,7 +348,7 @@ class Actuator(Motor):
         timeout : float (s) - timeout for each sub move
         """
         target_time = self.time_to_target(target_pos)
-        timeout = max(timeout, target_time + 10.0)
+        timeout = max(timeout, target_time + 20.0)
         self.ongoing_sequence = True
         distance = target_pos - self.position_microns
 
@@ -364,29 +364,46 @@ class Actuator(Motor):
         need_cp = cp_backlash and curr_dir != self.prev_dir and self.prev_dir != 0
 
         if need_double:
+            if verbose:
+                print(f"Sub-resolution ({self.resolution} µm) displacement: firing motion in two steps...")
+
+            speed_init = self._speed
+            self.set_speed(self.backlash)
             # Overshoot in requested direction
-            overshoot_pos = self.position_microns + curr_dir * 3 * self.backlash
+            overshoot_pos = self.position_microns + curr_dir * (self.backlash+3*distance)
             self.move_abs(overshoot_pos, check_valid=True)
             _time.sleep(0.2)
-            self.await_motor(dt=dt, timeout=timeout)
+            if verbose:
+                print("\n Overshooting...")
+                #print(f"  {self.name}: → {overshoot_pos:.1f} µm")
+            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+            self.set_speed(speed_init)
+
             # Retrace in opposite direction to clear backlash
-            retrace_pos = overshoot_pos - curr_dir * self.backlash
+            retrace_pos = self.position_microns - curr_dir * self.backlash
             self.move_abs(retrace_pos, check_valid=True)
             _time.sleep(0.2)
-            self.await_motor(dt=dt, timeout=timeout)
+            if verbose:
+                print("\n Clearing backlash...")
+                #print(f"  {self.name}: → {retrace_pos:.1f} µm")
+            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
         elif need_cp:
-            overshoot_pos = self.position_microns + curr_dir * self.backlash
-            self.move_abs(overshoot_pos, check_valid)
+            if verbose:
+                print("Direction of motion differs from previous motion call.")
+            neutral_pos = self.position_microns + curr_dir * self.backlash
+            self.move_abs(neutral_pos, check_valid)
             _time.sleep(0.2)
             if verbose:
-                print(f"  {self.name}: backlash → {overshoot_pos:.2f} µm")
+                print("\n Clearing backlash...")
+                #print(f"  {self.name}: → {neutral_pos:.2f} µm")
             self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
         # Accurate approach
         self.move_abs(target_pos, check_valid)
         _time.sleep(0.2)
         if verbose:
+            print("\n Approaching target...")
             print(f"  {self.name}: → {target_pos:.1f} µm")
         self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
