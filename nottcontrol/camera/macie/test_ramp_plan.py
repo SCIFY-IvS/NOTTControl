@@ -187,6 +187,58 @@ class ResetPlaneSkipTests(unittest.TestCase):
             1,
         )
 
+    def test_no_skip_when_cube_matches_science_even_if_nresets_set(self) -> None:
+        # SaveRstFrames off: NAXIS3 == NGROUPS*NREADS, but NRESETS is still
+        # ASIC NumResets (typically 1). Must not drop the first science group.
+        header = {
+            "NAXIS": 3,
+            "NAXIS3": 2,
+            "NGROUPS": 2,
+            "NREADS": 1,
+            "NRESETS": 1,
+        }
+        self.assertEqual(leading_reset_planes(header, (2, 2, 2)), 0)
+        self.assertEqual(
+            leading_reset_planes(
+                {"NAXIS": 3, "NAXIS3": 2},
+                (2, 2, 2),
+                ngroups=2,
+                nreads=1,
+                nresets=1,
+            ),
+            0,
+        )
+
+    def test_cds_without_saved_reset_keeps_both_science_groups(self) -> None:
+        cube = numpy.array(
+            [
+                [[10.0, 20.0], [30.0, 40.0]],
+                [[11.0, 22.0], [33.0, 44.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        header = {"NAXIS": 3, "NAXIS3": 2, "NGROUPS": 2, "NREADS": 1, "NRESETS": 1}
+        result = science_image_from_cube(cube, header, reduction="CDS")
+        numpy.testing.assert_allclose(result, [[1.0, 2.0], [3.0, 4.0]])
+
+    def test_fowler_without_saved_reset_keeps_all_pairs(self) -> None:
+        cube = numpy.array(
+            [
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[2.0, 4.0], [6.0, 8.0]],
+                [[10.0, 0.0], [0.0, 0.0]],
+                [[12.0, 4.0], [6.0, 8.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        result = science_image_from_cube(
+            cube,
+            {"NAXIS": 3, "NAXIS3": 4, "NGROUPS": 1, "NREADS": 4, "NRESETS": 1},
+            reduction="Fowler",
+            fowler_pairs=2,
+        )
+        numpy.testing.assert_allclose(result, [[2.0, 4.0], [6.0, 8.0]])
+
     def test_cds_skips_reset_so_last_minus_first_group(self) -> None:
         # plane0=reset, plane1=group1 pedestal, plane2=group2 signal
         cube = numpy.array(

@@ -171,9 +171,11 @@ def leading_reset_planes(
 ) -> int:
     """Count leading reset planes MACIE prepends when SaveRstFrames is on.
 
-    The science stream is ``[reset × NRESETS] + [group reads]``. CDS/Fowler
-    must skip those resets; otherwise last-minus-first is last-minus-reset
-    and SingleFrame returns the reset instead of the science read.
+    The science stream is ``[reset × NRESETS] + [group reads]`` only when
+    those reset planes were actually written. CDS/Fowler must skip them;
+    otherwise last-minus-first is last-minus-reset and SingleFrame returns
+    the reset instead of the science read. If NAXIS3 already equals
+    NGROUPS×NREADS, the cube has no reset planes (SaveRstFrames off).
     """
     if len(shape) <= 2:
         return 0
@@ -194,6 +196,10 @@ def leading_reset_planes(
         extra = nsamples - science
         if extra > 0:
             return extra
+        # Cube already matches the science stream (SaveRstFrames off, or a
+        # file that never stored reset planes). Do not fall through to
+        # NRESETS: that keyword is ASIC NumResets, not "planes in this cube".
+        return 0
 
     if nresets is not None:
         return max(0, min(int(nresets), nsamples - 1))
