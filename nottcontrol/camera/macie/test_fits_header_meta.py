@@ -176,6 +176,7 @@ class FitsHeaderTempTests(unittest.TestCase):
             ngroups=2,
             nreads=1,
             ndrops=3,
+            nresets=1,
         )
         by_key = {k: v for k, v, _c in cards}
         self.assertEqual(by_key["DETMODE"], "Ramp")
@@ -183,6 +184,7 @@ class FitsHeaderTempTests(unittest.TestCase):
         self.assertEqual(by_key["NGROUPS"], 2)
         self.assertEqual(by_key["NREADS"], 1)
         self.assertEqual(by_key["NDROPS"], 3)
+        self.assertEqual(by_key["NRESETS"], 1)
 
     def test_utc_fits_timestamp_is_precise_utc(self) -> None:
         from datetime import datetime, timezone

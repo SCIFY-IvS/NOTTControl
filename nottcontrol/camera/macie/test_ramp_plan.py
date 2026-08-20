@@ -9,6 +9,7 @@ import numpy
 from nottcontrol.camera.macie.fits_science import (
     cds_science_image,
     fowler_science_image,
+    leading_reset_planes,
     ramp_science_image,
     raw_science_image,
     science_image_from_cube,
@@ -169,6 +170,73 @@ class RampReductionTests(unittest.TestCase):
             cube, {"NAXIS": 3, "NAXIS3": 2}, reduction="Ramp"
         )
         self.assertAlmostEqual(float(result[0, 0]), 9.0)
+
+
+class ResetPlaneSkipTests(unittest.TestCase):
+    def test_leading_reset_from_ngroups_nreads(self) -> None:
+        header = {"NAXIS": 3, "NAXIS3": 3, "NGROUPS": 2, "NREADS": 1}
+        self.assertEqual(leading_reset_planes(header, (3, 2, 2)), 1)
+
+    def test_no_skip_without_geometry(self) -> None:
+        header = {"NAXIS": 3, "NAXIS3": 3}
+        self.assertEqual(leading_reset_planes(header, (3, 2, 2)), 0)
+
+    def test_nresets_kwarg_skips_without_header(self) -> None:
+        self.assertEqual(
+            leading_reset_planes({"NAXIS": 3, "NAXIS3": 3}, (3, 2, 2), nresets=1),
+            1,
+        )
+
+    def test_cds_skips_reset_so_last_minus_first_group(self) -> None:
+        # plane0=reset, plane1=group1 pedestal, plane2=group2 signal
+        cube = numpy.array(
+            [
+                [[100.0, 100.0], [100.0, 100.0]],
+                [[10.0, 20.0], [30.0, 40.0]],
+                [[11.0, 22.0], [33.0, 44.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        header = {"NAXIS": 3, "NAXIS3": 3, "NGROUPS": 2, "NREADS": 1, "NRESETS": 1}
+        result = science_image_from_cube(cube, header, reduction="CDS")
+        numpy.testing.assert_allclose(result, [[1.0, 2.0], [3.0, 4.0]])
+        # Without skip this would be last-minus-reset: [[-89, -78], [-67, -56]]
+        unskipped = cds_science_image(cube, {"NAXIS": 3, "NAXIS3": 3})
+        numpy.testing.assert_allclose(unskipped, [[-89.0, -78.0], [-67.0, -56.0]])
+
+    def test_single_frame_returns_science_not_reset(self) -> None:
+        cube = numpy.array(
+            [[[5.0, 6.0], [7.0, 8.0]], [[50.0, 60.0], [70.0, 80.0]]],
+            dtype=numpy.float32,
+        )
+        result = science_image_from_cube(
+            cube,
+            {"NAXIS": 3, "NAXIS3": 2},
+            reduction="SingleFrame",
+            ngroups=1,
+            nreads=1,
+            nresets=1,
+        )
+        numpy.testing.assert_allclose(result, [[50.0, 60.0], [70.0, 80.0]])
+
+    def test_fowler_pairs_after_reset_plane(self) -> None:
+        cube = numpy.array(
+            [
+                [[99.0, 99.0], [99.0, 99.0]],
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[2.0, 4.0], [6.0, 8.0]],
+                [[10.0, 0.0], [0.0, 0.0]],
+                [[12.0, 4.0], [6.0, 8.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        result = science_image_from_cube(
+            cube,
+            {"NAXIS": 3, "NAXIS3": 5, "NGROUPS": 1, "NREADS": 4},
+            reduction="Fowler",
+            fowler_pairs=2,
+        )
+        numpy.testing.assert_allclose(result, [[2.0, 4.0], [6.0, 8.0]])
 
 
 if __name__ == "__main__":
