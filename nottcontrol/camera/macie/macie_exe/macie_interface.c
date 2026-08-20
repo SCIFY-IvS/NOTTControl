@@ -201,6 +201,34 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
     return true;
 }
 
+extern "C" bool M_set_save_rst_frames(bool save)
+{
+    if (_ptUserData == NULL)
+        return false;
+
+    if (_ptUserData->RegMap.count("SaveRstFrames") == 0)
+    {
+        printf("SaveRstFrames not in register map; skipping ASIC write (save=%d)\n",
+               save ? 1 : 0);
+        return true;
+    }
+
+    unsigned int want = save ? 1u : 0u;
+    unsigned int current = 0;
+    if (GetASICParameter(_ptUserData, "SaveRstFrames", &current) && current == want)
+        return true;
+
+    if (SetASICParameter(_ptUserData, "SaveRstFrames", want) == false)
+        return false;
+
+    if (ReconfigureASIC(_ptUserData) == false)
+    {
+        printf("Reconfigure failed after SaveRstFrames change\n");
+        return false;
+    }
+    return true;
+}
+
 extern "C" bool M_read_exposure_timing(double *inttime_ms, double *ramptime_ms, double *execution_sec,
                                       double *efficiency, double *frametime_ms)
 {
@@ -523,6 +551,13 @@ int main () {
             {
                 unsigned int mode = (unsigned int)std::stoi(tokens[1]);
                 result = M_set_exp_mode(mode);
+            }
+            else if (command == "saverst")
+            {
+                bool save = false;
+                if (tokens.size() > 1 && (tokens[1] == "true" || tokens[1] == "1"))
+                    save = true;
+                result = M_set_save_rst_frames(save);
             }
             else if (command == "rexptiming")
             {

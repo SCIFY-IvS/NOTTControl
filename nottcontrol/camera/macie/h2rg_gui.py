@@ -105,6 +105,9 @@ MACIE_FOWLER_PAIRS_DEFAULT = config.getint(
 MACIE_SAVE_SCIENCE_FITS = config.getboolean(
     H2RG_SECTION, "save_science_fits", fallback=False
 )
+MACIE_SAVE_RESET_FRAMES = config.getboolean(
+    H2RG_SECTION, "save_reset_frames", fallback=True
+)
 MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(
     H2RG_SECTION, "fits_wait_margin_s", fallback=30.0
@@ -1467,6 +1470,7 @@ class H2rgMainWindow(QMainWindow):
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
         self._checkBox_save_image: QCheckBox | None = None
+        self._checkBox_save_reset: QCheckBox | None = None
         self._checkBox_autoscale: QCheckBox | None = None
         self._button_apply_levels: QPushButton | None = None
         self._lineEdit_level_min: QLineEdit | None = None
@@ -2226,6 +2230,15 @@ class H2rgMainWindow(QMainWindow):
         )
         self._checkBox_save_image = save_box
         options.addWidget(save_box)
+
+        reset_box = QCheckBox("Save reset")
+        reset_box.setChecked(MACIE_SAVE_RESET_FRAMES)
+        reset_box.setToolTip(
+            "Include the MACIE reset plane(s) in the ramp FITS cube "
+            "(SaveRstFrames). Display and science products still skip them."
+        )
+        self._checkBox_save_reset = reset_box
+        options.addWidget(reset_box)
         options.addStretch(1)
         outer.addLayout(options)
 
@@ -2390,6 +2403,8 @@ class H2rgMainWindow(QMainWindow):
         self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
         if getattr(self, "_checkBox_save_image", None) is not None:
             self._checkBox_save_image.setStyleSheet(CHECKBOX_STYLE)
+        if getattr(self, "_checkBox_save_reset", None) is not None:
+            self._checkBox_save_reset.setStyleSheet(CHECKBOX_STYLE)
         if getattr(self, "_checkBox_autoscale", None) is not None:
             self._checkBox_autoscale.setStyleSheet(CHECKBOX_STYLE)
 
@@ -3661,6 +3676,7 @@ class H2rgMainWindow(QMainWindow):
             macie = self._ensure_macie(detector_config_file(detector_index))
             macie.reinit_camera()
             self._applied_exposure_fingerprint = None
+            macie.set_save_rst_frames(self._save_reset_enabled())
             if 0 <= window_index < len(WINDOW_MODES):
                 self._apply_window_mode_to_macie(macie, window_index)
             self._sync_save_dir_from_server(macie)
@@ -3700,6 +3716,12 @@ class H2rgMainWindow(QMainWindow):
             return True
         return bool(box.isChecked())
 
+    def _save_reset_enabled(self) -> bool:
+        box = getattr(self, "_checkBox_save_reset", None)
+        if box is None:
+            return MACIE_SAVE_RESET_FRAMES
+        return bool(box.isChecked())
+
     def _autoscale_enabled(self) -> bool:
         box = getattr(self, "_checkBox_autoscale", None)
         if box is None:
@@ -3730,6 +3752,7 @@ class H2rgMainWindow(QMainWindow):
             ncoadds,
             nseq,
             self._save_image_enabled(),
+            self._save_reset_enabled(),
             tint_key,
             window_index,
             windowed_cds,  # CDS+WinMode two-sample floor; Ramp ignores this
@@ -3814,6 +3837,7 @@ class H2rgMainWindow(QMainWindow):
             ncoadds=ncoadds,
             nseq=nseq,
             save=self._save_image_enabled(),
+            save_rst=self._save_reset_enabled(),
             # CDS WinMode: never 1-read. Ramp WinMode may be one frame.
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
@@ -3829,10 +3853,11 @@ class H2rgMainWindow(QMainWindow):
                 fingerprint[2],
                 fingerprint[3],
                 fingerprint[4],
+                fingerprint[5],
                 rounded_f,
-                fingerprint[6],
                 fingerprint[7],
                 fingerprint[8],
+                fingerprint[9],
             )
         # Photon time (read-only) shows the achieved value.
         self._update_total_integration_label(actual_tint_ms=self._last_tint_ms)

@@ -473,6 +473,10 @@ class MacieInterface():
     def set_exp_mode(self, mode: int) -> bool:
         return self._request(f"expmode;{int(mode)}")
 
+    def set_save_rst_frames(self, save: bool) -> bool:
+        """Include MACIE reset plane(s) in the ramp FITS (ASIC SaveRstFrames)."""
+        return self._request(f"saverst;{str(bool(save)).lower()}")
+
     def configure_ramp_exposure(
         self,
         tint_ms: float,
@@ -483,6 +487,7 @@ class MacieInterface():
         ncoadds: int = 1,
         nseq: int = 1,
         save: bool = True,
+        save_rst: bool = True,
         windowed_cds: bool = False,
     ) -> dict[str, float | int]:
         """Apply CDS or Fowler ramp plan for the requested integration time."""
@@ -499,6 +504,7 @@ class MacieInterface():
             windowed_cds=windowed_cds,
         )
         self.set_exp_mode(exp_mode_for_ramp(ramp_mode))  # type: ignore[arg-type]
+        self.set_save_rst_frames(save_rst)
         _save, _ncoadds, _nseq, _ng, _nr, _nd, nresets = self.read_exposure_settings()
         self.exposure_settings(
             save,
