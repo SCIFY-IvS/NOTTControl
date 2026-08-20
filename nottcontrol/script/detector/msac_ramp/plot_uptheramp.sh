@@ -7,8 +7,9 @@
 # Default illuminated region: Photonic chip WinMode (X=1024–1087, Y=928–959)
 # Flux = mean of the 10 brightest pixels after outlier rejection.
 # Always overplots detector pixel X=1076, Y=936 (override with --track-pixel).
-# No background ROI is subtracted. Override the box with --illum-roi /
-# --illum-center / --illum-size.
+# Second region: config.ini ROI 8 (mean ADU), plotted not subtracted.
+# Omit with --no-bg-roi; pick another with --bg-roi N.
+# Override the photonic box with --illum-roi / --illum-center / --illum-size.
 #
 # Builds reduced cubes next to the PNG plot:
 #   frame − reset  when a _R0001 (or _R######) FITS is in the session folder

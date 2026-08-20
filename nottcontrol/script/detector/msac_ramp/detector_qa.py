@@ -192,7 +192,13 @@ def fit_ramp(cube: np.ndarray, sample_index: np.ndarray) -> tuple[np.ndarray, np
     return slope, intercept, rms
 
 
-def _draw_box(ax, box: tuple[int, int, int, int] | None, *, color: str) -> None:
+def _draw_box(
+    ax,
+    box: tuple[int, int, int, int] | None,
+    *,
+    color: str,
+    linestyle: str = "-",
+) -> None:
     if box is None:
         return
     from matplotlib.patches import Rectangle
@@ -206,6 +212,7 @@ def _draw_box(ax, box: tuple[int, int, int, int] | None, *, color: str) -> None:
             fill=False,
             edgecolor=color,
             linewidth=1.0,
+            linestyle=linestyle,
         )
     )
 
@@ -252,6 +259,7 @@ def plot_reset_qa(
     title: str,
     n_sigma: float,
     illum_box: tuple[int, int, int, int] | None = None,
+    extra_box: tuple[int, int, int, int] | None = None,
 ) -> dict[str, float]:
     """Spatial quality of a reset (or first-sample) frame. Returns summary stats."""
     img = np.asarray(image, dtype=np.float64)
@@ -281,6 +289,7 @@ def plot_reset_qa(
         aspect="equal",
     )
     _draw_box(ax_im, illum_box, color="#ff6b6b")
+    _draw_box(ax_im, extra_box, color="#4cc9f0", linestyle="--")
     ax_im.set_title("Reset / reference frame")
     ax_im.set_xlabel("X [pix]")
     ax_im.set_ylabel("Y [pix]")
@@ -406,6 +415,7 @@ def plot_ramp_qa(
     output: Path,
     title: str,
     illum_box: tuple[int, int, int, int] | None = None,
+    extra_box: tuple[int, int, int, int] | None = None,
     pixels: np.ndarray | None = None,
     slope_fits: Path | None = None,
     rms_fits: Path | None = None,
@@ -430,6 +440,13 @@ def plot_ramp_qa(
         )
     else:
         med_illum = None
+    med_extra = None
+    if extra_box is not None:
+        er0, er1, ec0, ec1 = extra_box
+        med_extra = np.array(
+            [float(np.nanmedian(plane[er0:er1, ec0:ec1])) for plane in data],
+            dtype=np.float64,
+        )
     med_all = np.array(
         [float(np.nanmedian(plane)) for plane in data],
         dtype=np.float64,
@@ -449,7 +466,8 @@ def plot_ramp_qa(
         interpolation="nearest",
         aspect="equal",
     )
-    _draw_box(ax_s, illum_box, color="#4cc9f0")
+    _draw_box(ax_s, illum_box, color="#ff6b6b")
+    _draw_box(ax_s, extra_box, color="#4cc9f0", linestyle="--")
     _overlay_pixels(ax_s, pixels)
     ax_s.set_title("Slope [ADU / sample]")
     ax_s.set_xlabel("X [pix]")
@@ -467,6 +485,7 @@ def plot_ramp_qa(
         aspect="equal",
     )
     _draw_box(ax_rms, illum_box, color="#ff6b6b")
+    _draw_box(ax_rms, extra_box, color="#4cc9f0", linestyle="--")
     ax_rms.set_title("Residual RMS [ADU]")
     ax_rms.set_xlabel("X [pix]")
     ax_rms.set_ylabel("Y [pix]")
@@ -483,6 +502,7 @@ def plot_ramp_qa(
         aspect="equal",
     )
     _draw_box(ax_last, illum_box, color="#ff6b6b")
+    _draw_box(ax_last, extra_box, color="#4cc9f0", linestyle="--")
     _overlay_pixels(ax_last, pixels)
     ax_last.set_title("Last CDS sample")
     ax_last.set_xlabel("X [pix]")
@@ -535,6 +555,15 @@ def plot_ramp_qa(
     ax_lin.plot(t, med_all, "o-", color="0.45", markersize=4, label="median full")
     if med_illum is not None:
         ax_lin.plot(t, med_illum, "s-", color="C0", markersize=5, label="median box")
+    if med_extra is not None:
+        ax_lin.plot(
+            t,
+            med_extra,
+            "d--",
+            color="#4cc9f0",
+            markersize=5,
+            label="median ROI",
+        )
     if pixels is not None and pixels.size:
         pix_mean = np.array(
             [float(np.mean(data[i, pixels[:, 0], pixels[:, 1]])) for i in range(nplane)],
@@ -630,6 +659,7 @@ def run_detector_qa(
     pixels: np.ndarray | None,
     n_sigma: float,
     cds_short: str,
+    extra_box: tuple[int, int, int, int] | None = None,
 ) -> None:
     """Write reset and ramp QA products into *out_dir*."""
     out_dir = out_dir.expanduser().resolve()
@@ -652,6 +682,7 @@ def run_detector_qa(
             title=reset_title,
             n_sigma=n_sigma,
             illum_box=illum_box,
+            extra_box=extra_box,
         )
     else:
         logging.warning("Detector QA: no reset or first-sample frame to analyse")
@@ -666,6 +697,7 @@ def run_detector_qa(
         output=out_dir / "msac_qa_ramp.png",
         title=f"H2RG ramp QA — {cds_short}",
         illum_box=illum_box,
+        extra_box=extra_box,
         pixels=pixels,
         slope_fits=out_dir / "msac_qa_slope.fits",
         rms_fits=out_dir / "msac_qa_resid_rms.fits",

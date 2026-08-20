@@ -27,8 +27,16 @@ Illuminated box defaults to the **Photonic chip** WinMode
 chosen once on the last CDS plane (``last − reset`` or ``last − first``)
 after outlier rejection, then those same pixels are averaged on every
 sample. Detector pixel **X=1076, Y=936** is always tracked as a separate
-curve (override with ``--track-pixel``). No background ROI is subtracted.
-Override the box with ``--illum-roi``, ``--illum-center``, or ``--illum-size``.
+curve (override with ``--track-pixel``).
+
+A second config.ini ROI (default **ROI 8**) is plotted as its own crop and
+mean-ADU curve — it is **not** subtracted from the cube. Omit it with
+``--no-bg-roi``, or pick another with ``--bg-roi N``. If that ROI is
+missing or outside the image (typical for a photonic-chip window), it is
+skipped with a warning.
+
+Override the photonic box with ``--illum-roi``, ``--illum-center``, or
+``--illum-size``.
 
 Detector-quality products (reset spatial QA, per-pixel ramp slope and
 residual RMS) are written beside the flux plot as ``msac_qa_*.png`` /
@@ -59,6 +67,8 @@ DEFAULT_ILLUM_SIZE = 20
 DEFAULT_ILLUM_CENTER_X = 1045
 DEFAULT_ILLUM_CENTER_Y = 943
 DEFAULT_ILLUM_ROI = 2
+DEFAULT_REGION2_ROI = 8
+REGION2_COLOR = "#4cc9f0"
 # Match H2RG GUI WindowMode "Photonic chip" (inclusive detector pixels).
 PHOTONIC_CHIP_X1 = 1024
 PHOTONIC_CHIP_X2 = 1087
@@ -321,6 +331,44 @@ def illuminated_box_from_xywh(
             f"(rows[{row0}:{row1}), cols[{col0}:{col1}))"
         )
     return row0, row1, col0, col1
+
+
+def resolve_second_roi_box(
+    shape: tuple[int, int],
+    roi_index: int,
+) -> tuple[tuple[int, int, int, int], tuple[int, int, int, int]] | None:
+    """Return ``(image_box, xywh)`` for config.ini ROI *roi_index*, or None.
+
+    Missing or out-of-frame ROIs are skipped with a warning (typical for a
+    photonic-chip windowed readout).
+    """
+    roi = load_h2rg_roi_xywh(roi_index)
+    if roi is None:
+        logging.warning(
+            "No [%s] ROI %d in config.ini (or config.local.ini); "
+            "omitting second region",
+            H2RG_SECTION,
+            roi_index,
+        )
+        return None
+    x, y, w, h = roi
+    try:
+        box = illuminated_box_from_xywh(shape, x, y, w, h)
+    except ValueError as exc:
+        logging.warning(
+            "H2RG ROI %d=%d,%d,%d,%d does not fit image %d×%d (%s); "
+            "omitting second region",
+            roi_index,
+            x,
+            y,
+            w,
+            h,
+            int(shape[0]),
+            int(shape[1]),
+            exc,
+        )
+        return None
+    return box, roi
 
 
 def photonic_chip_xywh() -> tuple[int, int, int, int]:
@@ -603,30 +651,6 @@ def region_mean(
     return float(mean_val)
 
 
-def subtract_roi_pedestal(
-    cube: np.ndarray,
-    *,
-    row0: int,
-    row1: int,
-    col0: int,
-    col1: int,
-    n_sigma: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Subtract per-plane sigma-clipped ROI mean from *cube*.
-
-    Returns ``(corrected_cube, pedestal_per_plane)``.
-    """
-    if cube.ndim != 3:
-        raise ValueError(f"Expected (n, y, x) cube, got shape {cube.shape}")
-    out = np.empty(cube.shape, dtype=np.float64)
-    pedestals = np.empty(cube.shape[0], dtype=np.float64)
-    for i, plane in enumerate(cube):
-        ped = region_mean(plane, row0, row1, col0, col1, n_sigma=n_sigma)
-        pedestals[i] = ped
-        out[i] = np.asarray(plane, dtype=np.float64) - ped
-    return out, pedestals
-
-
 def drop_reference_plane(cube: np.ndarray) -> np.ndarray:
     """Drop plane 0 of a frame−first cube (always ~0)."""
     if cube.ndim != 3:
@@ -787,6 +811,7 @@ def _draw_box(
     *,
     color: str,
     label: str,
+    linestyle: str = "-",
 ) -> None:
     from matplotlib.patches import Rectangle
 
@@ -798,9 +823,17 @@ def _draw_box(
             fill=False,
             edgecolor=color,
             linewidth=1.2,
+            linestyle=linestyle,
             label=label,
         )
     )
+
+
+def _extent_from_box(
+    box: tuple[int, int, int, int],
+) -> tuple[float, float, float, float]:
+    row0, row1, col0, col1 = box
+    return (col0 - 0.5, col1 - 0.5, row1 - 0.5, row0 - 0.5)
 
 
 def plot_file_series(
@@ -824,9 +857,13 @@ def plot_file_series(
     flux_label: str = "10 brightest",
     track_xy: list[tuple[int, int]] | None = None,
     track_matrix: np.ndarray | None = None,
+    region2_means: np.ndarray | None = None,
+    region2_label: str | None = None,
+    region2_frame: np.ndarray | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
+    show_region2 = region2_frame is not None
     height_ratios: list[float] = []
     if show_images:
         height_ratios.append(1.4)
@@ -834,8 +871,18 @@ def plot_file_series(
     if show_pixels:
         height_ratios.append(1.0)
     n_plot_rows = len(height_ratios)
-    fig = plt.figure(figsize=(10.5, 3.6 * n_plot_rows + 0.8), layout="constrained")
-    gs = fig.add_gridspec(n_plot_rows, 2, height_ratios=height_ratios, hspace=0.28, wspace=0.16)
+    n_image_cols = 3 if show_images and show_region2 else 2
+    fig_w = 15.2 if n_image_cols == 3 else 10.5
+    fig = plt.figure(
+        figsize=(fig_w, 3.6 * n_plot_rows + 0.8), layout="constrained"
+    )
+    gs = fig.add_gridspec(
+        n_plot_rows,
+        n_image_cols,
+        height_ratios=height_ratios,
+        hspace=0.28,
+        wspace=0.16,
+    )
 
     row = 0
     if show_images:
@@ -866,7 +913,14 @@ def plot_file_series(
                 label=box_label,
             )
         if bg_box is not None:
-            _draw_box(ax_full, *bg_box, color="#4cc9f0", label="Bg")
+            r2_box_label = region2_label or "ROI"
+            _draw_box(
+                ax_full,
+                *bg_box,
+                color=REGION2_COLOR,
+                label=r2_box_label,
+                linestyle="--",
+            )
         if illum_box is not None or bg_box is not None:
             ax_full.legend(loc="upper right", fontsize=8, framealpha=0.8)
         if track_xy:
@@ -931,12 +985,50 @@ def plot_file_series(
                 zorder=6,
             )
         fig.colorbar(im_illum, ax=ax_illum, fraction=0.046, pad=0.04, label="ADU")
+
+        if show_region2:
+            ax_r2 = fig.add_subplot(gs[row, 2])
+            vmin_r, vmax_r = _display_limits(region2_frame)
+            r2_extent = _extent_from_box(bg_box) if bg_box is not None else None
+            r2_title = region2_label or "ROI"
+            if bg_box is not None:
+                br0, br1, bc0, bc1 = bg_box
+                r2_title = (
+                    f"{r2_title} ({cds_label})\n"
+                    f"X={bc0}–{bc1 - 1}, Y={br0}–{br1 - 1} "
+                    f"({bc1 - bc0}×{br1 - br0} pix)"
+                )
+            else:
+                r2_title = f"{r2_title}\n({cds_label})"
+            im_r2 = ax_r2.imshow(
+                region2_frame,
+                origin="upper",
+                cmap="gray",
+                vmin=vmin_r,
+                vmax=vmax_r,
+                interpolation="nearest",
+                aspect="equal",
+                extent=r2_extent,
+            )
+            ax_r2.set_title(r2_title)
+            ax_r2.set_xlabel("X [pix]")
+            ax_r2.set_ylabel("Y [pix]")
+            fig.colorbar(im_r2, ax=ax_r2, fraction=0.046, pad=0.04, label="ADU")
         row += 1
 
     ax_mean = fig.add_subplot(gs[row, :])
     ax_mean.plot(
         indices, means, "o-", markersize=5, color="C0", label=flux_label
     )
+    if region2_means is not None and len(region2_means) == len(indices):
+        ax_mean.plot(
+            indices,
+            region2_means,
+            "s--",
+            markersize=5,
+            color=REGION2_COLOR,
+            label=region2_label or "ROI",
+        )
     if (
         track_xy
         and track_matrix is not None
@@ -962,15 +1054,24 @@ def plot_file_series(
                     float(value),
                 )
     ax_mean.legend(loc="best", fontsize=8, framealpha=0.85)
-    for index, mean_val, name in zip(indices, means, names):
+    for i, (index, mean_val, name) in enumerate(zip(indices, means, names)):
+        extra = ""
+        if region2_means is not None and i < len(region2_means):
+            extra = (
+                f"  {region2_label or 'ROI'}={float(region2_means[i]):.4g} ADU"
+            )
         logging.info(
-            "%s: index=%s%d  illum_mean=%.4g ADU",
+            "%s: index=%s%d  illum_mean=%.4g ADU%s",
             name,
             index_tag,
             int(index),
             mean_val,
+            extra,
         )
-    ax_mean.set_ylabel(f"{flux_label} ({cds_short}) [ADU]")
+    y_label = f"({cds_short}) [ADU]"
+    if region2_means is None:
+        y_label = f"{flux_label} ({cds_short}) [ADU]"
+    ax_mean.set_ylabel(y_label)
     ax_mean.set_title(title)
     ax_mean.grid(True, alpha=0.3)
     if not show_pixels:
@@ -1004,8 +1105,8 @@ def plot_file_series(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Plot MSAC UpTheRamp FITS: full frame, illuminated crop, "
-            "and illuminated-region ADU vs file index (_M / _N)."
+            "Plot MSAC UpTheRamp FITS: full frame, photonic and ROI crops, "
+            "and region ADU vs file index (_M / _N)."
         )
     )
     parser.add_argument(
@@ -1097,17 +1198,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--bg-roi",
         type=int,
-        default=None,
+        default=DEFAULT_REGION2_ROI,
         metavar="N",
         help=(
-            "Optional [H2RG DETECTOR] ROI N subtracted as a pedestal. "
-            "Off by default."
+            "Second [H2RG DETECTOR] ROI to plot (mean ADU vs sample). "
+            f"Not subtracted. Default: ROI {DEFAULT_REGION2_ROI}."
         ),
     )
     parser.add_argument(
         "--no-bg-roi",
         action="store_true",
-        help="Accepted for compatibility; background ROI is off by default",
+        help="Do not plot a second ROI",
     )
     parser.add_argument(
         "--illum-size",
@@ -1317,8 +1418,8 @@ def main(argv: list[str] | None = None) -> int:
     req_center_y = int(args.illum_center[1]) if explicit_center else None
     use_manual_illum = explicit_center or illum_h is not None
     illum_roi_index = args.illum_roi
-    use_bg_roi = (not args.no_bg_roi) and args.bg_roi is not None
-    bg_roi_index = int(args.bg_roi) if use_bg_roi else 0
+    use_region2 = not args.no_bg_roi
+    bg_roi_index = int(args.bg_roi) if use_region2 else 0
     use_photonic = not use_manual_illum and illum_roi_index is None
 
     records: list[tuple[int, str, str, np.ndarray, dict]] = []
@@ -1487,45 +1588,43 @@ def main(argv: list[str] | None = None) -> int:
         illum_source = f"ROI {illum_roi_index}"
 
     bg_row0 = bg_row1 = bg_col0 = bg_col1 = 0
-    if use_bg_roi:
-        bg_roi = load_h2rg_roi_xywh(bg_roi_index)
-        if bg_roi is None:
-            raise RuntimeError(
-                f"No [{H2RG_SECTION}] ROI {bg_roi_index} in config.ini "
-                "(or config.local.ini); omit --bg-roi or fix the ROI"
+    region2_box: tuple[int, int, int, int] | None = None
+    region2_means: np.ndarray | None = None
+    region2_label: str | None = None
+    if use_region2:
+        resolved = resolve_second_roi_box((ny, nx), bg_roi_index)
+        if resolved is not None:
+            region2_box, (bx, by, bw, bh) = resolved
+            bg_row0, bg_row1, bg_col0, bg_col1 = region2_box
+            region2_means = np.array(
+                [
+                    region_mean(
+                        plane,
+                        bg_row0,
+                        bg_row1,
+                        bg_col0,
+                        bg_col1,
+                        n_sigma=args.n_sigma,
+                    )
+                    for plane in cds_cube
+                ],
+                dtype=np.float64,
             )
-        bx, by, bw, bh = bg_roi
-        try:
-            bg_row0, bg_row1, bg_col0, bg_col1 = illuminated_box_from_xywh(
-                (ny, nx), bx, by, bw, bh
+            region2_label = f"ROI {bg_roi_index}"
+            logging.info(
+                "Second region ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d); "
+                "mean over ramp=%.4g ADU (not subtracted)",
+                bg_roi_index,
+                bx,
+                by,
+                bw,
+                bh,
+                bg_row0,
+                bg_row1,
+                bg_col0,
+                bg_col1,
+                float(np.nanmean(region2_means)),
             )
-        except ValueError as exc:
-            raise RuntimeError(
-                f"H2RG ROI {bg_roi_index}={bx},{by},{bw},{bh} does not fit "
-                f"image {ny}×{nx}: {exc}"
-            ) from exc
-        cds_cube, bg_pedestals = subtract_roi_pedestal(
-            cds_cube,
-            row0=bg_row0,
-            row1=bg_row1,
-            col0=bg_col0,
-            col1=bg_col1,
-            n_sigma=args.n_sigma,
-        )
-        logging.info(
-            "Background ROI %d = %d,%d,%d,%d -> rows[%d:%d) cols[%d:%d); "
-            "pedestal mean over ramp=%.4g ADU",
-            bg_roi_index,
-            bx,
-            by,
-            bw,
-            bh,
-            bg_row0,
-            bg_row1,
-            bg_col0,
-            bg_col1,
-            float(np.nanmean(bg_pedestals)),
-        )
 
     n_brightest = max(1, int(args.n_brightest))
     pixels, n_rej = select_brightest_after_outliers(
@@ -1612,9 +1711,6 @@ def main(argv: list[str] | None = None) -> int:
         else:
             cds_for_disk = cds_cube
         if cds_for_disk is not None and (write_full or write_illum):
-            pedestal_note = (
-                f"; pedestal = mean(ROI {bg_roi_index})" if use_bg_roi else ""
-            )
             reset_cards: dict = {
                 "REDUCT": reduct_card,
                 "SKIPREF": (
@@ -1638,7 +1734,7 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                     cds_for_disk,
                     reference_header=ref_header,
-                    history=reduct_history + pedestal_note + ".",
+                    history=reduct_history + ".",
                     extra_cards=reset_cards,
                 )
             if write_illum:
@@ -1654,7 +1750,6 @@ def main(argv: list[str] | None = None) -> int:
                         )
                     )
                     + "; spatial crop is the illuminated analysis box"
-                    + pedestal_note
                     + "."
                 )
                 save_cube_fits(
@@ -1674,8 +1769,8 @@ def main(argv: list[str] | None = None) -> int:
                             "H2RG ROI index used for crop (0=photonic/manual)",
                         ),
                         "BGROI": (
-                            bg_roi_index if use_bg_roi else 0,
-                            "H2RG ROI index used as pedestal (0=none)",
+                            bg_roi_index if region2_box is not None else 0,
+                            "Second plotted H2RG ROI (not subtracted; 0=none)",
                         ),
                         "ILLUMX0": (
                             (detector_box[2] if detector_box else col0),
@@ -1699,9 +1794,12 @@ def main(argv: list[str] | None = None) -> int:
                 )
 
     flux_label = f"{n_used} brightest"
+    title_regions = illum_source
+    if region2_label:
+        title_regions = f"{illum_source} vs {region2_label}"
     title = (
-        f"MSAC UpTheRamp — {n_brightest} brightest ({cds_short}) vs index "
-        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y}; {illum_source})"
+        f"MSAC UpTheRamp — {title_regions} ({cds_short}) vs index "
+        f"({illum_h}×{illum_w} @ X={center_x}, Y={center_y})"
     )
     last_cds = np.asarray(cds_cube[-1], dtype=np.float64)
     plot_file_series(
@@ -1716,7 +1814,7 @@ def main(argv: list[str] | None = None) -> int:
         full_frame=last_cds,
         illum_frame=last_cds[row0:row1, col0:col1],
         illum_box=(row0, row1, col0, col1),
-        bg_box=(bg_row0, bg_row1, bg_col0, bg_col1) if use_bg_roi else None,
+        bg_box=region2_box,
         region_label=region_label,
         detector_box=detector_box,
         cds_label=cds_label,
@@ -1724,6 +1822,16 @@ def main(argv: list[str] | None = None) -> int:
         flux_label=flux_label,
         track_xy=track_xy or None,
         track_matrix=track_matrix,
+        region2_means=region2_means,
+        region2_label=region2_label,
+        region2_frame=(
+            last_cds[
+                region2_box[0] : region2_box[1],
+                region2_box[2] : region2_box[3],
+            ]
+            if region2_box is not None
+            else None
+        ),
     )
     qa_pixels = pixels if pixels.size else None
     if track_xy:
@@ -1743,6 +1851,7 @@ def main(argv: list[str] | None = None) -> int:
             reset_name=reset_fits_path.name if reset_fits_path is not None else None,
             first_science=np.asarray(stack[0], dtype=np.float64),
             illum_box=(row0, row1, col0, col1),
+            extra_box=region2_box,
             pixels=qa_pixels,
             n_sigma=args.n_sigma,
             cds_short=cds_short,
