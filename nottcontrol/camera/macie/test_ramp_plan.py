@@ -21,6 +21,18 @@ from nottcontrol.camera.macie.ramp_plan import (
 )
 
 
+def _zmq_store_display_preview(cube: numpy.ndarray, *, nresets_save: int) -> numpy.ndarray:
+    """Mirror macie_lib.c store_display_preview_plane skip + last−first math."""
+    planes = numpy.asarray(cube, dtype=numpy.float32)
+    nframes = int(planes.shape[0])
+    skip = max(0, int(nresets_save))
+    if skip >= nframes:
+        skip = nframes - 1
+    if nframes - skip == 1:
+        return planes[skip]
+    return planes[-1] - planes[skip]
+
+
 class CalcRampPlanTests(unittest.TestCase):
     def test_cds_short_integration_single_read(self) -> None:
         plan = calc_ramp_plan(50.0, 200.0, mode="CDS")
@@ -255,6 +267,34 @@ class ResetPlaneSkipTests(unittest.TestCase):
         # Without skip this would be last-minus-reset: [[-89, -78], [-67, -56]]
         unskipped = cds_science_image(cube, {"NAXIS": 3, "NAXIS3": 3})
         numpy.testing.assert_allclose(unskipped, [[-89.0, -78.0], [-67.0, -56.0]])
+
+    def test_zmq_display_preview_skips_reset_like_fits_cds(self) -> None:
+        """Live/Acquire ZMQ preview must not be last-minus-reset.
+
+        macie_lib store_display_preview_plane used to subtract plane 0 of the
+        downloaded ramp. With SaveRstFrames on that plane is the reset, so Live
+        and Take Background (Save off) showed last−reset instead of CDS.
+        """
+        cube = numpy.array(
+            [
+                [[100.0, 100.0], [100.0, 100.0]],
+                [[10.0, 20.0], [30.0, 40.0]],
+                [[11.0, 22.0], [33.0, 44.0]],
+            ],
+            dtype=numpy.float32,
+        )
+        preview = _zmq_store_display_preview(cube, nresets_save=1)
+        numpy.testing.assert_allclose(preview, [[1.0, 2.0], [3.0, 4.0]])
+        naive = _zmq_store_display_preview(cube, nresets_save=0)
+        numpy.testing.assert_allclose(naive, [[-89.0, -78.0], [-67.0, -56.0]])
+
+    def test_zmq_display_preview_single_frame_copies_science_not_reset(self) -> None:
+        cube = numpy.array(
+            [[[5.0, 6.0], [7.0, 8.0]], [[50.0, 60.0], [70.0, 80.0]]],
+            dtype=numpy.float32,
+        )
+        preview = _zmq_store_display_preview(cube, nresets_save=1)
+        numpy.testing.assert_allclose(preview, [[50.0, 60.0], [70.0, 80.0]])
 
     def test_single_frame_returns_science_not_reset(self) -> None:
         cube = numpy.array(

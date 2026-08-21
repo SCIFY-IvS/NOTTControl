@@ -2036,7 +2036,21 @@ void ClearDisplayPreview(MACIE_Settings *ptUserData)
     ptUserData->bDisplayPreviewValid = false;
 }
 
-/// CDS = last − first when nframes≥2, else copy the single plane (float32).
+/// Leading reset planes included in a downloaded ramp (SaveRstFrames).
+/// Matches DownloadAndSaveAllUSB: nframes_ramp = ngroups*nreads + this.
+static int ramp_saved_reset_planes(MACIE_Settings *ptUserData)
+{
+    unsigned int val = 0;
+    if (ptUserData == NULL)
+        return 0;
+    if (GetASICParameter(ptUserData, "SaveRstFrames", &val) == true && val == 1)
+        return (int)ASIC_NResets(ptUserData, false, 0);
+    return 0;
+}
+
+/// CDS = last − first of *science* planes when ≥2 remain, else copy the
+/// single science plane (float32). Leading SaveRstFrames planes are skipped
+/// so Live / ZMQ preview matches Python fits_science CDS, not last−reset.
 static bool store_display_preview_plane(MACIE_Settings *ptUserData,
                                         int xpix, int ypix, int nframes_ramp,
                                         const unsigned short *pU16,
@@ -2046,6 +2060,13 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
         return false;
     if (pU16 == NULL && pF32 == NULL)
         return false;
+
+    int skip = ramp_saved_reset_planes(ptUserData);
+    if (skip < 0)
+        skip = 0;
+    if (skip >= nframes_ramp)
+        skip = nframes_ramp - 1;
+    const int nscience = nframes_ramp - skip;
 
     const long framesize = (long)xpix * (long)ypix;
     float *disp = NULL;
@@ -2060,17 +2081,18 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
         return false;
     }
 
-    if (nframes_ramp == 1)
+    const long first0 = framesize * (long)skip;
+    if (nscience == 1)
     {
         if (pF32 != NULL)
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = pF32[i];
+                disp[i] = pF32[first0 + i];
         }
         else
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = (float)pU16[i];
+                disp[i] = (float)pU16[first0 + i];
         }
     }
     else
@@ -2079,12 +2101,12 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
         if (pF32 != NULL)
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = pF32[last0 + i] - pF32[i];
+                disp[i] = pF32[last0 + i] - pF32[first0 + i];
         }
         else
         {
             for (long i = 0; i < framesize; ++i)
-                disp[i] = (float)pU16[last0 + i] - (float)pU16[i];
+                disp[i] = (float)pU16[last0 + i] - (float)pU16[first0 + i];
         }
     }
 
@@ -2094,8 +2116,8 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
     ptUserData->displayPreviewNy = ypix;
     ptUserData->bDisplayPreviewValid = true;
     verbose_printf(LOG_INFO, ptUserData,
-                   "  Stored display preview %dx%d (CDS/single) for ZMQ\n",
-                   xpix, ypix);
+                   "  Stored display preview %dx%d (CDS/single, skip %d reset) for ZMQ\n",
+                   xpix, ypix, skip);
     return true;
 }
 
@@ -2140,13 +2162,8 @@ bool DownloadAndSaveAllUSB(MACIE_Settings *ptUserData)
     // Number of frame reads in a group
     const int nreads = (int)ASIC_NReads(ptUserData, false, 0);
 
-    // Saving reset frames?
-    int nresets_ramp = (int)ASIC_NResets(ptUserData, false, 0);
-    int nresets_save = 0;
-    unsigned int val = 0;
-    if (GetASICParameter(ptUserData, "SaveRstFrames", &val) == true)
-        if (val == 1)
-            nresets_save = nresets_ramp;
+    // Saving reset frames? Same count store_display_preview_plane skips.
+    const int nresets_save = ramp_saved_reset_planes(ptUserData);
 
     // Number of frames in a ramp (to download)
     const int nframes_ramp = ngroups * nreads + nresets_save;
