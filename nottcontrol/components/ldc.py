@@ -73,7 +73,7 @@ class CO2LDC(ActuatorCluster):
         self.stroke = (co2_pos_max - co2_pos_min) * 1e-6  # m
         self.diameter = co2_diameter  # m
         self.section = np.pi * self.diameter**2 / 4.0  # m2
-        self.vmax = self.stroke * self.section  # m3
+        self.vmax = self.stroke * self.section * len(self)  # m3
         self.vmin = 0.0  # m3
         self.vcenter = (self.vmax - self.vmin) / 2.0
         self.vwork = self.get_volume()
