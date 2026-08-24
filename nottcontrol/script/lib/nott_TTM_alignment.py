@@ -172,9 +172,6 @@ class alignment:
         self.ts = ts
         self.humint = humint
 
-        # Whether to correct for backlash in bidirectional manner.
-        self.bidirectional = False
-
         # Identify photometric output ROI indices
         photo_idx = np.zeros(4, dtype=np.int32)
         for i in range(0, 4):
@@ -1440,7 +1437,6 @@ class alignment:
             target_pos=target_pos * 10 ** (3),
             speeds=speeds * 10 ** (3),
             cp_backlash=True,
-            bidirectional=self.bidirectional,
         )
 
         # Poll actuator positions
@@ -1680,8 +1676,6 @@ class alignment:
             d = step
         else:
             d = 20 * 10 ** (-3)  # (mm)
-
-        self.bidirectional = True
 
         # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
         # ---------------------------------------------------------------------------------------
@@ -1958,8 +1952,6 @@ class alignment:
         #    raise ValueError("Given actuator speed is beyond the accepted range (0,1.22] um/s")
 
         d = step
-
-        self.bidirectional = True
 
         # Actuator configs and times
         ACT = []
