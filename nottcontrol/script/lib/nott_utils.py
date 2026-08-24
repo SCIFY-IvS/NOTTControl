@@ -320,20 +320,39 @@ class Actuator(Motor):
     def move_sequence(
         self,
         target_pos: float,
+        margin: float = 1.0,
         check_valid: bool = True,
         cp_backlash: bool = True,
+        bidirectional: bool = False,
         dt: float = 0.1,
         timeout: float = 30.0,
         verbose: bool = False,
     ):
         """
-        Function that moves actuator to target_pos (um) with bi-directional backlash correction.
+        Function that moves actuator to target_pos (um) with user-specified (uni- or bidirectional) backlash correction.
+
+        Backlash correction
+        -------------------
+        Uni-directional (default, bidirectional = False):
+        Correction fires on a negative displacement, regardless of previous move's direction.
+        Used alongside a motion strategy that favours positive displacements, only moving in negative direction when a "reset" is required.
+        e.g. Motion on spring-loaded actuators : Scanning with the delay lines, when only relative positions matter, or simple tip-tilt mirror motions.
+        e.g. LDC actuator motion
+
+        Bi-directional (bidirectional = True)
+        Correction fires when the direction of the requested displacement differs from the previous move's direction (prev_dir).
+        Intended for actuators that have a symmetric gear backlash.
+        Intended for when the uni-directional motion strategy cannot be followed (tip-tilt localization/optimization spirals, see nott_TTM_alignment).
+
+        In both modes, correction occurs as:
+        1. Move to target_pos + curr_dir * (backlash+margin) (overshoot target, over-estimate backlash to leave margin for return).
+                                                             (curr_dir the direction of the requested motion, either +1 or -1).
+        2. Await arrival
+        3. Move to target_pos (accurate approach in the direction opposite to the requested motion).
 
         Correction fires only if cp_backlash is True AND
-        the direction of the requested move differs from the previous move (self.prev_dir) AND
+        the direction of the requested move is a) negative (uni-directional) or b) different from the previous move, self.prev_dir (bidirectional) AND
         the imposed displacement is larger than the deadband.
-
-        Retraces by self.backlash (um) in the direction of the requested move, waits for arrival and then makes an accurate approach back.
 
         Updates self.prev_dir at the end of the move.
 
@@ -341,9 +360,11 @@ class Actuator(Motor):
 
         Params
         ------
-        target_pos : float (um)
+        target_pos : float (um) - target position
+        margin : float (um) - margin to add upon backlash correction
         check_valid : bool - validate move against travel range
-        cp_backlash : bool - apply bi-directional correction
+        cp_backlash : bool - apply backlash correction
+        bidirectional : bool - apply bi-directional correction
         dt : float (s) - polling interval for await_motor
         timeout : float (s) - timeout for each sub move
         """
@@ -361,51 +382,46 @@ class Actuator(Motor):
         # Displacement below resolution?
         need_double = abs(distance) < self.resolution and abs(distance) > 0
         # Displacement above resolution, need backlash correction?
-        need_cp = cp_backlash and curr_dir != self.prev_dir and self.prev_dir != 0
+        if cp_backlash:
+            if bidirectional:
+                need_cp = curr_dir != self.prev_dir and self.prev_dir != 0
+            else:
+                need_cp = curr_dir < 0
+        else:
+            need_cp = False
 
-        if need_double:
+        if need_cp or need_double:
             if verbose:
-                print(f"Sub-resolution ({self.resolution} µm) displacement: firing motion in two steps...")
+                if need_cp and need_double:
+                    print(
+                        "Backlash correction triggered on a sub-resolution displacement!"
+                    )
+                elif need_cp:
+                    print("Backlash correction triggered!")
+                elif need_double:
+                    print("Sub-resolution displacement!")
+                print("Overshooting...")
 
             speed_init = self._speed
-            self.set_speed(self.backlash)
-            # Overshoot in requested direction
-            overshoot_pos = self.position_microns + curr_dir * (self.backlash+3*distance)
-            self.move_abs(overshoot_pos, check_valid=True)
-            _time.sleep(0.2)
-            if verbose:
-                print("\n Overshooting...")
-                #print(f"  {self.name}: → {overshoot_pos:.1f} µm")
-            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
-            self.set_speed(speed_init)
+            if need_double:
+                self.set_speed(self.backlash)
 
-            # Retrace in opposite direction to clear backlash
-            retrace_pos = self.position_microns - curr_dir * self.backlash
-            self.move_abs(retrace_pos, check_valid=True)
+            # 1: Overshoot
+            overshoot_pos = target_pos + curr_dir * (self.backlash + margin)
+            self.move_abs(overshoot_pos, check_valid)
             _time.sleep(0.2)
-            if verbose:
-                print("\n Clearing backlash...")
-                #print(f"  {self.name}: → {retrace_pos:.1f} µm")
             self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
-        elif need_cp:
-            if verbose:
-                print("Direction of motion differs from previous motion call.")
-            neutral_pos = self.position_microns + curr_dir * self.backlash
-            self.move_abs(neutral_pos, check_valid)
-            _time.sleep(0.2)
-            if verbose:
-                print("\n Clearing backlash...")
-                #print(f"  {self.name}: → {neutral_pos:.2f} µm")
-            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+            if need_double:
+                self.set_speed(speed_init)
 
-        # Accurate approach
-        self.move_abs(target_pos, check_valid)
-        _time.sleep(0.2)
-        if verbose:
-            print("\n Approaching target...")
-            print(f"  {self.name}: → {target_pos:.1f} µm")
-        self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+            if verbose:
+                print("Accurate approach...")
+
+            # 2: Accurate approach
+            self.move_abs(target_pos, check_valid)
+            _time.sleep(0.2)
+            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
         self.prev_dir = curr_dir
         self.ongoing_sequence = False
