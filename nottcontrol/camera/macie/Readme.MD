@@ -128,3 +128,20 @@ sudo sysctl -p /etc/sysctl.d/99-zz-macie-gige.conf
 sysctl net.core.rmem_max
 # must be 268435456
 ```
+
+## MSAC telemetry (calibrated voltages)
+
+Do this **in MSAC**, with `zmq_server` / the H2RG GUI stopped (only one client on the card). IdleMode = Do Nothing (`0x4002` bit3–4 = 0) does **not** clock the telemetry mux (`WAITB`); those readbacks sit at a dummy voltage (often ~−0.014 V). Trust **DAC hex** (`0x6000`…) unless you follow this procedure.
+
+After the measurement, put **Reset per Frame** back (cold science). Reset per Row is only for the mux.
+
+1. **Initialize** the ASIC and confirm it succeeds.
+2. **Configuration** tab: change the reset setting from **Reset per Frame** to **Reset per Row**.
+3. **Telemetry** tab: choose **Calibrated Voltage** and uncheck **Autoscale**.
+4. Click **Calibrate Volts**.
+5. **Manual Command** tab: read ASIC address **`h6180`**. The value must be **`2232`**. If not, write `2232` (ASIC destination, then **W**).
+6. **Telemetry** tab: uncheck every measurement from **RefSample** downward. Only the **top set of biases** is used.
+7. Enable all **Sense_Res_en** checkboxes **except** **Vbiaspower** and **CellDrain**. In **buffered** mode, also disable the sense resistor for **Drain**.
+8. Click **Read** on the Telemetry page.
+
+Compare those volts to the programmed DACs (`VReset1` `0x6000`, `DSub1` `0x6002`, `VBiasGate1` `0x6004`, …). If telemetry is still stuck after this, the bias is not making it to the array (or the mux never left idle).

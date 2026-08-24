@@ -150,7 +150,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/macie_lib
 ./macie_exe/zmq_server
 ```
 
-Full notes: [`nottcontrol/camera/macie/Readme.MD`](nottcontrol/camera/macie/Readme.MD).
+Full notes: [`nottcontrol/camera/macie/Readme.MD`](nottcontrol/camera/macie/Readme.MD) (GigE, socket buffer, and **MSAC telemetry**).
 
 ## Configuration
 
