@@ -337,6 +337,7 @@ class HumInt(object):
         self.lam_mean = lam_mean
         self.pad = pad
         self.shutter_pad = shutter_pad
+        self.bs_pad = bs_pad
         self.interf = interf
         self.act_index = act_index
         self.non_motorized = non_motorized  # Index of the non-motorized beam
@@ -672,7 +673,7 @@ class HumInt(object):
         # Throw error if beamsplitter is not operational.
         if not operational:
             raise self.BeamSplitterError("Beamsplitter is not in operational state.")
-        value_bool = value.astype(bool)
+        value_bool = bool(value)
         # Only move if current and input state differ.
         if bs_change:
             if value_bool:

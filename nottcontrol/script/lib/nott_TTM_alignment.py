@@ -892,7 +892,7 @@ class alignment:
             [act.position_microns * 10 ** (-3) for act in cluster.motors],
             dtype=np.float64,
         )
-        timestamp = self.ts.ts.get("cam_integtime")[0]
+        timestamp = 0 #self.ts.ts.get("cam_integtime")[0]
 
         return [pos, timestamp]
 
@@ -1432,7 +1432,7 @@ class alignment:
         # Backlash correction and sub-resolution motion handled internally by Actuator.move_sequence
 
         # Actuator-specific speeds passed via the speed parameter of move_sequence
-        t_start_loop = self.ts.ts.get("cam_integtime")[0]
+        t_start_loop = 0 #self.ts.ts.get("cam_integtime")[0]
         # Target positions (skip zero displacements by passing nan)
         target_pos = np.where(disp != 0, final_pos_off, np.nan)
 
@@ -1445,9 +1445,9 @@ class alignment:
 
         # Poll actuator positions
         while any(t.is_alive() for t in cluster.threads):
-            sample = self._get_actuator_pos(config)
-            act.append(sample[0])
-            act_times.append(sample[1])
+            samples = self._get_actuator_pos(config)
+            act.append(samples[0])
+            act_times.append(samples[1])
             time.sleep(0.005)
 
         # Await completion of all threads
@@ -1458,7 +1458,7 @@ class alignment:
             motor.set_speed(act_speed)
 
         # Time keeping
-        t_end_loop = self.ts.ts.get("cam_integtime")[0]
+        t_end_loop = 0#self.ts.ts.get("cam_integtime")[0]
         t_spent_loop = t_end_loop - t_start_loop
 
         # Final achieved position, errors

@@ -420,10 +420,10 @@ class Actuator(Motor):
                 if verbose:
                     print("Accurate approach...")
 
-                # 2: Accurate approach
-                self.move_abs(target_pos, check_valid)
-                _time.sleep(0.2)
-                self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+            # 2: Accurate approach
+            self.move_abs(target_pos, check_valid)
+            _time.sleep(0.2)
+            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
             self.prev_dir = curr_dir
 
