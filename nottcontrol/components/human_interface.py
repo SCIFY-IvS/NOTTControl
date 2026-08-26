@@ -6,7 +6,6 @@ from tqdm import tqdm
 from copy import copy
 from datetime import datetime, timedelta, timezone
 import threading
-from win32.win32api import FindCloseChangeNotification
 from xaosim.shmlib import shm
 from scipy.linalg import hadamard
 
