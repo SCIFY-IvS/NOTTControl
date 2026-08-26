@@ -349,17 +349,37 @@ class HumInt(object):
         self.bg_noise = None
         self.opcua_conn = OPCUAConnection(opcuad)
         self.opcua_conn.connect()
+
+        shutter_address = config.get("SHUTTERS", "shutter_address")
+        shutter_name = config.get("SHUTTERS", "shutter_name")
+        shutter_speed = config.getfloat("SHUTTERS", "shutter_speed")
+        shutter_pos_min = config.getfloat("SHUTTERS", "shutter_pos_min")
+        shutter_pos_max = config.getfloat("SHUTTERS", "shutter_pos_max")
         self.shutters = [
             Shutter(
                 self.opcua_conn,
-                f"ns=4;s=MAIN.nott_ics.Shutters.NSH{shutterid + 1}",
-                f"NSH{shutterid + 1}",
-                speed=15.0 * 1e3,
-                open_pos=5.0,
-                close_pos=35.0,
+                f"ns=4;s={shutter_address}.{shutter_name}{shutterid + 1}",
+                f"{shutter_name}{shutterid + 1}",
+                speed=shutter_speed * 1e3,
+                open_pos=shutter_pos_min,
+                close_pos=shutter_pos_max,
             )
             for shutterid in range(4)
         ]
+
+        bs_address = config.get("BEAMSPLITTER", "bs_address")
+        bs_name = config.get("BEAMSPLITTER", "bs_name")
+        bs_speed = config.getfloat("BEAMSPLITTER", "bs_speed")
+        bs_pos_min = config.getfloat("BEAMSPLITTER", "bs_pos_min")
+        bs_pos_max = config.getfloat("BEAMSPLITTER", "bs_pos_max")
+        self.beamsplitter = Shutter(
+            self.opcua_conn,
+            f"ns=4;s={bs_address}.{bs_name}",
+            f"{bs_name}",
+            speed=bs_speed * 1e3,
+            open_pos=bs_pos_min,
+            close_pos=bs_pos_max,
+        )
 
         # self.dl is an ActuatorCluster object wrapping all four NDL actuators.
         # self.delay_lines is a list of the individual Actuator objects
