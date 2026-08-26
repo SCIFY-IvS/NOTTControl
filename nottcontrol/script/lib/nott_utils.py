@@ -368,63 +368,67 @@ class Actuator(Motor):
         dt : float (s) - polling interval for await_motor
         timeout : float (s) - timeout for each sub move
         """
-        target_time = self.time_to_target(target_pos)
-        timeout = max(timeout, target_time + 20.0)
-        self.ongoing_sequence = True
-        distance = target_pos - self.position_microns
 
-        if abs(distance) < self.deadband:
-            self.ongoing_sequence = False
-            return
+        try:
+            target_time = self.time_to_target(target_pos)
+            timeout = max(timeout, target_time + 20.0)
+            self.ongoing_sequence = True
+            distance = target_pos - self.position_microns
 
-        curr_dir = int(np.sign(distance))
+            if abs(distance) < self.deadband:
+                self.ongoing_sequence = False
+                return
 
-        # Displacement below resolution?
-        need_double = abs(distance) < self.resolution and abs(distance) > 0
-        # Displacement above resolution, need backlash correction?
-        if cp_backlash:
-            if bidirectional:
-                need_cp = curr_dir != self.prev_dir and self.prev_dir != 0
+            curr_dir = int(np.sign(distance))
+
+            # Displacement below resolution?
+            need_double = abs(distance) < self.resolution and abs(distance) > 0
+            # Displacement above resolution, need backlash correction?
+            if cp_backlash:
+                if bidirectional:
+                    need_cp = curr_dir != self.prev_dir and self.prev_dir != 0
+                else:
+                    need_cp = curr_dir < 0
             else:
-                need_cp = curr_dir < 0
-        else:
-            need_cp = False
+                need_cp = False
 
-        if need_cp or need_double:
-            if verbose:
-                if need_cp and need_double:
-                    print(
-                        "Backlash correction triggered on a sub-resolution displacement!"
-                    )
-                elif need_cp:
-                    print("Backlash correction triggered!")
-                elif need_double:
-                    print("Sub-resolution displacement!")
-                print("Overshooting...")
+            if need_cp or need_double:
+                if verbose:
+                    if need_cp and need_double:
+                        print(
+                            "Backlash correction triggered on a sub-resolution displacement!"
+                        )
+                    elif need_cp:
+                        print("Backlash correction triggered!")
+                    elif need_double:
+                        print("Sub-resolution displacement!")
+                    print("Overshooting...")
 
-            speed_init = self._speed
-            if need_double:
-                self.set_speed(self.backlash)
+                speed_init = self._speed
+                if need_double:
+                    self.set_speed(self.backlash)
 
-            # 1: Overshoot
-            overshoot_pos = target_pos + curr_dir * (self.backlash + margin)
-            self.move_abs(overshoot_pos, check_valid)
-            _time.sleep(0.2)
-            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+                # 1: Overshoot
+                overshoot_pos = target_pos + curr_dir * (self.backlash + margin)
+                self.move_abs(overshoot_pos, check_valid)
+                _time.sleep(0.2)
+                self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
-            if need_double:
-                self.set_speed(speed_init)
+                if need_double:
+                    self.set_speed(speed_init)
 
-            if verbose:
-                print("Accurate approach...")
+                if verbose:
+                    print("Accurate approach...")
 
-            # 2: Accurate approach
-            self.move_abs(target_pos, check_valid)
-            _time.sleep(0.2)
-            self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
+                # 2: Accurate approach
+                self.move_abs(target_pos, check_valid)
+                _time.sleep(0.2)
+                self.await_motor(dt=dt, timeout=timeout, verbose=verbose)
 
-        self.prev_dir = curr_dir
-        self.ongoing_sequence = False
+            self.prev_dir = curr_dir
+
+        finally:
+            self.ongoing_sequence = False
 
     def move_sequence_rel(self, rel_pos: float, **kwargs):
         """Move by rel_pos (um) relative to current position."""

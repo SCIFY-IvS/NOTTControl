@@ -436,6 +436,9 @@ class alignment:
             self.actuators.append(ActuatorCluster(acts))
         print("TTM actuator clusters initialized.")
 
+        # Whether to correct for backlash in uni-directional (False) or bidirectional (True) fashion.
+        self.bidirectional = False
+
     def __del__(self):
         # Disconnect from OPCUA
         if hasattr(self, "opcua_conn"):
@@ -1665,243 +1668,251 @@ class alignment:
         None.
 
         """
-        sky = int(bool(sky))
 
-        if config < 0 or config > 3:
-            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
-        if speed <= 0:
-            raise ValueError("Given actuator speed cannot be negative.")
+        try:
+            self.bidirectional = True
 
-        if sky:
-            d = step
-        else:
-            d = 20 * 10 ** (-3)  # (mm)
+            sky = int(bool(sky))
 
-        # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
-        # ---------------------------------------------------------------------------------------
-        # Tolerance (half of waveguide diameter)
-        tol_loc = 10 ** (-2)  # mm
-        # Estimating camera frame rate from a sequence of redis timestamps
-        pairs = get_field(
-            "cam_integtime",
-            self.ts.ts.get("cam_integtime")[0] - 5000,
-            self.ts.ts.get("cam_integtime")[0],
-            False,
-        )
-        frame_period = 10 ** (-3) * np.median(np.diff(pairs[:, 0]))  # seconds
-        # Cropping upper speed boundary to TwinCat boundary (30 um/s)
-        upper_speed = min(tol_loc / frame_period, 30 * 10 ** (-3))  # mm/s
-        # Cropping user input speed
-        spd = min(speed, upper_speed)
+            if config < 0 or config > 3:
+                raise ValueError("Please enter a valid configuration number (0,1,2,3)")
+            if speed <= 0:
+                raise ValueError("Given actuator speed cannot be negative.")
 
-        # Baseline photometric broadband flux measurement
-        # -----------------------------------------------
-        photo_init, noise = self._get_photo_broad(dt_base, config)
-        print(f"Baseline flux: {photo_init:.4f} with noise: {noise:.4f}")
+            if sky:
+                d = step
+            else:
+                d = 20 * 10 ** (-3)  # (mm)
 
-        if photo_init > fac_loc * noise:
-            raise Exception(
-                "Localization spiral not started. Initial configuration is likely already in a state of injection."
+            # Upper boundary for actuator speed, based on camera frame rate and positional tolerance
+            # ---------------------------------------------------------------------------------------
+            # Tolerance (half of waveguide diameter)
+            tol_loc = 10 ** (-2)  # mm
+            # Estimating camera frame rate from a sequence of redis timestamps
+            pairs = get_field(
+                "cam_integtime",
+                self.ts.ts.get("cam_integtime")[0] - 5000,
+                self.ts.ts.get("cam_integtime")[0],
+                False,
             )
+            frame_period = 10 ** (-3) * np.median(np.diff(pairs[:, 0]))  # seconds
+            # Cropping upper speed boundary to TwinCat boundary (30 um/s)
+            upper_speed = min(tol_loc / frame_period, 30 * 10 ** (-3))  # mm/s
+            # Cropping user input speed
+            spd = min(speed, upper_speed)
 
-        print("----------------------------------")
-        print(f"Spiraling for localization at actuator speed {spd} mm/s ...")
-        print("----------------------------------")
+            # Baseline photometric broadband flux measurement
+            # -----------------------------------------------
+            photo_init, noise = self._get_photo_broad(dt_base, config)
+            print(f"Baseline flux: {photo_init:.4f} with noise: {noise:.4f}")
 
-        # Visualization # TBD
-        # -------------------
-        # Container for average SNR values (for spiraling plot)
-        dim = 11
-        SNR_av = -10 * np.ones((dim, dim))
-        # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
-        indplot = np.array([dim // 2, dim // 2])
-        SNR_av[indplot[0]][indplot[1]] = 0
+            if photo_init > fac_loc * noise:
+                raise Exception(
+                    "Localization spiral not started. Initial configuration is likely already in a state of injection."
+                )
 
-        # Initializing Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111)
-        img = ax.imshow(SNR_av)
-        # Set limits
-        img.set_clim(vmin=-10, vmax=10)
-        # Set tick labels
-        xticks = np.linspace(0, dim - 1, dim)
-        yticks = np.linspace(0, dim - 1, dim)
-        labels = np.arange(-20 * (dim // 2), 20 * (dim // 2 + 1), 20)
-        ax.axes.get_xaxis().set_ticks(xticks)
-        ax.axes.get_yaxis().set_ticks(yticks)
-        ax.set_xticklabels(labels)
-        ax.set_yticklabels(-labels)
-        # Plotting initial SNR improvement value (=0) as label
-        ax.text(
-            indplot[1],
-            indplot[0],
-            np.round(SNR_av[indplot[0]][indplot[1]], 2),
-            ha="center",
-            va="center",
-            fontsize=14,
-        )
-        # Title
-        fig.suptitle("Localization spiral", fontsize=24)
-        # Showing
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+            print("----------------------------------")
+            print(f"Spiraling for localization at actuator speed {spd} mm/s ...")
+            print("----------------------------------")
 
-        def _update_plot(indplotpar, val):
-            # Changing the indices according to recent spiral step
-            indplot_change = np.array([[-1, 0], [0, -1], [+1, 0], [0, 1]])
-            indplotpar += indplot_change[move]
-            # Storing average SNR improvement in container
-            SNR_av[indplotpar[0]][indplotpar[1]] = val
-            # Updating spiraling plot
-            img.set_data(SNR_av)
-            # Updating plot
+            # Visualization # TBD
+            # -------------------
+            # Container for average SNR values (for spiraling plot)
+            dim = 11
+            SNR_av = -10 * np.ones((dim, dim))
+            # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
+            indplot = np.array([dim // 2, dim // 2])
+            SNR_av[indplot[0]][indplot[1]] = 0
+
+            # Initializing Plot
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111)
+            img = ax.imshow(SNR_av)
+            # Set limits
+            img.set_clim(vmin=-10, vmax=10)
+            # Set tick labels
+            xticks = np.linspace(0, dim - 1, dim)
+            yticks = np.linspace(0, dim - 1, dim)
+            labels = np.arange(-20 * (dim // 2), 20 * (dim // 2 + 1), 20)
+            ax.axes.get_xaxis().set_ticks(xticks)
+            ax.axes.get_yaxis().set_ticks(yticks)
+            ax.set_xticklabels(labels)
+            ax.set_yticklabels(-labels)
+            # Plotting initial SNR improvement value (=0) as label
             ax.text(
-                indplotpar[1],
-                indplotpar[0],
-                np.round(SNR_av[indplotpar[0]][indplotpar[1]], 2),
+                indplot[1],
+                indplot[0],
+                np.round(SNR_av[indplot[0]][indplot[1]], 2),
                 ha="center",
                 va="center",
                 fontsize=14,
             )
+            # Title
+            fig.suptitle("Localization spiral", fontsize=24)
+            # Showing
             fig.canvas.draw()
             fig.canvas.flush_events()
-            plt.pause(0.0001)
 
-            return indplotpar
-
-        #           x---x---x---x
-        #           |           |
-        #           x   x---x   x
-        ##########  |   |   |   |
-        # Spiral #  x   x   x   x
-        ##########  |   |       |
-        #           x   x---x---x
-        #           |
-        #           x---x---...
-
-        # Possible moves
-        if sky:
-            up = np.array([0, d, 0, 0], dtype=np.float64)
-            left = np.array([-d, 0, 0, 0], dtype=np.float64)
-            down = np.array([0, -d, 0, 0], dtype=np.float64)
-            right = np.array([d, 0, 0, 0], dtype=np.float64)
-            moves = np.array([up, left, down, right])
-        else:
-            up = np.array([0, 0, 0, d], dtype=np.float64)
-            left = np.array([0, 0, -d, 0], dtype=np.float64)
-            down = np.array([0, 0, 0, -d], dtype=np.float64)
-            right = np.array([0, 0, d, 0], dtype=np.float64)
-            moves = np.array([up, left, down, right])
-
-        # Stop criterion
-        stop = False
-        # What move is next (index in moves array)?
-        move = 0
-        # How many times has the move type switched?
-        Nswitch = 0
-        # How much consequent moves are being made in a direction at the moment?
-        Nsteps = 1
-
-        # Containers for actuator positions and paired broadband flux values
-        ACT = []
-        ACT_flux = []
-
-        while not stop:
-            # Initializing err_prev
-            err_prev = np.zeros(4, dtype=np.float64)
-
-            # Carrying out step(s)
-            for i in range(0, Nsteps):
-                # Step
-                speeds = np.full(4, spd, dtype=np.float64)
-                _, _, acts, act_times, frames, err, _ = self.individual_step(
-                    True, sky, moves[move], speeds, config, True, err_prev
+            def _update_plot(indplotpar, val):
+                # Changing the indices according to recent spiral step
+                indplot_change = np.array([[-1, 0], [0, -1], [+1, 0], [0, 1]])
+                indplotpar += indplot_change[move]
+                # Storing average SNR improvement in container
+                SNR_av[indplotpar[0]][indplotpar[1]] = val
+                # Updating spiraling plot
+                img.set_data(SNR_av)
+                # Updating plot
+                ax.text(
+                    indplotpar[1],
+                    indplotpar[0],
+                    np.round(SNR_av[indplotpar[0]][indplotpar[1]], 2),
+                    ha="center",
+                    va="center",
+                    fontsize=14,
                 )
-                # Saving errors for next step
-                err_prev = np.array(err, dtype=np.float64)
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+                plt.pause(0.0001)
 
-                # Evaluate photometric readout over motion time window
-                if frames is not None and len(acts) > 0:
-                    # Fetching individual frames for linking to actuator positions
-                    _, _, flux_seq, _ = self.humint.get_frames_cal_broad(
-                        frames=frames, sequence=True
+                return indplotpar
+
+            #           x---x---x---x
+            #           |           |
+            #           x   x---x   x
+            ##########  |   |   |   |
+            # Spiral #  x   x   x   x
+            ##########  |   |       |
+            #           x   x---x---x
+            #           |
+            #           x---x---...
+
+            # Possible moves
+            if sky:
+                up = np.array([0, d, 0, 0], dtype=np.float64)
+                left = np.array([-d, 0, 0, 0], dtype=np.float64)
+                down = np.array([0, -d, 0, 0], dtype=np.float64)
+                right = np.array([d, 0, 0, 0], dtype=np.float64)
+                moves = np.array([up, left, down, right])
+            else:
+                up = np.array([0, 0, 0, d], dtype=np.float64)
+                left = np.array([0, 0, -d, 0], dtype=np.float64)
+                down = np.array([0, 0, 0, -d], dtype=np.float64)
+                right = np.array([0, 0, d, 0], dtype=np.float64)
+                moves = np.array([up, left, down, right])
+
+            # Stop criterion
+            stop = False
+            # What move is next (index in moves array)?
+            move = 0
+            # How many times has the move type switched?
+            Nswitch = 0
+            # How much consequent moves are being made in a direction at the moment?
+            Nsteps = 1
+
+            # Containers for actuator positions and paired broadband flux values
+            ACT = []
+            ACT_flux = []
+
+            while not stop:
+                # Initializing err_prev
+                err_prev = np.zeros(4, dtype=np.float64)
+
+                # Carrying out step(s)
+                for i in range(0, Nsteps):
+                    # Step
+                    speeds = np.full(4, spd, dtype=np.float64)
+                    _, _, acts, act_times, frames, err, _ = self.individual_step(
+                        True, sky, moves[move], speeds, config, True, err_prev
                     )
-                    flux_step = flux_seq[:, self.photo_idx[config]]
-                    # Fetching co-added frames for injection detection
-                    # How much frames amount to {acq_time} seconds
-                    n_frames = int(acq_time // frame_period)
-                    # How much bins do we thus need
-                    n_bins = len(flux_seq) // n_frames
-                    # Floor to min 1 bin
-                    n_part = max(n_bins, 1)
-                    children_frames = frames.partition(n_part)
-                    flux_bin = np.array(
-                        [
-                            self.humint.get_frames_cal_broad(
-                                frames=child, sequence=False
-                            )[2][self.photo_idx[config]]
-                            for child in children_frames
-                        ]
+                    # Saving errors for next step
+                    err_prev = np.array(err, dtype=np.float64)
+
+                    # Evaluate photometric readout over motion time window
+                    if frames is not None and len(acts) > 0:
+                        # Fetching individual frames for linking to actuator positions
+                        _, _, flux_seq, _ = self.humint.get_frames_cal_broad(
+                            frames=frames, sequence=True
+                        )
+                        flux_step = flux_seq[:, self.photo_idx[config]]
+                        # Fetching co-added frames for injection detection
+                        # How much frames amount to {acq_time} seconds
+                        n_frames = int(acq_time // frame_period)
+                        # How much bins do we thus need
+                        n_bins = len(flux_seq) // n_frames
+                        # Floor to min 1 bin
+                        n_part = max(n_bins, 1)
+                        children_frames = frames.partition(n_part)
+                        flux_bin = np.array(
+                            [
+                                self.humint.get_frames_cal_broad(
+                                    frames=child, sequence=False
+                                )[2][self.photo_idx[config]]
+                                for child in children_frames
+                            ]
+                        )
+                    else:
+                        flux_step = np.array([photo_init])
+                        flux_bin = np.array([photo_init])
+                    snr_step = (flux_step - photo_init) / noise
+                    snr_bin = (flux_bin - photo_init) / noise
+
+                    # Pair each actuator position set to the nearest camera frame
+                    n_act, n_frame = len(acts), len(flux_step)
+                    for j in range(0, n_act):
+                        # calculate the proportional index in the photometric readout array
+                        k = int(round(j * (n_frame - 1) / max(n_act - 1, 1)))
+                        k = min(k, n_frame - 1)
+                        ACT.append(acts[j])
+                        ACT_flux.append(flux_step[k])
+
+                    # Injection criterion
+                    if (snr_bin > SNR_inj).any():
+                        print("Injecting state found!")
+                        print(
+                            f"Mean SNR of co-added frames ({acq_time} s each) that are above imposed threshold {SNR_inj}: {np.mean(snr_bin[snr_bin > SNR_inj]):.2f}"
+                        )
+
+                        indplot = _update_plot(indplot, float(np.max(snr_bin)))
+
+                        # Push bench to global flux maximum, sampled across the spiral
+                        ACT_flux_arr = np.array(ACT_flux, dtype=np.float64)
+                        i_max = np.argmax(ACT_flux_arr)
+                        ACT_final = ACT[i_max]
+                        act_curr = self._get_actuator_pos(config)[0]
+                        act_disp = ACT_final - act_curr
+                        spd_push = np.full(4, act_speed * 10 ** (-3), dtype=np.float64)
+                        pos_off = self._actoffset(spd_push, act_disp)
+                        print(
+                            f"Bringing bench to injecting actuator positions at {act_curr + act_disp} mm"
+                        )
+                        self._move_abs_ttm_act(
+                            act_curr, act_disp, spd_push, pos_off, config, sample=False
+                        )
+                        plt.close(fig)
+                        return
+
+                    indplot = _update_plot(indplot, float(np.mean(snr_bin)))
+                    # Refresh photometric baseline with each step (countering camera drift)
+                    photo_init, noise = self._get_photo_broad(dt_base, config)
+
+                # Setting up next move
+                move = (move + 1) % 4
+                # Counting the amount of performed move type switches
+                Nswitch += 1
+                if Nswitch % 2 == 0:
+                    Nsteps += 1
+
+                # Implementing boundary stop condition for on-sky spiralling
+                if sky and Nsteps >= Nsteps_skyb:
+                    raise TimeoutError(
+                        "The on-sky spiral scanning algorithm timed out. Consider repointing closer to source."
                     )
-                else:
-                    flux_step = np.array([photo_init])
-                    flux_bin = np.array([photo_init])
-                snr_step = (flux_step - photo_init) / noise
-                snr_bin = (flux_bin - photo_init) / noise
 
-                # Pair each actuator position set to the nearest camera frame
-                n_act, n_frame = len(acts), len(flux_step)
-                for j in range(0, n_act):
-                    # calculate the proportional index in the photometric readout array
-                    k = int(round(j * (n_frame - 1) / max(n_act - 1, 1)))
-                    k = min(k, n_frame - 1)
-                    ACT.append(acts[j])
-                    ACT_flux.append(flux_step[k])
+            plt.close(fig)
 
-                # Injection criterion
-                if (snr_bin > SNR_inj).any():
-                    print("Injecting state found!")
-                    print(
-                        f"Mean SNR of co-added frames ({acq_time} s each) that are above imposed threshold {SNR_inj}: {np.mean(snr_bin[snr_bin > SNR_inj]):.2f}"
-                    )
+        finally:
+            self.bidirectional = False
 
-                    indplot = _update_plot(indplot, float(np.max(snr_bin)))
-
-                    # Push bench to global flux maximum, sampled across the spiral
-                    ACT_flux_arr = np.array(ACT_flux, dtype=np.float64)
-                    i_max = np.argmax(ACT_flux_arr)
-                    ACT_final = ACT[i_max]
-                    act_curr = self._get_actuator_pos(config)[0]
-                    act_disp = ACT_final - act_curr
-                    spd_push = np.full(4, act_speed * 10 ** (-3), dtype=np.float64)
-                    pos_off = self._actoffset(spd_push, act_disp)
-                    print(
-                        f"Bringing bench to injecting actuator positions at {act_curr + act_disp} mm"
-                    )
-                    self._move_abs_ttm_act(
-                        act_curr, act_disp, spd_push, pos_off, config, sample=False
-                    )
-                    plt.close(fig)
-                    return
-
-                indplot = _update_plot(indplot, float(np.mean(snr_bin)))
-                # Refresh photometric baseline with each step (countering camera drift)
-                photo_init, noise = self._get_photo_broad(dt_base, config)
-
-            # Setting up next move
-            move = (move + 1) % 4
-            # Counting the amount of performed move type switches
-            Nswitch += 1
-            if Nswitch % 2 == 0:
-                Nsteps += 1
-
-            # Implementing boundary stop condition for on-sky spiralling
-            if sky and Nsteps >= Nsteps_skyb:
-                raise TimeoutError(
-                    "The on-sky spiral scanning algorithm timed out. Consider repointing closer to source."
-                )
-
-        plt.close(fig)
         return
 
     def optimization_spiral(self, sky, step, speed, config, dt_sample):
@@ -1942,225 +1953,237 @@ class alignment:
         None.
 
         """
-        print("----------------------------------")
-        print("Spiraling for optimization...")
-        print("----------------------------------")
-        if config < 0 or config > 3:
-            raise ValueError("Please enter a valid configuration number (0,1,2,3)")
 
-        # if (speed > 1.22*10**(-3) or speed <= 0):
-        #    raise ValueError("Given actuator speed is beyond the accepted range (0,1.22] um/s")
+        try:
+            self.bidirectional = True
 
-        d = step
+            print("----------------------------------")
+            print("Spiraling for optimization...")
+            print("----------------------------------")
+            if config < 0 or config > 3:
+                raise ValueError("Please enter a valid configuration number (0,1,2,3)")
 
-        # Actuator configs and times
-        ACT = []
-        ACT_times = []
+            # if (speed > 1.22*10**(-3) or speed <= 0):
+            #    raise ValueError("Given actuator speed is beyond the accepted range (0,1.22] um/s")
 
-        # Delay time (total delay minus writing time)
-        t_delay = self._get_delay(100, True) - t_write
-        # Exposure time for first exposure (ms)
-        dt_exp_opt = 200
-        # Start time for initial exposure
-        t_start = self._get_time(1000 * time.time(), t_delay)
-        # Sleep
-        time.sleep((dt_exp_opt + t_write) * 10 ** (-3))
-        # Initial position noise measurement
-        _, noise = self._get_noise(Nexp, t_start, dt_exp_opt)
-        # Initial position photometric output measurement
-        photo_init = self._get_photo(Nexp, t_start, dt_exp_opt, config)
-        # Storing initial actuator configuration and timestamp.
-        act_curr = self._get_actuator_pos(config)[0]
-        ACT.append(act_curr)
-        ACT_times.append(self._get_time(1000 * time.time(), t_delay))
+            d = step
 
-        # Container for average SNR values (for spiraling plot)
-        dim = 7
-        SNR_max = -10 * np.ones((dim, dim))
-        # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
-        indplot = np.array([dim // 2, dim // 2])
-        SNR_max[indplot[0]][indplot[1]] = 0
+            # Actuator configs and times
+            ACT = []
+            ACT_times = []
 
-        # Initializing Plot
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111)
-        img = ax.imshow(SNR_max)
-        # Set limits
-        img.set_clim(vmin=-50, vmax=50)
-        # Set tick labels
-        xticks = np.linspace(0, dim - 1, dim)
-        yticks = np.linspace(0, dim - 1, dim)
-        labels = np.arange(-1000 * d * (dim // 2), 1000 * d * (dim // 2 + 1), 1000 * d)
-        ax.axes.get_xaxis().set_ticks(xticks)
-        ax.axes.get_yaxis().set_ticks(yticks)
-        ax.set_xticklabels(labels)
-        ax.set_yticklabels(-labels)
-        # Plotting initial SNR improvement value (=0) as label
-        ax.text(
-            indplot[1],
-            indplot[0],
-            np.round(SNR_max[indplot[0]][indplot[1]], 2),
-            ha="center",
-            va="center",
-            fontsize=14,
-        )
-        # Title
-        fig.suptitle("Optimization spiral", fontsize=24)
-        # Showing
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+            # Delay time (total delay minus writing time)
+            t_delay = self._get_delay(100, True) - t_write
+            # Exposure time for first exposure (ms)
+            dt_exp_opt = 200
+            # Start time for initial exposure
+            t_start = self._get_time(1000 * time.time(), t_delay)
+            # Sleep
+            time.sleep((dt_exp_opt + t_write) * 10 ** (-3))
+            # Initial position noise measurement
+            _, noise = self._get_noise(Nexp, t_start, dt_exp_opt)
+            # Initial position photometric output measurement
+            photo_init = self._get_photo(Nexp, t_start, dt_exp_opt, config)
+            # Storing initial actuator configuration and timestamp.
+            act_curr = self._get_actuator_pos(config)[0]
+            ACT.append(act_curr)
+            ACT_times.append(self._get_time(1000 * time.time(), t_delay))
 
-        def _update_plot(indplotpar, val):
+            # Container for average SNR values (for spiraling plot)
+            dim = 7
+            SNR_max = -10 * np.ones((dim, dim))
+            # Appending initial exposure - defined to be zero - at initial indices k,l (indplot = [k,l])
+            indplot = np.array([dim // 2, dim // 2])
+            SNR_max[indplot[0]][indplot[1]] = 0
 
-            # Changing the indices according to recent spiral step
-            indplot_change = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
-            indplotpar += indplot_change[move]
-            # Storing average SNR improvement in container
-            SNR_max[indplotpar[0]][indplotpar[1]] = val
-            # Updating spiraling plot
-            img.set_data(SNR_max)
-            # Updating plot
+            # Initializing Plot
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111)
+            img = ax.imshow(SNR_max)
+            # Set limits
+            img.set_clim(vmin=-50, vmax=50)
+            # Set tick labels
+            xticks = np.linspace(0, dim - 1, dim)
+            yticks = np.linspace(0, dim - 1, dim)
+            labels = np.arange(
+                -1000 * d * (dim // 2), 1000 * d * (dim // 2 + 1), 1000 * d
+            )
+            ax.axes.get_xaxis().set_ticks(xticks)
+            ax.axes.get_yaxis().set_ticks(yticks)
+            ax.set_xticklabels(labels)
+            ax.set_yticklabels(-labels)
+            # Plotting initial SNR improvement value (=0) as label
             ax.text(
-                indplotpar[1],
-                indplotpar[0],
-                np.round(SNR_max[indplotpar[0]][indplotpar[1]], 2),
+                indplot[1],
+                indplot[0],
+                np.round(SNR_max[indplot[0]][indplot[1]], 2),
                 ha="center",
                 va="center",
                 fontsize=14,
             )
+            # Title
+            fig.suptitle("Optimization spiral", fontsize=24)
+            # Showing
             fig.canvas.draw()
             fig.canvas.flush_events()
-            plt.pause(0.0001)
 
-            return indplotpar
+            def _update_plot(indplotpar, val):
 
-        #            x---x   x
-        ##########   |   |   |
-        # Spiral #   x   x   x
-        ##########   |       |
-        #            x---x---x
-
-        # Possible moves
-        if sky:
-            up = np.array([0, d, 0, 0], dtype=np.float64)
-            left = np.array([-d, 0, 0, 0], dtype=np.float64)
-            down = np.array([0, -d, 0, 0], dtype=np.float64)
-            right = np.array([d, 0, 0, 0], dtype=np.float64)
-            moves = np.array([up, left, down, right])
-        else:
-            up = np.array([0, 0, 0, d], dtype=np.float64)
-            left = np.array([0, 0, -d, 0], dtype=np.float64)
-            down = np.array([0, 0, 0, -d], dtype=np.float64)
-            right = np.array([0, 0, d, 0], dtype=np.float64)
-            moves = np.array([up, left, down, right])
-
-        # Stop criterion
-        stop = False
-        # What move is next (index in moves array)?
-        move = 0
-        # How many times has the move type switched?
-        Nswitch = 0
-        # How much consequent moves are being made in a direction at the moment?
-        Nsteps = 1
-
-        while not stop:
-            # Initializing err_prev
-            err_prev = np.zeros(4, dtype=np.float64)
-            # Initializing act_disp_prev
-            act_disp_prev = np.zeros(4, dtype=np.float64)
-
-            # Carrying out step(s)
-            for i in range(0, Nsteps):
-                # Step
-                speeds = np.array([speed, speed, speed, speed], dtype=np.float64)  # TBD
-                _, _, acts, act_times, rois, err, act_disp = self.individual_step(
-                    True,
-                    sky,
-                    moves[move],
-                    speeds,
-                    config,
-                    True,
-                    dt_sample,
-                    t_delay,
-                    err_prev,
-                    act_disp_prev,
-                )
-                # Saving error for next step.
-                err_prev = np.array(err, dtype=np.float64)
-                # Saving actuator steps for next step.
-                act_disp_prev = act_disp
-                # Saving actuator configurations and timestamps sampled throughout step.
-                for j in range(0, len(acts)):
-                    ACT.append(acts[j])
-                    ACT_times.append(act_times[j])
+                # Changing the indices according to recent spiral step
+                indplot_change = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
+                indplotpar += indplot_change[move]
+                # Storing average SNR improvement in container
+                SNR_max[indplotpar[0]][indplotpar[1]] = val
+                # Updating spiraling plot
+                img.set_data(SNR_max)
                 # Updating plot
-                indplot = _update_plot(indplot, np.max((rois - photo_init) / noise))
-
-            # Setting up next move
-            if move < 3:
-                move += 1
-            else:
-                move = 0
-
-            # Stop condition
-            if Nsteps == 3:
-                stop = True
-
-            # Counting the amount of performed move type switches
-            Nswitch += 1
-
-            if Nswitch % 2 == 0:
-                Nsteps += 1
-
-        # Safety sleep
-        time.sleep(10 * t_write * 10 ** (-3))  # TBD
-        # Find optimal injection found along spiral (performed once more, post-movement, to eliminate possible time sync issues during sampling)
-        # Re-reading the photometric outputs (timeframe of dt_sample around each actuator timestamp)
-        SNR_samples = np.array(
-            [
-                self._get_photo(
-                    Nexp,
-                    round(timestamp - (1000 * dt_sample / 2)),
-                    round(1000 * dt_sample),
-                    config,
+                ax.text(
+                    indplotpar[1],
+                    indplotpar[0],
+                    np.round(SNR_max[indplotpar[0]][indplotpar[1]], 2),
+                    ha="center",
+                    va="center",
+                    fontsize=14,
                 )
-                - photo_init
-                for timestamp in ACT_times
-            ]
-            / noise,
-            dtype=np.float64,
-        )
-        # Finding optimal injection index
-        i_max = np.argmax(SNR_samples)
-        # Corresponding actuator positions
-        ACT_final = ACT[i_max]
-        # Current configuration
-        act_curr = self._get_actuator_pos(config)[0]
-        # Necessary displacements
-        act_disp = ACT_final - act_curr
-        # speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
-        speeds = np.array([0.0011, 0.0011, 0.0011, 0.0011], dtype=np.float64)  # TBD
-        pos_offset = self._actoffset(speeds, act_disp)
-        print(
-            "Bringing to optimized actuator position : ",
-            np.max(SNR_samples),
-            "SNR improvement at ",
-            act_curr + act_disp,
-            " mm.",
-        )
-        # Push bench to configuration of optimal found injection.
-        _, _, _, _, _, _ = self._move_abs_ttm_act(
-            act_curr,
-            act_disp,
-            speeds,
-            pos_offset,
-            config,
-            False,
-            0.010,
-            self._get_delay(100, True) - t_write,
-        )
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+                plt.pause(0.0001)
 
-        plt.close(fig)
+                return indplotpar
+
+            #            x---x   x
+            ##########   |   |   |
+            # Spiral #   x   x   x
+            ##########   |       |
+            #            x---x---x
+
+            # Possible moves
+            if sky:
+                up = np.array([0, d, 0, 0], dtype=np.float64)
+                left = np.array([-d, 0, 0, 0], dtype=np.float64)
+                down = np.array([0, -d, 0, 0], dtype=np.float64)
+                right = np.array([d, 0, 0, 0], dtype=np.float64)
+                moves = np.array([up, left, down, right])
+            else:
+                up = np.array([0, 0, 0, d], dtype=np.float64)
+                left = np.array([0, 0, -d, 0], dtype=np.float64)
+                down = np.array([0, 0, 0, -d], dtype=np.float64)
+                right = np.array([0, 0, d, 0], dtype=np.float64)
+                moves = np.array([up, left, down, right])
+
+            # Stop criterion
+            stop = False
+            # What move is next (index in moves array)?
+            move = 0
+            # How many times has the move type switched?
+            Nswitch = 0
+            # How much consequent moves are being made in a direction at the moment?
+            Nsteps = 1
+
+            while not stop:
+                # Initializing err_prev
+                err_prev = np.zeros(4, dtype=np.float64)
+                # Initializing act_disp_prev
+                act_disp_prev = np.zeros(4, dtype=np.float64)
+
+                # Carrying out step(s)
+                for i in range(0, Nsteps):
+                    # Step
+                    speeds = np.array(
+                        [speed, speed, speed, speed], dtype=np.float64
+                    )  # TBD
+                    _, _, acts, act_times, rois, err, act_disp = self.individual_step(
+                        True,
+                        sky,
+                        moves[move],
+                        speeds,
+                        config,
+                        True,
+                        dt_sample,
+                        t_delay,
+                        err_prev,
+                        act_disp_prev,
+                    )
+                    # Saving error for next step.
+                    err_prev = np.array(err, dtype=np.float64)
+                    # Saving actuator steps for next step.
+                    act_disp_prev = act_disp
+                    # Saving actuator configurations and timestamps sampled throughout step.
+                    for j in range(0, len(acts)):
+                        ACT.append(acts[j])
+                        ACT_times.append(act_times[j])
+                    # Updating plot
+                    indplot = _update_plot(indplot, np.max((rois - photo_init) / noise))
+
+                # Setting up next move
+                if move < 3:
+                    move += 1
+                else:
+                    move = 0
+
+                # Stop condition
+                if Nsteps == 3:
+                    stop = True
+
+                # Counting the amount of performed move type switches
+                Nswitch += 1
+
+                if Nswitch % 2 == 0:
+                    Nsteps += 1
+
+            # Safety sleep
+            time.sleep(10 * t_write * 10 ** (-3))  # TBD
+            # Find optimal injection found along spiral (performed once more, post-movement, to eliminate possible time sync issues during sampling)
+            # Re-reading the photometric outputs (timeframe of dt_sample around each actuator timestamp)
+            SNR_samples = np.array(
+                [
+                    self._get_photo(
+                        Nexp,
+                        round(timestamp - (1000 * dt_sample / 2)),
+                        round(1000 * dt_sample),
+                        config,
+                    )
+                    - photo_init
+                    for timestamp in ACT_times
+                ]
+                / noise,
+                dtype=np.float64,
+            )
+            # Finding optimal injection index
+            i_max = np.argmax(SNR_samples)
+            # Corresponding actuator positions
+            ACT_final = ACT[i_max]
+            # Current configuration
+            act_curr = self._get_actuator_pos(config)[0]
+            # Necessary displacements
+            act_disp = ACT_final - act_curr
+            # speeds = np.array(np.abs(act_disp/100),dtype=np.float64)
+            speeds = np.array([0.0011, 0.0011, 0.0011, 0.0011], dtype=np.float64)  # TBD
+            pos_offset = self._actoffset(speeds, act_disp)
+            print(
+                "Bringing to optimized actuator position : ",
+                np.max(SNR_samples),
+                "SNR improvement at ",
+                act_curr + act_disp,
+                " mm.",
+            )
+            # Push bench to configuration of optimal found injection.
+            _, _, _, _, _, _ = self._move_abs_ttm_act(
+                act_curr,
+                act_disp,
+                speeds,
+                pos_offset,
+                config,
+                False,
+                0.010,
+                self._get_delay(100, True) - t_write,
+            )
+
+            plt.close(fig)
+
+        finally:
+            self.bidirectional = False
+
         return
 
     def optimization_spiral_gradient(

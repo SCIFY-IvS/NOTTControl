@@ -6,6 +6,7 @@ from tqdm import tqdm
 from copy import copy
 from datetime import datetime, timedelta, timezone
 import threading
+from win32.win32api import FindCloseChangeNotification
 from xaosim.shmlib import shm
 from scipy.linalg import hadamard
 
@@ -320,6 +321,7 @@ class HumInt(object):
         lam_mean=mean_wl,
         pad=0.15,
         shutter_pad=5.5,
+        bs_pad=11.0,
         interf=None,
         act_index=0,
         non_motorized=0,
@@ -379,6 +381,7 @@ class HumInt(object):
             speed=bs_speed * 1e3,
             open_pos=bs_pos_min,
             close_pos=bs_pos_max,
+            rtol=0.2,
         )
 
         # self.dl is an ActuatorCluster object wrapping all four NDL actuators.
@@ -559,11 +562,15 @@ class HumInt(object):
         p = lam_micron / (2 * np.pi) * np.arcsin(inner)
         return p
 
-    # ---------------------------#
-    # Shutter control functions |
-    # --------------------------#
+    # -----------------------------------------#
+    # Shutter / beamsplitter control functions |
+    # -----------------------------------------#
+    # WIP: Integrate state and status checks in Motor.py, inheriting the methods here for both shutters and beamsplitter.
 
     class ShutterError(OSError):
+        pass
+
+    class BeamSplitterError(OSError):
         pass
 
     @property
@@ -592,6 +599,25 @@ class HumInt(object):
             if ashutter.is_open:
                 shutter_state[i] = 1
         return shutter_state
+
+    @property
+    def beamsplitter_state(self):
+
+        bs_state = 0
+        # Beamsplitter (motor) status
+        motor_status = self.beamsplitter.getStatusInformation()[0]
+        standing = motor_status == "STANDING"
+        # Throw error if beamsplitter is still moving.
+        if not standing:
+            raise self.BeamSplitterError("Beamsplitter is still moving.")
+        # Throw error if the beamsplitter is neither moving, neither standing still in an open/closed position.
+        if not (self.beamsplitter.is_open or self.beamsplitter.is_closed):
+            raise self.BeamSplitterError(
+                "Beamsplitter is neither moving, nor in an open/closed position."
+            )
+        if self.beamsplitter.is_open:
+            bs_state = 1
+        return bs_state
 
     def shutter_set(self, values, wait=True, verbose=False):
 
@@ -632,6 +658,35 @@ class HumInt(object):
                     ashutter.getStatusInformation()[1],
                     ashutter.getPositionAndSpeed()[0],
                 )
+
+    def beamsplitter_set(self, value: int, wait=True, verbose=False):
+
+        # Beamsplitter state on motor level; operational?
+        motor_state = self.beamsplitter.getStatusInformation()[1]
+        operational = motor_state == "OPERATIONAL"
+
+        # Beamsplitter state on surface level : open/closed?
+        bs_state = self.beamsplitter_state
+        # Compare to input beamsplitter state
+        bs_change = np.invert(bs_state == value)
+
+        # Throw error if beamsplitter is not operational.
+        if not operational:
+            raise self.BeamSplitterError("Beamsplitter is not in operational state.")
+        value_bool = value.astype(bool)
+        # Only move if current and input state differ.
+        if bs_change:
+            if value_bool:
+                self.beamsplitter.open()
+            else:
+                self.beamsplitter.close()
+        if wait and bs_change:
+            sleep(self.bs_pad)
+        if verbose:
+            print(
+                self.beamsplitter.getStatusInformation()[1],
+                self.beamsplitter.getPositionAndSpeed()[0],
+            )
 
     # ------------------------------#
     # Delay line control functions |
