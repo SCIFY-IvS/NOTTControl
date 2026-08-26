@@ -1440,6 +1440,7 @@ class alignment:
             target_pos=target_pos * 10 ** (3),
             speeds=speeds * 10 ** (3),
             cp_backlash=True,
+            bidirectional=self.bidirectional,
         )
 
         # Poll actuator positions

@@ -561,6 +561,7 @@ class ActuatorCluster:
         target_pos=None,
         speeds=None,
         cp_backlash: bool = True,
+        bidirectional: bool = False,
         verbose: bool = False,
         **move_sequence_kwargs,
     ):
@@ -592,6 +593,7 @@ class ActuatorCluster:
                 kwargs=dict(
                     target_pos=tgt,
                     cp_backlash=cp_backlash,
+                    bidirectional=bidirectional,
                     verbose=verbose,
                     **move_sequence_kwargs,
                 ),
@@ -610,11 +612,16 @@ class ActuatorCluster:
         self,
         target_pos: np.ndarray,
         cp_backlash: bool = True,
+        bidirectional: bool = False,
         verbose: bool = False,
         **move_sequence_kwargs,
     ):
         """move_abs_all + await_all in one call."""
         self.move_abs_all(
-            target_pos, cp_backlash=cp_backlash, verbose=verbose, **move_sequence_kwargs
+            target_pos,
+            cp_backlash=cp_backlash,
+            bidirectional=bidirectional,
+            verbose=verbose,
+            **move_sequence_kwargs,
         )
         self.await_all()
