@@ -860,7 +860,9 @@ class HumInt(object):
         """
         self._ng.toggle_power(self._ng_im_port, True)
         self._ng.toggle_power(self._ng_pup_port, True)
-        print("Visible cameras powered on via PoE.")
+        print("Visible cameras powered on via PoE. Waiting for cameras to boot...")
+        time.sleep(20.0)
+        print("Visible cameras available on network.")
 
     def shutdown_VIS_cam(self):
         """
