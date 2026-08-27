@@ -26,7 +26,9 @@ Illuminated box defaults to the **Photonic chip** WinMode
 (``X=1024–1087``, ``Y=928–959``). The **10 brightest** pixels are
 chosen once on the last CDS plane (``last − reset`` or ``last − first``)
 after outlier rejection, then those same pixels are averaged on every
-sample. Detector pixel **X=1076, Y=936** is always tracked as a separate
+sample. On **full-frame** (2048×2048) data the flux plot also includes
+the mean over HxRG **reference pixels** (4-pixel border on all sides).
+Detector pixel **X=1076, Y=936** is always tracked as a separate
 curve (override with ``--track-pixel``).
 
 A second config.ini ROI (default **ROI 8**) is plotted as its own crop and
@@ -81,6 +83,12 @@ H2RG_SECTION = "H2RG DETECTOR"
 DEFAULT_FULL_FRAME = 2048
 DEFAULT_SEED = 0
 DEFAULT_N_SIGMA = 3.0
+REF_PIXEL_COLOR = "#e9c46a"
+
+try:
+    from .detector_qa import H2RG_REF_WIDTH, h2rg_ref_mask
+except ImportError:
+    from detector_qa import H2RG_REF_WIDTH, h2rg_ref_mask
 
 # MSAC names often embed counters, e.g. ``…_N000012_M000001.fits`` or
 # a reset frame ``…_R0001.fits``. Prefer the science tag (M or N) that
@@ -570,6 +578,42 @@ def sigma_clip_mean(
     return float(np.mean(work)), int(work.size), int(n_total - work.size)
 
 
+def is_full_frame(
+    shape: tuple[int, int], *, full_frame: int = DEFAULT_FULL_FRAME
+) -> bool:
+    height, width = int(shape[0]), int(shape[1])
+    return height >= full_frame and width >= full_frame
+
+
+def reference_pixel_boxes(
+    shape: tuple[int, int], *, width: int = H2RG_REF_WIDTH
+) -> list[tuple[int, int, int, int]]:
+    """Four reference bands: top, bottom, left, right (row0, row1, col0, col1)."""
+    height, img_width = int(shape[0]), int(shape[1])
+    if height < 4 * width or img_width < 4 * width:
+        return []
+    return [
+        (0, width, 0, img_width),
+        (height - width, height, 0, img_width),
+        (0, height, 0, width),
+        (0, height, img_width - width, img_width),
+    ]
+
+
+def reference_pixel_means(cube: np.ndarray) -> np.ndarray | None:
+    """Mean ADU over the HxRG reference-pixel border for each cube plane."""
+    data = np.asarray(cube, dtype=np.float64)
+    if data.ndim != 3:
+        return None
+    mask = h2rg_ref_mask(data.shape[1:])
+    if mask is None or not bool(mask.any()):
+        return None
+    return np.array(
+        [float(np.nanmean(plane[mask])) for plane in data],
+        dtype=np.float64,
+    )
+
+
 def load_ramp_cube(path: Path) -> tuple[np.ndarray, dict]:
     """Return ``(nsamples, ny, nx)`` float64 cube and primary header dict."""
     from astropy.io import fits
@@ -860,6 +904,8 @@ def plot_file_series(
     region2_means: np.ndarray | None = None,
     region2_label: str | None = None,
     region2_frame: np.ndarray | None = None,
+    ref_means: np.ndarray | None = None,
+    ref_boxes: list[tuple[int, int, int, int]] | None = None,
 ) -> None:
     show_pixels = pixel_matrix is not None and pixel_matrix.size > 0
     show_images = full_frame is not None and illum_frame is not None
@@ -921,7 +967,16 @@ def plot_file_series(
                 label=r2_box_label,
                 linestyle="--",
             )
-        if illum_box is not None or bg_box is not None:
+        if ref_boxes:
+            for i, box in enumerate(ref_boxes):
+                _draw_box(
+                    ax_full,
+                    *box,
+                    color=REF_PIXEL_COLOR,
+                    label="Reference pixels" if i == 0 else None,
+                    linestyle=":",
+                )
+        if illum_box is not None or bg_box is not None or ref_boxes:
             ax_full.legend(loc="upper right", fontsize=8, framealpha=0.8)
         if track_xy:
             xs = [x for x, _y in track_xy]
@@ -1029,6 +1084,15 @@ def plot_file_series(
             color=REGION2_COLOR,
             label=region2_label or "ROI",
         )
+    if ref_means is not None and len(ref_means) == len(indices):
+        ax_mean.plot(
+            indices,
+            ref_means,
+            "^:",
+            markersize=5,
+            color=REF_PIXEL_COLOR,
+            label=f"Reference pixels ({H2RG_REF_WIDTH} px border)",
+        )
     if (
         track_xy
         and track_matrix is not None
@@ -1060,6 +1124,8 @@ def plot_file_series(
             extra = (
                 f"  {region2_label or 'ROI'}={float(region2_means[i]):.4g} ADU"
             )
+        if ref_means is not None and i < len(ref_means):
+            extra += f"  ref={float(ref_means[i]):.4g} ADU"
         logging.info(
             "%s: index=%s%d  illum_mean=%.4g ADU%s",
             name,
@@ -1673,6 +1739,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         for x, y in track_xy:
             logging.info("Tracking detector pixel X=%d Y=%d", x, y)
+    ref_means: np.ndarray | None = None
+    ref_boxes: list[tuple[int, int, int, int]] | None = None
+    if is_full_frame((ny, nx)):
+        ref_means = reference_pixel_means(cds_cube)
+        if ref_means is not None:
+            ref_boxes = reference_pixel_boxes((ny, nx))
+            mask = h2rg_ref_mask((ny, nx))
+            n_ref = int(mask.sum()) if mask is not None else 0
+            logging.info(
+                "Full frame: reference-pixel mean over %d border pixels "
+                "(ramp mean=%.4g ADU)",
+                n_ref,
+                float(np.nanmean(ref_means)),
+            )
     pixel_matrix: np.ndarray | None = None
     if args.show_pixels:
         pixel_matrix = np.stack(
@@ -1832,6 +1912,8 @@ def main(argv: list[str] | None = None) -> int:
             if region2_box is not None
             else None
         ),
+        ref_means=ref_means,
+        ref_boxes=ref_boxes,
     )
     qa_pixels = pixels if pixels.size else None
     if track_xy:
