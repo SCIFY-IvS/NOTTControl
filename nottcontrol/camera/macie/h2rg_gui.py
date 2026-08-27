@@ -1470,7 +1470,6 @@ class H2rgMainWindow(QMainWindow):
         self._button_ds9: QPushButton | None = None
         self._button_save_dir: QPushButton | None = None
         self._checkBox_save_image: QCheckBox | None = None
-        self._checkBox_save_reset: QCheckBox | None = None
         self._checkBox_autoscale: QCheckBox | None = None
         self._button_apply_levels: QPushButton | None = None
         self._lineEdit_level_min: QLineEdit | None = None
@@ -2230,15 +2229,6 @@ class H2rgMainWindow(QMainWindow):
         )
         self._checkBox_save_image = save_box
         options.addWidget(save_box)
-
-        reset_box = QCheckBox("Save reset")
-        reset_box.setChecked(MACIE_SAVE_RESET_FRAMES)
-        reset_box.setToolTip(
-            "Include the MACIE reset plane(s) in the ramp FITS cube "
-            "(SaveRstFrames). Display and science products still skip them."
-        )
-        self._checkBox_save_reset = reset_box
-        options.addWidget(reset_box)
         options.addStretch(1)
         outer.addLayout(options)
 
@@ -2403,8 +2393,6 @@ class H2rgMainWindow(QMainWindow):
         self.ui.checkBox_substract_background.setStyleSheet(CHECKBOX_STYLE)
         if getattr(self, "_checkBox_save_image", None) is not None:
             self._checkBox_save_image.setStyleSheet(CHECKBOX_STYLE)
-        if getattr(self, "_checkBox_save_reset", None) is not None:
-            self._checkBox_save_reset.setStyleSheet(CHECKBOX_STYLE)
         if getattr(self, "_checkBox_autoscale", None) is not None:
             self._checkBox_autoscale.setStyleSheet(CHECKBOX_STYLE)
 
@@ -3676,9 +3664,14 @@ class H2rgMainWindow(QMainWindow):
             macie = self._ensure_macie(detector_config_file(detector_index))
             macie.reinit_camera()
             self._applied_exposure_fingerprint = None
-            macie.set_save_rst_frames(self._save_reset_enabled())
+            # Apply window geometry and exposure before any extra SaveRst
+            # reconfigure — an early ReconfigureASIC poisons full-frame GigE
+            # (~65535 ADU) until frame settings latch WinMode/stripe/XY.
             if 0 <= window_index < len(WINDOW_MODES):
                 self._apply_window_mode_to_macie(macie, window_index)
+            else:
+                macie.set_save_rst_frames(self._save_reset_enabled())
+                self._apply_exposure_settings(macie, force=True)
             self._sync_save_dir_from_server(macie)
             self._refresh_readouts(macie)
             self.status_updated.emit(
@@ -3717,10 +3710,7 @@ class H2rgMainWindow(QMainWindow):
         return bool(box.isChecked())
 
     def _save_reset_enabled(self) -> bool:
-        box = getattr(self, "_checkBox_save_reset", None)
-        if box is None:
-            return MACIE_SAVE_RESET_FRAMES
-        return bool(box.isChecked())
+        return MACIE_SAVE_RESET_FRAMES
 
     def _autoscale_enabled(self) -> bool:
         box = getattr(self, "_checkBox_autoscale", None)

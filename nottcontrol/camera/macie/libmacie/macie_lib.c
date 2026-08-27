@@ -4414,6 +4414,12 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         // Order matters, because ASIC_WinHorz will disable stripe
         ASIC_WinVert(ptUserData, true, (uint)bVertWin);
         ASIC_WinHorz(ptUserData, true, (uint)bHorzWin);
+        if (!bVertWin && !bHorzWin)
+        {
+            ASIC_STRIPEMode(ptUserData, true, false);
+            if (RegMap.count("WinMode") > 0)
+                ASIC_Generic(ptUserData, "WinMode", true, 0);
+        }
     }
 
     // Set y1=0 and y2=ydet-1 if bVertWin=False
@@ -4463,6 +4469,8 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         verbose_printf(LOG_INFO, ptUserData,
                        "%s(): PixelClkScheme=%u (Enhanced)\n", __func__, pixClk);
     }
+
+    ConfigBuffers(ptUserData);
 
     x1 = ASIC_getX1(ptUserData);
     x2 = ASIC_getX2(ptUserData);
@@ -4563,6 +4571,8 @@ bool ASIC_STRIPEMode(MACIE_Settings *ptUserData, bool bSet, bool bVal)
             // Turn off Vertical Window
             if (RegMap.count("VertWinMode") > 0)
                 ASIC_Generic(ptUserData, "VertWinMode", true, 0);
+            else if (RegMap.count("WinMode") > 0)
+                ASIC_Generic(ptUserData, "WinMode", true, 0);
             // Do NOT write StripeReads* here. Touching 4024… on the way back to
             // full frame poisons GigE the same way a pristine-FF ffidle write
             // does (Set succeeds; Acquire/download fails). Counters are only
