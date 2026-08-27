@@ -106,7 +106,7 @@ MACIE_SAVE_SCIENCE_FITS = config.getboolean(
     H2RG_SECTION, "save_science_fits", fallback=False
 )
 MACIE_SAVE_RESET_FRAMES = config.getboolean(
-    H2RG_SECTION, "save_reset_frames", fallback=True
+    H2RG_SECTION, "save_reset_frames", fallback=False
 )
 MACIE_DS9_EXECUTABLE = config.get(H2RG_SECTION, "ds9_executable", fallback="ds9").strip()
 MACIE_FITS_WAIT_MARGIN_S = config.getfloat(

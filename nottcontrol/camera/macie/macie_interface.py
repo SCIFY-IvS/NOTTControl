@@ -491,7 +491,7 @@ class MacieInterface():
         ncoadds: int = 1,
         nseq: int = 1,
         save: bool = True,
-        save_rst: bool = True,
+        save_rst: bool = False,
         windowed_cds: bool = False,
     ) -> dict[str, float | int]:
         """Apply CDS or Fowler ramp plan for the requested integration time."""
