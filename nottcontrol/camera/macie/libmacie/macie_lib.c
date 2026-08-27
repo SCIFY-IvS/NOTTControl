@@ -4373,13 +4373,11 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     // Vertical-only window = burst stripe (ASIC Y set to the stripe, same as
     // full-frame multi-ramp path). Fall back to WinMode if microcode has no
     // StripeReads*.
-    bool use_burst_stripe = false;
     if ((bVertWin == true) && (bHorzWin == false))
     {
         if (ptUserData->bStripeModeAllowed && RegMap.count("StripeReads1") > 0)
         {
             ASIC_STRIPEMode(ptUserData, true, true);
-            use_burst_stripe = true;
             verbose_printf(LOG_INFO, ptUserData,
                            "%s(): SC via burst stripe (parallel outputs) "
                            "ASIC y=[%u,%u].\n",
