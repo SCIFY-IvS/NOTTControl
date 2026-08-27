@@ -179,6 +179,43 @@ def remap_rois_to_image(
     return mapped
 
 
+def pop_roi_to_image(
+    roi: tuple[int, int, int, int],
+    *,
+    image_w: int,
+    image_h: int,
+) -> tuple[int, int, int, int]:
+    """Place a full-frame ROI in a subframe for editing (centered, clipped size)."""
+    _fx, _fy, fw, fh = (int(v) for v in roi)
+    w = max(1, min(fw, image_w))
+    h = max(1, min(fh, image_h))
+    x = max(0, (image_w - w) // 2)
+    y = max(0, (image_h - h) // 2)
+    return x, y, w, h
+
+
+def compute_local_roi_brightness(
+    frame: numpy.ndarray,
+    local_rois: dict[int, tuple[int, int, int, int]],
+) -> tuple[dict[int, BrightnessResults], dict[int, numpy.ndarray]]:
+    """Brightness and cropped regions for image-local ROI geometry."""
+    results: dict[int, BrightnessResults] = {}
+    regions: dict[int, numpy.ndarray] = {}
+    for index, geom in local_rois.items():
+        region = extract_roi_region(frame, geom)
+        if region is None or region.size == 0:
+            continue
+        regions[index] = region
+        avg = float(numpy.average(region))
+        results[index] = BrightnessResults(
+            float(numpy.amin(region)),
+            float(numpy.amax(region)),
+            avg,
+            avg * region.shape[0] * region.shape[1],
+        )
+    return results, regions
+
+
 def compute_roi_brightness(
     frame: numpy.ndarray,
     rois: dict[int, tuple[int, int, int, int]],
@@ -310,6 +347,12 @@ class H2rgRoiRow:
         self.profile_plot_checkbox = QCheckBox(parent)
         self.profile_plot_checkbox.setToolTip("Plot 1D profile")
         self.profile_plot_checkbox.setFixedHeight(row_height)
+        self.pop_checkbox = QCheckBox(parent)
+        self.pop_checkbox.setToolTip(
+            "Subframe: show ROI in the current window for relocation "
+            "(full-frame coordinates update on drag)"
+        )
+        self.pop_checkbox.setFixedHeight(row_height)
 
         self.min_label = self._make_value_label(parent, row_height)
         self.max_label = self._make_value_label(parent, row_height)
@@ -319,9 +362,10 @@ class H2rgRoiRow:
         grid.addWidget(self.show_checkbox, row, 1, Qt.AlignCenter)
         grid.addWidget(self.time_plot_checkbox, row, 2, Qt.AlignCenter)
         grid.addWidget(self.profile_plot_checkbox, row, 3, Qt.AlignCenter)
-        grid.addWidget(self.min_label, row, 4, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.max_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
-        grid.addWidget(self.avg_label, row, 6, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.pop_checkbox, row, 4, Qt.AlignCenter)
+        grid.addWidget(self.min_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.max_label, row, 6, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.avg_label, row, 7, Qt.AlignRight | Qt.AlignVCenter)
         self.set_color(color)
 
     def _make_value_label(self, parent: QWidget, row_height: int) -> QLabel:
@@ -358,6 +402,13 @@ class H2rgRoiRow:
         self.max_values.append(float(result.max))
         self.avg_values.append(float(result.avg))
 
+    def add_gap_sample(self) -> None:
+        """Placeholder sample when the ROI is outside the current window."""
+        gap = float("nan")
+        self.min_values.append(gap)
+        self.max_values.append(gap)
+        self.avg_values.append(gap)
+
     def add_max_value(self, value: float) -> None:
         self.max_values.append(float(value))
 
@@ -392,12 +443,12 @@ def _build_roi_column(
     grid.setHorizontalSpacing(scaled(2))
     grid.setVerticalSpacing(0)
 
-    headers = ("", "On", "T", "1D", "Min", "Max", "Avg")
+    headers = ("", "On", "T", "1D", "Pop", "Min", "Max", "Avg")
     for col, text in enumerate(headers):
         label = QLabel(text, host)
         label.setStyleSheet(_header_style())
         label.setFixedHeight(scaled(14))
-        label.setAlignment(Qt.AlignCenter if col in (1, 2, 3) else Qt.AlignRight)
+        label.setAlignment(Qt.AlignCenter if col in (1, 2, 3, 4) else Qt.AlignRight)
         grid.addWidget(label, 0, col)
 
     rows: dict[int, H2rgRoiRow] = {}
@@ -619,7 +670,11 @@ class H2rgRoiPlots(QWidget):
         stamp = when or datetime.now(timezone.utc).replace(tzinfo=None)
         self._timestamps.append(stamp.timestamp())
 
-    def refresh_time_plot(self, rows: dict[int, H2rgRoiRow]) -> None:
+    def refresh_time_plot(
+        self,
+        rows: dict[int, H2rgRoiRow],
+        measurable: set[int] | None = None,
+    ) -> None:
         times = list(self._timestamps)
         if not times:
             self._clear_plot(self.pw_time)
@@ -632,7 +687,9 @@ class H2rgRoiPlots(QWidget):
         active = {
             index: row
             for index, row in rows.items()
-            if row.time_plot_checkbox.isChecked() and row.series_for(statistic)
+            if row.time_plot_checkbox.isChecked()
+            and (measurable is None or index in measurable)
+            and row.series_for(statistic)
         }
         for index in list(self._time_curves):
             if index not in active:
@@ -642,11 +699,17 @@ class H2rgRoiPlots(QWidget):
             n = min(len(times), len(ys))
             xs = times[-n:]
             ys = ys[-n:]
-            mask = [t >= t0 for t in xs]
-            xs = [t for t, keep in zip(xs, mask) if keep]
-            ys = [y for y, keep in zip(ys, mask) if keep]
-            if not xs:
+            points = [
+                (t, y)
+                for t, y in zip(xs, ys)
+                if t >= t0 and numpy.isfinite(y)
+            ]
+            if not points:
+                curve = self._time_curves.pop(index, None)
+                if curve is not None:
+                    plot_item.removeItem(curve)
                 continue
+            xs, ys = zip(*points)
             pen = pg.mkPen(row.color, width=2)
             curve = self._time_curves.get(index)
             if curve is None:
@@ -661,6 +724,7 @@ class H2rgRoiPlots(QWidget):
         self,
         rows: dict[int, H2rgRoiRow],
         profiles: dict[int, numpy.ndarray] | None,
+        measurable: set[int] | None = None,
     ) -> None:
         plot_item = self.pw_profile.getPlotItem()
         if not profiles:
@@ -672,7 +736,9 @@ class H2rgRoiPlots(QWidget):
         active = {
             index: rows[index]
             for index in profiles
-            if index in rows and rows[index].profile_plot_checkbox.isChecked()
+            if index in rows
+            and rows[index].profile_plot_checkbox.isChecked()
+            and (measurable is None or index in measurable)
         }
         for index in list(self._profile_curves):
             if index not in active:

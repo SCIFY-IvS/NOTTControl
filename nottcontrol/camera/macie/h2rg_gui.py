@@ -60,8 +60,9 @@ from nottcontrol.camera.macie.h2rg_roi_panel import (
     ROI_COLORS,
     H2rgRoiPanel,
     H2rgRoiPlots,
-    compute_roi_brightness,
+    compute_local_roi_brightness,
     map_roi_image_to_full,
+    pop_roi_to_image,
     redis_key_for_roi,
     remap_rois_to_image,
     roi_profile_1d,
@@ -1430,6 +1431,7 @@ class H2rgMainWindow(QMainWindow):
         self._last_roi_profiles: dict[int, numpy.ndarray] | None = None
         self._last_roi_regions: dict[int, numpy.ndarray] | None = None
         self._last_roi_plot_refresh = 0.0
+        self._last_measurable_roi_indices: set[int] = set()
         # Full-frame origin of the displayed subframe (+ optional pad_top).
         self._display_origin_x = 0
         self._display_origin_y = 0
@@ -2312,6 +2314,7 @@ class H2rgMainWindow(QMainWindow):
         for index, row in self._roi_panel.rows.items():
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
+            row.pop_checkbox.setEnabled(False)
         image_column_layout.addWidget(self._roi_panel, stretch=0)
         top.addWidget(image_column, stretch=1)
 
@@ -2506,6 +2509,7 @@ class H2rgMainWindow(QMainWindow):
                 row.show_checkbox.toggled.connect(self._on_roi_toggled)
                 row.time_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
                 row.profile_plot_checkbox.stateChanged.connect(self._on_roi_plot_toggled)
+                row.pop_checkbox.stateChanged.connect(self._on_roi_pop_toggled)
 
         for widget in (
             self.ui.lineEdit_integration_time,
@@ -2530,6 +2534,13 @@ class H2rgMainWindow(QMainWindow):
     def _on_roi_toggled(self, _checked: bool) -> None:
         self._update_roi_overlays()
         self._refresh_display()
+
+    def _on_roi_pop_toggled(self, _state: int = 0) -> None:
+        self._update_roi_overlays()
+        if self._current_frame is not None:
+            self._update_roi_values(self._current_frame, record=False)
+        else:
+            self._refresh_display()
 
     def _on_roi_plot_toggled(self, _state: int = 0) -> None:
         self._refresh_roi_plots(force=True)
@@ -2581,9 +2592,68 @@ class H2rgMainWindow(QMainWindow):
         self._display_origin_x = ox
         self._display_origin_y = oy
         self._display_pad_top = pad
+        self._sync_roi_pop_controls()
+        self._last_measurable_roi_indices = self._measurable_roi_indices(
+            self._frame_shape_for_roi()
+        )
         self._update_roi_overlays()
         if changed and self._current_frame is not None:
             self._update_roi_values(self._current_frame, record=False)
+        elif changed:
+            self._refresh_roi_plots(force=True)
+
+    def _frame_shape_for_roi(self) -> tuple[int, int] | None:
+        if self._current_frame is not None:
+            return int(self._current_frame.shape[0]), int(self._current_frame.shape[1])
+        if self.image is not None and getattr(self.image, "image", None) is not None:
+            shape = self.image.image.shape
+            return int(shape[0]), int(shape[1])
+        return None
+
+    def _display_is_subframe(self, frame_shape: tuple[int, ...] | None = None) -> bool:
+        if frame_shape is None:
+            frame_shape = self._frame_shape_for_roi()
+        if frame_shape is not None:
+            height, width = int(frame_shape[0]), int(frame_shape[1])
+            if height >= H2RG_ARRAY_SIZE - 16 and width >= H2RG_ARRAY_SIZE - 16:
+                return False
+            return True
+        mode = self._selected_window_mode()
+        return bool(mode.x_window or mode.y_window)
+
+    def _sync_roi_pop_controls(self) -> None:
+        if self._roi_panel is None:
+            return
+        subframe = self._display_is_subframe()
+        for index, row in self._roi_panel.rows.items():
+            enabled = subframe and index in self._h2rg_rois
+            row.pop_checkbox.setEnabled(enabled)
+            if not enabled and row.pop_checkbox.isChecked():
+                blocked = row.pop_checkbox.blockSignals(True)
+                row.pop_checkbox.setChecked(False)
+                row.pop_checkbox.blockSignals(blocked)
+
+    def _apply_popped_rois(
+        self,
+        mapped: dict[int, tuple[int, int, int, int]],
+        *,
+        image_w: int,
+        image_h: int,
+    ) -> dict[int, tuple[int, int, int, int]]:
+        if self._roi_panel is None or not self._display_is_subframe((image_h, image_w)):
+            return mapped
+        merged = dict(mapped)
+        for index, row in self._roi_panel.rows.items():
+            if not row.pop_checkbox.isChecked() or index not in self._h2rg_rois:
+                continue
+            if index in merged:
+                continue
+            merged[index] = pop_roi_to_image(
+                self._h2rg_rois[index],
+                image_w=image_w,
+                image_h=image_h,
+            )
+        return merged
 
     def _refine_pad_top_for_frame(self, frame: numpy.ndarray) -> int:
         """Match display pad to delivered height (SC is ny rows, pad=0)."""
@@ -2644,12 +2714,13 @@ class H2rgMainWindow(QMainWindow):
         ):
             args = self._roi_window_args_for_frame(self._current_frame)
             height, width = (int(self._current_frame.shape[0]), int(self._current_frame.shape[1]))
-            return remap_rois_to_image(
+            mapped = remap_rois_to_image(
                 self._h2rg_rois,
                 image_w=width,
                 image_h=height,
                 **args,  # type: ignore[arg-type]
             )
+            return self._apply_popped_rois(mapped, image_w=width, image_h=height)
         if frame_shape is None:
             if (
                 self.image is not None
@@ -2666,7 +2737,7 @@ class H2rgMainWindow(QMainWindow):
                     mode.y2 - mode.y1 + 1 + pad,
                     mode.x2 - mode.x1 + 1,
                 )
-                return remap_rois_to_image(
+                mapped = remap_rois_to_image(
                     self._h2rg_rois,
                     origin_x=ox,
                     origin_y=oy,
@@ -2678,6 +2749,11 @@ class H2rgMainWindow(QMainWindow):
                     window_y1=mode.y1,
                     window_y2=mode.y2,
                 )
+                return self._apply_popped_rois(
+                    mapped,
+                    image_w=int(frame_shape[1]),
+                    image_h=int(frame_shape[0]),
+                )
         height, width = int(frame_shape[0]), int(frame_shape[1])
         mode = self._selected_window_mode()
         ox, oy, pad = window_origin_for_frame(
@@ -2687,7 +2763,7 @@ class H2rgMainWindow(QMainWindow):
         self._display_origin_y = oy
         self._display_pad_top = pad
         use_gate = not (ox == 0 and oy == 0 and pad == 0 and height >= H2RG_ARRAY_SIZE - 16)
-        return remap_rois_to_image(
+        mapped = remap_rois_to_image(
             self._h2rg_rois,
             origin_x=ox,
             origin_y=oy,
@@ -2699,6 +2775,13 @@ class H2rgMainWindow(QMainWindow):
             window_y1=mode.y1 if use_gate else None,
             window_y2=mode.y2 if use_gate else None,
         )
+        return self._apply_popped_rois(mapped, image_w=width, image_h=height)
+
+    def _measurable_roi_indices(
+        self, frame_shape: tuple[int, ...] | None = None
+    ) -> set[int]:
+        """ROI indices that intersect the current image (incl. Pop placement)."""
+        return set(self._rois_in_image_coords(frame_shape).keys())
 
     def _selected_ramp_mode(self) -> str:
         if hasattr(self, "_comboBox_ramp_mode"):
@@ -2943,12 +3026,9 @@ class H2rgMainWindow(QMainWindow):
     ) -> None:
         if self._roi_panel is None or not self._h2rg_rois:
             return
-        args = self._roi_window_args_for_frame(frame)
-        results, regions = compute_roi_brightness(
-            frame,
-            self._h2rg_rois,
-            **args,  # type: ignore[arg-type]
-        )
+        local = self._rois_in_image_coords(frame.shape)
+        self._last_measurable_roi_indices = set(local.keys())
+        results, regions = compute_local_roi_brightness(frame, local)
         for index, row in self._roi_panel.rows.items():
             row.set_values(results.get(index))
 
@@ -2961,6 +3041,12 @@ class H2rgMainWindow(QMainWindow):
                 row = self._roi_panel.rows.get(index)
                 if row is not None:
                     row.add_sample(result)
+            for index, row in self._roi_panel.rows.items():
+                if (
+                    index not in results
+                    and row.time_plot_checkbox.isChecked()
+                ):
+                    row.add_gap_sample()
             if self._roi_plots is not None:
                 self._roi_plots.append_timestamp(stamp)
             if MACIE_RECORD_ROIS:
@@ -2996,9 +3082,12 @@ class H2rgMainWindow(QMainWindow):
         if not force and (now - self._last_roi_plot_refresh) < MACIE_ROI_PLOT_INTERVAL_S:
             return
         self._last_roi_plot_refresh = now
-        self._roi_plots.refresh_time_plot(self._roi_panel.rows)
+        measurable = self._last_measurable_roi_indices
+        self._roi_plots.refresh_time_plot(self._roi_panel.rows, measurable)
         self._roi_plots.refresh_profile_plot(
-            self._roi_panel.rows, self._last_roi_profiles
+            self._roi_panel.rows,
+            self._last_roi_profiles,
+            measurable,
         )
 
     def _exposure_field_widgets(self) -> list:
@@ -3187,6 +3276,8 @@ class H2rgMainWindow(QMainWindow):
         if 0 <= index < len(WINDOW_MODES):
             # Remap ROI overlays immediately to the selected geometry.
             self._set_display_window_from_mode(WINDOW_MODES[index])
+        else:
+            self._sync_roi_pop_controls()
         self._schedule_window_mode_apply(index)
 
     def _schedule_window_mode_apply(self, index: int) -> None:
@@ -5206,6 +5297,7 @@ class H2rgMainWindow(QMainWindow):
         if status:
             self._set_status(status)
         # Sync overlays to subframe geometry, then ROI numbers + plots.
+        self._sync_roi_pop_controls()
         self._update_roi_values(display, record=True)
         self._update_roi_overlays()
         self._refresh_roi_plots(force=False)
