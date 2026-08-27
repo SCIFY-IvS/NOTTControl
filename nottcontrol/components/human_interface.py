@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -353,6 +354,9 @@ class HumInt(object):
         self.opcua_conn = OPCUAConnection(opcuad)
         self.opcua_conn.connect()
 
+        # Create shm directory
+        os.makedirs("/dev/shm/rtdisp", exist_ok=True)
+
         shutter_address = config.get("SHUTTERS", "shutter_address")
         shutter_name = config.get("SHUTTERS", "shutter_name")
         shutter_speed = config.getfloat("SHUTTERS", "shutter_speed")
@@ -393,7 +397,7 @@ class HumInt(object):
         self.frame_VIS_pup = None
         self.frame_VIS_im = None
 
-        self._stream_process = {"im_cam":None, "pup_cam": None}
+        self._stream_process = {"im_cam": None, "pup_cam": None}
         # Netgear PoE switch
         self._ng = NetGearInterface(host=config["netgear"]["host"])
         self._ng_im_port = config.getint("netgear", "im_port")
