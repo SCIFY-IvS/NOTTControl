@@ -33,4 +33,5 @@ dependencies = [
   "astropy",
   "pyserial",
   "scikit-learn",
+  "netmiko",
 ]
