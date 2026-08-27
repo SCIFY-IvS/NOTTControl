@@ -511,17 +511,6 @@ class HumInt(object):
                 frame = myut.snap(name)
                 self._init_shm_VIS_cam(name, frame)
 
-        self.buffer_im_VIS_pup = SimpleShm(
-            "/dev/shm/rtdisp/vis_cam_pupil.im.shm",
-            shape=self.frame_VIS_pup.shape,
-            dtype=self.frame_im.dtype,
-        )
-        self.buffer_im_VIS_im = SimpleShm(
-            "/dev/shm/rtdisp/vis_cam_image.im.shm",
-            shape=self.frame_VIS_im.shape,
-            dtype=frame_im.dtype,
-        )
-
     def disp_initialize_shm_broadband(self, depth=30, width=None):
         """
         Function that initializes buffers for real-time transfer (shm) and display (shmview) of broadband data, deduced from the ROIs defined on the IR camera frame.
