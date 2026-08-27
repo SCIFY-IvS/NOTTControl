@@ -3,14 +3,29 @@ from netmiko import ConnectHandler
 
 class NetGearInterface:
     def __init__(self, host):
-        netgear_switch = {
+        self._netgear_switch = {
             "device_type": "netgear_prosafe",
             "host": host,
             "username": "admin",
             "password": "L@boAcc3ss!",
         }
 
-        self._net_connect = ConnectHandler(**netgear_switch)
+        self._net_connect = ConnectHandler(**self._netgear_switch)
+        self._net_connect.keepalive = 30
+
+    def __del__(self):
+        try:
+            self._net_connect.disconnect()
+        except Exception:
+            print(f"Disconnect failed with exception {e}.")
+
+    def reconnect(self):
+        """Re-establish the SSH connection with the switch."""
+        try:
+            self._net_connect.disconnect()
+        except Exception:
+            print(f"Disconnect failed with exception {e}.")
+        self._net_connect = ConnectHandler(**self._netgear_switch)
         self._net_connect.keepalive = 30
 
     def is_power_enabled(self, port: int) -> bool:
