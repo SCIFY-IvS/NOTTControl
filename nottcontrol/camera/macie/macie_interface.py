@@ -477,6 +477,10 @@ class MacieInterface():
         """Include MACIE reset plane(s) in the ramp FITS (ASIC SaveRstFrames)."""
         return self._request(f"saverst;{str(bool(save)).lower()}")
 
+    def set_preview_reduction(self, mode: int) -> bool:
+        """Set ZMQ/Live preview reduction (0=CDS, 1=Ramp last, 2=SingleFrame first)."""
+        return self._request(f"previewreduction;{int(mode)}")
+
     def configure_ramp_exposure(
         self,
         tint_ms: float,
@@ -492,6 +496,7 @@ class MacieInterface():
     ) -> dict[str, float | int]:
         """Apply CDS or Fowler ramp plan for the requested integration time."""
         from nottcontrol.camera.macie.ramp_plan import calc_ramp_plan, exp_mode_for_ramp
+        from nottcontrol.camera.macie.ramp_plan import preview_reduction_mode
 
         timing = self.read_exposure_timing()
         frametime_ms = timing["frametime_s"] * 1000.0
@@ -504,6 +509,7 @@ class MacieInterface():
             windowed_cds=windowed_cds,
         )
         self.set_exp_mode(exp_mode_for_ramp(ramp_mode))  # type: ignore[arg-type]
+        self.set_preview_reduction(preview_reduction_mode(ramp_mode))  # type: ignore[arg-type]
         self.set_save_rst_frames(save_rst)
         _save, _ncoadds, _nseq, _ng, _nr, _nd, nresets = self.read_exposure_settings()
         self.exposure_settings(

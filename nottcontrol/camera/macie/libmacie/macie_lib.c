@@ -139,6 +139,7 @@ bool create_param_struct(MACIE_Settings *ptUserData, LOG_LEVEL verbosity)
     ptUserData->displayPreviewNx = 0;
     ptUserData->displayPreviewNy = 0;
     ptUserData->bDisplayPreviewValid = false;
+    ptUserData->displayPreviewReduction = 0;
 
     // Pixel clocking scheme for full frame and subarray window
     // Normal (0) or Enhanced (1)
@@ -2048,9 +2049,9 @@ static int ramp_saved_reset_planes(MACIE_Settings *ptUserData)
     return 0;
 }
 
-/// CDS = last − first of *science* planes when ≥2 remain, else copy the
-/// single science plane (float32). Leading SaveRstFrames planes are skipped
-/// so Live / ZMQ preview matches Python fits_science CDS, not last−reset.
+/// Build the 2D ZMQ/Live preview from downloaded ramp planes (float32).
+/// Leading SaveRstFrames planes are skipped. Reduction follows
+/// displayPreviewReduction so Ramp/SingleFrame match fits_science, not always CDS.
 static bool store_display_preview_plane(MACIE_Settings *ptUserData,
                                         int xpix, int ypix, int nframes_ramp,
                                         const unsigned short *pU16,
@@ -2082,8 +2083,13 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
     }
 
     const long first0 = framesize * (long)skip;
-    if (nscience == 1)
+    const long last0 = framesize * (long)(nframes_ramp - 1);
+    const unsigned int reduction = ptUserData->displayPreviewReduction;
+    const char *reduction_label = "CDS";
+
+    if (reduction == 2 || nscience == 1)
     {
+        reduction_label = (reduction == 2) ? "first" : "single";
         if (pF32 != NULL)
         {
             for (long i = 0; i < framesize; ++i)
@@ -2095,9 +2101,22 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
                 disp[i] = (float)pU16[first0 + i];
         }
     }
+    else if (reduction == 1)
+    {
+        reduction_label = "last";
+        if (pF32 != NULL)
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = pF32[last0 + i];
+        }
+        else
+        {
+            for (long i = 0; i < framesize; ++i)
+                disp[i] = (float)pU16[last0 + i];
+        }
+    }
     else
     {
-        const long last0 = framesize * (long)(nframes_ramp - 1);
         if (pF32 != NULL)
         {
             for (long i = 0; i < framesize; ++i)
@@ -2116,8 +2135,18 @@ static bool store_display_preview_plane(MACIE_Settings *ptUserData,
     ptUserData->displayPreviewNy = ypix;
     ptUserData->bDisplayPreviewValid = true;
     verbose_printf(LOG_INFO, ptUserData,
-                   "  Stored display preview %dx%d (CDS/single, skip %d reset) for ZMQ\n",
-                   xpix, ypix, skip);
+                   "  Stored display preview %dx%d (%s, skip %d reset) for ZMQ\n",
+                   xpix, ypix, reduction_label, skip);
+    return true;
+}
+
+bool set_display_preview_reduction(MACIE_Settings *ptUserData, unsigned int mode)
+{
+    if (SettingsCheckNULL(ptUserData) == false)
+        return false;
+    if (mode > 2)
+        mode = 0;
+    ptUserData->displayPreviewReduction = mode;
     return true;
 }
 
@@ -4424,23 +4453,18 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
     }
 
     // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
-    // acquisition. Full-frame may use Enhanced; any window / burst-stripe SC
-    // must stay Normal (0) or Live oscillates between clean CDS and channel
-    // seams / horizontal artifacts.
+    // acquisition (32-channel seams on Live / repeated GUI acquire). Always use
+    // Normal (0) here; MSAC may still show Enhanced until Set/Init via GUI.
     if (RegMap.count("PixelClkScheme") > 0)
     {
-        uint pixClk = ptUserData->ffPixelClkScheme;
-        if (use_burst_stripe || bVertWin || bHorzWin)
-            pixClk = ptUserData->winPixelClkScheme; // Normal
+        uint pixClk = ptUserData->winPixelClkScheme;
         SetASICParameter(ptUserData, "PixelClkScheme", pixClk);
         if (ReconfigureASIC(ptUserData) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
         }
         verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): PixelClkScheme=%u (%s)\n",
-                       __func__, pixClk,
-                       (use_burst_stripe || bVertWin || bHorzWin) ? "window/SC Normal" : "full-frame");
+                       "%s(): PixelClkScheme=%u (Normal)\n", __func__, pixClk);
     }
 
     x1 = ASIC_getX1(ptUserData);

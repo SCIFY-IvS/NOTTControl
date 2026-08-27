@@ -126,6 +126,14 @@ class CalcRampPlanTests(unittest.TestCase):
         self.assertEqual(exp_mode_for_ramp("CDS"), 0)
         self.assertEqual(exp_mode_for_ramp("Fowler"), 1)
 
+    def test_preview_reduction_mode(self) -> None:
+        from nottcontrol.camera.macie.ramp_plan import preview_reduction_mode
+
+        self.assertEqual(preview_reduction_mode("CDS"), 0)
+        self.assertEqual(preview_reduction_mode("Fowler"), 0)
+        self.assertEqual(preview_reduction_mode("Ramp"), 1)
+        self.assertEqual(preview_reduction_mode("SingleFrame"), 2)
+
     def test_fits_wait_timeout_scales_with_sequence(self) -> None:
         timeout = fits_wait_timeout_s(12.0, ncoadds=2, nseq=5, margin_s=10.0)
         self.assertEqual(timeout, 130.0)

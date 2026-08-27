@@ -201,6 +201,13 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
     return true;
 }
 
+extern "C" bool M_set_preview_reduction(unsigned int mode)
+{
+    if (_ptUserData == NULL)
+        return false;
+    return set_display_preview_reduction(_ptUserData, mode);
+}
+
 extern "C" bool M_set_save_rst_frames(bool save)
 {
     if (_ptUserData == NULL)
@@ -551,6 +558,11 @@ int main () {
             {
                 unsigned int mode = (unsigned int)std::stoi(tokens[1]);
                 result = M_set_exp_mode(mode);
+            }
+            else if (command == "previewreduction")
+            {
+                unsigned int mode = (unsigned int)std::stoi(tokens[1]);
+                result = M_set_preview_reduction(mode);
             }
             else if (command == "saverst")
             {

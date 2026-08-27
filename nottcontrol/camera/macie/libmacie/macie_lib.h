@@ -174,6 +174,8 @@ typedef struct MACIE_Settings
   int displayPreviewNx;
   int displayPreviewNy;
   bool bDisplayPreviewValid;
+  // ZMQ/Live preview reduction: 0=CDS (last-first), 1=Ramp (last), 2=SingleFrame (first)
+  unsigned int displayPreviewReduction;
 
   // Pixel clocking scheme for full frame and subarray window
   // Normal (0) or Enhanced (1)
@@ -238,6 +240,7 @@ extern bool StoreDisplayPreviewU16(MACIE_Settings *ptUserData,
 extern bool StoreDisplayPreviewF32(MACIE_Settings *ptUserData,
                                    int xpix, int ypix, int nframes_ramp,
                                    const float *pF32);
+extern bool set_display_preview_reduction(MACIE_Settings *ptUserData, unsigned int mode);
 extern bool DownloadRampUSB(MACIE_Settings *ptUserData, unsigned short pData[], long framesize, 
                             long nframes_save, int triggerTimeout, int wait_delta);
 extern bool DownloadRampUSB_Frame(MACIE_Settings *ptUserData, unsigned short pData[], long framesize,

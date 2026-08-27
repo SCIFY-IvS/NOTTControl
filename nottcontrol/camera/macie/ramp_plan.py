@@ -161,3 +161,12 @@ def calc_ramp_plan(
 
 def exp_mode_for_ramp(mode: RampMode) -> int:
     return EXP_MODE_FOWLER if mode == "Fowler" else EXP_MODE_UTR
+
+
+def preview_reduction_mode(mode: RampMode) -> int:
+    """ZMQ/Live display preview: 0=CDS, 1=Ramp last sample, 2=SingleFrame first."""
+    if mode == "Ramp":
+        return 1
+    if mode == "SingleFrame":
+        return 2
+    return 0
