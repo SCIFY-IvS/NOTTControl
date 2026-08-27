@@ -1986,6 +1986,14 @@ bool CloseScienceInterface(MACIE_Settings *ptUserData)
     return ok;
 }
 
+/// Refresh MACIE buffer sizing and drop any stale GigE/USB science session so
+/// the next acquire reopens with geometry that matches the last ReconfigureASIC.
+void sync_gige_after_reconfigure(MACIE_Settings *ptUserData)
+{
+    ConfigBuffers(ptUserData);
+    CloseScienceInterface(ptUserData);
+}
+
 void set_keep_science_interface(MACIE_Settings *ptUserData, bool keep)
 {
     if (SettingsCheckNULL(ptUserData) == false)
@@ -4302,6 +4310,8 @@ bool set_exposure_settings(MACIE_Settings *ptUserData, bool bSave,
         return false;
     }
 
+    sync_gige_after_reconfigure(ptUserData);
+
     double rtime_ms = ptUserData->ramptime_ms;         // Ramp time including reset frames
     double itime_ms = exposure_inttime_ms(ptUserData); // Photon collection time
     double etime_sec = rtime_ms * ncoadds * nsaved_ramps / 1000;
@@ -4470,7 +4480,7 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
                        "%s(): PixelClkScheme=%u (Enhanced)\n", __func__, pixClk);
     }
 
-    ConfigBuffers(ptUserData);
+    sync_gige_after_reconfigure(ptUserData);
 
     x1 = ASIC_getX1(ptUserData);
     x2 = ASIC_getX2(ptUserData);

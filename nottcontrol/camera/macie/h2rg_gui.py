@@ -2314,8 +2314,8 @@ class H2rgMainWindow(QMainWindow):
         for index, row in self._roi_panel.rows.items():
             row.show_checkbox.setChecked(index in self._h2rg_rois)
             row.show_checkbox.setEnabled(index in self._h2rg_rois)
-            row.pop_checkbox.setEnabled(False)
         image_column_layout.addWidget(self._roi_panel, stretch=0)
+        self._sync_roi_pop_controls()
         top.addWidget(image_column, stretch=1)
 
         # Right: logo + config at top; acquisition at bottom (aligns with ROI bottom).
@@ -2527,6 +2527,9 @@ class H2rgMainWindow(QMainWindow):
         self.ui.comboBox_window_mode.currentIndexChanged.connect(
             self._on_window_mode_changed
         )
+        self.ui.comboBox_window_mode.currentIndexChanged.connect(
+            lambda _index: self._sync_roi_pop_controls()
+        )
         self.ui.comboBox_detector_mode.currentIndexChanged.connect(
             self._on_detector_mode_changed
         )
@@ -2610,7 +2613,13 @@ class H2rgMainWindow(QMainWindow):
             return int(shape[0]), int(shape[1])
         return None
 
+    def _subframe_window_selected(self) -> bool:
+        mode = self._selected_window_mode()
+        return bool(mode.x_window or mode.y_window)
+
     def _display_is_subframe(self, frame_shape: tuple[int, ...] | None = None) -> bool:
+        if self._subframe_window_selected():
+            return True
         if frame_shape is None:
             frame_shape = self._frame_shape_for_roi()
         if frame_shape is not None:
@@ -2618,13 +2627,12 @@ class H2rgMainWindow(QMainWindow):
             if height >= H2RG_ARRAY_SIZE - 16 and width >= H2RG_ARRAY_SIZE - 16:
                 return False
             return True
-        mode = self._selected_window_mode()
-        return bool(mode.x_window or mode.y_window)
+        return False
 
     def _sync_roi_pop_controls(self) -> None:
         if self._roi_panel is None:
             return
-        subframe = self._display_is_subframe()
+        subframe = self._subframe_window_selected()
         for index, row in self._roi_panel.rows.items():
             enabled = subframe and index in self._h2rg_rois
             row.pop_checkbox.setEnabled(enabled)
@@ -2640,7 +2648,7 @@ class H2rgMainWindow(QMainWindow):
         image_w: int,
         image_h: int,
     ) -> dict[int, tuple[int, int, int, int]]:
-        if self._roi_panel is None or not self._display_is_subframe((image_h, image_w)):
+        if self._roi_panel is None or not self._subframe_window_selected():
             return mapped
         merged = dict(mapped)
         for index, row in self._roi_panel.rows.items():
@@ -3336,6 +3344,18 @@ class H2rgMainWindow(QMainWindow):
         # uses so photon/execution match immediately (not only on Acquire).
         self._applied_exposure_fingerprint = None
         report = self._apply_exposure_settings(macie, force=True)
+        # Re-latch WinMode/stripe/XY after ramp-plan ReconfigureASIC. Init only
+        # ran frame_settings once; exposure reconfigure poisons full-frame GigE
+        # (~65535 ADU) until geometry is programmed again (window toggle did
+        # this implicitly via a second frame_settings call).
+        macie.frame_settings(
+            mode.x_window,
+            mode.y_window,
+            mode.x1,
+            mode.x2,
+            mode.y1,
+            mode.y2,
+        )
         self.display_window_updated.emit(display_window_origin(mode))
         if mode.y_window and not mode.x_window:
             nreads = int(report.get("nreads", 0))
@@ -3594,6 +3614,8 @@ class H2rgMainWindow(QMainWindow):
         if enabled and not self._macie_operation_busy and not self._live_active:
             self._set_exposure_panel_enabled(True)
         self._sync_background_buttons_enabled()
+        if enabled:
+            self._sync_roi_pop_controls()
 
     def _apply_init_button_state(self, state: str) -> None:
         if self.ui is None:

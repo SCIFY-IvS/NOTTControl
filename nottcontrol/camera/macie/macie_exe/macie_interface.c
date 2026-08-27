@@ -198,6 +198,7 @@ extern "C" bool M_set_exp_mode(unsigned int mode)
         printf("Reconfigure failed after ExpMode change\n");
         return false;
     }
+    sync_gige_after_reconfigure(_ptUserData);
     return true;
 }
 
@@ -233,6 +234,7 @@ extern "C" bool M_set_save_rst_frames(bool save)
         printf("Reconfigure failed after SaveRstFrames change\n");
         return false;
     }
+    sync_gige_after_reconfigure(_ptUserData);
     return true;
 }
 

@@ -360,9 +360,9 @@ class H2rgRoiRow:
 
         grid.addWidget(self.name_label, row, 0)
         grid.addWidget(self.show_checkbox, row, 1, Qt.AlignCenter)
-        grid.addWidget(self.time_plot_checkbox, row, 2, Qt.AlignCenter)
-        grid.addWidget(self.profile_plot_checkbox, row, 3, Qt.AlignCenter)
-        grid.addWidget(self.pop_checkbox, row, 4, Qt.AlignCenter)
+        grid.addWidget(self.pop_checkbox, row, 2, Qt.AlignCenter)
+        grid.addWidget(self.time_plot_checkbox, row, 3, Qt.AlignCenter)
+        grid.addWidget(self.profile_plot_checkbox, row, 4, Qt.AlignCenter)
         grid.addWidget(self.min_label, row, 5, Qt.AlignRight | Qt.AlignVCenter)
         grid.addWidget(self.max_label, row, 6, Qt.AlignRight | Qt.AlignVCenter)
         grid.addWidget(self.avg_label, row, 7, Qt.AlignRight | Qt.AlignVCenter)
@@ -443,7 +443,7 @@ def _build_roi_column(
     grid.setHorizontalSpacing(scaled(2))
     grid.setVerticalSpacing(0)
 
-    headers = ("", "On", "T", "1D", "Pop", "Min", "Max", "Avg")
+    headers = ("", "On", "Pop", "T", "1D", "Min", "Max", "Avg")
     for col, text in enumerate(headers):
         label = QLabel(text, host)
         label.setStyleSheet(_header_style())

@@ -217,6 +217,7 @@ extern unsigned long CalcBuffSize(MACIE_Settings *ptUserData);
 extern unsigned long CalcBuffSize(MACIE_Settings *ptUserData, unsigned int mode);
 extern short CalcNBuffers(MACIE_Settings *ptUserData);
 extern void ConfigBuffers(MACIE_Settings *ptUserData);
+extern void sync_gige_after_reconfigure(MACIE_Settings *ptUserData);
 extern bool VerifyBuffers(MACIE_Settings *ptUserData);
 extern double MemBufferFrac(MACIE_Settings *ptUserData);
 
