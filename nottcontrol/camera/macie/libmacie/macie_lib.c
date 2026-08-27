@@ -4452,19 +4452,18 @@ bool set_frame_settings(MACIE_Settings *ptUserData, bool bHorzWin, bool bVertWin
         return false;
     }
 
-    // Pixel Clock scheme: Slow Mode v5+ Enhanced shifts columns every other
-    // acquisition (32-channel seams on Live / repeated GUI acquire). Always use
-    // Normal (0) here; MSAC may still show Enhanced until Set/Init via GUI.
+    // Keep Enhanced clocking (MCD default) for full frame and windowed readout.
+    // MSAC cold science uses Enhanced on full frame; do not downgrade to Normal.
     if (RegMap.count("PixelClkScheme") > 0)
     {
-        uint pixClk = ptUserData->winPixelClkScheme;
+        uint pixClk = ptUserData->ffPixelClkScheme;
         SetASICParameter(ptUserData, "PixelClkScheme", pixClk);
         if (ReconfigureASIC(ptUserData) == false)
         {
             verbose_printf(LOG_ERROR, ptUserData, "Reconfigure failed at %s()\n", __func__);
         }
         verbose_printf(LOG_INFO, ptUserData,
-                       "%s(): PixelClkScheme=%u (Normal)\n", __func__, pixClk);
+                       "%s(): PixelClkScheme=%u (Enhanced)\n", __func__, pixClk);
     }
 
     x1 = ASIC_getX1(ptUserData);
