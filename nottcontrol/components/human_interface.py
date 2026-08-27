@@ -6,7 +6,6 @@ from time import sleep, time
 from tqdm import tqdm
 from copy import copy
 from datetime import datetime, timedelta, timezone
-import threading
 from xaosim.shmlib import shm
 from scipy.linalg import hadamard
 
@@ -93,6 +92,7 @@ from nottcontrol.opcua import OPCUAConnection
 from nottcontrol.components.shutter import Shutter
 from nottcontrol.components.delayline import DelayLine
 from nottcontrol.script.lib.nott_utils import MotorError
+from nottcontrol.components.netgear.netgear_interface import NetGearInterface
 from nottcontrol.camera.frame import Frame
 from nottcontrol.lucid.lib.lucid_utils import LucidUtils, ref_state
 from nottcontrol.script.lib.nott_database import get_field
@@ -394,6 +394,13 @@ class HumInt(object):
         self.frame_VIS_im = None
 
         self._stream_process = {"im_cam":None, "pup_cam": None}
+        # Netgear PoE switch
+        self._ng = NetGearInterface(host=config["netgear"]["host"])
+        self._ng_im_port = config.getint("netgear", "im_port")
+        self._ng_pup_port = config.getint("netgear", "pup_port")
+        # Lucid visible cameras streaming
+        self._stream_process = {"im_cam": None, "pup_cam": None}
+        self._stream_stop_event = {"im_cam": None, "pup_cam": None}
 
         # Getting link between outputs and ROI indices from config
         channel_labels = config.getarray(INFRATEC_SECTION, "channel_labels", str)
@@ -421,7 +428,7 @@ class HumInt(object):
             if process is not None:
                 process.terminate()
                 process.join()
-        
+
         if hasattr(self, "buffer_im_IR"):
             self.buffer_im_IR.close()
         if hasattr(self, "buffer_im_VIS_pup"):
@@ -446,30 +453,39 @@ class HumInt(object):
     def disp_initialize_shm_IR_cam(self):
         """
         Function that initializes a buffer for real-time transfer (shm) and display (shmview) of IR camera images.
-            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout. 
+            - buffer_im_IR; (IR frame shape); Infrared camera view of the latest readout.
         """
-        self.buffer_im_IR = SimpleShm("/dev/shm/rtdisp/nott_window.im.shm",
-                                        shape=self.dark.master_full[0].shape)
+        self.buffer_im_IR = SimpleShm(
+            "/dev/shm/rtdisp/nott_window.im.shm", shape=self.dark.master_full[0].shape
+        )
 
     def _init_shm_VIS_cam(self, name, frame):
         """
         Static function that initializes or re-initializes a buffer for real-time transfer (shm) and display (shmview) of visible camera images from camera {name}.
         Use a freshly-snapped frame {frame} to correctly set the buffer shape and datatype.
-        Upon re-initialization, close the existing buffer.   
+        Upon re-initialization, close the existing buffer.
         """
         if name == "im_cam":
             if hasattr(self, "buffer_im_VIS_im"):
                 self.buffer_im_VIS_im.close()
-            self.buffer_im_VIS_im = SimpleShm("/dev/shm/rtdisp/vis_cam_image.im.shm",
-                                                shape=frame.shape, dtype=frame.dtype)
+            self.buffer_im_VIS_im = SimpleShm(
+                "/dev/shm/rtdisp/vis_cam_image.im.shm",
+                shape=frame.shape,
+                dtype=frame.dtype,
+            )
         elif name == "pup_cam":
             if hasattr(self, "buffer_im_VIS_pup"):
                 self.buffer_im_VIS_pup.close()
-            self.buffer_im_VIS_pup = SimpleShm("/dev/shm/rtdisp/vis_cam_pupil.im.shm",
-                                                shape=frame.shape, dtype=frame.dtype)
+            self.buffer_im_VIS_pup = SimpleShm(
+                "/dev/shm/rtdisp/vis_cam_pupil.im.shm",
+                shape=frame.shape,
+                dtype=frame.dtype,
+            )
         else:
-            raise ValueError(f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'.")
-        
+            raise ValueError(
+                f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'."
+            )
+
     def disp_initialize_shm_VIS_cam(self):
         """
         Function that initializes a buffer for real-time transfer (shm) and display (shmview) of visible camera images from both cameras.
@@ -874,7 +890,9 @@ class HumInt(object):
         with LucidUtils() as myut:
             myut.configure_camera_readout(name, **params)
             if not myut.readout_configured[name]:
-                raise RuntimeError(f"Configuration of camera {name} failed. Datatype of the shm buffer could not be refreshed.")
+                raise RuntimeError(
+                    f"Configuration of camera {name} failed. Datatype of the shm buffer could not be refreshed."
+                )
             # If PixelFormat changed, refresh shm buffer datatype.
             if "PixelFormat" in params:
                 frame = myut.snap(name)
@@ -891,23 +909,31 @@ class HumInt(object):
         """
         if name == "im_cam":
             if not hasattr(self, "buffer_im_VIS_im"):
-                raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+                raise RuntimeError(
+                    f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
+                )
             self.buffer_im_VIS_im.push(frame)
         elif name == "pup_cam":
             if not hasattr(self, "buffer_im_VIS_pup"):
-                raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+                raise RuntimeError(
+                    f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
+                )
             self.buffer_im_VIS_pup.push(frame)
         else:
-            raise ValueError(f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'.")
+            raise ValueError(
+                f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'."
+            )
 
     def snap_VIS_cam(self, name):
         """
         Function that snaps a single frame from camera {name} and pushes it to the associated shm buffer.
         Cannot be called if a streaming process is active on the camera.
-        This to avoid writing data to the buffer through two channels (snap_VIS_cam and the streaming process) and data corrupting as a result. 
+        This to avoid writing data to the buffer through two channels (snap_VIS_cam and the streaming process) and data corrupting as a result.
         """
         if self._stream_process.get(name) is not None:
-            raise RuntimeError(f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot.")
+            raise RuntimeError(
+                f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot."
+            )
 
         with LucidUtils() as myut:
             frame = myut.snap(name)
@@ -918,28 +944,32 @@ class HumInt(object):
         """
         Function that stores a given beam centroid position and dimension in the reference state of lucid_utils and writes it to the config file.
         """
-        beam_name = "beam"+str(beam_nr)
+        beam_name = "beam" + str(beam_nr)
         section = "ref_im" if name == "im_cam" else "ref_pup"
         value = str((round(x, 4), round(y, 4), round(r, 4)))
-        ref_state[name][beam_name] = (x,y,r)
+        ref_state[name][beam_name] = (x, y, r)
         config.config_parser.set(section, beam_name, value)
         config.write()
-        print(f"Reference beam state saved for {beam_name} on camera {name}: x={x:.4f}, y={y:.4f}, r={r:.4f}.")
-        
+        print(
+            f"Reference beam state saved for {beam_name} on camera {name}: x={x:.4f}, y={y:.4f}, r={r:.4f}."
+        )
+
     def fit_VIS_cam(self, name, beam_nr, visual_feedback=False, save_ref=False):
         """
         Function that fits a beam centroid to a frame acquired by camera {name}. Returns position (x,y) and radius r of beam number {beam_nr}.
         Cannot be called if a streaming process is active on the camera.
         If save_ref is True, saves the acquired beam centroid and dimension to the config file.
-        """       
+        """
         if self._stream_process.get(name) is not None:
-            raise RuntimeError(f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot.")
+            raise RuntimeError(
+                f"Camera {name} is streaming. Call method stop_stream_VIS_cam() before acquiring a snapshot."
+            )
 
         with LucidUtils() as myut:
-            x,y,r = myut.fit(name, beam_nr, visual_feedback)
+            x, y, r = myut.fit(name, beam_nr, visual_feedback)
         if save_ref:
             self._save_ref(name, beam_nr, x, y, r)
-        return x,y,r
+        return x, y, r
 
     @staticmethod
     def _VIS_cam_process(name, shm_fname, stop_event):
@@ -952,7 +982,9 @@ class HumInt(object):
             shm_obj = shm(shm_fname)
             try:
                 while not stop_event.is_set():
-                    frame = myut._get_frame(myut.devices[name], myut.devices[name].nodemap)
+                    frame = myut._get_frame(
+                        myut.devices[name], myut.devices[name].nodemap
+                    )
                     shm_obj.set_data(frame)
             finally:
                 myut.stop_streaming(name)
@@ -968,18 +1000,28 @@ class HumInt(object):
         elif name == "pup_cam":
             shm_fname = "/dev/shm/rtdisp/vis_cam_pupil.im.shm"
         else:
-            raise ValueError(f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'.")
+            raise ValueError(
+                f"Camera {name} not recognized, expected either 'im_cam' or 'pup_cam'."
+            )
 
         if not hasattr(self, "buffer_im_VIS_im") and name == "im_cam":
-            raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+            raise RuntimeError(
+                f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
+            )
         if not hasattr(self, "buffer_im_VIS_pup") and name == "pup_cam":
-            raise RuntimeError(f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first.")
+            raise RuntimeError(
+                f"No shm buffer found to push camera {name}'s frames to. Please call disp_initialize_shm_VIS_cam() first."
+            )
 
         if self._stream_process.get(name) is not None:
             raise RuntimeError(f"Camera {name} is already streaming to buffer.")
 
         stop_event = mp.Event()
-        process = mp.Process(target=HumInt._VIS_cam_process, args=(name, shm_fname, stop_event), daemon=True)
+        process = mp.Process(
+            target=HumInt._VIS_cam_process,
+            args=(name, shm_fname, stop_event),
+            daemon=True,
+        )
         process.start()
 
         self._stream_process[name] = process
@@ -987,14 +1029,14 @@ class HumInt(object):
 
     def stop_stream_VIS_cam(self, name, process, stop_event):
         """
-        Stop the visible camera streaming process for camera {name}. 
+        Stop the visible camera streaming process for camera {name}.
         """
         stop_event.set()
         process.join()
         self._stream_process[name] = None
         print(f"Stream stopped for visible camera {name}.")
 
-    #------------------#
+    # ------------------#
     # Sample functions |
     # -----------------#
 
