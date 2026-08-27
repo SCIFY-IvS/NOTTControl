@@ -33,6 +33,7 @@ dependencies = [
   "astropy",
   "pyserial",
   "scikit-learn",
+  "netmiko",
 ]
 
 [project.optional-dependencies]
