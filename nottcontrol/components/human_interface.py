@@ -398,9 +398,16 @@ class HumInt(object):
 
         # Stop any active processes streaming to buffers.
         for name, process in self._stream_process.items():
+            # Try soft stop first (via stop-event flag)
             if process is not None:
-                process.terminate()
-                process.join()
+                stop_event = self._stream_stop_event.get(name)
+                if stop_event is not None:
+                    stop_event.set()
+                process.join(timeout=5)
+                if process.is_alive():
+                    # Resort to hard stop if necessary
+                    process.terminate()
+                    process.join()
 
         if hasattr(self, "buffer_im_IR"):
             self.buffer_im_IR.close()
