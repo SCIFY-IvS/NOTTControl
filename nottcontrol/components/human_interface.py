@@ -847,6 +847,27 @@ class HumInt(object):
 
     # WIP
 
+    def poweron_VIS_cam(self):
+        """
+        Power on both visible cameras via the PoE switch.
+        """
+        self._ng.toggle_power(self._ng_im_port, True)
+        self._ng.toggle_power(self._ng_pup_port, True)
+        print("Visible cameras powered on via PoE.")
+
+    def shutdown_VIS_cam(self):
+        """
+        Stop any active stream, disconnect the corresponding camera and power off both visible cameras via the PoE switch.
+        """
+        # Stop stream and disconnect
+        for name, process in self._stream_process.items():
+            if process is not None:
+                self.stop_stream_VIS_cam(name)
+        # Power off both cameras
+        self._ng.toggle_power(self._ng_im_port, False)
+        self._ng.toggle_power(self._ng_pup_port, False)
+        print("Streams closed, visible cameras powered off via PoE.")
+
     def configure_VIS_cam_readout(self, name, **params):
         """
         Configure the readout parameters for camera {name}.
