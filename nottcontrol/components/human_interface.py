@@ -1025,15 +1025,24 @@ class HumInt(object):
         process.start()
 
         self._stream_process[name] = process
+        self._stream_stop_event[name] = stop_event
         return process, stop_event
 
-    def stop_stream_VIS_cam(self, name, process, stop_event):
+    def stop_stream_VIS_cam(self, name):
         """
         Stop the visible camera streaming process for camera {name}.
         """
+        process = self._stream_process.get(name)
+        stop_event = self._stream_stop_event.get(name)
+
+        if process is None:
+            print(f"Camera {name} is not streaming.")
+            return
+
         stop_event.set()
         process.join()
         self._stream_process[name] = None
+        self._stream_stop_event[name] = None
         print(f"Stream stopped for visible camera {name}.")
 
     # ------------------#
