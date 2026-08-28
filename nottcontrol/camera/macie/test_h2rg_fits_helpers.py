@@ -14,11 +14,13 @@ import numpy
 
 from nottcontrol.camera.macie.h2rg_gui import (
     WINDOW_MODES,
+    H2rgMainWindow,
     _bottom_vertical_stripe,
     _centered_vertical_stripe,
     _centered_window,
     _channel_window,
     acquire_archive_science_params,
+    apply_window_geometry,
     central_value_median,
     cube_reset_kwargs,
     fits_basename,
@@ -489,6 +491,51 @@ class AcquireArchiveScienceParamsTests(unittest.TestCase):
         thread.join(timeout=2.0)
         self.assertFalse(thread.is_alive())
         self.assertEqual(events, ["zmq-done", "archive-done"])
+
+
+class ApplyWindowGeometryTests(unittest.TestCase):
+    def test_forwards_full_frame_and_sc_args(self) -> None:
+        class FakeMacie:
+            def __init__(self) -> None:
+                self.args = None
+
+            def frame_settings(self, *args) -> None:
+                self.args = args
+
+        macie = FakeMacie()
+        full = WINDOW_MODES[0]
+        apply_window_geometry(macie, full)
+        self.assertEqual(
+            macie.args,
+            (full.x_window, full.y_window, full.x1, full.x2, full.y1, full.y2),
+        )
+
+        sc = next(mode for mode in WINDOW_MODES if mode.label == "SC 256")
+        apply_window_geometry(macie, sc)
+        self.assertEqual(
+            macie.args,
+            (sc.x_window, sc.y_window, sc.x1, sc.x2, sc.y1, sc.y2),
+        )
+        self.assertTrue(sc.y_window)
+        self.assertFalse(sc.x_window)
+
+    def test_exposure_reconfigure_is_followed_by_geometry_latch(self) -> None:
+        """Set/Acquire/Live share _apply_exposure_settings; it must relatch.
+
+        configure_ramp_exposure ReconfigureASIC poisons full-frame GigE
+        (~65535 ADU) until frame_settings runs again. Window toggle already
+        did this; Set and Acquire did not.
+        """
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow._apply_exposure_settings)
+        configure_at = source.index("configure_ramp_exposure")
+        latch_at = source.index("apply_window_geometry")
+        self.assertGreater(
+            latch_at,
+            configure_at,
+            "WinMode/stripe/XY must be re-latched after the ramp-plan write",
+        )
 
 
 if __name__ == "__main__":

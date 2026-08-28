@@ -324,6 +324,24 @@ WINDOW_MODES = _build_window_modes()
 DETECTOR_MODES = ("Slow", "Fast")
 
 
+def apply_window_geometry(macie, mode: WindowMode) -> None:
+    """Program WinMode/stripe/XY so GigE matches the last ReconfigureASIC.
+
+    Ramp-plan exposure writes (ExpMode / SaveRst / NGroups) reconfigure the
+    ASIC and poison full-frame GigE (~65535 ADU) until geometry is latched
+    again. Window toggle already did this via a second frame_settings call;
+    Set / Acquire / Live / Take Background must do the same.
+    """
+    macie.frame_settings(
+        mode.x_window,
+        mode.y_window,
+        mode.x1,
+        mode.x2,
+        mode.y1,
+        mode.y2,
+    )
+
+
 def soft_sc_top_pad(mode: WindowMode, array_size: int = H2RG_ARRAY_SIZE) -> int:
     """Leading reference-row pad in SC FITS (always 0: ASIC Y = stripe, ny rows)."""
     _ = (mode, array_size)
@@ -3300,14 +3318,7 @@ class H2rgMainWindow(QMainWindow):
 
     def _apply_window_mode_to_macie(self, macie, index: int) -> None:
         mode = WINDOW_MODES[index]
-        macie.frame_settings(
-            mode.x_window,
-            mode.y_window,
-            mode.x1,
-            mode.x2,
-            mode.y1,
-            mode.y2,
-        )
+        apply_window_geometry(macie, mode)
         # Confirm what the server actually programmed (helps catch SC mis-centers).
         try:
             x_win, y_win, x1, x2, y1, y2 = macie.read_frame_settings()
@@ -3344,18 +3355,8 @@ class H2rgMainWindow(QMainWindow):
         # uses so photon/execution match immediately (not only on Acquire).
         self._applied_exposure_fingerprint = None
         report = self._apply_exposure_settings(macie, force=True)
-        # Re-latch WinMode/stripe/XY after ramp-plan ReconfigureASIC. Init only
-        # ran frame_settings once; exposure reconfigure poisons full-frame GigE
-        # (~65535 ADU) until geometry is programmed again (window toggle did
-        # this implicitly via a second frame_settings call).
-        macie.frame_settings(
-            mode.x_window,
-            mode.y_window,
-            mode.x1,
-            mode.x2,
-            mode.y1,
-            mode.y2,
-        )
+        # Trailing latch after the ramp-plan reconfigure (Init/window toggle).
+        apply_window_geometry(macie, mode)
         self.display_window_updated.emit(display_window_origin(mode))
         if mode.y_window and not mode.x_window:
             nreads = int(report.get("nreads", 0))
@@ -3944,6 +3945,10 @@ class H2rgMainWindow(QMainWindow):
             # CDS WinMode: never 1-read. Ramp WinMode may be one frame.
             windowed_cds=self._windowed_cds_layout() and ramp_mode == "CDS",
         )
+        # ExpMode/SaveRst/NGroups ReconfigureASIC poisons full-frame GigE
+        # (~65535 ADU) until WinMode/stripe/XY is programmed again. Window
+        # apply already relatched; Set / Acquire / Live / background did not.
+        apply_window_geometry(macie, self._selected_window_mode())
         self._last_tint_ms = float(result["inttime_ms"])
         # Ramp/CDS may quantize DIT to N×frametime — mirror in the box.
         rounded = result.get("rounded_tint_ms")
