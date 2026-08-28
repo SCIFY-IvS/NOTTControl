@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Plot illuminated-region ADU along MSAC UpTheRamp FITS cubes.
 #
-# Default root: ~/frames/H2RG_ASIC/UpTheRamp/
+# Default root: /data/bench_data/H2RG_ASIC/ (MSAC saveDir; MACIE appends YYYYMMDD/)
 # The script uses the latest subdirectory under that root (session folder).
 #
 # Default illuminated region: Photonic chip WinMode (X=1024–1087, Y=928–959)

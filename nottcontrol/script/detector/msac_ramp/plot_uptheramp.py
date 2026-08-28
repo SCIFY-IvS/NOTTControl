@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Plot illuminated-region ADU vs MSAC UpTheRamp file index.
 
-Default data root (on the acquisition machine)::
+Default data root (on nott-server, MSAC saveDir)::
 
-    ~/frames/H2RG_ASIC/UpTheRamp/
+    /data/bench_data/H2RG_ASIC/
 
 MSAC writes each session into a subdirectory of that root. By default the
 script selects the **latest** subdirectory (by modification time), then
@@ -62,7 +62,7 @@ import numpy as np
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
-DEFAULT_RAMP_ROOT = Path.home() / "frames" / "H2RG_ASIC" / "UpTheRamp"
+DEFAULT_RAMP_ROOT = Path("/data/bench_data/H2RG_ASIC")
 DEFAULT_N_ILLUM_PIXELS = 100
 DEFAULT_N_BRIGHTEST = 10
 DEFAULT_ILLUM_SIZE = 20
