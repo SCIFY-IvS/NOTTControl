@@ -160,6 +160,10 @@ class MacieInterface():
         self._live_error_callback: Callable[[Exception], None] | None = None
         self._live_frame_callback: Callable[[numpy.ndarray | None], None] | None = None
         self._live_first_acquire = True
+        # Last WinMode/stripe/XY programmed via frame_settings. Re-sent after
+        # every exposure_settings write — NGroups ReconfigureASIC poisons
+        # full-frame GigE (~65535 ADU) until geometry is latched again.
+        self._last_frame_settings: tuple | None = None
 
     def set_live_error_callback(
         self, callback: Callable[[Exception], None] | None
@@ -468,7 +472,12 @@ class MacieInterface():
 
     def exposure_settings(self, save, ncoadds, nseq, ngroups, nreads, ndrops, nresets):
         message = f"expsettings;{str(save).lower()};{ncoadds};{nseq};{ngroups};{nreads};{ndrops};{nresets}"
-        return self._request(message)
+        result = self._request(message)
+        # Live nseq=1 and Take Background override_nseq write this after the
+        # GUI already latched geometry. The NGroups ReconfigureASIC poisons
+        # full-frame GigE again until WinMode/stripe/XY is programmed.
+        self._relatch_frame_settings()
+        return result
 
     def set_exp_mode(self, mode: int) -> bool:
         return self._request(f"expmode;{int(mode)}")
@@ -586,8 +595,31 @@ class MacieInterface():
         return (save, ncoadds, nsaved_ramps, ngroups, nreads, ndrops, nresets)
 
     def frame_settings(self, xWindow: bool, yWindow: bool, x1:int, x2:int, y1:int, y2: int):
-        message = f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};{x1};{x2};{y1};{y2}"
+        self._last_frame_settings = (
+            bool(xWindow),
+            bool(yWindow),
+            int(x1),
+            int(x2),
+            int(y1),
+            int(y2),
+        )
+        message = (
+            f"framesettings;{str(xWindow).lower()};{str(yWindow).lower()};"
+            f"{x1};{x2};{y1};{y2}"
+        )
         return self._request(message)
+
+    def _relatch_frame_settings(self) -> bool:
+        """Re-program cached WinMode/stripe/XY after an exposure reconfigure."""
+        cached = getattr(self, "_last_frame_settings", None)
+        if not cached:
+            return False
+        x_window, y_window, x1, x2, y1, y2 = cached
+        message = (
+            f"framesettings;{str(x_window).lower()};{str(y_window).lower()};"
+            f"{x1};{x2};{y1};{y2}"
+        )
+        return bool(self._request(message))
 
     def read_frame_settings(self):
         answer = self._request("rframesettings")
