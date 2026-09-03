@@ -537,6 +537,21 @@ class ApplyWindowGeometryTests(unittest.TestCase):
             "WinMode/stripe/XY must be re-latched after the ramp-plan write",
         )
 
+    def test_live_clicked_sets_starting_flag_before_worker(self) -> None:
+        """Second Live click during ZMQ arm must not start another session."""
+        import inspect
+
+        source = inspect.getsource(H2rgMainWindow.live_clicked)
+        flag_at = source.index("self._live_starting = True")
+        thread_at = source.index("threading.Thread")
+        self.assertGreater(
+            thread_at,
+            flag_at,
+            "Live start must latch _live_starting before the ZMQ worker",
+        )
+        acquire_src = inspect.getsource(H2rgMainWindow.acquire)
+        self.assertIn("_live_session_busy()", acquire_src)
+
 
 if __name__ == "__main__":
     unittest.main()

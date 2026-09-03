@@ -194,15 +194,18 @@ class MacieInterface():
         save, ncoadds, nseq, ngroups, nreads, ndrops, nresets = (
             self.read_exposure_settings()
         )
-        self._live_restore_exposure = (
-            bool(save),
-            int(ncoadds),
-            int(nseq),
-            int(ngroups),
-            int(nreads),
-            int(ndrops),
-            int(nresets),
-        )
+        # A second Live start (button still says Live while ZMQ arms) must not
+        # replace the original N-ramp snapshot with the already-forced nseq=1.
+        if self._live_restore_exposure is None:
+            self._live_restore_exposure = (
+                bool(save),
+                int(ncoadds),
+                int(nseq),
+                int(ngroups),
+                int(nreads),
+                int(ndrops),
+                int(nresets),
+            )
         # One ramp per acquire; keep the latched CDS/Ramp group structure.
         self.exposure_settings(
             False, 1, 1, int(ngroups), int(nreads), int(ndrops), int(nresets)
@@ -613,11 +616,14 @@ class MacieInterface():
 
     def start_continuous_acquisition(self):
         self._live_first_acquire = True
+        previous_restore = self._live_restore_exposure
         try:
             self._arm_live_single_ramp()
         except Exception as exc:
             print(f"Live single-ramp arm failed: {exc}")
-            self._live_restore_exposure = None
+            # Keep a successful earlier snapshot if a second arm fails.
+            if previous_restore is None:
+                self._live_restore_exposure = None
         # Keep GigE open between single-ramp acquires so cadence tracks the
         # detector instead of open/close overhead every frame.
         try:
